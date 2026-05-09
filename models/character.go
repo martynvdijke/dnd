@@ -141,3 +141,107 @@ type DiceRoll struct {
 	Total       int    `json:"total"`
 	Timestamp   string `json:"timestamp"`
 }
+
+type Location struct {
+	ID          int64   `json:"id"`
+	UserID      int64   `json:"user_id"`
+	Name        string  `json:"name"`
+	Type        string  `json:"type"`
+	Description string  `json:"description"`
+	ParentID    *int64  `json:"parent_id,omitempty"`
+	Latitude    *float64 `json:"latitude,omitempty"`
+	Longitude   *float64 `json:"longitude,omitempty"`
+	CreatedAt   string  `json:"created_at"`
+}
+
+type CharacterLocation struct {
+	ID           int64  `json:"id"`
+	CharacterID  int64  `json:"character_id"`
+	LocationID   int64  `json:"location_id"`
+	Relationship string `json:"relationship"`
+	Notes        string `json:"notes"`
+}
+
+type NPC struct {
+	ID          int64  `json:"id"`
+	UserID      int64  `json:"user_id"`
+	Name        string `json:"name"`
+	Race        string `json:"race"`
+	Class       string `json:"class"`
+	Description string `json:"description"`
+	Notes       string `json:"notes"`
+	Str         int    `json:"str"`
+	Dex         int    `json:"dex"`
+	Con         int    `json:"con"`
+	Int         int    `json:"int"`
+	Wis         int    `json:"wis"`
+	Cha         int    `json:"cha"`
+	HPMax       int    `json:"hp_max"`
+	HPCurrent   int    `json:"hp_current"`
+	IsAlive     bool   `json:"is_alive"`
+	CreatedAt   string `json:"created_at"`
+}
+
+type CharacterNPC struct {
+	ID           int64  `json:"id"`
+	CharacterID  int64  `json:"character_id"`
+	NPCID        int64  `json:"npc_id"`
+	Relationship string `json:"relationship"`
+	Notes        string `json:"notes"`
+}
+
+type Session struct {
+	ID             int64  `json:"id"`
+	CharacterID    int64  `json:"character_id"`
+	SessionDate    string `json:"session_date"`
+	Title          string `json:"title"`
+	Notes          string `json:"notes"`
+	XPEarned       int    `json:"xp_earned"`
+	GoldEarned     int    `json:"gold_earned"`
+	ImportantEvents string `json:"important_events"`
+	CreatedAt      string `json:"created_at"`
+}
+
+type Quest struct {
+	ID          int64  `json:"id"`
+	CharacterID int64  `json:"character_id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Status      string `json:"status"`
+	Objectives  string `json:"objectives"`
+	Rewards     string `json:"rewards"`
+	Notes       string `json:"notes"`
+	CreatedAt   string `json:"created_at"`
+	UpdatedAt   string `json:"updated_at"`
+}
+
+type JournalEntry struct {
+	ID          int64  `json:"id"`
+	CharacterID int64  `json:"character_id"`
+	Title       string `json:"title"`
+	Entry       string `json:"entry"`
+	EntryDate   string `json:"entry_date"`
+	CreatedAt   string `json:"created_at"`
+}
+
+type GraphNode struct {
+	ID     string `json:"id"`
+	Label  string `json:"label"`
+	Group  string `json:"group"`
+	Color  string `json:"color"`
+	Size   int    `json:"size"`
+	CharID int64  `json:"char_id,omitempty"`
+}
+
+type GraphEdge struct {
+	From     string `json:"from"`
+	To       string `json:"to"`
+	Label    string `json:"label,omitempty"`
+	Dashes   bool   `json:"dashes"`
+	Width    int    `json:"width"`
+}
+
+type GraphData struct {
+	Nodes []GraphNode `json:"nodes"`
+	Edges []GraphEdge `json:"edges"`
+}

@@ -14,11 +14,11 @@ import (
 
 type SessionStore struct {
 	mu       sync.RWMutex
-	sessions map[string]*models.Session
+	sessions map[string]*models.AuthSession
 }
 
 var Store = &SessionStore{
-	sessions: make(map[string]*models.Session),
+	sessions: make(map[string]*models.AuthSession),
 }
 
 func generateSessionID() string {
@@ -30,7 +30,7 @@ func generateSessionID() string {
 func (s *SessionStore) Create(userID int64, username, role, ip string) string {
 	id := generateSessionID()
 	s.mu.Lock()
-	s.sessions[id] = &models.Session{
+	s.sessions[id] = &models.AuthSession{
 		UserID:    userID,
 		Username:  username,
 		Role:      role,
@@ -41,7 +41,7 @@ func (s *SessionStore) Create(userID int64, username, role, ip string) string {
 	return id
 }
 
-func (s *SessionStore) Get(sessionID string) *models.Session {
+func (s *SessionStore) Get(sessionID string) *models.AuthSession {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	sess, ok := s.sessions[sessionID]

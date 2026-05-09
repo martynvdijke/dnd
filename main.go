@@ -113,6 +113,45 @@ func main() {
 		auth.PUT("/backup/settings", handlers.SaveBackupSettings)
 		auth.POST("/backup/trigger", handlers.TriggerBackup)
 		auth.GET("/backup/list", handlers.ListBackups)
+
+		// Locations
+		auth.GET("/locations", handlers.ListLocations)
+		auth.POST("/locations", handlers.CreateLocation)
+		auth.PUT("/locations/:id", handlers.UpdateLocation)
+		auth.DELETE("/locations/:id", handlers.DeleteLocation)
+		// Character-Location links
+		auth.GET("/characters/:id/locations", handlers.GetCharacterLocations)
+		auth.POST("/characters/:id/locations", handlers.LinkLocation)
+		auth.DELETE("/locations/link/:lid", handlers.UnlinkLocation)
+
+		// NPCs
+		auth.GET("/npcs", handlers.ListNPCs)
+		auth.POST("/npcs", handlers.CreateNPC)
+		auth.PUT("/npcs/:id", handlers.UpdateNPC)
+		auth.DELETE("/npcs/:id", handlers.DeleteNPC)
+		// Character-NPC links
+		auth.GET("/characters/:id/npcs", handlers.GetCharacterNPCs)
+		auth.POST("/characters/:id/npcs", handlers.LinkNPC)
+		auth.DELETE("/npcs/link/:nid", handlers.UnlinkNPC)
+
+		// Sessions
+		auth.GET("/characters/:id/sessions", handlers.ListSessions)
+		auth.POST("/characters/:id/sessions", handlers.CreateSession)
+		auth.DELETE("/sessions/:sid", handlers.DeleteSession)
+
+		// Quests
+		auth.GET("/characters/:id/quests", handlers.ListQuests)
+		auth.POST("/characters/:id/quests", handlers.CreateQuest)
+		auth.PUT("/quests/:qid", handlers.UpdateQuest)
+		auth.DELETE("/quests/:qid", handlers.DeleteQuest)
+
+		// Journal
+		auth.GET("/characters/:id/journal", handlers.ListJournal)
+		auth.POST("/characters/:id/journal", handlers.CreateJournalEntry)
+		auth.DELETE("/journal/:jid", handlers.DeleteJournalEntry)
+
+		// Graph
+		auth.GET("/characters/:id/graph", handlers.GetGraphData)
 	}
 
 	// Admin routes

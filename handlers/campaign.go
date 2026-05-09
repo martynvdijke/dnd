@@ -1,0 +1,471 @@
+package handlers
+
+import (
+	"net/http"
+	"strconv"
+
+	"github.com/gin-gonic/gin"
+
+	"vellum/db"
+	"vellum/models"
+)
+
+// ─── Locations ───
+
+func ListLocations(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	rows, err := db.DB.Query("SELECT id,user_id,name,type,description,parent_id,latitude,longitude,created_at FROM locations WHERE user_id=? ORDER BY name", userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	var out []models.Location
+	for rows.Next() {
+		var l models.Location
+		rows.Scan(&l.ID, &l.UserID, &l.Name, &l.Type, &l.Description, &l.ParentID, &l.Latitude, &l.Longitude, &l.CreatedAt)
+		out = append(out, l)
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+func CreateLocation(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	var l models.Location
+	if err := c.ShouldBindJSON(&l); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	result, err := db.DB.Exec("INSERT INTO locations(user_id,name,type,description,parent_id,latitude,longitude) VALUES(?,?,?,?,?,?,?)",
+		userID, l.Name, l.Type, l.Description, l.ParentID, l.Latitude, l.Longitude)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+func UpdateLocation(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var l models.Location
+	if err := c.ShouldBindJSON(&l); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	db.DB.Exec("UPDATE locations SET name=?,type=?,description=?,parent_id=?,latitude=?,longitude=? WHERE id=?",
+		l.Name, l.Type, l.Description, l.ParentID, l.Latitude, l.Longitude, id)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func DeleteLocation(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	db.DB.Exec("DELETE FROM locations WHERE id=?", id)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func LinkLocation(c *gin.Context) {
+	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var cl models.CharacterLocation
+	if err := c.ShouldBindJSON(&cl); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	_, err := db.DB.Exec("INSERT OR REPLACE INTO character_locations(character_id,location_id,relationship,notes) VALUES(?,?,?,?)",
+		charID, cl.LocationID, cl.Relationship, cl.Notes)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func UnlinkLocation(c *gin.Context) {
+	linkID, _ := strconv.ParseInt(c.Param("lid"), 10, 64)
+	db.DB.Exec("DELETE FROM character_locations WHERE id=?", linkID)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func GetCharacterLocations(c *gin.Context) {
+	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	rows, err := db.DB.Query(`
+		SELECT cl.id, cl.character_id, cl.location_id, cl.relationship, cl.notes,
+			l.name, l.type, l.description
+		FROM character_locations cl JOIN locations l ON cl.location_id = l.id
+		WHERE cl.character_id=? ORDER BY cl.relationship`, charID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	type LocLink struct {
+		models.CharacterLocation
+		LocationName string `json:"location_name"`
+		LocationType string `json:"location_type"`
+		Description  string `json:"description"`
+	}
+	var out []LocLink
+	for rows.Next() {
+		var ll LocLink
+		rows.Scan(&ll.ID, &ll.CharacterID, &ll.LocationID, &ll.Relationship, &ll.Notes,
+			&ll.LocationName, &ll.LocationType, &ll.Description)
+		out = append(out, ll)
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+// ─── NPCs ───
+
+func ListNPCs(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	rows, err := db.DB.Query("SELECT id,user_id,name,race,class,description,notes,str,dex,con,int,wis,cha,hp_max,hp_current,is_alive,created_at FROM npcs WHERE user_id=? ORDER BY name", userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	var out []models.NPC
+	for rows.Next() {
+		var n models.NPC
+		rows.Scan(&n.ID, &n.UserID, &n.Name, &n.Race, &n.Class, &n.Description, &n.Notes,
+			&n.Str, &n.Dex, &n.Con, &n.Int, &n.Wis, &n.Cha, &n.HPMax, &n.HPCurrent, &n.IsAlive, &n.CreatedAt)
+		out = append(out, n)
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+func CreateNPC(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	var n models.NPC
+	if err := c.ShouldBindJSON(&n); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	result, err := db.DB.Exec("INSERT INTO npcs(user_id,name,race,class,description,notes,str,dex,con,int,wis,cha,hp_max,hp_current,is_alive) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+		userID, n.Name, n.Race, n.Class, n.Description, n.Notes,
+		n.Str, n.Dex, n.Con, n.Int, n.Wis, n.Cha, n.HPMax, n.HPCurrent, n.IsAlive)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+func UpdateNPC(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var n models.NPC
+	if err := c.ShouldBindJSON(&n); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	db.DB.Exec("UPDATE npcs SET name=?,race=?,class=?,description=?,notes=?,str=?,dex=?,con=?,int=?,wis=?,cha=?,hp_max=?,hp_current=?,is_alive=? WHERE id=?",
+		n.Name, n.Race, n.Class, n.Description, n.Notes,
+		n.Str, n.Dex, n.Con, n.Int, n.Wis, n.Cha, n.HPMax, n.HPCurrent, n.IsAlive, id)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func DeleteNPC(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	db.DB.Exec("DELETE FROM npcs WHERE id=?", id)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func LinkNPC(c *gin.Context) {
+	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var cn models.CharacterNPC
+	if err := c.ShouldBindJSON(&cn); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	_, err := db.DB.Exec("INSERT OR REPLACE INTO character_npcs(character_id,npc_id,relationship,notes) VALUES(?,?,?,?)",
+		charID, cn.NPCID, cn.Relationship, cn.Notes)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func UnlinkNPC(c *gin.Context) {
+	linkID, _ := strconv.ParseInt(c.Param("nid"), 10, 64)
+	db.DB.Exec("DELETE FROM character_npcs WHERE id=?", linkID)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func GetCharacterNPCs(c *gin.Context) {
+	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	rows, err := db.DB.Query(`
+		SELECT cn.id, cn.character_id, cn.npc_id, cn.relationship, cn.notes,
+			n.name, n.race, n.class, n.hp_max, n.hp_current, n.is_alive
+		FROM character_npcs cn JOIN npcs n ON cn.npc_id = n.id
+		WHERE cn.character_id=? ORDER BY cn.relationship`, charID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	type NPCLink struct {
+		models.CharacterNPC
+		NPCName   string `json:"npc_name"`
+		NPCRace   string `json:"npc_race"`
+		NPCClass  string `json:"npc_class"`
+		NPHPMax   int    `json:"npc_hp_max"`
+		NPHPCurr  int    `json:"npc_hp_current"`
+		NPCAlive  bool   `json:"npc_is_alive"`
+	}
+	var out []NPCLink
+	for rows.Next() {
+		var nl NPCLink
+		rows.Scan(&nl.ID, &nl.CharacterID, &nl.NPCID, &nl.Relationship, &nl.Notes,
+			&nl.NPCName, &nl.NPCRace, &nl.NPCClass, &nl.NPHPMax, &nl.NPHPCurr, &nl.NPCAlive)
+		out = append(out, nl)
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+// ─── Sessions ───
+
+func ListSessions(c *gin.Context) {
+	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	rows, err := db.DB.Query("SELECT id,character_id,session_date,title,notes,xp_earned,gold_earned,important_events,created_at FROM sessions WHERE character_id=? ORDER BY session_date DESC", charID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	var out []models.Session
+	for rows.Next() {
+		var s models.Session
+		rows.Scan(&s.ID, &s.CharacterID, &s.SessionDate, &s.Title, &s.Notes, &s.XPEarned, &s.GoldEarned, &s.ImportantEvents, &s.CreatedAt)
+		out = append(out, s)
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+func CreateSession(c *gin.Context) {
+	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var s models.Session
+	if err := c.ShouldBindJSON(&s); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	result, err := db.DB.Exec("INSERT INTO sessions(character_id,session_date,title,notes,xp_earned,gold_earned,important_events) VALUES(?,?,?,?,?,?,?)",
+		charID, s.SessionDate, s.Title, s.Notes, s.XPEarned, s.GoldEarned, s.ImportantEvents)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+func DeleteSession(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("sid"), 10, 64)
+	db.DB.Exec("DELETE FROM sessions WHERE id=?", id)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// ─── Quests ───
+
+func ListQuests(c *gin.Context) {
+	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	rows, err := db.DB.Query("SELECT id,character_id,name,description,status,objectives,rewards,notes,created_at,updated_at FROM quests WHERE character_id=? ORDER BY status,name", charID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	var out []models.Quest
+	for rows.Next() {
+		var q models.Quest
+		rows.Scan(&q.ID, &q.CharacterID, &q.Name, &q.Description, &q.Status, &q.Objectives, &q.Rewards, &q.Notes, &q.CreatedAt, &q.UpdatedAt)
+		out = append(out, q)
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+func CreateQuest(c *gin.Context) {
+	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var q models.Quest
+	if err := c.ShouldBindJSON(&q); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if q.Status == "" {
+		q.Status = "active"
+	}
+	result, err := db.DB.Exec("INSERT INTO quests(character_id,name,description,status,objectives,rewards,notes) VALUES(?,?,?,?,?,?,?)",
+		charID, q.Name, q.Description, q.Status, q.Objectives, q.Rewards, q.Notes)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+func UpdateQuest(c *gin.Context) {
+	qid, _ := strconv.ParseInt(c.Param("qid"), 10, 64)
+	var q models.Quest
+	if err := c.ShouldBindJSON(&q); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	db.DB.Exec("UPDATE quests SET name=?,description=?,status=?,objectives=?,rewards=?,notes=?,updated_at=datetime('now') WHERE id=?",
+		q.Name, q.Description, q.Status, q.Objectives, q.Rewards, q.Notes, qid)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func DeleteQuest(c *gin.Context) {
+	qid, _ := strconv.ParseInt(c.Param("qid"), 10, 64)
+	db.DB.Exec("DELETE FROM quests WHERE id=?", qid)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// ─── Journal ───
+
+func ListJournal(c *gin.Context) {
+	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	rows, err := db.DB.Query("SELECT id,character_id,title,entry,entry_date,created_at FROM journal WHERE character_id=? ORDER BY entry_date DESC", charID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	var out []models.JournalEntry
+	for rows.Next() {
+		var j models.JournalEntry
+		rows.Scan(&j.ID, &j.CharacterID, &j.Title, &j.Entry, &j.EntryDate, &j.CreatedAt)
+		out = append(out, j)
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+func CreateJournalEntry(c *gin.Context) {
+	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var j models.JournalEntry
+	if err := c.ShouldBindJSON(&j); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	result, err := db.DB.Exec("INSERT INTO journal(character_id,title,entry,entry_date) VALUES(?,?,?,?)",
+		charID, j.Title, j.Entry, j.EntryDate)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+func DeleteJournalEntry(c *gin.Context) {
+	jid, _ := strconv.ParseInt(c.Param("jid"), 10, 64)
+	db.DB.Exec("DELETE FROM journal WHERE id=?", jid)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// ─── Graph Data ───
+
+func GetGraphData(c *gin.Context) {
+	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	gd := models.GraphData{Nodes: []models.GraphNode{}, Edges: []models.GraphEdge{}}
+
+	// Character node
+	charName, race, class := "", "", ""
+	db.DB.QueryRow("SELECT name,race,class FROM characters WHERE id=?", charID).Scan(&charName, &race, &class)
+	gd.Nodes = append(gd.Nodes, models.GraphNode{
+		ID: "char_" + strconv.FormatInt(charID, 10), Label: charName + " (" + race + " " + class + ")",
+		Group: "character", Color: "#8b0000", Size: 30, CharID: charID,
+	})
+
+	// Location nodes + edges
+	lrows, _ := db.DB.Query(`
+		SELECT cl.id, cl.location_id, cl.relationship, l.name, l.type
+		FROM character_locations cl JOIN locations l ON cl.location_id = l.id
+		WHERE cl.character_id=?`, charID)
+	if lrows != nil {
+		for lrows.Next() {
+			var linkID, locID int64
+			var rel, locName, locType string
+			lrows.Scan(&linkID, &locID, &rel, &locName, &locType)
+			nid := "loc_" + strconv.FormatInt(locID, 10)
+			gd.Nodes = append(gd.Nodes, models.GraphNode{
+				ID: nid, Label: locName + " (" + locType + ")", Group: "location", Color: "#b8963e", Size: 20,
+			})
+			gd.Edges = append(gd.Edges, models.GraphEdge{
+				From: "char_" + strconv.FormatInt(charID, 10), To: nid, Label: rel, Width: 2, Dashes: false,
+			})
+		}
+		lrows.Close()
+	}
+
+	// NPC nodes + edges
+	nrows, _ := db.DB.Query(`
+		SELECT cn.npc_id, cn.relationship, n.name
+		FROM character_npcs cn JOIN npcs n ON cn.npc_id = n.id
+		WHERE cn.character_id=?`, charID)
+	if nrows != nil {
+		for nrows.Next() {
+			var npcID int64
+			var rel, npcName string
+			nrows.Scan(&npcID, &rel, &npcName)
+			nid := "npc_" + strconv.FormatInt(npcID, 10)
+			gd.Nodes = append(gd.Nodes, models.GraphNode{
+				ID: nid, Label: npcName + " (NPC)", Group: "npc", Color: "#2c6b2f", Size: 20,
+			})
+			gd.Edges = append(gd.Edges, models.GraphEdge{
+				From: "char_" + strconv.FormatInt(charID, 10), To: nid, Label: rel, Width: 1, Dashes: false,
+			})
+		}
+		nrows.Close()
+	}
+
+	// Quest nodes + edges
+	qrows, _ := db.DB.Query("SELECT id, name, status FROM quests WHERE character_id=?", charID)
+	if qrows != nil {
+		for qrows.Next() {
+			var qid int64
+			var qname, status string
+			qrows.Scan(&qid, &qname, &status)
+			nid := "quest_" + strconv.FormatInt(qid, 10)
+			qcolor := "#b8963e"
+			if status == "complete" {
+				qcolor = "#2d6a2d"
+			} else if status == "failed" || status == "abandoned" {
+				qcolor = "#666"
+			}
+			gd.Nodes = append(gd.Nodes, models.GraphNode{
+				ID: nid, Label: qname + " [" + status + "]", Group: "quest", Color: qcolor, Size: 18,
+			})
+			gd.Edges = append(gd.Edges, models.GraphEdge{
+				From: "char_" + strconv.FormatInt(charID, 10), To: nid, Label: status, Width: 1, Dashes: status == "available",
+			})
+		}
+		qrows.Close()
+	}
+
+	// Session nodes
+	srows, _ := db.DB.Query("SELECT id, title, session_date FROM sessions WHERE character_id=? ORDER BY session_date DESC LIMIT 10", charID)
+	if srows != nil {
+		for srows.Next() {
+			var sid int64
+			var title, sdate string
+			srows.Scan(&sid, &title, &sdate)
+			nid := "session_" + strconv.FormatInt(sid, 10)
+			slabel := title
+			if slabel == "" {
+				slabel = "Session " + sdate
+			}
+			gd.Nodes = append(gd.Nodes, models.GraphNode{
+				ID: nid, Label: slabel, Group: "session", Color: "#5c3a2a", Size: 15,
+			})
+			gd.Edges = append(gd.Edges, models.GraphEdge{
+				From: "char_" + strconv.FormatInt(charID, 10), To: nid, Label: "played", Width: 1, Dashes: false,
+			})
+		}
+		srows.Close()
+	}
+
+	c.JSON(http.StatusOK, gd)
+}

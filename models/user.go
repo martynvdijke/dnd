@@ -11,7 +11,7 @@ type User struct {
 	CreatedAt   string `json:"created_at"`
 }
 
-type Session struct {
+type AuthSession struct {
 	UserID    int64
 	Username  string
 	Role      string
