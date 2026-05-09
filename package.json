@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "test": "go test ./...",
+    "test:e2e": "npx playwright test",
     "build:ts": "tsc",
     "watch:ts": "tsc --watch"
   },
