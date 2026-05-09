@@ -45,7 +45,9 @@ func main() {
 	r.Use(gin.Logger(), gin.Recovery())
 	r.Use(middleware.SecurityHeaders())
 
-	// Auth routes (no auth required)
+	// Public routes
+	r.GET("/healthz", handlers.HandleHealth)
+	r.GET("/metrics", handlers.HandleMetrics)
 	r.GET("/api/check-setup", handlers.CheckSetup)
 	r.POST("/api/login", handlers.HandleLogin)
 

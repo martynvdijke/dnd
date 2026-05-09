@@ -135,6 +135,54 @@ async function rollCheck(type, name, adv) {
     }
 }
 window.rollCheck = rollCheck;
+async function applyDamage() {
+    if (!currentChar)
+        return;
+    const dmg = parseInt(document.getElementById('dmgInput')?.value || '0');
+    if (!dmg)
+        return;
+    const newHp = Math.max(0, currentChar.hp_current - dmg);
+    await updateField('hp_current', newHp);
+}
+window.applyDamage = applyDamage;
+async function applyHeal() {
+    if (!currentChar)
+        return;
+    const heal = parseInt(document.getElementById('healInput')?.value || '0');
+    if (!heal)
+        return;
+    const newHp = Math.min(currentChar.hp_max, currentChar.hp_current + heal);
+    await updateField('hp_current', newHp);
+}
+window.applyHeal = applyHeal;
+async function doRest(type) {
+    if (!currentChar)
+        return;
+    try {
+        const result = await api('POST', `/api/characters/${currentChar.id}/rest`, { rest_type: type, hit_dice_count: type === 'short' ? 1 : 0 });
+        toast(`${type} rest: healed ${result.hp_healed} HP`);
+        currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+        renderSheet();
+    }
+    catch (e) {
+        toast(e.message, true);
+    }
+}
+window.doRest = doRest;
+async function doLevelUp() {
+    if (!currentChar)
+        return;
+    try {
+        const result = await api('POST', `/api/characters/${currentChar.id}/levelup`);
+        toast(`Level Up! Now level ${result.new_level} (+${result.hp_gain} HP)`);
+        currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+        renderSheet();
+    }
+    catch (e) {
+        toast(e.message, true);
+    }
+}
+window.doLevelUp = doLevelUp;
 function renderStats() {
     const c = currentChar;
     const el = document.getElementById('statsSection');
@@ -221,6 +269,36 @@ function renderCombat() {
       <div class="form-group"><label>HP Max</label><input type="number" value="${c.hp_max}" onchange="updateField('hp_max',+this.value)"></div>
       <div class="form-group"><label>Current</label><input type="number" value="${c.hp_current}" onchange="updateField('hp_current',+this.value)"></div>
       <div class="form-group"><label>Temp HP</label><input type="number" value="${c.temp_hp}" onchange="updateField('temp_hp',+this.value)"></div>
+    </div>
+    <div class="form-row" style="margin-top:8px">
+      <div class="form-group">
+        <label>Damage</label>
+        <div style="display:flex;gap:4px">
+          <input type="number" id="dmgInput" value="0" style="width:80px">
+          <button class="btn btn-sm btn-danger" onclick="applyDamage()">Apply</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Heal</label>
+        <div style="display:flex;gap:4px">
+          <input type="number" id="healInput" value="0" style="width:80px">
+          <button class="btn btn-sm btn-primary" onclick="applyHeal()">Apply</button>
+        </div>
+      </div>
+    </div>
+    <div class="form-row" style="margin-top:8px">
+      <button class="btn btn-sm" onclick="doRest('short')">Short Rest</button>
+      <button class="btn btn-sm" onclick="doRest('long')">Long Rest</button>
+      <button class="btn btn-sm btn-primary" onclick="doLevelUp()">Level Up</button>
+    </div>
+    <h3>Saving Throws <span style="font-size:0.8em;font-weight:normal">(click to roll)</span></h3>
+    <div class="save-list">
+      ${['str', 'dex', 'con', 'int', 'wis', 'cha'].map(a => {
+        const mod = c[`${a}_mod`];
+        const total = c.proficiency_bonus + mod;
+        const sign = total >= 0 ? '+' : '';
+        return `<span class="save-badge" style="cursor:pointer" onclick="rollCheck('save','${a}','normal')">${a.toUpperCase()} ${sign}${total}</span>`;
+    }).join('')}
     </div>
     <div class="form-row">
       <div class="form-group"><label>Hit Dice</label><input value="${c.hit_dice}" onchange="updateField('hit_dice',this.value)"></div>

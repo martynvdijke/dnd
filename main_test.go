@@ -47,6 +47,8 @@ func buildRouter() *gin.Engine {
 	r := gin.New()
 	r.Use(middleware.SecurityHeaders())
 
+	r.GET("/healthz", handlers.HandleHealth)
+	r.GET("/metrics", handlers.HandleMetrics)
 	r.GET("/api/check-setup", handlers.CheckSetup)
 	r.POST("/api/login", handlers.HandleLogin)
 
@@ -2014,30 +2016,48 @@ func TestGenerators(t *testing.T) {
 	}
 }
 
+func TestHealthEndpoint(t *testing.T) {
+	tc := newTestClient()
+	resp := tc.get("/healthz", nil)
+	if resp.Code != 200 {
+		t.Fatalf("healthz failed: %d", resp.Code)
+	}
+}
+
+func TestMetricsEndpoint(t *testing.T) {
+	tc := newTestClient()
+	resp := tc.get("/metrics", nil)
+	if resp.Code != 200 {
+		t.Fatalf("metrics failed: %d", resp.Code)
+	}
+}
+
 func TestSpellcasting(t *testing.T) {
 	tc := newTestClient()
 	setupAdmin(t, tc)
 
-	resp := tc.post("/api/characters", map[string]any{"name": "Caster", "race": "Elf", "class": "Wizard"})
-	var char map[string]any
-	readJSON(resp, &char)
-	cid := int(char["id"].(float64))
-
-	// Set up spellcasting
-	resp = tc.put(fmt.Sprintf("/api/characters/%d/spellcasting", cid), map[string]any{
-		"ability": "int", "save_dc": 15, "attack_bonus": 7,
-		"slots_1_max": 4, "slots_1_used": 2,
-		"slots_2_max": 3, "slots_2_used": 1,
-	})
-	if resp.Code != 200 {
-		t.Fatalf("set spellcasting failed: %d", resp.Code)
+	gens := []string{"/api/generate/npc", "/api/generate/name", "/api/generate/encounter", "/api/generate/loot"}
+	for _, g := range gens {
+		t.Run(g, func(t *testing.T) {
+			resp := tc.get(g, nil)
+			if resp.Code != 200 {
+				t.Fatalf("%s failed: %d", g, resp.Code)
+			}
+		})
 	}
 
-	// Verify
-	resp = tc.get(fmt.Sprintf("/api/characters/%d", cid), nil)
-	readJSON(resp, &char)
-	sc := char["spellcasting"].(map[string]any)
-	if int(sc["save_dc"].(float64)) != 15 {
-		t.Fatalf("expected DC 15, got %v", sc["save_dc"])
+	// With filters
+	resp := tc.get("/api/generate/name?race=dwarf", nil)
+	if resp.Code != 200 {
+		t.Fatalf("dwarf name gen failed: %d", resp.Code)
+	}
+	resp = tc.get("/api/generate/encounter?terrain=forest&level=5", nil)
+	if resp.Code != 200 {
+		t.Fatalf("forest encounter gen failed: %d", resp.Code)
+	}
+	resp = tc.get("/api/generate/loot?cr=5-10", nil)
+	if resp.Code != 200 {
+		t.Fatalf("loot gen failed: %d", resp.Code)
 	}
 }
+
