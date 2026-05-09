@@ -187,7 +187,8 @@ func CreateCharacter(c *gin.Context) {
 	db.DB.Exec("INSERT OR IGNORE INTO character_currency(character_id) VALUES(?)", id)
 
 	ch.ID = id
-	ch.UserID = userID.(int64)
+	uid, _ := userID.(int64)
+	ch.UserID = uid
 	c.JSON(http.StatusCreated, ch)
 }
 
@@ -222,6 +223,7 @@ func UpdateCharacter(c *gin.Context) {
 			hp_max=?, hp_current=?, temp_hp=?, hit_dice=?, hit_dice_current=?,
 			proficiency_bonus=?, inspiration=?, passive_perception=?,
 			death_saves_successes=?, death_saves_failures=?, concentrating_on=?,
+			campaign_id=?,
 			personality_traits=?, ideals=?, bonds=?, flaws=?, appearance=?, backstory=?,
 			updated_at=datetime('now')
 		WHERE id=?`,
@@ -231,6 +233,7 @@ func UpdateCharacter(c *gin.Context) {
 		ch.HPMax, ch.HPCurrent, ch.TempHP, ch.HitDice, ch.HitDiceCurrent,
 		ch.ProficiencyBonus, ch.Inspiration, ch.PassivePerception,
 		ch.DeathSavesSuccesses, ch.DeathSavesFailures, ch.ConcentratingOn,
+		ch.CampaignID,
 		ch.PersonalityTraits, ch.Ideals, ch.Bonds, ch.Flaws, ch.Appearance, ch.Backstory,
 		id)
 	if err != nil {

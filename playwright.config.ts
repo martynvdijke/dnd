@@ -34,7 +34,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'go run main.go',
+    command: 'go run -tags fts5 main.go',
     url: 'http://localhost:6280/api/check-setup',
     reuseExistingServer: !process.env.CI,
     timeout: 30000,

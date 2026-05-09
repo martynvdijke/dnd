@@ -49,6 +49,18 @@ func CreateLocation(c *gin.Context) {
 
 func UpdateLocation(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+	var ownerID int64
+	err := db.DB.QueryRow("SELECT user_id FROM locations WHERE id=?", id).Scan(&ownerID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "location not found"})
+		return
+	}
+	if role != "admin" && ownerID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var l models.Location
 	if err := c.ShouldBindJSON(&l); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -62,13 +74,14 @@ func UpdateLocation(c *gin.Context) {
 func DeleteLocation(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
 	var ownerID int64
 	err := db.DB.QueryRow("SELECT user_id FROM locations WHERE id=?", id).Scan(&ownerID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "location not found"})
 		return
 	}
-	if ownerID != userID {
+	if role != "admin" && ownerID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -176,6 +189,18 @@ func CreateNPC(c *gin.Context) {
 
 func UpdateNPC(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+	var ownerID int64
+	err := db.DB.QueryRow("SELECT user_id FROM npcs WHERE id=?", id).Scan(&ownerID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "NPC not found"})
+		return
+	}
+	if role != "admin" && ownerID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var n models.NPC
 	if err := c.ShouldBindJSON(&n); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -190,13 +215,14 @@ func UpdateNPC(c *gin.Context) {
 func DeleteNPC(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
 	var ownerID int64
 	err := db.DB.QueryRow("SELECT user_id FROM npcs WHERE id=?", id).Scan(&ownerID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "NPC not found"})
 		return
 	}
-	if ownerID != userID {
+	if role != "admin" && ownerID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -303,6 +329,28 @@ func CreateSession(c *gin.Context) {
 	}
 	id, _ := result.LastInsertId()
 	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+func UpdateSession(c *gin.Context) {
+	sid, _ := strconv.ParseInt(c.Param("sid"), 10, 64)
+	var charID int64
+	err := db.DB.QueryRow("SELECT character_id FROM sessions WHERE id=?", sid).Scan(&charID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "session not found"})
+		return
+	}
+	if !checkCharacterAccess(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+	var s models.Session
+	if err := c.ShouldBindJSON(&s); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	db.DB.Exec("UPDATE sessions SET session_date=?,title=?,notes=?,xp_earned=?,gold_earned=?,important_events=? WHERE id=?",
+		s.SessionDate, s.Title, s.Notes, s.XPEarned, s.GoldEarned, s.ImportantEvents, sid)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 func DeleteSession(c *gin.Context) {
@@ -422,6 +470,27 @@ func CreateJournalEntry(c *gin.Context) {
 	}
 	id, _ := result.LastInsertId()
 	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+func UpdateJournalEntry(c *gin.Context) {
+	jid, _ := strconv.ParseInt(c.Param("jid"), 10, 64)
+	var charID int64
+	err := db.DB.QueryRow("SELECT character_id FROM journal WHERE id=?", jid).Scan(&charID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "journal entry not found"})
+		return
+	}
+	if !checkCharacterAccess(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+	var j models.JournalEntry
+	if err := c.ShouldBindJSON(&j); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	db.DB.Exec("UPDATE journal SET title=?,entry=?,entry_date=? WHERE id=?", j.Title, j.Entry, j.EntryDate, jid)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 func DeleteJournalEntry(c *gin.Context) {
@@ -694,6 +763,18 @@ func CreateCampaign(c *gin.Context) {
 
 func UpdateCampaign(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+	var ownerID int64
+	err := db.DB.QueryRow("SELECT user_id FROM campaigns WHERE id=?", id).Scan(&ownerID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
+		return
+	}
+	if role != "admin" && ownerID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var ca models.Campaign
 	if err := c.ShouldBindJSON(&ca); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -705,6 +786,18 @@ func UpdateCampaign(c *gin.Context) {
 
 func DeleteCampaign(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+	var ownerID int64
+	err := db.DB.QueryRow("SELECT user_id FROM campaigns WHERE id=?", id).Scan(&ownerID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
+		return
+	}
+	if role != "admin" && ownerID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("UPDATE characters SET campaign_id=NULL WHERE campaign_id=?", id)
 	db.DB.Exec("DELETE FROM campaigns WHERE id=?", id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -797,7 +890,7 @@ func LevelUp(c *gin.Context) {
 	if newCur > newHP {
 		newCur = newHP
 	}
-	db.DB.Exec("UPDATE characters SET level=?, hp_max=?, hp_current=? WHERE id=?", newLevel, newHP, newCur, charID)
+	db.DB.Exec("UPDATE characters SET level=?, hp_max=?, hp_current=?, hit_dice_current=hit_dice_current+1 WHERE id=?", newLevel, newHP, newCur, charID)
 
 	// Update proficiency bonus
 	newProf := 2

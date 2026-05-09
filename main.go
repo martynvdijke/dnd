@@ -138,6 +138,7 @@ func main() {
 		// Sessions
 		auth.GET("/characters/:id/sessions", handlers.ListSessions)
 		auth.POST("/characters/:id/sessions", handlers.CreateSession)
+		auth.PUT("/sessions/:sid", handlers.UpdateSession)
 		auth.DELETE("/sessions/:sid", handlers.DeleteSession)
 
 		// Quests
@@ -149,6 +150,7 @@ func main() {
 		// Journal
 		auth.GET("/characters/:id/journal", handlers.ListJournal)
 		auth.POST("/characters/:id/journal", handlers.CreateJournalEntry)
+		auth.PUT("/journal/:jid", handlers.UpdateJournalEntry)
 		auth.DELETE("/journal/:jid", handlers.DeleteJournalEntry)
 
 		// Graph

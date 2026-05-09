@@ -7,6 +7,7 @@
     "watch:ts": "tsc --watch"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "typescript": "^5.7.0"
   }
 }

@@ -20,7 +20,7 @@ tasks:
   test:
     desc: Run Go unit tests
     cmds:
-      - go test -v ./...
+      - go test -v -tags fts5 ./...
 
   test:e2e:
     desc: Run Playwright end-to-end tests
@@ -42,7 +42,7 @@ tasks:
   run:
     desc: Run the application
     cmds:
-      - go run main.go
+      - go run -tags fts5 main.go
 
   dev:
     desc: Run with hot-reload

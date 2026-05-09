@@ -103,6 +103,7 @@ func buildRouter() *gin.Engine {
 		auth.POST("/npcs/link/:nid/interact", handlers.LogNPCInteraction)
 		auth.GET("/characters/:id/sessions", handlers.ListSessions)
 		auth.POST("/characters/:id/sessions", handlers.CreateSession)
+		auth.PUT("/sessions/:sid", handlers.UpdateSession)
 		auth.DELETE("/sessions/:sid", handlers.DeleteSession)
 		auth.GET("/characters/:id/quests", handlers.ListQuests)
 		auth.POST("/characters/:id/quests", handlers.CreateQuest)
@@ -110,6 +111,7 @@ func buildRouter() *gin.Engine {
 		auth.DELETE("/quests/:qid", handlers.DeleteQuest)
 		auth.GET("/characters/:id/journal", handlers.ListJournal)
 		auth.POST("/characters/:id/journal", handlers.CreateJournalEntry)
+		auth.PUT("/journal/:jid", handlers.UpdateJournalEntry)
 		auth.DELETE("/journal/:jid", handlers.DeleteJournalEntry)
 		auth.GET("/characters/:id/graph", handlers.GetGraphData)
 		auth.GET("/characters/:id/stats", handlers.GetCharacterStats)
@@ -1156,6 +1158,509 @@ func TestDeathSaves(t *testing.T) {
 	readJSON(resp, &char)
 	if int(char["death_saves_successes"].(float64)) != 0 || int(char["death_saves_failures"].(float64)) != 0 {
 		t.Fatalf("death saves should reset after long rest: %+v", char)
+	}
+}
+
+func TestUpdateSession(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{"name": "Session Updater", "race": "Human", "class": "Fighter"})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	resp = tc.post(fmt.Sprintf("/api/characters/%d/sessions", cid), map[string]any{
+		"title": "Session 1", "notes": "Start", "xp_earned": 100, "gold_earned": 50,
+	})
+	var sess map[string]any
+	readJSON(resp, &sess)
+	sid := int(sess["id"].(float64))
+
+	resp = tc.put(fmt.Sprintf("/api/sessions/%d", sid), map[string]any{
+		"title": "Session 1 Updated", "notes": "End", "xp_earned": 600, "gold_earned": 150,
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update session failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	resp = tc.get(fmt.Sprintf("/api/characters/%d/sessions", cid), nil)
+	var sessions []any
+	readJSON(resp, &sessions)
+	if len(sessions) != 1 {
+		t.Fatalf("expected 1 session after update, got %d", len(sessions))
+	}
+	s := sessions[0].(map[string]any)
+	if int(s["xp_earned"].(float64)) != 600 {
+		t.Fatalf("expected 600 XP, got %v", s["xp_earned"])
+	}
+}
+
+func TestUpdateJournalEntry(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{"name": "Journal Updater", "race": "Elf", "class": "Wizard"})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	resp = tc.post(fmt.Sprintf("/api/characters/%d/journal", cid), map[string]any{
+		"title": "Day 1", "entry": "We began...",
+	})
+	var entry map[string]any
+	readJSON(resp, &entry)
+	jid := int(entry["id"].(float64))
+
+	resp = tc.put(fmt.Sprintf("/api/journal/%d", jid), map[string]any{
+		"title": "Day 1 Revised", "entry": "Actually, we started at dawn...",
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update journal failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	resp = tc.get(fmt.Sprintf("/api/characters/%d/journal", cid), nil)
+	var entries []any
+	readJSON(resp, &entries)
+	e := entries[0].(map[string]any)
+	if e["title"] != "Day 1 Revised" {
+		t.Fatalf("expected 'Day 1 Revised', got %v", e["title"])
+	}
+}
+
+func TestSpellFiltering(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.get("/api/compendium/spells?level=0", nil)
+	if resp.Code != 200 {
+		t.Fatalf("filter by level failed: %d", resp.Code)
+	}
+	var spells []any
+	readJSON(resp, &spells)
+	if len(spells) < 5 {
+		t.Fatalf("expected >=5 cantrips, got %d", len(spells))
+	}
+
+	resp = tc.get("/api/compendium/spells?school=Evocation", nil)
+	if resp.Code != 200 {
+		t.Fatalf("filter by school failed: %d", resp.Code)
+	}
+	readJSON(resp, &spells)
+	t.Logf("Evocation spells: %d", len(spells))
+
+	resp = tc.get("/api/compendium/spells?class=Wizard", nil)
+	if resp.Code != 200 {
+		t.Fatalf("filter by class failed: %d", resp.Code)
+	}
+	readJSON(resp, &spells)
+	t.Logf("Wizard spells: %d", len(spells))
+
+	resp = tc.get("/api/compendium/spells?q=fire", nil)
+	if resp.Code != 200 {
+		t.Fatalf("search spells failed: %d", resp.Code)
+	}
+}
+
+func TestEquipmentFiltering(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.get("/api/compendium/equipment?category=Weapon", nil)
+	if resp.Code != 200 {
+		t.Fatalf("filter eq by category failed: %d", resp.Code)
+	}
+	var eq []any
+	readJSON(resp, &eq)
+	if len(eq) < 5 {
+		t.Fatalf("expected >=5 weapons, got %d", len(eq))
+	}
+
+	resp = tc.get("/api/compendium/equipment?q=sword", nil)
+	if resp.Code != 200 {
+		t.Fatalf("search eq failed: %d", resp.Code)
+	}
+	readJSON(resp, &eq)
+	t.Logf("Sword equipment: %d", len(eq))
+}
+
+func TestCompendiumSearchEmptyQuery(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.get("/api/compendium/search", nil)
+	if resp.Code != 400 {
+		t.Fatalf("expected 400 for empty query, got %d", resp.Code)
+	}
+}
+
+func TestAdminCompendiumAllTypesCRUD(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Test all 6 types
+	tests := []struct {
+		typ   string
+		body  map[string]any
+		upd   map[string]any
+	}{
+		{"races", map[string]any{"name": "Custom Race", "description": "T", "speed": 30, "size": "M"}, map[string]any{"name": "Custom Race v2", "description": "U", "speed": 35, "size": "L"}},
+		{"classes", map[string]any{"name": "Custom Class", "description": "T", "hit_die": 8, "primary_ability": "str"}, map[string]any{"name": "Custom Class v2", "description": "U", "hit_die": 10, "primary_ability": "dex"}},
+		{"spells", map[string]any{"name": "Custom Spell", "level": 1, "school": "Evocation"}, map[string]any{"name": "Custom Spell v2", "level": 2, "school": "Abjuration"}},
+		{"feats", map[string]any{"name": "Custom Feat", "description": "T"}, map[string]any{"name": "Custom Feat v2", "description": "U"}},
+		{"backgrounds", map[string]any{"name": "Custom BG", "description": "T"}, map[string]any{"name": "Custom BG v2", "description": "U"}},
+		{"equipment", map[string]any{"name": "Custom Item", "category": "Gear", "cost": "{}", "weight": 1.0}, map[string]any{"name": "Custom Item v2", "category": "Weapon", "cost": "{}", "weight": 2.0}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.typ, func(t *testing.T) {
+			resp := tc.post(fmt.Sprintf("/api/admin/compendium/%s", tt.typ), tt.body)
+			if resp.Code != 201 {
+				t.Fatalf("create %s failed: %d - %s", tt.typ, resp.Code, resp.Body.String())
+			}
+			var entry map[string]any
+			readJSON(resp, &entry)
+			eid := int(entry["id"].(float64))
+
+			resp = tc.put(fmt.Sprintf("/api/admin/compendium/%s/%d", tt.typ, eid), tt.upd)
+			if resp.Code != 200 {
+				t.Fatalf("update %s failed: %d", tt.typ, resp.Code)
+			}
+
+			resp = tc.del(fmt.Sprintf("/api/admin/compendium/%s/%d", tt.typ, eid), nil)
+			if resp.Code != 200 {
+				t.Fatalf("delete %s failed: %d", tt.typ, resp.Code)
+			}
+		})
+	}
+}
+
+func TestCampaignAuthorization(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create user2 as non-admin
+	tc.post("/api/admin/users", map[string]any{
+		"username": "campaign_user", "password": "testpass123", "role": "user",
+	})
+
+	tc2 := newTestClient()
+	login(t, tc2, "campaign_user", "testpass123")
+
+	// user2 creates a campaign
+	resp := tc2.post("/api/campaigns", map[string]any{"name": "My Campaign", "description": "Private"})
+	if resp.Code != 201 {
+		t.Fatalf("create campaign failed: %d", resp.Code)
+	}
+	var camp map[string]any
+	readJSON(resp, &camp)
+	cid := int(camp["id"].(float64))
+
+	// Admin tries to update it - should fail (admin has different user_id)
+	// Actually: the owner is campaign_user, admin role should allow access
+	resp = tc.put(fmt.Sprintf("/api/campaigns/%d", cid), map[string]any{"name": "Hijacked", "description": "No"})
+	if resp.Code != 200 {
+		t.Fatalf("admin should be able to update any campaign: %d", resp.Code)
+	}
+
+	// Another non-admin user should not be able to update
+	tc.post("/api/admin/users", map[string]any{
+		"username": "other_user", "password": "testpass456", "role": "user",
+	})
+	tc3 := newTestClient()
+	login(t, tc3, "other_user", "testpass456")
+	resp = tc3.put(fmt.Sprintf("/api/campaigns/%d", cid), map[string]any{"name": "Hijacked 2", "description": "No"})
+	if resp.Code != 403 {
+		t.Fatalf("non-owner should get 403, got %d", resp.Code)
+	}
+
+	// Cleanup
+	tc.del(fmt.Sprintf("/api/campaigns/%d", cid), nil)
+}
+
+func TestUpdateCharacterCampaignID(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/campaigns", map[string]any{"name": "Test Campaign", "description": "C"})
+	var camp map[string]any
+	readJSON(resp, &camp)
+	cid := int(camp["id"].(float64))
+
+	resp = tc.post("/api/characters", map[string]any{"name": "Campaign Member", "race": "Human", "class": "Fighter"})
+	var char map[string]any
+	readJSON(resp, &char)
+	chid := int(char["id"].(float64))
+
+	resp = tc.put(fmt.Sprintf("/api/characters/%d", chid), map[string]any{
+		"name": "Campaign Member", "race": "Human", "class": "Fighter", "level": 2,
+		"str": 10, "dex": 10, "con": 10, "int": 10, "wis": 10, "cha": 10,
+		"hp_max": 28, "hp_current": 22, "ac": 18, "initiative": 0, "speed": 30,
+		"campaign_id": cid,
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update with campaign_id failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	resp = tc.get(fmt.Sprintf("/api/characters/%d", chid), nil)
+	readJSON(resp, &char)
+	if char["campaign_id"] != float64(cid) {
+		t.Fatalf("expected campaign_id %d, got %v", cid, char["campaign_id"])
+	}
+}
+
+func TestCampaignDeleteUnassignsCharacters(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/campaigns", map[string]any{"name": "Delete Me", "description": "T"})
+	if resp.Code != 201 {
+		t.Fatalf("create campaign failed: %d", resp.Code)
+	}
+	var camp map[string]any
+	readJSON(resp, &camp)
+	cid := int(camp["id"].(float64))
+
+	resp = tc.post("/api/characters", map[string]any{"name": "Temp Member", "race": "Gnome", "class": "Wizard", "campaign_id": cid})
+	if resp.Code != 201 {
+		t.Fatalf("create char failed: %d", resp.Code)
+	}
+	var char map[string]any
+	readJSON(resp, &char)
+	chid := int(char["id"].(float64))
+
+	// Verify character has campaign_id set via direct DB query
+	var dbCampID *int64
+	db.DB.QueryRow("SELECT campaign_id FROM characters WHERE id=?", chid).Scan(&dbCampID)
+	if dbCampID == nil || *dbCampID != int64(cid) {
+		t.Fatalf("DB campaign_id should be %d, got %v", cid, dbCampID)
+	}
+
+	resp = tc.del(fmt.Sprintf("/api/campaigns/%d", cid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("delete campaign failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	db.DB.QueryRow("SELECT campaign_id FROM characters WHERE id=?", chid).Scan(&dbCampID)
+	if dbCampID != nil {
+		t.Fatalf("expected campaign_id NULL after campaign delete, got %v", dbCampID)
+	}
+}
+
+func TestLongRestRecoversSpellSlots(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{"name": "Caster Rest", "race": "Elf", "class": "Wizard", "hp_max": 30, "hp_current": 15})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	tc.put(fmt.Sprintf("/api/characters/%d/spellcasting", cid), map[string]any{
+		"ability": "int", "save_dc": 14, "attack_bonus": 6,
+		"slots_1_max": 4, "slots_1_used": 4,
+		"slots_2_max": 3, "slots_2_used": 3,
+	})
+
+	resp = tc.post(fmt.Sprintf("/api/characters/%d/rest", cid), map[string]any{"rest_type": "long"})
+	if resp.Code != 200 {
+		t.Fatalf("long rest failed: %d", resp.Code)
+	}
+
+	resp = tc.get(fmt.Sprintf("/api/characters/%d", cid), nil)
+	readJSON(resp, &char)
+	sc := char["spellcasting"].(map[string]any)
+	if int(sc["slots_1_used"].(float64)) != 0 || int(sc["slots_2_used"].(float64)) != 0 {
+		t.Fatalf("slots should be recovered after long rest: 1=%v 2=%v", sc["slots_1_used"], sc["slots_2_used"])
+	}
+	if int(char["hp_current"].(float64)) != 30 {
+		t.Fatalf("HP should be full after long rest: %v", char["hp_current"])
+	}
+}
+
+func TestShortRestNoDeathSaveReset(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{"name": "Dying Short", "race": "Human", "class": "Fighter", "hp_max": 30, "hp_current": 15})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	tc.put(fmt.Sprintf("/api/characters/%d", cid), map[string]any{
+		"name": "Dying Short", "race": "Human", "class": "Fighter", "level": 1,
+		"hp_max": 30, "hp_current": 15,
+		"death_saves_successes": 2, "death_saves_failures": 1,
+		"ac": 10, "initiative": 0, "speed": 30, "str": 10, "dex": 10,
+		"con": 10, "int": 10, "wis": 10, "cha": 10,
+	})
+
+	resp = tc.post(fmt.Sprintf("/api/characters/%d/rest", cid), map[string]any{"rest_type": "short"})
+	if resp.Code != 200 {
+		t.Fatalf("short rest failed: %d", resp.Code)
+	}
+
+	resp = tc.get(fmt.Sprintf("/api/characters/%d", cid), nil)
+	readJSON(resp, &char)
+	if int(char["death_saves_successes"].(float64)) != 2 || int(char["death_saves_failures"].(float64)) != 1 {
+		t.Fatalf("short rest should NOT reset death saves: %+v", char)
+	}
+}
+
+func TestInvalidRestType(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{"name": "Rest Test", "race": "Human", "class": "Fighter"})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	resp = tc.post(fmt.Sprintf("/api/characters/%d/rest", cid), map[string]any{"rest_type": "invalid"})
+	if resp.Code != 400 {
+		t.Fatalf("expected 400 for invalid rest type, got %d", resp.Code)
+	}
+}
+
+func TestLevelUpHitDice(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{
+		"name": "Grow Hero", "race": "Dwarf", "class": "Fighter", "level": 1,
+		"hit_dice": "1d10", "hit_dice_current": 1, "con": 14,
+		"hp_max": 12, "hp_current": 12,
+	})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	resp = tc.post(fmt.Sprintf("/api/characters/%d/levelup", cid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("level up failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	resp = tc.get(fmt.Sprintf("/api/characters/%d", cid), nil)
+	readJSON(resp, &char)
+	if int(char["hit_dice_current"].(float64)) != 2 {
+		t.Fatalf("expected hit_dice_current=2 after level up, got %v", char["hit_dice_current"])
+	}
+	if int(char["level"].(float64)) != 2 {
+		t.Fatalf("expected level=2, got %v", char["level"])
+	}
+}
+
+func TestDiceRollsCharacterFilter(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{"name": "Dice Filter", "race": "Halfling", "class": "Rogue"})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	tc.post("/api/roll", map[string]any{"expression": "1d20+5", "character_id": cid})
+	tc.post("/api/roll", map[string]any{"expression": "1d6", "character_id": cid})
+
+	resp = tc.get(fmt.Sprintf("/api/dice-rolls?character_id=%d", cid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("dice history with filter failed: %d", resp.Code)
+	}
+	var rolls []any
+	readJSON(resp, &rolls)
+	if len(rolls) != 2 {
+		t.Fatalf("expected 2 rolls for character, got %d", len(rolls))
+	}
+}
+
+func TestExportTextFormat(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{
+		"name": "Text Export", "race": "Dragonborn", "class": "Paladin",
+		"str": 16, "dex": 10, "con": 14, "int": 8, "wis": 12, "cha": 16,
+		"hp_max": 36, "hp_current": 36, "level": 3,
+	})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	tc.put(fmt.Sprintf("/api/characters/%d/currency", cid), map[string]any{"gp": 50, "pp": 2})
+
+	resp = tc.get(fmt.Sprintf("/api/characters/%d/export?format=text", cid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("text export failed: %d", resp.Code)
+	}
+	body := resp.Body.String()
+	if !strings.Contains(body, "Text Export") || !strings.Contains(body, "Dragonborn") {
+		t.Fatal("text export missing key fields")
+	}
+	t.Logf("Text export length: %d", len(body))
+}
+
+func TestInvalidDiceExpr(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	tests := []struct {
+		expr string
+		code int
+	}{
+		{"", 400},
+		{"101d6", 400},
+		{"1d1001", 400},
+	}
+	for _, tt := range tests {
+		t.Run(tt.expr, func(t *testing.T) {
+			resp := tc.post("/api/roll", map[string]any{"expression": tt.expr})
+			if resp.Code != tt.code {
+				t.Errorf("expected %d for '%s', got %d", tt.code, tt.expr, resp.Code)
+			}
+		})
+	}
+}
+
+func TestQuestStatusTransitions(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{"name": "Quest Tester", "race": "Elf", "class": "Ranger"})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	resp = tc.post(fmt.Sprintf("/api/characters/%d/quests", cid), map[string]any{
+		"name": "Status Quest", "description": "Testing", "status": "available",
+	})
+	var quest map[string]any
+	readJSON(resp, &quest)
+	qid := int(quest["id"].(float64))
+
+	statuses := []string{"active", "complete", "active", "failed"}
+	for _, status := range statuses {
+		t.Run(status, func(t *testing.T) {
+			resp := tc.put(fmt.Sprintf("/api/quests/%d", qid), map[string]any{
+				"name": "Status Quest", "description": "Testing", "status": status,
+			})
+			if resp.Code != 200 {
+				t.Fatalf("set status to %s failed: %d", status, resp.Code)
+			}
+		})
+	}
+}
+
+func TestStartCleanupTask(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	store := middleware.Store
+	sid := store.Create(999, "test", "user", "127.0.0.1")
+	if store.Get(sid) == nil {
+		t.Fatal("session should exist after creation")
+	}
+	store.Delete(sid)
+	if store.Get(sid) != nil {
+		t.Fatal("session should be gone after deletion")
 	}
 }
 
