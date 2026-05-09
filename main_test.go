@@ -132,6 +132,12 @@ func buildRouter() *gin.Engine {
 		auth.POST("/combat/initiative", handlers.RollInitiative)
 		auth.POST("/combat/next-turn", handlers.NextTurn)
 		auth.GET("/combat/current-turn", handlers.GetCurrentTurn)
+
+		// Generators
+		auth.GET("/generate/npc", handlers.HandleGenerateNPC)
+		auth.GET("/generate/name", handlers.HandleGenerateName)
+		auth.GET("/generate/encounter", handlers.HandleGenerateEncounter)
+		auth.GET("/generate/loot", handlers.HandleGenerateLoot)
 	}
 
 	admin := r.Group("/api/admin")
@@ -1976,6 +1982,35 @@ func TestCombatTracker(t *testing.T) {
 	resp = tc.del(fmt.Sprintf("/api/combat/%d", eid), nil)
 	if resp.Code != 200 {
 		t.Fatalf("delete combat entry failed: %d", resp.Code)
+	}
+}
+
+func TestGenerators(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	gens := []string{"/api/generate/npc", "/api/generate/name", "/api/generate/encounter", "/api/generate/loot"}
+	for _, g := range gens {
+		t.Run(g, func(t *testing.T) {
+			resp := tc.get(g, nil)
+			if resp.Code != 200 {
+				t.Fatalf("%s failed: %d", g, resp.Code)
+			}
+		})
+	}
+
+	// With filters
+	resp := tc.get("/api/generate/name?race=dwarf", nil)
+	if resp.Code != 200 {
+		t.Fatalf("dwarf name gen failed: %d", resp.Code)
+	}
+	resp = tc.get("/api/generate/encounter?terrain=forest&level=5", nil)
+	if resp.Code != 200 {
+		t.Fatalf("forest encounter gen failed: %d", resp.Code)
+	}
+	resp = tc.get("/api/generate/loot?cr=5-10", nil)
+	if resp.Code != 200 {
+		t.Fatalf("loot gen failed: %d", resp.Code)
 	}
 }
 

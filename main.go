@@ -181,6 +181,12 @@ func main() {
 		auth.POST("/combat/initiative", handlers.RollInitiative)
 		auth.POST("/combat/next-turn", handlers.NextTurn)
 		auth.GET("/combat/current-turn", handlers.GetCurrentTurn)
+
+		// Generators
+		auth.GET("/generate/npc", handlers.HandleGenerateNPC)
+		auth.GET("/generate/name", handlers.HandleGenerateName)
+		auth.GET("/generate/encounter", handlers.HandleGenerateEncounter)
+		auth.GET("/generate/loot", handlers.HandleGenerateLoot)
 	}
 
 	// Admin routes
