@@ -975,7 +975,7 @@ async function renderAnalytics() {
 }
 // ─── Dice Tab ───
 function renderDiceTab() {
-    const el = document.getElementById('diceTabSection');
+    const el = document.getElementById('diceSection');
     if (!el)
         return;
     el.innerHTML = `
