@@ -39,6 +39,10 @@ type Character struct {
 	UpdatedAt         string `json:"updated_at"`
 
 	// Computed
+	DeathSavesSuccesses int    `json:"death_saves_successes"`
+	DeathSavesFailures  int    `json:"death_saves_failures"`
+	ConcentratingOn     string `json:"concentrating_on"`
+
 	Proficiencies    []Proficiency    `json:"proficiencies,omitempty"`
 	Features         []Feature        `json:"features,omitempty"`
 	Spellcasting     *Spellcasting    `json:"spellcasting,omitempty"`

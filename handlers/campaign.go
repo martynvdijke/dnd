@@ -651,7 +651,7 @@ func DoRest(c *gin.Context) {
 	hpHealed := 0
 	if req.RestType == "long" {
 		hpHealed = hpMax - hpCur
-		db.DB.Exec("UPDATE characters SET hp_current=hp_max WHERE id=?", charID)
+		db.DB.Exec("UPDATE characters SET hp_current=hp_max, death_saves_successes=0, death_saves_failures=0, concentrating_on='' WHERE id=?", charID)
 		// Recover all spell slots
 		db.DB.Exec(`UPDATE character_spellcasting SET
 			slots_1_used=0, slots_2_used=0, slots_3_used=0, slots_4_used=0,

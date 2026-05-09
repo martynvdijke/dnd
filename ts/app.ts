@@ -186,6 +186,19 @@ function renderCombat() {
       <div class="form-group"><label>Hit Dice</label><input value="${c.hit_dice}" onchange="updateField('hit_dice',this.value)"></div>
       <div class="form-group"><label>Remaining</label><input type="number" value="${c.hit_dice_current}" onchange="updateField('hit_dice_current',+this.value)"></div>
     </div>
+    <h3>Death Saves</h3>
+    <div style="display:flex;gap:16px;margin-bottom:12px">
+      <div><strong>Successes:</strong> ${[1,2,3].map(i =>
+        `<span class="slot-dot ${i <= (c.death_saves_successes||0) ? 'filled' : 'empty'}" onclick="toggleDeathSave('successes',${i})" style="display:inline-block"></span>`
+      ).join('')}</div>
+      <div><strong>Failures:</strong> ${[1,2,3].map(i =>
+        `<span class="slot-dot ${i <= (c.death_saves_failures||0) ? 'filled' : 'empty'}" onclick="toggleDeathSave('failures',${i})" style="display:inline-block;background:${i<=(c.death_saves_failures||0)?'var(--danger)':'transparent'};border-color:${i<=(c.death_saves_failures||0)?'var(--danger)':'var(--border)'}"></span>`
+      ).join('')}</div>
+    </div>
+    <div class="form-group">
+      <label>Concentrating On</label>
+      <input value="${esc(c.concentrating_on||'')}" onchange="updateField('concentrating_on',this.value)" placeholder="e.g. Hunter's Mark">
+    </div>
   `;
 }
 
@@ -251,6 +264,17 @@ async function enableSpellcasting() {
   renderSheet();
 }
 (window as any).enableSpellcasting = enableSpellcasting;
+
+(window as any).toggleDeathSave = async function (field:string, val:number) {
+  if (!currentChar) return;
+  if (currentChar['death_saves_' + field] === val) {
+    currentChar['death_saves_' + field] = val - 1;
+  } else {
+    currentChar['death_saves_' + field] = val;
+  }
+  await api('PUT', `/api/characters/${currentChar.id}`, currentChar);
+  renderSheet();
+};
 
 async function updateSpellcasting(field:string,value:any) {
   currentChar.spellcasting[field] = value;

@@ -1083,6 +1083,46 @@ func TestCharacterFeaturesAndSpells(t *testing.T) {
 	tc.del(fmt.Sprintf("/api/spells/%d", sid), nil)
 }
 
+func TestDeathSaves(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{"name": "Falling Hero", "race": "Human", "class": "Fighter", "hp_max": 20, "hp_current": 0})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Simulate death saves
+	resp = tc.put(fmt.Sprintf("/api/characters/%d", cid), map[string]any{
+		"name": "Falling Hero", "race": "Human", "class": "Fighter",
+		"level": 1, "hp_max": 20, "hp_current": 0,
+		"death_saves_successes": 1, "death_saves_failures": 2,
+		"ac": 10, "initiative": 0, "speed": 30, "str": 10, "dex": 10,
+		"con": 10, "int": 10, "wis": 10, "cha": 10,
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update death saves failed: %d", resp.Code)
+	}
+
+	// Verify via get
+	resp = tc.get(fmt.Sprintf("/api/characters/%d", cid), nil)
+	readJSON(resp, &char)
+	if int(char["death_saves_successes"].(float64)) != 1 || int(char["death_saves_failures"].(float64)) != 2 {
+		t.Fatalf("death saves mismatch: %+v", char)
+	}
+
+	// Long rest should reset death saves
+	resp = tc.post(fmt.Sprintf("/api/characters/%d/rest", cid), map[string]any{"rest_type": "long"})
+	if resp.Code != 200 {
+		t.Fatalf("long rest failed: %d", resp.Code)
+	}
+	resp = tc.get(fmt.Sprintf("/api/characters/%d", cid), nil)
+	readJSON(resp, &char)
+	if int(char["death_saves_successes"].(float64)) != 0 || int(char["death_saves_failures"].(float64)) != 0 {
+		t.Fatalf("death saves should reset after long rest: %+v", char)
+	}
+}
+
 func TestSpellcasting(t *testing.T) {
 	tc := newTestClient()
 	setupAdmin(t, tc)

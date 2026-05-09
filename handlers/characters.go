@@ -75,6 +75,7 @@ func GetCharacter(c *gin.Context) {
 			str, dex, con, int, wis, cha, ac, initiative, speed,
 			hp_max, hp_current, temp_hp, hit_dice, hit_dice_current,
 			proficiency_bonus, inspiration, passive_perception,
+			death_saves_successes, death_saves_failures, concentrating_on,
 			personality_traits, ideals, bonds, flaws, appearance, backstory,
 			created_at, updated_at
 		FROM characters WHERE id=?`, id).Scan(
@@ -84,6 +85,7 @@ func GetCharacter(c *gin.Context) {
 		&ch.AC, &ch.Initiative, &ch.Speed,
 		&ch.HPMax, &ch.HPCurrent, &ch.TempHP, &ch.HitDice, &ch.HitDiceCurrent,
 		&ch.ProficiencyBonus, &ch.Inspiration, &ch.PassivePerception,
+		&ch.DeathSavesSuccesses, &ch.DeathSavesFailures, &ch.ConcentratingOn,
 		&ch.PersonalityTraits, &ch.Ideals, &ch.Bonds, &ch.Flaws, &ch.Appearance, &ch.Backstory,
 		&ch.CreatedAt, &ch.UpdatedAt)
 	if err == sql.ErrNoRows {
@@ -163,14 +165,16 @@ func CreateCharacter(c *gin.Context) {
 			str, dex, con, int, wis, cha, ac, initiative, speed,
 			hp_max, hp_current, temp_hp, hit_dice, hit_dice_current,
 			proficiency_bonus, inspiration, passive_perception,
+			death_saves_successes, death_saves_failures, concentrating_on,
 			personality_traits, ideals, bonds, flaws, appearance, backstory)
-		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		userID, campaignID,
 		ch.Name, ch.Race, ch.Class, ch.Subclass, ch.Level, ch.XP, ch.Background, ch.Alignment,
 		ch.Str, ch.Dex, ch.Con, ch.Int, ch.Wis, ch.Cha,
 		ch.AC, ch.Initiative, ch.Speed,
 		ch.HPMax, ch.HPCurrent, ch.TempHP, ch.HitDice, ch.HitDiceCurrent,
 		ch.ProficiencyBonus, ch.Inspiration, ch.PassivePerception,
+		ch.DeathSavesSuccesses, ch.DeathSavesFailures, ch.ConcentratingOn,
 		ch.PersonalityTraits, ch.Ideals, ch.Bonds, ch.Flaws, ch.Appearance, ch.Backstory)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -217,6 +221,7 @@ func UpdateCharacter(c *gin.Context) {
 			ac=?, initiative=?, speed=?,
 			hp_max=?, hp_current=?, temp_hp=?, hit_dice=?, hit_dice_current=?,
 			proficiency_bonus=?, inspiration=?, passive_perception=?,
+			death_saves_successes=?, death_saves_failures=?, concentrating_on=?,
 			personality_traits=?, ideals=?, bonds=?, flaws=?, appearance=?, backstory=?,
 			updated_at=datetime('now')
 		WHERE id=?`,
@@ -225,6 +230,7 @@ func UpdateCharacter(c *gin.Context) {
 		ch.AC, ch.Initiative, ch.Speed,
 		ch.HPMax, ch.HPCurrent, ch.TempHP, ch.HitDice, ch.HitDiceCurrent,
 		ch.ProficiencyBonus, ch.Inspiration, ch.PassivePerception,
+		ch.DeathSavesSuccesses, ch.DeathSavesFailures, ch.ConcentratingOn,
 		ch.PersonalityTraits, ch.Ideals, ch.Bonds, ch.Flaws, ch.Appearance, ch.Backstory,
 		id)
 	if err != nil {
