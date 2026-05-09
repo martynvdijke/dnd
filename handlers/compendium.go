@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -388,8 +391,37 @@ func ImportFromAPI(c *gin.Context) {
 		return
 	}
 
-	// We fetch from a JSON API that returns characters in our import format
-	// Uses a simple HTTP GET
-	// This is a generic endpoint - the API should return data matching ImportCharacter or []ImportCharacter
-	c.JSON(http.StatusBadRequest, gin.H{"error": "specify a JSON endpoint URL returning character data matching the import schema"})
+	// Fetch JSON from external API
+	resp, err := http.Get(url)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to fetch URL: " + err.Error()})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("API returned status %d", resp.StatusCode)})
+		return
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read response: " + err.Error()})
+		return
+	}
+
+	// Try as array first, then single object
+	var chars []models.ImportCharacter
+	if err := json.Unmarshal(body, &chars); err != nil {
+		var single models.ImportCharacter
+		if err2 := json.Unmarshal(body, &single); err2 != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "response is not valid character JSON: " + err.Error()})
+			return
+		}
+		chars = []models.ImportCharacter{single}
+	}
+
+	userID, _ := c.Get("user_id")
+	results := importCharacters(userID.(int64), chars)
+	c.JSON(http.StatusOK, results)
 }

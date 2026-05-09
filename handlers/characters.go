@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	"vellum/db"
 	"vellum/models"
@@ -462,7 +464,8 @@ func characterToText(ch *models.Character) string {
 			byType[p.Type] = append(byType[p.Type], p.Name)
 		}
 		for typ, names := range byType {
-			fmt.Fprintf(&b, "  %s: %s\n", strings.Title(typ), strings.Join(names, ", "))
+			titleCaser := cases.Title(language.English)
+			fmt.Fprintf(&b, "  %s: %s\n", titleCaser.String(typ), strings.Join(names, ", "))
 		}
 		b.WriteString("\n")
 	}
@@ -495,6 +498,18 @@ func characterToText(ch *models.Character) string {
 	}
 
 	return b.String()
+}
+
+// checkCharacterAccess verifies the current user owns (or is admin of) the given character
+func checkCharacterAccess(c *gin.Context, characterID int64) bool {
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+	var ownerID int64
+	err := db.DB.QueryRow("SELECT user_id FROM characters WHERE id=?", characterID).Scan(&ownerID)
+	if err != nil {
+		return false
+	}
+	return role == "admin" || ownerID == userID
 }
 
 // Internal load helpers
@@ -825,6 +840,16 @@ func UpdateInventory(c *gin.Context) {
 
 func DeleteInventory(c *gin.Context) {
 	iid, _ := strconv.ParseInt(c.Param("iid"), 10, 64)
+	var charID int64
+	err := db.DB.QueryRow("SELECT character_id FROM inventory WHERE id=?", iid).Scan(&charID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "item not found"})
+		return
+	}
+	if !checkCharacterAccess(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("DELETE FROM inventory WHERE id=?", iid)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
@@ -874,6 +899,16 @@ func UpdateSpell(c *gin.Context) {
 
 func DeleteSpell(c *gin.Context) {
 	sid, _ := strconv.ParseInt(c.Param("sid"), 10, 64)
+	var charID int64
+	err := db.DB.QueryRow("SELECT character_id FROM spells WHERE id=?", sid).Scan(&charID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "spell not found"})
+		return
+	}
+	if !checkCharacterAccess(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("DELETE FROM spells WHERE id=?", sid)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
@@ -916,6 +951,16 @@ func UpdateFeature(c *gin.Context) {
 
 func DeleteFeature(c *gin.Context) {
 	fid, _ := strconv.ParseInt(c.Param("fid"), 10, 64)
+	var charID int64
+	err := db.DB.QueryRow("SELECT character_id FROM character_features WHERE id=?", fid).Scan(&charID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "feature not found"})
+		return
+	}
+	if !checkCharacterAccess(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("DELETE FROM character_features WHERE id=?", fid)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
@@ -940,6 +985,16 @@ func CreateProficiency(c *gin.Context) {
 
 func DeleteProficiency(c *gin.Context) {
 	pid, _ := strconv.ParseInt(c.Param("pid"), 10, 64)
+	var charID int64
+	err := db.DB.QueryRow("SELECT character_id FROM character_proficiencies WHERE id=?", pid).Scan(&charID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "proficiency not found"})
+		return
+	}
+	if !checkCharacterAccess(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("DELETE FROM character_proficiencies WHERE id=?", pid)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

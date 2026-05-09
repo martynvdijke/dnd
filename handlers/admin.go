@@ -40,8 +40,12 @@ func AdminCreateUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if req.Username == "" || req.Password == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "username and password required"})
+	if req.Username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "username required"})
+		return
+	}
+	if len(req.Password) < 8 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "password must be at least 8 characters"})
 		return
 	}
 	if req.Role == "" {
@@ -97,6 +101,10 @@ func AdminResetPassword(c *gin.Context) {
 	}
 	if err := c.ShouldBindJSON(&req); err != nil || req.Password == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "password required"})
+		return
+	}
+	if len(req.Password) < 8 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "password must be at least 8 characters"})
 		return
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)

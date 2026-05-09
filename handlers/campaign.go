@@ -60,6 +60,17 @@ func UpdateLocation(c *gin.Context) {
 
 func DeleteLocation(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	userID, _ := c.Get("user_id")
+	var ownerID int64
+	err := db.DB.QueryRow("SELECT user_id FROM locations WHERE id=?", id).Scan(&ownerID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "location not found"})
+		return
+	}
+	if ownerID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("DELETE FROM locations WHERE id=?", id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
@@ -82,6 +93,16 @@ func LinkLocation(c *gin.Context) {
 
 func UnlinkLocation(c *gin.Context) {
 	linkID, _ := strconv.ParseInt(c.Param("lid"), 10, 64)
+	var charID int64
+	err := db.DB.QueryRow("SELECT character_id FROM character_locations WHERE id=?", linkID).Scan(&charID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "link not found"})
+		return
+	}
+	if !checkCharacterAccess(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("DELETE FROM character_locations WHERE id=?", linkID)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
@@ -167,6 +188,17 @@ func UpdateNPC(c *gin.Context) {
 
 func DeleteNPC(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	userID, _ := c.Get("user_id")
+	var ownerID int64
+	err := db.DB.QueryRow("SELECT user_id FROM npcs WHERE id=?", id).Scan(&ownerID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "NPC not found"})
+		return
+	}
+	if ownerID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("DELETE FROM npcs WHERE id=?", id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
@@ -189,6 +221,16 @@ func LinkNPC(c *gin.Context) {
 
 func UnlinkNPC(c *gin.Context) {
 	linkID, _ := strconv.ParseInt(c.Param("nid"), 10, 64)
+	var charID int64
+	err := db.DB.QueryRow("SELECT character_id FROM character_npcs WHERE id=?", linkID).Scan(&charID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "link not found"})
+		return
+	}
+	if !checkCharacterAccess(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("DELETE FROM character_npcs WHERE id=?", linkID)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
@@ -262,6 +304,16 @@ func CreateSession(c *gin.Context) {
 
 func DeleteSession(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("sid"), 10, 64)
+	var charID int64
+	err := db.DB.QueryRow("SELECT character_id FROM sessions WHERE id=?", id).Scan(&charID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "session not found"})
+		return
+	}
+	if !checkCharacterAccess(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("DELETE FROM sessions WHERE id=?", id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
@@ -319,6 +371,16 @@ func UpdateQuest(c *gin.Context) {
 
 func DeleteQuest(c *gin.Context) {
 	qid, _ := strconv.ParseInt(c.Param("qid"), 10, 64)
+	var charID int64
+	err := db.DB.QueryRow("SELECT character_id FROM quests WHERE id=?", qid).Scan(&charID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "quest not found"})
+		return
+	}
+	if !checkCharacterAccess(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("DELETE FROM quests WHERE id=?", qid)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
@@ -361,6 +423,16 @@ func CreateJournalEntry(c *gin.Context) {
 
 func DeleteJournalEntry(c *gin.Context) {
 	jid, _ := strconv.ParseInt(c.Param("jid"), 10, 64)
+	var charID int64
+	err := db.DB.QueryRow("SELECT character_id FROM journal WHERE id=?", jid).Scan(&charID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "journal entry not found"})
+		return
+	}
+	if !checkCharacterAccess(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("DELETE FROM journal WHERE id=?", jid)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
@@ -607,7 +679,11 @@ func LevelUp(c *gin.Context) {
 	}
 
 	newHP := hpMax + hpGain
-	db.DB.Exec("UPDATE characters SET level=?, hp_max=?, hp_current=hp_current+? WHERE id=?", newLevel, newHP, hpGain, charID)
+	newCur := hpCur + hpGain
+	if newCur > newHP {
+		newCur = newHP
+	}
+	db.DB.Exec("UPDATE characters SET level=?, hp_max=?, hp_current=? WHERE id=?", newLevel, newHP, newCur, charID)
 
 	// Update proficiency bonus
 	newProf := 2

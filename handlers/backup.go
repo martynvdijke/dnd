@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"vellum/db"
@@ -27,8 +28,9 @@ func CreateBackup() (string, error) {
 	backupName := fmt.Sprintf("vellum_%s.db", timestamp)
 	backupPath := filepath.Join(backupDir, backupName)
 
-	// Perform VACUUM INTO for a consistent snapshot
-	_, err := db.DB.Exec(fmt.Sprintf("VACUUM INTO '%s'", backupPath))
+	// Perform VACUUM INTO for a consistent snapshot (escape single quotes in path)
+	safePath := strings.ReplaceAll(backupPath, "'", "''")
+	_, err := db.DB.Exec(fmt.Sprintf("VACUUM INTO '%s'", safePath))
 	if err != nil {
 		// Fallback: copy the file directly
 		src, err := os.Open(dbPath)

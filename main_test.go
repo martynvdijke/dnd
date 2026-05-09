@@ -868,21 +868,21 @@ func TestMulticharacterTenant(t *testing.T) {
 
 	// Create user1
 	resp := adminTC.post("/api/admin/users", map[string]any{
-		"username": "user_one", "password": "pass1", "role": "user",
+		"username": "user_one", "password": "testpass1", "role": "user",
 	})
 	var user1 map[string]any
 	readJSON(resp, &user1)
 
 	// Create user2
 	resp = adminTC.post("/api/admin/users", map[string]any{
-		"username": "user_two", "password": "pass2", "role": "user",
+		"username": "user_two", "password": "testpass2", "role": "user",
 	})
 	var user2 map[string]any
 	readJSON(resp, &user2)
 
 	// Login as user1 and create character
 	tc1 := newTestClient()
-	login(t, tc1, "user_one", "pass1")
+	login(t, tc1, "user_one", "testpass1")
 	resp = tc1.post("/api/characters", map[string]any{"name": "Hero One", "race": "Human", "class": "Fighter"})
 	if resp.Code != 201 {
 		t.Fatalf("user1 create failed: %d", resp.Code)
@@ -890,7 +890,7 @@ func TestMulticharacterTenant(t *testing.T) {
 
 	// Login as user2 and create character  
 	tc2 := newTestClient()
-	login(t, tc2, "user_two", "pass2")
+	login(t, tc2, "user_two", "testpass2")
 	resp = tc2.post("/api/characters", map[string]any{"name": "Hero Two", "race": "Elf", "class": "Wizard"})
 	if resp.Code != 201 {
 		t.Fatalf("user2 create failed: %d", resp.Code)
