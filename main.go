@@ -154,6 +154,9 @@ func main() {
 		// Graph
 		auth.GET("/characters/:id/graph", handlers.GetGraphData)
 
+		// Stats
+		auth.GET("/characters/:id/stats", handlers.GetCharacterStats)
+
 		// Campaigns
 		auth.GET("/campaigns", handlers.ListCampaigns)
 		auth.POST("/campaigns", handlers.CreateCampaign)

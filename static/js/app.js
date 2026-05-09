@@ -83,7 +83,7 @@ function renderSheet() {
     document.getElementById('sheetName').textContent = c.name;
     document.getElementById('sheetSubtitle').textContent =
         `${c.race} ${c.class}${c.subclass ? ' (' + c.subclass + ')' : ''} · Level ${c.level}`;
-    const sections = ['stats', 'combat', 'spells', 'inventory', 'features', 'locations', 'npcs', 'sessions', 'quests', 'journal', 'graph', 'details', 'dice'];
+    const sections = ['stats', 'combat', 'spells', 'inventory', 'features', 'locations', 'npcs', 'sessions', 'quests', 'journal', 'graph', 'analytics', 'details', 'dice'];
     const tabBar = document.getElementById('tabBar');
     tabBar.innerHTML = sections.map(s => `
     <button class="tab ${s === currentTab ? 'active' : ''}" onclick="switchTab('${s}')">${capitalize(s)}</button>
@@ -109,6 +109,8 @@ function renderSheet() {
         renderJournal();
     if (currentTab === 'graph')
         renderGraph();
+    if (currentTab === 'analytics')
+        renderAnalytics();
     renderDetails();
     renderDiceTab();
 }
@@ -746,6 +748,85 @@ async function renderGraph() {
     }
     catch (e) {
         el.innerHTML += `<div class="empty-state">Could not load graph: ${e.message}</div>`;
+    }
+}
+// ─── Analytics / Statistics ───
+async function renderAnalytics() {
+    const el = document.getElementById('analyticsSection');
+    if (!el)
+        return;
+    el.innerHTML = '<div class="ornament">✧ Loading analytics... ✧</div>';
+    try {
+        const stats = await api('GET', `/api/characters/${currentChar.id}/stats`);
+        const sc = (n) => n === 0 ? 'var(--text-muted)' : 'var(--blood)';
+        el.innerHTML = `
+      <h3>Campaign Overview</h3>
+      <div class="combat-grid" style="margin-bottom:16px">
+        <div class="combat-stat"><div class="label">Sessions</div><div class="value">${stats.session_count}</div></div>
+        <div class="combat-stat"><div class="label">Level</div><div class="value">${stats.level}</div></div>
+        <div class="combat-stat" style="color:var(--success)"><div class="label">Total XP</div><div class="value">${stats.total_xp_earned}</div></div>
+        <div class="combat-stat" style="color:var(--gold)"><div class="label">Gold Earned</div><div class="value">${stats.total_gold_earned}</div></div>
+      </div>
+
+      <div class="form-row" style="margin-bottom:16px">
+        <div class="card" style="padding:16px">
+          <h3 style="margin-bottom:8px">Quests (${stats.quests.total})</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            ${stats.quests.active > 0 ? `<span class="badge badge-blood">${stats.quests.active} Active</span>` : ''}
+            ${stats.quests.complete > 0 ? `<span class="badge" style="background:var(--success);color:white">${stats.quests.complete} Complete</span>` : ''}
+            ${stats.quests.failed > 0 ? `<span class="badge" style="background:#666;color:white">${stats.quests.failed} Failed</span>` : ''}
+            ${stats.quests.available > 0 ? `<span class="badge badge-gold">${stats.quests.available} Available</span>` : ''}
+          </div>
+        </div>
+        <div class="card" style="padding:16px">
+          <h3 style="margin-bottom:8px">Rests</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <span class="badge badge-gold">${stats.rests.short} Short</span>
+            <span class="badge badge-blood">${stats.rests.long} Long</span>
+            ${stats.rests.total_healed > 0 ? `<span class="badge" style="background:var(--success);color:white">${stats.rests.total_healed} HP Healed</span>` : ''}
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row" style="margin-bottom:16px">
+        <div class="card" style="padding:16px">
+          <h3 style="margin-bottom:8px">World</h3>
+          <p style="color:var(--text-light)">${stats.locations_count} Locations explored</p>
+          <p style="color:var(--text-light)">${stats.npc_interactions} NPC interactions</p>
+          <p style="color:var(--text-light)">${stats.journal_count} Journal entries</p>
+          <p style="color:var(--text-light)">${stats.dice_rolls.total_rolls} Dice rolls (avg ${stats.dice_rolls.average.toFixed(1)})</p>
+        </div>
+        <div class="card" style="padding:16px">
+          <h3 style="margin-bottom:8px">Notable NPCs</h3>
+          ${stats.top_npcs && stats.top_npcs.length > 0
+            ? stats.top_npcs.map((n) => `<p style="color:var(--text-light)">✦ ${esc(n)}</p>`).join('')
+            : '<p style="color:var(--text-muted);font-style:italic">No NPC interactions yet</p>'}
+        </div>
+      </div>
+      <div id="questChartContainer" style="height:200px;max-width:400px;margin:0 auto"></div>`;
+        // Draw quest pie chart if Chart.js available
+        if ((typeof Chart !== 'undefined') && stats.quests.total > 0) {
+            const ctx = document.createElement('canvas');
+            document.getElementById('questChartContainer').appendChild(ctx);
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Active', 'Complete', 'Failed', 'Available', 'Abandoned'],
+                    datasets: [{
+                            data: [stats.quests.active, stats.quests.complete, stats.quests.failed, stats.quests.available, stats.quests.abandoned],
+                            backgroundColor: ['#8b0000', '#2d6a2d', '#666', '#b8963e', '#ccc'],
+                            borderWidth: 0,
+                        }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { font: { family: 'Vollkorn' } } } }
+                }
+            });
+        }
+    }
+    catch (e) {
+        el.innerHTML = '<div class="empty-state">Could not load analytics: ' + esc(e.message) + '</div>';
     }
 }
 // ─── Dice Tab ───

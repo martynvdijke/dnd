@@ -112,6 +112,7 @@ func buildRouter() *gin.Engine {
 		auth.POST("/characters/:id/journal", handlers.CreateJournalEntry)
 		auth.DELETE("/journal/:jid", handlers.DeleteJournalEntry)
 		auth.GET("/characters/:id/graph", handlers.GetGraphData)
+		auth.GET("/characters/:id/stats", handlers.GetCharacterStats)
 		auth.GET("/campaigns", handlers.ListCampaigns)
 		auth.POST("/campaigns", handlers.CreateCampaign)
 		auth.PUT("/campaigns/:id", handlers.UpdateCampaign)
@@ -649,6 +650,40 @@ func TestSessionsQuestsJournal(t *testing.T) {
 	jid := int(jentry["id"].(float64))
 	tc.get(fmt.Sprintf("/api/characters/%d/journal", cid), nil)
 	tc.del(fmt.Sprintf("/api/journal/%d", jid), nil)
+}
+
+func TestStatsEndpoint(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{"name": "Stat Hero", "race": "Human", "class": "Fighter"})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Add some data to generate stats
+	tc.post(fmt.Sprintf("/api/characters/%d/sessions", cid), map[string]any{"title": "S1", "notes": "First", "xp_earned": 300})
+	tc.post(fmt.Sprintf("/api/characters/%d/sessions", cid), map[string]any{"title": "S2", "notes": "Second", "xp_earned": 450})
+	tc.post(fmt.Sprintf("/api/characters/%d/quests", cid), map[string]any{"name": "Q1", "status": "active"})
+	tc.post(fmt.Sprintf("/api/characters/%d/quests", cid), map[string]any{"name": "Q2", "status": "complete"})
+
+	resp = tc.get(fmt.Sprintf("/api/characters/%d/stats", cid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("stats failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var stats map[string]any
+	readJSON(resp, &stats)
+	if int(stats["session_count"].(float64)) != 2 {
+		t.Fatalf("expected 2 sessions, got %v", stats["session_count"])
+	}
+	if int(stats["total_xp_earned"].(float64)) != 750 {
+		t.Fatalf("expected 750 XP, got %v", stats["total_xp_earned"])
+	}
+	quests := stats["quests"].(map[string]any)
+	if int(quests["active"].(float64)) != 1 || int(quests["complete"].(float64)) != 1 {
+		t.Fatalf("quest stats mismatch: %+v", quests)
+	}
+	t.Logf("Stats: sessions=%v, xp=%v, quests=%+v", stats["session_count"], stats["total_xp_earned"], quests)
 }
 
 func TestGraphData(t *testing.T) {
