@@ -1,3 +1,4 @@
+"use strict";
 async function init() {
     const res = await fetch('/api/check-setup');
     const data = await res.json();
@@ -34,5 +35,4 @@ async function init() {
     });
 }
 init();
-export {};
 //# sourceMappingURL=login.js.map

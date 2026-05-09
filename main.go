@@ -38,7 +38,7 @@ func main() {
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "6280"
+		port = "6270"
 	}
 
 	r := gin.New()

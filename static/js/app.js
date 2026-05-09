@@ -1,3 +1,4 @@
+"use strict";
 let csrfToken = '';
 let currentUser = null;
 let currentView = 'characters';
@@ -1377,5 +1378,4 @@ window.logout = async function () {
     window.location.href = '/login';
 };
 init();
-export {};
 //# sourceMappingURL=app.js.map

@@ -48,7 +48,8 @@ jobs:
         run: npx tsc
 
       - name: Run Tests
-        run: go test -v ./...
+        run: 
+          go test -tags "sqlite_fts5" -v ./...
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium firefox

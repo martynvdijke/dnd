@@ -1,3 +1,4 @@
+"use strict";
 let csrfToken = '';
 let currentUser = null;
 async function api(method, path, body) {
@@ -325,5 +326,4 @@ window.logout = async function () {
     window.location.href = '/login';
 };
 init();
-export {};
 //# sourceMappingURL=admin.js.map
