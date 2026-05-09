@@ -172,6 +172,15 @@ func main() {
 
 		// Party view
 		auth.GET("/party", handlers.GetPartyView)
+
+		// Combat
+		auth.GET("/combat", handlers.ListCombatEntries)
+		auth.POST("/combat", handlers.CreateCombatEntry)
+		auth.PUT("/combat/:id", handlers.UpdateCombatEntry)
+		auth.DELETE("/combat/:id", handlers.DeleteCombatEntry)
+		auth.POST("/combat/initiative", handlers.RollInitiative)
+		auth.POST("/combat/next-turn", handlers.NextTurn)
+		auth.GET("/combat/current-turn", handlers.GetCurrentTurn)
 	}
 
 	// Admin routes

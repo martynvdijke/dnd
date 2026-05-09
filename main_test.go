@@ -123,6 +123,15 @@ func buildRouter() *gin.Engine {
 		auth.POST("/characters/:id/rest", handlers.DoRest)
 		auth.POST("/characters/:id/levelup", handlers.LevelUp)
 		auth.GET("/party", handlers.GetPartyView)
+
+		// Combat
+		auth.GET("/combat", handlers.ListCombatEntries)
+		auth.POST("/combat", handlers.CreateCombatEntry)
+		auth.PUT("/combat/:id", handlers.UpdateCombatEntry)
+		auth.DELETE("/combat/:id", handlers.DeleteCombatEntry)
+		auth.POST("/combat/initiative", handlers.RollInitiative)
+		auth.POST("/combat/next-turn", handlers.NextTurn)
+		auth.GET("/combat/current-turn", handlers.GetCurrentTurn)
 	}
 
 	admin := r.Group("/api/admin")
@@ -1863,6 +1872,73 @@ func TestCheckRollErrors(t *testing.T) {
 	})
 	if resp.Code != 404 {
 		t.Fatalf("expected 404 for missing character, got %d", resp.Code)
+	}
+}
+
+func TestCombatTracker(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create character for initiative
+	resp := tc.post("/api/characters", map[string]any{
+		"name": "Combatant", "race": "Elf", "class": "Ranger",
+		"dex": 18,
+	})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Roll initiative
+	resp = tc.post("/api/combat/initiative", map[string]any{"character_id": cid})
+	if resp.Code != 200 {
+		t.Fatalf("initiative roll failed: %d", resp.Code)
+	}
+	var init map[string]any
+	readJSON(resp, &init)
+	if int(init["total"].(float64)) < 1 {
+		t.Fatal("initiative roll too low")
+	}
+	t.Logf("Initiative: %+v", init)
+
+	// Create combat entry
+	resp = tc.post("/api/combat", map[string]any{
+		"name": "Goblin", "type": "monster",
+		"initiative_roll": 12, "initiative_mod": 2,
+		"hp_max": 7, "hp_current": 7, "ac": 15,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create combat entry failed: %d", resp.Code)
+	}
+	var entry map[string]any
+	readJSON(resp, &entry)
+	eid := int(entry["id"].(float64))
+
+	// List combat entries
+	resp = tc.get("/api/combat", nil)
+	if resp.Code != 200 {
+		t.Fatalf("list combat failed: %d", resp.Code)
+	}
+	var entries []any
+	readJSON(resp, &entries)
+	if len(entries) < 1 {
+		t.Fatal("expected at least 1 combat entry")
+	}
+
+	// Update entry
+	resp = tc.put(fmt.Sprintf("/api/combat/%d", eid), map[string]any{
+		"name": "Goblin Archer", "type": "monster",
+		"initiative_roll": 12, "initiative_mod": 3,
+		"hp_max": 7, "hp_current": 5, "ac": 15,
+		"is_active": true,
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update combat entry failed: %d", resp.Code)
+	}
+
+	// Delete
+	resp = tc.del(fmt.Sprintf("/api/combat/%d", eid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("delete combat entry failed: %d", resp.Code)
 	}
 }
 
