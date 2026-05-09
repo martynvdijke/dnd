@@ -94,6 +94,7 @@ func main() {
 
 		// Dice
 		auth.POST("/roll", handlers.HandleRoll)
+		auth.POST("/roll/check", handlers.HandleCheckRoll)
 		auth.GET("/dice-rolls", handlers.GetDiceRolls)
 
 		// Compendium (read-only)

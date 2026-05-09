@@ -78,6 +78,7 @@ func buildRouter() *gin.Engine {
 		auth.POST("/proficiencies", handlers.CreateProficiency)
 		auth.DELETE("/proficiencies/:pid", handlers.DeleteProficiency)
 		auth.POST("/roll", handlers.HandleRoll)
+		auth.POST("/roll/check", handlers.HandleCheckRoll)
 		auth.GET("/dice-rolls", handlers.GetDiceRolls)
 		auth.GET("/compendium/races", handlers.ListCompendiumRaces)
 		auth.GET("/compendium/classes", handlers.ListCompendiumClasses)
@@ -1724,6 +1725,144 @@ func TestSpellSaveDCComputed(t *testing.T) {
 	}
 	if int(char["spell_attack_bonus"].(float64)) != 7 {
 		t.Fatalf("expected spell_attack_bonus 7, got %v", char["spell_attack_bonus"])
+	}
+}
+
+func TestCheckRollSkills(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{
+		"name": "Skill Checker", "race": "Elf", "class": "Rogue",
+		"dex": 18, "wis": 14, "cha": 10,
+	})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Add proficiency in Stealth
+	tc.post("/api/proficiencies", map[string]any{
+		"character_id": cid, "name": "Stealth", "type": "skill",
+	})
+
+	tests := []struct {
+		name  string
+		skill string
+	}{
+		{"stealth with prof", "stealth"},
+		{"perception without prof", "perception"},
+		{"persuasion", "persuasion"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.skill, func(t *testing.T) {
+			resp = tc.post("/api/roll/check", map[string]any{
+				"character_id": cid, "type": "skill", "name": tt.skill,
+			})
+			if resp.Code != 200 {
+				t.Fatalf("check %s failed: %d - %s", tt.skill, resp.Code, resp.Body.String())
+			}
+			var result map[string]any
+			readJSON(resp, &result)
+			total := int(result["total"].(float64))
+			if total < 1 || total > 30 {
+				t.Errorf("unexpected total %d for %s", total, tt.skill)
+			}
+			t.Logf("%s -> %s", tt.skill, result["text"])
+		})
+	}
+}
+
+func TestCheckRollAdvantageDisadvantage(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{
+		"name": "Adv Test", "race": "Human", "class": "Fighter",
+		"str": 16,
+	})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Normal
+	resp = tc.post("/api/roll/check", map[string]any{
+		"character_id": cid, "type": "check", "name": "str",
+	})
+	if resp.Code != 200 {
+		t.Fatalf("normal check failed: %d", resp.Code)
+	}
+	var normal map[string]any
+	readJSON(resp, &normal)
+	rolls := normal["rolls"].([]any)
+	if len(rolls) != 1 {
+		t.Fatalf("expected 1 roll for normal, got %d", len(rolls))
+	}
+
+	// Advantage
+	resp = tc.post("/api/roll/check", map[string]any{
+		"character_id": cid, "type": "check", "name": "str", "advantage": "advantage",
+	})
+	if resp.Code != 200 {
+		t.Fatalf("advantage check failed: %d", resp.Code)
+	}
+	var adv map[string]any
+	readJSON(resp, &adv)
+	rolls = adv["rolls"].([]any)
+	if len(rolls) != 2 {
+		t.Fatalf("expected 2 rolls for advantage, got %d", len(rolls))
+	}
+	t.Logf("Advantage: %v", adv["text"])
+
+	// Disadvantage
+	resp = tc.post("/api/roll/check", map[string]any{
+		"character_id": cid, "type": "check", "name": "str", "advantage": "disadvantage",
+	})
+	if resp.Code != 200 {
+		t.Fatalf("disadvantage check failed: %d", resp.Code)
+	}
+	var dis map[string]any
+	readJSON(resp, &dis)
+	rolls = dis["rolls"].([]any)
+	if len(rolls) != 2 {
+		t.Fatalf("expected 2 rolls for disadvantage, got %d", len(rolls))
+	}
+	t.Logf("Disadvantage: %v", dis["text"])
+}
+
+func TestCheckRollErrors(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create a character to test with
+	resp := tc.post("/api/characters", map[string]any{
+		"name": "Error Test", "race": "Human", "class": "Fighter",
+	})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Unknown skill
+	resp = tc.post("/api/roll/check", map[string]any{
+		"character_id": cid, "type": "skill", "name": "nonexistent",
+	})
+	if resp.Code != 400 {
+		t.Fatalf("expected 400 for unknown skill, got %d - %s", resp.Code, resp.Body.String())
+	}
+
+	// Invalid type
+	resp = tc.post("/api/roll/check", map[string]any{
+		"character_id": cid, "type": "invalid", "name": "str",
+	})
+	if resp.Code != 400 {
+		t.Fatalf("expected 400 for invalid type, got %d", resp.Code)
+	}
+
+	// Character not found
+	resp = tc.post("/api/roll/check", map[string]any{
+		"character_id": 99999, "type": "check", "name": "str",
+	})
+	if resp.Code != 404 {
+		t.Fatalf("expected 404 for missing character, got %d", resp.Code)
 	}
 }
 

@@ -121,6 +121,20 @@ function switchTab(tab) {
     renderSheet();
 }
 window.switchTab = switchTab;
+async function rollCheck(type, name, adv) {
+    if (!currentChar)
+        return;
+    try {
+        const result = await api('POST', '/api/roll/check', {
+            character_id: currentChar.id, type, name, advantage: adv,
+        });
+        toast(`${result.text}`, true);
+    }
+    catch (e) {
+        toast(e.message, true);
+    }
+}
+window.rollCheck = rollCheck;
 function renderStats() {
     const c = currentChar;
     const el = document.getElementById('statsSection');
@@ -131,12 +145,16 @@ function renderStats() {
         const val = c[a.key];
         const mod = c[`${a.key}_mod`];
         const cls = mod > 0 ? 'mod-pos' : mod < 0 ? 'mod-neg' : 'mod-zero';
-        return `<div class="ability-score">
+        return `<div class="ability-score" style="cursor:pointer" onclick="rollCheck('check','${a.key}','normal')">
           <div class="label">${a.label}</div>
           <div class="value">${val}</div>
           <div class="mod ${cls}">${mod >= 0 ? '+' : ''}${mod}</div>
         </div>`;
     }).join('')}
+    </div>
+    <div class="form-row" style="margin-top:8px">
+      <button class="btn btn-sm" onclick="rollCheck('check','str','advantage')">⤴ Advantage</button>
+      <button class="btn btn-sm" onclick="rollCheck('check','str','disadvantage')">⤵ Disadvantage</button>
     </div>
     <div class="ornament">✧</div>
     <div class="form-row" style="margin-top:16px">
@@ -145,10 +163,35 @@ function renderStats() {
       <div class="form-group"><label>Passive Percep.</label><input type="number" value="${c.passive_perception}" onchange="updateField('passive_perception',+this.value)"></div>
       <div class="form-group"><label>XP</label><input type="number" value="${c.xp}" onchange="updateField('xp',+this.value)"></div>
     </div>
+    <h3>Skills <span style="font-size:0.8em;font-weight:normal">(click to roll)</span></h3>
+    <div id="skillsArea">${renderSkills(c)}</div>
     <h3>Proficiencies</h3>
     <div id="profsArea">${(c.proficiencies || []).map((p) => `<span class="badge badge-blood" style="margin:2px">${esc(p.name)} (${p.type}) <a href="#" onclick="deleteProf(${p.id});return false" style="color:white;text-decoration:none">×</a></span>`).join('')}</div>
     <button class="btn btn-sm" style="margin-top:8px" onclick="addProf()">+ Add Proficiency</button>
   `;
+}
+function renderSkills(c) {
+    const skls = [
+        { name: 'Athletics', abil: 'str' },
+        { name: 'Acrobatics', abil: 'dex' }, { name: 'Sleight of Hand', abil: 'dex' }, { name: 'Stealth', abil: 'dex' },
+        { name: 'Arcana', abil: 'int' }, { name: 'History', abil: 'int' }, { name: 'Investigation', abil: 'int' },
+        { name: 'Nature', abil: 'int' }, { name: 'Religion', abil: 'int' },
+        { name: 'Animal Handling', abil: 'wis' }, { name: 'Insight', abil: 'wis' }, { name: 'Medicine', abil: 'wis' },
+        { name: 'Perception', abil: 'wis' }, { name: 'Survival', abil: 'wis' },
+        { name: 'Deception', abil: 'cha' }, { name: 'Intimidation', abil: 'cha' },
+        { name: 'Performance', abil: 'cha' }, { name: 'Persuasion', abil: 'cha' },
+    ];
+    const profs = (c.proficiencies || []).filter((p) => p.type === 'skill').map((p) => p.name.toLowerCase());
+    return skls.map(s => {
+        const isProf = profs.includes(s.name.toLowerCase());
+        const mod = c[`${s.abil}_mod`];
+        const total = isProf ? mod + c.proficiency_bonus : mod;
+        const sign = total >= 0 ? '+' : '';
+        return `<div class="skill-row" style="cursor:pointer;padding:2px 0" onclick="rollCheck('skill','${s.name}','normal')">
+      <span class="skill-name">${s.name}${isProf ? ' ★' : ''}</span>
+      <span class="skill-mod">${sign}${total}</span>
+    </div>`;
+    }).join('');
 }
 async function updateField(field, value) {
     if (!currentChar)
