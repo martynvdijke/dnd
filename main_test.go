@@ -764,21 +764,47 @@ func TestRestAndLevelUp(t *testing.T) {
 		"name": "Tired Hero", "race": "Human", "class": "Fighter",
 		"hp_max": 50, "hp_current": 10, "level": 4,
 		"str": 16, "dex": 12, "con": 14, "int": 10, "wis": 12, "cha": 10,
+		"hit_dice": "1d10", "hit_dice_current": 4,
 	})
 	var char map[string]any
 	readJSON(resp, &char)
 	cid := int(char["id"].(float64))
 
-	// Short rest
-	resp = tc.post(fmt.Sprintf("/api/characters/%d/rest", cid), map[string]any{"rest_type": "short"})
+	// Short rest with 2 hit dice
+	resp = tc.post(fmt.Sprintf("/api/characters/%d/rest", cid), map[string]any{"rest_type": "short", "hit_dice_count": 2})
 	if resp.Code != 200 {
 		t.Fatalf("short rest failed: %d - %s", resp.Code, resp.Body.String())
 	}
+	var restResult map[string]any
+	readJSON(resp, &restResult)
+	hpHealed := int(restResult["hp_healed"].(float64))
+	if hpHealed < 2 {
+		t.Fatalf("short rest should heal >= 2 HP with 2 HD (CON +2 min 1 each): %d", hpHealed)
+	}
+	t.Logf("Short rest healed: %d", hpHealed)
 
-	// Long rest
+	// Verify hit dice were decremented
+	resp = tc.get(fmt.Sprintf("/api/characters/%d", cid), nil)
+	readJSON(resp, &char)
+	if int(char["hit_dice_current"].(float64)) != 2 {
+		t.Fatalf("expected hit_dice_current=2 after spending 2, got %v", char["hit_dice_current"])
+	}
+
+	// Long rest should recover HP and half hit dice
 	resp = tc.post(fmt.Sprintf("/api/characters/%d/rest", cid), map[string]any{"rest_type": "long"})
 	if resp.Code != 200 {
 		t.Fatalf("long rest failed: %d", resp.Code)
+	}
+	readJSON(resp, &restResult)
+
+	// After long rest at level 4, recover 2 HD (level/2), so total should be 2+2=4
+	resp = tc.get(fmt.Sprintf("/api/characters/%d", cid), nil)
+	readJSON(resp, &char)
+	if int(char["hp_current"].(float64)) != 50 {
+		t.Fatalf("expected full HP after long rest: %v", char["hp_current"])
+	}
+	if int(char["hit_dice_current"].(float64)) != 4 {
+		t.Fatalf("expected hit_dice_current=4 after long rest (recover 2 of 4), got %v", char["hit_dice_current"])
 	}
 
 	// Level up
@@ -793,6 +819,12 @@ func TestRestAndLevelUp(t *testing.T) {
 	}
 	if int(lvl["hp_gain"].(float64)) < 1 {
 		t.Fatal("expected HP gain > 0")
+	}
+	// Level up should increment hit dice
+	resp = tc.get(fmt.Sprintf("/api/characters/%d", cid), nil)
+	readJSON(resp, &char)
+	if int(char["hit_dice_current"].(float64)) != 5 {
+		t.Fatalf("expected hit_dice_current=5 after level up, got %v", char["hit_dice_current"])
 	}
 	t.Logf("Leveled up: %+v", lvl)
 }

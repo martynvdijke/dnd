@@ -808,7 +808,8 @@ func DeleteCampaign(c *gin.Context) {
 func DoRest(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var req struct {
-		RestType string `json:"rest_type"`
+		RestType    string `json:"rest_type"`
+		HitDiceCount int   `json:"hit_dice_count"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -819,9 +820,10 @@ func DoRest(c *gin.Context) {
 		return
 	}
 
-	var hpMax, hpCur int
+	var hpMax, hpCur, con, level, hdCurrent int
 	var hitDice string
-	err := db.DB.QueryRow("SELECT hp_max, hp_current, hit_dice FROM characters WHERE id=?", charID).Scan(&hpMax, &hpCur, &hitDice)
+	err := db.DB.QueryRow("SELECT hp_max, hp_current, hit_dice, hit_dice_current, con, level FROM characters WHERE id=?", charID).
+		Scan(&hpMax, &hpCur, &hitDice, &hdCurrent, &con, &level)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
 		return
@@ -829,27 +831,59 @@ func DoRest(c *gin.Context) {
 
 	hpHealed := 0
 	if req.RestType == "long" {
+		// Long rest: full heal, recover half max hit dice, reset spell slots/death saves
 		hpHealed = hpMax - hpCur
-		db.DB.Exec("UPDATE characters SET hp_current=hp_max, death_saves_successes=0, death_saves_failures=0, concentrating_on='' WHERE id=?", charID)
-		// Recover all spell slots
+		recoveredHD := level / 2
+		if recoveredHD < 1 {
+			recoveredHD = 1
+		}
+		newHD := hdCurrent + recoveredHD
+		if newHD > level {
+			newHD = level
+		}
+		db.DB.Exec("UPDATE characters SET hp_current=hp_max, hit_dice_current=?, death_saves_successes=0, death_saves_failures=0, concentrating_on='' WHERE id=?", newHD, charID)
 		db.DB.Exec(`UPDATE character_spellcasting SET
 			slots_1_used=0, slots_2_used=0, slots_3_used=0, slots_4_used=0,
 			slots_5_used=0, slots_6_used=0, slots_7_used=0, slots_8_used=0, slots_9_used=0
 			WHERE character_id=?`, charID)
 	} else {
-		// Short rest: can spend hit dice (simulate half HP)
-		if hpMax > 0 {
-			healAmt := hpMax / 4
-			if healAmt < 1 {
-				healAmt = 1
-			}
-			newHp := hpCur + healAmt
-			if newHp > hpMax {
-				newHp = hpMax
-			}
-			hpHealed = newHp - hpCur
-			db.DB.Exec("UPDATE characters SET hp_current=? WHERE id=?", newHp, charID)
+		// Short rest: spend individual hit dice
+		count := req.HitDiceCount
+		if count < 0 {
+			count = 0
 		}
+		if count > hdCurrent {
+			count = hdCurrent
+		}
+		if count == 0 && hpMax > 0 {
+			// Default to spending 1 hit die if none specified
+			count = 1
+			if count > hdCurrent {
+				count = hdCurrent
+			}
+		}
+		hitDieSize := 10
+		if len(hitDice) > 1 {
+			dieSizeStr := hitDice[2:]
+			if d, err2 := strconv.Atoi(dieSizeStr); err2 == nil {
+				hitDieSize = d
+			}
+		}
+		conMod := abilityMod(con)
+		for i := 0; i < count; i++ {
+			roll, _ := randInt(1, hitDieSize)
+			heal := roll + conMod
+			if heal < 1 {
+				heal = 1
+			}
+			hpHealed += heal
+		}
+		newHp := hpCur + hpHealed
+		if newHp > hpMax {
+			newHp = hpMax
+		}
+		hpHealed = newHp - hpCur
+		db.DB.Exec("UPDATE characters SET hp_current=?, hit_dice_current=hit_dice_current-? WHERE id=?", newHp, count, charID)
 	}
 
 	db.DB.Exec("INSERT INTO rest_log(character_id,rest_type,hp_healed,notes) VALUES(?,?,?,?)",
