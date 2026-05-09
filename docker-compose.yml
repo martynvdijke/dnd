@@ -1,0 +1,15 @@
+services:
+  vellum:
+    build: .
+    ports:
+      - "6280:6280"
+    environment:
+      - DB_PATH=/db/vellum.db
+      - PORT=6280
+    volumes:
+      - vellum-data:/db
+      - ./backups:/app/backups
+    restart: unless-stopped
+
+volumes:
+  vellum-data:

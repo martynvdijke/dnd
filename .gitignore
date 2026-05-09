@@ -1,0 +1,7 @@
+node_modules/
+vellum-server
+vellum.db*
+*.db-shm
+*.db-wal
+backups/
+media/
