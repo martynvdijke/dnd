@@ -469,3 +469,158 @@ func GetGraphData(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gd)
 }
+
+// ─── Campaigns ───
+
+func ListCampaigns(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	rows, err := db.DB.Query("SELECT id,user_id,name,description,dm_notes,created_at FROM campaigns WHERE user_id=? ORDER BY name", userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	var out []models.Campaign
+	for rows.Next() {
+		var ca models.Campaign
+		rows.Scan(&ca.ID, &ca.UserID, &ca.Name, &ca.Description, &ca.DMNotes, &ca.CreatedAt)
+		out = append(out, ca)
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+func CreateCampaign(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	var ca models.Campaign
+	if err := c.ShouldBindJSON(&ca); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	result, err := db.DB.Exec("INSERT INTO campaigns(user_id,name,description,dm_notes) VALUES(?,?,?,?)",
+		userID, ca.Name, ca.Description, ca.DMNotes)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	c.JSON(http.StatusCreated, gin.H{"id": id, "name": ca.Name})
+}
+
+func UpdateCampaign(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var ca models.Campaign
+	if err := c.ShouldBindJSON(&ca); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	db.DB.Exec("UPDATE campaigns SET name=?,description=?,dm_notes=? WHERE id=?", ca.Name, ca.Description, ca.DMNotes, id)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func DeleteCampaign(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	db.DB.Exec("UPDATE characters SET campaign_id=NULL WHERE campaign_id=?", id)
+	db.DB.Exec("DELETE FROM campaigns WHERE id=?", id)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// ─── Rest & Level Up ───
+
+func DoRest(c *gin.Context) {
+	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var req struct {
+		RestType string `json:"rest_type"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if req.RestType != "short" && req.RestType != "long" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "rest_type must be 'short' or 'long'"})
+		return
+	}
+
+	var hpMax, hpCur int
+	var hitDice string
+	err := db.DB.QueryRow("SELECT hp_max, hp_current, hit_dice FROM characters WHERE id=?", charID).Scan(&hpMax, &hpCur, &hitDice)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
+		return
+	}
+
+	hpHealed := 0
+	if req.RestType == "long" {
+		hpHealed = hpMax - hpCur
+		db.DB.Exec("UPDATE characters SET hp_current=hp_max WHERE id=?", charID)
+		// Recover all spell slots
+		db.DB.Exec(`UPDATE character_spellcasting SET
+			slots_1_used=0, slots_2_used=0, slots_3_used=0, slots_4_used=0,
+			slots_5_used=0, slots_6_used=0, slots_7_used=0, slots_8_used=0, slots_9_used=0
+			WHERE character_id=?`, charID)
+	} else {
+		// Short rest: can spend hit dice (simulate half HP)
+		if hpMax > 0 {
+			healAmt := hpMax / 4
+			if healAmt < 1 {
+				healAmt = 1
+			}
+			newHp := hpCur + healAmt
+			if newHp > hpMax {
+				newHp = hpMax
+			}
+			hpHealed = newHp - hpCur
+			db.DB.Exec("UPDATE characters SET hp_current=? WHERE id=?", newHp, charID)
+		}
+	}
+
+	db.DB.Exec("INSERT INTO rest_log(character_id,rest_type,hp_healed,notes) VALUES(?,?,?,?)",
+		charID, req.RestType, hpHealed, "")
+
+	c.JSON(http.StatusOK, gin.H{"ok": true, "hp_healed": hpHealed, "rest_type": req.RestType})
+}
+
+func LevelUp(c *gin.Context) {
+	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+
+	var level, hpMax, hpCur, con int
+	var hitDice string
+	err := db.DB.QueryRow("SELECT level, hp_max, hp_current, hit_dice, con FROM characters WHERE id=?", charID).Scan(&level, &hpMax, &hpCur, &hitDice, &con)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
+		return
+	}
+
+	newLevel := level + 1
+	// Estimate HP gain: average of hit die + CON mod
+	hitDieSize := 10 // default
+	if len(hitDice) > 1 {
+		// Extract die size from "1dX"
+		dieSizeStr := hitDice[2:]
+		if d, err2 := strconv.Atoi(dieSizeStr); err2 == nil {
+			hitDieSize = d
+		}
+	}
+	conMod := (con - 10) / 2
+	hpGain := (hitDieSize/2 + 1) + conMod // average roll + CON
+	if hpGain < 1 {
+		hpGain = 1
+	}
+
+	newHP := hpMax + hpGain
+	db.DB.Exec("UPDATE characters SET level=?, hp_max=?, hp_current=hp_current+? WHERE id=?", newLevel, newHP, hpGain, charID)
+
+	// Update proficiency bonus
+	newProf := 2
+	if newLevel >= 17 {
+		newProf = 6
+	} else if newLevel >= 13 {
+		newProf = 5
+	} else if newLevel >= 9 {
+		newProf = 4
+	} else if newLevel >= 5 {
+		newProf = 3
+	}
+	db.DB.Exec("UPDATE characters SET proficiency_bonus=? WHERE id=? AND proficiency_bonus<?", newProf, charID, newProf)
+
+	c.JSON(http.StatusOK, gin.H{"ok": true, "new_level": newLevel, "hp_gain": hpGain, "new_hp_max": newHP})
+}

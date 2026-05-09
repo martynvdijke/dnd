@@ -69,14 +69,14 @@ func GetCharacter(c *gin.Context) {
 
 	ch := &models.Character{}
 	err := db.DB.QueryRow(`
-		SELECT id, user_id, name, race, class, subclass, level, xp, background, alignment,
+		SELECT id, user_id, campaign_id, name, race, class, subclass, level, xp, background, alignment,
 			str, dex, con, int, wis, cha, ac, initiative, speed,
 			hp_max, hp_current, temp_hp, hit_dice, hit_dice_current,
 			proficiency_bonus, inspiration, passive_perception,
 			personality_traits, ideals, bonds, flaws, appearance, backstory,
 			created_at, updated_at
 		FROM characters WHERE id=?`, id).Scan(
-		&ch.ID, &ch.UserID, &ch.Name, &ch.Race, &ch.Class, &ch.Subclass, &ch.Level, &ch.XP,
+		&ch.ID, &ch.UserID, &ch.CampaignID, &ch.Name, &ch.Race, &ch.Class, &ch.Subclass, &ch.Level, &ch.XP,
 		&ch.Background, &ch.Alignment,
 		&ch.Str, &ch.Dex, &ch.Con, &ch.Int, &ch.Wis, &ch.Cha,
 		&ch.AC, &ch.Initiative, &ch.Speed,
@@ -154,15 +154,16 @@ func CreateCharacter(c *gin.Context) {
 		ch.HitDiceCurrent = 1
 	}
 
+	campaignID := ch.CampaignID
 	result, err := db.DB.Exec(`
 		INSERT INTO characters(
-			user_id, name, race, class, subclass, level, xp, background, alignment,
+			user_id, campaign_id, name, race, class, subclass, level, xp, background, alignment,
 			str, dex, con, int, wis, cha, ac, initiative, speed,
 			hp_max, hp_current, temp_hp, hit_dice, hit_dice_current,
 			proficiency_bonus, inspiration, passive_perception,
 			personality_traits, ideals, bonds, flaws, appearance, backstory)
-		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-		userID,
+		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		userID, campaignID,
 		ch.Name, ch.Race, ch.Class, ch.Subclass, ch.Level, ch.XP, ch.Background, ch.Alignment,
 		ch.Str, ch.Dex, ch.Con, ch.Int, ch.Wis, ch.Cha,
 		ch.AC, ch.Initiative, ch.Speed,

@@ -152,6 +152,16 @@ func main() {
 
 		// Graph
 		auth.GET("/characters/:id/graph", handlers.GetGraphData)
+
+		// Campaigns
+		auth.GET("/campaigns", handlers.ListCampaigns)
+		auth.POST("/campaigns", handlers.CreateCampaign)
+		auth.PUT("/campaigns/:id", handlers.UpdateCampaign)
+		auth.DELETE("/campaigns/:id", handlers.DeleteCampaign)
+
+		// Rest & Level Up
+		auth.POST("/characters/:id/rest", handlers.DoRest)
+		auth.POST("/characters/:id/levelup", handlers.LevelUp)
 	}
 
 	// Admin routes

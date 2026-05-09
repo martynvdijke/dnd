@@ -367,6 +367,35 @@ CREATE INDEX IF NOT EXISTS idx_quests_character ON quests(character_id);
 CREATE INDEX IF NOT EXISTS idx_journal_character ON journal(character_id);
 `,
 	},
+	{
+		version: 4,
+		sql: `
+CREATE TABLE IF NOT EXISTS campaigns (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    dm_notes TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+ALTER TABLE characters ADD COLUMN campaign_id INTEGER REFERENCES campaigns(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_campaigns_user ON campaigns(user_id);
+CREATE INDEX IF NOT EXISTS idx_characters_campaign ON characters(campaign_id);
+
+CREATE TABLE IF NOT EXISTS rest_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    character_id INTEGER NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
+    rest_type TEXT NOT NULL CHECK(rest_type IN ('short','long')),
+    hp_healed INTEGER NOT NULL DEFAULT 0,
+    slots_recovered TEXT NOT NULL DEFAULT '[]',
+    hit_dice_spent INTEGER NOT NULL DEFAULT 0,
+    notes TEXT NOT NULL DEFAULT '',
+    timestamp TEXT NOT NULL DEFAULT (datetime('now'))
+);
+`,
+	},
 }
 
 func Migrate() error {

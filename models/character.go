@@ -3,6 +3,7 @@ package models
 type Character struct {
 	ID                int64  `json:"id"`
 	UserID            int64  `json:"user_id"`
+	CampaignID        *int64 `json:"campaign_id,omitempty"`
 	Name              string `json:"name"`
 	Race              string `json:"race"`
 	Class             string `json:"class"`
@@ -244,4 +245,24 @@ type GraphEdge struct {
 type GraphData struct {
 	Nodes []GraphNode `json:"nodes"`
 	Edges []GraphEdge `json:"edges"`
+}
+
+type Campaign struct {
+	ID          int64  `json:"id"`
+	UserID      int64  `json:"user_id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	DMNotes     string `json:"dm_notes"`
+	CreatedAt   string `json:"created_at"`
+}
+
+type RestLog struct {
+	ID             int64  `json:"id"`
+	CharacterID    int64  `json:"character_id"`
+	RestType       string `json:"rest_type"`
+	HPHealed       int    `json:"hp_healed"`
+	SlotsRecovered string `json:"slots_recovered"`
+	HitDiceSpent   int    `json:"hit_dice_spent"`
+	Notes          string `json:"notes"`
+	Timestamp      string `json:"timestamp"`
 }
