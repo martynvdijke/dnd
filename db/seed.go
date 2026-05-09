@@ -134,48 +134,11 @@ func seedSpells() {
 		return
 	}
 
-	spells := []struct {
-		name, school, time, rng, comp, dur, desc, higher, classes string
-		level                                                     int
-	}{
-		{"Acid Splash", "Conjuration", "1 action", "60 feet", "V, S", "Instantaneous", "You hurl a bubble of acid. Choose one creature within range, or two within 5 feet. Each target must succeed on a DEX save or take 1d6 acid damage.", "This spell's damage increases by 1d6 when you reach 5th level (2d6), 11th level (3d6), and 17th level (4d6).", `["Sorcerer","Wizard"]`, 0},
-		{"Blade Ward", "Abjuration", "1 action", "Self", "V, S", "1 round", "You extend your hand and trace a sigil of warding. Until the end of your next turn, you have resistance against bludgeoning, piercing, and slashing damage from weapon attacks.", "", `["Bard","Sorcerer","Warlock","Wizard"]`, 0},
-		{"Chill Touch", "Necromancy", "1 action", "120 feet", "V, S", "1 round", "You create a ghostly hand that makes a ranged spell attack against a creature. On hit, take 1d8 necrotic damage and can't regain HP until your next turn. Undead have disadvantage on attack rolls against you.", "Damage increases by 1d8 at 5th/11th/17th level.", `["Sorcerer","Warlock","Wizard"]`, 0},
-		{"Dancing Lights", "Evocation", "1 action", "120 feet", "V, S, M", "Concentration, up to 1 minute", "You create up to four torch-sized lights that shed dim light in 10 feet.", "", `["Bard","Sorcerer","Wizard"]`, 0},
-		{"Fire Bolt", "Evocation", "1 action", "120 feet", "V, S", "Instantaneous", "You hurl a mote of fire. Make a ranged spell attack. On hit, target takes 1d10 fire damage. Unattended objects ignite.", "Damage increases by 1d10 at 5th/11th/17th level.", `["Sorcerer","Wizard"]`, 0},
-		{"Guidance", "Divination", "1 action", "Touch", "V, S", "Concentration, up to 1 minute", "You touch a willing creature. Once before the spell ends, it can add 1d4 to one ability check of its choice.", "", `["Cleric","Druid"]`, 0},
-		{"Light", "Evocation", "1 action", "Touch", "V, M", "1 hour", "You touch an object no larger than 10 feet in any dimension. Until the spell ends, the object sheds bright light in a 20-foot radius and dim light for an additional 20 feet.", "", `["Bard","Cleric","Sorcerer","Wizard"]`, 0},
-		{"Mage Hand", "Conjuration", "1 action", "30 feet", "V, S", "1 minute", "A spectral hand appears that you can use to manipulate objects, open doors, etc. It has 10 ft reach, can carry 10 lbs.", "", `["Bard","Sorcerer","Warlock","Wizard"]`, 0},
-		{"Minor Illusion", "Illusion", "1 action", "30 feet", "S, M", "1 minute", "You create a sound or an image of an object no larger than a 5-foot cube.", "", `["Bard","Sorcerer","Warlock","Wizard"]`, 0},
-		{"Poison Spray", "Conjuration", "1 action", "10 feet", "V, S", "Instantaneous", "You extend your hand toward a creature and spray poisonous gas. The target must succeed on a CON save or take 1d12 poison damage.", "Damage increases by 1d12 at 5th/11th/17th level.", `["Druid","Sorcerer","Warlock","Wizard"]`, 0},
-		{"Prestidigitation", "Transmutation", "1 action", "10 feet", "V, S", "Up to 1 hour", "Minor magical trick. You can create harmless sensory effects, clean/soil items, light/snuff candles, etc.", "", `["Bard","Sorcerer","Warlock","Wizard"]`, 0},
-		{"Produce Flame", "Conjuration", "1 action", "Self", "V, S", "10 minutes", "A flickering flame appears in your hand. You can attack with it (ranged spell attack, 30 ft, 1d8 fire) or use it to shed light.", "Damage increases at 5th/11th/17th level.", `["Druid"]`, 0},
-		{"Ray of Frost", "Evocation", "1 action", "60 feet", "V, S", "Instantaneous", "A frigid beam strikes a creature. Make a ranged spell attack. On hit, take 1d8 cold damage and speed reduced by 10 ft until next turn.", "Damage increases by 1d8 at 5th/11th/17th level.", `["Sorcerer","Wizard"]`, 0},
-		{"Sacred Flame", "Evocation", "1 action", "60 feet", "V, S", "Instantaneous", "Flame-like radiance descends. Target must succeed on DEX save or take 1d8 radiant damage. No cover bonus.", "Damage increases by 1d8 at 5th/11th/17th level.", `["Cleric"]`, 0},
-		{"Shillelagh", "Transmutation", "1 bonus action", "Touch", "V, S, M", "1 minute", "The wood of a club or quarterstaff is imbued with nature's power. Use spellcasting ability instead of STR for attacks, damage die becomes d8.", "", `["Druid"]`, 0},
-		{"Shocking Grasp", "Evocation", "1 action", "Touch", "V, S", "Instantaneous", "Lightning springs from your hand. Make a melee spell attack. On hit, target takes 1d8 lightning damage and can't take reactions until its next turn. Advantage against metal armor.", "Damage increases by 1d8 at 5th/11th/17th level.", `["Sorcerer","Wizard"]`, 0},
-		{"Spare the Dying", "Necromancy", "1 action", "Touch", "V, S", "Instantaneous", "You touch a living creature that has 0 HP. The creature becomes stable.", "", `["Cleric"]`, 0},
-		{"Thaumaturgy", "Transmutation", "1 action", "30 feet", "V", "Up to 1 minute", "You manifest a minor wonder. You can create sounds, alter flames, cause ground tremor, etc.", "", `["Cleric"]`, 0},
-		{"True Strike", "Divination", "1 action", "30 feet", "S", "Concentration, up to 1 round", "You gain a brief insight. On your next turn, you gain advantage on your first attack roll against the target.", "", `["Bard","Sorcerer","Warlock","Wizard"]`, 0},
-		{"Vicious Mockery", "Enchantment", "1 action", "60 feet", "V", "Instantaneous", "You unleash a string of insults. Target must succeed on WIS save or take 1d4 psychic damage and have disadvantage on next attack roll.", "Damage increases by 1d4 at 5th/11th/17th level.", `["Bard"]`, 0},
-
-		// Level 1 spells
-		{"Bless", "Enchantment", "1 action", "30 feet", "V, S, M", "Concentration, up to 1 minute", "You bless up to three creatures. Each add 1d4 to attack rolls and saving throws.", "When cast at 2nd+ level, you can target one additional creature per level.", `["Cleric","Paladin"]`, 1},
-		{"Burning Hands", "Evocation", "1 action", "Self (15-ft cone)", "V, S", "Instantaneous", "A thin sheet of flames shoots from your outstretched hands. Creatures in the cone must succeed on a DEX save or take 3d6 fire damage.", "Damage increases by 1d6 per level above 1st.", `["Sorcerer","Wizard"]`, 1},
-		{"Cure Wounds", "Evocation", "1 action", "Touch", "V, S", "Instantaneous", "A creature you touch regains 1d8 + spellcasting ability modifier HP.", "Healing increases by 1d8 per level above 1st.", `["Bard","Cleric","Druid","Paladin","Ranger"]`, 1},
-		{"Detect Magic", "Divination", "1 action", "Self", "V, S", "Concentration, up to 10 minutes", "You sense the presence of magic within 30 feet of you. You can see a faint aura around visible creatures and objects.", "", `["Bard","Cleric","Druid","Paladin","Ranger","Sorcerer","Warlock","Wizard"]`, 1},
-		{"Fireball", "Evocation", "1 action", "150 feet", "V, S, M", "Instantaneous", "A bright streak flashes from your finger to a point you choose within range and blossoms with a low roar into an explosion of flame. Each creature in a 20-foot-radius sphere must make a DEX save. On a failed save, target takes 8d6 fire damage.", "Damage increases by 1d6 per level above 3rd.", `["Sorcerer","Wizard"]`, 3},
-		{"Magic Missile", "Evocation", "1 action", "120 feet", "V, S", "Instantaneous", "You create three glowing darts. Each hits a creature you can see, dealing 1d4+1 force damage. The darts strike simultaneously.", "One additional dart per level above 1st.", `["Sorcerer","Wizard"]`, 1},
-		{"Mage Armor", "Abjuration", "1 action", "Touch", "V, S, M", "8 hours", "You touch a willing creature not wearing armor. Its base AC becomes 13 + DEX modifier.", "", `["Sorcerer","Wizard"]`, 1},
-		{"Shield", "Abjuration", "1 reaction", "Self", "V, S", "1 round", "An invisible barrier appears. You gain +5 AC until the start of your next turn, including against the triggering attack.", "", `["Sorcerer","Wizard"]`, 1},
-		{"Healing Word", "Evocation", "1 bonus action", "60 feet", "V", "Instantaneous", "A creature regains 1d4 + spellcasting ability modifier HP.", "Healing increases by 1d4 per level above 1st.", `["Bard","Cleric","Druid"]`, 1},
-	}
-
-	for _, s := range spells {
+	for _, s := range SRDSpells {
 		DB.Exec("INSERT INTO compendium_spells(name,level,school,casting_time,range,components,duration,description,higher_levels,classes) VALUES(?,?,?,?,?,?,?,?,?,?)",
 			s.name, s.level, s.school, s.time, s.rng, s.comp, s.dur, s.desc, s.higher, s.classes)
 	}
-	log.Printf("Seeded %d spells", len(spells))
+	log.Printf("Seeded %d spells", len(SRDSpells))
 }
 
 func seedEquipment() {

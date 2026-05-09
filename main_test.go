@@ -974,6 +974,11 @@ func TestSeedData(t *testing.T) {
 	if count < 5 {
 		t.Fatalf("expected >=5 classes, got %d", count)
 	}
+	db.DB.QueryRow("SELECT COUNT(*) FROM compendium_spells").Scan(&count)
+	if count < 200 {
+		t.Fatalf("expected >=200 spells, got %d", count)
+	}
+	t.Logf("Total spells seeded: %d", count)
 }
 
 func TestImportJSON(t *testing.T) {
