@@ -454,7 +454,10 @@ async function renderNPCs() {
             <span style="color:var(--text-muted)">${esc(n.npc_race)} ${esc(n.npc_class)}</span>
             ${n.npc_is_alive ? '' : '<span class="badge badge-blood">Deceased</span>'}
           </div>
-          <div><span class="badge badge-gold">${esc(n.relationship)}</span>
+          <div>
+            <span class="badge badge-gold">${esc(n.relationship)}</span>
+            ${n.interaction_count > 0 ? `<span class="badge badge-blood">${n.interaction_count} interactions</span>` : ''}
+            <button class="btn btn-sm" onclick="logNPCInteraction(${n.id})">+ Speak</button>
             <button class="btn btn-sm btn-danger" onclick="unlinkNPC(${n.id})">×</button>
           </div>
         </div>`).join('')
@@ -503,6 +506,11 @@ async function renderNPCs() {
     notes: (document.getElementById('linkNPCNotes') as HTMLTextAreaElement).value,
   });
   btn.closest('.modal-overlay')?.remove();
+  renderNPCs();
+};
+
+(window as any).logNPCInteraction = async function (id:number) {
+  await api('POST', `/api/npcs/link/${id}/interact`, {});
   renderNPCs();
 };
 

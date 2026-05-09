@@ -184,11 +184,13 @@ type NPC struct {
 }
 
 type CharacterNPC struct {
-	ID           int64  `json:"id"`
-	CharacterID  int64  `json:"character_id"`
-	NPCID        int64  `json:"npc_id"`
-	Relationship string `json:"relationship"`
-	Notes        string `json:"notes"`
+	ID               int64  `json:"id"`
+	CharacterID      int64  `json:"character_id"`
+	NPCID            int64  `json:"npc_id"`
+	Relationship     string `json:"relationship"`
+	Notes            string `json:"notes"`
+	InteractionCount int    `json:"interaction_count"`
+	LastInteracted   string `json:"last_interacted"`
 }
 
 type Session struct {

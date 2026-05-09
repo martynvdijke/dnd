@@ -100,6 +100,7 @@ func buildRouter() *gin.Engine {
 		auth.GET("/characters/:id/npcs", handlers.GetCharacterNPCs)
 		auth.POST("/characters/:id/npcs", handlers.LinkNPC)
 		auth.DELETE("/npcs/link/:nid", handlers.UnlinkNPC)
+		auth.POST("/npcs/link/:nid/interact", handlers.LogNPCInteraction)
 		auth.GET("/characters/:id/sessions", handlers.ListSessions)
 		auth.POST("/characters/:id/sessions", handlers.CreateSession)
 		auth.DELETE("/sessions/:sid", handlers.DeleteSession)
@@ -565,6 +566,30 @@ func TestLocationsAndNPCs(t *testing.T) {
 	resp = tc.get(fmt.Sprintf("/api/characters/%d/npcs", cid), nil)
 	if resp.Code != 200 {
 		t.Fatalf("get NPCs failed: %d", resp.Code)
+	}
+	var npcLinks []any
+	readJSON(resp, &npcLinks)
+	if len(npcLinks) != 1 {
+		t.Fatalf("expected 1 NPC link, got %d", len(npcLinks))
+	}
+
+	// Log interaction
+	firstLink := npcLinks[0].(map[string]any)
+	linkID := int(firstLink["id"].(float64))
+	resp = tc.post(fmt.Sprintf("/api/npcs/link/%d/interact", linkID), map[string]any{})
+	if resp.Code != 200 {
+		t.Fatalf("log interaction failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	// Verify interaction count increased
+	resp = tc.get(fmt.Sprintf("/api/characters/%d/npcs", cid), nil)
+	var updatedLinks []any
+	readJSON(resp, &updatedLinks)
+	if len(updatedLinks) == 1 {
+		updated := updatedLinks[0].(map[string]any)
+		if int(updated["interaction_count"].(float64)) != 1 {
+			t.Fatalf("expected interaction_count=1, got %v", updated["interaction_count"])
+		}
 	}
 
 	tc.del(fmt.Sprintf("/api/npcs/%d", nid), nil)

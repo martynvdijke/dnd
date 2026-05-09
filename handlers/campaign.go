@@ -239,9 +239,10 @@ func GetCharacterNPCs(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	rows, err := db.DB.Query(`
 		SELECT cn.id, cn.character_id, cn.npc_id, cn.relationship, cn.notes,
+			cn.interaction_count, cn.last_interacted,
 			n.name, n.race, n.class, n.hp_max, n.hp_current, n.is_alive
 		FROM character_npcs cn JOIN npcs n ON cn.npc_id = n.id
-		WHERE cn.character_id=? ORDER BY cn.relationship`, charID)
+		WHERE cn.character_id=? ORDER BY cn.interaction_count DESC`, charID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -249,17 +250,18 @@ func GetCharacterNPCs(c *gin.Context) {
 	defer rows.Close()
 	type NPCLink struct {
 		models.CharacterNPC
-		NPCName   string `json:"npc_name"`
-		NPCRace   string `json:"npc_race"`
-		NPCClass  string `json:"npc_class"`
-		NPHPMax   int    `json:"npc_hp_max"`
-		NPHPCurr  int    `json:"npc_hp_current"`
-		NPCAlive  bool   `json:"npc_is_alive"`
+		NPCName         string `json:"npc_name"`
+		NPCRace         string `json:"npc_race"`
+		NPCClass        string `json:"npc_class"`
+		NPHPMax         int    `json:"npc_hp_max"`
+		NPHPCurr        int    `json:"npc_hp_current"`
+		NPCAlive        bool   `json:"npc_is_alive"`
 	}
 	var out []NPCLink
 	for rows.Next() {
 		var nl NPCLink
 		rows.Scan(&nl.ID, &nl.CharacterID, &nl.NPCID, &nl.Relationship, &nl.Notes,
+			&nl.InteractionCount, &nl.LastInteracted,
 			&nl.NPCName, &nl.NPCRace, &nl.NPCClass, &nl.NPHPMax, &nl.NPHPCurr, &nl.NPCAlive)
 		out = append(out, nl)
 	}
@@ -474,20 +476,28 @@ func GetGraphData(c *gin.Context) {
 
 	// NPC nodes + edges
 	nrows, _ := db.DB.Query(`
-		SELECT cn.npc_id, cn.relationship, n.name
+		SELECT cn.npc_id, cn.relationship, cn.interaction_count, n.name
 		FROM character_npcs cn JOIN npcs n ON cn.npc_id = n.id
 		WHERE cn.character_id=?`, charID)
 	if nrows != nil {
 		for nrows.Next() {
-			var npcID int64
+			var npcID, intCount int64
 			var rel, npcName string
-			nrows.Scan(&npcID, &rel, &npcName)
+			nrows.Scan(&npcID, &rel, &intCount, &npcName)
 			nid := "npc_" + strconv.FormatInt(npcID, 10)
+			edgeWidth := 1
+			if intCount > 5 {
+				edgeWidth = 5
+			} else if intCount > 2 {
+				edgeWidth = 3
+			} else if intCount > 0 {
+				edgeWidth = 2
+			}
 			gd.Nodes = append(gd.Nodes, models.GraphNode{
 				ID: nid, Label: npcName + " (NPC)", Group: "npc", Color: "#2c6b2f", Size: 20,
 			})
 			gd.Edges = append(gd.Edges, models.GraphEdge{
-				From: "char_" + strconv.FormatInt(charID, 10), To: nid, Label: rel, Width: 1, Dashes: false,
+				From: "char_" + strconv.FormatInt(charID, 10), To: nid, Label: rel, Width: edgeWidth, Dashes: false,
 			})
 		}
 		nrows.Close()
@@ -540,6 +550,24 @@ func GetGraphData(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gd)
+}
+
+// ─── NPC Interaction Logging ───
+
+func LogNPCInteraction(c *gin.Context) {
+	nid, _ := strconv.ParseInt(c.Param("nid"), 10, 64)
+	var charID int64
+	err := db.DB.QueryRow("SELECT character_id FROM character_npcs WHERE id=?", nid).Scan(&charID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "NPC link not found"})
+		return
+	}
+	if !checkCharacterAccess(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+	db.DB.Exec("UPDATE character_npcs SET interaction_count = interaction_count + 1, last_interacted = datetime('now') WHERE id=?", nid)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 // ─── Campaigns ───

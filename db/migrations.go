@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"log"
+	"strings"
 )
 
 var migrations = []struct {
@@ -379,11 +380,6 @@ CREATE TABLE IF NOT EXISTS campaigns (
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
-ALTER TABLE characters ADD COLUMN campaign_id INTEGER REFERENCES campaigns(id) ON DELETE SET NULL;
-
-CREATE INDEX IF NOT EXISTS idx_campaigns_user ON campaigns(user_id);
-CREATE INDEX IF NOT EXISTS idx_characters_campaign ON characters(campaign_id);
-
 CREATE TABLE IF NOT EXISTS rest_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     character_id INTEGER NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
@@ -394,6 +390,14 @@ CREATE TABLE IF NOT EXISTS rest_log (
     notes TEXT NOT NULL DEFAULT '',
     timestamp TEXT NOT NULL DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS _migration_v4_check (dummy INTEGER);
+`,
+	},
+	{
+		version: 5,
+		sql: `
+CREATE TABLE IF NOT EXISTS _migration_v5_check (dummy INTEGER);
 `,
 	},
 }
@@ -402,7 +406,6 @@ func Migrate() error {
 	var current int
 	err := DB.QueryRow("SELECT COALESCE(MAX(version),0) FROM schema_version").Scan(&current)
 	if err != nil {
-		// table doesn't exist yet
 		current = 0
 	}
 
@@ -423,6 +426,20 @@ func Migrate() error {
 			}
 			if err := tx.Commit(); err != nil {
 				return fmt.Errorf("commit migration v%d: %w", m.version, err)
+			}
+		}
+	}
+
+	// Run safe ALTER TABLE additions (ignore if column already exists)
+	alterStatements := []string{
+		"ALTER TABLE characters ADD COLUMN campaign_id INTEGER REFERENCES campaigns(id) ON DELETE SET NULL",
+		"ALTER TABLE character_npcs ADD COLUMN interaction_count INTEGER NOT NULL DEFAULT 0",
+		"ALTER TABLE character_npcs ADD COLUMN last_interacted TEXT NOT NULL DEFAULT ''",
+	}
+	for _, stmt := range alterStatements {
+		if _, err := DB.Exec(stmt); err != nil {
+			if !strings.Contains(err.Error(), "duplicate column") {
+				return fmt.Errorf("alter table: %w", err)
 			}
 		}
 	}

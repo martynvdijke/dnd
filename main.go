@@ -133,6 +133,7 @@ func main() {
 		auth.GET("/characters/:id/npcs", handlers.GetCharacterNPCs)
 		auth.POST("/characters/:id/npcs", handlers.LinkNPC)
 		auth.DELETE("/npcs/link/:nid", handlers.UnlinkNPC)
+		auth.POST("/npcs/link/:nid/interact", handlers.LogNPCInteraction)
 
 		// Sessions
 		auth.GET("/characters/:id/sessions", handlers.ListSessions)
