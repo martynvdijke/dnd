@@ -8,7 +8,7 @@ test.describe('Setup flow', () => {
 
   test('creates admin account and logs in', async ({ page }) => {
     await page.goto('/setup');
-    await expect(page.locator('h1')).toContainText('Vellum');
+    await expect(page.locator('h1')).toContainText('villum');
 
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
@@ -34,7 +34,7 @@ test.describe('Login flow', () => {
     }
 
     await page.goto('/login');
-    await expect(page.locator('h1')).toContainText('Vellum');
+    await expect(page.locator('h1')).toContainText('villum');
 
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');

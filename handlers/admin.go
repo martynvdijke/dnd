@@ -9,8 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 
-	"vellum/db"
-	"vellum/models"
+	"villum/db"
+	"villum/models"
 )
 
 func AdminListUsers(c *gin.Context) {

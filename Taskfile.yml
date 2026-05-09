@@ -25,7 +25,7 @@ tasks:
   test:e2e:
     desc: Run Playwright end-to-end tests
     cmds:
-      - rm -f vellum.db vellum.db-wal vellum.db-shm
+      - rm -f villum.db villum.db-wal villum.db-shm
       - npx playwright test
 
   build:ts:
@@ -37,7 +37,7 @@ tasks:
     desc: Build Go binary
     cmds:
       - task: build:ts
-      - go build -tags fts5 -o vellum-server .
+      - go build -tags fts5 -o villum-server .
 
   run:
     desc: Run the application
@@ -52,11 +52,11 @@ tasks:
   docker:build:
     desc: Build Docker image
     cmds:
-      - docker build . -t vellum:local
+      - docker build . -t villum:local
 
   clean:
     desc: Clean build artifacts
     cmds:
-      - rm -f vellum-server
-      - rm -f vellum.db*
+      - rm -f villum-server
+      - rm -f villum.db*
       - rm -rf playwright-report test-results static/js/*

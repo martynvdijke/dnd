@@ -10,9 +10,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"vellum/db"
-	"vellum/handlers"
-	"vellum/middleware"
+	"villum/db"
+	"villum/handlers"
+	"villum/middleware"
 )
 
 //go:embed static/*.html static/*.css static/style.css static/js/*.js
@@ -23,7 +23,7 @@ const Version = "1.0.0"
 func main() {
 	dbPath := os.Getenv("DB_PATH")
 	if dbPath == "" {
-		dbPath = "vellum.db"
+		dbPath = "villum.db"
 	}
 
 	if err := db.Init(dbPath); err != nil {
@@ -230,7 +230,7 @@ func main() {
 	serveHTML("/app", "app.html")
 	serveHTML("/admin", "admin.html")
 
-	log.Printf("Vellum v%s starting on :%s", Version, port)
+	log.Printf("villum v%s starting on :%s", Version, port)
 	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("Failed to start: %v", err)
 	}

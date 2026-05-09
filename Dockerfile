@@ -13,14 +13,14 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=ts-builder /app/static/js ./static/js
-RUN CGO_ENABLED=1 GOOS=linux go build -tags fts5 -o vellum-server .
+RUN CGO_ENABLED=1 GOOS=linux go build -tags fts5 -o villum-server .
 
 FROM alpine:latest
 RUN apk add --no-cache sqlite-libs ca-certificates
 WORKDIR /app
 ENV DOCKER=true
-COPY --from=builder /app/vellum-server .
+COPY --from=builder /app/villum-server .
 COPY --from=builder /app/static ./static
 RUN mkdir -p /db /app/media /app/backups && chmod 777 /db /app/media /app/backups
 EXPOSE 6280
-CMD ["./vellum-server"]
+CMD ["./villum-server"]

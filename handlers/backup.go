@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"vellum/db"
+	"villum/db"
 )
 
 func CreateBackup() (string, error) {
@@ -25,7 +25,7 @@ func CreateBackup() (string, error) {
 	}
 
 	timestamp := time.Now().Format("20060102_150405")
-	backupName := fmt.Sprintf("vellum_%s.db", timestamp)
+	backupName := fmt.Sprintf("villum_%s.db", timestamp)
 	backupPath := filepath.Join(backupDir, backupName)
 
 	// Perform VACUUM INTO for a consistent snapshot (escape single quotes in path)

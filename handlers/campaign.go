@@ -7,8 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"vellum/db"
-	"vellum/models"
+	"villum/db"
+	"villum/models"
 )
 
 // ─── Locations ───

@@ -7,8 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 
-	"vellum/db"
-	"vellum/middleware"
+	"villum/db"
+	"villum/middleware"
 )
 
 func CheckSetup(c *gin.Context) {

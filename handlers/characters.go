@@ -13,8 +13,8 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
-	"vellum/db"
-	"vellum/models"
+	"villum/db"
+	"villum/models"
 )
 
 func abilityMod(score int) int {

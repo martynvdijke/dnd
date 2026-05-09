@@ -10,8 +10,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"vellum/db"
-	"vellum/models"
+	"villum/db"
+	"villum/models"
 )
 
 func ListCompendiumRaces(c *gin.Context) {

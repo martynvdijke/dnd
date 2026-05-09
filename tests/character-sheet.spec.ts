@@ -178,7 +178,7 @@ test.describe('Campaign management UI', () => {
   test('logout works', async ({ page }) => {
     await page.click('text=Logout');
     await page.waitForURL(/\/login/);
-    await expect(page.locator('h1')).toContainText('Vellum');
+    await expect(page.locator('h1')).toContainText('villum');
   });
 });
 

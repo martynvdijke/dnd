@@ -12,15 +12,15 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"vellum/db"
-	"vellum/handlers"
-	"vellum/middleware"
+	"villum/db"
+	"villum/handlers"
+	"villum/middleware"
 )
 
 var testRouter *gin.Engine
 
 func TestMain(m *testing.M) {
-	testDB := "/tmp/vellum_test.db"
+	testDB := "/tmp/villum_test.db"
 	os.Remove(testDB)
 	os.Remove(testDB + "-wal")
 	os.Remove(testDB + "-shm")

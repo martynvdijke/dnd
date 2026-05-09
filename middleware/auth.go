@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"vellum/models"
+	"villum/models"
 )
 
 type SessionStore struct {

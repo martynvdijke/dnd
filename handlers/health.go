@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"vellum/db"
+	"villum/db"
 )
 
 var startTime = time.Now()

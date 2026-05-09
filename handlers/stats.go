@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"vellum/db"
+	"villum/db"
 )
 
 type CharacterStats struct {
