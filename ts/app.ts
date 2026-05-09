@@ -135,7 +135,7 @@ function renderStats() {
     <div class="ability-grid">
       ${abils.map(a => {
         const val = (c as any)[a.key];
-        const mod = Math.floor((val - 10) / 2);
+        const mod = (c as any)[`${a.key}_mod`];
         const cls = mod > 0 ? 'mod-pos' : mod < 0 ? 'mod-neg' : 'mod-zero';
         return `<div class="ability-score">
           <div class="label">${a.label}</div>

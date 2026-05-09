@@ -39,8 +39,16 @@ type Character struct {
 	UpdatedAt         string `json:"updated_at"`
 
 	// Computed
-	DeathSavesSuccesses int    `json:"death_saves_successes"`
-	DeathSavesFailures  int    `json:"death_saves_failures"`
+	StrMod             int    `json:"str_mod"`
+	DexMod             int    `json:"dex_mod"`
+	ConMod             int    `json:"con_mod"`
+	IntMod             int    `json:"int_mod"`
+	WisMod             int    `json:"wis_mod"`
+	ChaMod             int    `json:"cha_mod"`
+	SpellSaveDC        int    `json:"spell_save_dc"`
+	SpellAttackBonus   int    `json:"spell_attack_bonus"`
+	DeathSavesSuccesses int   `json:"death_saves_successes"`
+	DeathSavesFailures  int   `json:"death_saves_failures"`
 	ConcentratingOn     string `json:"concentrating_on"`
 
 	Proficiencies    []Proficiency    `json:"proficiencies,omitempty"`

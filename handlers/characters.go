@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,6 +16,38 @@ import (
 	"vellum/db"
 	"vellum/models"
 )
+
+func abilityMod(score int) int {
+	return int(math.Floor(float64(score-10) / 2.0))
+}
+
+func computeMods(ch *models.Character) {
+	ch.StrMod = abilityMod(ch.Str)
+	ch.DexMod = abilityMod(ch.Dex)
+	ch.ConMod = abilityMod(ch.Con)
+	ch.IntMod = abilityMod(ch.Int)
+	ch.WisMod = abilityMod(ch.Wis)
+	ch.ChaMod = abilityMod(ch.Cha)
+	if ch.Spellcasting != nil && ch.Spellcasting.Ability != "" {
+		abilMod := 0
+		switch ch.Spellcasting.Ability {
+		case "str":
+			abilMod = ch.StrMod
+		case "dex":
+			abilMod = ch.DexMod
+		case "con":
+			abilMod = ch.ConMod
+		case "int":
+			abilMod = ch.IntMod
+		case "wis":
+			abilMod = ch.WisMod
+		case "cha":
+			abilMod = ch.ChaMod
+		}
+		ch.SpellSaveDC = 8 + ch.ProficiencyBonus + abilMod
+		ch.SpellAttackBonus = ch.ProficiencyBonus + abilMod
+	}
+}
 
 func ListCharacters(c *gin.Context) {
 	userID, _ := c.Get("user_id")
@@ -110,6 +143,7 @@ func GetCharacter(c *gin.Context) {
 	ch.Spells = loadSpells(ch.ID)
 	ch.Inventory = loadInventory(ch.ID)
 	ch.Currency = loadCurrency(ch.ID)
+	computeMods(ch)
 
 	c.JSON(http.StatusOK, ch)
 }
@@ -293,6 +327,7 @@ func ExportCharacter(c *gin.Context) {
 	ch.Spells = loadSpells(ch.ID)
 	ch.Inventory = loadInventory(ch.ID)
 	ch.Currency = loadCurrency(ch.ID)
+	computeMods(ch)
 
 	format := c.DefaultQuery("format", "json")
 	if format == "text" {
@@ -331,6 +366,7 @@ func PrintCharacter(c *gin.Context) {
 	ch.Spells = loadSpells(ch.ID)
 	ch.Inventory = loadInventory(ch.ID)
 	ch.Currency = loadCurrency(ch.ID)
+	computeMods(ch)
 
 	c.Header("Content-Type", "text/plain; charset=utf-8")
 	c.String(http.StatusOK, characterToText(ch))

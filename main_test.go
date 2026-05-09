@@ -1664,6 +1664,69 @@ func TestStartCleanupTask(t *testing.T) {
 	}
 }
 
+func TestAbilityModifiers(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{
+		"name": "Mod Test", "race": "Human", "class": "Fighter",
+		"str": 18, "dex": 14, "con": 16, "int": 10, "wis": 8, "cha": 6,
+	})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	resp = tc.get(fmt.Sprintf("/api/characters/%d", cid), nil)
+	readJSON(resp, &char)
+
+	if int(char["str_mod"].(float64)) != 4 {
+		t.Fatalf("expected str_mod 4, got %v", char["str_mod"])
+	}
+	if int(char["dex_mod"].(float64)) != 2 {
+		t.Fatalf("expected dex_mod 2, got %v", char["dex_mod"])
+	}
+	if int(char["con_mod"].(float64)) != 3 {
+		t.Fatalf("expected con_mod 3, got %v", char["con_mod"])
+	}
+	if int(char["int_mod"].(float64)) != 0 {
+		t.Fatalf("expected int_mod 0, got %v", char["int_mod"])
+	}
+	if int(char["wis_mod"].(float64)) != -1 {
+		t.Fatalf("expected wis_mod -1, got %v", char["wis_mod"])
+	}
+	if int(char["cha_mod"].(float64)) != -2 {
+		t.Fatalf("expected cha_mod -2, got %v", char["cha_mod"])
+	}
+}
+
+func TestSpellSaveDCComputed(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{
+		"name": "Save DC Test", "race": "Elf", "class": "Wizard",
+		"int": 18, "level": 5,
+	})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Set up spellcasting
+	tc.put(fmt.Sprintf("/api/characters/%d/spellcasting", cid), map[string]any{
+		"ability": "int", "save_dc": 15, "attack_bonus": 7,
+	})
+
+	resp = tc.get(fmt.Sprintf("/api/characters/%d", cid), nil)
+	readJSON(resp, &char)
+	// Level 5 -> prof bonus 3, int mod 4, save DC = 8 + 3 + 4 = 15, attack = 3 + 4 = 7
+	if int(char["spell_save_dc"].(float64)) != 15 {
+		t.Fatalf("expected spell_save_dc 15, got %v", char["spell_save_dc"])
+	}
+	if int(char["spell_attack_bonus"].(float64)) != 7 {
+		t.Fatalf("expected spell_attack_bonus 7, got %v", char["spell_attack_bonus"])
+	}
+}
+
 func TestSpellcasting(t *testing.T) {
 	tc := newTestClient()
 	setupAdmin(t, tc)

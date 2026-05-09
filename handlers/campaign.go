@@ -879,7 +879,7 @@ func LevelUp(c *gin.Context) {
 			hitDieSize = d
 		}
 	}
-	conMod := (con - 10) / 2
+	conMod := abilityMod(con)
 	hpGain := (hitDieSize/2 + 1) + conMod // average roll + CON
 	if hpGain < 1 {
 		hpGain = 1
