@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"net/http"
 	"strconv"
 
@@ -550,6 +551,91 @@ func GetGraphData(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gd)
+}
+
+// ─── Party View ───
+
+type PartyMember struct {
+	ID         int64  `json:"id"`
+	Name       string `json:"name"`
+	Race       string `json:"race"`
+	Class      string `json:"class"`
+	Level      int    `json:"level"`
+	AC         int    `json:"ac"`
+	HPMax      int    `json:"hp_max"`
+	HPCurrent  int    `json:"hp_current"`
+	TempHP     int    `json:"temp_hp"`
+	Status     string `json:"status"`
+	CampaignID *int64 `json:"campaign_id"`
+}
+
+func GetPartyView(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+
+	var rows *sql.Rows
+	var err error
+	if role == "admin" {
+		rows, err = db.DB.Query(`
+			SELECT c.id, c.name, c.race, c.class, c.level, c.ac,
+				c.hp_max, c.hp_current, c.temp_hp, c.campaign_id
+			FROM characters c ORDER BY c.campaign_id, c.name`)
+	} else {
+		rows, err = db.DB.Query(`
+			SELECT c.id, c.name, c.race, c.class, c.level, c.ac,
+				c.hp_max, c.hp_current, c.temp_hp, c.campaign_id
+			FROM characters c WHERE c.user_id=? ORDER BY c.campaign_id, c.name`, userID)
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	campaigns := make(map[int64][]PartyMember)
+	var uncategorized []PartyMember
+
+	for rows.Next() {
+		var pm PartyMember
+		var cid *int64
+		rows.Scan(&pm.ID, &pm.Name, &pm.Race, &pm.Class, &pm.Level, &pm.AC,
+			&pm.HPMax, &pm.HPCurrent, &pm.TempHP, &cid)
+		pm.CampaignID = cid
+		pm.Status = "alive"
+		if pm.HPCurrent <= 0 {
+			pm.Status = "down"
+		} else if float64(pm.HPCurrent)/float64(pm.HPMax) < 0.25 {
+			pm.Status = "injured"
+		}
+		if cid != nil {
+			campaigns[*cid] = append(campaigns[*cid], pm)
+		} else {
+			uncategorized = append(uncategorized, pm)
+		}
+	}
+
+	// Get campaign names
+	campNames := make(map[int64]string)
+	for cid := range campaigns {
+		var name string
+		db.DB.QueryRow("SELECT name FROM campaigns WHERE id=?", cid).Scan(&name)
+		campNames[cid] = name
+	}
+
+	type CampaignGroup struct {
+		ID         int64          `json:"id"`
+		Name       string         `json:"name"`
+		Members    []PartyMember  `json:"members"`
+	}
+	var groups []CampaignGroup
+	for cid, members := range campaigns {
+		groups = append(groups, CampaignGroup{ID: cid, Name: campNames[cid], Members: members})
+	}
+	if len(uncategorized) > 0 {
+		groups = append(groups, CampaignGroup{Name: "Uncategorized", Members: uncategorized})
+	}
+
+	c.JSON(http.StatusOK, groups)
 }
 
 // ─── NPC Interaction Logging ───

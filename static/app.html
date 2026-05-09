@@ -14,6 +14,7 @@
   <div class="header-brand">Vellum</div>
   <div class="header-nav">
     <a href="#" onclick="showView('characters');loadCharacters();return false">Characters</a>
+    <a href="#" onclick="showParty();return false">Party</a>
     <a href="#" onclick="showCompendium();return false">Compendium</a>
     <a href="#" onclick="showView('dice');loadDiceHistory();return false">Dice</a>
     <a href="#" id="adminLink" href="#" onclick="window.location.href='/admin';return false" style="display:none">Admin</a>
@@ -67,6 +68,11 @@
 <div id="diceView" style="display:none">
   <h1>Dice Roller</h1>
   <div id="diceTabSection"></div>
+</div>
+
+<div id="partyView" style="display:none">
+  <h1>Party View</h1>
+  <div id="partyContent"></div>
 </div>
 
 <div id="compendiumView" style="display:none">

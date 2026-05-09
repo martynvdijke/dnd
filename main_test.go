@@ -119,6 +119,7 @@ func buildRouter() *gin.Engine {
 		auth.DELETE("/campaigns/:id", handlers.DeleteCampaign)
 		auth.POST("/characters/:id/rest", handlers.DoRest)
 		auth.POST("/characters/:id/levelup", handlers.LevelUp)
+		auth.GET("/party", handlers.GetPartyView)
 	}
 
 	admin := r.Group("/api/admin")
@@ -650,6 +651,41 @@ func TestSessionsQuestsJournal(t *testing.T) {
 	jid := int(jentry["id"].(float64))
 	tc.get(fmt.Sprintf("/api/characters/%d/journal", cid), nil)
 	tc.del(fmt.Sprintf("/api/journal/%d", jid), nil)
+}
+
+func TestPartyView(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create a couple characters
+	tc.post("/api/characters", map[string]any{"name": "Party Hero 1", "race": "Human", "class": "Fighter", "hp_max": 30, "hp_current": 25})
+	tc.post("/api/characters", map[string]any{"name": "Party Hero 2", "race": "Elf", "class": "Wizard", "hp_max": 20, "hp_current": 20})
+
+	resp := tc.get("/api/party", nil)
+	if resp.Code != 200 {
+		t.Fatalf("party view failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var groups []any
+	readJSON(resp, &groups)
+	if len(groups) < 1 {
+		t.Fatalf("expected at least 1 party group, got %d", len(groups))
+	}
+	// Check members exist
+	found := false
+	for _, g := range groups {
+		gm := g.(map[string]any)
+		members := gm["members"].([]any)
+		for _, m := range members {
+			mm := m.(map[string]any)
+			if mm["name"] == "Party Hero 1" {
+				found = true
+			}
+		}
+	}
+	if !found {
+		t.Fatal("expected Party Hero 1 in party view")
+	}
+	t.Logf("Party groups: %d", len(groups))
 }
 
 func TestStatsEndpoint(t *testing.T) {

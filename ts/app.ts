@@ -50,6 +50,7 @@ function showView(view: string) {
   document.getElementById('sheetView')!.style.display = view === 'sheet' ? 'block' : 'none';
   document.getElementById('diceView')!.style.display = view === 'dice' ? 'block' : 'none';
   document.getElementById('compendiumView')!.style.display = view === 'compendium' ? 'block' : 'none';
+  document.getElementById('partyView')!.style.display = view === 'party' ? 'block' : 'none';
 }
 
 // ─── Character List ───
@@ -1141,6 +1142,41 @@ function showModal(html: string): HTMLElement {
     document.querySelector('.modal-overlay')?.remove();
     loadCharacters();
   } catch (e:any) { toast('Import failed: '+e.message, true); }
+};
+
+// ─── Party View ───
+
+(window as any).showParty = async function () {
+  showView('party');
+  const el = document.getElementById('partyContent')!;
+  el.innerHTML = '<div class="ornament">✧ Assembling the party... ✧</div>';
+  try {
+    const groups: any[] = await api('GET', '/api/party');
+    el.innerHTML = groups.map((g: any) => `
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header"><strong>${esc(g.name || 'Unnamed Campaign')}</strong>
+          <span>${g.members.length} members</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:8px">
+          ${g.members.map((m: any) => {
+            const pct = m.hp_max > 0 ? Math.round((m.hp_current / m.hp_max) * 100) : 0;
+            const sc = m.status === 'down' ? 'var(--danger)' : m.status === 'injured' ? 'var(--gold)' : 'var(--success)';
+            return '<div class="character-card" onclick="openChar(' + m.id + ')" style="cursor:pointer">' +
+              '<div class="char-name">' + esc(m.name) + '</div>' +
+              '<div class="char-detail">' + esc(m.race) + ' ' + esc(m.class) + ' &middot; Level ' + m.level + '</div>' +
+              '<div style="display:flex;gap:12px;margin-top:8px;font-size:0.85rem;color:var(--text-light)">' +
+              '<span>AC: ' + m.ac + '</span>' +
+              '<span style="color:' + sc + '">' + esc(m.status) + '</span></div>' +
+              '<div class="hp-bar" style="margin-top:6px;height:12px">' +
+              '<div class="hp-bar-fill" style="width:' + pct + '%;height:100%"></div>' +
+              '<div class="hp-bar-text" style="font-size:0.7rem">' + m.hp_current + '/' + m.hp_max + '</div></div></div>';
+          }).join('')}
+        </div>
+      </div>
+    `).join('') || '<div class="empty-state">No characters yet.</div>';
+  } catch (e: any) {
+    el.innerHTML = '<div class="empty-state">Failed: ' + esc(e.message) + '</div>';
+  }
 };
 
 // ─── Compendium ───

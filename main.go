@@ -166,6 +166,9 @@ func main() {
 		// Rest & Level Up
 		auth.POST("/characters/:id/rest", handlers.DoRest)
 		auth.POST("/characters/:id/levelup", handlers.LevelUp)
+
+		// Party view
+		auth.GET("/party", handlers.GetPartyView)
 	}
 
 	// Admin routes
