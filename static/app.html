@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>villum — Character Folio</title>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✧</text></svg>">
+<script src="https://unpkg.com/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="header">
+  <div class="header-brand">villum</div>
+  <div class="header-nav">
+    <a href="#" onclick="showView('characters');loadCharacters();return false">Characters</a>
+    <a href="#" onclick="showParty();return false">Party</a>
+    <a href="#" onclick="showCompendium();return false">Compendium</a>
+    <a href="#" onclick="showView('dice');loadDiceHistory();return false">Dice</a>
+    <a href="#" id="adminLink" href="#" onclick="window.location.href='/admin';return false" style="display:none">Admin</a>
+    <span style="color:var(--text-muted);font-size:0.85rem" id="userName"></span>
+    <a href="#" onclick="logout();return false">Logout</a>
+  </div>
+</div>
+<div class="container">
+
+<div id="charactersView">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <h1>Character Folio</h1>
+    <div>
+      <button class="btn btn-gold" onclick="newChar()">+ New Character</button>
+      <button class="btn" onclick="showImport()">Import</button>
+    </div>
+  </div>
+  <div id="charGrid" class="character-grid"></div>
+</div>
+
+<div id="sheetView" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <div>
+      <h1 id="sheetName" style="border:none;margin:0;padding:0"></h1>
+      <p style="color:var(--text-muted);font-style:italic;margin-top:4px" id="sheetSubtitle"></p>
+    </div>
+    <div class="no-print">
+      <button class="btn btn-sm" onclick="printChar()">🖨 Print</button>
+      <button class="btn btn-sm" onclick="exportChar()">⬇ Export</button>
+      <button class="btn btn-sm" onclick="showView('characters');loadCharacters();return true">← Back</button>
+    </div>
+  </div>
+  <div class="ornament">✧ ✦ ✧</div>
+  <div id="tabBar" class="tabs"></div>
+  <div id="statsSection"></div>
+  <div id="combatSection" style="display:none"></div>
+  <div id="spellsSection" style="display:none"></div>
+  <div id="inventorySection" style="display:none"></div>
+  <div id="featuresSection" style="display:none"></div>
+  <div id="locationsSection" style="display:none"></div>
+  <div id="npcsSection" style="display:none"></div>
+  <div id="sessionsSection" style="display:none"></div>
+  <div id="questsSection" style="display:none"></div>
+  <div id="journalSection" style="display:none"></div>
+  <div id="graphSection" style="display:none"></div>
+  <div id="analyticsSection" style="display:none"></div>
+  <div id="detailsSection" style="display:none"></div>
+  <div id="diceSection"></div>
+</div>
+
+<div id="diceView" style="display:none">
+  <h1>Dice Roller</h1>
+  <div id="diceSection"></div>
+</div>
+
+<div id="partyView" style="display:none">
+  <h1>Party View</h1>
+  <div id="partyContent"></div>
+</div>
+
+<div id="compendiumView" style="display:none">
+  <h1>Compendium</h1>
+  <div class="tabs">
+    <button class="tab comp-tab active" id="compTabRaces" onclick="loadCompendiumTab('races')">Races</button>
+    <button class="tab comp-tab" id="compTabClasses" onclick="loadCompendiumTab('classes')">Classes</button>
+    <button class="tab comp-tab" id="compTabSpells" onclick="loadCompendiumTab('spells')">Spells</button>
+    <button class="tab comp-tab" id="compTabEquipment" onclick="loadCompendiumTab('equipment')">Equipment</button>
+  </div>
+  <div id="compRaces"></div>
+  <div id="compClasses" style="display:none"></div>
+  <div id="compSpells" style="display:none"></div>
+  <div id="compEquipment" style="display:none"></div>
+</div>
+
+</div>
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.getRegistrations().then(r=>r.forEach(r=>r.unregister()));</script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>

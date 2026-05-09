@@ -1,0 +1,62 @@
+version: '3'
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+
+  install:
+    desc: Install all dependencies
+    cmds:
+      - go mod download
+      - npm install
+
+  fmt:
+    desc: Format Go code
+    cmds:
+      - go fmt ./...
+
+  test:
+    desc: Run Go unit tests
+    cmds:
+      - go test -v -tags fts5 ./...
+
+  test:e2e:
+    desc: Run Playwright end-to-end tests
+    cmds:
+      - rm -f villum.db villum.db-wal villum.db-shm
+      - npx playwright test
+
+  build:ts:
+    desc: Compile TypeScript
+    cmds:
+      - npx tsc
+
+  build:
+    desc: Build Go binary
+    cmds:
+      - task: build:ts
+      - go build -tags fts5 -o villum-server .
+
+  run:
+    desc: Run the application
+    cmds:
+      - go run -tags fts5 main.go
+
+  dev:
+    desc: Run with hot-reload
+    cmds:
+      - air
+
+  docker:build:
+    desc: Build Docker image
+    cmds:
+      - docker build . -t villum:local
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -f villum-server
+      - rm -f villum.db*
+      - rm -rf playwright-report test-results static/js/*

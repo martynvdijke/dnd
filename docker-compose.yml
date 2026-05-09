@@ -1,0 +1,15 @@
+services:
+  villum:
+    build: .
+    ports:
+      - "6280:6280"
+    environment:
+      - DB_PATH=/db/villum.db
+      - PORT=6280
+    volumes:
+      - villum-data:/db
+      - ./backups:/app/backups
+    restart: unless-stopped
+
+volumes:
+  villum-data:
