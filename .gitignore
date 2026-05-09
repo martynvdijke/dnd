@@ -5,3 +5,5 @@ vellum.db*
 *.db-wal
 backups/
 media/
+playwright-report/
+test-results/
