@@ -203,7 +203,7 @@ test.describe('Campaign management UI', () => {
 
     page.on('dialog', dialog => dialog.accept());
     await page.click('text=Delete');
-    await page.waitForTimeout(1000);
+    await expect(page.locator('#charGrid')).toBeVisible({ timeout: 10000 });
 
     await expect(page.locator('.character-card').filter({ hasText: name })).toHaveCount(0);
   });
@@ -533,15 +533,14 @@ test.describe('Error handling and edge cases', () => {
     await page.locator('.character-card').filter({ hasText: name }).click();
 
     await page.click('#tabBar button:has-text("Dice")');
-    await page.waitForTimeout(200);
+    await expect(page.locator('#diceExpr')).toBeVisible({ timeout: 5000 });
 
     const input = page.locator('#diceExpr');
     await input.fill('1d20-2');
     await page.click('text=Roll the Bones');
-    await page.waitForTimeout(300);
 
     const result = page.locator('#diceResult');
-    await expect(result).toBeVisible();
+    await expect(result).toBeVisible({ timeout: 10000 });
   });
 
   test('multiple dice expressions can be rolled sequentially', async ({ page }) => {
@@ -564,7 +563,7 @@ test.describe('Error handling and edge cases', () => {
     for (const expr of expressions) {
       await input.fill(expr);
       await btn.click();
-      await page.waitForTimeout(200);
+      await expect(page.locator('#diceResult')).toContainText(expr, { timeout: 10000 });
     }
 
     const historyItems = page.locator('.dice-history-item');

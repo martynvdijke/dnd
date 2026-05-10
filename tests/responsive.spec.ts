@@ -69,13 +69,12 @@ test.describe('Responsive design', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await ensureNavOpen(page);
     await page.click('a:has-text("Dice")');
-    await page.waitForTimeout(200);
-    await expect(page.locator('#diceExpr')).toBeVisible();
+    await expect(page.locator('#diceExpr')).toBeVisible({ timeout: 5000 });
 
     await page.fill('#diceExpr', '1d20+5');
     await page.click('text=Roll the Bones');
     const result = page.locator('#diceResult');
-    await expect(result).toBeVisible();
+    await expect(result).toBeVisible({ timeout: 10000 });
   });
 
   test('admin panel is responsive', async ({ page }) => {

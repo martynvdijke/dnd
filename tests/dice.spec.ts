@@ -20,7 +20,6 @@ test.describe('Dice rolling', () => {
   test('dice roller works', async ({ page }) => {
     await ensureNavOpen(page);
     await page.click('a:has-text("Dice")');
-    await page.waitForTimeout(200);
     await expect(page.locator('#diceView h1')).toContainText('Dice Roller');
     await expect(page.locator('#diceExpr')).toBeVisible();
 
@@ -29,21 +28,19 @@ test.describe('Dice rolling', () => {
     await page.click('text=Roll the Bones');
 
     const result = page.locator('#diceResult');
-    await expect(result).toBeVisible();
-    const text = await result.textContent();
-    expect(text).toContain('2d6+3');
+    await expect(result).toBeVisible({ timeout: 10000 });
+    await expect(result).toContainText('2d6+3');
   });
 
   test('saves dice roll history', async ({ page }) => {
     await ensureNavOpen(page);
     await page.click('a:has-text("Dice")');
-    await page.waitForTimeout(200);
     const input = page.locator('#diceExpr');
     await input.fill('1d20');
     await page.click('text=Roll the Bones');
-    await page.waitForTimeout(500);
+    await expect(page.locator('#diceResult')).toBeVisible({ timeout: 10000 });
 
     const history = page.locator('.dice-history-item');
-    await expect(history.first()).toBeVisible();
+    await expect(history.first()).toBeVisible({ timeout: 10000 });
   });
 });

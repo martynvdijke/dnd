@@ -94,8 +94,7 @@ test.describe('Full feature coverage', () => {
     await page.locator('.character-card').filter({ hasText: name }).click();
 
     await page.click('#tabBar button:has-text("Dice")');
-    await page.waitForTimeout(200);
-    await expect(page.locator('#diceExpr')).toBeVisible();
+    await expect(page.locator('#diceExpr')).toBeVisible({ timeout: 5000 });
   });
 
   test('character list shows after creating character', async ({ page }) => {
