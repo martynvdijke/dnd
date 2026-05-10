@@ -6,7 +6,7 @@ test.describe('Character sheet editing', () => {
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
-    await page.waitForURL(/\/app/);
+    await page.waitForURL('/');
     await page.click('text=New Character');
     await page.fill('#newName', 'Editor Test');
     await page.fill('#newRace', 'Elf');
@@ -85,7 +85,7 @@ test.describe('Rest and level up', () => {
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
-    await page.waitForURL(/\/app/);
+    await page.waitForURL('/');
     await page.click('text=New Character');
     await page.fill('#newName', 'Rest Test');
     await page.fill('#newRace', 'Dwarf');
@@ -128,7 +128,7 @@ test.describe('Campaign management UI', () => {
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
-    await page.waitForURL(/\/app/);
+    await page.waitForURL('/');
   });
 
   test('party view shows characters', async ({ page }) => {
@@ -188,7 +188,7 @@ test.describe('Death saves and concentration', () => {
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
-    await page.waitForURL(/\/app/);
+    await page.waitForURL('/');
     await page.click('text=New Character');
     await page.fill('#newName', 'Death Test');
     await page.fill('#newRace', 'Tiefling');
@@ -222,7 +222,7 @@ test.describe('NPC interactions extended', () => {
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
-    await page.waitForURL(/\/app/);
+    await page.waitForURL('/');
     await page.click('text=New Character');
     await page.fill('#newName', 'NPC Test');
     await page.fill('#newRace', 'Gnome');
@@ -280,7 +280,7 @@ test.describe('Spellcasting management', () => {
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
-    await page.waitForURL(/\/app/);
+    await page.waitForURL('/');
     await page.click('text=New Character');
     await page.fill('#newName', 'Caster Test');
     await page.fill('#newRace', 'Half-Elf');
@@ -325,7 +325,7 @@ test.describe('Import/export edge cases', () => {
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
-    await page.waitForURL(/\/app/);
+    await page.waitForURL('/');
   });
 
   test('import handles empty JSON gracefully', async ({ page }) => {
@@ -368,7 +368,7 @@ test.describe('Session and quest management UI', () => {
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
-    await page.waitForURL(/\/app/);
+    await page.waitForURL('/');
     await page.click('text=New Character');
     await page.fill('#newName', 'Quest Test');
     await page.fill('#newRace', 'Dragonborn');
@@ -421,7 +421,7 @@ test.describe('Error handling and edge cases', () => {
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
-    await page.waitForURL(/\/app/);
+    await page.waitForURL('/');
   });
 
   test('handles character creation without name', async ({ page }) => {

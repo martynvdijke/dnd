@@ -1,8 +1,8 @@
-export {};
-
 declare const vis: any;
 declare const Chart: any;
 declare const bootstrap: any;
+
+(() => {
 
 let csrfToken = '';
 let currentUser: { id: number; username: string; role: string } | null = null;
@@ -1570,3 +1570,5 @@ async function loadCompendiumEquipment() {
 };
 
 init();
+
+})();

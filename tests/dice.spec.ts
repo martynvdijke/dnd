@@ -6,7 +6,7 @@ test.describe('Dice rolling', () => {
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
-    await page.waitForURL(/\/app/);
+    await page.waitForURL('/');
   });
 
   test('dice roller works', async ({ page }) => {

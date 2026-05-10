@@ -5,7 +5,7 @@
   "scripts": {
     "test": "go test ./...",
     "test:e2e": "npx playwright test",
-    "build:ts": "tsc && sed -i '/^export {};/d' static/js/*.js",
+    "build:ts": "tsc",
     "watch:ts": "tsc --watch"
   },
   "devDependencies": {

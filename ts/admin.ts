@@ -1,4 +1,4 @@
-export {};
+(() => {
 
 let csrfToken = '';
 let currentUser: any = null;
@@ -339,3 +339,5 @@ function toast(msg: string, isError = false) {
 };
 
 init();
+
+})();

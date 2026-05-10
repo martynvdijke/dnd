@@ -10,14 +10,14 @@ test.describe('Responsive design', () => {
       await page.fill('#password', 'testpassword123');
       await page.fill('#confirm', 'testpassword123');
       await page.click('button[type="submit"]');
-      await page.waitForURL(/\/app/);
+      await page.waitForURL('/');
     }
 
     await page.goto('/login');
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
-    await page.waitForURL(/\/app/);
+    await page.waitForURL('/');
   });
 
   test('desktop layout works at 1280x720', async ({ page }) => {

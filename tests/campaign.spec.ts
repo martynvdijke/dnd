@@ -6,7 +6,7 @@ test.describe('Campaign features', () => {
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
-    await page.waitForURL(/\/app/);
+    await page.waitForURL('/');
     // Create a character to work with
     await page.click('text=New Character');
     await page.fill('#newName', 'Campaign Test');

@@ -1,4 +1,4 @@
-export {};
+(() => {
 
 async function init() {
   const res = await fetch('/api/check-setup');
@@ -49,3 +49,5 @@ async function init() {
 }
 
 init();
+
+})();

@@ -15,7 +15,7 @@ async function globalSetup() {
     await page.fill('#password', 'testpassword123');
     await page.fill('#confirm', 'testpassword123');
     await page.click('button[type="submit"]');
-    await page.waitForURL(/\/app/, { timeout: 10000 });
+    await page.waitForURL('/', { timeout: 10000 });
   }
 
   await browser.close();
