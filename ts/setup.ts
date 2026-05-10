@@ -13,7 +13,7 @@ async function init() {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    errorDiv.style.display = 'none';
+    errorDiv.classList.add('d-none');
 
     const username = (document.getElementById('username') as HTMLInputElement).value;
     const password = (document.getElementById('password') as HTMLInputElement).value;
@@ -21,13 +21,13 @@ async function init() {
 
     if (password !== confirm) {
       errorDiv.textContent = 'Passwords do not match';
-      errorDiv.style.display = 'block';
+      errorDiv.classList.remove('d-none');
       return;
     }
 
     if (password.length < 8) {
       errorDiv.textContent = 'Password must be at least 8 characters';
-      errorDiv.style.display = 'block';
+      errorDiv.classList.remove('d-none');
       return;
     }
 
@@ -39,11 +39,11 @@ async function init() {
     });
 
     if (res.ok) {
-      window.location.href = '/app';
+      window.location.href = '/';
     } else {
       const err = await res.json();
       errorDiv.textContent = err.error || 'Setup failed';
-      errorDiv.style.display = 'block';
+      errorDiv.classList.remove('d-none');
     }
   });
 }

@@ -1,4 +1,3 @@
-"use strict";
 let csrfToken = '';
 let currentUser = null;
 async function api(method, path, body) {
@@ -19,7 +18,7 @@ async function init() {
     try {
         currentUser = await api('GET', '/api/user/me');
         if (currentUser.role !== 'admin') {
-            window.location.href = '/app';
+            window.location.href = '/';
             return;
         }
         const tokenRes = await api('GET', '/api/csrf-token');
@@ -33,8 +32,8 @@ async function init() {
     }
 }
 function showAdminTab(tab) {
-    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-    document.getElementById('tab' + capitalize(tab))?.classList.add('active');
+    document.querySelectorAll('#adminTabs .nav-link').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab' + capitalize(tab) + 'Btn')?.classList.add('active');
     ['users', 'compendium', 'backup'].forEach(s => {
         document.getElementById('admin' + capitalize(s)).style.display = s === tab ? 'block' : 'none';
     });
@@ -59,9 +58,9 @@ async function loadUsers() {
         <td><span class="badge ${u.role === 'admin' ? 'badge-blood' : 'badge-gold'}">${u.role}</span></td>
         <td>${u.created_at}</td>
         <td>
-          <button class="btn btn-sm" onclick="editUser(${u.id},'${esc(u.username)}','${esc(u.display_name)}','${u.role}')">Edit</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})">Delete</button>
-          <button class="btn btn-sm" onclick="resetPass(${u.id})">Reset PW</button>
+          <button class="btn btn-outline-primary btn-sm" onclick="editUser(${u.id},'${esc(u.username)}','${esc(u.display_name)}','${u.role}')"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-outline-danger btn-sm" onclick="deleteUser(${u.id})"><i class="fa-solid fa-trash"></i></button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="resetPass(${u.id})"><i class="fa-solid fa-key"></i></button>
         </td>
       </tr>
     `).join('');
@@ -71,19 +70,18 @@ async function loadUsers() {
     }
 }
 window.showAddUser = function () {
-    showModal(`
-    <h2>Add User</h2>
-    <div class="form-group"><label>Username</label><input id="addUsername"></div>
-    <div class="form-group"><label>Password</label><input type="password" id="addPassword"></div>
-    <div class="form-group"><label>Display Name</label><input id="addDisplay"></div>
-    <div class="form-group">
-      <label>Role</label>
-      <select id="addRole"><option value="user">User</option><option value="admin">Admin</option></select>
+    showModal('Add User', `
+    <div class="mb-3"><label class="form-label">Username</label><input class="form-control" id="addUsername"></div>
+    <div class="mb-3"><label class="form-label">Password</label><input class="form-control" type="password" id="addPassword"></div>
+    <div class="mb-3"><label class="form-label">Display Name</label><input class="form-control" id="addDisplay"></div>
+    <div class="mb-3">
+      <label class="form-label">Role</label>
+      <select class="form-select" id="addRole"><option value="user">User</option><option value="admin">Admin</option></select>
     </div>
-    <button class="btn btn-primary" onclick="saveNewUser(this)">Create</button>
+    <button class="btn btn-primary w-100" onclick="saveNewUser()">Create</button>
   `);
 };
-window.saveNewUser = async function (btn) {
+window.saveNewUser = async function () {
     try {
         await api('POST', '/api/admin/users', {
             username: document.getElementById('addUsername').value,
@@ -91,7 +89,7 @@ window.saveNewUser = async function (btn) {
             display_name: document.getElementById('addDisplay').value,
             role: document.getElementById('addRole').value,
         });
-        btn.closest('.modal-overlay')?.remove();
+        hideModal();
         loadUsers();
         toast('User created');
     }
@@ -100,25 +98,24 @@ window.saveNewUser = async function (btn) {
     }
 };
 window.editUser = function (id, username, display, role) {
-    showModal(`
-    <h2>Edit User</h2>
-    <div class="form-group"><label>Username</label><input id="editUsername" value="${esc(username)}"></div>
-    <div class="form-group"><label>Display Name</label><input id="editDisplay" value="${esc(display)}"></div>
-    <div class="form-group">
-      <label>Role</label>
-      <select id="editRole"><option value="user" ${role === 'user' ? 'selected' : ''}>User</option><option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option></select>
+    showModal('Edit User', `
+    <div class="mb-3"><label class="form-label">Username</label><input class="form-control" id="editUsername" value="${esc(username)}"></div>
+    <div class="mb-3"><label class="form-label">Display Name</label><input class="form-control" id="editDisplay" value="${esc(display)}"></div>
+    <div class="mb-3">
+      <label class="form-label">Role</label>
+      <select class="form-select" id="editRole"><option value="user" ${role === 'user' ? 'selected' : ''}>User</option><option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option></select>
     </div>
-    <button class="btn btn-primary" onclick="saveEditUser(${id}, this)">Save</button>
+    <button class="btn btn-primary w-100" onclick="saveEditUser(${id})">Save</button>
   `);
 };
-window.saveEditUser = async function (id, btn) {
+window.saveEditUser = async function (id) {
     try {
         await api('PUT', `/api/admin/users/${id}`, {
             username: document.getElementById('editUsername').value,
             display_name: document.getElementById('editDisplay').value,
             role: document.getElementById('editRole').value,
         });
-        btn.closest('.modal-overlay')?.remove();
+        hideModal();
         loadUsers();
         toast('User updated');
     }
@@ -139,18 +136,17 @@ window.deleteUser = async function (id) {
     }
 };
 window.resetPass = function (id) {
-    showModal(`
-    <h2>Reset Password</h2>
-    <div class="form-group"><label>New Password</label><input type="password" id="resetPass"></div>
-    <button class="btn btn-primary" onclick="doResetPass(${id}, this)">Reset</button>
+    showModal('Reset Password', `
+    <div class="mb-3"><label class="form-label">New Password</label><input class="form-control" type="password" id="resetPass"></div>
+    <button class="btn btn-primary w-100" onclick="doResetPass(${id})">Reset</button>
   `);
 };
-window.doResetPass = async function (id, btn) {
+window.doResetPass = async function (id) {
     try {
         await api('PUT', `/api/admin/users/${id}/password`, {
             password: document.getElementById('resetPass').value,
         });
-        btn.closest('.modal-overlay')?.remove();
+        hideModal();
         toast('Password reset');
     }
     catch (e) {
@@ -163,11 +159,11 @@ async function loadCompEntries() {
     const el = document.getElementById('compEntries');
     try {
         const entries = await api('GET', `/api/compendium/${type}`);
-        el.innerHTML = `<table><thead><tr><th>Name</th><th>Actions</th></tr></thead><tbody>
+        el.innerHTML = `<table class="table table-hover mb-0"><thead><tr><th>Name</th><th style="width:100px">Actions</th></tr></thead><tbody>
       ${entries.map((e) => `<tr>
         <td>${esc(e.name)}</td>
         <td>
-          <button class="btn btn-sm btn-danger" onclick="deleteCompEntry('${type}', ${e.id})">Delete</button>
+          <button class="btn btn-outline-danger btn-sm" onclick="deleteCompEntry('${type}', ${e.id})"><i class="fa-solid fa-trash"></i></button>
         </td>
       </tr>`).join('')}
     </tbody></table>`;
@@ -180,37 +176,33 @@ window.loadCompEntries = loadCompEntries;
 window.showAddCompEntry = function () {
     const type = document.getElementById('compType').value;
     const fields = getCompFields(type);
-    showModal(`
-    <h2>Add ${capitalize(type)}</h2>
-    ${fields}
-    <button class="btn btn-primary" onclick="saveCompEntry('${type}', this)">Create</button>
-  `);
+    showModal(`Add ${capitalize(type)}`, fields + `<button class="btn btn-primary w-100 mt-3" onclick="saveCompEntry('${type}')">Create</button>`);
 };
 function getCompFields(type) {
     switch (type) {
         case 'spells':
             return `
-        <div class="form-group"><label>Name</label><input id="compName"></div>
-        <div class="form-row">
-          <div class="form-group"><label>Level</label><input id="compLevel" type="number" value="0"></div>
-          <div class="form-group"><label>School</label><input id="compSchool"></div>
+        <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="compName"></div>
+        <div class="row g-3 mb-3">
+          <div class="col-6"><label class="form-label">Level</label><input class="form-control" id="compLevel" type="number" value="0"></div>
+          <div class="col-6"><label class="form-label">School</label><input class="form-control" id="compSchool"></div>
         </div>
-        <div class="form-group"><label>Description</label><textarea id="compDesc"></textarea></div>`;
+        <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="compDesc" rows="3"></textarea></div>`;
         case 'races':
             return `
-        <div class="form-group"><label>Name</label><input id="compName"></div>
-        <div class="form-group"><label>Description</label><textarea id="compDesc"></textarea></div>
-        <div class="form-row">
-          <div class="form-group"><label>Speed</label><input id="compSpeed" type="number" value="30"></div>
-          <div class="form-group"><label>Size</label><input id="compSize" value="Medium"></div>
+        <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="compName"></div>
+        <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="compDesc" rows="3"></textarea></div>
+        <div class="row g-3 mb-3">
+          <div class="col-6"><label class="form-label">Speed</label><input class="form-control" id="compSpeed" type="number" value="30"></div>
+          <div class="col-6"><label class="form-label">Size</label><input class="form-control" id="compSize" value="Medium"></div>
         </div>`;
         default:
             return `
-        <div class="form-group"><label>Name</label><input id="compName"></div>
-        <div class="form-group"><label>Description</label><textarea id="compDesc"></textarea></div>`;
+        <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="compName"></div>
+        <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="compDesc" rows="3"></textarea></div>`;
     }
 }
-window.saveCompEntry = async function (type, btn) {
+window.saveCompEntry = async function (type) {
     const entry = { name: document.getElementById('compName').value };
     if (type === 'spells') {
         entry.level = +document.getElementById('compLevel').value || 0;
@@ -227,7 +219,7 @@ window.saveCompEntry = async function (type, btn) {
     }
     try {
         await api('POST', `/api/admin/compendium/${type}`, entry);
-        btn.closest('.modal-overlay')?.remove();
+        hideModal();
         loadCompEntries();
         toast('Entry created');
     }
@@ -273,10 +265,10 @@ async function loadBackupList() {
         const backups = await api('GET', '/api/backup/list');
         const el = document.getElementById('backupList');
         el.innerHTML = backups.length > 0
-            ? `<table><thead><tr><th>Name</th><th>Size</th></tr></thead><tbody>
+            ? `<table class="table table-hover mb-0"><thead><tr><th>Name</th><th>Size</th></tr></thead><tbody>
           ${backups.map((b) => `<tr><td>${esc(b.name)}</td><td>${formatSize(b.size)}</td></tr>`).join('')}
         </tbody></table>`
-            : '<p style="color:var(--text-muted)">No backups yet</p>';
+            : '<p class="text-muted p-3">No backups yet</p>';
     }
     catch { }
 }
@@ -291,13 +283,19 @@ window.triggerBackup = async function () {
     }
 };
 // ─── Utils ───
-function showModal(html) {
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
-    overlay.innerHTML = `<div class="modal">${html}</div>`;
-    overlay.onclick = (e) => { if (e.target === overlay)
-        overlay.remove(); };
-    document.body.appendChild(overlay);
+let adminModal = null;
+function getModal() {
+    if (!adminModal)
+        adminModal = new window.bootstrap.Modal(document.getElementById('genericModal'));
+    return adminModal;
+}
+function showModal(title, bodyHtml) {
+    document.getElementById('genericModalTitle').textContent = title;
+    document.getElementById('genericModalBody').innerHTML = bodyHtml;
+    getModal().show();
+}
+function hideModal() {
+    getModal().hide();
 }
 function esc(s) {
     const div = document.createElement('div');
@@ -315,15 +313,24 @@ function formatSize(bytes) {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 function toast(msg, isError = false) {
-    const el = document.createElement('div');
-    el.className = 'toast' + (isError ? ' error' : '');
-    el.textContent = msg;
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 4000);
+    const container = document.getElementById('toastContainer');
+    const id = 'toast-' + Date.now();
+    const bg = isError ? 'bg-danger' : 'bg-success';
+    container.innerHTML += `
+    <div class="toast align-items-center text-white ${bg} border-0 mb-2" id="${id}" role="alert">
+      <div class="d-flex">
+        <div class="toast-body">${esc(msg)}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>`;
+    const el = document.getElementById(id);
+    new window.bootstrap.Toast(el, { autohide: true, delay: 5000 }).show();
+    setTimeout(() => el.remove(), 6000);
 }
 window.logout = async function () {
     await api('POST', '/api/logout');
     window.location.href = '/login';
 };
 init();
+
 //# sourceMappingURL=admin.js.map

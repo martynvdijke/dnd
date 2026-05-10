@@ -10,7 +10,7 @@ async function init() {
 
   const res2 = await fetch('/api/user/me', { credentials: 'include' });
   if (res2.ok) {
-    window.location.href = '/app';
+    window.location.href = '/';
     return;
   }
 
@@ -19,7 +19,7 @@ async function init() {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    errorDiv.style.display = 'none';
+    errorDiv.classList.add('d-none');
 
     const username = (document.getElementById('username') as HTMLInputElement).value;
     const password = (document.getElementById('password') as HTMLInputElement).value;
@@ -32,11 +32,11 @@ async function init() {
     });
 
     if (res.ok) {
-      window.location.href = '/app';
+      window.location.href = '/';
     } else {
       const err = await res.json();
       errorDiv.textContent = err.error || 'Invalid credentials';
-      errorDiv.style.display = 'block';
+      errorDiv.classList.remove('d-none');
     }
   });
 }

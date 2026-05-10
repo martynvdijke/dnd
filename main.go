@@ -227,8 +227,12 @@ func main() {
 	serveHTML("/", "app.html")
 	serveHTML("/login", "login.html")
 	serveHTML("/setup", "setup.html")
-	serveHTML("/app", "app.html")
 	serveHTML("/admin", "admin.html")
+
+	// Redirect /app to / for backward compatibility
+	r.GET("/app", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/")
+	})
 
 	log.Printf("villum v%s starting on :%s", Version, port)
 	if err := r.Run(":" + port); err != nil {

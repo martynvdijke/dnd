@@ -2,6 +2,7 @@ export {};
 
 declare const vis: any;
 declare const Chart: any;
+declare const bootstrap: any;
 
 let csrfToken = '';
 let currentUser: { id: number; username: string; role: string } | null = null;
@@ -10,6 +11,19 @@ let currentChar: any = null;
 let currentTab = 'stats';
 let allLocations: any[] = [];
 let allNPCs: any[] = [];
+
+// ─── Utilities ───
+
+function esc(s: string | null | undefined): string {
+  if (!s) return '';
+  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+}
+
+function capitalize(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// ─── API ───
 
 async function api(method: string, path: string, body?: any): Promise<any> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -24,6 +38,48 @@ async function api(method: string, path: string, body?: any): Promise<any> {
   return res.json();
 }
 
+// ─── Bootstrap Modal ───
+
+let genericModal: any = null;
+function getModal(): any {
+  if (!genericModal) {
+    genericModal = new bootstrap.Modal(document.getElementById('genericModal')!);
+  }
+  return genericModal;
+}
+
+function showModal(title: string, bodyHtml: string) {
+  document.getElementById('genericModalTitle')!.textContent = title;
+  document.getElementById('genericModalBody')!.innerHTML = bodyHtml;
+  getModal().show();
+}
+(window as any).showModal = showModal;
+
+function hideModal() {
+  getModal().hide();
+}
+(window as any).hideModal = hideModal;
+
+// ─── Bootstrap Toast ───
+
+function toast(msg: string, isError = false) {
+  const container = document.getElementById('toastContainer')!;
+  const id = 'toast-' + Date.now();
+  const bg = isError ? 'bg-danger' : 'bg-success';
+  container.innerHTML += `
+    <div class="toast align-items-center text-white ${bg} border-0 mb-2" id="${id}" role="alert">
+      <div class="d-flex">
+        <div class="toast-body">${esc(msg)}</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    </div>`;
+  const el = document.getElementById(id)!;
+  new bootstrap.Toast(el, { autohide: true, delay: 5000 }).show();
+  setTimeout(() => el.remove(), 6000);
+}
+
+// ─── Init ───
+
 async function init() {
   try {
     const user = await api('GET', '/api/user/me');
@@ -32,11 +88,10 @@ async function init() {
     csrfToken = tokenRes.token;
     document.getElementById('userName')!.textContent = user.username;
     if (user.role === 'admin') {
-      (document.getElementById('adminLink') as HTMLElement).style.display = 'inline';
+      document.getElementById('adminNavItem')!.style.display = '';
     }
     showView('characters');
     loadCharacters();
-    // Preload global lists
     api('GET', '/api/locations').then(l => allLocations = l).catch(() => {});
     api('GET', '/api/npcs').then(n => allNPCs = n).catch(() => {});
   } catch {
@@ -52,6 +107,7 @@ function showView(view: string) {
   document.getElementById('compendiumView')!.style.display = view === 'compendium' ? 'block' : 'none';
   document.getElementById('partyView')!.style.display = view === 'party' ? 'block' : 'none';
 }
+(window as any).showView = showView;
 
 // ─── Character List ───
 
@@ -60,16 +116,19 @@ async function loadCharacters() {
     const chars = await api('GET', '/api/characters');
     const grid = document.getElementById('charGrid')!;
     grid.innerHTML = chars.map((c: any) => `
-      <div class="character-card" onclick="openChar(${c.id})">
-        <div class="char-name">${esc(c.name)}</div>
-        <div class="char-detail">${esc(c.race)} ${esc(c.class)} · Level ${c.level}</div>
-        <div class="char-hp">HP: ${c.hp_current}/${c.hp_max}</div>
+      <div class="col-md-6 col-lg-4">
+        <div class="character-card" onclick="openChar(${c.id})">
+          <div class="char-name">${esc(c.name)}</div>
+          <div class="char-detail">${esc(c.race)} ${esc(c.class)} · Level ${c.level}</div>
+          <div class="char-hp mt-1">HP: ${c.hp_current}/${c.hp_max}</div>
+        </div>
       </div>
     `).join('');
   } catch (e: any) {
     toast(e.message, true);
   }
 }
+(window as any).loadCharacters = loadCharacters;
 
 async function openChar(id: number) {
   try {
@@ -85,6 +144,8 @@ async function openChar(id: number) {
 
 // ─── Character Sheet ───
 
+const sections = ['stats', 'combat', 'spells', 'inventory', 'features', 'locations', 'npcs', 'sessions', 'quests', 'journal', 'graph', 'analytics', 'details', 'dice'];
+
 function renderSheet() {
   if (!currentChar) return;
   const c = currentChar;
@@ -92,14 +153,13 @@ function renderSheet() {
   document.getElementById('sheetSubtitle')!.textContent =
     `${c.race} ${c.class}${c.subclass ? ' (' + c.subclass + ')' : ''} · Level ${c.level}`;
 
-  const sections = ['stats', 'combat', 'spells', 'inventory', 'features', 'locations', 'npcs', 'sessions', 'quests', 'journal', 'graph', 'analytics', 'details', 'dice'];
   const tabBar = document.getElementById('tabBar')!;
   tabBar.innerHTML = sections.map(s => `
-    <button class="tab ${s === currentTab ? 'active' : ''}" onclick="switchTab('${s}')">${capitalize(s)}</button>
+    <li class="nav-item"><button class="nav-link ${s === currentTab ? 'active' : ''}" onclick="switchTab('${s}')">${capitalize(s)}</button></li>
   `).join('');
 
   sections.forEach(s => {
-    const el = document.getElementById(sectionId(s))!;
+    const el = document.getElementById(s + 'Section')!;
     el.style.display = s === currentTab ? 'block' : 'none';
   });
 
@@ -119,13 +179,13 @@ function renderSheet() {
   renderDiceTab();
 }
 
-function sectionId(s: string): string { return s + 'Section'; }
-
 function switchTab(tab: string) {
   currentTab = tab;
   renderSheet();
 }
 (window as any).switchTab = switchTab;
+
+// ─── Roll / Combat Actions ───
 
 async function rollCheck(type: string, name: string, adv: string) {
   if (!currentChar) return;
@@ -133,7 +193,7 @@ async function rollCheck(type: string, name: string, adv: string) {
     const result = await api('POST', '/api/roll/check', {
       character_id: currentChar.id, type, name, advantage: adv,
     });
-    toast(`${result.text}`, true);
+    toast(result.text);
   } catch (e: any) {
     toast(e.message, true);
   }
@@ -184,68 +244,6 @@ async function doLevelUp() {
 }
 (window as any).doLevelUp = doLevelUp;
 
-function renderStats() {
-  const c = currentChar;
-  const el = document.getElementById('statsSection')!;
-  const abils = ['str','dex','con','int','wis','cha'].map(k => ({ key: k, label: k.toUpperCase() }));
-  el.innerHTML = `
-    <div class="ability-grid">
-      ${abils.map(a => {
-        const val = (c as any)[a.key];
-        const mod = (c as any)[`${a.key}_mod`];
-        const cls = mod > 0 ? 'mod-pos' : mod < 0 ? 'mod-neg' : 'mod-zero';
-        return `<div class="ability-score" style="cursor:pointer" onclick="rollCheck('check','${a.key}','normal')">
-          <div class="label">${a.label}</div>
-          <div class="value">${val}</div>
-          <div class="mod ${cls}">${mod >= 0 ? '+' : ''}${mod}</div>
-        </div>`;
-      }).join('')}
-    </div>
-    <div class="form-row" style="margin-top:8px">
-      <button class="btn btn-sm" onclick="rollCheck('check','str','advantage')">⤴ Advantage</button>
-      <button class="btn btn-sm" onclick="rollCheck('check','str','disadvantage')">⤵ Disadvantage</button>
-    </div>
-    <div class="ornament">✧</div>
-    <div class="form-row" style="margin-top:16px">
-      <div class="form-group"><label>Proficiency</label><input type="number" value="${c.proficiency_bonus}" onchange="updateField('proficiency_bonus',+this.value)"></div>
-      <div class="form-group"><label>Inspiration</label><input type="number" value="${c.inspiration}" onchange="updateField('inspiration',+this.value)"></div>
-      <div class="form-group"><label>Passive Percep.</label><input type="number" value="${c.passive_perception}" onchange="updateField('passive_perception',+this.value)"></div>
-      <div class="form-group"><label>XP</label><input type="number" value="${c.xp}" onchange="updateField('xp',+this.value)"></div>
-    </div>
-    <h3>Skills <span style="font-size:0.8em;font-weight:normal">(click to roll)</span></h3>
-    <div id="skillsArea">${renderSkills(c)}</div>
-    <h3>Proficiencies</h3>
-    <div id="profsArea">${(c.proficiencies||[]).map((p:any) =>
-      `<span class="badge badge-blood" style="margin:2px">${esc(p.name)} (${p.type}) <a href="#" onclick="deleteProf(${p.id});return false" style="color:white;text-decoration:none">×</a></span>`
-    ).join('')}</div>
-    <button class="btn btn-sm" style="margin-top:8px" onclick="addProf()">+ Add Proficiency</button>
-  `;
-}
-
-function renderSkills(c: any) {
-  const skls = [
-    {name:'Athletics',abil:'str'},
-    {name:'Acrobatics',abil:'dex'},{name:'Sleight of Hand',abil:'dex'},{name:'Stealth',abil:'dex'},
-    {name:'Arcana',abil:'int'},{name:'History',abil:'int'},{name:'Investigation',abil:'int'},
-    {name:'Nature',abil:'int'},{name:'Religion',abil:'int'},
-    {name:'Animal Handling',abil:'wis'},{name:'Insight',abil:'wis'},{name:'Medicine',abil:'wis'},
-    {name:'Perception',abil:'wis'},{name:'Survival',abil:'wis'},
-    {name:'Deception',abil:'cha'},{name:'Intimidation',abil:'cha'},
-    {name:'Performance',abil:'cha'},{name:'Persuasion',abil:'cha'},
-  ];
-  const profs = (c.proficiencies||[]).filter((p:any) => p.type === 'skill').map((p:any) => p.name.toLowerCase());
-  return skls.map(s => {
-    const isProf = profs.includes(s.name.toLowerCase());
-    const mod = (c as any)[`${s.abil}_mod`];
-    const total = isProf ? mod + c.proficiency_bonus : mod;
-    const sign = total >= 0 ? '+' : '';
-    return `<div class="skill-row" style="cursor:pointer;padding:2px 0" onclick="rollCheck('skill','${s.name}','normal')">
-      <span class="skill-name">${s.name}${isProf ? ' ★' : ''}</span>
-      <span class="skill-mod">${sign}${total}</span>
-    </div>`;
-  }).join('');
-}
-
 async function updateField(field: string, value: any) {
   if (!currentChar) return;
   currentChar[field] = value;
@@ -253,234 +251,528 @@ async function updateField(field: string, value: any) {
 }
 (window as any).updateField = updateField;
 
+// ─── Stats ───
+
+function renderStats() {
+  const c = currentChar;
+  const el = document.getElementById('statsSection')!;
+  const abils = ['str','dex','con','int','wis','cha'].map(k => ({ key: k, label: k.toUpperCase() }));
+  el.innerHTML = `
+    <div class="row g-3">
+      ${abils.map(a => {
+        const val = (c as any)[a.key];
+        const mod = (c as any)[`${a.key}_mod`];
+        const cls = mod > 0 ? 'text-success' : mod < 0 ? 'text-danger' : 'text-muted';
+        return `<div class="col-4 col-md-2">
+          <div class="ability-box" onclick="rollCheck('check','${a.key}','normal')">
+            <div class="abil-label">${a.label}</div>
+            <div class="abil-value">${val}</div>
+            <div class="abil-mod ${cls}">${mod >= 0 ? '+' : ''}${mod}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="d-flex gap-2 mt-3">
+      <button class="btn btn-sm btn-outline-primary" onclick="rollCheck('check','str','advantage')"><i class="fa-solid fa-chevron-up me-1"></i>Advantage</button>
+      <button class="btn btn-sm btn-outline-primary" onclick="rollCheck('check','str','disadvantage')"><i class="fa-solid fa-chevron-down me-1"></i>Disadvantage</button>
+    </div>
+    <div class="ornament my-2">✧</div>
+    <div class="row g-3 mt-2">
+      <div class="col-6 col-md-3"><label class="form-label">Proficiency</label><input type="number" class="form-control form-control-sm" value="${c.proficiency_bonus}" onchange="updateField('proficiency_bonus',+this.value)"></div>
+      <div class="col-6 col-md-3"><label class="form-label">Inspiration</label><input type="number" class="form-control form-control-sm" value="${c.inspiration}" onchange="updateField('inspiration',+this.value)"></div>
+      <div class="col-6 col-md-3"><label class="form-label">Passive Percep.</label><input type="number" class="form-control form-control-sm" value="${c.passive_perception}" onchange="updateField('passive_perception',+this.value)"></div>
+      <div class="col-6 col-md-3"><label class="form-label">XP</label><input type="number" class="form-control form-control-sm" value="${c.xp}" onchange="updateField('xp',+this.value)"></div>
+    </div>
+    <h5 class="mt-3">Skills <small class="text-muted fw-normal">(click to roll)</small></h5>
+    <div id="skillsArea">${renderSkills(c)}</div>
+    <h5 class="mt-3">Proficiencies</h5>
+    <div id="profsArea">${(c.proficiencies||[]).map((p:any) =>
+      `<span class="badge badge-blood me-1 mb-1">${esc(p.name)} (${p.type}) <a href="#" onclick="deleteProf(${p.id});return false" class="text-white text-decoration-none">×</a></span>`
+    ).join('')}</div>
+    <button class="btn btn-sm btn-outline-primary mt-2" onclick="addProf()"><i class="fa-solid fa-plus me-1"></i>Add Proficiency</button>
+  `;
+}
+
+function renderSkills(c: any) {
+  const skls = [
+    {name:'Athletics',abil:'str'},{name:'Acrobatics',abil:'dex'},{name:'Sleight of Hand',abil:'dex'},{name:'Stealth',abil:'dex'},
+    {name:'Arcana',abil:'int'},{name:'History',abil:'int'},{name:'Investigation',abil:'int'},{name:'Nature',abil:'int'},{name:'Religion',abil:'int'},
+    {name:'Animal Handling',abil:'wis'},{name:'Insight',abil:'wis'},{name:'Medicine',abil:'wis'},{name:'Perception',abil:'wis'},{name:'Survival',abil:'wis'},
+    {name:'Deception',abil:'cha'},{name:'Intimidation',abil:'cha'},{name:'Performance',abil:'cha'},{name:'Persuasion',abil:'cha'},
+  ];
+  const profs = (c.proficiencies||[]).filter((p:any) => p.type === 'skill').map((p:any) => p.name.toLowerCase());
+  return skls.map(s => {
+    const isProf = profs.includes(s.name.toLowerCase());
+    const mod = (c as any)[`${s.abil}_mod`];
+    const total = isProf ? mod + c.proficiency_bonus : mod;
+    const sign = total >= 0 ? '+' : '';
+    return `<div class="skill-row d-flex justify-content-between" onclick="rollCheck('skill','${s.name}','normal')">
+      <span class="skill-name">${s.name}${isProf ? ' <span class="text-primary">★</span>' : ''}</span>
+      <span class="fw-bold">${sign}${total}</span>
+    </div>`;
+  }).join('');
+}
+
+// ─── Combat ───
+
 function renderCombat() {
   const c = currentChar;
   const el = document.getElementById('combatSection')!;
   const pct = c.hp_max > 0 ? Math.round((c.hp_current / c.hp_max) * 100) : 0;
   el.innerHTML = `
-    <div class="combat-grid">
-      <div class="combat-stat"><div class="label">AC</div><div class="value">${c.ac}</div></div>
-      <div class="combat-stat"><div class="label">Initiative</div><div class="value">${c.initiative >= 0 ? '+' : ''}${c.initiative}</div></div>
-      <div class="combat-stat"><div class="label">Speed</div><div class="value">${c.speed}</div></div>
+    <div class="row g-3">
+      <div class="col-4"><div class="combat-stat"><div class="stat-label">AC</div><div class="stat-value">${c.ac}</div></div></div>
+      <div class="col-4"><div class="combat-stat"><div class="stat-label">Initiative</div><div class="stat-value">${c.initiative >= 0 ? '+' : ''}${c.initiative}</div></div></div>
+      <div class="col-4"><div class="combat-stat"><div class="stat-label">Speed</div><div class="stat-value">${c.speed}</div></div></div>
     </div>
-    <h3>Hit Points</h3>
-    <div class="hp-bar"><div class="hp-bar-fill" style="width:${pct}%"></div><div class="hp-bar-text">${c.hp_current} / ${c.hp_max}${c.temp_hp > 0 ? ' (+' + c.temp_hp + ' temp)' : ''}</div></div>
-    <div class="form-row" style="margin-top:12px">
-      <div class="form-group"><label>HP Max</label><input type="number" value="${c.hp_max}" onchange="updateField('hp_max',+this.value)"></div>
-      <div class="form-group"><label>Current</label><input type="number" value="${c.hp_current}" onchange="updateField('hp_current',+this.value)"></div>
-      <div class="form-group"><label>Temp HP</label><input type="number" value="${c.temp_hp}" onchange="updateField('temp_hp',+this.value)"></div>
+    <h5 class="mt-3">Hit Points</h5>
+    <div class="hp-bar position-relative mb-2">
+      <div class="hp-bar-fill" style="width:${pct}%"></div>
+      <div class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center text-white small fw-bold" style="font-size:0.8rem">${c.hp_current} / ${c.hp_max}${c.temp_hp > 0 ? ' (+' + c.temp_hp + ' temp)' : ''}</div>
     </div>
-    <div class="form-row" style="margin-top:8px">
-      <div class="form-group">
-        <label>Damage</label>
-        <div style="display:flex;gap:4px">
-          <input type="number" id="dmgInput" value="0" style="width:80px">
-          <button class="btn btn-sm btn-danger" onclick="applyDamage()">Apply</button>
-        </div>
+    <div class="row g-2">
+      <div class="col-4"><label class="form-label small">HP Max</label><input type="number" class="form-control form-control-sm" value="${c.hp_max}" onchange="updateField('hp_max',+this.value)"></div>
+      <div class="col-4"><label class="form-label small">Current</label><input type="number" class="form-control form-control-sm" value="${c.hp_current}" onchange="updateField('hp_current',+this.value)"></div>
+      <div class="col-4"><label class="form-label small">Temp HP</label><input type="number" class="form-control form-control-sm" value="${c.temp_hp}" onchange="updateField('temp_hp',+this.value)"></div>
+    </div>
+    <div class="row g-2 mt-2">
+      <div class="col-6">
+        <label class="form-label small">Damage</label>
+        <div class="input-group input-group-sm"><input type="number" class="form-control" id="dmgInput" value="0"><button class="btn btn-danger" onclick="applyDamage()">Apply</button></div>
       </div>
-      <div class="form-group">
-        <label>Heal</label>
-        <div style="display:flex;gap:4px">
-          <input type="number" id="healInput" value="0" style="width:80px">
-          <button class="btn btn-sm btn-primary" onclick="applyHeal()">Apply</button>
-        </div>
+      <div class="col-6">
+        <label class="form-label small">Heal</label>
+        <div class="input-group input-group-sm"><input type="number" class="form-control" id="healInput" value="0"><button class="btn btn-success" onclick="applyHeal()">Apply</button></div>
       </div>
     </div>
-    <div class="form-row" style="margin-top:8px">
-      <button class="btn btn-sm" onclick="doRest('short')">Short Rest</button>
-      <button class="btn btn-sm" onclick="doRest('long')">Long Rest</button>
-      <button class="btn btn-sm btn-primary" onclick="doLevelUp()">Level Up</button>
+    <div class="d-flex gap-2 mt-3">
+      <button class="btn btn-sm btn-outline-primary" onclick="doRest('short')"><i class="fa-solid fa-campground me-1"></i>Short Rest</button>
+      <button class="btn btn-sm btn-outline-primary" onclick="doRest('long')"><i class="fa-solid fa-moon me-1"></i>Long Rest</button>
+      <button class="btn btn-sm btn-gold" onclick="doLevelUp()"><i class="fa-solid fa-arrow-up me-1"></i>Level Up</button>
     </div>
-    <h3>Saving Throws <span style="font-size:0.8em;font-weight:normal">(click to roll)</span></h3>
-    <div class="save-list">
+    <h5 class="mt-3">Saving Throws <small class="text-muted fw-normal">(click to roll)</small></h5>
+    <div class="d-flex flex-wrap gap-1 mb-3">
       ${['str','dex','con','int','wis','cha'].map(a => {
         const mod = (c as any)[`${a}_mod`];
         const total = c.proficiency_bonus + mod;
         const sign = total >= 0 ? '+' : '';
-        return `<span class="save-badge" style="cursor:pointer" onclick="rollCheck('save','${a}','normal')">${a.toUpperCase()} ${sign}${total}</span>`;
+        return `<span class="badge badge-gold" style="cursor:pointer" onclick="rollCheck('save','${a}','normal')">${a.toUpperCase()} ${sign}${total}</span>`;
       }).join('')}
     </div>
-    <div class="form-row">
-      <div class="form-group"><label>Hit Dice</label><input value="${c.hit_dice}" onchange="updateField('hit_dice',this.value)"></div>
-      <div class="form-group"><label>Remaining</label><input type="number" value="${c.hit_dice_current}" onchange="updateField('hit_dice_current',+this.value)"></div>
+    <h5 class="mt-3">Death Saves</h5>
+    <div class="row g-2">
+      <div class="col-6"><label class="form-label small">Successes</label><input type="number" class="form-control form-control-sm" value="${c.death_save_successes}" onchange="updateField('death_save_successes',+this.value)" min="0" max="3"></div>
+      <div class="col-6"><label class="form-label small">Failures</label><input type="number" class="form-control form-control-sm" value="${c.death_save_failures}" onchange="updateField('death_save_failures',+this.value)" min="0" max="3"></div>
     </div>
-    <h3>Death Saves</h3>
-    <div style="display:flex;gap:16px;margin-bottom:12px">
-      <div><strong>Successes:</strong> ${[1,2,3].map(i =>
-        `<span class="slot-dot ${i <= (c.death_saves_successes||0) ? 'filled' : 'empty'}" onclick="toggleDeathSave('successes',${i})" style="display:inline-block"></span>`
-      ).join('')}</div>
-      <div><strong>Failures:</strong> ${[1,2,3].map(i =>
-        `<span class="slot-dot ${i <= (c.death_saves_failures||0) ? 'filled' : 'empty'}" onclick="toggleDeathSave('failures',${i})" style="display:inline-block;background:${i<=(c.death_saves_failures||0)?'var(--danger)':'transparent'};border-color:${i<=(c.death_saves_failures||0)?'var(--danger)':'var(--border)'}"></span>`
-      ).join('')}</div>
+    <h5 class="mt-3">Concentration</h5>
+    <div class="form-check"><input type="checkbox" class="form-check-input" id="concentrationCb" ${c.concentrating ? 'checked' : ''} onchange="updateField('concentrating',this.checked)"><label class="form-check-label" for="concentrationCb">Concentrating on a spell</label></div>
+    <div class="mt-2">
+      <label class="form-label small">Concentrating On</label>
+      <input class="form-control form-control-sm" value="${esc(c.concentrating_on)}" onchange="updateField('concentrating_on',this.value)" placeholder="e.g. Hunter's Mark">
     </div>
-    <div class="form-group">
-      <label>Concentrating On</label>
-      <input value="${esc(c.concentrating_on||'')}" onchange="updateField('concentrating_on',this.value)" placeholder="e.g. Hunter's Mark">
-    </div>
-  `;
-}
-
-function renderSpells() {
-  const c = currentChar;
-  const el = document.getElementById('spellsSection')!;
-  const sc = c.spellcasting;
-  const byLevel: Record<number,any[]> = {};
-  for (let i=0;i<=9;i++) byLevel[i] = [];
-  (c.spells||[]).forEach((s:any) => { if (byLevel[s.level]) byLevel[s.level].push(s); });
-
-  let html = '';
-  if (sc && sc.ability) {
-    html += `<div class="form-row">
-      <div class="form-group"><label>Ability</label><input value="${sc.ability}" onchange="updateSpellcasting('ability',this.value)"></div>
-      <div class="form-group"><label>Save DC</label><input type="number" value="${sc.save_dc}" onchange="updateSpellcasting('save_dc',+this.value)"></div>
-      <div class="form-group"><label>Attack</label><input type="number" value="${sc.attack_bonus}" onchange="updateSpellcasting('attack_bonus',+this.value)"></div>
-    </div><h3>Spell Slots</h3><div class="slot-tracker">`;
-    for (let lv=1;lv<=9;lv++) {
-      const mx = (sc as any)['slots_'+lv+'_max'];
-      const us = (sc as any)['slots_'+lv+'_used'];
-      if (mx > 0) {
-        html += `<div class="slot-level"><div class="level-label">Lv ${lv}</div><div class="slot-dots">`;
-        for (let i=0;i<mx;i++) html += `<div class="slot-dot ${i<us?'filled':'empty'}" onclick="toggleSlot(${lv},${i})"></div>`;
-        html += `</div><small>${us}/${mx}</small></div>`;
-      }
-    }
-    html += `</div>`;
-  } else {
-    html += `<p style="color:var(--text-muted);font-style:italic">No spellcasting. <a href="#" onclick="enableSpellcasting();return false">Set up</a></p>`;
-  }
-  html += `<h3>Spells</h3><button class="btn btn-sm btn-primary" onclick="addSpell()">+ Add Spell</button><div style="margin-top:8px">`;
-  for (let lv=9;lv>=0;lv--) {
-    const spells = byLevel[lv]||[];
-    if (!spells.length) continue;
-    html += `<h4 style="margin-top:12px;color:var(--ink-light);font-size:0.95rem">${lv===0?'Cantrips':'Level '+lv}</h4>`;
-    spells.forEach((s:any) => {
-      html += `<div class="spell-item ${s.prepared?'prepared':''}">
-        <strong>${esc(s.name)}</strong> <span style="color:var(--text-muted)">(${esc(s.school)})</span>
-        <span style="float:right">${s.prepared?'✓ Prepared':''}</span>
-        <div style="font-size:0.85rem;color:var(--text-light)">${esc(s.casting_time)} · ${esc(s.range)} · ${esc(s.components)} · ${esc(s.duration)}</div>
-        <div style="margin-top:4px">${esc(s.description)}</div>
-      </div>`;
-    });
-  }
-  html += `</div>`;
-  el.innerHTML = html;
-}
-
-async function toggleSlot(level:number,index:number) {
-  const sc = currentChar.spellcasting;
-  const k = 'slots_'+level+'_used';
-  sc[k] = index+1 === sc[k] ? index : index+1;
-  await api('PUT', `/api/characters/${currentChar.id}/spellcasting`, sc);
-  renderSheet();
-}
-(window as any).toggleSlot = toggleSlot;
-
-async function enableSpellcasting() {
-  currentChar.spellcasting = { ability:'int', save_dc:10, attack_bonus:0, slots_1_max:2, slots_1_used:0 };
-  await api('PUT', `/api/characters/${currentChar.id}/spellcasting`, currentChar.spellcasting);
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
-  renderSheet();
-}
-(window as any).enableSpellcasting = enableSpellcasting;
-
-(window as any).toggleDeathSave = async function (field:string, val:number) {
-  if (!currentChar) return;
-  if (currentChar['death_saves_' + field] === val) {
-    currentChar['death_saves_' + field] = val - 1;
-  } else {
-    currentChar['death_saves_' + field] = val;
-  }
-  await api('PUT', `/api/characters/${currentChar.id}`, currentChar);
-  renderSheet();
-};
-
-async function updateSpellcasting(field:string,value:any) {
-  currentChar.spellcasting[field] = value;
-  await api('PUT', `/api/characters/${currentChar.id}/spellcasting`, currentChar.spellcasting);
-}
-(window as any).updateSpellcasting = updateSpellcasting;
-
-function renderInventory() {
-  const c = currentChar;
-  const el = document.getElementById('inventorySection')!;
-  const inv = c.inventory||[];
-  const cur = c.currency||{cp:0,sp:0,ep:0,gp:0,pp:0};
-  el.innerHTML = `
-    <h3>Currency</h3>
-    <div class="form-row">
-      ${['PP','GP','EP','SP','CP'].map(u => `<div class="form-group"><label>${u}</label><input type="number" value="${cur[u.toLowerCase()]}" onchange="updateCurrency('${u.toLowerCase()}',+this.value)"></div>`).join('')}
-    </div>
-    <div class="ornament">✧</div>
-    <div style="display:flex;justify-content:space-between;align-items:center"><h3>Inventory</h3><button class="btn btn-sm btn-primary" onclick="showAddItem()">+ Add</button></div>
-    <div style="margin-top:8px">
-      ${inv.map((item:any) => `<div class="inventory-item ${item.is_equipped?'equipped':''}">
-        <div><span class="item-name">${esc(item.name)}</span> <span class="item-qty">×${item.quantity}</span> <span style="font-size:0.8rem;color:var(--text-muted)">${esc(item.category)}</span>
-          ${item.is_equipped?'<span class="badge badge-gold">E</span>':''} ${item.is_magical?'<span class="badge badge-blood">★</span>':''}
-        </div>
-        <div><span style="font-size:0.85rem;color:var(--text-light)">${item.damage_dice?item.damage_dice+' '+item.damage_type:''} ${item.ac_bonus?'AC+'+item.ac_bonus:''}</span>
-          <span style="margin-left:8px">
-            <button class="btn btn-sm" onclick="toggleEquip(${item.id})">${item.is_equipped?'Unequip':'Equip'}</button>
-            <button class="btn btn-sm btn-danger" onclick="deleteItem(${item.id})">×</button>
-          </span>
-        </div>
-      </div>`).join('')||'<div class="empty-state" style="padding:16px">Empty handed.</div>'}
+    <h5 class="mt-3">Hit Dice</h5>
+    <div class="row g-2">
+      <div class="col-6"><label class="form-label small">Total</label><input type="number" class="form-control form-control-sm" value="${c.hit_dice_total}" onchange="updateField('hit_dice_total',+this.value)"></div>
+      <div class="col-6"><label class="form-label small">Used</label><input type="number" class="form-control form-control-sm" value="${c.hit_dice_used}" onchange="updateField('hit_dice_used',+this.value)"></div>
     </div>`;
 }
 
-async function updateCurrency(t:string,v:number) {
-  await api('PUT', `/api/characters/${currentChar.id}/currency`, {...currentChar.currency,[t]:v});
+// ─── Currency ───
+
+async function updateCurrency() {
+  if (!currentChar) return;
+  const coins = ['cp','sp','ep','gp','pp'];
+  const updates: Record<string,number> = {};
+  coins.forEach(c => { updates[c] = +(document.getElementById('coin' + c) as HTMLInputElement)?.value || 0; });
+  await api('PUT', `/api/characters/${currentChar.id}/currency`, updates);
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  toast('Currency updated');
 }
 (window as any).updateCurrency = updateCurrency;
 
-async function toggleEquip(id:number) {
-  const item = currentChar.inventory.find((i:any)=>i.id===id);
-  if (!item) return; item.is_equipped = !item.is_equipped;
-  await api('PUT', `/api/inventory/${id}`, item);
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`); renderSheet();
-}
-(window as any).toggleEquip = toggleEquip;
+// ─── Inventory ───
 
-async function deleteItem(id:number) {
-  await api('DELETE', `/api/inventory/${id}`);
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`); renderSheet();
-}
-(window as any).deleteItem = deleteItem;
+function renderInventory() {
+  const inv = currentChar.inventory || [];
+  const categories: Record<string, any[]> = { weapon: [], armor: [], gear: [], potion: [], scroll: [], tool: [], wondrous: [], other: [] };
+  inv.forEach((i:any) => { if (categories[i.category]) categories[i.category].push(i); else categories.other.push(i); });
+  const total = inv.reduce((s:number,i:any)=>s+(i.weight||0)*(i.quantity||1),0);
 
-function renderFeatures() {
-  const feats = currentChar.features||[];
-  document.getElementById('featuresSection')!.innerHTML = `
-    <button class="btn btn-sm btn-primary" onclick="addFeature()">+ Add</button>
-    <div style="margin-top:12px">${feats.map((f:any)=>`
-      <div class="card" style="padding:16px;margin-bottom:8px">
-        <div class="card-header" style="border:none;padding:0;margin:0">
-          <strong>${esc(f.name)}</strong>
-          <span><span class="badge badge-blood">Lv ${f.level_gained}</span> ${f.source?'<span class="badge badge-gold">'+esc(f.source)+'</span>':''}</span>
-        </div>
-        <p style="font-size:0.9rem;color:var(--text-light);margin-top:4px">${esc(f.description)}</p>
-      </div>`).join('')||'<div class="empty-state" style="padding:16px">No features.</div>'}
+  document.getElementById('inventorySection')!.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center">
+      <h5>Inventory <span class="text-muted small">(Total: ${total} lbs)</span></h5>
+      <div><button class="btn btn-primary btn-sm" onclick="addInventory()"><i class="fa-solid fa-plus me-1"></i>Add Item</button></div>
+    </div>
+    <div class="mt-2" id="invList">
+      ${Object.entries(categories).filter(([,items]) => items.length).map(([cat, items]) => `
+        <h6 class="mt-3 text-muted">${capitalize(cat)}</h6>
+        ${(items as any[]).map((i:any) => `
+          <div class="inv-item${i.equipped ? ' equipped' : ''}">
+            <div><span class="fw-bold">${esc(i.name)}</span> ${i.quantity > 1 ? `<span class="badge badge-muted">x${i.quantity}</span>` : ''}
+              ${i.equipped ? '<span class="badge badge-gold">Equipped</span>' : ''}
+              ${i.damage_dice ? `<span class="badge badge-blood ms-1">${esc(i.damage_dice)} ${esc(i.damage_type)}</span>` : ''}
+              ${i.ac_bonus > 0 ? `<span class="badge badge-gold ms-1">AC+${i.ac_bonus}</span>` : ''}</div>
+            <div class="d-flex gap-1">
+              <button class="btn btn-sm btn-outline-primary" onclick="editInventory(${i.id},'${esc(i.name)}',${i.quantity},'${esc(i.category)}',${i.weight},${i.equipped})" title="Edit"><i class="fa-solid fa-pen"></i></button>
+              <button class="btn btn-sm btn-outline-secondary" onclick="toggleEquip(${i.id})" title="${i.equipped ? 'Unequip' : 'Equip'}"><i class="fa-solid fa-shield-halved"></i></button>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteInventory(${i.id})" title="Remove"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>`).join('')}
+      `).join('') || '<div class="empty-state"><i class="fa-solid fa-backpack fa-2x mb-2 d-block text-muted"></i>No items. Add gear to your inventory.</div>'}
     </div>`;
 }
+
+(window as any).addInventory = function () {
+  showModal('Add Item', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="invName"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Quantity</label><input class="form-control" id="invQty" type="number" value="1"></div>
+      <div class="col-6"><label class="form-label">Weight (lbs)</label><input class="form-control" id="invWeight" type="number" value="0" step="0.1"></div>
+    </div>
+    <div class="mb-3"><label class="form-label">Category</label>
+      <select class="form-select" id="invCat">
+        <option value="gear">Gear</option><option value="weapon">Weapon</option><option value="armor">Armor</option>
+        <option value="potion">Potion</option><option value="scroll">Scroll</option><option value="tool">Tool</option>
+        <option value="wondrous">Wondrous Item</option><option value="other">Other</option>
+      </select></div>
+    <button class="btn btn-primary w-100" onclick="saveInventory(this)"><i class="fa-solid fa-plus me-1"></i>Add</button>
+  `);
+};
+
+(window as any).editInventory = function (id:number,name:string,qty:number,cat:string,weight:number,equipped:boolean) {
+  showModal('Edit Item', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="invName" value="${esc(name)}"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Quantity</label><input class="form-control" id="invQty" type="number" value="${qty}"></div>
+      <div class="col-6"><label class="form-label">Weight (lbs)</label><input class="form-control" id="invWeight" type="number" value="${weight}" step="0.1"></div>
+    </div>
+    <div class="mb-3"><label class="form-label">Category</label>
+      <select class="form-select" id="invCat">${['gear','weapon','armor','potion','scroll','tool','wondrous','other'].map(c=>`<option value="${c}"${c===cat?' selected':''}>${capitalize(c)}</option>`).join('')}</select></div>
+    <div class="mb-3"><div class="form-check"><input type="checkbox" class="form-check-input" id="invEquip"${equipped?' checked':''}><label class="form-check-label">Equipped</label></div></div>
+    <button class="btn btn-primary w-100" onclick="saveEditInventory(${id},this)">Save</button>
+  `);
+};
+
+(window as any).saveInventory = async function (btn:HTMLElement) {
+  await api('POST', `/api/characters/${currentChar.id}/inventory`, {
+    name: (document.getElementById('invName') as HTMLInputElement).value,
+    quantity: +(document.getElementById('invQty') as HTMLInputElement).value || 1,
+    weight: +(document.getElementById('invWeight') as HTMLInputElement).value || 0,
+    category: (document.getElementById('invCat') as HTMLSelectElement).value,
+  });
+  hideModal();
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderInventory();
+  toast('Item added');
+};
+
+(window as any).saveEditInventory = async function (id:number, btn:HTMLElement) {
+  await api('PUT', `/api/inventory/${id}`, {
+    name: (document.getElementById('invName') as HTMLInputElement).value,
+    quantity: +(document.getElementById('invQty') as HTMLInputElement).value || 1,
+    weight: +(document.getElementById('invWeight') as HTMLInputElement).value || 0,
+    category: (document.getElementById('invCat') as HTMLSelectElement).value,
+    equipped: (document.getElementById('invEquip') as HTMLInputElement).checked,
+  });
+  hideModal();
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderInventory();
+  toast('Item updated');
+};
+
+(window as any).deleteInventory = async function (id:number) {
+  if (!confirm('Remove this item?')) return;
+  await api('DELETE', `/api/inventory/${id}`);
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderInventory();
+  toast('Item removed');
+};
+
+(window as any).toggleEquip = async function (id:number) {
+  const item = currentChar.inventory.find((i:any) => i.id === id);
+  if (!item) return;
+  item.equipped = !item.equipped;
+  await api('PUT', `/api/inventory/${id}`, item);
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderInventory();
+  toast(item.equipped ? 'Equipped' : 'Unequipped');
+};
+
+// ─── Spells ───
+
+function renderSpells() {
+  const spells = currentChar.spells || [];
+  const sc = currentChar.spellcasting || {};
+  document.getElementById('spellsSection')!.innerHTML = sc.spellcasting_ability ? `
+    <h5>Spellcasting</h5>
+    <div class="row g-3 mb-3">
+      <div class="col-md-4"><label class="form-label">Ability</label><input class="form-control form-control-sm" value="${esc(sc.spellcasting_ability)}" onchange="updateSpellcasting('spellcasting_ability',this.value)"></div>
+      <div class="col-md-4"><label class="form-label">Save DC</label><input class="form-control form-control-sm" type="number" value="${sc.spell_save_dc||0}" onchange="updateSpellcasting('spell_save_dc',+this.value)"></div>
+      <div class="col-md-4"><label class="form-label">Atk Bonus</label><input class="form-control form-control-sm" type="number" value="${sc.spell_attack_bonus||0}" onchange="updateSpellcasting('spell_attack_bonus',+this.value)"></div>
+    </div>
+    <h6>Spell Slots</h6>
+    <div class="d-flex gap-3 flex-wrap mb-3">
+      ${[1,2,3,4,5,6,7,8,9].map(lv => {
+        const mx = sc[`slots_${lv}_max`] || 0;
+        if (!mx) return '';
+        return `<div class="text-center">
+          <div class="text-muted small">Lv ${lv}</div>
+          <input type="number" class="form-control form-control-sm text-center" style="width:55px" id="slotUse${lv}" value="${sc[`slots_${lv}_used`]||0}" onchange="updateSpellSlot(${lv})" min="0" max="${mx}">
+          <div class="text-muted small">/ ${mx}</div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="d-flex justify-content-between align-items-center mt-3">
+      <h6>Known Spells</h6>
+      <button class="btn btn-primary btn-sm" onclick="addSpell()"><i class="fa-solid fa-plus me-1"></i>Add Spell</button>
+    </div>
+    <div class="mt-2">
+      ${spells.map((s:any) => `
+        <div class="inv-item ${s.prepared ? 'equipped' : ''}">
+          <div><span class="fw-bold">${esc(s.name)}</span> <span class="text-muted small">${esc(s.level > 0 ? 'Lv' + s.level : 'Cantrip')} ${esc(s.school)}</span></div>
+          <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-primary" onclick="editSpell(${s.id},'${esc(s.name)}',${s.level},'${esc(s.school)}',${s.prepared},'${esc(s.components||'')}','${esc(s.range||'')}','${esc(s.casting_time||'')}','${esc(s.duration||'')}','${esc(s.description||'')}')"><i class="fa-solid fa-pen"></i></button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteSpell(${s.id})"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>`).join('') || '<div class="empty-state"><i class="fa-solid fa-wand-sparkles fa-2x mb-2 d-block text-muted"></i>No spells known. Learn some magic!</div>'}
+    </div>` : `
+    <div class="empty-state"><i class="fa-solid fa-wand-sparkles fa-2x mb-2 d-block text-muted"></i>
+    <p class="text-muted fst-italic">No spellcasting.</p>
+    <button class="btn btn-outline-primary btn-sm" onclick="enableSpellcasting()"><i class="fa-solid fa-magic me-1"></i>Set Up Spellcasting</button></div>`;
+}
+
+async function updateSpellcasting(field:string, value:any) {
+  if (!currentChar) return;
+  const sc = currentChar.spellcasting || {};
+  sc[field] = value;
+  await api('PUT', `/api/characters/${currentChar.id}/spellcasting`, sc);
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderSpells();
+}
+(window as any).updateSpellcasting = updateSpellcasting;
+
+async function updateSpellSlot(level:number) {
+  if (!currentChar) return;
+  const sc = currentChar.spellcasting || {};
+  sc[`slots_${level}_used`] = +(document.getElementById(`slotUse${level}`) as HTMLInputElement).value || 0;
+  await api('PUT', `/api/characters/${currentChar.id}/spellcasting`, sc);
+}
+(window as any).updateSpellSlot = updateSpellSlot;
+
+(window as any).enableSpellcasting = async function () {
+  currentChar.spellcasting = {
+    spellcasting_ability: 'int', spell_save_dc: 10, spell_attack_bonus: 0,
+    slots_1_max: 2, slots_1_used: 0,
+  };
+  await api('PUT', `/api/characters/${currentChar.id}/spellcasting`, currentChar.spellcasting);
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderSpells();
+};
+
+(window as any).addSpell = function () {
+  showModal('Add Spell', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="spellName"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Level</label><input class="form-control" id="spellLevel" type="number" value="0" min="0" max="9"></div>
+      <div class="col-6"><label class="form-label">School</label>
+        <select class="form-select" id="spellSchool">${['Abjuration','Conjuration','Divination','Enchantment','Evocation','Illusion','Necromancy','Transmutation'].map(s=>`<option value="${s}">${s}</option>`).join('')}</select></div>
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Casting Time</label><input class="form-control" id="spellCast" value="1 action"></div>
+      <div class="col-6"><label class="form-label">Range</label><input class="form-control" id="spellRange" value="Self"></div>
+    </div>
+    <div class="mb-3"><label class="form-label">Components</label><input class="form-control" id="spellComp" value="V,S"></div>
+    <div class="mb-3"><label class="form-label">Duration</label><input class="form-control" id="spellDur" value="Instantaneous"></div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="spellDesc" rows="3"></textarea></div>
+    <button class="btn btn-primary w-100" onclick="saveSpell(this)">Add Spell</button>
+  `);
+};
+
+(window as any).editSpell = function (id:number,name:string,level:number,school:string,prepared:boolean,comp:string,range:string,cast:string,dur:string,desc:string) {
+  showModal('Edit Spell', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="spellName" value="${esc(name)}"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Level</label><input class="form-control" id="spellLevel" type="number" value="${level}" min="0" max="9"></div>
+      <div class="col-6"><label class="form-label">School</label>
+        <select class="form-select" id="spellSchool">${['Abjuration','Conjuration','Divination','Enchantment','Evocation','Illusion','Necromancy','Transmutation'].map(s=>`<option value="${s}"${s===school?' selected':''}>${s}</option>`).join('')}</select></div>
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Casting Time</label><input class="form-control" id="spellCast" value="${esc(cast)}"></div>
+      <div class="col-6"><label class="form-label">Range</label><input class="form-control" id="spellRange" value="${esc(range)}"></div>
+    </div>
+    <div class="mb-3"><label class="form-label">Components</label><input class="form-control" id="spellComp" value="${esc(comp)}"></div>
+    <div class="mb-3"><label class="form-label">Duration</label><input class="form-control" id="spellDur" value="${esc(dur)}"></div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="spellDesc" rows="3">${esc(desc)}</textarea></div>
+    <div class="mb-3"><div class="form-check"><input type="checkbox" class="form-check-input" id="spellPrep"${prepared?' checked':''}><label class="form-check-label">Prepared</label></div></div>
+    <button class="btn btn-primary w-100" onclick="saveEditSpell(${id},this)">Save Spell</button>
+  `);
+};
+
+(window as any).saveSpell = async function (btn:HTMLElement) {
+  await api('POST', `/api/characters/${currentChar.id}/spells`, {
+    name: (document.getElementById('spellName') as HTMLInputElement).value,
+    level: +(document.getElementById('spellLevel') as HTMLInputElement).value || 0,
+    school: (document.getElementById('spellSchool') as HTMLSelectElement).value,
+    casting_time: (document.getElementById('spellCast') as HTMLInputElement).value,
+    range: (document.getElementById('spellRange') as HTMLInputElement).value,
+    components: (document.getElementById('spellComp') as HTMLInputElement).value,
+    duration: (document.getElementById('spellDur') as HTMLInputElement).value,
+    description: (document.getElementById('spellDesc') as HTMLTextAreaElement).value,
+  });
+  hideModal();
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderSpells();
+  toast('Spell added');
+};
+
+(window as any).saveEditSpell = async function (id:number, btn:HTMLElement) {
+  await api('PUT', `/api/spells/${id}`, {
+    name: (document.getElementById('spellName') as HTMLInputElement).value,
+    level: +(document.getElementById('spellLevel') as HTMLInputElement).value || 0,
+    school: (document.getElementById('spellSchool') as HTMLSelectElement).value,
+    casting_time: (document.getElementById('spellCast') as HTMLInputElement).value,
+    range: (document.getElementById('spellRange') as HTMLInputElement).value,
+    components: (document.getElementById('spellComp') as HTMLInputElement).value,
+    duration: (document.getElementById('spellDur') as HTMLInputElement).value,
+    description: (document.getElementById('spellDesc') as HTMLTextAreaElement).value,
+    prepared: (document.getElementById('spellPrep') as HTMLInputElement).checked,
+  });
+  hideModal();
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderSpells();
+  toast('Spell updated');
+};
+
+(window as any).deleteSpell = async function (id:number) {
+  if (!confirm('Remove this spell?')) return;
+  await api('DELETE', `/api/spells/${id}`);
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderSpells();
+  toast('Spell removed');
+};
+
+// ─── Features ───
+
+function renderFeatures() {
+  const feats = currentChar.features || [];
+  document.getElementById('featuresSection')!.innerHTML = `
+    <div class="d-flex justify-content-between align-items-center">
+      <h5>Features & Proficiencies</h5>
+      <button class="btn btn-primary btn-sm" onclick="addFeature()"><i class="fa-solid fa-plus me-1"></i>Add Feature</button>
+    </div>
+    <div class="mt-2">
+      ${feats.map((f:any) => `
+        <div class="card mb-2">
+          <div class="card-body py-2 px-3">
+            <div class="d-flex justify-content-between align-items-center">
+              <div><span class="fw-bold">${esc(f.name)}</span>
+                <span class="badge badge-blood ms-1">Lv ${f.level_gained}</span>
+                ${f.source ? `<span class="badge badge-gold ms-1">${esc(f.source)}</span>` : ''}
+                <p class="mb-0 mt-1 small text-muted">${esc(f.description)}</p></div>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteFeature(${f.id})"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+        </div>`).join('') || '<div class="empty-state"><i class="fa-solid fa-star fa-2x mb-2 d-block text-muted"></i>No features added yet.</div>'}
+    </div>`;
+}
+
+(window as any).addFeature = function () {
+  showModal('Add Feature', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="featName"></div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="featDesc" rows="3"></textarea></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Source</label><input class="form-control" id="featSource" placeholder="Class, Race, etc."></div>
+      <div class="col-6"><label class="form-label">Level Gained</label><input class="form-control" id="featLevel" type="number" value="1"></div>
+    </div>
+    <button class="btn btn-primary w-100" onclick="saveFeature(this)">Add Feature</button>
+  `);
+};
+
+(window as any).saveFeature = async function (btn:HTMLElement) {
+  await api('POST', `/api/characters/${currentChar.id}/features`, {
+    name: (document.getElementById('featName') as HTMLInputElement).value,
+    description: (document.getElementById('featDesc') as HTMLTextAreaElement).value,
+    source: (document.getElementById('featSource') as HTMLInputElement).value,
+    level_gained: +(document.getElementById('featLevel') as HTMLInputElement).value || 1,
+  });
+  hideModal();
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderFeatures();
+  toast('Feature added');
+};
+
+(window as any).deleteFeature = async function (id:number) {
+  await api('DELETE', `/api/features/${id}`);
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderFeatures();
+  toast('Feature removed');
+};
+
+// ─── Proficiencies ───
+
+(window as any).addProf = function () {
+  showModal('Add Proficiency', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="profName"></div>
+    <div class="mb-3"><label class="form-label">Type</label>
+      <select class="form-select" id="profType">
+        <option value="skill">Skill</option><option value="save">Saving Throw</option><option value="tool">Tool</option>
+        <option value="weapon">Weapon</option><option value="armor">Armor</option><option value="language">Language</option>
+        <option value="other">Other</option>
+      </select></div>
+    <button class="btn btn-primary w-100" onclick="saveProf(this)">Add Proficiency</button>
+  `);
+};
+
+(window as any).saveProf = async function (btn:HTMLElement) {
+  await api('POST', '/api/proficiencies', {
+    character_id: currentChar.id,
+    type: (document.getElementById('profType') as HTMLSelectElement).value,
+    name: (document.getElementById('profName') as HTMLInputElement).value,
+  });
+  hideModal();
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderSheet();
+  toast('Proficiency added');
+};
+
+(window as any).deleteProf = async function (id:number) {
+  await api('DELETE', `/api/proficiencies/${id}`);
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderSheet();
+  toast('Proficiency removed');
+};
+
+// ─── Details ───
 
 function renderDetails() {
   const c = currentChar;
   const el = document.getElementById('detailsSection')!;
   el.innerHTML = `
-    <div class="form-row">
-      <div class="form-group"><label>Race</label><input value="${esc(c.race)}" onchange="updateField('race',this.value)"></div>
-      <div class="form-group"><label>Class</label><input value="${esc(c.class)}" onchange="updateField('class',this.value)"></div>
-      <div class="form-group"><label>Subclass</label><input value="${esc(c.subclass)}" onchange="updateField('subclass',this.value)"></div>
+    <div class="row g-3">
+      <div class="col-md-4"><label class="form-label">Race</label><input class="form-control form-control-sm" value="${esc(c.race)}" onchange="updateField('race',this.value)"></div>
+      <div class="col-md-4"><label class="form-label">Class</label><input class="form-control form-control-sm" value="${esc(c.class)}" onchange="updateField('class',this.value)"></div>
+      <div class="col-md-4"><label class="form-label">Subclass</label><input class="form-control form-control-sm" value="${esc(c.subclass)}" onchange="updateField('subclass',this.value)"></div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label>Level</label><input type="number" value="${c.level}" onchange="updateField('level',+this.value)"></div>
-      <div class="form-group"><label>Background</label><input value="${esc(c.background)}" onchange="updateField('background',this.value)"></div>
-      <div class="form-group"><label>Alignment</label><input value="${esc(c.alignment)}" onchange="updateField('alignment',this.value)"></div>
+    <div class="row g-3 mt-1">
+      <div class="col-md-4"><label class="form-label">Level</label><input class="form-control form-control-sm" type="number" value="${c.level}" onchange="updateField('level',+this.value)"></div>
+      <div class="col-md-4"><label class="form-label">Background</label><input class="form-control form-control-sm" value="${esc(c.background)}" onchange="updateField('background',this.value)"></div>
+      <div class="col-md-4"><label class="form-label">Alignment</label><input class="form-control form-control-sm" value="${esc(c.alignment)}" onchange="updateField('alignment',this.value)"></div>
     </div>
+    <hr class="my-3">
     ${['personality_traits','ideals','bonds','flaws','appearance'].map(f => `
-      <div class="form-group"><label>${capitalize(f.replace(/_/g,' '))}</label>
-      <textarea onchange="updateField('${f}',this.value)">${esc((c as any)[f])}</textarea></div>
+      <div class="mb-3"><label class="form-label">${capitalize(f.replace(/_/g,' '))}</label>
+      <textarea class="form-control form-control-sm" rows="2" onchange="updateField('${f}',this.value)">${esc((c as any)[f])}</textarea></div>
     `).join('')}
-    <div class="form-group"><label>Backstory</label>
-    <textarea style="min-height:150px" onchange="updateField('backstory',this.value)">${esc(c.backstory)}</textarea></div>`;
+    <div class="mb-3"><label class="form-label">Backstory</label>
+    <textarea class="form-control form-control-sm" rows="4" onchange="updateField('backstory',this.value)">${esc(c.backstory)}</textarea></div>
+    <h5 class="mt-4">Currency</h5>
+    <div class="row g-3">
+      ${['cp','sp','ep','gp','pp'].map(coin => `
+        <div class="col-4 col-md-2"><label class="form-label small">${coin.toUpperCase()}</label>
+        <input class="form-control form-control-sm" id="coin${coin}" value="${c.currency?.[coin]||0}" type="number"></div>
+      `).join('')}
+      <div class="col-4 col-md-2 d-flex align-items-end"><button class="btn btn-gold btn-sm w-100" onclick="updateCurrency()">Save</button></div>
+    </div>`;
 }
 
 // ─── Locations ───
@@ -490,58 +782,52 @@ async function renderLocations() {
   try {
     const links = await api('GET', `/api/characters/${currentChar.id}/locations`);
     el.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center"><h3>Known Locations</h3>
-        <button class="btn btn-sm btn-primary" onclick="showLinkLocation()">+ Link Location</button>
+      <div class="d-flex justify-content-between align-items-center"><h5>Linked Locations</h5>
+        <button class="btn btn-primary btn-sm" onclick="showLinkLocation()"><i class="fa-solid fa-link me-1"></i>Link Location</button>
       </div>
-      ${links.length ? links.map((l:any) => `
-        <div class="inventory-item">
-          <div><span class="item-name">${esc(l.location_name)}</span> <span style="color:var(--text-muted)">(${esc(l.location_type)})</span></div>
-          <div><span class="badge badge-gold">${esc(l.relationship)}</span>
-            <button class="btn btn-sm btn-danger" onclick="unlinkLocation(${l.id})">×</button>
-          </div>
+      <div class="mt-2">${links.length ? links.map((l:any) => `
+        <div class="inv-item">
+          <div><span class="fw-bold">${esc(l.location_name)}</span> <span class="text-muted small">(${esc(l.location_type)})</span>
+            ${l.notes ? `<br><small class="text-muted">${esc(l.notes)}</small>` : ''}</div>
+          <div><span class="badge badge-gold me-1">${esc(l.relationship)}</span>
+            <button class="btn btn-sm btn-outline-danger" onclick="unlinkLocation(${l.id})"><i class="fa-solid fa-trash"></i></button></div>
         </div>`).join('')
-        : '<div class="empty-state" style="padding:16px">No locations linked. <a href="#" onclick="showLinkLocation();return false">Link one</a></div>'}
-      <hr style="border-color:var(--border-light);margin:16px 0">
-      <div style="display:flex;justify-content:space-between;align-items:center"><h3>All Your Locations</h3>
-        <button class="btn btn-sm" onclick="showCreateLocation()">+ New Location</button>
+        : '<div class="empty-state">No locations linked.</div>'}</div>
+      <hr class="my-3">
+      <div class="d-flex justify-content-between align-items-center"><h5>All Locations</h5>
+        <button class="btn btn-outline-primary btn-sm" onclick="showCreateLocation()"><i class="fa-solid fa-plus me-1"></i>New Location</button>
       </div>
-      ${allLocations.map((l:any) => `
-        <div class="inventory-item">
-          <div><span class="item-name">${esc(l.name)}</span> <span style="color:var(--text-muted)">(${esc(l.type)})</span></div>
-          <div><span style="font-size:0.85rem;color:var(--text-light)">${esc(l.description).substring(0,60)}</span></div>
-        </div>`).join('')}`;
-  } catch {}
+      <div class="mt-2">${allLocations.map((l:any) => `
+        <div class="inv-item">
+          <div><span class="fw-bold">${esc(l.name)}</span> <span class="text-muted small">(${esc(l.type)})</span>
+            <br><small class="text-muted">${esc(l.description).substring(0, 80)}</small></div>
+        </div>`).join('')}&nbsp;</div>`;
+  } catch { el.innerHTML = '<div class="empty-state">Could not load locations.</div>'; }
 }
 
 (window as any).showLinkLocation = function () {
-  const modal = showModal(`
-    <h2>Link Location to Character</h2>
-    <div class="form-group"><label>Location</label>
-      <select id="linkLocId">${allLocations.map((l:any) => `<option value="${l.id}">${esc(l.name)} (${esc(l.type)})</option>`).join('')}</select>
-    </div>
-    <div class="form-group"><label>Relationship</label>
-      <select id="linkLocRel">
-        <option value="current">Current Location</option>
-        <option value="hometown">Hometown</option>
-        <option value="visited">Visited</option>
-        <option value="headquarters">Headquarters</option>
-        <option value="quest">Quest Location</option>
-        <option value="other">Other</option>
-      </select>
-    </div>
-    <div class="form-group"><label>Notes</label><textarea id="linkLocNotes"></textarea></div>
-    <button class="btn btn-primary" onclick="saveLinkLocation(this)">Link</button>
+  showModal('Link Location', `
+    <div class="mb-3"><label class="form-label">Location</label>
+      <select class="form-select" id="linkLocId">${allLocations.map((l:any) => `<option value="${l.id}">${esc(l.name)} (${esc(l.type)})</option>`).join('')}</select></div>
+    <div class="mb-3"><label class="form-label">Relationship</label>
+      <select class="form-select" id="linkLocRel">
+        <option value="current">Current Location</option><option value="hometown">Hometown</option><option value="visited">Visited</option>
+        <option value="headquarters">Headquarters</option><option value="quest">Quest Location</option><option value="other">Other</option>
+      </select></div>
+    <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="linkLocNotes" rows="2"></textarea></div>
+    <button class="btn btn-primary w-100" onclick="saveLinkLocation()"><i class="fa-solid fa-link me-1"></i>Link</button>
   `);
 };
 
-(window as any).saveLinkLocation = async function (btn:HTMLElement) {
+(window as any).saveLinkLocation = async function () {
   await api('POST', `/api/characters/${currentChar.id}/locations`, {
     location_id: +(document.getElementById('linkLocId') as HTMLSelectElement).value,
     relationship: (document.getElementById('linkLocRel') as HTMLSelectElement).value,
     notes: (document.getElementById('linkLocNotes') as HTMLTextAreaElement).value,
   });
-  btn.closest('.modal-overlay')?.remove();
+  hideModal();
   renderLocations();
+  toast('Location linked');
 };
 
 (window as any).unlinkLocation = async function (id:number) {
@@ -550,36 +836,29 @@ async function renderLocations() {
 };
 
 (window as any).showCreateLocation = function () {
-  const modal = showModal(`
-    <h2>New Location</h2>
-    <div class="form-group"><label>Name</label><input id="newLocName"></div>
-    <div class="form-group"><label>Type</label>
-      <select id="newLocType">
-        <option value="region">Region</option>
-        <option value="city">City</option>
-        <option value="town">Town</option>
-        <option value="dungeon">Dungeon</option>
-        <option value="tavern">Tavern</option>
-        <option value="temple">Temple</option>
-        <option value="shop">Shop</option>
-        <option value="wilderness">Wilderness</option>
-        <option value="other">Other</option>
-      </select>
-    </div>
-    <div class="form-group"><label>Description</label><textarea id="newLocDesc"></textarea></div>
-    <button class="btn btn-primary" onclick="saveNewLocation(this)">Create</button>
+  showModal('New Location', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="newLocName"></div>
+    <div class="mb-3"><label class="form-label">Type</label>
+      <select class="form-select" id="newLocType">
+        <option value="region">Region</option><option value="city">City</option><option value="town">Town</option>
+        <option value="dungeon">Dungeon</option><option value="tavern">Tavern</option><option value="temple">Temple</option>
+        <option value="shop">Shop</option><option value="wilderness">Wilderness</option><option value="other">Other</option>
+      </select></div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="newLocDesc" rows="3"></textarea></div>
+    <button class="btn btn-primary w-100" onclick="saveNewLocation()"><i class="fa-solid fa-plus me-1"></i>Create</button>
   `);
 };
 
-(window as any).saveNewLocation = async function (btn:HTMLElement) {
+(window as any).saveNewLocation = async function () {
   await api('POST', '/api/locations', {
     name: (document.getElementById('newLocName') as HTMLInputElement).value,
     type: (document.getElementById('newLocType') as HTMLSelectElement).value,
     description: (document.getElementById('newLocDesc') as HTMLTextAreaElement).value,
   });
-  btn.closest('.modal-overlay')?.remove();
+  hideModal();
   allLocations = await api('GET', '/api/locations');
   renderLocations();
+  toast('Location created');
 };
 
 // ─── NPCs ───
@@ -589,73 +868,65 @@ async function renderNPCs() {
   try {
     const links = await api('GET', `/api/characters/${currentChar.id}/npcs`);
     el.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center"><h3>Related NPCs</h3>
-        <button class="btn btn-sm btn-primary" onclick="showLinkNPC()">+ Link NPC</button>
+      <div class="d-flex justify-content-between align-items-center"><h5>Related NPCs</h5>
+        <button class="btn btn-primary btn-sm" onclick="showLinkNPC()"><i class="fa-solid fa-link me-1"></i>Link NPC</button>
       </div>
-      ${links.length ? links.map((n:any) => `
-        <div class="inventory-item">
-          <div><span class="item-name">${esc(n.npc_name)}</span>
-            <span style="color:var(--text-muted)">${esc(n.npc_race)} ${esc(n.npc_class)}</span>
-            ${n.npc_is_alive ? '' : '<span class="badge badge-blood">Deceased</span>'}
-          </div>
+      <div class="mt-2">${links.length ? links.map((n:any) => `
+        <div class="inv-item">
+          <div><span class="fw-bold">${esc(n.npc_name)}</span>
+            <span class="text-muted small">${esc(n.npc_race)} ${esc(n.npc_class)}</span>
+            ${!n.npc_is_alive ? '<span class="badge badge-blood ms-1">Deceased</span>' : ''}</div>
           <div>
             <span class="badge badge-gold">${esc(n.relationship)}</span>
-            ${n.interaction_count > 0 ? `<span class="badge badge-blood">${n.interaction_count} interactions</span>` : ''}
-            <button class="btn btn-sm" onclick="logNPCInteraction(${n.id})">+ Speak</button>
-            <button class="btn btn-sm btn-danger" onclick="unlinkNPC(${n.id})">×</button>
+            ${n.interaction_count > 0 ? `<span class="badge badge-blood ms-1">${n.interaction_count} talks</span>` : ''}
+            <button class="btn btn-sm btn-outline-primary" onclick="logNPCInteraction(${n.id})"><i class="fa-solid fa-comment"></i></button>
+            <button class="btn btn-sm btn-outline-danger" onclick="unlinkNPC(${n.id})"><i class="fa-solid fa-trash"></i></button>
           </div>
         </div>`).join('')
-        : '<div class="empty-state" style="padding:16px">No NPCs linked yet.</div>'}
-      <hr style="border-color:var(--border-light);margin:16px 0">
-      <div style="display:flex;justify-content:space-between;align-items:center"><h3>All Your NPCs</h3>
-        <button class="btn btn-sm" onclick="showCreateNPC()">+ New NPC</button>
+        : '<div class="empty-state">No NPCs linked yet.</div>'}</div>
+      <hr class="my-3">
+      <div class="d-flex justify-content-between align-items-center"><h5>All NPCs</h5>
+        <button class="btn btn-outline-primary btn-sm" onclick="showCreateNPC()"><i class="fa-solid fa-plus me-1"></i>New NPC</button>
       </div>
-      ${allNPCs.map((n:any) => `
-        <div class="inventory-item">
-          <div><span class="item-name">${esc(n.name)}</span>
-            <span style="color:var(--text-muted)">${esc(n.race)} ${esc(n.class)}</span>
-          </div>
-          <div style="font-size:0.85rem;color:var(--text-light)">HP: ${n.hp_current}/${n.hp_max}</div>
-        </div>`).join('')}`;
-  } catch {}
+      <div class="mt-2">${allNPCs.map((n:any) => `
+        <div class="inv-item">
+          <div><span class="fw-bold">${esc(n.name)}</span>
+            <span class="text-muted small">${esc(n.race)} ${esc(n.class)}</span></div>
+          <div class="text-muted small">HP: ${n.hp_current}/${n.hp_max}</div>
+        </div>`).join('')}&nbsp;</div>`;
+  } catch { el.innerHTML = '<div class="empty-state">Could not load NPCs.</div>'; }
 }
 
 (window as any).showLinkNPC = function () {
-  const modal = showModal(`
-    <h2>Link NPC to Character</h2>
-    <div class="form-group"><label>NPC</label>
-      <select id="linkNPCId">${allNPCs.map((n:any) => `<option value="${n.id}">${esc(n.name)} (${esc(n.race)} ${esc(n.class)})</option>`).join('')}</select>
-    </div>
-    <div class="form-group"><label>Relationship</label>
-      <select id="linkNPCRel">
-        <option value="ally">Ally</option>
-        <option value="enemy">Enemy</option>
-        <option value="family">Family</option>
-        <option value="contact">Contact</option>
-        <option value="acquaintance">Acquaintance</option>
-        <option value="pet">Pet/Mount</option>
-        <option value="deity">Deity/Patron</option>
-        <option value="other">Other</option>
-      </select>
-    </div>
-    <div class="form-group"><label>Notes</label><textarea id="linkNPCNotes"></textarea></div>
-    <button class="btn btn-primary" onclick="saveLinkNPC(this)">Link</button>
+  showModal('Link NPC', `
+    <div class="mb-3"><label class="form-label">NPC</label>
+      <select class="form-select" id="linkNPCId">${allNPCs.map((n:any) => `<option value="${n.id}">${esc(n.name)} (${esc(n.race)} ${esc(n.class)})</option>`).join('')}</select></div>
+    <div class="mb-3"><label class="form-label">Relationship</label>
+      <select class="form-select" id="linkNPCRel">
+        <option value="ally">Ally</option><option value="enemy">Enemy</option><option value="family">Family</option>
+        <option value="contact">Contact</option><option value="acquaintance">Acquaintance</option>
+        <option value="pet">Pet/Mount</option><option value="deity">Deity/Patron</option><option value="other">Other</option>
+      </select></div>
+    <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="linkNPCNotes" rows="2"></textarea></div>
+    <button class="btn btn-primary w-100" onclick="saveLinkNPC()"><i class="fa-solid fa-link me-1"></i>Link</button>
   `);
 };
 
-(window as any).saveLinkNPC = async function (btn:HTMLElement) {
+(window as any).saveLinkNPC = async function () {
   await api('POST', `/api/characters/${currentChar.id}/npcs`, {
     npc_id: +(document.getElementById('linkNPCId') as HTMLSelectElement).value,
     relationship: (document.getElementById('linkNPCRel') as HTMLSelectElement).value,
     notes: (document.getElementById('linkNPCNotes') as HTMLTextAreaElement).value,
   });
-  btn.closest('.modal-overlay')?.remove();
+  hideModal();
   renderNPCs();
+  toast('NPC linked');
 };
 
 (window as any).logNPCInteraction = async function (id:number) {
   await api('POST', `/api/npcs/link/${id}/interact`, {});
   renderNPCs();
+  toast('Interaction logged');
 };
 
 (window as any).unlinkNPC = async function (id:number) {
@@ -664,28 +935,28 @@ async function renderNPCs() {
 };
 
 (window as any).showCreateNPC = function () {
-  const modal = showModal(`
-    <h2>New NPC</h2>
-    <div class="form-group"><label>Name</label><input id="newNPCName"></div>
-    <div class="form-row">
-      <div class="form-group"><label>Race</label><input id="newNPCRace"></div>
-      <div class="form-group"><label>Class</label><input id="newNPCClass"></div>
+  showModal('New NPC', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="newNPCName"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Race</label><input class="form-control" id="newNPCRace"></div>
+      <div class="col-6"><label class="form-label">Class</label><input class="form-control" id="newNPCClass"></div>
     </div>
-    <div class="form-group"><label>Description</label><textarea id="newNPCDesc"></textarea></div>
-    <button class="btn btn-primary" onclick="saveNewNPC(this)">Create</button>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="newNPCDesc" rows="3"></textarea></div>
+    <button class="btn btn-primary w-100" onclick="saveNewNPC()"><i class="fa-solid fa-plus me-1"></i>Create</button>
   `);
 };
 
-(window as any).saveNewNPC = async function (btn:HTMLElement) {
+(window as any).saveNewNPC = async function () {
   await api('POST', '/api/npcs', {
     name: (document.getElementById('newNPCName') as HTMLInputElement).value,
     race: (document.getElementById('newNPCRace') as HTMLInputElement).value,
     class: (document.getElementById('newNPCClass') as HTMLInputElement).value,
     description: (document.getElementById('newNPCDesc') as HTMLTextAreaElement).value,
   });
-  btn.closest('.modal-overlay')?.remove();
+  hideModal();
   allNPCs = await api('GET', '/api/npcs');
   renderNPCs();
+  toast('NPC created');
 };
 
 // ─── Sessions ───
@@ -695,43 +966,43 @@ async function renderSessions() {
   try {
     const sessions = await api('GET', `/api/characters/${currentChar.id}/sessions`);
     el.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center"><h3>Session Log</h3>
-        <button class="btn btn-sm btn-primary" onclick="showAddSession()">+ Log Session</button>
+      <div class="d-flex justify-content-between align-items-center"><h5>Session Log</h5>
+        <button class="btn btn-primary btn-sm" onclick="showAddSession()"><i class="fa-solid fa-plus me-1"></i>Log Session</button>
       </div>
-      <div style="margin-top:12px">
+      <div class="mt-3">
         ${sessions.map((s:any) => `
-          <div class="card" style="padding:16px;margin-bottom:8px">
-            <div class="card-header" style="border:none;padding:0;margin:0">
-              <strong>${esc(s.title) || 'Session ' + s.session_date}</strong>
-              <span><span class="badge badge-gold">${s.session_date}</span>
-                ${s.xp_earned > 0 ? '<span class="badge badge-blood">+' + s.xp_earned + ' XP</span>' : ''}
-                ${s.gold_earned > 0 ? '<span class="badge badge-gold">+' + s.gold_earned + ' GP</span>' : ''}
-              </span>
+          <div class="card mb-2">
+            <div class="card-body py-2 px-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div><span class="fw-bold">${esc(s.title) || 'Session'}</span>
+                  <span class="badge badge-gold ms-2">${s.session_date}</span>
+                  ${s.xp_earned > 0 ? `<span class="badge badge-blood ms-1">+${s.xp_earned} XP</span>` : ''}
+                  ${s.gold_earned > 0 ? `<span class="badge badge-gold ms-1">+${s.gold_earned} GP</span>` : ''}</div>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteSession(${s.id})"><i class="fa-solid fa-trash"></i></button>
+              </div>
+              <p class="mb-0 mt-1 small text-muted">${esc(s.notes).substring(0, 200)}</p>
+              ${s.important_events ? `<p class="mb-0 mt-1 small fst-italic text-muted">${esc(s.important_events).substring(0, 150)}</p>` : ''}
             </div>
-            <p style="font-size:0.9rem;color:var(--text-light);margin-top:4px;">${esc(s.notes).substring(0,200)}</p>
-            ${s.important_events ? `<p style="font-size:0.85rem;color:var(--text-muted);margin-top:4px"><em>${esc(s.important_events).substring(0,150)}</em></p>` : ''}
-            <button class="btn btn-sm btn-danger" style="margin-top:4px" onclick="deleteSession(${s.id})">×</button>
-          </div>`).join('') || '<div class="empty-state">No sessions logged yet. Start your campaign!</div>'}
+          </div>`).join('') || '<div class="empty-state"><i class="fa-solid fa-calendar fa-2x mb-2 d-block text-muted"></i>No sessions logged yet.</div>'}
       </div>`;
-  } catch {}
+  } catch { el.innerHTML = '<div class="empty-state">Could not load sessions.</div>'; }
 }
 
 (window as any).showAddSession = function () {
-  const modal = showModal(`
-    <h2>Log Session</h2>
-    <div class="form-group"><label>Date</label><input id="sessDate" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
-    <div class="form-group"><label>Title</label><input id="sessTitle" placeholder="Session 1: The Adventure Begins"></div>
-    <div class="form-group"><label>Notes</label><textarea id="sessNotes" style="min-height:100px" placeholder="What happened?"></textarea></div>
-    <div class="form-row">
-      <div class="form-group"><label>XP Earned</label><input id="sessXP" type="number" value="0"></div>
-      <div class="form-group"><label>Gold Earned</label><input id="sessGold" type="number" value="0"></div>
+  showModal('Log Session', `
+    <div class="mb-3"><label class="form-label">Date</label><input class="form-control" id="sessDate" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
+    <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="sessTitle" placeholder="Session 1: The Adventure Begins"></div>
+    <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="sessNotes" rows="3" placeholder="What happened?"></textarea></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">XP Earned</label><input class="form-control" id="sessXP" type="number" value="0"></div>
+      <div class="col-6"><label class="form-label">Gold Earned</label><input class="form-control" id="sessGold" type="number" value="0"></div>
     </div>
-    <div class="form-group"><label>Important Events</label><textarea id="sessEvents" placeholder="Key moments, NPCs met, revelations..."></textarea></div>
-    <button class="btn btn-primary" onclick="saveSession(this)">Log Session</button>
+    <div class="mb-3"><label class="form-label">Important Events</label><textarea class="form-control" id="sessEvents" rows="2" placeholder="Key moments, NPCs met, revelations..."></textarea></div>
+    <button class="btn btn-primary w-100" onclick="saveSession()"><i class="fa-solid fa-save me-1"></i>Log Session</button>
   `);
 };
 
-(window as any).saveSession = async function (btn:HTMLElement) {
+(window as any).saveSession = async function () {
   await api('POST', `/api/characters/${currentChar.id}/sessions`, {
     session_date: (document.getElementById('sessDate') as HTMLInputElement).value,
     title: (document.getElementById('sessTitle') as HTMLInputElement).value,
@@ -740,13 +1011,16 @@ async function renderSessions() {
     gold_earned: +(document.getElementById('sessGold') as HTMLInputElement).value || 0,
     important_events: (document.getElementById('sessEvents') as HTMLTextAreaElement).value,
   });
-  btn.closest('.modal-overlay')?.remove();
+  hideModal();
   renderSessions();
+  toast('Session logged');
 };
 
 (window as any).deleteSession = async function (id:number) {
+  if (!confirm('Delete this session?')) return;
   await api('DELETE', `/api/sessions/${id}`);
   renderSessions();
+  toast('Session deleted');
 };
 
 // ─── Quests ───
@@ -755,50 +1029,49 @@ async function renderQuests() {
   const el = document.getElementById('questsSection')!;
   try {
     const quests = await api('GET', `/api/characters/${currentChar.id}/quests`);
-    const groups: Record<string,any[]> = { available:[], active:[], complete:[], failed:[], abandoned:[] };
+    const groups: Record<string, any[]> = { active: [], available: [], complete: [], failed: [], abandoned: [] };
     quests.forEach((q:any) => { if (groups[q.status]) groups[q.status].push(q); });
-
-    let questHtml = '<div style="display:flex;justify-content:space-between;align-items:center"><h3>Quests</h3><button class="btn btn-sm btn-primary" onclick="showAddQuest()">+ New Quest</button></div>';
-    const labels: Record<string,string> = { active:'Active', available:'Available', complete:'Complete', failed:'Failed', abandoned:'Abandoned' };
-
-    for (const st of ['active','available','complete','failed','abandoned']) {
-      const qs = groups[st]||[];
+    let html = '<div class="d-flex justify-content-between align-items-center"><h5>Quests</h5><button class="btn btn-primary btn-sm" onclick="showAddQuest()"><i class="fa-solid fa-plus me-1"></i>New Quest</button></div>';
+    const labels: Record<string,string> = { active: 'Active', available: 'Available', complete: 'Complete', failed: 'Failed', abandoned: 'Abandoned' };
+    for (const st of ['active', 'available', 'complete', 'failed', 'abandoned']) {
+      const qs = groups[st] || [];
       if (!qs.length) continue;
-      questHtml += '<h4 style="margin-top:12px;color:var(--ink-light)">' + labels[st] + '</h4>';
+      html += `<h6 class="mt-3 text-muted">${labels[st]}</h6>`;
       for (const q of qs) {
-        const opts = ['active','available','complete','failed','abandoned'].map(s =>
-          '<option value="' + s + '"' + (s===q.status?' selected':'') + '>' + s + '</option>'
-        ).join('');
-        questHtml += '<div class="card" style="padding:16px;margin-bottom:8px">';
-        questHtml += '<div class="card-header" style="border:none;padding:0;margin:0"><strong>' + esc(q.name) + '</strong>';
-        questHtml += '<span><select onchange="updateQuestStatus(' + q.id + ',this.value)" style="width:auto;font-size:0.8rem;padding:2px 6px">' + opts + '</select>';
-        questHtml += '<button class="btn btn-sm btn-danger" onclick="deleteQuest(' + q.id + ')">&times;</button></span></div>';
-        questHtml += '<p style="font-size:0.9rem;color:var(--text-light);margin-top:4px">' + esc(q.description).substring(0,200) + '</p>';
-        if (q.objectives) questHtml += '<div style="font-size:0.85rem;color:var(--text-muted);margin-top:4px"><strong>Objectives:</strong> ' + esc(q.objectives).substring(0,150) + '</div>';
-        if (q.rewards) questHtml += '<div style="font-size:0.85rem;color:var(--success);margin-top:2px"><strong>Reward:</strong> ' + esc(q.rewards).substring(0,150) + '</div>';
-        questHtml += '</div>';
+        const opts = ['active','available','complete','failed','abandoned'].map(s => `<option value="${s}"${s===q.status?' selected':''}>${capitalize(s)}</option>`).join('');
+        html += `<div class="card mb-2">
+          <div class="card-body py-2 px-3">
+            <div class="d-flex justify-content-between align-items-start">
+              <div><span class="fw-bold">${esc(q.name)}</span></div>
+              <div class="d-flex gap-1">
+                <select class="form-select form-select-sm" style="width:auto" onchange="updateQuestStatus(${q.id},this.value)">${opts}</select>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteQuest(${q.id})"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            </div>
+            <p class="mb-0 mt-1 small text-muted">${esc(q.description).substring(0, 200)}</p>
+            ${q.objectives ? `<div class="mt-1 small text-muted"><strong>Objectives:</strong> ${esc(q.objectives).substring(0, 150)}</div>` : ''}
+            ${q.rewards ? `<div class="mt-1 small text-success"><strong>Reward:</strong> ${esc(q.rewards).substring(0, 150)}</div>` : ''}
+          </div>
+        </div>`;
       }
     }
-    if (quests.length === 0) {
-      questHtml += '<div class="empty-state">No quests. <a href="#" onclick="showAddQuest();return false">Start one</a></div>';
-    }
-    el.innerHTML = questHtml;
-  } catch {}
+    if (quests.length === 0) html += '<div class="empty-state"><i class="fa-solid fa-scroll fa-2x mb-2 d-block text-muted"></i>No quests yet.</div>';
+    el.innerHTML = html;
+  } catch { el.innerHTML = '<div class="empty-state">Could not load quests.</div>'; }
 }
 
 (window as any).showAddQuest = function () {
-  const modal = showModal(`
-    <h2>New Quest</h2>
-    <div class="form-group"><label>Name</label><input id="questName" placeholder="e.g. Retrieve the Lost Artifact"></div>
-    <div class="form-group"><label>Description</label><textarea id="questDesc"></textarea></div>
-    <div class="form-group"><label>Objectives</label><textarea id="questObj" placeholder="1. Travel to the Forgotten Temple\n2. Defeat the guardian\n3. Retrieve the artifact"></textarea></div>
-    <div class="form-group"><label>Rewards</label><textarea id="questRewards" placeholder="500 XP, +1 Longsword, 200 GP"></textarea></div>
-    <div class="form-group"><label>Notes</label><textarea id="questNotes"></textarea></div>
-    <button class="btn btn-primary" onclick="saveQuest(this)">Create</button>
+  showModal('New Quest', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="questName" placeholder="e.g. Retrieve the Lost Artifact"></div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="questDesc" rows="3"></textarea></div>
+    <div class="mb-3"><label class="form-label">Objectives</label><textarea class="form-control" id="questObj" rows="2" placeholder="1. Travel to the Temple\n2. Defeat the guardian\n3. Retrieve the artifact"></textarea></div>
+    <div class="mb-3"><label class="form-label">Rewards</label><textarea class="form-control" id="questRewards" rows="2" placeholder="500 XP, +1 Longsword, 200 GP"></textarea></div>
+    <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="questNotes" rows="2"></textarea></div>
+    <button class="btn btn-primary w-100" onclick="saveQuest()"><i class="fa-solid fa-plus me-1"></i>Create</button>
   `);
 };
 
-(window as any).saveQuest = async function (btn:HTMLElement) {
+(window as any).saveQuest = async function () {
   await api('POST', `/api/characters/${currentChar.id}/quests`, {
     name: (document.getElementById('questName') as HTMLInputElement).value,
     description: (document.getElementById('questDesc') as HTMLTextAreaElement).value,
@@ -806,22 +1079,26 @@ async function renderQuests() {
     rewards: (document.getElementById('questRewards') as HTMLTextAreaElement).value,
     notes: (document.getElementById('questNotes') as HTMLTextAreaElement).value,
   });
-  btn.closest('.modal-overlay')?.remove();
+  hideModal();
   renderQuests();
+  toast('Quest created');
 };
 
 (window as any).updateQuestStatus = async function (id:number, status:string) {
   const quests = await api('GET', `/api/characters/${currentChar.id}/quests`);
-  const q = quests.find((x:any)=>x.id===id);
+  const q = quests.find((x:any) => x.id === id);
   if (!q) return;
   q.status = status;
   await api('PUT', `/api/quests/${id}`, q);
   renderQuests();
+  toast('Quest status updated');
 };
 
 (window as any).deleteQuest = async function (id:number) {
+  if (!confirm('Delete this quest?')) return;
   await api('DELETE', `/api/quests/${id}`);
   renderQuests();
+  toast('Quest deleted');
 };
 
 // ─── Journal ───
@@ -831,59 +1108,60 @@ async function renderJournal() {
   try {
     const entries = await api('GET', `/api/characters/${currentChar.id}/journal`);
     el.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center"><h3>Character Journal</h3>
-        <button class="btn btn-sm btn-primary" onclick="showAddJournal()">+ Write Entry</button>
+      <div class="d-flex justify-content-between align-items-center"><h5>Character Journal</h5>
+        <button class="btn btn-primary btn-sm" onclick="showAddJournal()"><i class="fa-solid fa-plus me-1"></i>Write Entry</button>
       </div>
-      <div style="margin-top:12px">
+      <div class="mt-3">
         ${entries.map((j:any) => `
-          <div class="card" style="padding:16px;margin-bottom:8px">
-            <div class="card-header" style="border:none;padding:0;margin:0">
-              <strong>${esc(j.title) || 'Untitled'}</strong>
-              <span><span class="badge badge-gold">${j.entry_date}</span>
-                <button class="btn btn-sm btn-danger" onclick="deleteJournal(${j.id})">×</button>
-              </span>
+          <div class="card mb-2">
+            <div class="card-body py-2 px-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div><span class="fw-bold">${esc(j.title) || 'Untitled'}</span>
+                  <span class="badge badge-gold ms-2">${j.entry_date}</span></div>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteJournal(${j.id})"><i class="fa-solid fa-trash"></i></button>
+              </div>
+              <div class="mt-2 small text-muted" style="white-space:pre-wrap">${esc(j.entry)}</div>
             </div>
-            <div style="font-size:0.9rem;color:var(--text-light);margin-top:8px;white-space:pre-wrap">${esc(j.entry)}</div>
-          </div>`).join('') || '<div class="empty-state">No journal entries yet. Record your adventures!</div>'}
+          </div>`).join('') || '<div class="empty-state"><i class="fa-solid fa-book-open fa-2x mb-2 d-block text-muted"></i>No journal entries yet.</div>'}
       </div>`;
-  } catch {}
+  } catch { el.innerHTML = '<div class="empty-state">Could not load journal.</div>'; }
 }
 
 (window as any).showAddJournal = function () {
-  const modal = showModal(`
-    <h2>Journal Entry</h2>
-    <div class="form-group"><label>Date</label><input id="journalDate" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
-    <div class="form-group"><label>Title</label><input id="journalTitle" placeholder="Day 1: Arrival in Waterdeep"></div>
-    <div class="form-group"><label>Entry</label><textarea id="journalEntry" style="min-height:200px" placeholder="Write your character's thoughts..."></textarea></div>
-    <button class="btn btn-primary" onclick="saveJournal(this)">Save</button>
+  showModal('Journal Entry', `
+    <div class="mb-3"><label class="form-label">Date</label><input class="form-control" id="journalDate" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
+    <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="journalTitle" placeholder="Day 1: Arrival in Waterdeep"></div>
+    <div class="mb-3"><label class="form-label">Entry</label><textarea class="form-control" id="journalEntry" rows="6" placeholder="Write your character's thoughts..."></textarea></div>
+    <button class="btn btn-primary w-100" onclick="saveJournal()"><i class="fa-solid fa-save me-1"></i>Save</button>
   `);
 };
 
-(window as any).saveJournal = async function (btn:HTMLElement) {
+(window as any).saveJournal = async function () {
   await api('POST', `/api/characters/${currentChar.id}/journal`, {
     entry_date: (document.getElementById('journalDate') as HTMLInputElement).value,
     title: (document.getElementById('journalTitle') as HTMLInputElement).value,
     entry: (document.getElementById('journalEntry') as HTMLTextAreaElement).value,
   });
-  btn.closest('.modal-overlay')?.remove();
+  hideModal();
   renderJournal();
+  toast('Journal entry saved');
 };
 
 (window as any).deleteJournal = async function (id:number) {
+  if (!confirm('Delete this journal entry?')) return;
   await api('DELETE', `/api/journal/${id}`);
   renderJournal();
+  toast('Journal entry deleted');
 };
 
 // ─── Graph ───
 
 async function renderGraph() {
   const el = document.getElementById('graphSection')!;
-  el.innerHTML = `<div class="ornament">✧ Drawing your web of fate ✧</div>
+  el.innerHTML = `<div class="ornament mb-3">✧ Drawing your web of fate ✧</div>
     <div id="graphContainer" style="width:100%;height:600px;border:1px solid var(--border);border-radius:4px;background:var(--parchment-light)"></div>`;
-
   try {
     const data = await api('GET', `/api/characters/${currentChar.id}/graph`);
-
     if (typeof vis !== 'undefined') {
       const container = document.getElementById('graphContainer')!;
       const nodes = new vis.DataSet(data.nodes.map((n:any) => ({
@@ -900,7 +1178,6 @@ async function renderGraph() {
         font: { face: 'Vollkorn', size: 10, color: '#5c3a2a', align: 'middle' },
         smooth: { type: 'curvedCW', roundness: 0.15 },
       })));
-
       new vis.Network(container, { nodes, edges }, {
         physics: { solver: 'forceAtlas2Based', forceAtlas2Based: { gravitationalConstant: -80, centralGravity: 0.005, springLength: 200, springConstant: 0.02, damping: 0.4 }, stabilization: { iterations: 100 } },
         interaction: { hover: true, tooltipDelay: 200, navigationButtons: true, keyboard: true },
@@ -914,77 +1191,82 @@ async function renderGraph() {
         edges: { smooth: true },
       });
     } else {
-      // Fallback: simple text representation
-      el.innerHTML += `<div style="padding:20px;font-size:0.9rem">
-        <h3>Character Web</h3>
-        <p>${data.nodes.map((n:any) => `${n.label} [${n.group}]`).join(' <span style="color:var(--text-muted)">→</span> ')}</p>
-        <p style="color:var(--text-muted);font-style:italic;margin-top:8px">
-          ${data.nodes.length} connections · ${data.edges.length} relationships</p>
-      </div>`;
+      el.innerHTML += `<div class="p-3 small">
+        <h5>Character Web</h5>
+        <p>${data.nodes.map((n:any) => `${n.label} [${n.group}]`).join(' &rarr; ')}</p>
+        <p class="text-muted fst-italic mt-2">${data.nodes.length} connections &middot; ${data.edges.length} relationships</p></div>`;
     }
-  } catch (e: any) {
-    el.innerHTML += `<div class="empty-state">Could not load graph: ${e.message}</div>`;
+  } catch (e:any) {
+    el.innerHTML += `<div class="empty-state">Could not load graph: ${esc(e.message)}</div>`;
   }
 }
 
-// ─── Analytics / Statistics ───
+// ─── Analytics ───
 
 async function renderAnalytics() {
   const el = document.getElementById('analyticsSection')!;
-  if (!el) return;
-  el.innerHTML = '<div class="ornament">✧ Loading analytics... ✧</div>';
-
+  el.innerHTML = '<div class="ornament mb-3">✧ Loading analytics... ✧</div>';
   try {
     const stats = await api('GET', `/api/characters/${currentChar.id}/stats`);
-
-    const sc = (n: number) => n === 0 ? 'var(--text-muted)' : 'var(--blood)';
     el.innerHTML = `
-      <h3>Campaign Overview</h3>
-      <div class="combat-grid" style="margin-bottom:16px">
-        <div class="combat-stat"><div class="label">Sessions</div><div class="value">${stats.session_count}</div></div>
-        <div class="combat-stat"><div class="label">Level</div><div class="value">${stats.level}</div></div>
-        <div class="combat-stat" style="color:var(--success)"><div class="label">Total XP</div><div class="value">${stats.total_xp_earned}</div></div>
-        <div class="combat-stat" style="color:var(--gold)"><div class="label">Gold Earned</div><div class="value">${stats.total_gold_earned}</div></div>
+      <h5>Campaign Overview</h5>
+      <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3"><div class="combat-stat"><div class="stat-label">Sessions</div><div class="stat-value">${stats.session_count}</div></div></div>
+        <div class="col-6 col-md-3"><div class="combat-stat"><div class="stat-label">Level</div><div class="stat-value">${stats.level}</div></div></div>
+        <div class="col-6 col-md-3"><div class="combat-stat text-success"><div class="stat-label">Total XP</div><div class="stat-value">${stats.total_xp_earned}</div></div></div>
+        <div class="col-6 col-md-3"><div class="combat-stat" style="color:var(--gold)"><div class="stat-label">Gold Earned</div><div class="stat-value">${stats.total_gold_earned}</div></div></div>
       </div>
-
-      <div class="form-row" style="margin-bottom:16px">
-        <div class="card" style="padding:16px">
-          <h3 style="margin-bottom:8px">Quests (${stats.quests.total})</h3>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            ${stats.quests.active > 0 ? `<span class="badge badge-blood">${stats.quests.active} Active</span>` : ''}
-            ${stats.quests.complete > 0 ? `<span class="badge" style="background:var(--success);color:white">${stats.quests.complete} Complete</span>` : ''}
-            ${stats.quests.failed > 0 ? `<span class="badge" style="background:#666;color:white">${stats.quests.failed} Failed</span>` : ''}
-            ${stats.quests.available > 0 ? `<span class="badge badge-gold">${stats.quests.available} Available</span>` : ''}
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-body">
+              <h6>Quests (${stats.quests.total})</h6>
+              <div class="d-flex gap-1 flex-wrap">
+                ${stats.quests.active > 0 ? `<span class="badge badge-blood">${stats.quests.active} Active</span>` : ''}
+                ${stats.quests.complete > 0 ? `<span class="badge bg-success">${stats.quests.complete} Complete</span>` : ''}
+                ${stats.quests.failed > 0 ? `<span class="badge bg-secondary">${stats.quests.failed} Failed</span>` : ''}
+                ${stats.quests.available > 0 ? `<span class="badge badge-gold">${stats.quests.available} Available</span>` : ''}
+              </div>
+            </div>
           </div>
         </div>
-        <div class="card" style="padding:16px">
-          <h3 style="margin-bottom:8px">Rests</h3>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <span class="badge badge-gold">${stats.rests.short} Short</span>
-            <span class="badge badge-blood">${stats.rests.long} Long</span>
-            ${stats.rests.total_healed > 0 ? `<span class="badge" style="background:var(--success);color:white">${stats.rests.total_healed} HP Healed</span>` : ''}
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-body">
+              <h6>Rests</h6>
+              <div class="d-flex gap-1 flex-wrap">
+                <span class="badge badge-gold">${stats.rests.short} Short</span>
+                <span class="badge badge-blood">${stats.rests.long} Long</span>
+                ${stats.rests.total_healed > 0 ? `<span class="badge bg-success">${stats.rests.total_healed} HP Healed</span>` : ''}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      <div class="form-row" style="margin-bottom:16px">
-        <div class="card" style="padding:16px">
-          <h3 style="margin-bottom:8px">World</h3>
-          <p style="color:var(--text-light)">${stats.locations_count} Locations explored</p>
-          <p style="color:var(--text-light)">${stats.npc_interactions} NPC interactions</p>
-          <p style="color:var(--text-light)">${stats.journal_count} Journal entries</p>
-          <p style="color:var(--text-light)">${stats.dice_rolls.total_rolls} Dice rolls (avg ${stats.dice_rolls.average.toFixed(1)})</p>
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-body">
+              <h6>World</h6>
+              <p class="mb-1 small text-muted">${stats.locations_count} Locations explored</p>
+              <p class="mb-1 small text-muted">${stats.npc_interactions} NPC interactions</p>
+              <p class="mb-1 small text-muted">${stats.journal_count} Journal entries</p>
+              <p class="mb-0 small text-muted">${stats.dice_rolls.total_rolls} Dice rolls (avg ${stats.dice_rolls.average.toFixed(1)})</p>
+            </div>
+          </div>
         </div>
-        <div class="card" style="padding:16px">
-          <h3 style="margin-bottom:8px">Notable NPCs</h3>
-          ${stats.top_npcs && stats.top_npcs.length > 0
-            ? stats.top_npcs.map((n:string) => `<p style="color:var(--text-light)">✦ ${esc(n)}</p>`).join('')
-            : '<p style="color:var(--text-muted);font-style:italic">No NPC interactions yet</p>'}
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-body">
+              <h6>Notable NPCs</h6>
+              ${stats.top_npcs && stats.top_npcs.length > 0
+                ? stats.top_npcs.map((n:any) => `<p class="mb-1 small text-muted">&loz; ${esc(n)}</p>`).join('')
+                : '<p class="mb-0 small text-muted fst-italic">No NPC interactions yet</p>'}
+            </div>
+          </div>
         </div>
       </div>
       <div id="questChartContainer" style="height:200px;max-width:400px;margin:0 auto"></div>`;
-
-    // Draw quest pie chart if Chart.js available
     if ((typeof Chart !== 'undefined') && stats.quests.total > 0) {
       const ctx = document.createElement('canvas');
       document.getElementById('questChartContainer')!.appendChild(ctx);
@@ -1004,28 +1286,28 @@ async function renderAnalytics() {
         }
       });
     }
-  } catch (e: any) {
-    el.innerHTML = '<div class="empty-state">Could not load analytics: ' + esc(e.message) + '</div>';
+  } catch (e:any) {
+    el.innerHTML = `<div class="empty-state">Could not load analytics: ${esc(e.message)}</div>`;
   }
 }
 
-// ─── Dice Tab ───
+// ─── Dice ───
 
 function renderDiceTab() {
   const el = document.getElementById('diceSection')!;
-  if (!el) return;
   el.innerHTML = `
-    <div class="dice-roller">
-      <h3>Dice Roller</h3>
-      <div class="form-row" style="max-width:400px;margin:0 auto">
-        <div class="form-group"><label>Expression (e.g. 2d6+3)</label>
-          <input id="diceExpr" value="1d20" placeholder="e.g. 1d20+5" style="text-align:center;font-size:1.2rem"></div>
+    <div class="text-center">
+      <h5>Dice Roller</h5>
+      <div class="row justify-content-center mb-3">
+        <div class="col-md-6"><label class="form-label">Expression (e.g. 2d6+3)</label>
+          <input class="form-control text-center" id="diceExpr" value="1d20" placeholder="e.g. 1d20+5" style="font-size:1.2rem">
+        </div>
       </div>
-      <div id="diceResult" class="dice-result" style="display:none"></div>
-      <button class="btn btn-gold" onclick="doRoll()">Roll the Bones</button>
-      <div class="ornament">✧</div>
-      <h3>Recent Rolls</h3>
-      <div id="diceHistory" class="dice-history"></div>
+      <div id="diceResult" class="mb-3" style="display:none"></div>
+      <button class="btn btn-gold" onclick="doRoll()"><i class="fa-solid fa-dice me-2"></i>Roll the Bones</button>
+      <div class="ornament my-3">✧</div>
+      <h5>Recent Rolls</h5>
+      <div id="diceHistory"></div>
     </div>`;
   loadDiceHistory();
 }
@@ -1037,9 +1319,11 @@ async function doRoll() {
     const result = await api('POST', '/api/roll', { expression: expr, character_id: currentChar?.id });
     const el = document.getElementById('diceResult')!;
     el.style.display = 'block';
-    el.innerHTML = `<div>${esc(expr)}</div><div style="font-size:1.2rem;color:var(--ink-light)">${esc(result.text)}</div>`;
+    el.innerHTML = `<div class="text-muted">${esc(expr)}</div><div class="h4">${esc(result.text)}</div>`;
     loadDiceHistory();
-  } catch (e: any) { toast(e.message, true); }
+  } catch (e:any) {
+    toast(e.message, true);
+  }
 }
 (window as any).doRoll = doRoll;
 
@@ -1048,145 +1332,98 @@ async function loadDiceHistory() {
   if (!el) return;
   try {
     const rolls = await api('GET', '/api/dice-rolls' + (currentChar ? `?character_id=${currentChar.id}` : ''));
-    el.innerHTML = rolls.slice(0,20).map((r:any) =>
-      `<div class="dice-history-item"><span>${esc(r.expression)}</span><span><strong>${r.total}</strong> <span style="color:var(--text-muted)">${esc(r.result)}</span></span></div>`
-    ).join('') || '<div style="text-align:center;color:var(--text-muted);padding:12px">No rolls yet</div>';
+    el.innerHTML = rolls.slice(0, 20).map((r:any) =>
+      `<div class="d-flex justify-content-between py-1 border-bottom">
+        <span>${esc(r.expression)}</span>
+        <span><strong>${r.total}</strong> <span class="text-muted small">${esc(r.result)}</span></span>
+      </div>`
+    ).join('') || '<div class="text-center text-muted py-3">No rolls yet</div>';
   } catch {}
 }
 (window as any).loadDiceHistory = loadDiceHistory;
 
-// ─── Modals ───
+// ─── New Character ───
 
-function showModal(html: string): HTMLElement {
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  overlay.innerHTML = `<div class="modal">${html}</div>`;
-  overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
-  document.body.appendChild(overlay);
-  return overlay.querySelector('.modal') as HTMLElement;
-}
-
-(window as any).showAddItem = function () {
-  const modal = showModal(`
-    <h2>Add Item</h2>
-    <div class="form-group"><label>Name</label><input id="itemName" list="equipSuggestions"><datalist id="equipSuggestions"></datalist></div>
-    <div class="form-row"><div class="form-group"><label>Qty</label><input id="itemQty" type="number" value="1"></div><div class="form-group"><label>Weight</label><input id="itemWeight" type="number" value="0" step="0.1"></div></div>
-    <div class="form-group"><label>Category</label><select id="itemCategory">${['gear','weapon','armor','consumable','tool','magic','ammunition'].map(c=>`<option value="${c}">${c}</option>`).join('')}</select></div>
-    <div id="weaponFields" style="display:none"><div class="form-row"><div class="form-group"><label>Damage</label><input id="itemDamage" placeholder="1d8"></div><div class="form-group"><label>Type</label><input id="itemDmgType" placeholder="slashing"></div></div></div>
-    <div id="armorFields" style="display:none"><div class="form-group"><label>AC Bonus</label><input id="itemAC" type="number" value="0"></div></div>
-    <div class="form-group"><label>Description</label><textarea id="itemDesc"></textarea></div>
-    <div style="display:flex;gap:8px"><button class="btn btn-primary" onclick="saveItem(this)">Add</button><button class="btn" onclick="this.closest('.modal-overlay').remove()">Cancel</button></div>`);
-  fetch('/api/compendium/equipment',{credentials:'include'}).then(r=>r.json()).then(items => {
-    (document.getElementById('equipSuggestions') as HTMLDataListElement).innerHTML = items.map((i:any)=>`<option value="${esc(i.name)}">`).join('');
-  }).catch(()=>{});
-  const catSel = document.getElementById('itemCategory') as HTMLSelectElement;
-  catSel.addEventListener('change', () => {
-    document.getElementById('weaponFields')!.style.display = catSel.value === 'weapon' ? 'block' : 'none';
-    document.getElementById('armorFields')!.style.display = catSel.value === 'armor' ? 'block' : 'none';
-  });
+(window as any).newChar = function () {
+  showModal('New Character', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="newName" placeholder="Character name"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Race</label><input class="form-control" id="newRace" list="raceSuggestions"><datalist id="raceSuggestions"></datalist></div>
+      <div class="col-6"><label class="form-label">Class</label><input class="form-control" id="newClass" list="classSuggestions"><datalist id="classSuggestions"></datalist></div>
+    </div>
+    <button class="btn btn-primary w-100" onclick="createChar()"><i class="fa-solid fa-plus me-1"></i>Create</button>
+  `);
+  fetch('/api/compendium/races', { credentials: 'include' }).then(r => r.json()).then((races:any[]) => {
+    document.getElementById('raceSuggestions')!.innerHTML = races.map((r:any) => `<option value="${esc(r.name)}">`).join('');
+  }).catch(() => {});
+  fetch('/api/compendium/classes', { credentials: 'include' }).then(r => r.json()).then((cls:any[]) => {
+    document.getElementById('classSuggestions')!.innerHTML = cls.map((c:any) => `<option value="${esc(c.name)}">`).join('');
+  }).catch(() => {});
 };
 
-(window as any).saveItem = async function (btn:HTMLElement) {
-  const item = {
-    name: (document.getElementById('itemName') as HTMLInputElement).value,
-    quantity: +(document.getElementById('itemQty') as HTMLInputElement).value || 1,
-    weight: +(document.getElementById('itemWeight') as HTMLInputElement).value || 0,
-    category: (document.getElementById('itemCategory') as HTMLSelectElement).value,
-    damage_dice: (document.getElementById('itemDamage') as HTMLInputElement)?.value || '',
-    damage_type: (document.getElementById('itemDmgType') as HTMLInputElement)?.value || '',
-    weapon_properties: '', ac_bonus: +(document.getElementById('itemAC') as HTMLInputElement)?.value || 0,
-    armor_type: '', description: (document.getElementById('itemDesc') as HTMLTextAreaElement).value,
-    is_equipped: false, is_magical: false, attunement: false, notes: '',
-  };
-  if (!item.name) return toast('Name required', true);
+(window as any).createChar = async function () {
+  const name = (document.getElementById('newName') as HTMLInputElement).value || 'Unnamed';
+  const race = (document.getElementById('newRace') as HTMLInputElement).value;
+  const cls = (document.getElementById('newClass') as HTMLInputElement).value;
   try {
-    await api('POST', `/api/characters/${currentChar.id}/inventory`, item);
-    btn.closest('.modal-overlay')?.remove();
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`); renderSheet();
-  } catch (e:any) { toast(e.message, true); }
+    const char = await api('POST', '/api/characters', { name, race, class: cls });
+    hideModal();
+    if (char.id) await openChar(char.id);
+    loadCharacters();
+  } catch (e:any) {
+    toast(e.message, true);
+  }
 };
 
-(window as any).addSpell = function () {
-  const modal = showModal(`
-    <h2>Add Spell</h2>
-    <div class="form-group"><label>Name</label><input id="spellName" list="spellSuggestions"><datalist id="spellSuggestions"></datalist></div>
-    <div class="form-row"><div class="form-group"><label>Level</label><input id="spellLevel" type="number" value="1" min="0" max="9"></div><div class="form-group"><label>School</label><input id="spellSchool"></div></div>
-    <div class="form-group"><label>Casting Time</label><input id="spellTime" placeholder="1 action"></div>
-    <div class="form-group"><label>Range</label><input id="spellRange" placeholder="60 feet"></div>
-    <div class="form-group"><label>Components</label><input id="spellComp" placeholder="V, S, M"></div>
-    <div class="form-group"><label>Duration</label><input id="spellDur" placeholder="Instantaneous"></div>
-    <div class="form-group"><label>Description</label><textarea id="spellDesc"></textarea></div>
-    <label><input id="spellPrepared" type="checkbox"> Prepared</label>
-    <div style="display:flex;gap:8px;margin-top:12px"><button class="btn btn-primary" onclick="saveSpell(this)">Add</button><button class="btn" onclick="this.closest('.modal-overlay').remove()">Cancel</button></div>`);
-  fetch('/api/compendium/spells',{credentials:'include'}).then(r=>r.json()).then(spells => {
-    (document.getElementById('spellSuggestions') as HTMLDataListElement).innerHTML = spells.map((s:any)=>`<option value="${esc(s.name)}">Lv${s.level} ${esc(s.school)}</option>`).join('');
-  }).catch(()=>{});
+// ─── Import / Export ───
+
+(window as any).showImport = function () {
+  showModal('Import Character', `
+    <p class="text-muted fst-italic small mb-3">Paste JSON or upload a file</p>
+    <div class="mb-3"><label class="form-label">JSON</label><textarea class="form-control" id="importJson" rows="6" style="font-family:monospace;font-size:0.8rem"></textarea></div>
+    <div class="mb-3"><label class="form-label">File</label><input class="form-control" type="file" id="importFile" accept=".json"></div>
+    <button class="btn btn-primary w-100" onclick="doImport()"><i class="fa-solid fa-file-import me-1"></i>Import</button>
+  `);
 };
 
-(window as any).saveSpell = async function (btn:HTMLElement) {
-  const spell = {
-    name: (document.getElementById('spellName') as HTMLInputElement).value,
-    level: +(document.getElementById('spellLevel') as HTMLInputElement).value || 0,
-    school: (document.getElementById('spellSchool') as HTMLInputElement).value,
-    casting_time: (document.getElementById('spellTime') as HTMLInputElement).value,
-    range: (document.getElementById('spellRange') as HTMLInputElement).value,
-    components: (document.getElementById('spellComp') as HTMLInputElement).value,
-    duration: (document.getElementById('spellDur') as HTMLInputElement).value,
-    description: (document.getElementById('spellDesc') as HTMLTextAreaElement).value,
-    prepared: (document.getElementById('spellPrepared') as HTMLInputElement).checked,
-    always_prepared: false, source: '', notes: '',
-  };
-  if (!spell.name) return toast('Name required', true);
+(window as any).doImport = async function () {
+  const jsonEl = document.getElementById('importJson') as HTMLTextAreaElement;
+  const fileEl = document.getElementById('importFile') as HTMLInputElement;
   try {
-    await api('POST', `/api/characters/${currentChar.id}/spells`, spell);
-    btn.closest('.modal-overlay')?.remove();
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`); renderSheet();
-  } catch (e:any) { toast(e.message, true); }
+    let result;
+    if (fileEl.files && fileEl.files[0]) {
+      const form = new FormData();
+      form.append('file', fileEl.files[0]);
+      const res = await fetch('/api/characters/import', { method: 'POST', headers: { 'X-CSRF-Token': csrfToken }, credentials: 'include', body: form });
+      result = await res.json();
+    } else if (jsonEl.value.trim()) {
+      result = await api('POST', '/api/characters/import', JSON.parse(jsonEl.value));
+    } else {
+      toast('Provide JSON or a file', true);
+      return;
+    }
+    toast(`Imported ${Array.isArray(result) ? result.length : 1} character(s)`);
+    hideModal();
+    loadCharacters();
+  } catch (e:any) {
+    toast('Import failed: ' + e.message, true);
+  }
 };
 
-(window as any).addFeature = function () {
-  showModal(`<h2>Add Feature</h2>
-    <div class="form-group"><label>Name</label><input id="featName"></div>
-    <div class="form-group"><label>Description</label><textarea id="featDesc"></textarea></div>
-    <div class="form-row"><div class="form-group"><label>Source</label><input id="featSource" placeholder="e.g. Class"></div><div class="form-group"><label>Level</label><input id="featLevel" type="number" value="1"></div></div>
-    <div style="display:flex;gap:8px"><button class="btn btn-primary" onclick="saveFeature(this)">Add</button><button class="btn" onclick="this.closest('.modal-overlay').remove()">Cancel</button></div>`);
-};
-
-(window as any).saveFeature = async function (btn:HTMLElement) {
-  const feat = {
-    name: (document.getElementById('featName') as HTMLInputElement).value,
-    description: (document.getElementById('featDesc') as HTMLTextAreaElement).value,
-    source: (document.getElementById('featSource') as HTMLInputElement).value,
-    level_gained: +(document.getElementById('featLevel') as HTMLInputElement).value || 1,
-  };
-  if (!feat.name) return toast('Name required', true);
+(window as any).exportChar = async function () {
+  if (!currentChar) return;
   try {
-    await api('POST', `/api/characters/${currentChar.id}/features`, feat);
-    btn.closest('.modal-overlay')?.remove();
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`); renderSheet();
-  } catch (e:any) { toast(e.message, true); }
-};
-
-(window as any).addProf = function () {
-  showModal(`<h2>Add Proficiency</h2>
-    <div class="form-group"><label>Name</label><input id="profName" placeholder="e.g. Perception"></div>
-    <div class="form-group"><label>Type</label><select id="profType">${['skill','save','tool','weapon','armor','language','other'].map(t=>`<option value="${t}">${t}</option>`).join('')}</select></div>
-    <div style="display:flex;gap:8px"><button class="btn btn-primary" onclick="saveProf(this)">Add</button><button class="btn" onclick="this.closest('.modal-overlay').remove()">Cancel</button></div>`);
-};
-
-(window as any).saveProf = async function (btn:HTMLElement) {
-  const prof = { character_id: currentChar.id, name: (document.getElementById('profName') as HTMLInputElement).value, type: (document.getElementById('profType') as HTMLSelectElement).value };
-  if (!prof.name) return toast('Name required', true);
-  try {
-    await api('POST', '/api/proficiencies', prof);
-    btn.closest('.modal-overlay')?.remove();
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`); renderSheet();
-  } catch (e:any) { toast(e.message, true); }
-};
-
-(window as any).deleteProf = async function (id:number) {
-  await api('DELETE', `/api/proficiencies/${id}`);
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`); renderSheet();
+    const data = await api('GET', `/api/characters/${currentChar.id}/export`);
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    a.href = url;
+    a.download = currentChar.name.replace(/[^a-zA-Z0-9]/g, '_') + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e:any) {
+    toast(e.message, true);
+  }
 };
 
 // ─── Print ───
@@ -1199,66 +1436,14 @@ function showModal(html: string): HTMLElement {
     });
     const text = await res.text();
     const win = window.open('', '_blank');
-    if (win) { win.document.write(`<pre style="font-family:monospace;font-size:12px;line-height:1.4">${esc(text)}</pre>`); win.document.close(); win.print(); }
-  } catch (e:any) { toast(e.message, true); }
-};
-
-// ─── New Character ───
-
-(window as any).newChar = function () {
-  const modal = showModal(`
-    <h2>New Character</h2>
-    <div class="form-group"><label>Name</label><input id="newName" placeholder="Character name"></div>
-    <div class="form-row"><div class="form-group"><label>Race</label><input id="newRace" list="raceSuggestions"></div><div class="form-group"><label>Class</label><input id="newClass" list="classSuggestions"></div></div>
-    <datalist id="raceSuggestions"></datalist><datalist id="classSuggestions"></datalist>
-    <div style="display:flex;gap:8px"><button class="btn btn-primary" onclick="createChar(this)">Create</button><button class="btn" onclick="this.closest('.modal-overlay').remove()">Cancel</button></div>`);
-  fetch('/api/compendium/races',{credentials:'include'}).then(r=>r.json()).then(races => {
-    (document.getElementById('raceSuggestions') as HTMLDataListElement).innerHTML = races.map((r:any)=>`<option value="${esc(r.name)}">`).join('');
-  }).catch(()=>{});
-  fetch('/api/compendium/classes',{credentials:'include'}).then(r=>r.json()).then(cls => {
-    (document.getElementById('classSuggestions') as HTMLDataListElement).innerHTML = cls.map((c:any)=>`<option value="${esc(c.name)}">`).join('');
-  }).catch(()=>{});
-};
-
-(window as any).createChar = async function (btn:HTMLElement) {
-  const name = (document.getElementById('newName') as HTMLInputElement).value || 'Unnamed';
-  const race = (document.getElementById('newRace') as HTMLInputElement).value;
-  const cls = (document.getElementById('newClass') as HTMLInputElement).value;
-  try {
-    const char = await api('POST', '/api/characters', { name, race, class: cls });
-    btn.closest('.modal-overlay')?.remove();
-    if (char.id) await openChar(char.id);
-    loadCharacters();
-  } catch (e:any) { toast(e.message, true); }
-};
-
-// ─── Import ───
-
-(window as any).showImport = function () {
-  showModal(`
-    <h2>Import Character</h2>
-    <p style="color:var(--text-muted);font-style:italic;margin-bottom:12px">Paste JSON or upload a file</p>
-    <div class="form-group"><label>JSON</label><textarea id="importJson" style="min-height:200px;font-family:monospace;font-size:0.8rem"></textarea></div>
-    <div class="form-group"><label>File</label><input type="file" id="importFile" accept=".json"></div>
-    <div style="display:flex;gap:8px"><button class="btn btn-primary" onclick="doImport()">Import</button><button class="btn" onclick="this.closest('.modal-overlay').remove()">Cancel</button></div>`);
-};
-
-(window as any).doImport = async function () {
-  const jsonEl = document.getElementById('importJson') as HTMLTextAreaElement;
-  const fileEl = document.getElementById('importFile') as HTMLInputElement;
-  try {
-    let result;
-    if (fileEl.files && fileEl.files[0]) {
-      const form = new FormData(); form.append('file', fileEl.files[0]);
-      const res = await fetch('/api/characters/import', { method:'POST', headers:{'X-CSRF-Token':csrfToken}, credentials:'include', body:form });
-      result = await res.json();
-    } else if (jsonEl.value.trim()) {
-      result = await api('POST', '/api/characters/import', JSON.parse(jsonEl.value));
-    } else { toast('Provide JSON or a file', true); return; }
-    toast(`Imported ${Array.isArray(result)?result.length:1} character(s)`);
-    document.querySelector('.modal-overlay')?.remove();
-    loadCharacters();
-  } catch (e:any) { toast('Import failed: '+e.message, true); }
+    if (win) {
+      win.document.write(`<pre style="font-family:monospace;font-size:12px;line-height:1.4">${esc(text)}</pre>`);
+      win.document.close();
+      win.print();
+    }
+  } catch (e:any) {
+    toast(e.message, true);
+  }
 };
 
 // ─── Party View ───
@@ -1266,125 +1451,121 @@ function showModal(html: string): HTMLElement {
 (window as any).showParty = async function () {
   showView('party');
   const el = document.getElementById('partyContent')!;
-  el.innerHTML = '<div class="ornament">✧ Assembling the party... ✧</div>';
+  el.innerHTML = '<div class="ornament mb-3">✧ Assembling the party... ✧</div>';
   try {
-    const groups: any[] = await api('GET', '/api/party');
-    el.innerHTML = groups.map((g: any) => `
-      <div class="card" style="margin-bottom:16px">
-        <div class="card-header"><strong>${esc(g.name || 'Unnamed Campaign')}</strong>
-          <span>${g.members.length} members</span>
+    const groups = await api('GET', '/api/party');
+    el.innerHTML = groups.map((g:any) => `
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <strong>${esc(g.name || 'Unnamed Campaign')}</strong>
+          <span class="badge badge-gold">${g.members.length} members</span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:8px">
-          ${g.members.map((m: any) => {
-            const pct = m.hp_max > 0 ? Math.round((m.hp_current / m.hp_max) * 100) : 0;
-            const sc = m.status === 'down' ? 'var(--danger)' : m.status === 'injured' ? 'var(--gold)' : 'var(--success)';
-            return '<div class="character-card" onclick="openChar(' + m.id + ')" style="cursor:pointer">' +
-              '<div class="char-name">' + esc(m.name) + '</div>' +
-              '<div class="char-detail">' + esc(m.race) + ' ' + esc(m.class) + ' &middot; Level ' + m.level + '</div>' +
-              '<div style="display:flex;gap:12px;margin-top:8px;font-size:0.85rem;color:var(--text-light)">' +
-              '<span>AC: ' + m.ac + '</span>' +
-              '<span style="color:' + sc + '">' + esc(m.status) + '</span></div>' +
-              '<div class="hp-bar" style="margin-top:6px;height:12px">' +
-              '<div class="hp-bar-fill" style="width:' + pct + '%;height:100%"></div>' +
-              '<div class="hp-bar-text" style="font-size:0.7rem">' + m.hp_current + '/' + m.hp_max + '</div></div></div>';
-          }).join('')}
+        <div class="card-body">
+          <div class="row g-3">
+            ${g.members.map((m:any) => {
+              const pct = m.hp_max > 0 ? Math.round((m.hp_current / m.hp_max) * 100) : 0;
+              const sc = m.status === 'down' ? 'var(--danger)' : m.status === 'injured' ? 'var(--gold)' : 'var(--success)';
+              return `<div class="col-md-6 col-lg-4">
+                <div class="character-card" onclick="openChar(${m.id})">
+                  <div class="char-name">${esc(m.name)}</div>
+                  <div class="char-detail">${esc(m.race)} ${esc(m.class)} · Level ${m.level}</div>
+                  <div class="d-flex gap-3 mt-1 small text-muted">
+                    <span>AC: ${m.ac}</span><span style="color:${sc}">${esc(m.status)}</span>
+                  </div>
+                  <div class="hp-bar position-relative mt-2" style="height:12px">
+                    <div class="hp-bar-fill" style="width:${pct}%;height:100%"></div>
+                    <div class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center text-white" style="font-size:0.65rem">${m.hp_current}/${m.hp_max}</div>
+                  </div>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>
         </div>
       </div>
-    `).join('') || '<div class="empty-state">No characters yet.</div>';
-  } catch (e: any) {
-    el.innerHTML = '<div class="empty-state">Failed: ' + esc(e.message) + '</div>';
+    `).join('') || '<div class="empty-state"><i class="fa-solid fa-flag fa-2x mb-2 d-block text-muted"></i>No characters yet.</div>';
+  } catch (e:any) {
+    el.innerHTML = `<div class="empty-state">Failed: ${esc(e.message)}</div>`;
   }
 };
 
 // ─── Compendium ───
 
 (window as any).showCompendium = function () {
-  showView('compendium'); loadCompendiumRaces();
+  showView('compendium');
+  loadCompendiumRaces();
 };
 
-function loadCompendiumTab(tab:string) {
-  document.querySelectorAll('.comp-tab').forEach(el => el.classList.remove('active'));
-  (document.getElementById('compTab'+capitalize(tab)) as HTMLElement)?.classList.add('active');
+(window as any).loadCompendiumTab = function (tab:string) {
+  document.getElementById('compTabRaces')!.classList.remove('active');
+  document.getElementById('compTabClasses')!.classList.remove('active');
+  document.getElementById('compTabSpells')!.classList.remove('active');
+  document.getElementById('compTabEquipment')!.classList.remove('active');
+  const tabEl = document.getElementById('compTab' + capitalize(tab));
+  if (tabEl) tabEl.classList.add('active');
   ['races','classes','spells','equipment'].forEach(s => {
-    (document.getElementById('comp'+capitalize(s)) as HTMLElement).style.display = s === tab ? 'block' : 'none';
+    const el = document.getElementById('comp' + capitalize(s));
+    if (el) el.style.display = s === tab ? 'block' : 'none';
   });
   if (tab === 'races') loadCompendiumRaces();
   if (tab === 'classes') loadCompendiumClasses();
   if (tab === 'spells') loadCompendiumSpells();
   if (tab === 'equipment') loadCompendiumEquipment();
-}
-(window as any).loadCompendiumTab = loadCompendiumTab;
+};
 
 async function loadCompendiumRaces() {
   try {
-    const races = await api('GET','/api/compendium/races');
-    document.getElementById('compRaces')!.innerHTML = races.map((r:any)=>`
-      <div class="card" style="padding:16px;margin-bottom:8px">
-        <div class="card-header" style="border:none;padding:0;margin:0"><strong>${esc(r.name)}</strong>
-          <span><span class="badge badge-gold">${esc(r.size)}</span> Speed: ${r.speed}</span></div>
-        <p style="font-size:0.9rem;color:var(--text-light);margin-top:4px">${esc(r.description)}</p></div>`).join('');
+    const races = await api('GET', '/api/compendium/races');
+    document.getElementById('compRaces')!.innerHTML = races.map((r:any) => `
+      <div class="card mb-2">
+        <div class="card-body py-2 px-3">
+          <div class="d-flex justify-content-between"><strong>${esc(r.name)}</strong>
+            <span><span class="badge badge-gold">${esc(r.size)}</span> Speed: ${r.speed}</span></div>
+          <p class="mb-0 mt-1 small text-muted">${esc(r.description)}</p>
+        </div>
+      </div>`).join('');
   } catch {}
 }
 
 async function loadCompendiumClasses() {
   try {
-    const cls = await api('GET','/api/compendium/classes');
-    document.getElementById('compClasses')!.innerHTML = cls.map((c:any)=>`
-      <div class="card" style="padding:16px;margin-bottom:8px">
-        <div class="card-header" style="border:none;padding:0;margin:0"><strong>${esc(c.name)}</strong>
-          <span>d${c.hit_die} · ${esc(c.primary_ability)}</span></div>
-        <p style="font-size:0.9rem;color:var(--text-light);margin-top:4px">${esc(c.description)}</p></div>`).join('');
+    const cls = await api('GET', '/api/compendium/classes');
+    document.getElementById('compClasses')!.innerHTML = cls.map((c:any) => `
+      <div class="card mb-2">
+        <div class="card-body py-2 px-3">
+          <div class="d-flex justify-content-between"><strong>${esc(c.name)}</strong>
+            <span class="text-muted small">d${c.hit_die} · ${esc(c.primary_ability)}</span></div>
+          <p class="mb-0 mt-1 small text-muted">${esc(c.description)}</p>
+        </div>
+      </div>`).join('');
   } catch {}
 }
 
 async function loadCompendiumSpells() {
   try {
-    const spells = await api('GET','/api/compendium/spells');
-    document.getElementById('compSpells')!.innerHTML = spells.map((s:any)=>`
-      <div class="spell-item"><strong>${esc(s.name)}</strong> <span style="color:var(--text-muted)">Lv${s.level} ${esc(s.school)}</span>
-        <div style="font-size:0.85rem;color:var(--text-light)">${esc(s.casting_time)} · ${esc(s.range)} · ${esc(s.duration)}</div></div>`).join('');
+    const spells = await api('GET', '/api/compendium/spells');
+    document.getElementById('compSpells')!.innerHTML = spells.map((s:any) => `
+      <div class="inv-item">
+        <div><span class="fw-bold">${esc(s.name)}</span> <span class="text-muted small">Lv${s.level} ${esc(s.school)}</span></div>
+        <div class="text-muted small">${esc(s.casting_time)} · ${esc(s.range)} · ${esc(s.duration)}</div>
+      </div>`).join('');
   } catch {}
 }
 
 async function loadCompendiumEquipment() {
   try {
-    const items = await api('GET','/api/compendium/equipment');
-    document.getElementById('compEquipment')!.innerHTML = items.map((i:any)=>`
-      <div class="inventory-item"><span class="item-name">${esc(i.name)}</span>
-        <span style="color:var(--text-muted)">${esc(i.category)}${i.weight?' · '+i.weight+'lb':''}</span></div>`).join('');
+    const items = await api('GET', '/api/compendium/equipment');
+    document.getElementById('compEquipment')!.innerHTML = items.map((i:any) => `
+      <div class="inv-item">
+        <span class="fw-bold">${esc(i.name)}</span>
+        <span class="text-muted small">${esc(i.category)}${i.weight ? ' · ' + i.weight + 'lb' : ''}</span>
+      </div>`).join('');
   } catch {}
 }
 
-// ─── Export ───
-
-(window as any).exportChar = async function () {
-  if (!currentChar) return;
-  try {
-    const data = await api('GET', `/api/characters/${currentChar.id}/export`);
-    const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
-    const a = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    a.href = url;
-    a.download = currentChar.name.replace(/[^a-zA-Z0-9]/g,'_')+'.json';
-    a.click(); URL.revokeObjectURL(url);
-  } catch (e:any) { toast(e.message, true); }
-};
-
-// ─── Utils ───
-
-function esc(s:string):string { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
-function capitalize(s:string):string { return s.charAt(0).toUpperCase()+s.slice(1); }
-
-function toast(msg:string, isError=false) {
-  const el = document.createElement('div');
-  el.className = 'toast' + (isError?' error':'');
-  el.textContent = msg;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 4000);
-}
+// ─── Logout ───
 
 (window as any).logout = async function () {
-  await api('POST','/api/logout');
+  await api('POST', '/api/logout');
   window.location.href = '/login';
 };
 

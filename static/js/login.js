@@ -1,4 +1,3 @@
-"use strict";
 async function init() {
     const res = await fetch('/api/check-setup');
     const data = await res.json();
@@ -8,14 +7,14 @@ async function init() {
     }
     const res2 = await fetch('/api/user/me', { credentials: 'include' });
     if (res2.ok) {
-        window.location.href = '/app';
+        window.location.href = '/';
         return;
     }
     const form = document.getElementById('loginForm');
     const errorDiv = document.getElementById('error');
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        errorDiv.style.display = 'none';
+        errorDiv.classList.add('d-none');
         const username = document.getElementById('username').value;
         const password = document.getElementById('password').value;
         const res = await fetch('/api/login', {
@@ -25,14 +24,15 @@ async function init() {
             credentials: 'include',
         });
         if (res.ok) {
-            window.location.href = '/app';
+            window.location.href = '/';
         }
         else {
             const err = await res.json();
             errorDiv.textContent = err.error || 'Invalid credentials';
-            errorDiv.style.display = 'block';
+            errorDiv.classList.remove('d-none');
         }
     });
 }
 init();
+
 //# sourceMappingURL=login.js.map
