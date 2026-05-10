@@ -1293,17 +1293,48 @@ async function renderAnalytics() {
 
 // ─── Dice ───
 
+const DICE_PRESETS = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100'];
+
+function setDiceExpr(die: string) {
+  const input = document.getElementById('diceExpr') as HTMLInputElement;
+  const m = input.value.match(/^(\d*)d\d+/);
+  const count = m ? m[1] || '1' : '1';
+  input.value = count + die;
+  doRoll();
+}
+(window as any).setDiceExpr = setDiceExpr;
+
+function rollWithAdvantage(adv: boolean) {
+  const input = document.getElementById('diceExpr') as HTMLInputElement;
+  const m = input.value.match(/^(\d*)d(\d+)(.*)/);
+  if (!m) return;
+  const sides = m[2];
+  const rest = m[3] || '';
+  const count = adv ? 2 : 1;
+  input.value = count + 'd' + sides + rest;
+  doRoll();
+}
+(window as any).rollWithAdvantage = rollWithAdvantage;
+
 function renderDiceTab() {
   const targetId = currentView === 'dice' ? 'diceViewSection' : 'diceSection';
   const el = document.getElementById(targetId);
   if (!el) return;
   el.innerHTML = `
-    <div class="text-center">
+    <div class="text-center dice-roller">
       <h5>Dice Roller</h5>
-      <div class="row justify-content-center mb-3">
-        <div class="col-md-6"><label class="form-label">Expression (e.g. 2d6+3)</label>
-          <input class="form-control text-center" id="diceExpr" value="1d20" placeholder="e.g. 1d20+5" style="font-size:1.2rem">
+      <div class="row justify-content-center mb-2">
+        <div class="col-md-8">
+          <label class="form-label">Expression</label>
+          <input class="form-control text-center" id="diceExpr" value="1d20" placeholder="e.g. 2d6+3" style="font-size:1.3rem;font-weight:700">
         </div>
+      </div>
+      <div class="dice-quick-btns mb-3">
+        ${DICE_PRESETS.map(d => `<button class="btn btn-sm dice-btn" onclick="setDiceExpr('${d}')">${d}</button>`).join('')}
+      </div>
+      <div class="mb-3">
+        <button class="btn btn-outline-gold btn-sm me-1" onclick="rollWithAdvantage(true)" title="Roll with advantage"><i class="fa-solid fa-angles-up me-1"></i>Advantage</button>
+        <button class="btn btn-outline-gold btn-sm" onclick="rollWithAdvantage(false)" title="Roll with disadvantage"><i class="fa-solid fa-angles-down me-1"></i>Disadvantage</button>
       </div>
       <div id="diceResult" class="mb-3" style="display:none"></div>
       <button class="btn btn-gold" onclick="doRoll()"><i class="fa-solid fa-dice me-2"></i>Roll the Bones</button>
@@ -1311,6 +1342,8 @@ function renderDiceTab() {
       <h5>Recent Rolls</h5>
       <div id="diceHistory"></div>
     </div>`;
+  const input = document.getElementById('diceExpr') as HTMLInputElement;
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') doRoll(); });
   loadDiceHistory();
 }
 (window as any).renderDiceTab = renderDiceTab;
@@ -1322,7 +1355,26 @@ async function doRoll() {
     const result = await api('POST', '/api/roll', { expression: expr, character_id: currentChar?.id });
     const el = document.getElementById('diceResult')!;
     el.style.display = 'block';
-    el.innerHTML = `<div class="text-muted">${esc(expr)}</div><div class="h4">${esc(result.text)}</div>`;
+
+    let facesHtml = '';
+    if (result.breakdown) {
+      facesHtml = result.breakdown.map((b: any) => {
+        if (b.rolls) {
+          const dieLabel = b.die;
+          const rolls = b.rolls.map((r: number) => `<span class="die-face" data-value="${r}">${r}</span>`).join('');
+          return `<div class="die-group"><span class="die-label">${dieLabel}:</span> <span class="die-faces">${rolls}</span></div>`;
+        }
+        return '';
+      }).join('');
+    }
+
+    el.innerHTML = `
+      <div class="dice-result-box">
+        <div class="roll-total">${result.total}</div>
+        <div class="roll-expression">${esc(result.expression)}</div>
+        <div class="roll-breakdown">${facesHtml}</div>
+        <div class="roll-text text-muted small">${esc(result.text)}</div>
+      </div>`;
     loadDiceHistory();
   } catch (e:any) {
     toast(e.message, true);
@@ -1337,7 +1389,7 @@ async function loadDiceHistory() {
     const rolls = await api('GET', '/api/dice-rolls' + (currentChar ? `?character_id=${currentChar.id}` : ''));
     el.innerHTML = rolls.slice(0, 20).map((r:any) =>
       `<div class="d-flex justify-content-between py-1 border-bottom dice-history-item">
-        <span>${esc(r.expression)}</span>
+        <span class="small">${esc(r.expression)}</span>
         <span><strong>${r.total}</strong> <span class="text-muted small">${esc(r.result)}</span></span>
       </div>`
     ).join('') || '<div class="text-center text-muted py-3">No rolls yet</div>';
