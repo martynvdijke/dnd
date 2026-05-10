@@ -259,9 +259,9 @@
             const mod = c[`${a.key}_mod`];
             const cls = mod > 0 ? 'text-success' : mod < 0 ? 'text-danger' : 'text-muted';
             return `<div class="col-4 col-md-2">
-          <div class="ability-box" onclick="rollCheck('check','${a.key}','normal')">
-            <div class="abil-label">${a.label}</div>
-            <div class="abil-value">${val}</div>
+          <div class="ability-box">
+            <div class="abil-label" onclick="rollCheck('check','${a.key}','normal')" style="cursor:pointer">${a.label}</div>
+            <input type="number" class="form-control form-control-sm text-center abil-value-input" value="${val}" onchange="updateField('${a.key}',+this.value)" onfocus="this.select()">
             <div class="abil-mod ${cls}">${mod >= 0 ? '+' : ''}${mod}</div>
           </div>
         </div>`;

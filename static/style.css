@@ -298,6 +298,17 @@ h1 { color: var(--ink) !important; }
   font-size: 1rem !important;
   font-weight: 600 !important;
 }
+.ability-box .abil-value-input {
+  width: 4rem !important;
+  margin: .25rem auto !important;
+  font-size: 1.4rem !important;
+  font-weight: 700 !important;
+  font-family: var(--font-display) !important;
+  text-align: center !important;
+  padding: 0 .25rem !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+}
 
 .hp-bar {
   background: var(--parchment-dark) !important;
