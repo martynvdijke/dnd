@@ -29,6 +29,7 @@ test.describe('Character sheet editing', () => {
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
 
+    await expect(page.locator('#sheetName')).toContainText(name);
     await page.click('text=Details');
     await expect(page.locator('#detailsSection')).toBeVisible();
     await expect(page.locator('#sheetName')).toContainText(name);
@@ -529,7 +530,7 @@ test.describe('Error handling and edge cases', () => {
     await page.fill('#newRace', 'Half-Orc');
     await page.fill('#newClass', 'Barbarian');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await expect(page.locator('.character-card').filter({ hasText: name })).toBeVisible({ timeout: 10000 });
     await page.locator('.character-card').filter({ hasText: name }).click();
 
     await page.click('#tabBar button:has-text("Dice")');
@@ -550,11 +551,11 @@ test.describe('Error handling and edge cases', () => {
     await page.fill('#newRace', 'Half-Orc');
     await page.fill('#newClass', 'Barbarian');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await expect(page.locator('.character-card').filter({ hasText: name })).toBeVisible({ timeout: 10000 });
     await page.locator('.character-card').filter({ hasText: name }).click();
 
     await page.click('#tabBar button:has-text("Dice")');
-    await page.waitForTimeout(200);
+    await expect(page.locator('#diceExpr')).toBeVisible({ timeout: 5000 });
 
     const input = page.locator('#diceExpr');
     const btn = page.locator('text=Roll the Bones');
