@@ -1,5 +1,13 @@
 import { test, expect } from '@playwright/test';
 
+async function ensureNavOpen(page) {
+  const toggler = page.locator('.navbar-toggler');
+  if (await toggler.isVisible()) {
+    await toggler.click();
+    await page.waitForTimeout(300);
+  }
+}
+
 test.describe('Dice rolling', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
@@ -10,6 +18,7 @@ test.describe('Dice rolling', () => {
   });
 
   test('dice roller works', async ({ page }) => {
+    await ensureNavOpen(page);
     await page.click('a:has-text("Dice")');
     await page.waitForTimeout(200);
     await expect(page.locator('#diceView h1')).toContainText('Dice Roller');
@@ -26,6 +35,7 @@ test.describe('Dice rolling', () => {
   });
 
   test('saves dice roll history', async ({ page }) => {
+    await ensureNavOpen(page);
     await page.click('a:has-text("Dice")');
     await page.waitForTimeout(200);
     const input = page.locator('#diceExpr');

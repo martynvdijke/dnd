@@ -2,6 +2,14 @@ import { test, expect } from '@playwright/test';
 
 const uniqueName = () => `FT-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
+async function ensureNavOpen(page) {
+  const toggler = page.locator('.navbar-toggler');
+  if (await toggler.isVisible()) {
+    await toggler.click();
+    await page.waitForTimeout(300);
+  }
+}
+
 test.describe('Full feature coverage', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
@@ -12,10 +20,12 @@ test.describe('Full feature coverage', () => {
   });
 
   test('campaign lifecycle: create, assign character, delete', async ({ page }) => {
+    await page.waitForTimeout(300);
     await page.goto('/admin', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#adminUsers .card-header')).toContainText('Users');
 
     const name = uniqueName();
+    await page.waitForTimeout(300);
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.click('text=New Character');
     await page.fill('#newName', name);
@@ -97,11 +107,13 @@ test.describe('Full feature coverage', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
 
+    await ensureNavOpen(page);
     await page.click('a:has-text("Characters")');
     await expect(page.locator('.character-card').filter({ hasText: name })).toBeVisible();
   });
 
   test('admin panel navigation tabs work', async ({ page }) => {
+    await page.waitForTimeout(300);
     await page.goto('/admin', { waitUntil: 'domcontentloaded' });
 
     await expect(page.locator('#adminUsers .card-header')).toContainText('Users');

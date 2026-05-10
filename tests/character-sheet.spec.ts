@@ -2,6 +2,14 @@ import { test, expect } from '@playwright/test';
 
 const uniqueName = () => `Test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
+async function ensureNavOpen(page) {
+  const toggler = page.locator('.navbar-toggler');
+  if (await toggler.isVisible()) {
+    await toggler.click();
+    await page.waitForTimeout(300);
+  }
+}
+
 test.describe('Character sheet editing', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
@@ -175,6 +183,7 @@ test.describe('Campaign management UI', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
 
+    await ensureNavOpen(page);
     await page.click('a:has-text("Party")');
     await expect(page.locator('#partyView h1')).toContainText('Party View');
     await expect(page.locator('#partyContent')).toContainText(name);
@@ -200,6 +209,7 @@ test.describe('Campaign management UI', () => {
   });
 
   test('compendium search works', async ({ page }) => {
+    await ensureNavOpen(page);
     await page.click('a:has-text("Compendium")');
     await expect(page.locator('#compendiumView h1')).toContainText('Compendium');
 
@@ -212,6 +222,7 @@ test.describe('Campaign management UI', () => {
   });
 
   test('logout works', async ({ page }) => {
+    await ensureNavOpen(page);
     await page.click('a:has-text("Logout")');
     await page.waitForURL(/\/login/);
     await expect(page.locator('h1')).toContainText('villum');

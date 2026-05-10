@@ -2,6 +2,14 @@ import { test, expect } from '@playwright/test';
 
 const uniqueName = () => `Resp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
+async function ensureNavOpen(page) {
+  const toggler = page.locator('.navbar-toggler');
+  if (await toggler.isVisible()) {
+    await toggler.click();
+    await page.waitForTimeout(300);
+  }
+}
+
 test.describe('Responsive design', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
@@ -59,6 +67,7 @@ test.describe('Responsive design', () => {
 
   test('dice roller is usable on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
+    await ensureNavOpen(page);
     await page.click('a:has-text("Dice")');
     await page.waitForTimeout(200);
     await expect(page.locator('#diceExpr')).toBeVisible();
@@ -71,6 +80,7 @@ test.describe('Responsive design', () => {
 
   test('admin panel is responsive', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
+    await page.waitForTimeout(300);
     await page.goto('/admin', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#adminUsers .card-header')).toContainText('Users');
 
