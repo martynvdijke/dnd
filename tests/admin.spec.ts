@@ -2,26 +2,26 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Admin panel', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
-    await page.waitForURL('/');
+    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
   });
 
   test('admin link is visible for admin users', async ({ page }) => {
-    await expect(page.locator('#adminLink')).toBeVisible();
+    await expect(page.locator('#adminNavItem')).toBeVisible();
   });
 
   test('admin panel loads user list', async ({ page }) => {
-    await page.goto('/admin');
-    await expect(page.locator('h1')).toContainText('Users');
+    await page.goto('/admin', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.card-header').first()).toContainText('Users');
     const rows = page.locator('#userTable tbody tr');
     await expect(rows.first()).toBeVisible();
   });
 
   test('admin can create a new user', async ({ page }) => {
-    await page.goto('/admin');
+    await page.goto('/admin', { waitUntil: 'domcontentloaded' });
     await page.click('text=Add User');
     await page.fill('#addUsername', 'testuser');
     await page.fill('#addPassword', 'testpass123');
@@ -32,13 +32,11 @@ test.describe('Admin panel', () => {
   });
 
   test('admin can manage compendium', async ({ page }) => {
-    await page.goto('/admin');
+    await page.goto('/admin', { waitUntil: 'domcontentloaded' });
     await page.click('text=Compendium');
 
-    // Should be on compendium tab
-    await expect(page.locator('h1')).toContainText('Compendium Management');
+    await expect(page.locator('.card-header').first()).toContainText('Compendium Management');
 
-    // Test adding a race
     await page.click('text=Add');
     await page.fill('#compName', 'Test Race');
     await page.fill('#compDesc', 'A test race for testing');
@@ -50,9 +48,9 @@ test.describe('Admin panel', () => {
   });
 
   test('backup tab works', async ({ page }) => {
-    await page.goto('/admin');
+    await page.goto('/admin', { waitUntil: 'domcontentloaded' });
     await page.click('text=Backup');
-    await expect(page.locator('h1')).toContainText('Backup');
+    await expect(page.locator('.card-header').first()).toContainText('Backup Settings');
     await expect(page.locator('#backupEnabled')).toBeVisible();
   });
 });

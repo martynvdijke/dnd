@@ -2,16 +2,16 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Dice rolling', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
-    await page.waitForURL('/');
+    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
   });
 
   test('dice roller works', async ({ page }) => {
     await page.click('text=Dice');
-    await expect(page.locator('h1')).toContainText('Dice Roller');
+    await expect(page.locator('#diceView h1')).toContainText('Dice Roller');
     await expect(page.locator('#diceExpr')).toBeVisible();
 
     const input = page.locator('#diceExpr');

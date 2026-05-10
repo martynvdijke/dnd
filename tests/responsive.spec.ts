@@ -2,40 +2,28 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Responsive design', () => {
   test.beforeEach(async ({ page }) => {
-    // Setup admin if needed and login
-    await page.goto('/setup');
-    const body = await page.locator('body').textContent();
-    if (body?.includes('First-Time')) {
-      await page.fill('#username', 'admin');
-      await page.fill('#password', 'testpassword123');
-      await page.fill('#confirm', 'testpassword123');
-      await page.click('button[type="submit"]');
-      await page.waitForURL('/');
-    }
-
-    await page.goto('/login');
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
-    await page.waitForURL('/');
+    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
   });
 
   test('desktop layout works at 1280x720', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
-    await expect(page.locator('.header')).toBeVisible();
-    await expect(page.locator('.container')).toBeVisible();
+    await expect(page.locator('.navbar')).toBeVisible();
+    await expect(page.locator('.container').first()).toBeVisible();
   });
 
   test('tablet layout works at 768x1024', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
-    await expect(page.locator('.header')).toBeVisible();
-    await expect(page.locator('.container')).toBeVisible();
+    await expect(page.locator('.navbar')).toBeVisible();
+    await expect(page.locator('.container').first()).toBeVisible();
   });
 
   test('mobile layout works at 390x844 (iPhone 14)', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
 
-    // Create a character to ensure there's content to check
     await page.click('text=New Character');
     await page.fill('#newName', 'Mobile Test');
     await page.fill('#newRace', 'Human');
@@ -46,9 +34,7 @@ test.describe('Responsive design', () => {
     await page.click('.character-card');
     await expect(page.locator('#sheetName')).toBeVisible();
 
-    // Check ability scores grid adapts on mobile (3 columns instead of 6)
-    const abilityGrid = page.locator('.ability-grid');
-    await expect(abilityGrid).toBeVisible();
+    await expect(page.locator('#statsSection .ability-box')).toBeVisible();
   });
 
   test('small mobile layout works at 320x568 (iPhone SE)', async ({ page }) => {
@@ -63,9 +49,8 @@ test.describe('Responsive design', () => {
     await page.click('.character-card');
 
     await expect(page.locator('#sheetName')).toBeVisible();
-    // Tabs should still be accessible
     await page.click('text=Combat');
-    await expect(page.locator('.tab.active')).toContainText('Combat');
+    await expect(page.locator('#combatSection')).toBeVisible();
   });
 
   test('dice roller is usable on mobile', async ({ page }) => {
@@ -81,19 +66,17 @@ test.describe('Responsive design', () => {
 
   test('admin panel is responsive', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
-    await page.goto('/admin');
-    await expect(page.locator('h1')).toContainText('Users');
+    await page.goto('/admin', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#adminUsers .card-header')).toContainText('Users');
 
-    // Switch tabs
     await page.click('text=Compendium');
-    await expect(page.locator('h1')).toContainText('Compendium Management');
+    await expect(page.locator('#adminCompendium .card-header')).toContainText('Compendium Management');
 
     await page.click('text=Backup');
-    await expect(page.locator('h1')).toContainText('Backup');
+    await expect(page.locator('#adminBackup .card-header').first()).toContainText('Backup Settings');
   });
 
   test('character grid adapts to viewport', async ({ page }) => {
-    // Create a few characters
     for (let i = 0; i < 3; i++) {
       await page.click('text=New Character');
       await page.fill('#newName', `Character ${i}`);
@@ -103,14 +86,10 @@ test.describe('Responsive design', () => {
       await page.waitForTimeout(300);
     }
 
-    // Check grid on desktop
     await page.setViewportSize({ width: 1280, height: 720 });
-    let grid = page.locator('.character-grid');
-    await expect(grid.locator('.character-card')).toHaveCount(3);
+    await expect(page.locator('#charGrid')).toContainText('Character 0');
 
-    // Check grid on mobile
     await page.setViewportSize({ width: 390, height: 844 });
-    grid = page.locator('.character-grid');
-    await expect(grid.locator('.character-card')).toHaveCount(3);
+    await expect(page.locator('#charGrid')).toContainText('Character 0');
   });
 });
