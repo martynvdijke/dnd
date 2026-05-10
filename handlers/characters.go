@@ -565,7 +565,7 @@ func loadProficiencies(characterID int64) []models.Proficiency {
 		return nil
 	}
 	defer rows.Close()
-	var out []models.Proficiency
+	var out = make([]models.Proficiency, 0)
 	for rows.Next() {
 		var p models.Proficiency
 		rows.Scan(&p.ID, &p.CharacterID, &p.Type, &p.Name)
@@ -580,7 +580,7 @@ func loadFeatures(characterID int64) []models.Feature {
 		return nil
 	}
 	defer rows.Close()
-	var out []models.Feature
+	var out = make([]models.Feature, 0)
 	for rows.Next() {
 		var f models.Feature
 		rows.Scan(&f.ID, &f.CharacterID, &f.Name, &f.Description, &f.Source, &f.LevelGained)
@@ -620,7 +620,7 @@ func loadSpells(characterID int64) []models.Spell {
 		return nil
 	}
 	defer rows.Close()
-	var out []models.Spell
+	var out = make([]models.Spell, 0)
 	for rows.Next() {
 		var s models.Spell
 		rows.Scan(&s.ID, &s.CharacterID, &s.Name, &s.Level, &s.School,
@@ -642,7 +642,7 @@ func loadInventory(characterID int64) []models.InventoryItem {
 		return nil
 	}
 	defer rows.Close()
-	var out []models.InventoryItem
+	var out = make([]models.InventoryItem, 0)
 	for rows.Next() {
 		var item models.InventoryItem
 		rows.Scan(&item.ID, &item.CharacterID, &item.Name, &item.Quantity, &item.Weight, &item.Category,

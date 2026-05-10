@@ -10,7 +10,8 @@ test.describe('Dice rolling', () => {
   });
 
   test('dice roller works', async ({ page }) => {
-    await page.click('text=Dice');
+    await page.click('a:has-text("Dice")');
+    await page.waitForTimeout(200);
     await expect(page.locator('#diceView h1')).toContainText('Dice Roller');
     await expect(page.locator('#diceExpr')).toBeVisible();
 
@@ -25,7 +26,8 @@ test.describe('Dice rolling', () => {
   });
 
   test('saves dice roll history', async ({ page }) => {
-    await page.click('text=Dice');
+    await page.click('a:has-text("Dice")');
+    await page.waitForTimeout(200);
     const input = page.locator('#diceExpr');
     await input.fill('1d20');
     await page.click('text=Roll the Bones');

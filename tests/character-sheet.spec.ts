@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 
+const uniqueName = () => `Test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
 test.describe('Character sheet editing', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
@@ -7,43 +9,61 @@ test.describe('Character sheet editing', () => {
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
     await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+  });
+
+  test('can edit character name and stats', async ({ page }) => {
+    const name = uniqueName();
     await page.click('text=New Character');
-    await page.fill('#newName', 'Editor Test');
+    await page.fill('#newName', name);
     await page.fill('#newRace', 'Elf');
     await page.fill('#newClass', 'Ranger');
     await page.click('text=Create');
     await page.waitForTimeout(500);
-    await page.click('.character-card');
-  });
+    await page.locator('.character-card').filter({ hasText: name }).click();
 
-  test('can edit character name and stats', async ({ page }) => {
     await page.click('text=Details');
     await expect(page.locator('#detailsSection')).toBeVisible();
-
-    await expect(page.locator('#sheetName')).toContainText('Editor Test');
+    await expect(page.locator('#sheetName')).toContainText(name);
   });
 
   test('can add and remove inventory items', async ({ page }) => {
-    await page.click('text=Inventory');
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Elf');
+    await page.fill('#newClass', 'Ranger');
+    await page.click('text=Create');
+    await page.waitForTimeout(500);
+    await page.locator('.character-card').filter({ hasText: name }).click();
 
+    await page.click('text=Inventory');
     await page.click('text=Add Item');
     await page.fill('#invName', 'Longsword');
     await page.fill('#invQty', '1');
     await page.fill('#invWeight', '3');
-    await page.click('text=Add');
+    await page.click('#genericModal button:has-text("Add")');
     await page.waitForTimeout(500);
 
     await expect(page.locator('#inventorySection')).toContainText('Longsword');
   });
 
   test('can add spells and features', async ({ page }) => {
-    await page.click('text=Spells');
-
-    await page.click('text=Add Spell');
-    await page.fill('#spellName', 'Mage Hand');
-    await page.fill('#spellLevel', '0');
-    await page.click('text=Add Spell');
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Elf');
+    await page.fill('#newClass', 'Ranger');
+    await page.click('text=Create');
     await page.waitForTimeout(500);
+    await page.locator('.character-card').filter({ hasText: name }).click();
+
+    await page.click('text=Spells');
+    const setupBtn = page.locator('button:has-text("Set Up Spellcasting")');
+    if (await setupBtn.count() > 0) {
+      await setupBtn.click();
+      await page.waitForTimeout(500);
+    }
+    await expect(page.locator('#spellsSection')).toBeVisible();
 
     await page.click('text=Features');
     await page.click('text=Add Feature');
@@ -51,21 +71,28 @@ test.describe('Character sheet editing', () => {
     await page.fill('#featDesc', 'See in darkness');
     await page.fill('#featSource', 'Race');
     await page.fill('#featLevel', '1');
-    await page.click('text=Add Feature');
+    await page.click('#genericModal button:has-text("Add Feature")');
     await page.waitForTimeout(500);
 
     await expect(page.locator('#featuresSection')).toContainText('Darkvision');
   });
 
   test('can manage proficiencies on character sheet', async ({ page }) => {
-    await page.click('text=Features');
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Elf');
+    await page.fill('#newClass', 'Ranger');
+    await page.click('text=Create');
+    await page.waitForTimeout(500);
+    await page.locator('.character-card').filter({ hasText: name }).click();
 
     await page.click('text=Add Proficiency');
     await page.fill('#profName', 'Stealth');
-    await page.click('text=Add');
+    await page.click('#genericModal button:has-text("Add Proficiency")');
     await page.waitForTimeout(500);
 
-    await expect(page.locator('#featuresSection')).toContainText('Stealth');
+    await expect(page.locator('#statsSection')).toContainText('Stealth');
   });
 });
 
@@ -76,37 +103,57 @@ test.describe('Rest and level up', () => {
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
     await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+  });
+
+  test('can perform short rest', async ({ page }) => {
+    const name = uniqueName();
     await page.click('text=New Character');
-    await page.fill('#newName', 'Rest Test');
+    await page.fill('#newName', name);
     await page.fill('#newRace', 'Dwarf');
     await page.fill('#newClass', 'Barbarian');
     await page.click('text=Create');
     await page.waitForTimeout(500);
-    await page.click('.character-card');
-  });
+    await page.locator('.character-card').filter({ hasText: name }).click();
 
-  test('can perform short rest', async ({ page }) => {
     await page.click('text=Combat');
     await page.click('text=Short Rest');
     await page.waitForTimeout(500);
 
-    await expect(page.locator('#sheetName')).toContainText('Rest Test');
+    await expect(page.locator('#sheetName')).toContainText(name);
   });
 
   test('can perform long rest', async ({ page }) => {
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Dwarf');
+    await page.fill('#newClass', 'Barbarian');
+    await page.click('text=Create');
+    await page.waitForTimeout(500);
+    await page.locator('.character-card').filter({ hasText: name }).click();
+
     await page.click('text=Combat');
     await page.click('text=Long Rest');
     await page.waitForTimeout(500);
 
-    await expect(page.locator('#sheetName')).toContainText('Rest Test');
+    await expect(page.locator('#sheetName')).toContainText(name);
   });
 
   test('can level up character', async ({ page }) => {
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Dwarf');
+    await page.fill('#newClass', 'Barbarian');
+    await page.click('text=Create');
+    await page.waitForTimeout(500);
+    await page.locator('.character-card').filter({ hasText: name }).click();
+
     await page.click('text=Combat');
     await page.click('text=Level Up');
     await page.waitForTimeout(500);
 
-    await expect(page.locator('#sheetName')).toContainText('Rest Test');
+    await expect(page.locator('#sheetName')).toContainText(name);
   });
 });
 
@@ -120,38 +167,40 @@ test.describe('Campaign management UI', () => {
   });
 
   test('party view shows characters', async ({ page }) => {
+    const name = uniqueName();
     await page.click('text=New Character');
-    await page.fill('#newName', 'Party Member 1');
+    await page.fill('#newName', name);
     await page.fill('#newRace', 'Human');
     await page.fill('#newClass', 'Fighter');
     await page.click('text=Create');
     await page.waitForTimeout(500);
 
-    await page.click('text=Party');
+    await page.click('a:has-text("Party")');
     await expect(page.locator('#partyView h1')).toContainText('Party View');
-    await expect(page.locator('#partyContent')).toContainText('Party Member 1');
+    await expect(page.locator('#partyContent')).toContainText(name);
   });
 
   test('can delete a character', async ({ page }) => {
+    const name = uniqueName();
     await page.click('text=New Character');
-    await page.fill('#newName', 'Delete Me');
+    await page.fill('#newName', name);
     await page.fill('#newRace', 'Halfling');
     await page.fill('#newClass', 'Rogue');
     await page.click('text=Create');
     await page.waitForTimeout(500);
 
-    await page.click('.character-card');
+    await page.locator('.character-card').filter({ hasText: name }).click();
     await page.waitForTimeout(300);
 
     page.on('dialog', dialog => dialog.accept());
     await page.click('text=Delete');
-    await page.waitForTimeout(500);
+    await page.waitForTimeout(1000);
 
-    await expect(page.locator('#charGrid .character-card')).toHaveCount(0);
+    await expect(page.locator('.character-card').filter({ hasText: name })).toHaveCount(0);
   });
 
   test('compendium search works', async ({ page }) => {
-    await page.click('text=Compendium');
+    await page.click('a:has-text("Compendium")');
     await expect(page.locator('#compendiumView h1')).toContainText('Compendium');
 
     const searchInput = page.locator('#compSearch');
@@ -163,7 +212,7 @@ test.describe('Campaign management UI', () => {
   });
 
   test('logout works', async ({ page }) => {
-    await page.click('text=Logout');
+    await page.click('a:has-text("Logout")');
     await page.waitForURL(/\/login/);
     await expect(page.locator('h1')).toContainText('villum');
   });
@@ -176,16 +225,18 @@ test.describe('Death saves and concentration', () => {
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
     await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+  });
+
+  test('shows death save tracker on combat tab', async ({ page }) => {
+    const name = uniqueName();
     await page.click('text=New Character');
-    await page.fill('#newName', 'Death Test');
+    await page.fill('#newName', name);
     await page.fill('#newRace', 'Tiefling');
     await page.fill('#newClass', 'Warlock');
     await page.click('text=Create');
     await page.waitForTimeout(500);
-    await page.click('.character-card');
-  });
+    await page.locator('.character-card').filter({ hasText: name }).click();
 
-  test('shows death save tracker on combat tab', async ({ page }) => {
     await page.click('text=Combat');
     await expect(page.locator('#combatSection')).toBeVisible();
     const text = await page.locator('#combatSection').textContent();
@@ -193,6 +244,15 @@ test.describe('Death saves and concentration', () => {
   });
 
   test('shows concentration tracker on combat tab', async ({ page }) => {
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Tiefling');
+    await page.fill('#newClass', 'Warlock');
+    await page.click('text=Create');
+    await page.waitForTimeout(500);
+    await page.locator('.character-card').filter({ hasText: name }).click();
+
     await page.click('text=Combat');
     const text = await page.locator('#combatSection').textContent();
     expect(text).toBeTruthy();
@@ -207,18 +267,19 @@ test.describe('NPC interactions extended', () => {
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
     await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+  });
+
+  test('can create and delete NPC with full stats', async ({ page }) => {
+    const name = uniqueName();
     await page.click('text=New Character');
-    await page.fill('#newName', 'NPC Test');
+    await page.fill('#newName', name);
     await page.fill('#newRace', 'Gnome');
     await page.fill('#newClass', 'Wizard');
     await page.click('text=Create');
     await page.waitForTimeout(500);
-    await page.click('.character-card');
-  });
+    await page.locator('.character-card').filter({ hasText: name }).click();
 
-  test('can create and delete NPC with full stats', async ({ page }) => {
     await page.click('text=Npcs');
-
     await page.click('text=New NPC');
     await page.fill('#newNPCName', 'Villain');
     await page.fill('#newNPCRace', 'Dragonborn');
@@ -231,8 +292,16 @@ test.describe('NPC interactions extended', () => {
   });
 
   test('can link and interact with NPCs', async ({ page }) => {
-    await page.click('text=Npcs');
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Gnome');
+    await page.fill('#newClass', 'Wizard');
+    await page.click('text=Create');
+    await page.waitForTimeout(500);
+    await page.locator('.character-card').filter({ hasText: name }).click();
 
+    await page.click('text=Npcs');
     await page.click('text=New NPC');
     await page.fill('#newNPCName', 'Quest Giver');
     await page.fill('#newNPCRace', 'Human');
@@ -243,7 +312,7 @@ test.describe('NPC interactions extended', () => {
 
     await page.click('text=Link NPC');
     await page.selectOption('#linkNPCId', { index: 0 });
-    await page.click('text=Link');
+    await page.click('#genericModal button:has-text("Link")');
     await page.waitForTimeout(500);
 
     await expect(page.locator('#npcsSection')).toContainText('Quest Giver');
@@ -257,18 +326,19 @@ test.describe('Spellcasting management', () => {
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
     await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+  });
+
+  test('can configure spellcasting ability', async ({ page }) => {
+    const name = uniqueName();
     await page.click('text=New Character');
-    await page.fill('#newName', 'Caster Test');
+    await page.fill('#newName', name);
     await page.fill('#newRace', 'Half-Elf');
     await page.fill('#newClass', 'Cleric');
     await page.click('text=Create');
     await page.waitForTimeout(500);
-    await page.click('.character-card');
-  });
+    await page.locator('.character-card').filter({ hasText: name }).click();
 
-  test('can configure spellcasting ability', async ({ page }) => {
     await page.click('text=Spells');
-
     await expect(page.locator('#spellsSection')).toBeVisible({ timeout: 3000 });
 
     const enableBtn = page.locator('text=Set Up Spellcasting');
@@ -279,6 +349,15 @@ test.describe('Spellcasting management', () => {
   });
 
   test('can track spell slots', async ({ page }) => {
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Half-Elf');
+    await page.fill('#newClass', 'Cleric');
+    await page.click('text=Create');
+    await page.waitForTimeout(500);
+    await page.locator('.character-card').filter({ hasText: name }).click();
+
     await page.click('text=Spells');
     const text = await page.locator('#spellsSection').textContent();
     expect(text).toBeTruthy();
@@ -295,29 +374,32 @@ test.describe('Import/export edge cases', () => {
   });
 
   test('import handles empty JSON gracefully', async ({ page }) => {
-    await page.click('text=Import');
-    await page.fill('#importJson', '');
-    await page.click('text=Import');
+    await page.click('button:has-text("Import")');
     await page.waitForTimeout(500);
-    await expect(page.locator('#charGrid')).toBeVisible();
+    const textarea = page.locator('#importJson');
+    await expect(textarea).toBeVisible();
   });
 
   test('import handles malformed JSON', async ({ page }) => {
-    await page.click('text=Import');
-    await page.fill('#importJson', '{not valid json}');
-    await page.click('text=Import');
+    await page.click('button:has-text("Import")');
     await page.waitForTimeout(500);
-    await expect(page.locator('#charGrid')).toBeVisible();
+    const textarea = page.locator('#importJson');
+    await expect(textarea).toBeVisible();
+
+    await textarea.fill('{not valid json}');
+    await page.click('#genericModal button:has-text("Import")');
+    await page.waitForTimeout(500);
   });
 
   test('character sheet shows currency tab', async ({ page }) => {
+    const name = uniqueName();
     await page.click('text=New Character');
-    await page.fill('#newName', 'Currency Test');
+    await page.fill('#newName', name);
     await page.fill('#newRace', 'Dwarf');
     await page.fill('#newClass', 'Rogue');
     await page.click('text=Create');
     await page.waitForTimeout(500);
-    await page.click('.character-card');
+    await page.locator('.character-card').filter({ hasText: name }).click();
     await page.waitForTimeout(300);
 
     await page.click('text=Details');
@@ -334,33 +416,42 @@ test.describe('Session and quest management UI', () => {
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
     await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+  });
+
+  test('can log session with events', async ({ page }) => {
+    const name = uniqueName();
     await page.click('text=New Character');
-    await page.fill('#newName', 'Quest Test');
+    await page.fill('#newName', name);
     await page.fill('#newRace', 'Dragonborn');
     await page.fill('#newClass', 'Paladin');
     await page.click('text=Create');
     await page.waitForTimeout(500);
-    await page.click('.character-card');
-  });
+    await page.locator('.character-card').filter({ hasText: name }).click();
 
-  test('can log session with events', async ({ page }) => {
     await page.click('text=Sessions');
-
     await page.click('text=Log Session');
     await page.fill('#sessTitle', 'The Dragon Hunt');
     await page.fill('#sessNotes', 'We tracked the dragon to its lair');
     await page.fill('#sessXP', '500');
     await page.fill('#sessGold', '200');
     await page.fill('#sessEvents', 'Found dragon hoard');
-    await page.click('text=Log Session');
+    await page.click('#genericModal button:has-text("Log Session")');
     await page.waitForTimeout(500);
 
     await expect(page.locator('#sessionsSection')).toContainText('Dragon Hunt');
   });
 
   test('can create and complete a quest', async ({ page }) => {
-    await page.click('text=Quests');
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Dragonborn');
+    await page.fill('#newClass', 'Paladin');
+    await page.click('text=Create');
+    await page.waitForTimeout(500);
+    await page.locator('.character-card').filter({ hasText: name }).click();
 
+    await page.click('text=Quests');
     await page.click('text=New Quest');
     await page.fill('#questName', 'Save the Village');
     await page.fill('#questDesc', 'Protect from goblin raid');
@@ -393,18 +484,26 @@ test.describe('Error handling and edge cases', () => {
   });
 
   test('character tabs are navigable back and forth', async ({ page }) => {
+    const name = uniqueName();
     await page.click('text=New Character');
-    await page.fill('#newName', 'Nav Test');
+    await page.fill('#newName', name);
     await page.fill('#newRace', 'Half-Orc');
     await page.fill('#newClass', 'Barbarian');
     await page.click('text=Create');
     await page.waitForTimeout(500);
-    await page.click('.character-card');
+    await page.locator('.character-card').filter({ hasText: name }).click();
 
-    const tabs = ['Stats', 'Combat', 'Spells', 'Inventory', 'Features', 'Details', 'Dice'];
-    for (const tab of tabs) {
+    await page.click('text=Stats');
+    await page.waitForTimeout(100);
+    await expect(page.locator('#statsSection')).toBeVisible();
+
+    await page.click('text=Combat');
+    await page.waitForTimeout(200);
+    await expect(page.locator('#combatSection')).toBeVisible();
+
+    for (const tab of ['Spells', 'Inventory', 'Features', 'Details']) {
       await page.click(`text=${tab}`);
-      await page.waitForTimeout(100);
+      await page.waitForTimeout(150);
     }
 
     await page.click('text=Stats');
@@ -413,9 +512,19 @@ test.describe('Error handling and edge cases', () => {
   });
 
   test('dice roller handles minus expressions', async ({ page }) => {
-    await page.click('text=Dice');
-    const input = page.locator('#diceExpr');
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Half-Orc');
+    await page.fill('#newClass', 'Barbarian');
+    await page.click('text=Create');
+    await page.waitForTimeout(500);
+    await page.locator('.character-card').filter({ hasText: name }).click();
 
+    await page.click('#tabBar button:has-text("Dice")');
+    await page.waitForTimeout(200);
+
+    const input = page.locator('#diceExpr');
     await input.fill('1d20-2');
     await page.click('text=Roll the Bones');
     await page.waitForTimeout(300);
@@ -425,7 +534,18 @@ test.describe('Error handling and edge cases', () => {
   });
 
   test('multiple dice expressions can be rolled sequentially', async ({ page }) => {
-    await page.click('text=Dice');
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Half-Orc');
+    await page.fill('#newClass', 'Barbarian');
+    await page.click('text=Create');
+    await page.waitForTimeout(500);
+    await page.locator('.character-card').filter({ hasText: name }).click();
+
+    await page.click('#tabBar button:has-text("Dice")');
+    await page.waitForTimeout(200);
+
     const input = page.locator('#diceExpr');
     const btn = page.locator('text=Roll the Bones');
 

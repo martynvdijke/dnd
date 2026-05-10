@@ -18,12 +18,12 @@ func Init(dbPath string) error {
 	}
 
 	var err error
-	DB, err = sql.Open("sqlite3", dbPath+"?_journal_mode=WAL&_fk_on=1")
+	DB, err = sql.Open("sqlite3", dbPath+"?_journal_mode=WAL&_fk_on=1&_busy_timeout=5000")
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)
 	}
 
-	DB.SetMaxOpenConns(1)
+	DB.SetMaxOpenConns(4)
 
 	if err := DB.Ping(); err != nil {
 		return fmt.Errorf("ping db: %w", err)

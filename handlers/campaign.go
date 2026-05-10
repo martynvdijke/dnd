@@ -21,7 +21,7 @@ func ListLocations(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
-	var out []models.Location
+	var out = make([]models.Location, 0)
 	for rows.Next() {
 		var l models.Location
 		rows.Scan(&l.ID, &l.UserID, &l.Name, &l.Type, &l.Description, &l.ParentID, &l.Latitude, &l.Longitude, &l.CreatedAt)
@@ -139,7 +139,7 @@ func GetCharacterLocations(c *gin.Context) {
 		LocationType string `json:"location_type"`
 		Description  string `json:"description"`
 	}
-	var out []LocLink
+	var out = make([]LocLink, 0)
 	for rows.Next() {
 		var ll LocLink
 		rows.Scan(&ll.ID, &ll.CharacterID, &ll.LocationID, &ll.Relationship, &ll.Notes,
@@ -159,7 +159,7 @@ func ListNPCs(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
-	var out []models.NPC
+	var out = make([]models.NPC, 0)
 	for rows.Next() {
 		var n models.NPC
 		rows.Scan(&n.ID, &n.UserID, &n.Name, &n.Race, &n.Class, &n.Description, &n.Notes,
@@ -284,7 +284,7 @@ func GetCharacterNPCs(c *gin.Context) {
 		NPHPCurr        int    `json:"npc_hp_current"`
 		NPCAlive        bool   `json:"npc_is_alive"`
 	}
-	var out []NPCLink
+	var out = make([]NPCLink, 0)
 	for rows.Next() {
 		var nl NPCLink
 		rows.Scan(&nl.ID, &nl.CharacterID, &nl.NPCID, &nl.Relationship, &nl.Notes,
@@ -305,7 +305,7 @@ func ListSessions(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
-	var out []models.Session
+	var out = make([]models.Session, 0)
 	for rows.Next() {
 		var s models.Session
 		rows.Scan(&s.ID, &s.CharacterID, &s.SessionDate, &s.Title, &s.Notes, &s.XPEarned, &s.GoldEarned, &s.ImportantEvents, &s.CreatedAt)
@@ -379,7 +379,7 @@ func ListQuests(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
-	var out []models.Quest
+	var out = make([]models.Quest, 0)
 	for rows.Next() {
 		var q models.Quest
 		rows.Scan(&q.ID, &q.CharacterID, &q.Name, &q.Description, &q.Status, &q.Objectives, &q.Rewards, &q.Notes, &q.CreatedAt, &q.UpdatedAt)
@@ -446,7 +446,7 @@ func ListJournal(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
-	var out []models.JournalEntry
+	var out = make([]models.JournalEntry, 0)
 	for rows.Next() {
 		var j models.JournalEntry
 		rows.Scan(&j.ID, &j.CharacterID, &j.Title, &j.Entry, &j.EntryDate, &j.CreatedAt)
@@ -735,7 +735,7 @@ func ListCampaigns(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
-	var out []models.Campaign
+	var out = make([]models.Campaign, 0)
 	for rows.Next() {
 		var ca models.Campaign
 		rows.Scan(&ca.ID, &ca.UserID, &ca.Name, &ca.Description, &ca.DMNotes, &ca.CreatedAt)

@@ -21,7 +21,7 @@ func ListCompendiumRaces(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
-	var out []models.CompendiumRace
+	var out = make([]models.CompendiumRace, 0)
 	for rows.Next() {
 		var r models.CompendiumRace
 		rows.Scan(&r.ID, &r.Name, &r.Description, &r.Speed, &r.Size, &r.AbilityBonuses, &r.Traits, &r.Languages, &r.SourcePage)
@@ -37,7 +37,7 @@ func ListCompendiumClasses(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
-	var out []models.CompendiumClass
+	var out = make([]models.CompendiumClass, 0)
 	for rows.Next() {
 		var cl models.CompendiumClass
 		rows.Scan(&cl.ID, &cl.Name, &cl.Description, &cl.HitDie, &cl.PrimaryAbility, &cl.SavingThrows, &cl.Proficiencies, &cl.SpellcastingAbility, &cl.SourcePage)
@@ -74,7 +74,7 @@ func ListCompendiumSpells(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
-	var out []models.CompendiumSpell
+	var out = make([]models.CompendiumSpell, 0)
 	for rows.Next() {
 		var s models.CompendiumSpell
 		rows.Scan(&s.ID, &s.Name, &s.Level, &s.School, &s.CastingTime, &s.Range, &s.Components, &s.Duration, &s.Description, &s.HigherLevels, &s.Classes, &s.SourcePage)
@@ -90,7 +90,7 @@ func ListCompendiumFeats(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
-	var out []models.CompendiumFeat
+	var out = make([]models.CompendiumFeat, 0)
 	for rows.Next() {
 		var f models.CompendiumFeat
 		rows.Scan(&f.ID, &f.Name, &f.Description, &f.Prerequisites, &f.SourcePage)
@@ -106,7 +106,7 @@ func ListCompendiumBackgrounds(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
-	var out []models.CompendiumBackground
+	var out = make([]models.CompendiumBackground, 0)
 	for rows.Next() {
 		var b models.CompendiumBackground
 		rows.Scan(&b.ID, &b.Name, &b.Description, &b.FeatureName, &b.FeatureDescription, &b.Proficiencies, &b.SourcePage)
@@ -135,7 +135,7 @@ func ListCompendiumEquipment(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
-	var out []models.CompendiumEquipment
+	var out = make([]models.CompendiumEquipment, 0)
 	for rows.Next() {
 		var e models.CompendiumEquipment
 		rows.Scan(&e.ID, &e.Name, &e.Category, &e.Cost, &e.Weight, &e.Description, &e.SourcePage)

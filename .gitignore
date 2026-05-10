@@ -10,3 +10,5 @@ media/
 playwright-report/
 test-results/
 tmp/*
+static/js/*.js
+static/js/*.js.map
