@@ -1294,7 +1294,9 @@ async function renderAnalytics() {
 // ─── Dice ───
 
 function renderDiceTab() {
-  const el = document.getElementById('diceSection')!;
+  const targetId = currentView === 'dice' ? 'diceViewSection' : 'diceSection';
+  const el = document.getElementById(targetId);
+  if (!el) return;
   el.innerHTML = `
     <div class="text-center">
       <h5>Dice Roller</h5>
@@ -1311,6 +1313,7 @@ function renderDiceTab() {
     </div>`;
   loadDiceHistory();
 }
+(window as any).renderDiceTab = renderDiceTab;
 
 async function doRoll() {
   const expr = (document.getElementById('diceExpr') as HTMLInputElement).value;
@@ -1333,7 +1336,7 @@ async function loadDiceHistory() {
   try {
     const rolls = await api('GET', '/api/dice-rolls' + (currentChar ? `?character_id=${currentChar.id}` : ''));
     el.innerHTML = rolls.slice(0, 20).map((r:any) =>
-      `<div class="d-flex justify-content-between py-1 border-bottom">
+      `<div class="d-flex justify-content-between py-1 border-bottom dice-history-item">
         <span>${esc(r.expression)}</span>
         <span><strong>${r.total}</strong> <span class="text-muted small">${esc(r.result)}</span></span>
       </div>`
@@ -1561,6 +1564,22 @@ async function loadCompendiumEquipment() {
       </div>`).join('');
   } catch {}
 }
+
+// ─── Delete Character ───
+
+(window as any).deleteChar = async function () {
+  if (!currentChar) return;
+  if (!confirm('Delete this character?')) return;
+  try {
+    await api('DELETE', `/api/characters/${currentChar.id}`);
+    currentChar = null;
+    showView('characters');
+    loadCharacters();
+    toast('Character deleted');
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
 
 // ─── Logout ───
 

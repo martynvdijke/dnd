@@ -1,105 +1,107 @@
-let csrfToken = '';
-let currentUser = null;
-let currentView = 'characters';
-let currentChar = null;
-let currentTab = 'stats';
-let allLocations = [];
-let allNPCs = [];
-// ─── Utilities ───
-function esc(s) {
-    if (!s)
-        return '';
-    const d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
-}
-function capitalize(s) {
-    return s.charAt(0).toUpperCase() + s.slice(1);
-}
-// ─── API ───
-async function api(method, path, body) {
-    const headers = { 'Content-Type': 'application/json' };
-    if (csrfToken)
-        headers['X-CSRF-Token'] = csrfToken;
-    const opts = { method, headers, credentials: 'include' };
-    if (body !== undefined)
-        opts.body = JSON.stringify(body);
-    const res = await fetch(path, opts);
-    if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(err.error || 'Request failed');
+"use strict";
+(() => {
+    let csrfToken = '';
+    let currentUser = null;
+    let currentView = 'characters';
+    let currentChar = null;
+    let currentTab = 'stats';
+    let allLocations = [];
+    let allNPCs = [];
+    // ─── Utilities ───
+    function esc(s) {
+        if (!s)
+            return '';
+        const d = document.createElement('div');
+        d.textContent = s;
+        return d.innerHTML;
     }
-    return res.json();
-}
-// ─── Bootstrap Modal ───
-let genericModal = null;
-function getModal() {
-    if (!genericModal) {
-        genericModal = new bootstrap.Modal(document.getElementById('genericModal'));
+    function capitalize(s) {
+        return s.charAt(0).toUpperCase() + s.slice(1);
     }
-    return genericModal;
-}
-function showModal(title, bodyHtml) {
-    document.getElementById('genericModalTitle').textContent = title;
-    document.getElementById('genericModalBody').innerHTML = bodyHtml;
-    getModal().show();
-}
-window.showModal = showModal;
-function hideModal() {
-    getModal().hide();
-}
-window.hideModal = hideModal;
-// ─── Bootstrap Toast ───
-function toast(msg, isError = false) {
-    const container = document.getElementById('toastContainer');
-    const id = 'toast-' + Date.now();
-    const bg = isError ? 'bg-danger' : 'bg-success';
-    container.innerHTML += `
+    // ─── API ───
+    async function api(method, path, body) {
+        const headers = { 'Content-Type': 'application/json' };
+        if (csrfToken)
+            headers['X-CSRF-Token'] = csrfToken;
+        const opts = { method, headers, credentials: 'include' };
+        if (body !== undefined)
+            opts.body = JSON.stringify(body);
+        const res = await fetch(path, opts);
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({ error: res.statusText }));
+            throw new Error(err.error || 'Request failed');
+        }
+        return res.json();
+    }
+    // ─── Bootstrap Modal ───
+    let genericModal = null;
+    function getModal() {
+        if (!genericModal) {
+            genericModal = new bootstrap.Modal(document.getElementById('genericModal'));
+        }
+        return genericModal;
+    }
+    function showModal(title, bodyHtml) {
+        document.getElementById('genericModalTitle').textContent = title;
+        document.getElementById('genericModalBody').innerHTML = bodyHtml;
+        getModal().show();
+    }
+    window.showModal = showModal;
+    function hideModal() {
+        getModal().hide();
+    }
+    window.hideModal = hideModal;
+    // ─── Bootstrap Toast ───
+    function toast(msg, isError = false) {
+        const container = document.getElementById('toastContainer');
+        const id = 'toast-' + Date.now();
+        const bg = isError ? 'bg-danger' : 'bg-success';
+        container.innerHTML += `
     <div class="toast align-items-center text-white ${bg} border-0 mb-2" id="${id}" role="alert">
       <div class="d-flex">
         <div class="toast-body">${esc(msg)}</div>
         <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
       </div>
     </div>`;
-    const el = document.getElementById(id);
-    new bootstrap.Toast(el, { autohide: true, delay: 5000 }).show();
-    setTimeout(() => el.remove(), 6000);
-}
-// ─── Init ───
-async function init() {
-    try {
-        const user = await api('GET', '/api/user/me');
-        currentUser = user;
-        const tokenRes = await api('GET', '/api/csrf-token');
-        csrfToken = tokenRes.token;
-        document.getElementById('userName').textContent = user.username;
-        if (user.role === 'admin') {
-            document.getElementById('adminNavItem').style.display = '';
+        const el = document.getElementById(id);
+        new bootstrap.Toast(el, { autohide: true, delay: 5000 }).show();
+        setTimeout(() => el.remove(), 6000);
+    }
+    // ─── Init ───
+    async function init() {
+        try {
+            const user = await api('GET', '/api/user/me');
+            currentUser = user;
+            const tokenRes = await api('GET', '/api/csrf-token');
+            csrfToken = tokenRes.token;
+            document.getElementById('userName').textContent = user.username;
+            if (user.role === 'admin') {
+                document.getElementById('adminNavItem').style.display = '';
+            }
+            showView('characters');
+            loadCharacters();
+            api('GET', '/api/locations').then(l => allLocations = l).catch(() => { });
+            api('GET', '/api/npcs').then(n => allNPCs = n).catch(() => { });
         }
-        showView('characters');
-        loadCharacters();
-        api('GET', '/api/locations').then(l => allLocations = l).catch(() => { });
-        api('GET', '/api/npcs').then(n => allNPCs = n).catch(() => { });
+        catch {
+            window.location.href = '/login';
+        }
     }
-    catch {
-        window.location.href = '/login';
+    function showView(view) {
+        currentView = view;
+        document.getElementById('charactersView').style.display = view === 'characters' || view === 'sheet' ? 'block' : 'none';
+        document.getElementById('sheetView').style.display = view === 'sheet' ? 'block' : 'none';
+        document.getElementById('diceView').style.display = view === 'dice' ? 'block' : 'none';
+        document.getElementById('compendiumView').style.display = view === 'compendium' ? 'block' : 'none';
+        document.getElementById('partyView').style.display = view === 'party' ? 'block' : 'none';
     }
-}
-function showView(view) {
-    currentView = view;
-    document.getElementById('charactersView').style.display = view === 'characters' || view === 'sheet' ? 'block' : 'none';
-    document.getElementById('sheetView').style.display = view === 'sheet' ? 'block' : 'none';
-    document.getElementById('diceView').style.display = view === 'dice' ? 'block' : 'none';
-    document.getElementById('compendiumView').style.display = view === 'compendium' ? 'block' : 'none';
-    document.getElementById('partyView').style.display = view === 'party' ? 'block' : 'none';
-}
-window.showView = showView;
-// ─── Character List ───
-async function loadCharacters() {
-    try {
-        const chars = await api('GET', '/api/characters');
-        const grid = document.getElementById('charGrid');
-        grid.innerHTML = chars.map((c) => `
+    window.showView = showView;
+    // ─── Character List ───
+    async function loadCharacters() {
+        try {
+            const chars = await api('GET', '/api/characters');
+            const grid = document.getElementById('charGrid');
+            grid.innerHTML = chars.map((c) => `
       <div class="col-md-6 col-lg-4">
         <div class="character-card" onclick="openChar(${c.id})">
           <div class="char-name">${esc(c.name)}</div>
@@ -108,162 +110,162 @@ async function loadCharacters() {
         </div>
       </div>
     `).join('');
+        }
+        catch (e) {
+            toast(e.message, true);
+        }
     }
-    catch (e) {
-        toast(e.message, true);
+    window.loadCharacters = loadCharacters;
+    async function openChar(id) {
+        try {
+            currentChar = await api('GET', `/api/characters/${id}`);
+            currentTab = 'stats';
+            showView('sheet');
+            renderSheet();
+        }
+        catch (e) {
+            toast(e.message, true);
+        }
     }
-}
-window.loadCharacters = loadCharacters;
-async function openChar(id) {
-    try {
-        currentChar = await api('GET', `/api/characters/${id}`);
-        currentTab = 'stats';
-        showView('sheet');
-        renderSheet();
-    }
-    catch (e) {
-        toast(e.message, true);
-    }
-}
-window.openChar = openChar;
-// ─── Character Sheet ───
-const sections = ['stats', 'combat', 'spells', 'inventory', 'features', 'locations', 'npcs', 'sessions', 'quests', 'journal', 'graph', 'analytics', 'details', 'dice'];
-function renderSheet() {
-    if (!currentChar)
-        return;
-    const c = currentChar;
-    document.getElementById('sheetName').textContent = c.name;
-    document.getElementById('sheetSubtitle').textContent =
-        `${c.race} ${c.class}${c.subclass ? ' (' + c.subclass + ')' : ''} · Level ${c.level}`;
-    const tabBar = document.getElementById('tabBar');
-    tabBar.innerHTML = sections.map(s => `
+    window.openChar = openChar;
+    // ─── Character Sheet ───
+    const sections = ['stats', 'combat', 'spells', 'inventory', 'features', 'locations', 'npcs', 'sessions', 'quests', 'journal', 'graph', 'analytics', 'details', 'dice'];
+    function renderSheet() {
+        if (!currentChar)
+            return;
+        const c = currentChar;
+        document.getElementById('sheetName').textContent = c.name;
+        document.getElementById('sheetSubtitle').textContent =
+            `${c.race} ${c.class}${c.subclass ? ' (' + c.subclass + ')' : ''} · Level ${c.level}`;
+        const tabBar = document.getElementById('tabBar');
+        tabBar.innerHTML = sections.map(s => `
     <li class="nav-item"><button class="nav-link ${s === currentTab ? 'active' : ''}" onclick="switchTab('${s}')">${capitalize(s)}</button></li>
   `).join('');
-    sections.forEach(s => {
-        const el = document.getElementById(s + 'Section');
-        el.style.display = s === currentTab ? 'block' : 'none';
-    });
-    renderStats();
-    renderCombat();
-    renderSpells();
-    renderInventory();
-    renderFeatures();
-    if (currentTab === 'locations')
-        renderLocations();
-    if (currentTab === 'npcs')
-        renderNPCs();
-    if (currentTab === 'sessions')
-        renderSessions();
-    if (currentTab === 'quests')
-        renderQuests();
-    if (currentTab === 'journal')
-        renderJournal();
-    if (currentTab === 'graph')
-        renderGraph();
-    if (currentTab === 'analytics')
-        renderAnalytics();
-    renderDetails();
-    renderDiceTab();
-}
-function switchTab(tab) {
-    currentTab = tab;
-    renderSheet();
-}
-window.switchTab = switchTab;
-// ─── Roll / Combat Actions ───
-async function rollCheck(type, name, adv) {
-    if (!currentChar)
-        return;
-    try {
-        const result = await api('POST', '/api/roll/check', {
-            character_id: currentChar.id, type, name, advantage: adv,
+        sections.forEach(s => {
+            const el = document.getElementById(s + 'Section');
+            el.style.display = s === currentTab ? 'block' : 'none';
         });
-        toast(result.text);
+        renderStats();
+        renderCombat();
+        renderSpells();
+        renderInventory();
+        renderFeatures();
+        if (currentTab === 'locations')
+            renderLocations();
+        if (currentTab === 'npcs')
+            renderNPCs();
+        if (currentTab === 'sessions')
+            renderSessions();
+        if (currentTab === 'quests')
+            renderQuests();
+        if (currentTab === 'journal')
+            renderJournal();
+        if (currentTab === 'graph')
+            renderGraph();
+        if (currentTab === 'analytics')
+            renderAnalytics();
+        renderDetails();
+        renderDiceTab();
     }
-    catch (e) {
-        toast(e.message, true);
-    }
-}
-window.rollCheck = rollCheck;
-async function applyDamage() {
-    if (!currentChar)
-        return;
-    const dmg = parseInt(document.getElementById('dmgInput')?.value || '0');
-    if (!dmg)
-        return;
-    const newHp = Math.max(0, currentChar.hp_current - dmg);
-    await updateField('hp_current', newHp);
-}
-window.applyDamage = applyDamage;
-async function applyHeal() {
-    if (!currentChar)
-        return;
-    const heal = parseInt(document.getElementById('healInput')?.value || '0');
-    if (!heal)
-        return;
-    const newHp = Math.min(currentChar.hp_max, currentChar.hp_current + heal);
-    await updateField('hp_current', newHp);
-}
-window.applyHeal = applyHeal;
-async function doRest(type) {
-    if (!currentChar)
-        return;
-    try {
-        const result = await api('POST', `/api/characters/${currentChar.id}/rest`, { rest_type: type, hit_dice_count: type === 'short' ? 1 : 0 });
-        toast(`${type} rest: healed ${result.hp_healed} HP`);
-        currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+    function switchTab(tab) {
+        currentTab = tab;
         renderSheet();
     }
-    catch (e) {
-        toast(e.message, true);
+    window.switchTab = switchTab;
+    // ─── Roll / Combat Actions ───
+    async function rollCheck(type, name, adv) {
+        if (!currentChar)
+            return;
+        try {
+            const result = await api('POST', '/api/roll/check', {
+                character_id: currentChar.id, type, name, advantage: adv,
+            });
+            toast(result.text);
+        }
+        catch (e) {
+            toast(e.message, true);
+        }
     }
-}
-window.doRest = doRest;
-async function doLevelUp() {
-    if (!currentChar)
-        return;
-    try {
-        const result = await api('POST', `/api/characters/${currentChar.id}/levelup`);
-        toast(`Level Up! Now level ${result.new_level} (+${result.hp_gain} HP)`);
-        currentChar = await api('GET', `/api/characters/${currentChar.id}`);
-        renderSheet();
+    window.rollCheck = rollCheck;
+    async function applyDamage() {
+        if (!currentChar)
+            return;
+        const dmg = parseInt(document.getElementById('dmgInput')?.value || '0');
+        if (!dmg)
+            return;
+        const newHp = Math.max(0, currentChar.hp_current - dmg);
+        await updateField('hp_current', newHp);
     }
-    catch (e) {
-        toast(e.message, true);
+    window.applyDamage = applyDamage;
+    async function applyHeal() {
+        if (!currentChar)
+            return;
+        const heal = parseInt(document.getElementById('healInput')?.value || '0');
+        if (!heal)
+            return;
+        const newHp = Math.min(currentChar.hp_max, currentChar.hp_current + heal);
+        await updateField('hp_current', newHp);
     }
-}
-window.doLevelUp = doLevelUp;
-async function updateField(field, value) {
-    if (!currentChar)
-        return;
-    currentChar[field] = value;
-    try {
-        await api('PUT', `/api/characters/${currentChar.id}`, currentChar);
+    window.applyHeal = applyHeal;
+    async function doRest(type) {
+        if (!currentChar)
+            return;
+        try {
+            const result = await api('POST', `/api/characters/${currentChar.id}/rest`, { rest_type: type, hit_dice_count: type === 'short' ? 1 : 0 });
+            toast(`${type} rest: healed ${result.hp_healed} HP`);
+            currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+            renderSheet();
+        }
+        catch (e) {
+            toast(e.message, true);
+        }
     }
-    catch (e) {
-        toast(e.message, true);
+    window.doRest = doRest;
+    async function doLevelUp() {
+        if (!currentChar)
+            return;
+        try {
+            const result = await api('POST', `/api/characters/${currentChar.id}/levelup`);
+            toast(`Level Up! Now level ${result.new_level} (+${result.hp_gain} HP)`);
+            currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+            renderSheet();
+        }
+        catch (e) {
+            toast(e.message, true);
+        }
     }
-}
-window.updateField = updateField;
-// ─── Stats ───
-function renderStats() {
-    const c = currentChar;
-    const el = document.getElementById('statsSection');
-    const abils = ['str', 'dex', 'con', 'int', 'wis', 'cha'].map(k => ({ key: k, label: k.toUpperCase() }));
-    el.innerHTML = `
+    window.doLevelUp = doLevelUp;
+    async function updateField(field, value) {
+        if (!currentChar)
+            return;
+        currentChar[field] = value;
+        try {
+            await api('PUT', `/api/characters/${currentChar.id}`, currentChar);
+        }
+        catch (e) {
+            toast(e.message, true);
+        }
+    }
+    window.updateField = updateField;
+    // ─── Stats ───
+    function renderStats() {
+        const c = currentChar;
+        const el = document.getElementById('statsSection');
+        const abils = ['str', 'dex', 'con', 'int', 'wis', 'cha'].map(k => ({ key: k, label: k.toUpperCase() }));
+        el.innerHTML = `
     <div class="row g-3">
       ${abils.map(a => {
-        const val = c[a.key];
-        const mod = c[`${a.key}_mod`];
-        const cls = mod > 0 ? 'text-success' : mod < 0 ? 'text-danger' : 'text-muted';
-        return `<div class="col-4 col-md-2">
+            const val = c[a.key];
+            const mod = c[`${a.key}_mod`];
+            const cls = mod > 0 ? 'text-success' : mod < 0 ? 'text-danger' : 'text-muted';
+            return `<div class="col-4 col-md-2">
           <div class="ability-box" onclick="rollCheck('check','${a.key}','normal')">
             <div class="abil-label">${a.label}</div>
             <div class="abil-value">${val}</div>
             <div class="abil-mod ${cls}">${mod >= 0 ? '+' : ''}${mod}</div>
           </div>
         </div>`;
-    }).join('')}
+        }).join('')}
     </div>
     <div class="d-flex gap-2 mt-3">
       <button class="btn btn-sm btn-outline-primary" onclick="rollCheck('check','str','advantage')"><i class="fa-solid fa-chevron-up me-1"></i>Advantage</button>
@@ -282,32 +284,32 @@ function renderStats() {
     <div id="profsArea">${(c.proficiencies || []).map((p) => `<span class="badge badge-blood me-1 mb-1">${esc(p.name)} (${p.type}) <a href="#" onclick="deleteProf(${p.id});return false" class="text-white text-decoration-none">×</a></span>`).join('')}</div>
     <button class="btn btn-sm btn-outline-primary mt-2" onclick="addProf()"><i class="fa-solid fa-plus me-1"></i>Add Proficiency</button>
   `;
-}
-function renderSkills(c) {
-    const skls = [
-        { name: 'Athletics', abil: 'str' }, { name: 'Acrobatics', abil: 'dex' }, { name: 'Sleight of Hand', abil: 'dex' }, { name: 'Stealth', abil: 'dex' },
-        { name: 'Arcana', abil: 'int' }, { name: 'History', abil: 'int' }, { name: 'Investigation', abil: 'int' }, { name: 'Nature', abil: 'int' }, { name: 'Religion', abil: 'int' },
-        { name: 'Animal Handling', abil: 'wis' }, { name: 'Insight', abil: 'wis' }, { name: 'Medicine', abil: 'wis' }, { name: 'Perception', abil: 'wis' }, { name: 'Survival', abil: 'wis' },
-        { name: 'Deception', abil: 'cha' }, { name: 'Intimidation', abil: 'cha' }, { name: 'Performance', abil: 'cha' }, { name: 'Persuasion', abil: 'cha' },
-    ];
-    const profs = (c.proficiencies || []).filter((p) => p.type === 'skill').map((p) => p.name.toLowerCase());
-    return skls.map(s => {
-        const isProf = profs.includes(s.name.toLowerCase());
-        const mod = c[`${s.abil}_mod`];
-        const total = isProf ? mod + c.proficiency_bonus : mod;
-        const sign = total >= 0 ? '+' : '';
-        return `<div class="skill-row d-flex justify-content-between" onclick="rollCheck('skill','${s.name}','normal')">
+    }
+    function renderSkills(c) {
+        const skls = [
+            { name: 'Athletics', abil: 'str' }, { name: 'Acrobatics', abil: 'dex' }, { name: 'Sleight of Hand', abil: 'dex' }, { name: 'Stealth', abil: 'dex' },
+            { name: 'Arcana', abil: 'int' }, { name: 'History', abil: 'int' }, { name: 'Investigation', abil: 'int' }, { name: 'Nature', abil: 'int' }, { name: 'Religion', abil: 'int' },
+            { name: 'Animal Handling', abil: 'wis' }, { name: 'Insight', abil: 'wis' }, { name: 'Medicine', abil: 'wis' }, { name: 'Perception', abil: 'wis' }, { name: 'Survival', abil: 'wis' },
+            { name: 'Deception', abil: 'cha' }, { name: 'Intimidation', abil: 'cha' }, { name: 'Performance', abil: 'cha' }, { name: 'Persuasion', abil: 'cha' },
+        ];
+        const profs = (c.proficiencies || []).filter((p) => p.type === 'skill').map((p) => p.name.toLowerCase());
+        return skls.map(s => {
+            const isProf = profs.includes(s.name.toLowerCase());
+            const mod = c[`${s.abil}_mod`];
+            const total = isProf ? mod + c.proficiency_bonus : mod;
+            const sign = total >= 0 ? '+' : '';
+            return `<div class="skill-row d-flex justify-content-between" onclick="rollCheck('skill','${s.name}','normal')">
       <span class="skill-name">${s.name}${isProf ? ' <span class="text-primary">★</span>' : ''}</span>
       <span class="fw-bold">${sign}${total}</span>
     </div>`;
-    }).join('');
-}
-// ─── Combat ───
-function renderCombat() {
-    const c = currentChar;
-    const el = document.getElementById('combatSection');
-    const pct = c.hp_max > 0 ? Math.round((c.hp_current / c.hp_max) * 100) : 0;
-    el.innerHTML = `
+        }).join('');
+    }
+    // ─── Combat ───
+    function renderCombat() {
+        const c = currentChar;
+        const el = document.getElementById('combatSection');
+        const pct = c.hp_max > 0 ? Math.round((c.hp_current / c.hp_max) * 100) : 0;
+        el.innerHTML = `
     <div class="row g-3">
       <div class="col-4"><div class="combat-stat"><div class="stat-label">AC</div><div class="stat-value">${c.ac}</div></div></div>
       <div class="col-4"><div class="combat-stat"><div class="stat-label">Initiative</div><div class="stat-value">${c.initiative >= 0 ? '+' : ''}${c.initiative}</div></div></div>
@@ -341,11 +343,11 @@ function renderCombat() {
     <h5 class="mt-3">Saving Throws <small class="text-muted fw-normal">(click to roll)</small></h5>
     <div class="d-flex flex-wrap gap-1 mb-3">
       ${['str', 'dex', 'con', 'int', 'wis', 'cha'].map(a => {
-        const mod = c[`${a}_mod`];
-        const total = c.proficiency_bonus + mod;
-        const sign = total >= 0 ? '+' : '';
-        return `<span class="badge badge-gold" style="cursor:pointer" onclick="rollCheck('save','${a}','normal')">${a.toUpperCase()} ${sign}${total}</span>`;
-    }).join('')}
+            const mod = c[`${a}_mod`];
+            const total = c.proficiency_bonus + mod;
+            const sign = total >= 0 ? '+' : '';
+            return `<span class="badge badge-gold" style="cursor:pointer" onclick="rollCheck('save','${a}','normal')">${a.toUpperCase()} ${sign}${total}</span>`;
+        }).join('')}
     </div>
     <h5 class="mt-3">Death Saves</h5>
     <div class="row g-2">
@@ -363,29 +365,29 @@ function renderCombat() {
       <div class="col-6"><label class="form-label small">Total</label><input type="number" class="form-control form-control-sm" value="${c.hit_dice_total}" onchange="updateField('hit_dice_total',+this.value)"></div>
       <div class="col-6"><label class="form-label small">Used</label><input type="number" class="form-control form-control-sm" value="${c.hit_dice_used}" onchange="updateField('hit_dice_used',+this.value)"></div>
     </div>`;
-}
-// ─── Currency ───
-async function updateCurrency() {
-    if (!currentChar)
-        return;
-    const coins = ['cp', 'sp', 'ep', 'gp', 'pp'];
-    const updates = {};
-    coins.forEach(c => { updates[c] = +document.getElementById('coin' + c)?.value || 0; });
-    await api('PUT', `/api/characters/${currentChar.id}/currency`, updates);
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
-    toast('Currency updated');
-}
-window.updateCurrency = updateCurrency;
-// ─── Inventory ───
-function renderInventory() {
-    const inv = currentChar.inventory || [];
-    const categories = { weapon: [], armor: [], gear: [], potion: [], scroll: [], tool: [], wondrous: [], other: [] };
-    inv.forEach((i) => { if (categories[i.category])
-        categories[i.category].push(i);
-    else
-        categories.other.push(i); });
-    const total = inv.reduce((s, i) => s + (i.weight || 0) * (i.quantity || 1), 0);
-    document.getElementById('inventorySection').innerHTML = `
+    }
+    // ─── Currency ───
+    async function updateCurrency() {
+        if (!currentChar)
+            return;
+        const coins = ['cp', 'sp', 'ep', 'gp', 'pp'];
+        const updates = {};
+        coins.forEach(c => { updates[c] = +document.getElementById('coin' + c)?.value || 0; });
+        await api('PUT', `/api/characters/${currentChar.id}/currency`, updates);
+        currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+        toast('Currency updated');
+    }
+    window.updateCurrency = updateCurrency;
+    // ─── Inventory ───
+    function renderInventory() {
+        const inv = currentChar.inventory || [];
+        const categories = { weapon: [], armor: [], gear: [], potion: [], scroll: [], tool: [], wondrous: [], other: [] };
+        inv.forEach((i) => { if (categories[i.category])
+            categories[i.category].push(i);
+        else
+            categories.other.push(i); });
+        const total = inv.reduce((s, i) => s + (i.weight || 0) * (i.quantity || 1), 0);
+        document.getElementById('inventorySection').innerHTML = `
     <div class="d-flex justify-content-between align-items-center">
       <h5>Inventory <span class="text-muted small">(Total: ${total} lbs)</span></h5>
       <div><button class="btn btn-primary btn-sm" onclick="addInventory()"><i class="fa-solid fa-plus me-1"></i>Add Item</button></div>
@@ -407,9 +409,9 @@ function renderInventory() {
           </div>`).join('')}
       `).join('') || '<div class="empty-state"><i class="fa-solid fa-backpack fa-2x mb-2 d-block text-muted"></i>No items. Add gear to your inventory.</div>'}
     </div>`;
-}
-window.addInventory = function () {
-    showModal('Add Item', `
+    }
+    window.addInventory = function () {
+        showModal('Add Item', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="invName"></div>
     <div class="row g-3 mb-3">
       <div class="col-6"><label class="form-label">Quantity</label><input class="form-control" id="invQty" type="number" value="1"></div>
@@ -423,9 +425,9 @@ window.addInventory = function () {
       </select></div>
     <button class="btn btn-primary w-100" onclick="saveInventory(this)"><i class="fa-solid fa-plus me-1"></i>Add</button>
   `);
-};
-window.editInventory = function (id, name, qty, cat, weight, equipped) {
-    showModal('Edit Item', `
+    };
+    window.editInventory = function (id, name, qty, cat, weight, equipped) {
+        showModal('Edit Item', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="invName" value="${esc(name)}"></div>
     <div class="row g-3 mb-3">
       <div class="col-6"><label class="form-label">Quantity</label><input class="form-control" id="invQty" type="number" value="${qty}"></div>
@@ -436,55 +438,55 @@ window.editInventory = function (id, name, qty, cat, weight, equipped) {
     <div class="mb-3"><div class="form-check"><input type="checkbox" class="form-check-input" id="invEquip"${equipped ? ' checked' : ''}><label class="form-check-label">Equipped</label></div></div>
     <button class="btn btn-primary w-100" onclick="saveEditInventory(${id},this)">Save</button>
   `);
-};
-window.saveInventory = async function (btn) {
-    await api('POST', `/api/characters/${currentChar.id}/inventory`, {
-        name: document.getElementById('invName').value,
-        quantity: +document.getElementById('invQty').value || 1,
-        weight: +document.getElementById('invWeight').value || 0,
-        category: document.getElementById('invCat').value,
-    });
-    hideModal();
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
-    renderInventory();
-    toast('Item added');
-};
-window.saveEditInventory = async function (id, btn) {
-    await api('PUT', `/api/inventory/${id}`, {
-        name: document.getElementById('invName').value,
-        quantity: +document.getElementById('invQty').value || 1,
-        weight: +document.getElementById('invWeight').value || 0,
-        category: document.getElementById('invCat').value,
-        equipped: document.getElementById('invEquip').checked,
-    });
-    hideModal();
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
-    renderInventory();
-    toast('Item updated');
-};
-window.deleteInventory = async function (id) {
-    if (!confirm('Remove this item?'))
-        return;
-    await api('DELETE', `/api/inventory/${id}`);
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
-    renderInventory();
-    toast('Item removed');
-};
-window.toggleEquip = async function (id) {
-    const item = currentChar.inventory.find((i) => i.id === id);
-    if (!item)
-        return;
-    item.equipped = !item.equipped;
-    await api('PUT', `/api/inventory/${id}`, item);
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
-    renderInventory();
-    toast(item.equipped ? 'Equipped' : 'Unequipped');
-};
-// ─── Spells ───
-function renderSpells() {
-    const spells = currentChar.spells || [];
-    const sc = currentChar.spellcasting || {};
-    document.getElementById('spellsSection').innerHTML = sc.spellcasting_ability ? `
+    };
+    window.saveInventory = async function (btn) {
+        await api('POST', `/api/characters/${currentChar.id}/inventory`, {
+            name: document.getElementById('invName').value,
+            quantity: +document.getElementById('invQty').value || 1,
+            weight: +document.getElementById('invWeight').value || 0,
+            category: document.getElementById('invCat').value,
+        });
+        hideModal();
+        currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+        renderInventory();
+        toast('Item added');
+    };
+    window.saveEditInventory = async function (id, btn) {
+        await api('PUT', `/api/inventory/${id}`, {
+            name: document.getElementById('invName').value,
+            quantity: +document.getElementById('invQty').value || 1,
+            weight: +document.getElementById('invWeight').value || 0,
+            category: document.getElementById('invCat').value,
+            equipped: document.getElementById('invEquip').checked,
+        });
+        hideModal();
+        currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+        renderInventory();
+        toast('Item updated');
+    };
+    window.deleteInventory = async function (id) {
+        if (!confirm('Remove this item?'))
+            return;
+        await api('DELETE', `/api/inventory/${id}`);
+        currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+        renderInventory();
+        toast('Item removed');
+    };
+    window.toggleEquip = async function (id) {
+        const item = currentChar.inventory.find((i) => i.id === id);
+        if (!item)
+            return;
+        item.equipped = !item.equipped;
+        await api('PUT', `/api/inventory/${id}`, item);
+        currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+        renderInventory();
+        toast(item.equipped ? 'Equipped' : 'Unequipped');
+    };
+    // ─── Spells ───
+    function renderSpells() {
+        const spells = currentChar.spells || [];
+        const sc = currentChar.spellcasting || {};
+        document.getElementById('spellsSection').innerHTML = sc.spellcasting_ability ? `
     <h5>Spellcasting</h5>
     <div class="row g-3 mb-3">
       <div class="col-md-4"><label class="form-label">Ability</label><input class="form-control form-control-sm" value="${esc(sc.spellcasting_ability)}" onchange="updateSpellcasting('spellcasting_ability',this.value)"></div>
@@ -494,15 +496,15 @@ function renderSpells() {
     <h6>Spell Slots</h6>
     <div class="d-flex gap-3 flex-wrap mb-3">
       ${[1, 2, 3, 4, 5, 6, 7, 8, 9].map(lv => {
-        const mx = sc[`slots_${lv}_max`] || 0;
-        if (!mx)
-            return '';
-        return `<div class="text-center">
+            const mx = sc[`slots_${lv}_max`] || 0;
+            if (!mx)
+                return '';
+            return `<div class="text-center">
           <div class="text-muted small">Lv ${lv}</div>
           <input type="number" class="form-control form-control-sm text-center" style="width:55px" id="slotUse${lv}" value="${sc[`slots_${lv}_used`] || 0}" onchange="updateSpellSlot(${lv})" min="0" max="${mx}">
           <div class="text-muted small">/ ${mx}</div>
         </div>`;
-    }).join('')}
+        }).join('')}
     </div>
     <div class="d-flex justify-content-between align-items-center mt-3">
       <h6>Known Spells</h6>
@@ -521,36 +523,36 @@ function renderSpells() {
     <div class="empty-state"><i class="fa-solid fa-wand-sparkles fa-2x mb-2 d-block text-muted"></i>
     <p class="text-muted fst-italic">No spellcasting.</p>
     <button class="btn btn-outline-primary btn-sm" onclick="enableSpellcasting()"><i class="fa-solid fa-magic me-1"></i>Set Up Spellcasting</button></div>`;
-}
-async function updateSpellcasting(field, value) {
-    if (!currentChar)
-        return;
-    const sc = currentChar.spellcasting || {};
-    sc[field] = value;
-    await api('PUT', `/api/characters/${currentChar.id}/spellcasting`, sc);
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
-    renderSpells();
-}
-window.updateSpellcasting = updateSpellcasting;
-async function updateSpellSlot(level) {
-    if (!currentChar)
-        return;
-    const sc = currentChar.spellcasting || {};
-    sc[`slots_${level}_used`] = +document.getElementById(`slotUse${level}`).value || 0;
-    await api('PUT', `/api/characters/${currentChar.id}/spellcasting`, sc);
-}
-window.updateSpellSlot = updateSpellSlot;
-window.enableSpellcasting = async function () {
-    currentChar.spellcasting = {
-        spellcasting_ability: 'int', spell_save_dc: 10, spell_attack_bonus: 0,
-        slots_1_max: 2, slots_1_used: 0,
+    }
+    async function updateSpellcasting(field, value) {
+        if (!currentChar)
+            return;
+        const sc = currentChar.spellcasting || {};
+        sc[field] = value;
+        await api('PUT', `/api/characters/${currentChar.id}/spellcasting`, sc);
+        currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+        renderSpells();
+    }
+    window.updateSpellcasting = updateSpellcasting;
+    async function updateSpellSlot(level) {
+        if (!currentChar)
+            return;
+        const sc = currentChar.spellcasting || {};
+        sc[`slots_${level}_used`] = +document.getElementById(`slotUse${level}`).value || 0;
+        await api('PUT', `/api/characters/${currentChar.id}/spellcasting`, sc);
+    }
+    window.updateSpellSlot = updateSpellSlot;
+    window.enableSpellcasting = async function () {
+        currentChar.spellcasting = {
+            spellcasting_ability: 'int', spell_save_dc: 10, spell_attack_bonus: 0,
+            slots_1_max: 2, slots_1_used: 0,
+        };
+        await api('PUT', `/api/characters/${currentChar.id}/spellcasting`, currentChar.spellcasting);
+        currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+        renderSpells();
     };
-    await api('PUT', `/api/characters/${currentChar.id}/spellcasting`, currentChar.spellcasting);
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
-    renderSpells();
-};
-window.addSpell = function () {
-    showModal('Add Spell', `
+    window.addSpell = function () {
+        showModal('Add Spell', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="spellName"></div>
     <div class="row g-3 mb-3">
       <div class="col-6"><label class="form-label">Level</label><input class="form-control" id="spellLevel" type="number" value="0" min="0" max="9"></div>
@@ -566,9 +568,9 @@ window.addSpell = function () {
     <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="spellDesc" rows="3"></textarea></div>
     <button class="btn btn-primary w-100" onclick="saveSpell(this)">Add Spell</button>
   `);
-};
-window.editSpell = function (id, name, level, school, prepared, comp, range, cast, dur, desc) {
-    showModal('Edit Spell', `
+    };
+    window.editSpell = function (id, name, level, school, prepared, comp, range, cast, dur, desc) {
+        showModal('Edit Spell', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="spellName" value="${esc(name)}"></div>
     <div class="row g-3 mb-3">
       <div class="col-6"><label class="form-label">Level</label><input class="form-control" id="spellLevel" type="number" value="${level}" min="0" max="9"></div>
@@ -585,52 +587,52 @@ window.editSpell = function (id, name, level, school, prepared, comp, range, cas
     <div class="mb-3"><div class="form-check"><input type="checkbox" class="form-check-input" id="spellPrep"${prepared ? ' checked' : ''}><label class="form-check-label">Prepared</label></div></div>
     <button class="btn btn-primary w-100" onclick="saveEditSpell(${id},this)">Save Spell</button>
   `);
-};
-window.saveSpell = async function (btn) {
-    await api('POST', `/api/characters/${currentChar.id}/spells`, {
-        name: document.getElementById('spellName').value,
-        level: +document.getElementById('spellLevel').value || 0,
-        school: document.getElementById('spellSchool').value,
-        casting_time: document.getElementById('spellCast').value,
-        range: document.getElementById('spellRange').value,
-        components: document.getElementById('spellComp').value,
-        duration: document.getElementById('spellDur').value,
-        description: document.getElementById('spellDesc').value,
-    });
-    hideModal();
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
-    renderSpells();
-    toast('Spell added');
-};
-window.saveEditSpell = async function (id, btn) {
-    await api('PUT', `/api/spells/${id}`, {
-        name: document.getElementById('spellName').value,
-        level: +document.getElementById('spellLevel').value || 0,
-        school: document.getElementById('spellSchool').value,
-        casting_time: document.getElementById('spellCast').value,
-        range: document.getElementById('spellRange').value,
-        components: document.getElementById('spellComp').value,
-        duration: document.getElementById('spellDur').value,
-        description: document.getElementById('spellDesc').value,
-        prepared: document.getElementById('spellPrep').checked,
-    });
-    hideModal();
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
-    renderSpells();
-    toast('Spell updated');
-};
-window.deleteSpell = async function (id) {
-    if (!confirm('Remove this spell?'))
-        return;
-    await api('DELETE', `/api/spells/${id}`);
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
-    renderSpells();
-    toast('Spell removed');
-};
-// ─── Features ───
-function renderFeatures() {
-    const feats = currentChar.features || [];
-    document.getElementById('featuresSection').innerHTML = `
+    };
+    window.saveSpell = async function (btn) {
+        await api('POST', `/api/characters/${currentChar.id}/spells`, {
+            name: document.getElementById('spellName').value,
+            level: +document.getElementById('spellLevel').value || 0,
+            school: document.getElementById('spellSchool').value,
+            casting_time: document.getElementById('spellCast').value,
+            range: document.getElementById('spellRange').value,
+            components: document.getElementById('spellComp').value,
+            duration: document.getElementById('spellDur').value,
+            description: document.getElementById('spellDesc').value,
+        });
+        hideModal();
+        currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+        renderSpells();
+        toast('Spell added');
+    };
+    window.saveEditSpell = async function (id, btn) {
+        await api('PUT', `/api/spells/${id}`, {
+            name: document.getElementById('spellName').value,
+            level: +document.getElementById('spellLevel').value || 0,
+            school: document.getElementById('spellSchool').value,
+            casting_time: document.getElementById('spellCast').value,
+            range: document.getElementById('spellRange').value,
+            components: document.getElementById('spellComp').value,
+            duration: document.getElementById('spellDur').value,
+            description: document.getElementById('spellDesc').value,
+            prepared: document.getElementById('spellPrep').checked,
+        });
+        hideModal();
+        currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+        renderSpells();
+        toast('Spell updated');
+    };
+    window.deleteSpell = async function (id) {
+        if (!confirm('Remove this spell?'))
+            return;
+        await api('DELETE', `/api/spells/${id}`);
+        currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+        renderSpells();
+        toast('Spell removed');
+    };
+    // ─── Features ───
+    function renderFeatures() {
+        const feats = currentChar.features || [];
+        document.getElementById('featuresSection').innerHTML = `
     <div class="d-flex justify-content-between align-items-center">
       <h5>Features & Proficiencies</h5>
       <button class="btn btn-primary btn-sm" onclick="addFeature()"><i class="fa-solid fa-plus me-1"></i>Add Feature</button>
@@ -649,9 +651,9 @@ function renderFeatures() {
           </div>
         </div>`).join('') || '<div class="empty-state"><i class="fa-solid fa-star fa-2x mb-2 d-block text-muted"></i>No features added yet.</div>'}
     </div>`;
-}
-window.addFeature = function () {
-    showModal('Add Feature', `
+    }
+    window.addFeature = function () {
+        showModal('Add Feature', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="featName"></div>
     <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="featDesc" rows="3"></textarea></div>
     <div class="row g-3 mb-3">
@@ -660,28 +662,28 @@ window.addFeature = function () {
     </div>
     <button class="btn btn-primary w-100" onclick="saveFeature(this)">Add Feature</button>
   `);
-};
-window.saveFeature = async function (btn) {
-    await api('POST', `/api/characters/${currentChar.id}/features`, {
-        name: document.getElementById('featName').value,
-        description: document.getElementById('featDesc').value,
-        source: document.getElementById('featSource').value,
-        level_gained: +document.getElementById('featLevel').value || 1,
-    });
-    hideModal();
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
-    renderFeatures();
-    toast('Feature added');
-};
-window.deleteFeature = async function (id) {
-    await api('DELETE', `/api/features/${id}`);
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
-    renderFeatures();
-    toast('Feature removed');
-};
-// ─── Proficiencies ───
-window.addProf = function () {
-    showModal('Add Proficiency', `
+    };
+    window.saveFeature = async function (btn) {
+        await api('POST', `/api/characters/${currentChar.id}/features`, {
+            name: document.getElementById('featName').value,
+            description: document.getElementById('featDesc').value,
+            source: document.getElementById('featSource').value,
+            level_gained: +document.getElementById('featLevel').value || 1,
+        });
+        hideModal();
+        currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+        renderFeatures();
+        toast('Feature added');
+    };
+    window.deleteFeature = async function (id) {
+        await api('DELETE', `/api/features/${id}`);
+        currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+        renderFeatures();
+        toast('Feature removed');
+    };
+    // ─── Proficiencies ───
+    window.addProf = function () {
+        showModal('Add Proficiency', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="profName"></div>
     <div class="mb-3"><label class="form-label">Type</label>
       <select class="form-select" id="profType">
@@ -691,29 +693,29 @@ window.addProf = function () {
       </select></div>
     <button class="btn btn-primary w-100" onclick="saveProf(this)">Add Proficiency</button>
   `);
-};
-window.saveProf = async function (btn) {
-    await api('POST', '/api/proficiencies', {
-        character_id: currentChar.id,
-        type: document.getElementById('profType').value,
-        name: document.getElementById('profName').value,
-    });
-    hideModal();
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
-    renderSheet();
-    toast('Proficiency added');
-};
-window.deleteProf = async function (id) {
-    await api('DELETE', `/api/proficiencies/${id}`);
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
-    renderSheet();
-    toast('Proficiency removed');
-};
-// ─── Details ───
-function renderDetails() {
-    const c = currentChar;
-    const el = document.getElementById('detailsSection');
-    el.innerHTML = `
+    };
+    window.saveProf = async function (btn) {
+        await api('POST', '/api/proficiencies', {
+            character_id: currentChar.id,
+            type: document.getElementById('profType').value,
+            name: document.getElementById('profName').value,
+        });
+        hideModal();
+        currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+        renderSheet();
+        toast('Proficiency added');
+    };
+    window.deleteProf = async function (id) {
+        await api('DELETE', `/api/proficiencies/${id}`);
+        currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+        renderSheet();
+        toast('Proficiency removed');
+    };
+    // ─── Details ───
+    function renderDetails() {
+        const c = currentChar;
+        const el = document.getElementById('detailsSection');
+        el.innerHTML = `
     <div class="row g-3">
       <div class="col-md-4"><label class="form-label">Race</label><input class="form-control form-control-sm" value="${esc(c.race)}" onchange="updateField('race',this.value)"></div>
       <div class="col-md-4"><label class="form-label">Class</label><input class="form-control form-control-sm" value="${esc(c.class)}" onchange="updateField('class',this.value)"></div>
@@ -739,13 +741,13 @@ function renderDetails() {
       `).join('')}
       <div class="col-4 col-md-2 d-flex align-items-end"><button class="btn btn-gold btn-sm w-100" onclick="updateCurrency()">Save</button></div>
     </div>`;
-}
-// ─── Locations ───
-async function renderLocations() {
-    const el = document.getElementById('locationsSection');
-    try {
-        const links = await api('GET', `/api/characters/${currentChar.id}/locations`);
-        el.innerHTML = `
+    }
+    // ─── Locations ───
+    async function renderLocations() {
+        const el = document.getElementById('locationsSection');
+        try {
+            const links = await api('GET', `/api/characters/${currentChar.id}/locations`);
+            el.innerHTML = `
       <div class="d-flex justify-content-between align-items-center"><h5>Linked Locations</h5>
         <button class="btn btn-primary btn-sm" onclick="showLinkLocation()"><i class="fa-solid fa-link me-1"></i>Link Location</button>
       </div>
@@ -756,7 +758,7 @@ async function renderLocations() {
           <div><span class="badge badge-gold me-1">${esc(l.relationship)}</span>
             <button class="btn btn-sm btn-outline-danger" onclick="unlinkLocation(${l.id})"><i class="fa-solid fa-trash"></i></button></div>
         </div>`).join('')
-            : '<div class="empty-state">No locations linked.</div>'}</div>
+                : '<div class="empty-state">No locations linked.</div>'}</div>
       <hr class="my-3">
       <div class="d-flex justify-content-between align-items-center"><h5>All Locations</h5>
         <button class="btn btn-outline-primary btn-sm" onclick="showCreateLocation()"><i class="fa-solid fa-plus me-1"></i>New Location</button>
@@ -766,13 +768,13 @@ async function renderLocations() {
           <div><span class="fw-bold">${esc(l.name)}</span> <span class="text-muted small">(${esc(l.type)})</span>
             <br><small class="text-muted">${esc(l.description).substring(0, 80)}</small></div>
         </div>`).join('')}&nbsp;</div>`;
+        }
+        catch {
+            el.innerHTML = '<div class="empty-state">Could not load locations.</div>';
+        }
     }
-    catch {
-        el.innerHTML = '<div class="empty-state">Could not load locations.</div>';
-    }
-}
-window.showLinkLocation = function () {
-    showModal('Link Location', `
+    window.showLinkLocation = function () {
+        showModal('Link Location', `
     <div class="mb-3"><label class="form-label">Location</label>
       <select class="form-select" id="linkLocId">${allLocations.map((l) => `<option value="${l.id}">${esc(l.name)} (${esc(l.type)})</option>`).join('')}</select></div>
     <div class="mb-3"><label class="form-label">Relationship</label>
@@ -783,23 +785,23 @@ window.showLinkLocation = function () {
     <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="linkLocNotes" rows="2"></textarea></div>
     <button class="btn btn-primary w-100" onclick="saveLinkLocation()"><i class="fa-solid fa-link me-1"></i>Link</button>
   `);
-};
-window.saveLinkLocation = async function () {
-    await api('POST', `/api/characters/${currentChar.id}/locations`, {
-        location_id: +document.getElementById('linkLocId').value,
-        relationship: document.getElementById('linkLocRel').value,
-        notes: document.getElementById('linkLocNotes').value,
-    });
-    hideModal();
-    renderLocations();
-    toast('Location linked');
-};
-window.unlinkLocation = async function (id) {
-    await api('DELETE', `/api/locations/link/${id}`);
-    renderLocations();
-};
-window.showCreateLocation = function () {
-    showModal('New Location', `
+    };
+    window.saveLinkLocation = async function () {
+        await api('POST', `/api/characters/${currentChar.id}/locations`, {
+            location_id: +document.getElementById('linkLocId').value,
+            relationship: document.getElementById('linkLocRel').value,
+            notes: document.getElementById('linkLocNotes').value,
+        });
+        hideModal();
+        renderLocations();
+        toast('Location linked');
+    };
+    window.unlinkLocation = async function (id) {
+        await api('DELETE', `/api/locations/link/${id}`);
+        renderLocations();
+    };
+    window.showCreateLocation = function () {
+        showModal('New Location', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="newLocName"></div>
     <div class="mb-3"><label class="form-label">Type</label>
       <select class="form-select" id="newLocType">
@@ -810,24 +812,24 @@ window.showCreateLocation = function () {
     <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="newLocDesc" rows="3"></textarea></div>
     <button class="btn btn-primary w-100" onclick="saveNewLocation()"><i class="fa-solid fa-plus me-1"></i>Create</button>
   `);
-};
-window.saveNewLocation = async function () {
-    await api('POST', '/api/locations', {
-        name: document.getElementById('newLocName').value,
-        type: document.getElementById('newLocType').value,
-        description: document.getElementById('newLocDesc').value,
-    });
-    hideModal();
-    allLocations = await api('GET', '/api/locations');
-    renderLocations();
-    toast('Location created');
-};
-// ─── NPCs ───
-async function renderNPCs() {
-    const el = document.getElementById('npcsSection');
-    try {
-        const links = await api('GET', `/api/characters/${currentChar.id}/npcs`);
-        el.innerHTML = `
+    };
+    window.saveNewLocation = async function () {
+        await api('POST', '/api/locations', {
+            name: document.getElementById('newLocName').value,
+            type: document.getElementById('newLocType').value,
+            description: document.getElementById('newLocDesc').value,
+        });
+        hideModal();
+        allLocations = await api('GET', '/api/locations');
+        renderLocations();
+        toast('Location created');
+    };
+    // ─── NPCs ───
+    async function renderNPCs() {
+        const el = document.getElementById('npcsSection');
+        try {
+            const links = await api('GET', `/api/characters/${currentChar.id}/npcs`);
+            el.innerHTML = `
       <div class="d-flex justify-content-between align-items-center"><h5>Related NPCs</h5>
         <button class="btn btn-primary btn-sm" onclick="showLinkNPC()"><i class="fa-solid fa-link me-1"></i>Link NPC</button>
       </div>
@@ -843,7 +845,7 @@ async function renderNPCs() {
             <button class="btn btn-sm btn-outline-danger" onclick="unlinkNPC(${n.id})"><i class="fa-solid fa-trash"></i></button>
           </div>
         </div>`).join('')
-            : '<div class="empty-state">No NPCs linked yet.</div>'}</div>
+                : '<div class="empty-state">No NPCs linked yet.</div>'}</div>
       <hr class="my-3">
       <div class="d-flex justify-content-between align-items-center"><h5>All NPCs</h5>
         <button class="btn btn-outline-primary btn-sm" onclick="showCreateNPC()"><i class="fa-solid fa-plus me-1"></i>New NPC</button>
@@ -854,13 +856,13 @@ async function renderNPCs() {
             <span class="text-muted small">${esc(n.race)} ${esc(n.class)}</span></div>
           <div class="text-muted small">HP: ${n.hp_current}/${n.hp_max}</div>
         </div>`).join('')}&nbsp;</div>`;
+        }
+        catch {
+            el.innerHTML = '<div class="empty-state">Could not load NPCs.</div>';
+        }
     }
-    catch {
-        el.innerHTML = '<div class="empty-state">Could not load NPCs.</div>';
-    }
-}
-window.showLinkNPC = function () {
-    showModal('Link NPC', `
+    window.showLinkNPC = function () {
+        showModal('Link NPC', `
     <div class="mb-3"><label class="form-label">NPC</label>
       <select class="form-select" id="linkNPCId">${allNPCs.map((n) => `<option value="${n.id}">${esc(n.name)} (${esc(n.race)} ${esc(n.class)})</option>`).join('')}</select></div>
     <div class="mb-3"><label class="form-label">Relationship</label>
@@ -872,28 +874,28 @@ window.showLinkNPC = function () {
     <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="linkNPCNotes" rows="2"></textarea></div>
     <button class="btn btn-primary w-100" onclick="saveLinkNPC()"><i class="fa-solid fa-link me-1"></i>Link</button>
   `);
-};
-window.saveLinkNPC = async function () {
-    await api('POST', `/api/characters/${currentChar.id}/npcs`, {
-        npc_id: +document.getElementById('linkNPCId').value,
-        relationship: document.getElementById('linkNPCRel').value,
-        notes: document.getElementById('linkNPCNotes').value,
-    });
-    hideModal();
-    renderNPCs();
-    toast('NPC linked');
-};
-window.logNPCInteraction = async function (id) {
-    await api('POST', `/api/npcs/link/${id}/interact`, {});
-    renderNPCs();
-    toast('Interaction logged');
-};
-window.unlinkNPC = async function (id) {
-    await api('DELETE', `/api/npcs/link/${id}`);
-    renderNPCs();
-};
-window.showCreateNPC = function () {
-    showModal('New NPC', `
+    };
+    window.saveLinkNPC = async function () {
+        await api('POST', `/api/characters/${currentChar.id}/npcs`, {
+            npc_id: +document.getElementById('linkNPCId').value,
+            relationship: document.getElementById('linkNPCRel').value,
+            notes: document.getElementById('linkNPCNotes').value,
+        });
+        hideModal();
+        renderNPCs();
+        toast('NPC linked');
+    };
+    window.logNPCInteraction = async function (id) {
+        await api('POST', `/api/npcs/link/${id}/interact`, {});
+        renderNPCs();
+        toast('Interaction logged');
+    };
+    window.unlinkNPC = async function (id) {
+        await api('DELETE', `/api/npcs/link/${id}`);
+        renderNPCs();
+    };
+    window.showCreateNPC = function () {
+        showModal('New NPC', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="newNPCName"></div>
     <div class="row g-3 mb-3">
       <div class="col-6"><label class="form-label">Race</label><input class="form-control" id="newNPCRace"></div>
@@ -902,25 +904,25 @@ window.showCreateNPC = function () {
     <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="newNPCDesc" rows="3"></textarea></div>
     <button class="btn btn-primary w-100" onclick="saveNewNPC()"><i class="fa-solid fa-plus me-1"></i>Create</button>
   `);
-};
-window.saveNewNPC = async function () {
-    await api('POST', '/api/npcs', {
-        name: document.getElementById('newNPCName').value,
-        race: document.getElementById('newNPCRace').value,
-        class: document.getElementById('newNPCClass').value,
-        description: document.getElementById('newNPCDesc').value,
-    });
-    hideModal();
-    allNPCs = await api('GET', '/api/npcs');
-    renderNPCs();
-    toast('NPC created');
-};
-// ─── Sessions ───
-async function renderSessions() {
-    const el = document.getElementById('sessionsSection');
-    try {
-        const sessions = await api('GET', `/api/characters/${currentChar.id}/sessions`);
-        el.innerHTML = `
+    };
+    window.saveNewNPC = async function () {
+        await api('POST', '/api/npcs', {
+            name: document.getElementById('newNPCName').value,
+            race: document.getElementById('newNPCRace').value,
+            class: document.getElementById('newNPCClass').value,
+            description: document.getElementById('newNPCDesc').value,
+        });
+        hideModal();
+        allNPCs = await api('GET', '/api/npcs');
+        renderNPCs();
+        toast('NPC created');
+    };
+    // ─── Sessions ───
+    async function renderSessions() {
+        const el = document.getElementById('sessionsSection');
+        try {
+            const sessions = await api('GET', `/api/characters/${currentChar.id}/sessions`);
+            el.innerHTML = `
       <div class="d-flex justify-content-between align-items-center"><h5>Session Log</h5>
         <button class="btn btn-primary btn-sm" onclick="showAddSession()"><i class="fa-solid fa-plus me-1"></i>Log Session</button>
       </div>
@@ -940,13 +942,13 @@ async function renderSessions() {
             </div>
           </div>`).join('') || '<div class="empty-state"><i class="fa-solid fa-calendar fa-2x mb-2 d-block text-muted"></i>No sessions logged yet.</div>'}
       </div>`;
+        }
+        catch {
+            el.innerHTML = '<div class="empty-state">Could not load sessions.</div>';
+        }
     }
-    catch {
-        el.innerHTML = '<div class="empty-state">Could not load sessions.</div>';
-    }
-}
-window.showAddSession = function () {
-    showModal('Log Session', `
+    window.showAddSession = function () {
+        showModal('Log Session', `
     <div class="mb-3"><label class="form-label">Date</label><input class="form-control" id="sessDate" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
     <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="sessTitle" placeholder="Session 1: The Adventure Begins"></div>
     <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="sessNotes" rows="3" placeholder="What happened?"></textarea></div>
@@ -957,45 +959,45 @@ window.showAddSession = function () {
     <div class="mb-3"><label class="form-label">Important Events</label><textarea class="form-control" id="sessEvents" rows="2" placeholder="Key moments, NPCs met, revelations..."></textarea></div>
     <button class="btn btn-primary w-100" onclick="saveSession()"><i class="fa-solid fa-save me-1"></i>Log Session</button>
   `);
-};
-window.saveSession = async function () {
-    await api('POST', `/api/characters/${currentChar.id}/sessions`, {
-        session_date: document.getElementById('sessDate').value,
-        title: document.getElementById('sessTitle').value,
-        notes: document.getElementById('sessNotes').value,
-        xp_earned: +document.getElementById('sessXP').value || 0,
-        gold_earned: +document.getElementById('sessGold').value || 0,
-        important_events: document.getElementById('sessEvents').value,
-    });
-    hideModal();
-    renderSessions();
-    toast('Session logged');
-};
-window.deleteSession = async function (id) {
-    if (!confirm('Delete this session?'))
-        return;
-    await api('DELETE', `/api/sessions/${id}`);
-    renderSessions();
-    toast('Session deleted');
-};
-// ─── Quests ───
-async function renderQuests() {
-    const el = document.getElementById('questsSection');
-    try {
-        const quests = await api('GET', `/api/characters/${currentChar.id}/quests`);
-        const groups = { active: [], available: [], complete: [], failed: [], abandoned: [] };
-        quests.forEach((q) => { if (groups[q.status])
-            groups[q.status].push(q); });
-        let html = '<div class="d-flex justify-content-between align-items-center"><h5>Quests</h5><button class="btn btn-primary btn-sm" onclick="showAddQuest()"><i class="fa-solid fa-plus me-1"></i>New Quest</button></div>';
-        const labels = { active: 'Active', available: 'Available', complete: 'Complete', failed: 'Failed', abandoned: 'Abandoned' };
-        for (const st of ['active', 'available', 'complete', 'failed', 'abandoned']) {
-            const qs = groups[st] || [];
-            if (!qs.length)
-                continue;
-            html += `<h6 class="mt-3 text-muted">${labels[st]}</h6>`;
-            for (const q of qs) {
-                const opts = ['active', 'available', 'complete', 'failed', 'abandoned'].map(s => `<option value="${s}"${s === q.status ? ' selected' : ''}>${capitalize(s)}</option>`).join('');
-                html += `<div class="card mb-2">
+    };
+    window.saveSession = async function () {
+        await api('POST', `/api/characters/${currentChar.id}/sessions`, {
+            session_date: document.getElementById('sessDate').value,
+            title: document.getElementById('sessTitle').value,
+            notes: document.getElementById('sessNotes').value,
+            xp_earned: +document.getElementById('sessXP').value || 0,
+            gold_earned: +document.getElementById('sessGold').value || 0,
+            important_events: document.getElementById('sessEvents').value,
+        });
+        hideModal();
+        renderSessions();
+        toast('Session logged');
+    };
+    window.deleteSession = async function (id) {
+        if (!confirm('Delete this session?'))
+            return;
+        await api('DELETE', `/api/sessions/${id}`);
+        renderSessions();
+        toast('Session deleted');
+    };
+    // ─── Quests ───
+    async function renderQuests() {
+        const el = document.getElementById('questsSection');
+        try {
+            const quests = await api('GET', `/api/characters/${currentChar.id}/quests`);
+            const groups = { active: [], available: [], complete: [], failed: [], abandoned: [] };
+            quests.forEach((q) => { if (groups[q.status])
+                groups[q.status].push(q); });
+            let html = '<div class="d-flex justify-content-between align-items-center"><h5>Quests</h5><button class="btn btn-primary btn-sm" onclick="showAddQuest()"><i class="fa-solid fa-plus me-1"></i>New Quest</button></div>';
+            const labels = { active: 'Active', available: 'Available', complete: 'Complete', failed: 'Failed', abandoned: 'Abandoned' };
+            for (const st of ['active', 'available', 'complete', 'failed', 'abandoned']) {
+                const qs = groups[st] || [];
+                if (!qs.length)
+                    continue;
+                html += `<h6 class="mt-3 text-muted">${labels[st]}</h6>`;
+                for (const q of qs) {
+                    const opts = ['active', 'available', 'complete', 'failed', 'abandoned'].map(s => `<option value="${s}"${s === q.status ? ' selected' : ''}>${capitalize(s)}</option>`).join('');
+                    html += `<div class="card mb-2">
           <div class="card-body py-2 px-3">
             <div class="d-flex justify-content-between align-items-start">
               <div><span class="fw-bold">${esc(q.name)}</span></div>
@@ -1009,18 +1011,18 @@ async function renderQuests() {
             ${q.rewards ? `<div class="mt-1 small text-success"><strong>Reward:</strong> ${esc(q.rewards).substring(0, 150)}</div>` : ''}
           </div>
         </div>`;
+                }
             }
+            if (quests.length === 0)
+                html += '<div class="empty-state"><i class="fa-solid fa-scroll fa-2x mb-2 d-block text-muted"></i>No quests yet.</div>';
+            el.innerHTML = html;
         }
-        if (quests.length === 0)
-            html += '<div class="empty-state"><i class="fa-solid fa-scroll fa-2x mb-2 d-block text-muted"></i>No quests yet.</div>';
-        el.innerHTML = html;
+        catch {
+            el.innerHTML = '<div class="empty-state">Could not load quests.</div>';
+        }
     }
-    catch {
-        el.innerHTML = '<div class="empty-state">Could not load quests.</div>';
-    }
-}
-window.showAddQuest = function () {
-    showModal('New Quest', `
+    window.showAddQuest = function () {
+        showModal('New Quest', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="questName" placeholder="e.g. Retrieve the Lost Artifact"></div>
     <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="questDesc" rows="3"></textarea></div>
     <div class="mb-3"><label class="form-label">Objectives</label><textarea class="form-control" id="questObj" rows="2" placeholder="1. Travel to the Temple\n2. Defeat the guardian\n3. Retrieve the artifact"></textarea></div>
@@ -1028,42 +1030,42 @@ window.showAddQuest = function () {
     <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="questNotes" rows="2"></textarea></div>
     <button class="btn btn-primary w-100" onclick="saveQuest()"><i class="fa-solid fa-plus me-1"></i>Create</button>
   `);
-};
-window.saveQuest = async function () {
-    await api('POST', `/api/characters/${currentChar.id}/quests`, {
-        name: document.getElementById('questName').value,
-        description: document.getElementById('questDesc').value,
-        objectives: document.getElementById('questObj').value,
-        rewards: document.getElementById('questRewards').value,
-        notes: document.getElementById('questNotes').value,
-    });
-    hideModal();
-    renderQuests();
-    toast('Quest created');
-};
-window.updateQuestStatus = async function (id, status) {
-    const quests = await api('GET', `/api/characters/${currentChar.id}/quests`);
-    const q = quests.find((x) => x.id === id);
-    if (!q)
-        return;
-    q.status = status;
-    await api('PUT', `/api/quests/${id}`, q);
-    renderQuests();
-    toast('Quest status updated');
-};
-window.deleteQuest = async function (id) {
-    if (!confirm('Delete this quest?'))
-        return;
-    await api('DELETE', `/api/quests/${id}`);
-    renderQuests();
-    toast('Quest deleted');
-};
-// ─── Journal ───
-async function renderJournal() {
-    const el = document.getElementById('journalSection');
-    try {
-        const entries = await api('GET', `/api/characters/${currentChar.id}/journal`);
-        el.innerHTML = `
+    };
+    window.saveQuest = async function () {
+        await api('POST', `/api/characters/${currentChar.id}/quests`, {
+            name: document.getElementById('questName').value,
+            description: document.getElementById('questDesc').value,
+            objectives: document.getElementById('questObj').value,
+            rewards: document.getElementById('questRewards').value,
+            notes: document.getElementById('questNotes').value,
+        });
+        hideModal();
+        renderQuests();
+        toast('Quest created');
+    };
+    window.updateQuestStatus = async function (id, status) {
+        const quests = await api('GET', `/api/characters/${currentChar.id}/quests`);
+        const q = quests.find((x) => x.id === id);
+        if (!q)
+            return;
+        q.status = status;
+        await api('PUT', `/api/quests/${id}`, q);
+        renderQuests();
+        toast('Quest status updated');
+    };
+    window.deleteQuest = async function (id) {
+        if (!confirm('Delete this quest?'))
+            return;
+        await api('DELETE', `/api/quests/${id}`);
+        renderQuests();
+        toast('Quest deleted');
+    };
+    // ─── Journal ───
+    async function renderJournal() {
+        const el = document.getElementById('journalSection');
+        try {
+            const entries = await api('GET', `/api/characters/${currentChar.id}/journal`);
+            el.innerHTML = `
       <div class="d-flex justify-content-between align-items-center"><h5>Character Journal</h5>
         <button class="btn btn-primary btn-sm" onclick="showAddJournal()"><i class="fa-solid fa-plus me-1"></i>Write Entry</button>
       </div>
@@ -1080,90 +1082,90 @@ async function renderJournal() {
             </div>
           </div>`).join('') || '<div class="empty-state"><i class="fa-solid fa-book-open fa-2x mb-2 d-block text-muted"></i>No journal entries yet.</div>'}
       </div>`;
+        }
+        catch {
+            el.innerHTML = '<div class="empty-state">Could not load journal.</div>';
+        }
     }
-    catch {
-        el.innerHTML = '<div class="empty-state">Could not load journal.</div>';
-    }
-}
-window.showAddJournal = function () {
-    showModal('Journal Entry', `
+    window.showAddJournal = function () {
+        showModal('Journal Entry', `
     <div class="mb-3"><label class="form-label">Date</label><input class="form-control" id="journalDate" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
     <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="journalTitle" placeholder="Day 1: Arrival in Waterdeep"></div>
     <div class="mb-3"><label class="form-label">Entry</label><textarea class="form-control" id="journalEntry" rows="6" placeholder="Write your character's thoughts..."></textarea></div>
     <button class="btn btn-primary w-100" onclick="saveJournal()"><i class="fa-solid fa-save me-1"></i>Save</button>
   `);
-};
-window.saveJournal = async function () {
-    await api('POST', `/api/characters/${currentChar.id}/journal`, {
-        entry_date: document.getElementById('journalDate').value,
-        title: document.getElementById('journalTitle').value,
-        entry: document.getElementById('journalEntry').value,
-    });
-    hideModal();
-    renderJournal();
-    toast('Journal entry saved');
-};
-window.deleteJournal = async function (id) {
-    if (!confirm('Delete this journal entry?'))
-        return;
-    await api('DELETE', `/api/journal/${id}`);
-    renderJournal();
-    toast('Journal entry deleted');
-};
-// ─── Graph ───
-async function renderGraph() {
-    const el = document.getElementById('graphSection');
-    el.innerHTML = `<div class="ornament mb-3">✧ Drawing your web of fate ✧</div>
+    };
+    window.saveJournal = async function () {
+        await api('POST', `/api/characters/${currentChar.id}/journal`, {
+            entry_date: document.getElementById('journalDate').value,
+            title: document.getElementById('journalTitle').value,
+            entry: document.getElementById('journalEntry').value,
+        });
+        hideModal();
+        renderJournal();
+        toast('Journal entry saved');
+    };
+    window.deleteJournal = async function (id) {
+        if (!confirm('Delete this journal entry?'))
+            return;
+        await api('DELETE', `/api/journal/${id}`);
+        renderJournal();
+        toast('Journal entry deleted');
+    };
+    // ─── Graph ───
+    async function renderGraph() {
+        const el = document.getElementById('graphSection');
+        el.innerHTML = `<div class="ornament mb-3">✧ Drawing your web of fate ✧</div>
     <div id="graphContainer" style="width:100%;height:600px;border:1px solid var(--border);border-radius:4px;background:var(--parchment-light)"></div>`;
-    try {
-        const data = await api('GET', `/api/characters/${currentChar.id}/graph`);
-        if (typeof vis !== 'undefined') {
-            const container = document.getElementById('graphContainer');
-            const nodes = new vis.DataSet(data.nodes.map((n) => ({
-                id: n.id, label: n.label, group: n.group,
-                color: { background: n.color, border: '#2c1810' },
-                font: { face: 'Playfair Display', color: '#2c1810', size: n.size > 20 ? 14 : 11 },
-                size: n.size,
-                borderWidth: 2,
-            })));
-            const edges = new vis.DataSet(data.edges.map((e) => ({
-                from: e.from, to: e.to, label: e.label,
-                dashes: e.dashes, width: e.width,
-                color: { color: '#8b7355', highlight: '#8b0000' },
-                font: { face: 'Vollkorn', size: 10, color: '#5c3a2a', align: 'middle' },
-                smooth: { type: 'curvedCW', roundness: 0.15 },
-            })));
-            new vis.Network(container, { nodes, edges }, {
-                physics: { solver: 'forceAtlas2Based', forceAtlas2Based: { gravitationalConstant: -80, centralGravity: 0.005, springLength: 200, springConstant: 0.02, damping: 0.4 }, stabilization: { iterations: 100 } },
-                interaction: { hover: true, tooltipDelay: 200, navigationButtons: true, keyboard: true },
-                groups: {
-                    character: { shape: 'ellipse', color: { background: '#8b0000', border: '#5c0000' }, font: { color: '#fff', size: 16 } },
-                    location: { shape: 'square', color: { background: '#b8963e', border: '#8a7020' } },
-                    npc: { shape: 'diamond', color: { background: '#2d6a2d', border: '#1a4a1a' } },
-                    quest: { shape: 'star', color: { background: '#8b4513', border: '#5c2e0d' } },
-                    session: { shape: 'dot', color: { background: '#5c3a2a', border: '#3c2010' } },
-                },
-                edges: { smooth: true },
-            });
-        }
-        else {
-            el.innerHTML += `<div class="p-3 small">
+        try {
+            const data = await api('GET', `/api/characters/${currentChar.id}/graph`);
+            if (typeof vis !== 'undefined') {
+                const container = document.getElementById('graphContainer');
+                const nodes = new vis.DataSet(data.nodes.map((n) => ({
+                    id: n.id, label: n.label, group: n.group,
+                    color: { background: n.color, border: '#2c1810' },
+                    font: { face: 'Playfair Display', color: '#2c1810', size: n.size > 20 ? 14 : 11 },
+                    size: n.size,
+                    borderWidth: 2,
+                })));
+                const edges = new vis.DataSet(data.edges.map((e) => ({
+                    from: e.from, to: e.to, label: e.label,
+                    dashes: e.dashes, width: e.width,
+                    color: { color: '#8b7355', highlight: '#8b0000' },
+                    font: { face: 'Vollkorn', size: 10, color: '#5c3a2a', align: 'middle' },
+                    smooth: { type: 'curvedCW', roundness: 0.15 },
+                })));
+                new vis.Network(container, { nodes, edges }, {
+                    physics: { solver: 'forceAtlas2Based', forceAtlas2Based: { gravitationalConstant: -80, centralGravity: 0.005, springLength: 200, springConstant: 0.02, damping: 0.4 }, stabilization: { iterations: 100 } },
+                    interaction: { hover: true, tooltipDelay: 200, navigationButtons: true, keyboard: true },
+                    groups: {
+                        character: { shape: 'ellipse', color: { background: '#8b0000', border: '#5c0000' }, font: { color: '#fff', size: 16 } },
+                        location: { shape: 'square', color: { background: '#b8963e', border: '#8a7020' } },
+                        npc: { shape: 'diamond', color: { background: '#2d6a2d', border: '#1a4a1a' } },
+                        quest: { shape: 'star', color: { background: '#8b4513', border: '#5c2e0d' } },
+                        session: { shape: 'dot', color: { background: '#5c3a2a', border: '#3c2010' } },
+                    },
+                    edges: { smooth: true },
+                });
+            }
+            else {
+                el.innerHTML += `<div class="p-3 small">
         <h5>Character Web</h5>
         <p>${data.nodes.map((n) => `${n.label} [${n.group}]`).join(' &rarr; ')}</p>
         <p class="text-muted fst-italic mt-2">${data.nodes.length} connections &middot; ${data.edges.length} relationships</p></div>`;
+            }
+        }
+        catch (e) {
+            el.innerHTML += `<div class="empty-state">Could not load graph: ${esc(e.message)}</div>`;
         }
     }
-    catch (e) {
-        el.innerHTML += `<div class="empty-state">Could not load graph: ${esc(e.message)}</div>`;
-    }
-}
-// ─── Analytics ───
-async function renderAnalytics() {
-    const el = document.getElementById('analyticsSection');
-    el.innerHTML = '<div class="ornament mb-3">✧ Loading analytics... ✧</div>';
-    try {
-        const stats = await api('GET', `/api/characters/${currentChar.id}/stats`);
-        el.innerHTML = `
+    // ─── Analytics ───
+    async function renderAnalytics() {
+        const el = document.getElementById('analyticsSection');
+        el.innerHTML = '<div class="ornament mb-3">✧ Loading analytics... ✧</div>';
+        try {
+            const stats = await api('GET', `/api/characters/${currentChar.id}/stats`);
+            el.innerHTML = `
       <h5>Campaign Overview</h5>
       <div class="row g-3 mb-3">
         <div class="col-6 col-md-3"><div class="combat-stat"><div class="stat-label">Sessions</div><div class="stat-value">${stats.session_count}</div></div></div>
@@ -1215,43 +1217,44 @@ async function renderAnalytics() {
             <div class="card-body">
               <h6>Notable NPCs</h6>
               ${stats.top_npcs && stats.top_npcs.length > 0
-            ? stats.top_npcs.map((n) => `<p class="mb-1 small text-muted">&loz; ${esc(n)}</p>`).join('')
-            : '<p class="mb-0 small text-muted fst-italic">No NPC interactions yet</p>'}
+                ? stats.top_npcs.map((n) => `<p class="mb-1 small text-muted">&loz; ${esc(n)}</p>`).join('')
+                : '<p class="mb-0 small text-muted fst-italic">No NPC interactions yet</p>'}
             </div>
           </div>
         </div>
       </div>
       <div id="questChartContainer" style="height:200px;max-width:400px;margin:0 auto"></div>`;
-        if ((typeof Chart !== 'undefined') && stats.quests.total > 0) {
-            const ctx = document.createElement('canvas');
-            document.getElementById('questChartContainer').appendChild(ctx);
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Active', 'Complete', 'Failed', 'Available', 'Abandoned'],
-                    datasets: [{
-                            data: [stats.quests.active, stats.quests.complete, stats.quests.failed, stats.quests.available, stats.quests.abandoned],
-                            backgroundColor: ['#8b0000', '#2d6a2d', '#666', '#b8963e', '#ccc'],
-                            borderWidth: 0,
-                        }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom', labels: { font: { family: 'Vollkorn' } } } }
-                }
-            });
+            if ((typeof Chart !== 'undefined') && stats.quests.total > 0) {
+                const ctx = document.createElement('canvas');
+                document.getElementById('questChartContainer').appendChild(ctx);
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Active', 'Complete', 'Failed', 'Available', 'Abandoned'],
+                        datasets: [{
+                                data: [stats.quests.active, stats.quests.complete, stats.quests.failed, stats.quests.available, stats.quests.abandoned],
+                                backgroundColor: ['#8b0000', '#2d6a2d', '#666', '#b8963e', '#ccc'],
+                                borderWidth: 0,
+                            }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom', labels: { font: { family: 'Vollkorn' } } } }
+                    }
+                });
+            }
+        }
+        catch (e) {
+            el.innerHTML = `<div class="empty-state">Could not load analytics: ${esc(e.message)}</div>`;
         }
     }
-    catch (e) {
-        el.innerHTML = `<div class="empty-state">Could not load analytics: ${esc(e.message)}</div>`;
-    }
-}
-// ─── Dice ───
-function renderDiceTab() {
-    const targetId = currentView === 'dice' ? 'diceViewSection' : 'diceSection';
-    const el = document.getElementById(targetId);
-    if (!el) return;
-    el.innerHTML = `
+    // ─── Dice ───
+    function renderDiceTab() {
+        const targetId = currentView === 'dice' ? 'diceViewSection' : 'diceSection';
+        const el = document.getElementById(targetId);
+        if (!el)
+            return;
+        el.innerHTML = `
     <div class="text-center">
       <h5>Dice Roller</h5>
       <div class="row justify-content-center mb-3">
@@ -1265,41 +1268,42 @@ function renderDiceTab() {
       <h5>Recent Rolls</h5>
       <div id="diceHistory"></div>
     </div>`;
-    loadDiceHistory();
-}
-async function doRoll() {
-    const expr = document.getElementById('diceExpr').value;
-    if (!expr)
-        return;
-    try {
-        const result = await api('POST', '/api/roll', { expression: expr, character_id: currentChar?.id });
-        const el = document.getElementById('diceResult');
-        el.style.display = 'block';
-        el.innerHTML = `<div class="text-muted">${esc(expr)}</div><div class="h4">${esc(result.text)}</div>`;
         loadDiceHistory();
     }
-    catch (e) {
-        toast(e.message, true);
+    window.renderDiceTab = renderDiceTab;
+    async function doRoll() {
+        const expr = document.getElementById('diceExpr').value;
+        if (!expr)
+            return;
+        try {
+            const result = await api('POST', '/api/roll', { expression: expr, character_id: currentChar?.id });
+            const el = document.getElementById('diceResult');
+            el.style.display = 'block';
+            el.innerHTML = `<div class="text-muted">${esc(expr)}</div><div class="h4">${esc(result.text)}</div>`;
+            loadDiceHistory();
+        }
+        catch (e) {
+            toast(e.message, true);
+        }
     }
-}
-window.doRoll = doRoll;
-async function loadDiceHistory() {
-    const el = document.getElementById('diceHistory');
-    if (!el)
-        return;
-    try {
-        const rolls = await api('GET', '/api/dice-rolls' + (currentChar ? `?character_id=${currentChar.id}` : ''));
-        el.innerHTML = rolls.slice(0, 20).map((r) => `<div class="d-flex justify-content-between py-1 border-bottom dice-history-item">
+    window.doRoll = doRoll;
+    async function loadDiceHistory() {
+        const el = document.getElementById('diceHistory');
+        if (!el)
+            return;
+        try {
+            const rolls = await api('GET', '/api/dice-rolls' + (currentChar ? `?character_id=${currentChar.id}` : ''));
+            el.innerHTML = rolls.slice(0, 20).map((r) => `<div class="d-flex justify-content-between py-1 border-bottom dice-history-item">
         <span>${esc(r.expression)}</span>
         <span><strong>${r.total}</strong> <span class="text-muted small">${esc(r.result)}</span></span>
       </div>`).join('') || '<div class="text-center text-muted py-3">No rolls yet</div>';
+        }
+        catch { }
     }
-    catch { }
-}
-window.loadDiceHistory = loadDiceHistory;
-// ─── New Character ───
-window.newChar = function () {
-    showModal('New Character', `
+    window.loadDiceHistory = loadDiceHistory;
+    // ─── New Character ───
+    window.newChar = function () {
+        showModal('New Character', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="newName" placeholder="Character name"></div>
     <div class="row g-3 mb-3">
       <div class="col-6"><label class="form-label">Race</label><input class="form-control" id="newRace" list="raceSuggestions"><datalist id="raceSuggestions"></datalist></div>
@@ -1307,108 +1311,108 @@ window.newChar = function () {
     </div>
     <button class="btn btn-primary w-100" onclick="createChar()"><i class="fa-solid fa-plus me-1"></i>Create</button>
   `);
-    fetch('/api/compendium/races', { credentials: 'include' }).then(r => r.json()).then((races) => {
-        document.getElementById('raceSuggestions').innerHTML = races.map((r) => `<option value="${esc(r.name)}">`).join('');
-    }).catch(() => { });
-    fetch('/api/compendium/classes', { credentials: 'include' }).then(r => r.json()).then((cls) => {
-        document.getElementById('classSuggestions').innerHTML = cls.map((c) => `<option value="${esc(c.name)}">`).join('');
-    }).catch(() => { });
-};
-window.createChar = async function () {
-    const name = document.getElementById('newName').value || 'Unnamed';
-    const race = document.getElementById('newRace').value;
-    const cls = document.getElementById('newClass').value;
-    try {
-        const char = await api('POST', '/api/characters', { name, race, class: cls });
-        hideModal();
-        if (char.id)
-            await openChar(char.id);
-        loadCharacters();
-    }
-    catch (e) {
-        toast(e.message, true);
-    }
-};
-// ─── Import / Export ───
-window.showImport = function () {
-    showModal('Import Character', `
+        fetch('/api/compendium/races', { credentials: 'include' }).then(r => r.json()).then((races) => {
+            document.getElementById('raceSuggestions').innerHTML = races.map((r) => `<option value="${esc(r.name)}">`).join('');
+        }).catch(() => { });
+        fetch('/api/compendium/classes', { credentials: 'include' }).then(r => r.json()).then((cls) => {
+            document.getElementById('classSuggestions').innerHTML = cls.map((c) => `<option value="${esc(c.name)}">`).join('');
+        }).catch(() => { });
+    };
+    window.createChar = async function () {
+        const name = document.getElementById('newName').value || 'Unnamed';
+        const race = document.getElementById('newRace').value;
+        const cls = document.getElementById('newClass').value;
+        try {
+            const char = await api('POST', '/api/characters', { name, race, class: cls });
+            hideModal();
+            if (char.id)
+                await openChar(char.id);
+            loadCharacters();
+        }
+        catch (e) {
+            toast(e.message, true);
+        }
+    };
+    // ─── Import / Export ───
+    window.showImport = function () {
+        showModal('Import Character', `
     <p class="text-muted fst-italic small mb-3">Paste JSON or upload a file</p>
     <div class="mb-3"><label class="form-label">JSON</label><textarea class="form-control" id="importJson" rows="6" style="font-family:monospace;font-size:0.8rem"></textarea></div>
     <div class="mb-3"><label class="form-label">File</label><input class="form-control" type="file" id="importFile" accept=".json"></div>
     <button class="btn btn-primary w-100" onclick="doImport()"><i class="fa-solid fa-file-import me-1"></i>Import</button>
   `);
-};
-window.doImport = async function () {
-    const jsonEl = document.getElementById('importJson');
-    const fileEl = document.getElementById('importFile');
-    try {
-        let result;
-        if (fileEl.files && fileEl.files[0]) {
-            const form = new FormData();
-            form.append('file', fileEl.files[0]);
-            const res = await fetch('/api/characters/import', { method: 'POST', headers: { 'X-CSRF-Token': csrfToken }, credentials: 'include', body: form });
-            result = await res.json();
+    };
+    window.doImport = async function () {
+        const jsonEl = document.getElementById('importJson');
+        const fileEl = document.getElementById('importFile');
+        try {
+            let result;
+            if (fileEl.files && fileEl.files[0]) {
+                const form = new FormData();
+                form.append('file', fileEl.files[0]);
+                const res = await fetch('/api/characters/import', { method: 'POST', headers: { 'X-CSRF-Token': csrfToken }, credentials: 'include', body: form });
+                result = await res.json();
+            }
+            else if (jsonEl.value.trim()) {
+                result = await api('POST', '/api/characters/import', JSON.parse(jsonEl.value));
+            }
+            else {
+                toast('Provide JSON or a file', true);
+                return;
+            }
+            toast(`Imported ${Array.isArray(result) ? result.length : 1} character(s)`);
+            hideModal();
+            loadCharacters();
         }
-        else if (jsonEl.value.trim()) {
-            result = await api('POST', '/api/characters/import', JSON.parse(jsonEl.value));
+        catch (e) {
+            toast('Import failed: ' + e.message, true);
         }
-        else {
-            toast('Provide JSON or a file', true);
+    };
+    window.exportChar = async function () {
+        if (!currentChar)
             return;
+        try {
+            const data = await api('GET', `/api/characters/${currentChar.id}/export`);
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            a.href = url;
+            a.download = currentChar.name.replace(/[^a-zA-Z0-9]/g, '_') + '.json';
+            a.click();
+            URL.revokeObjectURL(url);
         }
-        toast(`Imported ${Array.isArray(result) ? result.length : 1} character(s)`);
-        hideModal();
-        loadCharacters();
-    }
-    catch (e) {
-        toast('Import failed: ' + e.message, true);
-    }
-};
-window.exportChar = async function () {
-    if (!currentChar)
-        return;
-    try {
-        const data = await api('GET', `/api/characters/${currentChar.id}/export`);
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const a = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        a.href = url;
-        a.download = currentChar.name.replace(/[^a-zA-Z0-9]/g, '_') + '.json';
-        a.click();
-        URL.revokeObjectURL(url);
-    }
-    catch (e) {
-        toast(e.message, true);
-    }
-};
-// ─── Print ───
-window.printChar = async function () {
-    if (!currentChar)
-        return;
-    try {
-        const res = await fetch(`/api/characters/${currentChar.id}/print`, {
-            headers: { 'X-CSRF-Token': csrfToken }, credentials: 'include',
-        });
-        const text = await res.text();
-        const win = window.open('', '_blank');
-        if (win) {
-            win.document.write(`<pre style="font-family:monospace;font-size:12px;line-height:1.4">${esc(text)}</pre>`);
-            win.document.close();
-            win.print();
+        catch (e) {
+            toast(e.message, true);
         }
-    }
-    catch (e) {
-        toast(e.message, true);
-    }
-};
-// ─── Party View ───
-window.showParty = async function () {
-    showView('party');
-    const el = document.getElementById('partyContent');
-    el.innerHTML = '<div class="ornament mb-3">✧ Assembling the party... ✧</div>';
-    try {
-        const groups = await api('GET', '/api/party');
-        el.innerHTML = groups.map((g) => `
+    };
+    // ─── Print ───
+    window.printChar = async function () {
+        if (!currentChar)
+            return;
+        try {
+            const res = await fetch(`/api/characters/${currentChar.id}/print`, {
+                headers: { 'X-CSRF-Token': csrfToken }, credentials: 'include',
+            });
+            const text = await res.text();
+            const win = window.open('', '_blank');
+            if (win) {
+                win.document.write(`<pre style="font-family:monospace;font-size:12px;line-height:1.4">${esc(text)}</pre>`);
+                win.document.close();
+                win.print();
+            }
+        }
+        catch (e) {
+            toast(e.message, true);
+        }
+    };
+    // ─── Party View ───
+    window.showParty = async function () {
+        showView('party');
+        const el = document.getElementById('partyContent');
+        el.innerHTML = '<div class="ornament mb-3">✧ Assembling the party... ✧</div>';
+        try {
+            const groups = await api('GET', '/api/party');
+            el.innerHTML = groups.map((g) => `
       <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
           <strong>${esc(g.name || 'Unnamed Campaign')}</strong>
@@ -1417,9 +1421,9 @@ window.showParty = async function () {
         <div class="card-body">
           <div class="row g-3">
             ${g.members.map((m) => {
-            const pct = m.hp_max > 0 ? Math.round((m.hp_current / m.hp_max) * 100) : 0;
-            const sc = m.status === 'down' ? 'var(--danger)' : m.status === 'injured' ? 'var(--gold)' : 'var(--success)';
-            return `<div class="col-md-6 col-lg-4">
+                const pct = m.hp_max > 0 ? Math.round((m.hp_current / m.hp_max) * 100) : 0;
+                const sc = m.status === 'down' ? 'var(--danger)' : m.status === 'injured' ? 'var(--gold)' : 'var(--success)';
+                return `<div class="col-md-6 col-lg-4">
                 <div class="character-card" onclick="openChar(${m.id})">
                   <div class="char-name">${esc(m.name)}</div>
                   <div class="char-detail">${esc(m.race)} ${esc(m.class)} · Level ${m.level}</div>
@@ -1432,47 +1436,47 @@ window.showParty = async function () {
                   </div>
                 </div>
               </div>`;
-        }).join('')}
+            }).join('')}
           </div>
         </div>
       </div>
     `).join('') || '<div class="empty-state"><i class="fa-solid fa-flag fa-2x mb-2 d-block text-muted"></i>No characters yet.</div>';
-    }
-    catch (e) {
-        el.innerHTML = `<div class="empty-state">Failed: ${esc(e.message)}</div>`;
-    }
-};
-// ─── Compendium ───
-window.showCompendium = function () {
-    showView('compendium');
-    loadCompendiumRaces();
-};
-window.loadCompendiumTab = function (tab) {
-    document.getElementById('compTabRaces').classList.remove('active');
-    document.getElementById('compTabClasses').classList.remove('active');
-    document.getElementById('compTabSpells').classList.remove('active');
-    document.getElementById('compTabEquipment').classList.remove('active');
-    const tabEl = document.getElementById('compTab' + capitalize(tab));
-    if (tabEl)
-        tabEl.classList.add('active');
-    ['races', 'classes', 'spells', 'equipment'].forEach(s => {
-        const el = document.getElementById('comp' + capitalize(s));
-        if (el)
-            el.style.display = s === tab ? 'block' : 'none';
-    });
-    if (tab === 'races')
+        }
+        catch (e) {
+            el.innerHTML = `<div class="empty-state">Failed: ${esc(e.message)}</div>`;
+        }
+    };
+    // ─── Compendium ───
+    window.showCompendium = function () {
+        showView('compendium');
         loadCompendiumRaces();
-    if (tab === 'classes')
-        loadCompendiumClasses();
-    if (tab === 'spells')
-        loadCompendiumSpells();
-    if (tab === 'equipment')
-        loadCompendiumEquipment();
-};
-async function loadCompendiumRaces() {
-    try {
-        const races = await api('GET', '/api/compendium/races');
-        document.getElementById('compRaces').innerHTML = races.map((r) => `
+    };
+    window.loadCompendiumTab = function (tab) {
+        document.getElementById('compTabRaces').classList.remove('active');
+        document.getElementById('compTabClasses').classList.remove('active');
+        document.getElementById('compTabSpells').classList.remove('active');
+        document.getElementById('compTabEquipment').classList.remove('active');
+        const tabEl = document.getElementById('compTab' + capitalize(tab));
+        if (tabEl)
+            tabEl.classList.add('active');
+        ['races', 'classes', 'spells', 'equipment'].forEach(s => {
+            const el = document.getElementById('comp' + capitalize(s));
+            if (el)
+                el.style.display = s === tab ? 'block' : 'none';
+        });
+        if (tab === 'races')
+            loadCompendiumRaces();
+        if (tab === 'classes')
+            loadCompendiumClasses();
+        if (tab === 'spells')
+            loadCompendiumSpells();
+        if (tab === 'equipment')
+            loadCompendiumEquipment();
+    };
+    async function loadCompendiumRaces() {
+        try {
+            const races = await api('GET', '/api/compendium/races');
+            document.getElementById('compRaces').innerHTML = races.map((r) => `
       <div class="card mb-2">
         <div class="card-body py-2 px-3">
           <div class="d-flex justify-content-between"><strong>${esc(r.name)}</strong>
@@ -1480,13 +1484,13 @@ async function loadCompendiumRaces() {
           <p class="mb-0 mt-1 small text-muted">${esc(r.description)}</p>
         </div>
       </div>`).join('');
+        }
+        catch { }
     }
-    catch { }
-}
-async function loadCompendiumClasses() {
-    try {
-        const cls = await api('GET', '/api/compendium/classes');
-        document.getElementById('compClasses').innerHTML = cls.map((c) => `
+    async function loadCompendiumClasses() {
+        try {
+            const cls = await api('GET', '/api/compendium/classes');
+            document.getElementById('compClasses').innerHTML = cls.map((c) => `
       <div class="card mb-2">
         <div class="card-body py-2 px-3">
           <div class="d-flex justify-content-between"><strong>${esc(c.name)}</strong>
@@ -1494,50 +1498,53 @@ async function loadCompendiumClasses() {
           <p class="mb-0 mt-1 small text-muted">${esc(c.description)}</p>
         </div>
       </div>`).join('');
+        }
+        catch { }
     }
-    catch { }
-}
-async function loadCompendiumSpells() {
-    try {
-        const spells = await api('GET', '/api/compendium/spells');
-        document.getElementById('compSpells').innerHTML = spells.map((s) => `
+    async function loadCompendiumSpells() {
+        try {
+            const spells = await api('GET', '/api/compendium/spells');
+            document.getElementById('compSpells').innerHTML = spells.map((s) => `
       <div class="inv-item">
         <div><span class="fw-bold">${esc(s.name)}</span> <span class="text-muted small">Lv${s.level} ${esc(s.school)}</span></div>
         <div class="text-muted small">${esc(s.casting_time)} · ${esc(s.range)} · ${esc(s.duration)}</div>
       </div>`).join('');
+        }
+        catch { }
     }
-    catch { }
-}
-async function loadCompendiumEquipment() {
-    try {
-        const items = await api('GET', '/api/compendium/equipment');
-        document.getElementById('compEquipment').innerHTML = items.map((i) => `
+    async function loadCompendiumEquipment() {
+        try {
+            const items = await api('GET', '/api/compendium/equipment');
+            document.getElementById('compEquipment').innerHTML = items.map((i) => `
       <div class="inv-item">
         <span class="fw-bold">${esc(i.name)}</span>
         <span class="text-muted small">${esc(i.category)}${i.weight ? ' · ' + i.weight + 'lb' : ''}</span>
       </div>`).join('');
+        }
+        catch { }
     }
-    catch { }
-}
-// ─── Delete Character ───
-window.deleteChar = async function () {
-    if (!currentChar) return;
-    if (!confirm('Delete this character?')) return;
-    try {
-        await api('DELETE', `/api/characters/${currentChar.id}`);
-        currentChar = null;
-        showView('characters');
-        loadCharacters();
-        toast('Character deleted');
-    } catch (e) {
-        toast(e.message, true);
-    }
-};
-// ─── Logout ───
-window.logout = async function () {
-    await api('POST', '/api/logout');
-    window.location.href = '/login';
-};
-init();
-
+    // ─── Delete Character ───
+    window.deleteChar = async function () {
+        if (!currentChar)
+            return;
+        if (!confirm('Delete this character?'))
+            return;
+        try {
+            await api('DELETE', `/api/characters/${currentChar.id}`);
+            currentChar = null;
+            showView('characters');
+            loadCharacters();
+            toast('Character deleted');
+        }
+        catch (e) {
+            toast(e.message, true);
+        }
+    };
+    // ─── Logout ───
+    window.logout = async function () {
+        await api('POST', '/api/logout');
+        window.location.href = '/login';
+    };
+    init();
+})();
 //# sourceMappingURL=app.js.map
