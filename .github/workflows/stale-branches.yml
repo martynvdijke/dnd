@@ -1,28 +1,16 @@
-name: Stale Branch Cleanup
+name: Stale Branches
 
 on:
   schedule:
-    - cron: '0 6 * * 1'
-  workflow_dispatch:
+    - cron: '0 6 * * 1-5'
 
 permissions:
+  issues: write
   contents: write
 
 jobs:
-  cleanup:
+  stale_branches:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Delete stale branches
-        uses: fpicalausa/delete-stale-branches@v1
-        with:
-          dry-run: false
-          days-before-delete: 60
-          ignore-branches: 'main,master,develop'
-          operations-per-run: 100
-          default-recipients: ''
-          delete-squashed: true
-          delete-rebasing: true
+      - name: Stale Branches
+        uses: crs-k/stale-branches@v9.0.0

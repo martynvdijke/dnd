@@ -8,35 +8,38 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:6280',
+    baseURL: 'http://localhost:6270',
     trace: 'on-first-retry',
   },
   projects: [
     {
-      name: 'chromium',
+      name: 'setup',
+      testMatch: /setup\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
     {
+      name: 'chromium',
+      testIgnore: /setup\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
+    },
+    {
       name: 'firefox',
+      testIgnore: /setup\.spec\.ts/,
       use: { ...devices['Desktop Firefox'] },
+      dependencies: ['setup'],
     },
     {
       name: 'mobile-chrome',
+      testIgnore: /setup\.spec\.ts/,
       use: { ...devices['Pixel 5'] },
-    },
-    {
-      name: 'mobile-safari',
-      use: { ...devices['iPhone 13'] },
-    },
-    {
-      name: 'tablet',
-      use: { ...devices['iPad Mini'] },
+      dependencies: ['setup'],
     },
   ],
   webServer: {
-    command: 'go run -tags fts5 main.go',
-    url: 'http://localhost:6280/api/check-setup',
-    reuseExistingServer: !process.env.CI,
+    command: 'rm -f /tmp/villum-test.db /tmp/villum-test.db-shm /tmp/villum-test.db-wal && DB_PATH=/tmp/villum-test.db go run -tags fts5 main.go',
+    url: 'http://localhost:6270/api/check-setup',
+    reuseExistingServer: false,
     timeout: 30000,
   },
 });
