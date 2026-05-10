@@ -246,7 +246,7 @@ test.describe('Death saves and concentration', () => {
     await page.fill('#newRace', 'Tiefling');
     await page.fill('#newClass', 'Warlock');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await page.locator('.character-card').filter({ hasText: name }).waitFor({ state: 'visible', timeout: 10000 });
     await page.locator('.character-card').filter({ hasText: name }).click();
 
     await page.click('text=Combat');
@@ -262,7 +262,7 @@ test.describe('Death saves and concentration', () => {
     await page.fill('#newRace', 'Tiefling');
     await page.fill('#newClass', 'Warlock');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await page.locator('.character-card').filter({ hasText: name }).waitFor({ state: 'visible', timeout: 10000 });
     await page.locator('.character-card').filter({ hasText: name }).click();
 
     await page.click('text=Combat');
