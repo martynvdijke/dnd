@@ -420,7 +420,7 @@ async function updateField(field: string, value: any) {
 function renderStats() {
   const c = currentChar;
   const el = document.getElementById('statsSection')!;
-  const abils = ['str','dex','con','int','wis','cha'].map(k => ({ key: k, label: k.toUpperCase() }));
+  const abils = ['str','dex','con','int','wis','cha'].map((k, i) => ({ key: k, label: k.toUpperCase(), desc: ['Strength','Dexterity','Constitution','Intelligence','Wisdom','Charisma'][i], skills: ['Athletics','Acrobatics, Sleight of Hand, Stealth','','Arcana, History, Investigation, Nature, Religion','Animal Handling, Insight, Medicine, Perception, Survival','Deception, Intimidation, Performance, Persuasion'][i] }));
   el.innerHTML = `
     <div class="row g-3">
       ${abils.map(a => {
@@ -428,7 +428,7 @@ function renderStats() {
         const mod = (c as any)[`${a.key}_mod`];
         const cls = mod > 0 ? 'text-success' : mod < 0 ? 'text-danger' : 'text-muted';
         return `<div class="col-4 col-md-2">
-          <div class="ability-box">
+          <div class="ability-box" title="${a.desc} (${a.label})\nModifier: ${mod >= 0 ? '+' : ''}${mod}\nSkills: ${a.skills || 'None'}">
             <div class="abil-label" onclick="rollCheck('check','${a.key}','normal')" style="cursor:pointer">${a.label}</div>
             <input type="number" class="form-control form-control-sm text-center abil-value-input" value="${val}" oninput="autoSaveField('${a.key}',this)" onfocus="this.select()">
             <div class="abil-mod ${cls}">${mod >= 0 ? '+' : ''}${mod}</div>
@@ -470,7 +470,8 @@ function renderSkills(c: any) {
     const mod = (c as any)[`${s.abil}_mod`];
     const total = isProf ? mod + c.proficiency_bonus : mod;
     const sign = total >= 0 ? '+' : '';
-    return `<div class="skill-row d-flex justify-content-between" onclick="rollCheck('skill','${s.name}','normal')">
+    const breakdown = isProf ? `${s.abil.toUpperCase()} ${mod >= 0 ? '+' : ''}${mod} + Prof ${c.proficiency_bonus} = ${sign}${total}` : `${s.abil.toUpperCase()} ${mod >= 0 ? '+' : ''}${mod} = ${sign}${total}`;
+    return `<div class="skill-row d-flex justify-content-between" onclick="rollCheck('skill','${s.name}','normal')" title="${breakdown}">
       <span class="skill-name">${s.name}${isProf ? ' <span class="text-primary">★</span>' : ''}</span>
       <span class="fw-bold">${sign}${total}</span>
     </div>`;
@@ -485,12 +486,12 @@ function renderCombat() {
   const pct = c.hp_max > 0 ? Math.round((c.hp_current / c.hp_max) * 100) : 0;
   el.innerHTML = `
     <div class="row g-3">
-      <div class="col-4"><div class="combat-stat"><div class="stat-label">AC</div><div class="stat-value">${c.ac}</div></div></div>
-      <div class="col-4"><div class="combat-stat"><div class="stat-label">Initiative</div><div class="stat-value">${c.initiative >= 0 ? '+' : ''}${c.initiative}</div></div></div>
-      <div class="col-4"><div class="combat-stat"><div class="stat-label">Speed</div><div class="stat-value">${c.speed}</div></div></div>
+      <div class="col-4"><div class="combat-stat" title="Armor Class — how hard you are to hit"><div class="stat-label">AC</div><div class="stat-value">${c.ac}</div></div></div>
+      <div class="col-4"><div class="combat-stat" title="Initiative modifier — added to d20 for turn order"><div class="stat-label">Initiative</div><div class="stat-value">${c.initiative >= 0 ? '+' : ''}${c.initiative}</div></div></div>
+      <div class="col-4"><div class="combat-stat" title="Movement speed in feet per round"><div class="stat-label">Speed</div><div class="stat-value">${c.speed}</div></div></div>
     </div>
     <h5 class="mt-3">Hit Points</h5>
-    <div class="hp-bar position-relative mb-2">
+    <div class="hp-bar position-relative mb-2" title="${c.hp_current} / ${c.hp_max} HP${c.temp_hp > 0 ? ' (+' + c.temp_hp + ' temporary)' : ''}">
       <div class="hp-bar-fill" style="width:${pct}%"></div>
       <div class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center text-white small fw-bold" style="font-size:0.8rem">${c.hp_current} / ${c.hp_max}${c.temp_hp > 0 ? ' (+' + c.temp_hp + ' temp)' : ''}</div>
     </div>

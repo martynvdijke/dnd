@@ -615,6 +615,44 @@ test.describe('Auto-save', () => {
   });
 });
 
+test.describe('Tooltips', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+    await page.fill('#username', 'admin');
+    await page.fill('#password', 'testpassword123');
+    await page.click('button[type="submit"]');
+    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+  });
+
+  test('ability boxes have tooltips', async ({ page }) => {
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Human');
+    await page.fill('#newClass', 'Fighter');
+    await page.click('text=Create');
+    await page.waitForTimeout(500);
+    await page.locator('.character-card').filter({ hasText: name }).click();
+
+    const firstAbility = page.locator('.ability-box').first();
+    await expect(firstAbility).toHaveAttribute('title', /Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma/);
+  });
+
+  test('skill rows have calculation tooltips', async ({ page }) => {
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Human');
+    await page.fill('#newClass', 'Fighter');
+    await page.click('text=Create');
+    await page.waitForTimeout(500);
+    await page.locator('.character-card').filter({ hasText: name }).click();
+
+    const firstSkill = page.locator('.skill-row').first();
+    await expect(firstSkill).toHaveAttribute('title', /STR|DEX|CON|INT|WIS|CHA/);
+  });
+});
+
 test.describe('Error handling and edge cases', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
