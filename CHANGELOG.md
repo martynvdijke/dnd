@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/martynvdijke/dnd/compare/v1.1.0...v1.2.0) (2026-05-11)
+
+
+### Features
+
+* add email field to user model for user invite flow ([ee20bb5](https://github.com/martynvdijke/dnd/commit/ee20bb59984b4cb86c0cb89fa61781903a828f4e))
+
 # [1.1.0](https://github.com/martynvdijke/dnd/compare/v1.0.2...v1.1.0) (2026-05-11)
 
 
