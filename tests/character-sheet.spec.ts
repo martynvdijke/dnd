@@ -476,7 +476,7 @@ test.describe('Session and quest management UI', () => {
   });
 });
 
-test.describe('Theme toggle', () => {
+test.describe('Theme and loading', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
@@ -497,6 +497,19 @@ test.describe('Theme toggle', () => {
 
     await page.click('#themeToggle');
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  });
+
+  test('shows loading overlay during API calls', async ({ page }) => {
+    await expect(page.locator('#loadingOverlay')).toHaveClass(/d-none/);
+
+    await page.click('button:has-text("New Character")');
+    await page.fill('#newName', 'Load Test');
+    await page.fill('#newRace', 'Human');
+    await page.fill('#newClass', 'Fighter');
+    await page.click('.modal button:has-text("Create")');
+    await page.waitForTimeout(500);
+
+    await expect(page.locator('#loadingOverlay')).toHaveClass(/d-none/);
   });
 });
 

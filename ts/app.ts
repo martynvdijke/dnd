@@ -11,6 +11,7 @@ let currentChar: any = null;
 let currentTab = 'stats';
 let allLocations: any[] = [];
 let allNPCs: any[] = [];
+let loadingCount = 0;
 
 // ─── Utilities ───
 
@@ -23,19 +24,37 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// ─── Loading ───
+
+function showLoading() {
+  loadingCount++;
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay) overlay.classList.remove('d-none');
+}
+function hideLoading() {
+  loadingCount = Math.max(0, loadingCount - 1);
+  const overlay = document.getElementById('loadingOverlay');
+  if (overlay && loadingCount === 0) overlay.classList.add('d-none');
+}
+
 // ─── API ───
 
 async function api(method: string, path: string, body?: any): Promise<any> {
+  showLoading();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
   const opts: RequestInit = { method, headers, credentials: 'include' };
   if (body !== undefined) opts.body = JSON.stringify(body);
-  const res = await fetch(path, opts);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || 'Request failed');
+  try {
+    const res = await fetch(path, opts);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || 'Request failed');
+    }
+    return res.json();
+  } finally {
+    hideLoading();
   }
-  return res.json();
 }
 
 // ─── Theme ───

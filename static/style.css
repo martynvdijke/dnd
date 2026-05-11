@@ -517,6 +517,43 @@ h1 { color: var(--ink) !important; }
 .inv-item:hover { background: rgba(184,150,62,.04) !important; }
 .inv-item.equipped { background: rgba(184,150,62,.08) !important; }
 
+/* ---- Loading Overlay ---- */
+
+.loading-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,.25);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(2px);
+  transition: opacity .2s;
+}
+.spinner-container {
+  background: var(--parchment);
+  border: 2px solid var(--gold);
+  border-radius: var(--radius);
+  padding: 2rem;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+[data-theme="dark"] .spinner-container {
+  background: var(--parchment-dark);
+}
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--border-light);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  margin: 0 auto;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ---- Theme Toggle ---- */
 
 #themeToggle {
