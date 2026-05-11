@@ -585,6 +585,19 @@ kbd {
   text-align: center;
 }
 
+/* ---- Spell Cards ---- */
+
+.spell-card {
+  transition: all .2s;
+}
+.spell-card:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-1px);
+}
+.spell-card.border-gold {
+  border-color: var(--gold) !important;
+}
+
 /* ---- Search ---- */
 
 #charSearch {
