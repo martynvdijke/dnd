@@ -653,6 +653,31 @@ test.describe('Tooltips', () => {
   });
 });
 
+test.describe('XP progress bar', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+    await page.fill('#username', 'admin');
+    await page.fill('#password', 'testpassword123');
+    await page.click('button[type="submit"]');
+    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+  });
+
+  test('shows XP progress bar on stats tab', async ({ page }) => {
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Human');
+    await page.fill('#newClass', 'Fighter');
+    await page.click('text=Create');
+    await page.waitForTimeout(500);
+    await page.locator('.character-card').filter({ hasText: name }).click();
+
+    await expect(page.locator('#xpBarContainer')).toBeVisible();
+    await expect(page.locator('#xpBarContainer')).toContainText('Level');
+    await expect(page.locator('#xpBarContainer')).toContainText('XP');
+  });
+});
+
 test.describe('Error handling and edge cases', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });

@@ -415,6 +415,12 @@ async function updateField(field: string, value: any) {
 }
 (window as any).updateField = updateField;
 
+function updateXPBar() {
+  const container = document.getElementById('xpBarContainer');
+  if (container && currentChar) container.innerHTML = renderXPBar(currentChar);
+}
+(window as any).updateXPBar = updateXPBar;
+
 // ─── Stats ───
 
 function renderStats() {
@@ -445,7 +451,9 @@ function renderStats() {
       <div class="col-6 col-md-3"><label class="form-label">Proficiency</label><input type="number" class="form-control form-control-sm" value="${c.proficiency_bonus}" oninput="autoSaveField('proficiency_bonus',this)"></div>
       <div class="col-6 col-md-3"><label class="form-label">Inspiration</label><input type="number" class="form-control form-control-sm" value="${c.inspiration}" oninput="autoSaveField('inspiration',this)"></div>
       <div class="col-6 col-md-3"><label class="form-label">Passive Percep.</label><input type="number" class="form-control form-control-sm" value="${c.passive_perception}" oninput="autoSaveField('passive_perception',this)"></div>
-      <div class="col-6 col-md-3"><label class="form-label">XP</label><input type="number" class="form-control form-control-sm" value="${c.xp}" oninput="autoSaveField('xp',this)"></div>
+      <div class="col-6 col-md-3"><label class="form-label">XP</label><input type="number" class="form-control form-control-sm" value="${c.xp}" oninput="autoSaveField('xp',this);updateXPBar()"></div>
+    </div>
+    <div class="mt-2" id="xpBarContainer">${renderXPBar(c)}</div>
     </div>
     <h5 class="mt-3">Skills <small class="text-muted fw-normal">(click to roll)</small></h5>
     <div id="skillsArea">${renderSkills(c)}</div>
@@ -476,6 +484,31 @@ function renderSkills(c: any) {
       <span class="fw-bold">${sign}${total}</span>
     </div>`;
   }).join('');
+}
+
+// ─── XP Progress Bar ───
+
+const XP_TABLE = [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000];
+
+function renderXPBar(c: any) {
+  const level = c.level || 1;
+  const xp = c.xp || 0;
+  const idx = Math.min(level - 1, XP_TABLE.length - 2);
+  const currentMilestone = XP_TABLE[idx];
+  const nextMilestone = XP_TABLE[idx + 1] || currentMilestone + 10000;
+  if (level >= 20) {
+    return `<div class="small text-muted fst-italic">Maximum level reached</div>`;
+  }
+  const progress = nextMilestone > currentMilestone ? Math.min(100, Math.max(0, ((xp - currentMilestone) / (nextMilestone - currentMilestone)) * 100)) : 0;
+  return `
+    <div class="d-flex justify-content-between small mb-1">
+      <span class="text-muted">Level ${level}</span>
+      <span class="text-muted">${xp.toLocaleString()} / ${nextMilestone.toLocaleString()} XP</span>
+      <span class="text-muted">Level ${level + 1}</span>
+    </div>
+    <div class="hp-bar" style="height:8px" title="${Math.round(progress)}% to next level">
+      <div class="hp-bar-fill" style="width:${progress}%;height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light))"></div>
+    </div>`;
 }
 
 // ─── Combat ───
