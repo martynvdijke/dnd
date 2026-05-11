@@ -463,7 +463,7 @@ function renderInventory() {
               <button class="btn btn-sm btn-outline-danger" onclick="deleteInventory(${i.id})" title="Remove"><i class="fa-solid fa-trash"></i></button>
             </div>
           </div>`).join('')}
-      `).join('') || '<div class="empty-state"><i class="fa-solid fa-backpack fa-2x mb-2 d-block text-muted"></i>No items. Add gear to your inventory.</div>'}
+      `).join('') || '<div class="empty-state"><i class="fa-solid fa-backpack fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">Empty Pockets</p><p class="small text-muted">No items yet. Add gear to your inventory.</p></div>'}
     </div>`;
 }
 
@@ -579,7 +579,7 @@ function renderSpells() {
             <button class="btn btn-sm btn-outline-primary" onclick="editSpell(${s.id},'${esc(s.name)}',${s.level},'${esc(s.school)}',${s.prepared},'${esc(s.components||'')}','${esc(s.range||'')}','${esc(s.casting_time||'')}','${esc(s.duration||'')}','${esc(s.description||'')}')"><i class="fa-solid fa-pen"></i></button>
             <button class="btn btn-sm btn-outline-danger" onclick="deleteSpell(${s.id})"><i class="fa-solid fa-trash"></i></button>
           </div>
-        </div>`).join('') || '<div class="empty-state"><i class="fa-solid fa-wand-sparkles fa-2x mb-2 d-block text-muted"></i>No spells known. Learn some magic!</div>'}
+        </div>`).join('') || '<div class="empty-state"><i class="fa-solid fa-wand-sparkles fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Spells Known</p><p class="small text-muted">Add spells to your spellbook using the button above.</p></div>'}
     </div>` : `
     <div class="empty-state"><i class="fa-solid fa-wand-sparkles fa-2x mb-2 d-block text-muted"></i>
     <p class="text-muted fst-italic">No spellcasting.</p>
@@ -717,7 +717,7 @@ function renderFeatures() {
               <button class="btn btn-sm btn-outline-danger" onclick="deleteFeature(${f.id})"><i class="fa-solid fa-trash"></i></button>
             </div>
           </div>
-        </div>`).join('') || '<div class="empty-state"><i class="fa-solid fa-star fa-2x mb-2 d-block text-muted"></i>No features added yet.</div>'}
+        </div>`).join('') || '<div class="empty-state"><i class="fa-solid fa-star fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Features Yet</p><p class="small text-muted">Track class, race, and feat features here.</p></div>'}
     </div>`;
 }
 
@@ -837,7 +837,7 @@ async function renderLocations() {
           <div><span class="badge badge-gold me-1">${esc(l.relationship)}</span>
             <button class="btn btn-sm btn-outline-danger" onclick="unlinkLocation(${l.id})"><i class="fa-solid fa-trash"></i></button></div>
         </div>`).join('')
-        : '<div class="empty-state">No locations linked.</div>'}</div>
+        : '<div class="empty-state"><i class="fa-solid fa-map fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Linked Locations</p><p class="small text-muted">Link locations from your campaign to this character.</p></div>'}</div>
       <hr class="my-3">
       <div class="d-flex justify-content-between align-items-center"><h5>All Locations</h5>
         <button class="btn btn-outline-primary btn-sm" onclick="showCreateLocation()"><i class="fa-solid fa-plus me-1"></i>New Location</button>
@@ -847,7 +847,7 @@ async function renderLocations() {
           <div><span class="fw-bold">${esc(l.name)}</span> <span class="text-muted small">(${esc(l.type)})</span>
             <br><small class="text-muted">${esc(l.description).substring(0, 80)}</small></div>
         </div>`).join('')}&nbsp;</div>`;
-  } catch { el.innerHTML = '<div class="empty-state">Could not load locations.</div>'; }
+  } catch { el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load locations. Try again later.</p></div>'; }
 }
 
 (window as any).showLinkLocation = function () {
@@ -928,7 +928,7 @@ async function renderNPCs() {
             <button class="btn btn-sm btn-outline-danger" onclick="unlinkNPC(${n.id})"><i class="fa-solid fa-trash"></i></button>
           </div>
         </div>`).join('')
-        : '<div class="empty-state">No NPCs linked yet.</div>'}</div>
+        : '<div class="empty-state"><i class="fa-solid fa-user-group fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No NPCs Linked</p><p class="small text-muted">Link NPCs to track relationships and interactions.</p></div>'}</div>
       <hr class="my-3">
       <div class="d-flex justify-content-between align-items-center"><h5>All NPCs</h5>
         <button class="btn btn-outline-primary btn-sm" onclick="showCreateNPC()"><i class="fa-solid fa-plus me-1"></i>New NPC</button>
@@ -939,7 +939,7 @@ async function renderNPCs() {
             <span class="text-muted small">${esc(n.race)} ${esc(n.class)}</span></div>
           <div class="text-muted small">HP: ${n.hp_current}/${n.hp_max}</div>
         </div>`).join('')}&nbsp;</div>`;
-  } catch { el.innerHTML = '<div class="empty-state">Could not load NPCs.</div>'; }
+  } catch { el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load NPCs. Try again later.</p></div>'; }
 }
 
 (window as any).showLinkNPC = function () {
@@ -1030,7 +1030,7 @@ async function renderSessions() {
             </div>
           </div>`).join('') || '<div class="empty-state"><i class="fa-solid fa-calendar fa-2x mb-2 d-block text-muted"></i>No sessions logged yet.</div>'}
       </div>`;
-  } catch { el.innerHTML = '<div class="empty-state">Could not load sessions.</div>'; }
+  } catch { el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load sessions. Try again later.</p></div>'; }
 }
 
 (window as any).showAddSession = function () {
@@ -1102,7 +1102,7 @@ async function renderQuests() {
     }
     if (quests.length === 0) html += '<div class="empty-state"><i class="fa-solid fa-scroll fa-2x mb-2 d-block text-muted"></i>No quests yet.</div>';
     el.innerHTML = html;
-  } catch { el.innerHTML = '<div class="empty-state">Could not load quests.</div>'; }
+  } catch { el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load quests. Try again later.</p></div>'; }
 }
 
 (window as any).showAddQuest = function () {
@@ -1169,7 +1169,7 @@ async function renderJournal() {
             </div>
           </div>`).join('') || '<div class="empty-state"><i class="fa-solid fa-book-open fa-2x mb-2 d-block text-muted"></i>No journal entries yet.</div>'}
       </div>`;
-  } catch { el.innerHTML = '<div class="empty-state">Could not load journal.</div>'; }
+  } catch { el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load journal. Try again later.</p></div>'; }
 }
 
 (window as any).showAddJournal = function () {
@@ -1242,7 +1242,7 @@ async function renderGraph() {
         <p class="text-muted fst-italic mt-2">${data.nodes.length} connections &middot; ${data.edges.length} relationships</p></div>`;
     }
   } catch (e:any) {
-    el.innerHTML += `<div class="empty-state">Could not load graph: ${esc(e.message)}</div>`;
+    el.innerHTML += `<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load graph: ${esc(e.message)}</p></div>`;
   }
 }
 
@@ -1332,7 +1332,7 @@ async function renderAnalytics() {
       });
     }
   } catch (e:any) {
-    el.innerHTML = `<div class="empty-state">Could not load analytics: ${esc(e.message)}</div>`;
+    el.innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load analytics: ${esc(e.message)}</p></div>`;
   }
 }
 
@@ -1584,7 +1584,7 @@ async function loadDiceHistory() {
       </div>
     `).join('') || '<div class="empty-state"><i class="fa-solid fa-flag fa-2x mb-2 d-block text-muted"></i>No characters yet.</div>';
   } catch (e:any) {
-    el.innerHTML = `<div class="empty-state">Failed: ${esc(e.message)}</div>`;
+    el.innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Failed: ${esc(e.message)}</p></div>`;
   }
 };
 

@@ -502,6 +502,12 @@ h1 { color: var(--ink) !important; }
   padding: 3rem 1rem !important;
   color: var(--ink-muted) !important;
 }
+.empty-state p:first-of-type {
+  margin-bottom: .25rem !important;
+}
+.empty-state .fa-3x {
+  opacity: .5;
+}
 
 /* ---- Inventory Items ---- */
 

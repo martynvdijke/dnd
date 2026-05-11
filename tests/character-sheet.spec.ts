@@ -513,6 +513,42 @@ test.describe('Theme and loading', () => {
   });
 });
 
+test.describe('Empty states', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+    await page.fill('#username', 'admin');
+    await page.fill('#password', 'testpassword123');
+    await page.click('button[type="submit"]');
+    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+  });
+
+  test('shows empty states for sections with no data', async ({ page }) => {
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Human');
+    await page.fill('#newClass', 'Fighter');
+    await page.click('text=Create');
+    await page.waitForTimeout(500);
+    await page.locator('.character-card').filter({ hasText: name }).first().click();
+
+    await page.click('#tabBar button:has-text("Features")');
+    await expect(page.locator('#featuresSection .empty-state')).toBeVisible();
+
+    await page.click('#tabBar button:has-text("Inventory")');
+    await expect(page.locator('#inventorySection .empty-state')).toBeVisible();
+
+    await page.click('#tabBar button:has-text("Quests")');
+    await expect(page.locator('#questsSection .empty-state')).toBeVisible();
+
+    await page.click('#tabBar button:has-text("Journal")');
+    await expect(page.locator('#journalSection .empty-state')).toBeVisible();
+
+    await page.click('#tabBar button:has-text("Sessions")');
+    await expect(page.locator('#sessionsSection .empty-state')).toBeVisible();
+  });
+});
+
 test.describe('Error handling and edge cases', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
