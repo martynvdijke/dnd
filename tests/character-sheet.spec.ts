@@ -564,7 +564,9 @@ test.describe('Error handling and edge cases', () => {
     for (const expr of expressions) {
       await input.fill(expr);
       await btn.click();
+      await expect(page.locator('#diceResult')).toBeVisible({ timeout: 5000 });
       await expect(page.locator('#diceResult')).toContainText(expr, { timeout: 10000 });
+      await page.waitForTimeout(200);
     }
 
     const historyItems = page.locator('.dice-history-item');

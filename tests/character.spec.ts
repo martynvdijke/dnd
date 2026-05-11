@@ -52,7 +52,7 @@ test.describe('Character management', () => {
     await page.waitForTimeout(1000);
 
     await page.locator('.character-card').filter({ hasText: name }).click();
-    const abilityValues = await page.locator('.ability-box .abil-value').allTextContents();
+    const abilityValues = await page.locator('.ability-box .abil-value-input').allTextContents();
     expect(abilityValues.length).toBeGreaterThanOrEqual(6);
   });
 });
