@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
     password TEXT NOT NULL,
     display_name TEXT NOT NULL DEFAULT '',
     role TEXT NOT NULL DEFAULT 'user' CHECK(role IN ('admin','user')),
+    email TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -463,6 +464,7 @@ func Migrate() error {
 		"ALTER TABLE characters ADD COLUMN death_saves_successes INTEGER NOT NULL DEFAULT 0",
 		"ALTER TABLE characters ADD COLUMN death_saves_failures INTEGER NOT NULL DEFAULT 0",
 		"ALTER TABLE characters ADD COLUMN concentrating_on TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE users ADD COLUMN email TEXT NOT NULL DEFAULT ''",
 	}
 	for _, stmt := range alterStatements {
 		if _, err := DB.Exec(stmt); err != nil {

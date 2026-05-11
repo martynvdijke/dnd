@@ -8,6 +8,7 @@ type User struct {
 	Password    string `json:"-"`
 	DisplayName string `json:"display_name"`
 	Role        string `json:"role"`
+	Email       string `json:"email"`
 	CreatedAt   string `json:"created_at"`
 }
 

@@ -14,7 +14,7 @@ import (
 )
 
 func AdminListUsers(c *gin.Context) {
-	rows, err := db.DB.Query("SELECT id, username, display_name, role, created_at FROM users ORDER BY id")
+	rows, err := db.DB.Query("SELECT id, username, display_name, role, email, created_at FROM users ORDER BY id")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -23,7 +23,7 @@ func AdminListUsers(c *gin.Context) {
 	var users []models.User
 	for rows.Next() {
 		var u models.User
-		rows.Scan(&u.ID, &u.Username, &u.DisplayName, &u.Role, &u.CreatedAt)
+		rows.Scan(&u.ID, &u.Username, &u.DisplayName, &u.Role, &u.Email, &u.CreatedAt)
 		users = append(users, u)
 	}
 	c.JSON(http.StatusOK, users)
@@ -35,6 +35,7 @@ func AdminCreateUser(c *gin.Context) {
 		Password    string `json:"password"`
 		DisplayName string `json:"display_name"`
 		Role        string `json:"role"`
+		Email       string `json:"email"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -56,8 +57,8 @@ func AdminCreateUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
 		return
 	}
-	result, err := db.DB.Exec("INSERT INTO users(username,password,display_name,role) VALUES(?,?,?,?)",
-		req.Username, string(hash), req.DisplayName, req.Role)
+	result, err := db.DB.Exec("INSERT INTO users(username,password,display_name,role,email) VALUES(?,?,?,?,?)",
+		req.Username, string(hash), req.DisplayName, req.Role, req.Email)
 	if err != nil {
 		c.JSON(http.StatusConflict, gin.H{"error": "username may already exist"})
 		return
@@ -72,13 +73,14 @@ func AdminUpdateUser(c *gin.Context) {
 		Username    string `json:"username"`
 		DisplayName string `json:"display_name"`
 		Role        string `json:"role"`
+		Email       string `json:"email"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	db.DB.Exec("UPDATE users SET username=?, display_name=?, role=? WHERE id=?",
-		req.Username, req.DisplayName, req.Role, id)
+	db.DB.Exec("UPDATE users SET username=?, display_name=?, role=?, email=? WHERE id=?",
+		req.Username, req.DisplayName, req.Role, req.Email, id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 

@@ -74,10 +74,11 @@ async function loadUsers() {
         <td>${u.id}</td>
         <td>${esc(u.username)}</td>
         <td>${esc(u.display_name)}</td>
+        <td>${esc(u.email)}</td>
         <td><span class="badge ${u.role === 'admin' ? 'badge-blood' : 'badge-gold'}">${u.role}</span></td>
         <td>${u.created_at}</td>
         <td>
-          <button class="btn btn-outline-primary btn-sm" onclick="editUser(${u.id},'${esc(u.username)}','${esc(u.display_name)}','${u.role}')"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-outline-primary btn-sm" onclick="editUser(${u.id},'${esc(u.username)}','${esc(u.display_name)}','${esc(u.email)}','${u.role}')"><i class="fa-solid fa-pen"></i></button>
           <button class="btn btn-outline-danger btn-sm" onclick="deleteUser(${u.id})"><i class="fa-solid fa-trash"></i></button>
           <button class="btn btn-outline-secondary btn-sm" onclick="resetPass(${u.id})"><i class="fa-solid fa-key"></i></button>
         </td>
@@ -93,6 +94,7 @@ async function loadUsers() {
     <div class="mb-3"><label class="form-label">Username</label><input class="form-control" id="addUsername"></div>
     <div class="mb-3"><label class="form-label">Password</label><input class="form-control" type="password" id="addPassword"></div>
     <div class="mb-3"><label class="form-label">Display Name</label><input class="form-control" id="addDisplay"></div>
+    <div class="mb-3"><label class="form-label">Email</label><input class="form-control" type="email" id="addEmail"></div>
     <div class="mb-3">
       <label class="form-label">Role</label>
       <select class="form-select" id="addRole"><option value="user">User</option><option value="admin">Admin</option></select>
@@ -107,6 +109,7 @@ async function loadUsers() {
       username: (document.getElementById('addUsername') as HTMLInputElement).value,
       password: (document.getElementById('addPassword') as HTMLInputElement).value,
       display_name: (document.getElementById('addDisplay') as HTMLInputElement).value,
+      email: (document.getElementById('addEmail') as HTMLInputElement).value,
       role: (document.getElementById('addRole') as HTMLSelectElement).value,
     });
     hideModal();
@@ -117,10 +120,11 @@ async function loadUsers() {
   }
 };
 
-(window as any).editUser = function (id: number, username: string, display: string, role: string) {
+(window as any).editUser = function (id: number, username: string, display: string, email: string, role: string) {
   showModal('Edit User', `
     <div class="mb-3"><label class="form-label">Username</label><input class="form-control" id="editUsername" value="${esc(username)}"></div>
     <div class="mb-3"><label class="form-label">Display Name</label><input class="form-control" id="editDisplay" value="${esc(display)}"></div>
+    <div class="mb-3"><label class="form-label">Email</label><input class="form-control" type="email" id="editEmail" value="${esc(email)}"></div>
     <div class="mb-3">
       <label class="form-label">Role</label>
       <select class="form-select" id="editRole"><option value="user" ${role === 'user' ? 'selected' : ''}>User</option><option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option></select>
@@ -134,6 +138,7 @@ async function loadUsers() {
     await api('PUT', `/api/admin/users/${id}`, {
       username: (document.getElementById('editUsername') as HTMLInputElement).value,
       display_name: (document.getElementById('editDisplay') as HTMLInputElement).value,
+      email: (document.getElementById('editEmail') as HTMLInputElement).value,
       role: (document.getElementById('editRole') as HTMLSelectElement).value,
     });
     hideModal();

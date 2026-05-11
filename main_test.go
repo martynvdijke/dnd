@@ -911,7 +911,7 @@ func TestAdminUsers(t *testing.T) {
 
 	// Create user
 	resp := tc.post("/api/admin/users", map[string]any{
-		"username": "player1", "password": "playerpass", "role": "user",
+		"username": "player1", "password": "playerpass", "role": "user", "email": "player1@example.com",
 	})
 	if resp.Code != 201 {
 		t.Fatalf("create user failed: %d - %s", resp.Code, resp.Body.String())
@@ -926,9 +926,25 @@ func TestAdminUsers(t *testing.T) {
 		t.Fatalf("list users failed: %d", resp.Code)
 	}
 
+	// Verify user has email in list
+	var users []map[string]any
+	readJSON(resp, &users)
+	var found bool
+	for _, u := range users {
+		if int(u["id"].(float64)) == uid {
+			if u["email"] != "player1@example.com" {
+				t.Fatalf("expected email player1@example.com, got %v", u["email"])
+			}
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("created user not found in list")
+	}
+
 	// Update
 	resp = tc.put(fmt.Sprintf("/api/admin/users/%d", uid), map[string]any{
-		"username": "player1_updated", "display_name": "Player One", "role": "user",
+		"username": "player1_updated", "display_name": "Player One", "role": "user", "email": "player1_new@example.com",
 	})
 	if resp.Code != 200 {
 		t.Fatalf("update user failed: %d", resp.Code)
