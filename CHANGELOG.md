@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/martynvdijke/dnd/compare/v1.2.1...v1.3.0) (2026-05-11)
+
+
+### Features
+
+* add 3D dice animation, media upload support, email settings, and cleanup tasks ([332f573](https://github.com/martynvdijke/dnd/commit/332f57321493a24e809b167e60f54b43cfc2ce0b))
+
 ## [1.2.1](https://github.com/martynvdijke/dnd/compare/v1.2.0...v1.2.1) (2026-05-11)
 
 
