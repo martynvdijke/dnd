@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -31,10 +32,25 @@ func main() {
 	}
 	defer db.Close()
 
+	// Media path setup
+	mediaPath := os.Getenv("MEDIA_PATH")
+	if mediaPath == "" {
+		basePath := filepath.Dir(dbPath)
+		if basePath == "." {
+			basePath = "."
+		}
+		mediaPath = filepath.Join(basePath, "media")
+	}
+	if err := os.MkdirAll(mediaPath, 0755); err != nil {
+		log.Printf("Warning: could not create media directory: %v", err)
+	}
+	handlers.SetMediaPath(mediaPath)
+
 	db.Seed()
 	handlers.SetDBPath(dbPath)
 	middleware.StartCleanupTask()
 	handlers.StartBackupScheduler()
+	handlers.StartDBCleanupTask()
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -189,6 +205,10 @@ func main() {
 		auth.GET("/generate/name", handlers.HandleGenerateName)
 		auth.GET("/generate/encounter", handlers.HandleGenerateEncounter)
 		auth.GET("/generate/loot", handlers.HandleGenerateLoot)
+
+		// Media upload
+		auth.POST("/upload", handlers.HandleUpload)
+		auth.GET("/uploads", handlers.GetUploads)
 	}
 
 	// Admin routes
@@ -201,11 +221,18 @@ func main() {
 		admin.DELETE("/users/:id", handlers.AdminDeleteUser)
 		admin.PUT("/users/:id/password", handlers.AdminResetPassword)
 
+		// Email settings
+		admin.GET("/email-settings", handlers.GetEmailSettings)
+		admin.POST("/email-settings", handlers.SaveEmailSettings)
+
 		// Compendium CRUD
 		admin.POST("/compendium/:type", handlers.AdminCreateCompendiumEntry)
 		admin.PUT("/compendium/:type/:id", handlers.AdminUpdateCompendiumEntry)
 		admin.DELETE("/compendium/:type/:id", handlers.AdminDeleteCompendiumEntry)
 	}
+
+	// Serve uploaded media files
+	r.Static("/media", mediaPath)
 
 	// Static file serving for non-API routes
 	staticFS, _ := fs.Sub(staticFiles, "static")
