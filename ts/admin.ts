@@ -16,7 +16,26 @@ async function api(method: string, path: string, body?: any): Promise<any> {
   return res.json();
 }
 
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  const newTheme = isDark ? 'light' : 'dark';
+  html.setAttribute('data-theme', newTheme);
+  localStorage.setItem('villum-theme', newTheme);
+  const icon = document.getElementById('themeIcon');
+  if (icon) icon.className = isDark ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+}
+(window as any).toggleTheme = toggleTheme;
+
+function initTheme() {
+  const saved = localStorage.getItem('villum-theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  const icon = document.getElementById('themeIcon');
+  if (icon) icon.className = saved === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+}
+
 async function init() {
+  initTheme();
   try {
     currentUser = await api('GET', '/api/user/me');
     if (currentUser.role !== 'admin') {

@@ -476,6 +476,30 @@ test.describe('Session and quest management UI', () => {
   });
 });
 
+test.describe('Theme toggle', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+    await page.fill('#username', 'admin');
+    await page.fill('#password', 'testpassword123');
+    await page.click('button[type="submit"]');
+    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+  });
+
+  test('dark mode toggle switches theme and persists', async ({ page }) => {
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+
+    await page.click('#themeToggle');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+    await page.reload();
+    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+    await page.click('#themeToggle');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  });
+});
+
 test.describe('Error handling and edge cases', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });

@@ -38,6 +38,31 @@ async function api(method: string, path: string, body?: any): Promise<any> {
   return res.json();
 }
 
+// ─── Theme ───
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  const newTheme = isDark ? 'light' : 'dark';
+  html.setAttribute('data-theme', newTheme);
+  localStorage.setItem('villum-theme', newTheme);
+  updateThemeIcon();
+}
+(window as any).toggleTheme = toggleTheme;
+
+function updateThemeIcon() {
+  const icon = document.getElementById('themeIcon');
+  if (!icon) return;
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  icon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('villum-theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  updateThemeIcon();
+}
+
 // ─── Bootstrap Modal ───
 
 let genericModal: any = null;
@@ -81,6 +106,7 @@ function toast(msg: string, isError = false) {
 // ─── Init ───
 
 async function init() {
+  initTheme();
   try {
     const user = await api('GET', '/api/user/me');
     currentUser = user;

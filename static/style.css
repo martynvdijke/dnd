@@ -517,6 +517,15 @@ h1 { color: var(--ink) !important; }
 .inv-item:hover { background: rgba(184,150,62,.04) !important; }
 .inv-item.equipped { background: rgba(184,150,62,.08) !important; }
 
+/* ---- Theme Toggle ---- */
+
+#themeToggle {
+  transition: all .2s;
+}
+#themeToggle:hover {
+  transform: scale(1.1);
+}
+
 /* ---- Login Page ---- */
 
 .login-container {
