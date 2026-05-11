@@ -1,5 +1,5 @@
-export {};
 
+export {};
 declare const vis: any;
 declare const Chart: any;
 

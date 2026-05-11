@@ -1,4 +1,3 @@
-"use strict";
 let csrfToken = '';
 let currentUser = null;
 let currentView = 'characters';

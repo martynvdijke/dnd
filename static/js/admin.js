@@ -1,4 +1,3 @@
-"use strict";
 let csrfToken = '';
 let currentUser = null;
 async function api(method, path, body) {

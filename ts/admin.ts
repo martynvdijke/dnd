@@ -1,5 +1,5 @@
-export {};
 
+export {};
 let csrfToken = '';
 let currentUser: any = null;
 
