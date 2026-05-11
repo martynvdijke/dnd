@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/martynvdijke/dnd/compare/v1.2.0...v1.2.1) (2026-05-11)
+
+
+### Bug Fixes
+
+* strip export {} from compiled JS output for TS6 compatibility ([33f3422](https://github.com/martynvdijke/dnd/commit/33f3422030abb2ea018e299691630424b4efdfab))
+
 # [1.2.0](https://github.com/martynvdijke/dnd/compare/v1.1.0...v1.2.0) (2026-05-11)
 
 
