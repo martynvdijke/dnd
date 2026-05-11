@@ -560,6 +560,101 @@ h1 { color: var(--ink) !important; }
   to { transform: rotate(360deg); }
 }
 
+/* ---- Sortable ---- */
+
+.sort-btn {
+  cursor: pointer;
+  opacity: .5;
+  transition: opacity .2s;
+}
+.sort-btn:hover {
+  opacity: 1;
+}
+
+/* ---- Floating Action Button ---- */
+
+.fab {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 1.5rem;
+  z-index: 9000;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all .25s;
+}
+.fab:hover {
+  transform: scale(1.1);
+  background: var(--primary-light);
+}
+.fab-menu {
+  position: fixed;
+  bottom: 5rem;
+  left: 1.5rem;
+  z-index: 9000;
+  display: none;
+  flex-direction: column;
+  gap: .5rem;
+}
+.fab-menu.open {
+  display: flex;
+}
+.fab-menu-item {
+  background: var(--parchment);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .5rem 1rem;
+  font-family: var(--font-display);
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: var(--shadow);
+  transition: all .2s;
+}
+[data-theme="dark"] .fab-menu-item {
+  background: var(--parchment-dark);
+}
+.fab-menu-item:hover {
+  transform: translateX(4px);
+  border-color: var(--gold);
+}
+
+/* ---- Animated Dice ---- */
+
+@keyframes dicePop {
+  0% { transform: scale(.8); opacity: 0; }
+  60% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.dice-result-box {
+  animation: dicePop .3s ease-out;
+}
+.die-face {
+  transition: all .3s;
+}
+.die-face[data-value="20"] {
+  background: var(--gold) !important;
+  color: #fff !important;
+  border-color: var(--gold) !important;
+  transform: scale(1.15);
+}
+.die-face[data-value="1"] {
+  background: var(--primary) !important;
+  color: #fff !important;
+  border-color: var(--primary) !important;
+}
+
 /* ---- Keyboard Shortcuts ---- */
 
 kbd {

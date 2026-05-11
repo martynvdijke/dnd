@@ -24,6 +24,31 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+// ─── FAB ───
+
+function toggleFabMenu() {
+  const menu = document.getElementById('fabMenu');
+  if (menu) menu.classList.toggle('open');
+}
+(window as any).toggleFabMenu = toggleFabMenu;
+
+// ─── Sort ───
+
+function sortList(key: string, order: 'asc' | 'desc' = 'asc') {
+  const container = document.getElementById(key + 'List');
+  if (!container) return;
+  const items = Array.from(container.querySelectorAll('.inv-item'));
+  const sorted = items.sort((a, b) => {
+    const va = a.getAttribute('data-sort') || a.textContent?.trim() || '';
+    const vb = b.getAttribute('data-sort') || b.textContent?.trim() || '';
+    const na = parseFloat(va), nb = parseFloat(vb);
+    if (!isNaN(na) && !isNaN(nb)) return order === 'asc' ? na - nb : nb - na;
+    return order === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+  });
+  sorted.forEach(item => container.appendChild(item));
+}
+(window as any).sortList = sortList;
+
 // ─── Keyboard Shortcuts ───
 
 function initShortcuts() {

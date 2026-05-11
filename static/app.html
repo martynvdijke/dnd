@@ -112,6 +112,15 @@
     <div class="spinner-container"><div class="spinner"></div><p class="mt-2 text-muted small">Loading...</p></div>
   </div>
 
+  <div class="fab" id="fabBtn" onclick="toggleFabMenu()" title="Quick Actions">
+    <i class="fa-solid fa-plus"></i>
+  </div>
+  <div class="fab-menu" id="fabMenu">
+    <button class="fab-menu-item" onclick="newChar();toggleFabMenu()"><i class="fa-solid fa-plus me-2"></i>New Character</button>
+    <button class="fab-menu-item" onclick="showView('dice');renderDiceTab();toggleFabMenu()"><i class="fa-solid fa-dice me-2"></i>Roll Dice</button>
+    <button class="fab-menu-item" onclick="showParty();toggleFabMenu()"><i class="fa-solid fa-flag me-2"></i>Party View</button>
+  </div>
+
   <div class="toast-container toast-custom" id="toastContainer"></div>
 
 <div class="modal fade" id="genericModal" tabindex="-1">
