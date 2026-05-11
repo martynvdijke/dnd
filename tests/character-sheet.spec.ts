@@ -281,6 +281,10 @@ test.describe('NPC interactions extended', () => {
     await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
   });
 
+  async function waitModalClosed(page: any) {
+    await page.waitForFunction(() => !document.getElementById('genericModal')?.classList.contains('show'), { timeout: 10000 });
+  }
+
   test('can create and delete NPC with full stats', async ({ page }) => {
     const name = uniqueName();
     await page.click('text=New Character');
@@ -288,7 +292,7 @@ test.describe('NPC interactions extended', () => {
     await page.fill('#newRace', 'Gnome');
     await page.fill('#newClass', 'Wizard');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
 
     await page.click('text=Npcs');
@@ -298,7 +302,7 @@ test.describe('NPC interactions extended', () => {
     await page.fill('#newNPCClass', 'Sorcerer');
     await page.fill('#newNPCDesc', 'A powerful foe');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await expect(page.locator('#npcsSection')).toContainText('Villain');
   });
@@ -310,7 +314,7 @@ test.describe('NPC interactions extended', () => {
     await page.fill('#newRace', 'Gnome');
     await page.fill('#newClass', 'Wizard');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
 
     await page.click('text=Npcs');
@@ -320,14 +324,15 @@ test.describe('NPC interactions extended', () => {
     await page.fill('#newNPCClass', 'Cleric');
     await page.fill('#newNPCDesc', 'Local priest');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
-    await page.click('text=Link NPC');
+    await page.locator('button:has-text("Link NPC")').click();
+    await expect(page.locator('#linkNPCId')).toBeVisible({ timeout: 5000 });
     await page.selectOption('#linkNPCId', { index: 0 });
-    await page.click('#genericModal button:has-text("Link")');
-    await page.waitForTimeout(500);
+    await page.locator('#genericModal button:has-text("Link")').click();
+    await waitModalClosed(page);
 
-    await expect(page.locator('#npcsSection')).toContainText('Quest Giver');
+    await expect(page.locator('#npcsSection')).toContainText('Quest Giver', { timeout: 5000 });
   });
 });
 

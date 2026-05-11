@@ -194,18 +194,19 @@ function initTheme() {
 
 // ─── Bootstrap Modal ───
 
-let genericModal: any = null;
+let modalEl: HTMLElement | null = null;
 function getModal(): any {
-  if (!genericModal) {
-    genericModal = new bootstrap.Modal(document.getElementById('genericModal')!);
-  }
-  return genericModal;
+  if (!modalEl) modalEl = document.getElementById('genericModal');
+  let inst = bootstrap.Modal.getInstance(modalEl);
+  if (!inst) inst = new bootstrap.Modal(modalEl, { backdrop: true, keyboard: true });
+  return inst;
 }
 
 function showModal(title: string, bodyHtml: string) {
+  const modal = getModal();
   document.getElementById('genericModalTitle')!.textContent = title;
   document.getElementById('genericModalBody')!.innerHTML = bodyHtml;
-  getModal().show();
+  modal.show();
 }
 (window as any).showModal = showModal;
 
