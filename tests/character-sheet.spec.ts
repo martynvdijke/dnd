@@ -549,6 +549,39 @@ test.describe('Empty states', () => {
   });
 });
 
+test.describe('Keyboard shortcuts', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+    await page.fill('#username', 'admin');
+    await page.fill('#password', 'testpassword123');
+    await page.click('button[type="submit"]');
+    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+  });
+
+  test('? opens keyboard shortcuts help', async ({ page }) => {
+    await page.keyboard.press('?');
+    await expect(page.locator('#genericModal')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#genericModal')).toContainText('Keyboard Shortcuts');
+    await page.locator('#genericModal .btn-close').click();
+    await page.waitForTimeout(500);
+    await expect(page.locator('#genericModal')).not.toBeVisible();
+  });
+
+  test('n opens new character modal', async ({ page }) => {
+    await page.keyboard.press('n');
+    await expect(page.locator('#genericModal')).toBeVisible();
+    await expect(page.locator('#genericModal')).toContainText('New Character');
+  });
+
+  test('T toggles dark mode', async ({ page }) => {
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await page.keyboard.press('t');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await page.keyboard.press('t');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  });
+});
+
 test.describe('Error handling and edge cases', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });

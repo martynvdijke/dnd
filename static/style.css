@@ -560,6 +560,41 @@ h1 { color: var(--ink) !important; }
   to { transform: rotate(360deg); }
 }
 
+/* ---- Keyboard Shortcuts ---- */
+
+kbd {
+  background: var(--parchment-dark);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-family: var(--font-body);
+  font-size: .8rem;
+  color: var(--ink);
+}
+[data-theme="dark"] kbd {
+  background: var(--parchment);
+  border-color: var(--border-light);
+}
+.shortcut-grid {
+  max-width: 300px;
+  margin: 0 auto;
+}
+.shortcut-grid kbd {
+  min-width: 24px;
+  display: inline-block;
+  text-align: center;
+}
+
+/* ---- Search ---- */
+
+#charSearch {
+  max-width: 400px;
+}
+#charSearch:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(184,150,62,.15);
+}
+
 /* ---- Theme Toggle ---- */
 
 #themeToggle {
