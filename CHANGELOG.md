@@ -1,3 +1,26 @@
+# [1.1.0](https://github.com/martynvdijke/dnd/compare/v1.0.2...v1.1.0) (2026-05-11)
+
+
+### Bug Fixes
+
+* correct ability scores test selector and stabilize sequential dice roll test ([7fa1698](https://github.com/martynvdijke/dnd/commit/7fa169855c95dfa78001adeb67cfc793184ce266))
+* prevent loading overlay from blocking modal interactions and stabilize flaky NPC test ([2b843a3](https://github.com/martynvdijke/dnd/commit/2b843a3908fe7f3963fa43051aed9528a72a7b3d))
+
+
+### Features
+
+* add animated dice with nat 20/1 highlighting, floating action button for quick actions, and sort utility ([9d5ebb6](https://github.com/martynvdijke/dnd/commit/9d5ebb6cc7830f15a79434c5a261b5d8b4c5c03f))
+* add dark mode toggle with localStorage persistence across all pages ([15dd741](https://github.com/martynvdijke/dnd/commit/15dd741ac40670975bc8fbd09048fc337b20b377))
+* add debounced auto-save for inline edit fields (ability scores, HP, details, etc.) ([7f75d43](https://github.com/martynvdijke/dnd/commit/7f75d433d89f82ecf5e8dfe28efbe3664656f689))
+* add keyboard shortcuts (n/d/p/c/1-9/?/Esc/T) and character search bar ([509de5a](https://github.com/martynvdijke/dnd/commit/509de5a725630584bcf3908a568f119d29e34bc4))
+* add loading overlay spinner during API calls ([730bdaa](https://github.com/martynvdijke/dnd/commit/730bdaa02cc867098dc40ed124dcc02b05752aa5))
+* add tooltips on hover for ability scores, skill calculations, and combat stats ([36a0219](https://github.com/martynvdijke/dnd/commit/36a021970366be6fc35b84165dd10be8c9687458))
+* add XP progress bar showing progress to next level ([4bef237](https://github.com/martynvdijke/dnd/commit/4bef237023e67a782312268b53c27392b888b807))
+* improve dice roller UI with quick select dice, adv/dis buttons, and visual die faces ([f241ffa](https://github.com/martynvdijke/dnd/commit/f241ffa9ed74825bcb5e7d2e7d704f53e094a416))
+* improve empty states with consistent icons and helpful messages ([f19ad8d](https://github.com/martynvdijke/dnd/commit/f19ad8daefbd094e51852777cfba46148bd91db8))
+* improve spell list layout with card-style display and full spell details ([0c63bb5](https://github.com/martynvdijke/dnd/commit/0c63bb5047733420e3381485fdc15e6d7cd34d6e))
+* make ability scores (str/dex/con/int/wis/cha) editable from stats tab ([9351bc9](https://github.com/martynvdijke/dnd/commit/9351bc92eed95a1aa072b099cb2d9c88e86dded1))
+
 ## [1.0.2](https://github.com/martynvdijke/dnd/compare/v1.0.1...v1.0.2) (2026-05-10)
 
 
