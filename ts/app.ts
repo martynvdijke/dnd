@@ -386,6 +386,28 @@ async function doLevelUp() {
 }
 (window as any).doLevelUp = doLevelUp;
 
+let autoSaveTimer: number | null = null;
+
+function autoSaveField(field: string, el: HTMLElement) {
+  const input = el as HTMLInputElement;
+  const isCheckbox = input.type === 'checkbox';
+  const isTextarea = el.tagName === 'TEXTAREA';
+  const raw = isCheckbox ? input.checked : (el as any).value;
+  const num = parseFloat(String(raw));
+  const finalVal = !isNaN(num) && !isCheckbox && !isTextarea ? num : raw;
+  if (!currentChar) return;
+  currentChar[field] = finalVal;
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = window.setTimeout(async () => {
+    try {
+      await api('PUT', `/api/characters/${currentChar.id}`, currentChar);
+    } catch (e: any) {
+      toast(e.message, true);
+    }
+  }, 800);
+}
+(window as any).autoSaveField = autoSaveField;
+
 async function updateField(field: string, value: any) {
   if (!currentChar) return;
   currentChar[field] = value;
@@ -408,7 +430,7 @@ function renderStats() {
         return `<div class="col-4 col-md-2">
           <div class="ability-box">
             <div class="abil-label" onclick="rollCheck('check','${a.key}','normal')" style="cursor:pointer">${a.label}</div>
-            <input type="number" class="form-control form-control-sm text-center abil-value-input" value="${val}" onchange="updateField('${a.key}',+this.value)" onfocus="this.select()">
+            <input type="number" class="form-control form-control-sm text-center abil-value-input" value="${val}" oninput="autoSaveField('${a.key}',this)" onfocus="this.select()">
             <div class="abil-mod ${cls}">${mod >= 0 ? '+' : ''}${mod}</div>
           </div>
         </div>`;
@@ -420,10 +442,10 @@ function renderStats() {
     </div>
     <div class="ornament my-2">✧</div>
     <div class="row g-3 mt-2">
-      <div class="col-6 col-md-3"><label class="form-label">Proficiency</label><input type="number" class="form-control form-control-sm" value="${c.proficiency_bonus}" onchange="updateField('proficiency_bonus',+this.value)"></div>
-      <div class="col-6 col-md-3"><label class="form-label">Inspiration</label><input type="number" class="form-control form-control-sm" value="${c.inspiration}" onchange="updateField('inspiration',+this.value)"></div>
-      <div class="col-6 col-md-3"><label class="form-label">Passive Percep.</label><input type="number" class="form-control form-control-sm" value="${c.passive_perception}" onchange="updateField('passive_perception',+this.value)"></div>
-      <div class="col-6 col-md-3"><label class="form-label">XP</label><input type="number" class="form-control form-control-sm" value="${c.xp}" onchange="updateField('xp',+this.value)"></div>
+      <div class="col-6 col-md-3"><label class="form-label">Proficiency</label><input type="number" class="form-control form-control-sm" value="${c.proficiency_bonus}" oninput="autoSaveField('proficiency_bonus',this)"></div>
+      <div class="col-6 col-md-3"><label class="form-label">Inspiration</label><input type="number" class="form-control form-control-sm" value="${c.inspiration}" oninput="autoSaveField('inspiration',this)"></div>
+      <div class="col-6 col-md-3"><label class="form-label">Passive Percep.</label><input type="number" class="form-control form-control-sm" value="${c.passive_perception}" oninput="autoSaveField('passive_perception',this)"></div>
+      <div class="col-6 col-md-3"><label class="form-label">XP</label><input type="number" class="form-control form-control-sm" value="${c.xp}" oninput="autoSaveField('xp',this)"></div>
     </div>
     <h5 class="mt-3">Skills <small class="text-muted fw-normal">(click to roll)</small></h5>
     <div id="skillsArea">${renderSkills(c)}</div>
@@ -473,9 +495,9 @@ function renderCombat() {
       <div class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center text-white small fw-bold" style="font-size:0.8rem">${c.hp_current} / ${c.hp_max}${c.temp_hp > 0 ? ' (+' + c.temp_hp + ' temp)' : ''}</div>
     </div>
     <div class="row g-2">
-      <div class="col-4"><label class="form-label small">HP Max</label><input type="number" class="form-control form-control-sm" value="${c.hp_max}" onchange="updateField('hp_max',+this.value)"></div>
-      <div class="col-4"><label class="form-label small">Current</label><input type="number" class="form-control form-control-sm" value="${c.hp_current}" onchange="updateField('hp_current',+this.value)"></div>
-      <div class="col-4"><label class="form-label small">Temp HP</label><input type="number" class="form-control form-control-sm" value="${c.temp_hp}" onchange="updateField('temp_hp',+this.value)"></div>
+      <div class="col-4"><label class="form-label small">HP Max</label><input type="number" class="form-control form-control-sm" value="${c.hp_max}" oninput="autoSaveField('hp_max',this)"></div>
+      <div class="col-4"><label class="form-label small">Current</label><input type="number" class="form-control form-control-sm" value="${c.hp_current}" oninput="autoSaveField('hp_current',this)"></div>
+      <div class="col-4"><label class="form-label small">Temp HP</label><input type="number" class="form-control form-control-sm" value="${c.temp_hp}" oninput="autoSaveField('temp_hp',this)"></div>
     </div>
     <div class="row g-2 mt-2">
       <div class="col-6">
@@ -503,19 +525,19 @@ function renderCombat() {
     </div>
     <h5 class="mt-3">Death Saves</h5>
     <div class="row g-2">
-      <div class="col-6"><label class="form-label small">Successes</label><input type="number" class="form-control form-control-sm" value="${c.death_save_successes}" onchange="updateField('death_save_successes',+this.value)" min="0" max="3"></div>
-      <div class="col-6"><label class="form-label small">Failures</label><input type="number" class="form-control form-control-sm" value="${c.death_save_failures}" onchange="updateField('death_save_failures',+this.value)" min="0" max="3"></div>
+      <div class="col-6"><label class="form-label small">Successes</label><input type="number" class="form-control form-control-sm" value="${c.death_save_successes}" oninput="autoSaveField('death_save_successes',this)" min="0" max="3"></div>
+      <div class="col-6"><label class="form-label small">Failures</label><input type="number" class="form-control form-control-sm" value="${c.death_save_failures}" oninput="autoSaveField('death_save_failures',this)" min="0" max="3"></div>
     </div>
     <h5 class="mt-3">Concentration</h5>
-    <div class="form-check"><input type="checkbox" class="form-check-input" id="concentrationCb" ${c.concentrating ? 'checked' : ''} onchange="updateField('concentrating',this.checked)"><label class="form-check-label" for="concentrationCb">Concentrating on a spell</label></div>
+    <div class="form-check"><input type="checkbox" class="form-check-input" id="concentrationCb" ${c.concentrating ? 'checked' : ''} onchange="autoSaveField('concentrating',this)"><label class="form-check-label" for="concentrationCb">Concentrating on a spell</label></div>
     <div class="mt-2">
       <label class="form-label small">Concentrating On</label>
-      <input class="form-control form-control-sm" value="${esc(c.concentrating_on)}" onchange="updateField('concentrating_on',this.value)" placeholder="e.g. Hunter's Mark">
+      <input class="form-control form-control-sm" value="${esc(c.concentrating_on)}" oninput="autoSaveField('concentrating_on',this)" placeholder="e.g. Hunter's Mark">
     </div>
     <h5 class="mt-3">Hit Dice</h5>
     <div class="row g-2">
-      <div class="col-6"><label class="form-label small">Total</label><input type="number" class="form-control form-control-sm" value="${c.hit_dice_total}" onchange="updateField('hit_dice_total',+this.value)"></div>
-      <div class="col-6"><label class="form-label small">Used</label><input type="number" class="form-control form-control-sm" value="${c.hit_dice_used}" onchange="updateField('hit_dice_used',+this.value)"></div>
+      <div class="col-6"><label class="form-label small">Total</label><input type="number" class="form-control form-control-sm" value="${c.hit_dice_total}" oninput="autoSaveField('hit_dice_total',this)"></div>
+      <div class="col-6"><label class="form-label small">Used</label><input type="number" class="form-control form-control-sm" value="${c.hit_dice_used}" oninput="autoSaveField('hit_dice_used',this)"></div>
     </div>`;
 }
 
@@ -891,22 +913,22 @@ function renderDetails() {
   const el = document.getElementById('detailsSection')!;
   el.innerHTML = `
     <div class="row g-3">
-      <div class="col-md-4"><label class="form-label">Race</label><input class="form-control form-control-sm" value="${esc(c.race)}" onchange="updateField('race',this.value)"></div>
-      <div class="col-md-4"><label class="form-label">Class</label><input class="form-control form-control-sm" value="${esc(c.class)}" onchange="updateField('class',this.value)"></div>
-      <div class="col-md-4"><label class="form-label">Subclass</label><input class="form-control form-control-sm" value="${esc(c.subclass)}" onchange="updateField('subclass',this.value)"></div>
+      <div class="col-md-4"><label class="form-label">Race</label><input class="form-control form-control-sm" value="${esc(c.race)}" oninput="autoSaveField('race',this)"></div>
+      <div class="col-md-4"><label class="form-label">Class</label><input class="form-control form-control-sm" value="${esc(c.class)}" oninput="autoSaveField('class',this)"></div>
+      <div class="col-md-4"><label class="form-label">Subclass</label><input class="form-control form-control-sm" value="${esc(c.subclass)}" oninput="autoSaveField('subclass',this)"></div>
     </div>
     <div class="row g-3 mt-1">
-      <div class="col-md-4"><label class="form-label">Level</label><input class="form-control form-control-sm" type="number" value="${c.level}" onchange="updateField('level',+this.value)"></div>
-      <div class="col-md-4"><label class="form-label">Background</label><input class="form-control form-control-sm" value="${esc(c.background)}" onchange="updateField('background',this.value)"></div>
-      <div class="col-md-4"><label class="form-label">Alignment</label><input class="form-control form-control-sm" value="${esc(c.alignment)}" onchange="updateField('alignment',this.value)"></div>
+      <div class="col-md-4"><label class="form-label">Level</label><input class="form-control form-control-sm" type="number" value="${c.level}" oninput="autoSaveField('level',this)"></div>
+      <div class="col-md-4"><label class="form-label">Background</label><input class="form-control form-control-sm" value="${esc(c.background)}" oninput="autoSaveField('background',this)"></div>
+      <div class="col-md-4"><label class="form-label">Alignment</label><input class="form-control form-control-sm" value="${esc(c.alignment)}" oninput="autoSaveField('alignment',this)"></div>
     </div>
     <hr class="my-3">
     ${['personality_traits','ideals','bonds','flaws','appearance'].map(f => `
       <div class="mb-3"><label class="form-label">${capitalize(f.replace(/_/g,' '))}</label>
-      <textarea class="form-control form-control-sm" rows="2" onchange="updateField('${f}',this.value)">${esc((c as any)[f])}</textarea></div>
+      <textarea class="form-control form-control-sm" rows="2" oninput="autoSaveField('${f}',this)">${esc((c as any)[f])}</textarea></div>
     `).join('')}
     <div class="mb-3"><label class="form-label">Backstory</label>
-    <textarea class="form-control form-control-sm" rows="4" onchange="updateField('backstory',this.value)">${esc(c.backstory)}</textarea></div>
+    <textarea class="form-control form-control-sm" rows="4" oninput="autoSaveField('backstory',this)">${esc(c.backstory)}</textarea></div>
     <h5 class="mt-4">Currency</h5>
     <div class="row g-3">
       ${['cp','sp','ep','gp','pp'].map(coin => `

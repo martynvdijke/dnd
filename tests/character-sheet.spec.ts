@@ -582,6 +582,39 @@ test.describe('Keyboard shortcuts', () => {
   });
 });
 
+test.describe('Auto-save', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+    await page.fill('#username', 'admin');
+    await page.fill('#password', 'testpassword123');
+    await page.click('button[type="submit"]');
+    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+  });
+
+  test('inline edit auto-saves after typing', async ({ page }) => {
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Elf');
+    await page.fill('#newClass', 'Ranger');
+    await page.click('text=Create');
+    await page.waitForTimeout(500);
+    await page.locator('.character-card').filter({ hasText: name }).click();
+
+    const firstInput = page.locator('.abil-value-input').first();
+    await firstInput.click();
+    await firstInput.fill('18');
+    await page.waitForTimeout(1200);
+
+    await page.reload();
+    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await page.locator('.character-card').filter({ hasText: name }).click();
+    await page.waitForTimeout(500);
+
+    await expect(page.locator('.abil-value-input').first()).toHaveValue('18');
+  });
+});
+
 test.describe('Error handling and edge cases', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
