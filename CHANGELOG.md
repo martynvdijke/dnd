@@ -1,3 +1,11 @@
+# [1.5.0](https://github.com/martynvdijke/dnd/compare/v1.4.0...v1.5.0) (2026-05-12)
+
+
+### Features
+
+* add conditions tracker, concentration checks, feats, companions, factions, weather, notes, HP calc, random char gen, character comparison ([5fefc60](https://github.com/martynvdijke/dnd/commit/5fefc608ca0e6d7823824a9bcfaa773bcd00304c))
+* add frontend UI for conditions, concentration, feats, companions, factions, weather, notes, HP calc, random char, comparison ([a979de2](https://github.com/martynvdijke/dnd/commit/a979de26ff8c4e86e435633fa08f29fa33814e01))
+
 # [1.4.0](https://github.com/martynvdijke/dnd/compare/v1.3.2...v1.4.0) (2026-05-12)
 
 
