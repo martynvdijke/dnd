@@ -241,11 +241,60 @@ func main() {
 		auth.PUT("/timeline/:id", handlers.UpdateTimelineEvent)
 		auth.DELETE("/timeline/:id", handlers.DeleteTimelineEvent)
 
+		// Conditions / Ailments
+		auth.GET("/conditions", handlers.ListConditions)
+		auth.POST("/conditions", handlers.CreateCondition)
+		auth.PUT("/conditions/:id", handlers.UpdateCondition)
+		auth.DELETE("/conditions/:id", handlers.DeleteCondition)
+		auth.POST("/conditions/tick", handlers.TickConditions)
+		auth.GET("/conditions/types", handlers.GetConditionTypes)
+		auth.GET("/conditions/summary", handlers.GetActiveConditionSummary)
+
+		// Concentration
+		auth.POST("/characters/:id/check-concentration", handlers.CheckConcentration)
+
+		// Feats
+		auth.GET("/feats", handlers.ListFeats)
+		auth.POST("/feats", handlers.CreateFeat)
+		auth.PUT("/feats/:id", handlers.UpdateFeat)
+		auth.DELETE("/feats/:id", handlers.DeleteFeat)
+
+		// Companions
+		auth.GET("/companions", handlers.ListCompanions)
+		auth.POST("/companions", handlers.CreateCompanion)
+		auth.PUT("/companions/:id", handlers.UpdateCompanion)
+		auth.DELETE("/companions/:id", handlers.DeleteCompanion)
+
+		// Factions & Reputation
+		auth.GET("/factions", handlers.ListFactions)
+		auth.POST("/factions", handlers.CreateFaction)
+		auth.PUT("/factions/:id", handlers.UpdateFaction)
+		auth.DELETE("/factions/:id", handlers.DeleteFaction)
+		auth.GET("/faction-reputation", handlers.GetFactionReputations)
+		auth.POST("/faction-reputation", handlers.SetFactionReputation)
+		auth.DELETE("/faction-reputation/:id", handlers.DeleteFactionReputation)
+
+		// Weather
+		auth.GET("/generate/weather", handlers.HandleGenerateWeather)
+
+		// Notes
+		auth.GET("/notes", handlers.ListCharacterNotes)
+		auth.POST("/notes", handlers.CreateCharacterNote)
+		auth.PUT("/notes/:id", handlers.UpdateCharacterNote)
+		auth.DELETE("/notes/:id", handlers.DeleteCharacterNote)
+
+		// HP Auto-Calc
+		auth.POST("/characters/:id/calc-hp", handlers.CalculateHP)
+
+		// Character Comparison
+		auth.GET("/characters/compare", handlers.CompareCharacters)
+
 		// Generators
 		auth.GET("/generate/npc", handlers.HandleGenerateNPC)
 		auth.GET("/generate/name", handlers.HandleGenerateName)
 		auth.GET("/generate/encounter", handlers.HandleGenerateEncounter)
 		auth.GET("/generate/loot", handlers.HandleGenerateLoot)
+		auth.GET("/generate/character", handlers.HandleGenerateRandomCharacter)
 
 		// Media upload
 		auth.POST("/upload", handlers.HandleUpload)

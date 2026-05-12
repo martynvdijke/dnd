@@ -332,6 +332,79 @@ type CalendarEvent struct {
 	CreatedAt   string `json:"created_at"`
 }
 
+type Condition struct {
+	ID            int64  `json:"id"`
+	CharacterID   int64  `json:"character_id"`
+	Name          string `json:"name"`
+	Type          string `json:"type"`
+	Source        string `json:"source"`
+	Duration      int    `json:"duration"`
+	DurationType  string `json:"duration_type"`
+	SavingThrow   string `json:"saving_throw"`
+	SaveDC        int    `json:"save_dc"`
+	Description   string `json:"description"`
+	StartedAt     string `json:"started_at"`
+}
+
+type CharacterFeat struct {
+	ID           int64  `json:"id"`
+	CharacterID  int64  `json:"character_id"`
+	Name         string `json:"name"`
+	Description  string `json:"description"`
+	Prerequisites string `json:"prerequisites"`
+	Source       string `json:"source"`
+	LevelGained  int    `json:"level_gained"`
+}
+
+type Companion struct {
+	ID          int64  `json:"id"`
+	CharacterID int64  `json:"character_id"`
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	Race        string `json:"race"`
+	HPMax       int    `json:"hp_max"`
+	HPCurrent   int    `json:"hp_current"`
+	AC          int    `json:"ac"`
+	Str         int    `json:"str"`
+	Dex         int    `json:"dex"`
+	Con         int    `json:"con"`
+	Int         int    `json:"int"`
+	Wis         int    `json:"wis"`
+	Cha         int    `json:"cha"`
+	Speed       int    `json:"speed"`
+	Abilities   string `json:"abilities"`
+	Notes       string `json:"notes"`
+	PortraitURL string `json:"portrait_url"`
+	IsAlive     bool   `json:"is_alive"`
+}
+
+type Faction struct {
+	ID           int64  `json:"id"`
+	CampaignID   *int64 `json:"campaign_id,omitempty"`
+	Name         string `json:"name"`
+	Description  string `json:"description"`
+	Type         string `json:"type"`
+	Headquarters string `json:"headquarters"`
+}
+
+type FactionReputation struct {
+	ID          int64  `json:"id"`
+	CharacterID int64  `json:"character_id"`
+	FactionID   int64  `json:"faction_id"`
+	Standing    int    `json:"standing"`
+	Rank        string `json:"rank"`
+	Notes       string `json:"notes"`
+}
+
+type CharacterNote struct {
+	ID          int64  `json:"id"`
+	CharacterID int64  `json:"character_id"`
+	Title       string `json:"title"`
+	Content     string `json:"content"`
+	Visibility  string `json:"visibility"`
+	Category    string `json:"category"`
+}
+
 type TimelineEvent struct {
 	ID                int64  `json:"id"`
 	CampaignID        int64  `json:"campaign_id"`

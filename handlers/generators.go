@@ -135,3 +135,109 @@ func HandleGenerateLoot(c *gin.Context) {
 		"cr":    cr,
 	})
 }
+
+var charNames = []string{"Aldric", "Brienne", "Cedric", "Drizzt", "Elowen", "Fenris", "Gareth", "Helga", "Isolde", "Jasper", "Kaelen", "Lyanna", "Magnus", "Nyx", "Orion", "Petra", "Quinn", "Raven", "Sylas", "Talia", "Ulric", "Vanya", "Wren", "Xander", "Yara", "Zephyr"}
+var backgrounds = []string{"Acolyte", "Criminal", "Folk Hero", "Noble", "Sage", "Soldier", "Urchin", "Entertainer", "Guild Artisan", "Hermit", "Outlander", "Sailor"}
+var alignments = []string{"Lawful Good", "Neutral Good", "Chaotic Good", "Lawful Neutral", "True Neutral", "Chaotic Neutral", "Lawful Evil", "Neutral Evil", "Chaotic Evil"}
+var backstoryHooks = []string{
+	"Seeking revenge for a fallen mentor",
+	"On a quest to find a lost artifact",
+	"Fleeing a dark past in another realm",
+	"Bound by an ancient oath",
+	"Searching for a missing family member",
+	"Carrying a cursed heirloom",
+	"Hunted by a powerful organization",
+	"Promised a great fortune for a dangerous task",
+	"The last of a destroyed lineage",
+	"Awakened with strange powers they don't understand",
+	"Made a pact with a mysterious entity",
+	"Chosen by prophecy for a coming war",
+}
+
+func abilityScoreArray() []int {
+	// 4d6 drop lowest method, 6 times
+	scores := make([]int, 6)
+	for i := 0; i < 6; i++ {
+		rolls := []int{rand.Intn(6) + 1, rand.Intn(6) + 1, rand.Intn(6) + 1, rand.Intn(6) + 1}
+		// Find min and remove it
+		minIdx := 0
+		for j := 1; j < 4; j++ {
+			if rolls[j] < rolls[minIdx] {
+				minIdx = j
+			}
+		}
+		sum := 0
+		for j := 0; j < 4; j++ {
+			if j != minIdx {
+				sum += rolls[j]
+			}
+		}
+		scores[i] = sum
+	}
+	return scores
+}
+
+func HandleGenerateRandomCharacter(c *gin.Context) {
+	race := npcRaces[rand.Intn(len(npcRaces))]
+	cls := npcClasses[rand.Intn(len(npcClasses))]
+	name := charNames[rand.Intn(len(charNames))]
+	bg := backgrounds[rand.Intn(len(backgrounds))]
+	alignment := alignments[rand.Intn(len(alignments))]
+	hook := backstoryHooks[rand.Intn(len(backstoryHooks))]
+	personality := npcPersonalities[rand.Intn(len(npcPersonalities))]
+	quirk := npcQuirks[rand.Intn(len(npcQuirks))]
+	level := rand.Intn(20) + 1
+	scores := abilityScoreArray()
+	// Assign scores to abilities: assign highest to primary stat based on class
+	primaryStats := map[string]string{
+		"Barbarian": "str", "Bard": "cha", "Cleric": "wis", "Druid": "wis",
+		"Fighter": "str", "Monk": "dex", "Paladin": "str", "Ranger": "dex",
+		"Rogue": "dex", "Sorcerer": "cha", "Warlock": "cha", "Wizard": "int",
+	}
+	primary := primaryStats[cls]
+	if primary == "" {
+		primary = "str"
+	}
+	statOrder := []string{"str", "dex", "con", "int", "wis", "cha"}
+	// Sort scores descending, but put primary highest
+	statValues := make(map[string]int)
+	maxScore := 0
+	maxIdx := 0
+	for i, s := range scores {
+		if s > maxScore {
+			maxScore = s
+			maxIdx = i
+		}
+	}
+	// Swap highest with primary position
+	primaryPos := 0
+	for i, s := range statOrder {
+		if s == primary {
+			primaryPos = i
+			break
+		}
+	}
+	scores[maxIdx], scores[primaryPos] = scores[primaryPos], scores[maxIdx]
+
+	for i, s := range statOrder {
+		statValues[s] = scores[i]
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"name":              name,
+		"race":              race,
+		"class":             cls,
+		"level":             level,
+		"background":        bg,
+		"alignment":         alignment,
+		"personality":       personality,
+		"quirk":             quirk,
+		"backstory_hook":    hook,
+		"str":               statValues["str"],
+		"dex":               statValues["dex"],
+		"con":               statValues["con"],
+		"int":               statValues["int"],
+		"wis":               statValues["wis"],
+		"cha":               statValues["cha"],
+	})
+}

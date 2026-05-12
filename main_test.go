@@ -171,11 +171,56 @@ func buildRouter() *gin.Engine {
 		auth.PUT("/timeline/:id", handlers.UpdateTimelineEvent)
 		auth.DELETE("/timeline/:id", handlers.DeleteTimelineEvent)
 
+		// Conditions
+		auth.GET("/conditions", handlers.ListConditions)
+		auth.POST("/conditions", handlers.CreateCondition)
+		auth.PUT("/conditions/:id", handlers.UpdateCondition)
+		auth.DELETE("/conditions/:id", handlers.DeleteCondition)
+		auth.POST("/conditions/tick", handlers.TickConditions)
+		auth.GET("/conditions/types", handlers.GetConditionTypes)
+		auth.GET("/conditions/summary", handlers.GetActiveConditionSummary)
+		auth.POST("/characters/:id/check-concentration", handlers.CheckConcentration)
+
+		// Feats
+		auth.GET("/feats", handlers.ListFeats)
+		auth.POST("/feats", handlers.CreateFeat)
+		auth.PUT("/feats/:id", handlers.UpdateFeat)
+		auth.DELETE("/feats/:id", handlers.DeleteFeat)
+
+		// Companions
+		auth.GET("/companions", handlers.ListCompanions)
+		auth.POST("/companions", handlers.CreateCompanion)
+		auth.PUT("/companions/:id", handlers.UpdateCompanion)
+		auth.DELETE("/companions/:id", handlers.DeleteCompanion)
+
+		// Factions
+		auth.GET("/factions", handlers.ListFactions)
+		auth.POST("/factions", handlers.CreateFaction)
+		auth.PUT("/factions/:id", handlers.UpdateFaction)
+		auth.DELETE("/factions/:id", handlers.DeleteFaction)
+		auth.GET("/faction-reputation", handlers.GetFactionReputations)
+		auth.POST("/faction-reputation", handlers.SetFactionReputation)
+		auth.DELETE("/faction-reputation/:id", handlers.DeleteFactionReputation)
+		auth.GET("/generate/weather", handlers.HandleGenerateWeather)
+
+		// Notes
+		auth.GET("/notes", handlers.ListCharacterNotes)
+		auth.POST("/notes", handlers.CreateCharacterNote)
+		auth.PUT("/notes/:id", handlers.UpdateCharacterNote)
+		auth.DELETE("/notes/:id", handlers.DeleteCharacterNote)
+
+		// HP
+		auth.POST("/characters/:id/calc-hp", handlers.CalculateHP)
+
+		// Comparison
+		auth.GET("/characters/compare", handlers.CompareCharacters)
+
 		// Generators
 		auth.GET("/generate/npc", handlers.HandleGenerateNPC)
 		auth.GET("/generate/name", handlers.HandleGenerateName)
 		auth.GET("/generate/encounter", handlers.HandleGenerateEncounter)
 		auth.GET("/generate/loot", handlers.HandleGenerateLoot)
+		auth.GET("/generate/character", handlers.HandleGenerateRandomCharacter)
 	}
 
 	admin := r.Group("/api/admin")
@@ -2798,6 +2843,482 @@ func TestDnDAPIRespectsDB(t *testing.T) {
 	} else {
 		t.Logf("D&D API unavailable (status %d) - skipping online test", resp.Code)
 	}
+}
+
+// ─── Conditions Tests ───
+
+func TestConditions(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{"name": "Condition Hero", "race": "Human", "class": "Fighter"})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Create condition
+	resp = tc.post("/api/conditions", map[string]any{
+		"character_id": cid, "name": "Poisoned", "type": "poisoned",
+		"duration": 5, "duration_type": "round", "source": "Spider Bite",
+		"saving_throw": "con", "save_dc": 12,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create condition failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	// List
+	resp = tc.get("/api/conditions?character_id="+strconv.Itoa(cid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("list conditions failed: %d", resp.Code)
+	}
+	var conds []any
+	readJSON(resp, &conds)
+	if len(conds) != 1 {
+		t.Fatalf("expected 1 condition, got %d", len(conds))
+	}
+
+	// Get types
+	resp = tc.get("/api/conditions/types", nil)
+	if resp.Code != 200 {
+		t.Fatalf("condition types failed: %d", resp.Code)
+	}
+
+	// Get summary
+	resp = tc.get("/api/conditions/summary?character_id="+strconv.Itoa(cid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("condition summary failed: %d", resp.Code)
+	}
+
+	// Tick (advance 3 rounds)
+	resp = tc.post("/api/conditions/tick", map[string]any{
+		"character_id": cid, "count": 3, "duration_type": "round",
+	})
+	if resp.Code != 200 {
+		t.Fatalf("tick conditions failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var tickResult map[string]any
+	readJSON(resp, &tickResult)
+
+	// Tick remaining rounds (should expire)
+	resp = tc.post("/api/conditions/tick", map[string]any{
+		"character_id": cid, "count": 5, "duration_type": "round",
+	})
+	readJSON(resp, &tickResult)
+
+	// Verify expired
+	resp = tc.get("/api/conditions?character_id="+strconv.Itoa(cid), nil)
+	readJSON(resp, &conds)
+	if len(conds) != 0 {
+		t.Fatalf("expected 0 conditions after expiry, got %d", len(conds))
+	}
+}
+
+// ─── Concentration Tests ───
+
+func TestConcentrationCheck(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{
+		"name": "Concentrating Hero", "race": "Elf", "class": "Wizard", "con": 14,
+	})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Set concentrating
+	tc.put(fmt.Sprintf("/api/characters/%d", cid), map[string]any{
+		"name": "Concentrating Hero", "race": "Elf", "class": "Wizard",
+		"level": 1, "con": 14, "str": 10, "dex": 10, "int": 10, "wis": 10, "cha": 10,
+		"hp_max": 20, "hp_current": 20, "ac": 10, "initiative": 0, "speed": 30,
+		"concentrating_on": "Hunter's Mark",
+	})
+
+	// Check concentration with low damage
+	resp = tc.post(fmt.Sprintf("/api/characters/%d/check-concentration", cid), map[string]any{"damage": 5})
+	if resp.Code != 200 {
+		t.Fatalf("concentration check failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var concResult map[string]any
+	readJSON(resp, &concResult)
+	if concResult["needs_check"] != true {
+		t.Fatal("expected needs_check=true")
+	}
+	if int(concResult["dc"].(float64)) != 10 {
+		t.Fatalf("expected DC 10, got %v", concResult["dc"])
+	}
+	if concResult["spell_name"] != "Hunter's Mark" {
+		t.Fatalf("expected 'Hunter's Mark', got %v", concResult["spell_name"])
+	}
+
+	// Check concentration with high damage
+	resp = tc.post(fmt.Sprintf("/api/characters/%d/check-concentration", cid), map[string]any{"damage": 30})
+	readJSON(resp, &concResult)
+	if int(concResult["dc"].(float64)) != 15 {
+		t.Fatalf("expected DC 15 for 30 damage, got %v", concResult["dc"])
+	}
+
+	// No concentration
+	tc.put(fmt.Sprintf("/api/characters/%d", cid), map[string]any{
+		"name": "Concentrating Hero", "race": "Elf", "class": "Wizard",
+		"level": 1, "con": 14, "str": 10, "dex": 10, "int": 10, "wis": 10, "cha": 10,
+		"hp_max": 20, "hp_current": 20, "ac": 10, "initiative": 0, "speed": 30,
+		"concentrating_on": "",
+	})
+	resp = tc.post(fmt.Sprintf("/api/characters/%d/check-concentration", cid), map[string]any{"damage": 5})
+	readJSON(resp, &concResult)
+	if concResult["needs_check"] != false {
+		t.Fatal("expected needs_check=false when not concentrating")
+	}
+}
+
+// ─── Feats Tests ───
+
+func TestCharacterFeats(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{"name": "Feat Hero", "race": "Human", "class": "Fighter"})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Create feat
+	resp = tc.post("/api/feats", map[string]any{
+		"character_id": cid, "name": "Sharpshooter",
+		"description": "Ranged attacks ignore half cover", "source": "PHB",
+		"prerequisites": "Dex 13+", "level_gained": 4,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create feat failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	// List
+	resp = tc.get("/api/feats?character_id="+strconv.Itoa(cid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("list feats failed: %d", resp.Code)
+	}
+	var feats []any
+	readJSON(resp, &feats)
+	if len(feats) != 1 {
+		t.Fatalf("expected 1 feat, got %d", len(feats))
+	}
+	// Delete
+	var feat map[string]any
+	readJSON(resp, &feat)
+	resp = tc.del(fmt.Sprintf("/api/feats/%d", int(feats[0].(map[string]any)["id"].(float64))), nil)
+	if resp.Code != 200 {
+		t.Fatalf("delete feat failed: %d", resp.Code)
+	}
+}
+
+// ─── Companions Tests ───
+
+func TestCompanions(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{"name": "Companion Hero", "race": "Human", "class": "Wizard"})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Create familiar
+	resp = tc.post("/api/companions", map[string]any{
+		"character_id": cid, "name": "Owlbert", "type": "familiar",
+		"race": "Owl", "hp_max": 3, "hp_current": 3, "ac": 12,
+		"str": 3, "dex": 14, "con": 8, "int": 2, "wis": 12, "cha": 6,
+		"speed": 10, "abilities": "Flyby, Darkvision 60ft",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create companion failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	// Create mount
+	resp = tc.post("/api/companions", map[string]any{
+		"character_id": cid, "name": "Shadowmere", "type": "mount",
+		"race": "Warhorse", "hp_max": 30, "hp_current": 30, "ac": 13,
+		"str": 18, "dex": 12, "con": 14, "int": 3, "wis": 12, "cha": 7,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create mount failed: %d", resp.Code)
+	}
+
+	// List
+	resp = tc.get("/api/companions?character_id="+strconv.Itoa(cid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("list companions failed: %d", resp.Code)
+	}
+	var companions []any
+	readJSON(resp, &companions)
+	if len(companions) != 2 {
+		t.Fatalf("expected 2 companions, got %d", len(companions))
+	}
+
+	// Delete first companion
+	first := companions[0].(map[string]any)
+	tc.del(fmt.Sprintf("/api/companions/%d", int(first["id"].(float64))), nil)
+	resp = tc.get("/api/companions?character_id="+strconv.Itoa(cid), nil)
+	readJSON(resp, &companions)
+	if len(companions) != 1 {
+		t.Fatalf("expected 1 companion after delete, got %d", len(companions))
+	}
+}
+
+// ─── Factions Tests ───
+
+func TestFactionsReputation(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{"name": "Faction Hero", "race": "Human", "class": "Rogue"})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Create faction
+	resp = tc.post("/api/factions", map[string]any{
+		"name": "Harpers", "description": "Secret society", "type": "organization",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create faction failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var fac map[string]any
+	readJSON(resp, &fac)
+	fid := int(fac["id"].(float64))
+
+	// List factions
+	resp = tc.get("/api/factions", nil)
+	if resp.Code != 200 {
+		t.Fatalf("list factions failed: %d", resp.Code)
+	}
+
+	// Set reputation
+	resp = tc.post("/api/faction-reputation", map[string]any{
+		"character_id": cid, "faction_id": fid, "standing": 50,
+		"rank": "Friend", "notes": "Helped with a mission",
+	})
+	if resp.Code != 200 {
+		t.Fatalf("set reputation failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	// Get reputations
+	resp = tc.get("/api/faction-reputation?character_id="+strconv.Itoa(cid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("get reputation failed: %d", resp.Code)
+	}
+	var reps []any
+	readJSON(resp, &reps)
+	if len(reps) != 1 {
+		t.Fatalf("expected 1 reputation, got %d", len(reps))
+	}
+	first := reps[0].(map[string]any)
+	if int(first["standing"].(float64)) != 50 {
+		t.Fatalf("expected standing 50, got %v", first["standing"])
+	}
+	if first["faction_name"] != "Harpers" {
+		t.Fatalf("expected faction_name Harpers, got %v", first["faction_name"])
+	}
+
+	// Update reputation
+	resp = tc.post("/api/faction-reputation", map[string]any{
+		"character_id": cid, "faction_id": fid, "standing": 75,
+		"rank": "Trusted Ally",
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update reputation failed: %d", resp.Code)
+	}
+	resp = tc.get("/api/faction-reputation?character_id="+strconv.Itoa(cid), nil)
+	readJSON(resp, &reps)
+	if int(reps[0].(map[string]any)["standing"].(float64)) != 75 {
+		t.Fatalf("expected standing 75 after update, got %v", reps[0].(map[string]any)["standing"])
+	}
+}
+
+// ─── Weather Tests ───
+
+func TestWeatherGenerator(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.get("/api/generate/weather", nil)
+	if resp.Code != 200 {
+		t.Fatalf("weather gen failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var weather map[string]any
+	readJSON(resp, &weather)
+	if weather["season"] == "" || weather["temperature"] == "" {
+		t.Fatal("weather missing season or temperature")
+	}
+	t.Logf("Weather: %s - %s - %s", weather["season"], weather["temperature"], weather["description"])
+
+	// With season filter
+	resp = tc.get("/api/generate/weather?season=Winter", nil)
+	readJSON(resp, &weather)
+	if weather["season"] != "Winter" {
+		t.Fatalf("expected Winter, got %v", weather["season"])
+	}
+}
+
+// ─── Notes Tests ───
+
+func TestCharacterNotes(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{"name": "Notes Hero", "race": "Human", "class": "Fighter"})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Create player note
+	resp = tc.post("/api/notes", map[string]any{
+		"character_id": cid, "title": "Quest Idea", "content": "Find the lost crown",
+		"visibility": "player", "category": "quest",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create note failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	// Create DM note
+	resp = tc.post("/api/notes", map[string]any{
+		"character_id": cid, "title": "Secret", "content": "The king is a doppelganger",
+		"visibility": "dm", "category": "lore",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create dm note failed: %d", resp.Code)
+	}
+
+	// List notes
+	resp = tc.get("/api/notes?character_id="+strconv.Itoa(cid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("list notes failed: %d", resp.Code)
+	}
+	var notes []any
+	readJSON(resp, &notes)
+	if len(notes) != 2 {
+		t.Fatalf("expected 2 notes, got %d", len(notes))
+	}
+
+	// Update
+	first := notes[0].(map[string]any)
+	resp = tc.put(fmt.Sprintf("/api/notes/%d", int(first["id"].(float64))), map[string]any{
+		"title": "Updated Note", "content": "Updated content",
+		"visibility": "both", "category": "general",
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update note failed: %d", resp.Code)
+	}
+}
+
+// ─── HP Calc Tests ───
+
+func TestHPAutoCalc(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{
+		"name": "Auto HP Hero", "race": "Dwarf", "class": "Fighter", "con": 14,
+	})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Enable auto-calc
+	tc.put(fmt.Sprintf("/api/characters/%d", cid), map[string]any{
+		"name": "Auto HP Hero", "race": "Dwarf", "class": "Fighter",
+		"level": 3, "con": 14, "str": 16, "dex": 10, "int": 10, "wis": 10, "cha": 10,
+		"hp_max": 10, "hp_current": 10, "ac": 10, "initiative": 0, "speed": 30,
+		"hp_auto_calc": true,
+	})
+
+	// Add character multi-class
+	tc.post(fmt.Sprintf("/api/characters/%d/classes", cid), map[string]any{
+		"class": "Fighter", "level": 1, "hit_dice": "d10",
+	})
+	tc.post(fmt.Sprintf("/api/characters/%d/classes", cid), map[string]any{
+		"class": "Wizard", "level": 2, "hit_dice": "d6",
+	})
+
+	// Calculate HP
+	resp = tc.post(fmt.Sprintf("/api/characters/%d/calc-hp", cid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("calc HP failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var hpResult map[string]any
+	readJSON(resp, &hpResult)
+	t.Logf("HP result: %+v", hpResult)
+	if int(hpResult["hp_max"].(float64)) < 10 {
+		t.Fatalf("expected HP >= 10, got %v", hpResult["hp_max"])
+	}
+	breakdown := hpResult["breakdown"].([]any)
+	if len(breakdown) != 3 {
+		t.Fatalf("expected 3 breakdown entries (1 fighter + 2 wizard), got %d", len(breakdown))
+	}
+}
+
+// ─── Random Character Generator Tests ───
+
+func TestRandomCharacterGen(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.get("/api/generate/character", nil)
+	if resp.Code != 200 {
+		t.Fatalf("random character gen failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var rc map[string]any
+	readJSON(resp, &rc)
+	if rc["name"] == "" || rc["race"] == "" || rc["class"] == "" {
+		t.Fatal("random character missing basic fields")
+	}
+	if int(rc["str"].(float64)) < 3 || int(rc["str"].(float64)) > 20 {
+		t.Fatalf("str out of range: %v", rc["str"])
+	}
+	if rc["backstory_hook"] == "" {
+		t.Fatal("expected backstory_hook")
+	}
+	t.Logf("Random: %s (%s %s Lv%v)", rc["name"], rc["race"], rc["class"], rc["level"])
+}
+
+// ─── Character Comparison Tests ───
+
+func TestCharacterComparison(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{
+		"name": "Compare A", "race": "Elf", "class": "Wizard",
+		"str": 8, "dex": 14, "con": 12, "int": 18, "wis": 14, "cha": 10,
+	})
+	var charA map[string]any
+	readJSON(resp, &charA)
+	cidA := int(charA["id"].(float64))
+
+	resp = tc.post("/api/characters", map[string]any{
+		"name": "Compare B", "race": "Dwarf", "class": "Fighter",
+		"str": 18, "dex": 12, "con": 16, "int": 8, "wis": 10, "cha": 8,
+	})
+	var charB map[string]any
+	readJSON(resp, &charB)
+	cidB := int(charB["id"].(float64))
+
+	resp = tc.get(fmt.Sprintf("/api/characters/compare?ids=%d,%d", cidA, cidB), nil)
+	if resp.Code != 200 {
+		t.Fatalf("compare failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var comp []any
+	readJSON(resp, &comp)
+	if len(comp) != 2 {
+		t.Fatalf("expected 2 characters in comparison, got %d", len(comp))
+	}
+	c1 := comp[0].(map[string]any)
+	c2 := comp[1].(map[string]any)
+	if c1["name"] == "Compare A" && int(c1["int"].(float64)) != 18 {
+		t.Fatalf("expected Compare A INT 18, got %v", c1["int"])
+	}
+	if c2["name"] == "Compare B" && int(c2["str"].(float64)) != 18 {
+		t.Fatalf("expected Compare B STR 18, got %v", c2["str"])
+	}
+	t.Logf("Comparison: %s (INT %v) vs %s (STR %v)", c1["name"], c1["int"], c2["name"], c2["str"])
 }
 
 func TestCompendiumSystemFilter(t *testing.T) {
