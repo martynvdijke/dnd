@@ -1,3 +1,10 @@
+## [1.3.2](https://github.com/martynvdijke/dnd/compare/v1.3.1...v1.3.2) (2026-05-12)
+
+
+### Bug Fixes
+
+* default DB_PATH to /db/villum.db when running in Docker ([3b7c36a](https://github.com/martynvdijke/dnd/commit/3b7c36aee8f5a3c19edce5fa5deee56812686d9b))
+
 ## [1.3.1](https://github.com/martynvdijke/dnd/compare/v1.3.0...v1.3.1) (2026-05-12)
 
 # [1.3.0](https://github.com/martynvdijke/dnd/compare/v1.2.1...v1.3.0) (2026-05-11)
