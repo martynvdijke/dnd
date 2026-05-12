@@ -21,8 +21,8 @@ func seedRaces() {
 	}
 
 	races := []struct {
-		name, desc, size string
-		speed            int
+		name, desc, size         string
+		speed                    int
 		abilities, traits, langs string
 	}{
 		{"Dwarf", "Bold and hardy, dwarves are known for their skill in warfare, their ability to withstand physical and magical punishment, and their love of good ale.", "Medium", 25, `{"con":2}`, `{"darkvision":60,"dwarven_resilience":"Advantage on saving throws against poison","stonecunning":"Double proficiency bonus on History checks related to stonework","tool_proficiency":"Proficiency with smith's tools, brewer's supplies, or mason's tools"}`,

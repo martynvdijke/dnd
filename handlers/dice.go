@@ -17,6 +17,7 @@ import (
 type DiceRequest struct {
 	Expression  string `json:"expression"`
 	CharacterID *int64 `json:"character_id,omitempty"`
+	Advantage   string `json:"advantage,omitempty"`
 }
 
 type DiceResult struct {
@@ -46,6 +47,12 @@ func HandleRoll(c *gin.Context) {
 		return
 	}
 
+	adv := strings.ToLower(req.Advantage)
+	if adv == "advantage" || adv == "disadvantage" {
+		handleAdvantageRoll(c, req, adv)
+		return
+	}
+
 	result, err := rollDice(req.Expression)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -53,6 +60,80 @@ func HandleRoll(c *gin.Context) {
 	}
 
 	// Save to history
+	userID, _ := c.Get("user_id")
+	db.DB.Exec("INSERT INTO dice_rolls(user_id,character_id,expression,result,total) VALUES(?,?,?,?,?)",
+		userID, req.CharacterID, result.Expression, result.Text, result.Total)
+
+	c.JSON(http.StatusOK, result)
+}
+
+func handleAdvantageRoll(c *gin.Context, req DiceRequest, adv string) {
+	expr := strings.ReplaceAll(req.Expression, " ", "")
+	expr = strings.ToLower(expr)
+
+	var diePart string
+	var modPart int
+	if idx := strings.IndexAny(expr, "+-"); idx >= 0 {
+		diePart = expr[:idx]
+		modPart, _ = strconv.Atoi(expr[idx:])
+	} else {
+		diePart = expr
+	}
+
+	if !strings.Contains(diePart, "d") || strings.Count(diePart, "d") > 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "advantage/disadvantage only supported for single die expressions"})
+		return
+	}
+
+	parts := strings.SplitN(diePart, "d", 2)
+	count, _ := strconv.Atoi(parts[0])
+	sides, _ := strconv.Atoi(parts[1])
+	if count != 1 || sides <= 0 || sides > 1000 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "advantage/disadvantage only supported for single die"})
+		return
+	}
+
+	roll1, _ := randInt(1, sides)
+	roll2, _ := randInt(1, sides)
+
+	chosen := roll1
+	if adv == "advantage" && roll2 > chosen {
+		chosen = roll2
+	}
+	if adv == "disadvantage" && roll2 < chosen {
+		chosen = roll2
+	}
+
+	total := chosen + modPart
+
+	breakdown := []DieResult{
+		{
+			Die:   diePart,
+			Rolls: []int{roll1, roll2},
+			Total: chosen,
+		},
+	}
+	if modPart != 0 {
+		signed := fmt.Sprintf("%+d", modPart)
+		breakdown = append(breakdown, DieResult{Die: signed, Total: modPart, Mod: modPart, Signed: signed})
+	}
+
+	keepLabel := "higher"
+	if adv == "disadvantage" {
+		keepLabel = "lower"
+	}
+	text := fmt.Sprintf("%s (%s) = %d  (%s: [%d, %d], keeping %s)", expr, adv, total, diePart, roll1, roll2, keepLabel)
+	if modPart != 0 {
+		text += fmt.Sprintf(" %+d", modPart)
+	}
+
+	result := &DiceResult{
+		Expression: req.Expression,
+		Total:      total,
+		Breakdown:  breakdown,
+		Text:       text,
+	}
+
 	userID, _ := c.Get("user_id")
 	db.DB.Exec("INSERT INTO dice_rolls(user_id,character_id,expression,result,total) VALUES(?,?,?,?,?)",
 		userID, req.CharacterID, result.Expression, result.Text, result.Total)

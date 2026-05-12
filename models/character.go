@@ -39,24 +39,24 @@ type Character struct {
 	UpdatedAt         string `json:"updated_at"`
 
 	// Computed
-	StrMod             int    `json:"str_mod"`
-	DexMod             int    `json:"dex_mod"`
-	ConMod             int    `json:"con_mod"`
-	IntMod             int    `json:"int_mod"`
-	WisMod             int    `json:"wis_mod"`
-	ChaMod             int    `json:"cha_mod"`
-	SpellSaveDC        int    `json:"spell_save_dc"`
-	SpellAttackBonus   int    `json:"spell_attack_bonus"`
-	DeathSavesSuccesses int   `json:"death_saves_successes"`
-	DeathSavesFailures  int   `json:"death_saves_failures"`
+	StrMod              int    `json:"str_mod"`
+	DexMod              int    `json:"dex_mod"`
+	ConMod              int    `json:"con_mod"`
+	IntMod              int    `json:"int_mod"`
+	WisMod              int    `json:"wis_mod"`
+	ChaMod              int    `json:"cha_mod"`
+	SpellSaveDC         int    `json:"spell_save_dc"`
+	SpellAttackBonus    int    `json:"spell_attack_bonus"`
+	DeathSavesSuccesses int    `json:"death_saves_successes"`
+	DeathSavesFailures  int    `json:"death_saves_failures"`
 	ConcentratingOn     string `json:"concentrating_on"`
 
-	Proficiencies    []Proficiency    `json:"proficiencies,omitempty"`
-	Features         []Feature        `json:"features,omitempty"`
-	Spellcasting     *Spellcasting    `json:"spellcasting,omitempty"`
-	Spells           []Spell          `json:"spells,omitempty"`
-	Inventory        []InventoryItem  `json:"inventory,omitempty"`
-	Currency         *Currency        `json:"currency,omitempty"`
+	Proficiencies []Proficiency   `json:"proficiencies,omitempty"`
+	Features      []Feature       `json:"features,omitempty"`
+	Spellcasting  *Spellcasting   `json:"spellcasting,omitempty"`
+	Spells        []Spell         `json:"spells,omitempty"`
+	Inventory     []InventoryItem `json:"inventory,omitempty"`
+	Currency      *Currency       `json:"currency,omitempty"`
 }
 
 type Currency struct {
@@ -85,7 +85,7 @@ type Feature struct {
 }
 
 type Spellcasting struct {
-	CharacterID int64 `json:"character_id"`
+	CharacterID int64  `json:"character_id"`
 	Ability     string `json:"ability"`
 	SaveDC      int    `json:"save_dc"`
 	AttackBonus int    `json:"attack_bonus"`
@@ -156,15 +156,15 @@ type DiceRoll struct {
 }
 
 type Location struct {
-	ID          int64   `json:"id"`
-	UserID      int64   `json:"user_id"`
-	Name        string  `json:"name"`
-	Type        string  `json:"type"`
-	Description string  `json:"description"`
-	ParentID    *int64  `json:"parent_id,omitempty"`
+	ID          int64    `json:"id"`
+	UserID      int64    `json:"user_id"`
+	Name        string   `json:"name"`
+	Type        string   `json:"type"`
+	Description string   `json:"description"`
+	ParentID    *int64   `json:"parent_id,omitempty"`
 	Latitude    *float64 `json:"latitude,omitempty"`
 	Longitude   *float64 `json:"longitude,omitempty"`
-	CreatedAt   string  `json:"created_at"`
+	CreatedAt   string   `json:"created_at"`
 }
 
 type CharacterLocation struct {
@@ -206,15 +206,15 @@ type CharacterNPC struct {
 }
 
 type Session struct {
-	ID             int64  `json:"id"`
-	CharacterID    int64  `json:"character_id"`
-	SessionDate    string `json:"session_date"`
-	Title          string `json:"title"`
-	Notes          string `json:"notes"`
-	XPEarned       int    `json:"xp_earned"`
-	GoldEarned     int    `json:"gold_earned"`
+	ID              int64  `json:"id"`
+	CharacterID     int64  `json:"character_id"`
+	SessionDate     string `json:"session_date"`
+	Title           string `json:"title"`
+	Notes           string `json:"notes"`
+	XPEarned        int    `json:"xp_earned"`
+	GoldEarned      int    `json:"gold_earned"`
 	ImportantEvents string `json:"important_events"`
-	CreatedAt      string `json:"created_at"`
+	CreatedAt       string `json:"created_at"`
 }
 
 type Quest struct {
@@ -249,11 +249,11 @@ type GraphNode struct {
 }
 
 type GraphEdge struct {
-	From     string `json:"from"`
-	To       string `json:"to"`
-	Label    string `json:"label,omitempty"`
-	Dashes   bool   `json:"dashes"`
-	Width    int    `json:"width"`
+	From   string `json:"from"`
+	To     string `json:"to"`
+	Label  string `json:"label,omitempty"`
+	Dashes bool   `json:"dashes"`
+	Width  int    `json:"width"`
 }
 
 type GraphData struct {

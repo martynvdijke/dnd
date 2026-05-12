@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -87,10 +88,11 @@ func StartBackupScheduler() {
 
 func checkAndBackup() {
 	var enabled bool
-	var interval int
+	var intervalDays int
+	var keepCount int
 	var lastBackup string
 
-	err := db.DB.QueryRow("SELECT enabled, interval_hours, last_backup FROM backup_settings WHERE id=1").Scan(&enabled, &interval, &lastBackup)
+	err := db.DB.QueryRow("SELECT enabled, COALESCE(interval_days, 7), COALESCE(keep_count, 7), last_backup FROM backup_settings WHERE id=1").Scan(&enabled, &intervalDays, &keepCount, &lastBackup)
 	if err != nil {
 		return
 	}
@@ -107,7 +109,7 @@ func checkAndBackup() {
 			shouldBackup = true
 		} else {
 			hoursSince := time.Since(lastTime).Hours()
-			if hoursSince >= float64(interval) {
+			if hoursSince >= float64(intervalDays*24) {
 				shouldBackup = true
 			}
 		}
@@ -122,5 +124,51 @@ func checkAndBackup() {
 		now := time.Now().Format("2006-01-02 15:04:05")
 		db.DB.Exec("UPDATE backup_settings SET last_backup=? WHERE id=1", now)
 		log.Printf("Auto backup created: %s", path)
+		PruneBackups()
+	}
+}
+
+func PruneBackups() {
+	var keepCount int
+	err := db.DB.QueryRow("SELECT COALESCE(keep_count, 7) FROM backup_settings WHERE id=1").Scan(&keepCount)
+	if err != nil || keepCount < 1 {
+		keepCount = 7
+	}
+
+	backupDir := "backups"
+	entries, err := os.ReadDir(backupDir)
+	if err != nil {
+		return
+	}
+
+	type backupFile struct {
+		name    string
+		modTime time.Time
+	}
+
+	var backups []backupFile
+	for _, e := range entries {
+		if info, err := e.Info(); err == nil && !info.IsDir() && strings.HasPrefix(e.Name(), "villum_") && strings.HasSuffix(e.Name(), ".db") {
+			backups = append(backups, backupFile{name: e.Name(), modTime: info.ModTime()})
+		}
+	}
+
+	if len(backups) <= keepCount {
+		return
+	}
+
+	sort.Slice(backups, func(i, j int) bool {
+		return backups[i].modTime.After(backups[j].modTime)
+	})
+
+	removed := 0
+	for _, b := range backups[keepCount:] {
+		p := filepath.Join(backupDir, b.name)
+		if err := os.Remove(p); err == nil {
+			removed++
+		}
+	}
+	if removed > 0 {
+		log.Printf("Pruned %d old backup(s), keeping last %d", removed, keepCount)
 	}
 }

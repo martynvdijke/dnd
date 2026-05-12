@@ -191,10 +191,18 @@ func (tc *testClient) req(method, path string, body any) *httptest.ResponseRecor
 	return w
 }
 
-func (tc *testClient) get(path string, body any) *httptest.ResponseRecorder { return tc.req("GET", path, body) }
-func (tc *testClient) post(path string, body any) *httptest.ResponseRecorder { return tc.req("POST", path, body) }
-func (tc *testClient) put(path string, body any) *httptest.ResponseRecorder  { return tc.req("PUT", path, body) }
-func (tc *testClient) del(path string, body any) *httptest.ResponseRecorder  { return tc.req("DELETE", path, body) }
+func (tc *testClient) get(path string, body any) *httptest.ResponseRecorder {
+	return tc.req("GET", path, body)
+}
+func (tc *testClient) post(path string, body any) *httptest.ResponseRecorder {
+	return tc.req("POST", path, body)
+}
+func (tc *testClient) put(path string, body any) *httptest.ResponseRecorder {
+	return tc.req("PUT", path, body)
+}
+func (tc *testClient) del(path string, body any) *httptest.ResponseRecorder {
+	return tc.req("DELETE", path, body)
+}
 
 const adminUser = "admin"
 const adminPass = "testpass123"
@@ -1020,10 +1028,10 @@ func TestImportJSON(t *testing.T) {
 		"name": "Imported Hero", "race": "Elf", "class": "Ranger", "level": 3,
 		"str": 12, "dex": 18, "con": 14, "int": 10, "wis": 16, "cha": 8,
 		"hp_max": 28, "hp_current": 28, "ac": 15, "speed": 35,
-		"spells": []map[string]any{{"name": "Hunter's Mark", "level": 1, "school": "Divination"}},
-		"inventory": []map[string]any{{"name": "Longbow", "category": "weapon", "quantity": 1, "damage_dice": "1d8", "damage_type": "piercing"}},
+		"spells":        []map[string]any{{"name": "Hunter's Mark", "level": 1, "school": "Divination"}},
+		"inventory":     []map[string]any{{"name": "Longbow", "category": "weapon", "quantity": 1, "damage_dice": "1d8", "damage_type": "piercing"}},
 		"proficiencies": []map[string]any{{"name": "Perception", "type": "skill"}},
-		"currency": map[string]any{"gp": 100},
+		"currency":      map[string]any{"gp": 100},
 	}}
 
 	resp := tc.post("/api/characters/import", importData)
@@ -1064,7 +1072,7 @@ func TestMulticharacterTenant(t *testing.T) {
 		t.Fatalf("user1 create failed: %d", resp.Code)
 	}
 
-	// Login as user2 and create character  
+	// Login as user2 and create character
 	tc2 := newTestClient()
 	login(t, tc2, "user_two", "testpass2")
 	resp = tc2.post("/api/characters", map[string]any{"name": "Hero Two", "race": "Elf", "class": "Wizard"})
@@ -1378,9 +1386,9 @@ func TestAdminCompendiumAllTypesCRUD(t *testing.T) {
 
 	// Test all 6 types
 	tests := []struct {
-		typ   string
-		body  map[string]any
-		upd   map[string]any
+		typ  string
+		body map[string]any
+		upd  map[string]any
 	}{
 		{"races", map[string]any{"name": "Custom Race", "description": "T", "speed": 30, "size": "M"}, map[string]any{"name": "Custom Race v2", "description": "U", "speed": 35, "size": "L"}},
 		{"classes", map[string]any{"name": "Custom Class", "description": "T", "hit_die": 8, "primary_ability": "str"}, map[string]any{"name": "Custom Class v2", "description": "U", "hit_die": 10, "primary_ability": "dex"}},
@@ -2083,4 +2091,3 @@ func TestSpellcasting(t *testing.T) {
 		t.Fatalf("loot gen failed: %d", resp.Code)
 	}
 }
-

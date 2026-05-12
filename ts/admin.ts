@@ -46,7 +46,6 @@ async function init() {
     csrfToken = tokenRes.token;
     showAdminTab('users');
     loadUsers();
-    loadBackupSettings();
   } catch {
     window.location.href = '/login';
   }
@@ -55,11 +54,12 @@ async function init() {
 function showAdminTab(tab: string) {
   document.querySelectorAll('#adminTabs .nav-link').forEach(el => el.classList.remove('active'));
   document.getElementById('tab' + capitalize(tab) + 'Btn')?.classList.add('active');
-  ['users', 'compendium', 'backup'].forEach(s => {
+  ['users', 'compendium', 'backup', 'email'].forEach(s => {
     document.getElementById('admin' + capitalize(s))!.style.display = s === tab ? 'block' : 'none';
   });
   if (tab === 'users') loadUsers();
   if (tab === 'backup') { loadBackupSettings(); loadBackupList(); }
+  if (tab === 'email') loadEmailSettings();
 }
 (window as any).showAdminTab = showAdminTab;
 
@@ -271,7 +271,8 @@ async function loadBackupSettings() {
   try {
     const settings = await api('GET', '/api/backup/settings');
     (document.getElementById('backupEnabled') as HTMLInputElement).checked = settings.enabled;
-    (document.getElementById('backupInterval') as HTMLInputElement).value = settings.interval_hours || 168;
+    (document.getElementById('backupInterval') as HTMLInputElement).value = settings.interval_days || 7;
+    (document.getElementById('backupKeepCount') as HTMLInputElement).value = settings.keep_count || 7;
   } catch {}
 }
 
@@ -279,7 +280,8 @@ async function loadBackupSettings() {
   try {
     await api('PUT', '/api/backup/settings', {
       enabled: (document.getElementById('backupEnabled') as HTMLInputElement).checked,
-      interval_hours: +(document.getElementById('backupInterval') as HTMLInputElement).value || 168,
+      interval_days: +(document.getElementById('backupInterval') as HTMLInputElement).value || 7,
+      keep_count: +(document.getElementById('backupKeepCount') as HTMLInputElement).value || 7,
     });
     toast('Settings saved');
   } catch (e: any) {
@@ -304,6 +306,55 @@ async function loadBackupList() {
     const result = await api('POST', '/api/backup/trigger');
     toast('Backup created: ' + result.path);
     loadBackupList();
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+// ─── Email Settings ───
+
+async function loadEmailSettings() {
+  try {
+    const s = await api('GET', '/api/admin/email-settings');
+    (document.getElementById('emailEnabled') as HTMLInputElement).checked = s.enabled;
+    (document.getElementById('smtpHost') as HTMLInputElement).value = s.smtp_host || '';
+    (document.getElementById('smtpPort') as HTMLInputElement).value = s.smtp_port || 587;
+    (document.getElementById('smtpUsername') as HTMLInputElement).value = s.username || '';
+    (document.getElementById('smtpFrom') as HTMLInputElement).value = s.from_addr || '';
+    if (s.has_password) {
+      (document.getElementById('smtpPassword') as HTMLInputElement).placeholder = 'Password is set (leave blank to keep)';
+    }
+  } catch {}
+}
+
+(window as any).saveEmailSettings = async function () {
+  try {
+    await api('POST', '/api/admin/email-settings', {
+      smtp_host: (document.getElementById('smtpHost') as HTMLInputElement).value,
+      smtp_port: +(document.getElementById('smtpPort') as HTMLInputElement).value || 587,
+      username: (document.getElementById('smtpUsername') as HTMLInputElement).value,
+      password: (document.getElementById('smtpPassword') as HTMLInputElement).value,
+      from_addr: (document.getElementById('smtpFrom') as HTMLInputElement).value,
+      enabled: (document.getElementById('emailEnabled') as HTMLInputElement).checked,
+    });
+    toast('Email settings saved');
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+(window as any).testEmailSettings = async function () {
+  try {
+    await api('POST', '/api/admin/email-settings', {
+      smtp_host: (document.getElementById('smtpHost') as HTMLInputElement).value,
+      smtp_port: +(document.getElementById('smtpPort') as HTMLInputElement).value || 587,
+      username: (document.getElementById('smtpUsername') as HTMLInputElement).value,
+      password: (document.getElementById('smtpPassword') as HTMLInputElement).value,
+      from_addr: (document.getElementById('smtpFrom') as HTMLInputElement).value,
+      enabled: (document.getElementById('emailEnabled') as HTMLInputElement).checked,
+      test: true,
+    });
+    toast('Test email sent! Check your inbox.');
   } catch (e: any) {
     toast(e.message, true);
   }

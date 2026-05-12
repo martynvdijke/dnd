@@ -452,6 +452,31 @@ CREATE TABLE IF NOT EXISTS email_settings (
 INSERT OR IGNORE INTO email_settings (id, enabled) VALUES (1, 0);
 `,
 	},
+	{
+		version: 8,
+		sql: `
+ALTER TABLE backup_settings ADD COLUMN interval_days INTEGER NOT NULL DEFAULT 7;
+ALTER TABLE backup_settings ADD COLUMN keep_count INTEGER NOT NULL DEFAULT 7;
+UPDATE backup_settings SET interval_days = MAX(1, COALESCE(interval_hours, 168) / 24) WHERE id = 1;
+`,
+	},
+	{
+		version: 9,
+		sql: `
+CREATE TABLE IF NOT EXISTS campaign_members (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    campaign_id INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE(campaign_id, user_id)
+);
+`,
+	},
+	{
+		version: 10,
+		sql: `
+ALTER TABLE campaign_members ADD COLUMN role TEXT NOT NULL DEFAULT 'player' CHECK(role IN ('dm','player'));
+`,
+	},
 }
 
 func Migrate() error {
@@ -491,6 +516,9 @@ func Migrate() error {
 		"ALTER TABLE characters ADD COLUMN death_saves_failures INTEGER NOT NULL DEFAULT 0",
 		"ALTER TABLE characters ADD COLUMN concentrating_on TEXT NOT NULL DEFAULT ''",
 		"ALTER TABLE users ADD COLUMN email TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE backup_settings ADD COLUMN interval_days INTEGER NOT NULL DEFAULT 7",
+		"ALTER TABLE backup_settings ADD COLUMN keep_count INTEGER NOT NULL DEFAULT 7",
+		"ALTER TABLE campaign_members ADD COLUMN role TEXT NOT NULL DEFAULT 'player'",
 	}
 	for _, stmt := range alterStatements {
 		if _, err := DB.Exec(stmt); err != nil {

@@ -34,6 +34,7 @@
   <li class="nav-item"><button class="nav-link active" id="tabUsersBtn" onclick="showAdminTab('users')"><i class="fa-solid fa-users me-1"></i>Users</button></li>
   <li class="nav-item"><button class="nav-link" id="tabCompendiumBtn" onclick="showAdminTab('compendium')"><i class="fa-solid fa-book me-1"></i>Compendium</button></li>
   <li class="nav-item"><button class="nav-link" id="tabBackupBtn" onclick="showAdminTab('backup')"><i class="fa-solid fa-floppy-disk me-1"></i>Backup</button></li>
+  <li class="nav-item"><button class="nav-link" id="tabEmailBtn" onclick="showAdminTab('email')"><i class="fa-solid fa-envelope me-1"></i>Email</button></li>
 </ul>
 
 <div id="adminUsers">
@@ -90,8 +91,12 @@
       </div>
       <div class="row g-3 align-items-end">
         <div class="col-auto">
-          <label class="form-label" for="backupInterval">Interval (hours)</label>
-          <input type="number" id="backupInterval" class="form-control" value="168" style="width:120px">
+          <label class="form-label" for="backupInterval">Interval (days)</label>
+          <input type="number" id="backupInterval" class="form-control" value="7" style="width:120px" min="1">
+        </div>
+        <div class="col-auto">
+          <label class="form-label" for="backupKeepCount">Keep last</label>
+          <input type="number" id="backupKeepCount" class="form-control" value="7" style="width:90px" min="1">
         </div>
         <div class="col-auto">
           <button class="btn btn-gold" onclick="saveBackupSettings()"><i class="fa-solid fa-floppy-disk me-1"></i>Save Settings</button>
@@ -108,7 +113,51 @@
   </div>
 </div>
 
+<div id="adminEmail" style="display:none">
+  <div class="card">
+    <div class="card-header"><i class="fa-solid fa-envelope me-2"></i>Email Settings (SMTP)</div>
+    <div class="card-body">
+      <div class="mb-3">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="emailEnabled">
+          <label class="form-check-label" for="emailEnabled">Enable email sending</label>
+        </div>
+      </div>
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label" for="smtpHost">SMTP Host</label>
+          <input type="text" id="smtpHost" class="form-control" placeholder="smtp.example.com">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label" for="smtpPort">Port</label>
+          <input type="number" id="smtpPort" class="form-control" value="587">
+        </div>
+      </div>
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label" for="smtpUsername">Username</label>
+          <input type="text" id="smtpUsername" class="form-control">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="smtpPassword">Password</label>
+          <input type="password" id="smtpPassword" class="form-control" placeholder="Leave blank to keep current">
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="smtpFrom">From Address</label>
+        <input type="email" id="smtpFrom" class="form-control" placeholder="villum@example.com">
+      </div>
+      <button class="btn btn-gold" onclick="saveEmailSettings()"><i class="fa-solid fa-floppy-disk me-1"></i>Save Email Settings</button>
+      <button class="btn btn-outline-primary ms-2" onclick="testEmailSettings()"><i class="fa-solid fa-paper-plane me-1"></i>Test Email</button>
+    </div>
+  </div>
 </div>
+
+</div>
+
+<footer class="text-center text-muted py-3 border-top mt-4" style="font-size:0.8rem">
+  <i class="fa-solid fa-code-branch me-1"></i>v{{VERSION}} &mdash; <a href="https://github.com/martynvdijke/dnd" target="_blank" rel="noopener" class="text-muted text-decoration-none"><i class="fa-brands fa-github me-1"></i> Source</a>
+</footer>
 
 <div class="toast-container toast-custom" id="toastContainer"></div>
 

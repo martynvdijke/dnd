@@ -122,32 +122,40 @@ func AdminResetPassword(c *gin.Context) {
 
 func GetBackupSettings(c *gin.Context) {
 	var enabled bool
-	var interval int
+	var intervalDays int
+	var keepCount int
 	var lastBackup string
-	err := db.DB.QueryRow("SELECT enabled, interval_hours, last_backup FROM backup_settings WHERE id=1").Scan(&enabled, &interval, &lastBackup)
+	err := db.DB.QueryRow("SELECT enabled, COALESCE(interval_days, 7), COALESCE(keep_count, 7), last_backup FROM backup_settings WHERE id=1").Scan(&enabled, &intervalDays, &keepCount, &lastBackup)
 	if err == sql.ErrNoRows {
-		c.JSON(http.StatusOK, gin.H{"enabled": true, "interval_hours": 168, "last_backup": ""})
+		c.JSON(http.StatusOK, gin.H{"enabled": true, "interval_days": 7, "keep_count": 7, "last_backup": ""})
 		return
 	}
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"enabled": true, "interval_hours": 168, "last_backup": ""})
+		c.JSON(http.StatusOK, gin.H{"enabled": true, "interval_days": 7, "keep_count": 7, "last_backup": ""})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"enabled": enabled, "interval_hours": interval, "last_backup": lastBackup})
+	c.JSON(http.StatusOK, gin.H{"enabled": enabled, "interval_days": intervalDays, "keep_count": keepCount, "last_backup": lastBackup})
 }
 
 func SaveBackupSettings(c *gin.Context) {
 	var req struct {
-		Enabled       bool `json:"enabled"`
-		IntervalHours int  `json:"interval_hours"`
+		Enabled      bool `json:"enabled"`
+		IntervalDays int  `json:"interval_days"`
+		KeepCount    int  `json:"keep_count"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	db.DB.Exec(`INSERT INTO backup_settings(id,enabled,interval_hours,last_backup) VALUES(1,?,?,'')
-		ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled, interval_hours=excluded.interval_hours`,
-		req.Enabled, req.IntervalHours)
+	if req.IntervalDays < 1 {
+		req.IntervalDays = 7
+	}
+	if req.KeepCount < 1 {
+		req.KeepCount = 7
+	}
+	db.DB.Exec(`INSERT INTO backup_settings(id,enabled,interval_days,keep_count,last_backup) VALUES(1,?,?,?,'')
+		ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled, interval_days=excluded.interval_days, keep_count=excluded.keep_count`,
+		req.Enabled, req.IntervalDays, req.KeepCount)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -157,6 +165,7 @@ func TriggerBackup(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	PruneBackups()
 	c.JSON(http.StatusOK, gin.H{"path": backupPath})
 }
 

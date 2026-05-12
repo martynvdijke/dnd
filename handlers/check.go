@@ -13,24 +13,24 @@ import (
 )
 
 var skillsMap = map[string]string{
-	"athletics":         "str",
-	"acrobatics":        "dex",
-	"sleight_of_hand":   "dex",
-	"stealth":           "dex",
-	"arcana":            "int",
-	"history":           "int",
-	"investigation":     "int",
-	"nature":            "int",
-	"religion":          "int",
-	"animal_handling":   "wis",
-	"insight":           "wis",
-	"medicine":          "wis",
-	"perception":        "wis",
-	"survival":          "wis",
-	"deception":         "cha",
-	"intimidation":      "cha",
-	"performance":       "cha",
-	"persuasion":        "cha",
+	"athletics":       "str",
+	"acrobatics":      "dex",
+	"sleight_of_hand": "dex",
+	"stealth":         "dex",
+	"arcana":          "int",
+	"history":         "int",
+	"investigation":   "int",
+	"nature":          "int",
+	"religion":        "int",
+	"animal_handling": "wis",
+	"insight":         "wis",
+	"medicine":        "wis",
+	"perception":      "wis",
+	"survival":        "wis",
+	"deception":       "cha",
+	"intimidation":    "cha",
+	"performance":     "cha",
+	"persuasion":      "cha",
 }
 
 var savesMap = map[string]string{
@@ -40,21 +40,21 @@ var savesMap = map[string]string{
 
 type CheckRollRequest struct {
 	CharacterID int64  `json:"character_id"`
-	Type        string `json:"type"`       // "skill", "save", "check"
-	Name        string `json:"name"`        // skill name or save ability
-	Advantage   string `json:"advantage"`   // "normal", "advantage", "disadvantage"
-	Modifier    int    `json:"modifier"`    // optional extra modifier
+	Type        string `json:"type"`      // "skill", "save", "check"
+	Name        string `json:"name"`      // skill name or save ability
+	Advantage   string `json:"advantage"` // "normal", "advantage", "disadvantage"
+	Modifier    int    `json:"modifier"`  // optional extra modifier
 }
 
 type CheckRollResult struct {
-	Rolls     []int  `json:"rolls"`
-	Raw       int    `json:"raw"`
-	Total     int    `json:"total"`
-	Modifier  int    `json:"modifier"`
-	Ability   string `json:"ability"`
+	Rolls      []int  `json:"rolls"`
+	Raw        int    `json:"raw"`
+	Total      int    `json:"total"`
+	Modifier   int    `json:"modifier"`
+	Ability    string `json:"ability"`
 	Proficient bool   `json:"proficient"`
-	Advantage string `json:"advantage"`
-	Text      string `json:"text"`
+	Advantage  string `json:"advantage"`
+	Text       string `json:"text"`
 }
 
 func HandleCheckRoll(c *gin.Context) {
@@ -190,13 +190,13 @@ func HandleCheckRoll(c *gin.Context) {
 		userID, req.CharacterID, label, text, total)
 
 	c.JSON(http.StatusOK, CheckRollResult{
-		Rolls:     rolls,
-		Raw:       d20,
-		Total:     total,
-		Modifier:  totalMod,
-		Ability:   ability,
+		Rolls:      rolls,
+		Raw:        d20,
+		Total:      total,
+		Modifier:   totalMod,
+		Ability:    ability,
 		Proficient: isProficient,
-		Advantage: adv,
-		Text:      text,
+		Advantage:  adv,
+		Text:       text,
 	})
 }

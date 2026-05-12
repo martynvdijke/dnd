@@ -13,15 +13,15 @@ type CompendiumRace struct {
 }
 
 type CompendiumClass struct {
-	ID                int64  `json:"id"`
-	Name              string `json:"name"`
-	Description       string `json:"description"`
-	HitDie            int    `json:"hit_die"`
-	PrimaryAbility    string `json:"primary_ability"`
-	SavingThrows      string `json:"saving_throws"`
-	Proficiencies     string `json:"proficiencies"`
+	ID                  int64  `json:"id"`
+	Name                string `json:"name"`
+	Description         string `json:"description"`
+	HitDie              int    `json:"hit_die"`
+	PrimaryAbility      string `json:"primary_ability"`
+	SavingThrows        string `json:"saving_throws"`
+	Proficiencies       string `json:"proficiencies"`
 	SpellcastingAbility string `json:"spellcasting_ability"`
-	SourcePage        string `json:"source_page"`
+	SourcePage          string `json:"source_page"`
 }
 
 type CompendiumSpell struct {
@@ -90,17 +90,17 @@ type ImportCharacter struct {
 	TempHP     int    `json:"temp_hp"`
 	HitDice    string `json:"hit_dice"`
 
-	PersonalityTraits string            `json:"personality_traits"`
-	Ideals            string            `json:"ideals"`
-	Bonds             string            `json:"bonds"`
-	Flaws             string            `json:"flaws"`
-	Appearance        string            `json:"appearance"`
-	Backstory         string            `json:"backstory"`
+	PersonalityTraits string `json:"personality_traits"`
+	Ideals            string `json:"ideals"`
+	Bonds             string `json:"bonds"`
+	Flaws             string `json:"flaws"`
+	Appearance        string `json:"appearance"`
+	Backstory         string `json:"backstory"`
 
-	Currency     Currency           `json:"currency"`
-	Proficiencies []Proficiency     `json:"proficiencies"`
-	Features     []Feature          `json:"features"`
-	Spellcasting *Spellcasting      `json:"spellcasting"`
-	Spells       []Spell            `json:"spells"`
-	Inventory    []InventoryItem    `json:"inventory"`
+	Currency      Currency        `json:"currency"`
+	Proficiencies []Proficiency   `json:"proficiencies"`
+	Features      []Feature       `json:"features"`
+	Spellcasting  *Spellcasting   `json:"spellcasting"`
+	Spells        []Spell         `json:"spells"`
+	Inventory     []InventoryItem `json:"inventory"`
 }

@@ -10,18 +10,18 @@ import (
 )
 
 type CharacterStats struct {
-	SessionCount    int            `json:"session_count"`
-	TotalXPEarned   int            `json:"total_xp_earned"`
-	TotalGoldEarned int            `json:"total_gold_earned"`
-	Quests          QuestBreakdown `json:"quests"`
-	Rests           RestBreakdown  `json:"rests"`
-	NPCInteractions int            `json:"npc_interactions"`
-	TopNPCs         []string       `json:"top_npcs"`
-	LocationsCount  int            `json:"locations_count"`
-	JournalCount    int            `json:"journal_count"`
-	DiceRolls       DiceStats      `json:"dice_rolls"`
-	Level           int            `json:"level"`
-	SessionsPerMonth float64       `json:"sessions_per_month"`
+	SessionCount     int            `json:"session_count"`
+	TotalXPEarned    int            `json:"total_xp_earned"`
+	TotalGoldEarned  int            `json:"total_gold_earned"`
+	Quests           QuestBreakdown `json:"quests"`
+	Rests            RestBreakdown  `json:"rests"`
+	NPCInteractions  int            `json:"npc_interactions"`
+	TopNPCs          []string       `json:"top_npcs"`
+	LocationsCount   int            `json:"locations_count"`
+	JournalCount     int            `json:"journal_count"`
+	DiceRolls        DiceStats      `json:"dice_rolls"`
+	Level            int            `json:"level"`
+	SessionsPerMonth float64        `json:"sessions_per_month"`
 }
 
 type QuestBreakdown struct {
@@ -34,9 +34,9 @@ type QuestBreakdown struct {
 }
 
 type RestBreakdown struct {
-	Total      int `json:"total"`
-	Short      int `json:"short"`
-	Long       int `json:"long"`
+	Total       int `json:"total"`
+	Short       int `json:"short"`
+	Long        int `json:"long"`
 	TotalHealed int `json:"total_healed"`
 }
 

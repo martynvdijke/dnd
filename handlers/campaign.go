@@ -4,12 +4,26 @@ import (
 	"database/sql"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
 	"villum/models"
 )
+
+type CampaignMemberResponse struct {
+	UserID   int64  `json:"user_id"`
+	Username string `json:"username"`
+	Role     string `json:"role"`
+}
+
+type CampaignGroup struct {
+	ID        int64         `json:"id"`
+	Name      string        `json:"name"`
+	OwnerName string        `json:"owner_name"`
+	Members   []PartyMember `json:"members"`
+}
 
 // ─── Locations ───
 
@@ -277,12 +291,12 @@ func GetCharacterNPCs(c *gin.Context) {
 	defer rows.Close()
 	type NPCLink struct {
 		models.CharacterNPC
-		NPCName         string `json:"npc_name"`
-		NPCRace         string `json:"npc_race"`
-		NPCClass        string `json:"npc_class"`
-		NPHPMax         int    `json:"npc_hp_max"`
-		NPHPCurr        int    `json:"npc_hp_current"`
-		NPCAlive        bool   `json:"npc_is_alive"`
+		NPCName  string `json:"npc_name"`
+		NPCRace  string `json:"npc_race"`
+		NPCClass string `json:"npc_class"`
+		NPHPMax  int    `json:"npc_hp_max"`
+		NPHPCurr int    `json:"npc_hp_current"`
+		NPCAlive bool   `json:"npc_is_alive"`
 	}
 	var out = make([]NPCLink, 0)
 	for rows.Next() {
@@ -626,6 +640,8 @@ func GetGraphData(c *gin.Context) {
 
 type PartyMember struct {
 	ID         int64  `json:"id"`
+	UserID     int64  `json:"user_id"`
+	OwnerName  string `json:"owner_name"`
 	Name       string `json:"name"`
 	Race       string `json:"race"`
 	Class      string `json:"class"`
@@ -642,18 +658,92 @@ func GetPartyView(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
 
+	var campaignIDs []int64
+
+	if role == "admin" {
+		// Admins: all campaigns, all users
+		campRows, _ := db.DB.Query("SELECT id FROM campaigns")
+		for campRows.Next() {
+			var cid int64
+			campRows.Scan(&cid)
+			campaignIDs = append(campaignIDs, cid)
+		}
+		campRows.Close()
+	} else {
+		// Get campaigns owned by or where user is a member
+		rows, err := db.DB.Query(`
+			SELECT id FROM campaigns WHERE user_id=?
+			UNION
+			SELECT campaign_id FROM campaign_members WHERE user_id=?
+		`, userID, userID)
+		if err == nil {
+			for rows.Next() {
+				var cid int64
+				rows.Scan(&cid)
+				campaignIDs = append(campaignIDs, cid)
+			}
+			rows.Close()
+		}
+	}
+
+	// Build set of user_ids whose characters to include
+	includeAll := false
+	currentUserID := userID.(int64)
+	userSet := make(map[int64]bool)
+	userSet[currentUserID] = true
+
+	for _, cid := range campaignIDs {
+		// Campaign owner
+		var ownerID int64
+		db.DB.QueryRow("SELECT user_id FROM campaigns WHERE id=?", cid).Scan(&ownerID)
+		userSet[ownerID] = true
+		// Campaign members
+		mrows, _ := db.DB.Query("SELECT user_id FROM campaign_members WHERE campaign_id=?", cid)
+		for mrows.Next() {
+			var uid int64
+			mrows.Scan(&uid)
+			userSet[uid] = true
+		}
+		mrows.Close()
+	}
+
+	if role == "admin" {
+		includeAll = true
+	}
+
+	// Build list of user IDs for IN clause
+	uidList := make([]int64, 0, len(userSet))
+	for uid := range userSet {
+		uidList = append(uidList, uid)
+	}
+
+	// Fetch characters
 	var rows *sql.Rows
 	var err error
-	if role == "admin" {
+	if includeAll {
 		rows, err = db.DB.Query(`
-			SELECT c.id, c.name, c.race, c.class, c.level, c.ac,
-				c.hp_max, c.hp_current, c.temp_hp, c.campaign_id
-			FROM characters c ORDER BY c.campaign_id, c.name`)
+			SELECT c.id, c.user_id, COALESCE(u.username, ''), c.name, c.race, c.class,
+				c.level, c.ac, c.hp_max, c.hp_current, c.temp_hp, c.campaign_id
+			FROM characters c
+			LEFT JOIN users u ON u.id = c.user_id
+			ORDER BY c.campaign_id, c.name`)
+	} else if len(uidList) == 0 {
+		c.JSON(http.StatusOK, []CampaignGroup{})
+		return
 	} else {
+		placeholders := make([]string, len(uidList))
+		args := make([]interface{}, len(uidList))
+		for i, uid := range uidList {
+			placeholders[i] = "?"
+			args[i] = uid
+		}
 		rows, err = db.DB.Query(`
-			SELECT c.id, c.name, c.race, c.class, c.level, c.ac,
-				c.hp_max, c.hp_current, c.temp_hp, c.campaign_id
-			FROM characters c WHERE c.user_id=? ORDER BY c.campaign_id, c.name`, userID)
+			SELECT c.id, c.user_id, COALESCE(u.username, ''), c.name, c.race, c.class,
+				c.level, c.ac, c.hp_max, c.hp_current, c.temp_hp, c.campaign_id
+			FROM characters c
+			LEFT JOIN users u ON u.id = c.user_id
+			WHERE c.user_id IN (`+strings.Join(placeholders, ",")+`)
+			ORDER BY c.campaign_id, c.name`, args...)
 	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -667,8 +757,8 @@ func GetPartyView(c *gin.Context) {
 	for rows.Next() {
 		var pm PartyMember
 		var cid *int64
-		rows.Scan(&pm.ID, &pm.Name, &pm.Race, &pm.Class, &pm.Level, &pm.AC,
-			&pm.HPMax, &pm.HPCurrent, &pm.TempHP, &cid)
+		rows.Scan(&pm.ID, &pm.UserID, &pm.OwnerName, &pm.Name, &pm.Race, &pm.Class,
+			&pm.Level, &pm.AC, &pm.HPMax, &pm.HPCurrent, &pm.TempHP, &cid)
 		pm.CampaignID = cid
 		pm.Status = "alive"
 		if pm.HPCurrent <= 0 {
@@ -683,22 +773,20 @@ func GetPartyView(c *gin.Context) {
 		}
 	}
 
-	// Get campaign names
+	// Get campaign names and owner info
 	campNames := make(map[int64]string)
+	campOwners := make(map[int64]string)
 	for cid := range campaigns {
-		var name string
-		db.DB.QueryRow("SELECT name FROM campaigns WHERE id=?", cid).Scan(&name)
+		var name, ownerName string
+		var ownerID int64
+		db.DB.QueryRow("SELECT c.name, u.username, c.user_id FROM campaigns c JOIN users u ON u.id=c.user_id WHERE c.id=?", cid).Scan(&name, &ownerName, &ownerID)
 		campNames[cid] = name
+		campOwners[cid] = ownerName
 	}
 
-	type CampaignGroup struct {
-		ID         int64          `json:"id"`
-		Name       string         `json:"name"`
-		Members    []PartyMember  `json:"members"`
-	}
 	var groups []CampaignGroup
 	for cid, members := range campaigns {
-		groups = append(groups, CampaignGroup{ID: cid, Name: campNames[cid], Members: members})
+		groups = append(groups, CampaignGroup{ID: cid, Name: campNames[cid], OwnerName: campOwners[cid], Members: members})
 	}
 	if len(uncategorized) > 0 {
 		groups = append(groups, CampaignGroup{Name: "Uncategorized", Members: uncategorized})
@@ -729,17 +817,30 @@ func LogNPCInteraction(c *gin.Context) {
 
 func ListCampaigns(c *gin.Context) {
 	userID, _ := c.Get("user_id")
-	rows, err := db.DB.Query("SELECT id,user_id,name,description,dm_notes,created_at FROM campaigns WHERE user_id=? ORDER BY name", userID)
+	currentUID := userID.(int64)
+	rows, err := db.DB.Query(`
+		SELECT c.id,c.user_id,c.name,c.description,c.dm_notes,c.created_at,
+			COALESCE(cm.role, 'dm') as my_role
+		FROM campaigns c
+		LEFT JOIN campaign_members cm ON cm.campaign_id = c.id AND cm.user_id=?
+		WHERE c.user_id=? OR cm.user_id=?
+		ORDER BY c.name
+	`, currentUID, currentUID, currentUID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	defer rows.Close()
-	var out = make([]models.Campaign, 0)
+	type CampaignWithRole struct {
+		models.Campaign
+		MyRole string `json:"my_role"`
+	}
+	var out = make([]CampaignWithRole, 0)
 	for rows.Next() {
 		var ca models.Campaign
-		rows.Scan(&ca.ID, &ca.UserID, &ca.Name, &ca.Description, &ca.DMNotes, &ca.CreatedAt)
-		out = append(out, ca)
+		var myRole string
+		rows.Scan(&ca.ID, &ca.UserID, &ca.Name, &ca.Description, &ca.DMNotes, &ca.CreatedAt, &myRole)
+		out = append(out, CampaignWithRole{Campaign: ca, MyRole: myRole})
 	}
 	c.JSON(http.StatusOK, out)
 }
@@ -758,6 +859,8 @@ func CreateCampaign(c *gin.Context) {
 		return
 	}
 	id, _ := result.LastInsertId()
+	// Auto-add owner as DM member
+	db.DB.Exec("INSERT OR IGNORE INTO campaign_members(campaign_id,user_id,role) VALUES(?,?,?)", id, userID, "dm")
 	c.JSON(http.StatusCreated, gin.H{"id": id, "name": ca.Name})
 }
 
@@ -803,13 +906,151 @@ func DeleteCampaign(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
+// ─── Campaign Members ───
+
+func ListCampaignMembers(c *gin.Context) {
+	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	rows, err := db.DB.Query(`
+		SELECT cm.user_id, COALESCE(u.username, ''), cm.role FROM campaign_members cm
+		JOIN users u ON u.id = cm.user_id
+		WHERE cm.campaign_id = ? ORDER BY u.username`, campaignID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	var out []CampaignMemberResponse
+	for rows.Next() {
+		var m CampaignMemberResponse
+		rows.Scan(&m.UserID, &m.Username, &m.Role)
+		out = append(out, m)
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+func AddCampaignMember(c *gin.Context) {
+	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+
+	var ownerID int64
+	err := db.DB.QueryRow("SELECT user_id FROM campaigns WHERE id=?", campaignID).Scan(&ownerID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
+		return
+	}
+	if role != "admin" && ownerID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "only the campaign owner can add members"})
+		return
+	}
+
+	var req struct {
+		Username string `json:"username"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.Username == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "username required"})
+		return
+	}
+
+	var targetID int64
+	err = db.DB.QueryRow("SELECT id FROM users WHERE username=?", req.Username).Scan(&targetID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
+	}
+
+	_, err = db.DB.Exec("INSERT OR IGNORE INTO campaign_members(campaign_id,user_id,role) VALUES(?,?,'player')", campaignID, targetID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func SetCampaignMemberRole(c *gin.Context) {
+	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	targetID, _ := strconv.ParseInt(c.Param("userId"), 10, 64)
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+
+	var ownerID int64
+	err := db.DB.QueryRow("SELECT user_id FROM campaigns WHERE id=?", campaignID).Scan(&ownerID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
+		return
+	}
+	if role != "admin" && ownerID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "only the campaign owner can change roles"})
+		return
+	}
+
+	var req struct {
+		Role string `json:"role"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || (req.Role != "dm" && req.Role != "player") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "role must be 'dm' or 'player'"})
+		return
+	}
+
+	db.DB.Exec("UPDATE campaign_members SET role=? WHERE campaign_id=? AND user_id=?", req.Role, campaignID, targetID)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func RemoveCampaignMember(c *gin.Context) {
+	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	targetID, _ := strconv.ParseInt(c.Param("userId"), 10, 64)
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+
+	var ownerID int64
+	err := db.DB.QueryRow("SELECT user_id FROM campaigns WHERE id=?", campaignID).Scan(&ownerID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
+		return
+	}
+	if role != "admin" && ownerID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "only the campaign owner can remove members"})
+		return
+	}
+
+	db.DB.Exec("DELETE FROM campaign_members WHERE campaign_id=? AND user_id=?", campaignID, targetID)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// ─── User Search ───
+
+func SearchUsers(c *gin.Context) {
+	q := c.Query("q")
+	if q == "" {
+		c.JSON(http.StatusOK, []struct{}{})
+		return
+	}
+	rows, err := db.DB.Query("SELECT id, username FROM users WHERE username LIKE ? ORDER BY username LIMIT 20", "%"+q+"%")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	type UserResult struct {
+		ID       int64  `json:"id"`
+		Username string `json:"username"`
+	}
+	var out []UserResult
+	for rows.Next() {
+		var u UserResult
+		rows.Scan(&u.ID, &u.Username)
+		out = append(out, u)
+	}
+	c.JSON(http.StatusOK, out)
+}
+
 // ─── Rest & Level Up ───
 
 func DoRest(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var req struct {
-		RestType    string `json:"rest_type"`
-		HitDiceCount int   `json:"hit_dice_count"`
+		RestType     string `json:"rest_type"`
+		HitDiceCount int    `json:"hit_dice_count"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

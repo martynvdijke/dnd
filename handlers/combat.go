@@ -79,12 +79,12 @@ func UpdateCombatEntry(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-		isActive := 0
-		if e.IsActive {
-			isActive = 1
-		}
-		db.DB.Exec(`UPDATE combat_entries SET name=?,type=?,initiative_roll=?,initiative_mod=?,hp_max=?,hp_current=?,ac=?,is_active=?,turn_order=?,condition_ids=?,notes=? WHERE id=?`,
-			e.Name, e.Type, e.InitiativeRoll, e.InitiativeMod, e.HPMax, e.HPCurrent, e.AC, isActive, e.TurnOrder, e.ConditionIDs, e.Notes, id)
+	isActive := 0
+	if e.IsActive {
+		isActive = 1
+	}
+	db.DB.Exec(`UPDATE combat_entries SET name=?,type=?,initiative_roll=?,initiative_mod=?,hp_max=?,hp_current=?,ac=?,is_active=?,turn_order=?,condition_ids=?,notes=? WHERE id=?`,
+		e.Name, e.Type, e.InitiativeRoll, e.InitiativeMod, e.HPMax, e.HPCurrent, e.AC, isActive, e.TurnOrder, e.ConditionIDs, e.Notes, id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 

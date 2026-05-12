@@ -19,11 +19,11 @@ func HandleHealth(c *gin.Context) {
 		dbStatus = "error: " + err.Error()
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"status":    "ok",
-		"database":  dbStatus,
-		"uptime":    time.Since(startTime).String(),
+		"status":     "ok",
+		"database":   dbStatus,
+		"uptime":     time.Since(startTime).String(),
 		"go_version": runtime.Version(),
-		"version":   "1.0.0",
+		"version":    "1.0.0",
 	})
 }
 
@@ -34,9 +34,9 @@ func HandleMetrics(c *gin.Context) {
 	db.DB.QueryRow("SELECT COUNT(*) FROM campaigns").Scan(&campCount)
 
 	c.JSON(http.StatusOK, gin.H{
-		"users":     userCount,
-		"characters": charCount,
-		"campaigns":  campCount,
+		"users":          userCount,
+		"characters":     charCount,
+		"campaigns":      campCount,
 		"uptime_seconds": int(time.Since(startTime).Seconds()),
 	})
 }

@@ -1554,15 +1554,44 @@ function setDiceExpr(die: string) {
 }
 (window as any).setDiceExpr = setDiceExpr;
 
-function rollWithAdvantage(adv: boolean) {
+async function rollWithAdvantage(isAdv: boolean) {
   const input = document.getElementById('diceExpr') as HTMLInputElement;
-  const m = input.value.match(/^(\d*)d(\d+)(.*)/);
-  if (!m) return;
-  const sides = m[2];
-  const rest = m[3] || '';
-  const count = adv ? 2 : 1;
-  input.value = count + 'd' + sides + rest;
-  doRoll();
+  const expr = input.value.trim();
+  if (!expr.match(/^\d*d\d+/)) return;
+  try {
+    const result = await api('POST', '/api/roll', {
+      expression: expr,
+      character_id: currentChar?.id,
+      advantage: isAdv ? 'advantage' : 'disadvantage',
+    });
+    const container = document.getElementById('dice3dContainer');
+    const resultDiv = document.getElementById('diceResult');
+    if (container) container.innerHTML = '';
+    if (resultDiv) {
+      const rolls = result.breakdown?.[0]?.rolls || [];
+      const chosen = result.total;
+      let badge = '';
+      if (rolls.some((r: number) => r === 20)) badge = '<span class="badge bg-success ms-2">Critical Hit!</span>';
+      else if (rolls.some((r: number) => r === 1)) badge = '<span class="badge bg-danger ms-2">Critical Fail!</span>';
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = `
+        <div class="dice-result-box text-center">
+          <div class="roll-expression">${esc(result.expression)} (${isAdv ? 'advantage' : 'disadvantage'})</div>
+          <div class="d-flex justify-content-center gap-3 mb-2">
+            ${rolls.map((r: number, i: number) => {
+              const isChosen = (i === 0 && r === chosen) || (i === 1 && r === chosen);
+              return `<span class="die-face" style="${isChosen ? 'border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)' : 'opacity:0.5'}">${r}</span>`;
+            }).join('')}
+          </div>
+          <div class="roll-total-anim">${chosen}</div>
+          ${badge}
+          <div class="roll-text text-muted">${esc(result.text)}</div>
+        </div>`;
+      animateDiceRoll(result.breakdown);
+    }
+  } catch (e: any) {
+    toast(e.message, true);
+  }
 }
 (window as any).rollWithAdvantage = rollWithAdvantage;
 
@@ -1874,45 +1903,189 @@ async function loadDiceHistory() {
   }
 };
 
-// ─── Party View ───
+// ─── Party View & Campaign Management ───
 
 (window as any).showParty = async function () {
   showView('party');
   const el = document.getElementById('partyContent')!;
   el.innerHTML = '<div class="ornament mb-3">✧ Assembling the party... ✧</div>';
   try {
-    const groups = await api('GET', '/api/party');
-    el.innerHTML = groups.map((g:any) => `
-      <div class="card mb-3">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <strong>${esc(g.name || 'Unnamed Campaign')}</strong>
-          <span class="badge badge-gold">${g.members.length} members</span>
-        </div>
-        <div class="card-body">
-          <div class="row g-3">
-            ${g.members.map((m:any) => {
-              const pct = m.hp_max > 0 ? Math.round((m.hp_current / m.hp_max) * 100) : 0;
-              const sc = m.status === 'down' ? 'var(--danger)' : m.status === 'injured' ? 'var(--gold)' : 'var(--success)';
-              return `<div class="col-md-6 col-lg-4">
-                <div class="character-card" onclick="openChar(${m.id})">
-                  <div class="char-name">${esc(m.name)}</div>
-                  <div class="char-detail">${esc(m.race)} ${esc(m.class)} · Level ${m.level}</div>
-                  <div class="d-flex gap-3 mt-1 small text-muted">
-                    <span>AC: ${m.ac}</span><span style="color:${sc}">${esc(m.status)}</span>
-                  </div>
-                  <div class="hp-bar position-relative mt-2" style="height:12px">
-                    <div class="hp-bar-fill" style="width:${pct}%;height:100%"></div>
-                    <div class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center text-white" style="font-size:0.65rem">${m.hp_current}/${m.hp_max}</div>
-                  </div>
-                </div>
-              </div>`;
-            }).join('')}
-          </div>
-        </div>
+    const [groups, campaigns] = await Promise.all([
+      api('GET', '/api/party'),
+      api('GET', '/api/campaigns'),
+    ]);
+
+    const getCampaign = (campaignId: number) => campaigns.find((c: any) => c.id === campaignId);
+    const isOwner = (campaignId: number) => { const c = getCampaign(campaignId); return c && c.user_id === currentUser?.id; };
+    const isDm = (campaignId: number) => { const c = getCampaign(campaignId); return c && (c.my_role === 'dm' || c.user_id === currentUser?.id); };
+
+    el.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h2 mb-0"><i class="fa-solid fa-flag me-2"></i>Party View</h1>
+        <button class="btn btn-gold btn-sm" onclick="showCreateCampaign()"><i class="fa-solid fa-plus me-1"></i>New Campaign</button>
       </div>
-    `).join('') || '<div class="empty-state"><i class="fa-solid fa-flag fa-2x mb-2 d-block text-muted"></i>No characters yet.</div>';
+      ${groups.map((g:any) => {
+        const own = g.id ? isOwner(g.id) : false;
+        const dm = g.id ? isDm(g.id) : false;
+        const canOpen = (userId: number) => userId === currentUser?.id || currentUser?.role === 'admin' || dm;
+        return `<div class="card mb-3">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+              <strong>${esc(g.name || 'Unnamed Campaign')}</strong>
+              ${g.owner_name ? `<span class="ms-2 small text-muted">DM: ${esc(g.owner_name)}</span>` : ''}
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge badge-gold">${g.members.length} members</span>
+              ${g.id && (own || dm) ? `<button class="btn btn-outline-primary btn-sm" onclick="showManageCampaign(${g.id},'${esc(g.name)}')"><i class="fa-solid fa-users-gear"></i></button>` : ''}
+              ${g.id && own ? `<button class="btn btn-outline-danger btn-sm" onclick="deleteCampaign(${g.id})"><i class="fa-solid fa-trash"></i></button>` : ''}
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row g-3">
+              ${g.members.map((m:any) => {
+                const pct = m.hp_max > 0 ? Math.round((m.hp_current / m.hp_max) * 100) : 0;
+                const sc = m.status === 'down' ? 'var(--danger)' : m.status === 'injured' ? 'var(--gold)' : 'var(--success)';
+                return `<div class="col-md-6 col-lg-4">
+                  <div class="character-card" ${canOpen(m.user_id) ? `onclick="openChar(${m.id})"` : ''} style="${canOpen(m.user_id) ? '' : 'cursor:default;opacity:0.75'}">
+                    <div class="char-name">${esc(m.name)}</div>
+                    <div class="char-detail">${esc(m.race)} ${esc(m.class)} · Level ${m.level}</div>
+                    ${m.owner_name && m.owner_name !== currentUser?.username ? `<div class="small text-muted"><i class="fa-solid fa-user me-1"></i>${esc(m.owner_name)}</div>` : ''}
+                    <div class="d-flex gap-3 mt-1 small text-muted">
+                      <span>AC: ${m.ac}</span><span style="color:${sc}">${esc(m.status)}</span>
+                    </div>
+                    <div class="hp-bar position-relative mt-2" style="height:12px">
+                      <div class="hp-bar-fill" style="width:${pct}%;height:100%"></div>
+                      <div class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center text-white" style="font-size:0.65rem">${m.hp_current}/${m.hp_max}</div>
+                    </div>
+                  </div>
+                </div>`;
+              }).join('')}
+            </div>
+          </div>
+        </div>`;
+      }).join('') || '<div class="empty-state"><i class="fa-solid fa-flag fa-2x mb-2 d-block text-muted"></i>No characters yet. Create a campaign and add members to build your party!</div>'}`;
   } catch (e:any) {
     el.innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Failed: ${esc(e.message)}</p></div>`;
+  }
+};
+
+(window as any).showCreateCampaign = function () {
+  showModal('Create Campaign', `
+    <div class="mb-3"><label class="form-label">Campaign Name</label><input class="form-control" id="newCampaignName"></div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="newCampaignDesc" rows="2"></textarea></div>
+    <button class="btn btn-primary w-100" onclick="doCreateCampaign()">Create</button>
+  `);
+};
+
+(window as any).doCreateCampaign = async function () {
+  try {
+    const name = (document.getElementById('newCampaignName') as HTMLInputElement).value;
+    if (!name) { toast('Name required', true); return; }
+    await api('POST', '/api/campaigns', { name, description: (document.getElementById('newCampaignDesc') as HTMLTextAreaElement).value });
+    hideModal();
+    toast('Campaign created');
+    (window as any).showParty();
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+(window as any).showManageCampaign = async function (campaignId: number, name: string) {
+  let membersHtml = '<p class="text-muted">Loading members...</p>';
+  try {
+    const members = await api('GET', `/api/campaigns/${campaignId}/members`);
+    membersHtml = members.length
+      ? `<ul class="list-group mb-3">${members.map((m: any) => {
+          const isDmMember = m.role === 'dm';
+          return `<li class="list-group-item d-flex justify-content-between align-items-center">
+            <span>
+              <i class="fa-solid ${isDmMember ? 'fa-crown text-gold' : 'fa-user'} me-2"></i>
+              ${esc(m.username)}
+              ${isDmMember ? '<span class="badge badge-gold ms-2">DM</span>' : ''}
+            </span>
+            <div class="d-flex gap-1">
+              ${m.username !== currentUser?.username ? `
+                <button class="btn btn-sm ${isDmMember ? 'btn-outline-secondary' : 'btn-outline-gold'}" onclick="doToggleDm(${campaignId}, ${m.user_id}, '${isDmMember ? 'player' : 'dm'}')" title="${isDmMember ? 'Remove DM' : 'Make DM'}">
+                  <i class="fa-solid ${isDmMember ? 'fa-user' : 'fa-crown'}"></i>
+                </button>
+                <button class="btn btn-outline-danger btn-sm" onclick="doRemoveMember(${campaignId}, ${m.user_id})"><i class="fa-solid fa-xmark"></i></button>
+              ` : '<span class="text-muted small">(you)</span>'}
+            </div>
+          </li>`;
+        }).join('')}</ul>`
+      : '<p class="text-muted mb-3">No members yet. Add players by username.</p>';
+  } catch {}
+  showModal(`Manage: ${esc(name)}`, `
+    ${membersHtml}
+    <div class="input-group mb-3">
+      <input class="form-control" id="addMemberUsername" placeholder="Username to add">
+      <button class="btn btn-gold" onclick="doAddMember(${campaignId})"><i class="fa-solid fa-plus"></i></button>
+    </div>
+    <div id="userSuggestions" class="mb-2"></div>
+    <button class="btn btn-outline-secondary w-100" onclick="(window as any).showParty();hideModal()">Done</button>
+  `);
+  const input = document.getElementById('addMemberUsername') as HTMLInputElement;
+  if (input) {
+    input.addEventListener('input', () => searchUsers(input.value));
+  }
+};
+
+let searchTimeout: any = null;
+async function searchUsers(q: string) {
+  clearTimeout(searchTimeout);
+  if (q.length < 2) { document.getElementById('userSuggestions')!.innerHTML = ''; return; }
+  searchTimeout = setTimeout(async () => {
+    try {
+      const users = await api('GET', `/api/users/search?q=${encodeURIComponent(q)}`);
+      const el = document.getElementById('userSuggestions')!;
+      el.innerHTML = users.map((u: any) =>
+        `<div class="d-flex justify-content-between align-items-center p-1 border-bottom" style="cursor:pointer" onclick="document.getElementById('addMemberUsername')!.value='${esc(u.username)}';el.innerHTML=''">
+          <span>${esc(u.username)}</span>
+        </div>`
+      ).join('');
+    } catch {}
+  }, 300);
+}
+
+(window as any).doAddMember = async function (campaignId: number) {
+  const username = (document.getElementById('addMemberUsername') as HTMLInputElement).value.trim();
+  if (!username) return;
+  try {
+    await api('POST', `/api/campaigns/${campaignId}/members`, { username });
+    toast('Member added');
+    (window as any).showManageCampaign(campaignId, '');
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+(window as any).doToggleDm = async function (campaignId: number, userId: number, newRole: string) {
+  try {
+    await api('PUT', `/api/campaigns/${campaignId}/members/${userId}`, { role: newRole });
+    (window as any).showManageCampaign(campaignId, '');
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+(window as any).doRemoveMember = async function (campaignId: number, userId: number) {
+  if (!confirm('Remove this member?')) return;
+  try {
+    await api('DELETE', `/api/campaigns/${campaignId}/members/${userId}`);
+    (window as any).showManageCampaign(campaignId, '');
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+(window as any).deleteCampaign = async function (campaignId: number) {
+  if (!confirm('Delete this campaign? Characters will be unlinked.')) return;
+  try {
+    await api('DELETE', `/api/campaigns/${campaignId}`);
+    toast('Campaign deleted');
+    (window as any).showParty();
+  } catch (e: any) {
+    toast(e.message, true);
   }
 };
 

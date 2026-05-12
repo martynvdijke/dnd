@@ -79,14 +79,14 @@ func ListCharacters(c *gin.Context) {
 	defer rows.Close()
 
 	type CharSummary struct {
-		ID       int64  `json:"id"`
-		UserID   int64  `json:"user_id"`
-		Name     string `json:"name"`
-		Race     string `json:"race"`
-		Class    string `json:"class"`
-		Level    int    `json:"level"`
-		HPMax    int    `json:"hp_max"`
-		HPCurrent int   `json:"hp_current"`
+		ID        int64  `json:"id"`
+		UserID    int64  `json:"user_id"`
+		Name      string `json:"name"`
+		Race      string `json:"race"`
+		Class     string `json:"class"`
+		Level     int    `json:"level"`
+		HPMax     int    `json:"hp_max"`
+		HPCurrent int    `json:"hp_current"`
 	}
 	chars := []CharSummary{}
 	for rows.Next() {
@@ -545,16 +545,30 @@ func characterToText(ch *models.Character) string {
 	return b.String()
 }
 
-// checkCharacterAccess verifies the current user owns (or is admin of) the given character
+// checkCharacterAccess verifies the current user owns (or is admin/DM of) the given character
 func checkCharacterAccess(c *gin.Context, characterID int64) bool {
 	userID, _ := c.Get("user_id")
+	currentUID, _ := userID.(int64)
 	role, _ := c.Get("role")
 	var ownerID int64
 	err := db.DB.QueryRow("SELECT user_id FROM characters WHERE id=?", characterID).Scan(&ownerID)
 	if err != nil {
 		return false
 	}
-	return role == "admin" || ownerID == userID
+	if role == "admin" || ownerID == currentUID {
+		return true
+	}
+	// Check if current user is a DM in a campaign this character belongs to
+	var campaignID *int64
+	db.DB.QueryRow("SELECT campaign_id FROM characters WHERE id=?", characterID).Scan(&campaignID)
+	if campaignID != nil {
+		var memberRole string
+		err := db.DB.QueryRow("SELECT role FROM campaign_members WHERE campaign_id=? AND user_id=?", *campaignID, currentUID).Scan(&memberRole)
+		if err == nil && memberRole == "dm" {
+			return true
+		}
+	}
+	return false
 }
 
 // Internal load helpers

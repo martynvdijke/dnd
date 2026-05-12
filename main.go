@@ -187,6 +187,10 @@ func main() {
 		auth.POST("/campaigns", handlers.CreateCampaign)
 		auth.PUT("/campaigns/:id", handlers.UpdateCampaign)
 		auth.DELETE("/campaigns/:id", handlers.DeleteCampaign)
+		auth.GET("/campaigns/:id/members", handlers.ListCampaignMembers)
+		auth.POST("/campaigns/:id/members", handlers.AddCampaignMember)
+		auth.PUT("/campaigns/:id/members/:userId", handlers.SetCampaignMemberRole)
+		auth.DELETE("/campaigns/:id/members/:userId", handlers.RemoveCampaignMember)
 
 		// Rest & Level Up
 		auth.POST("/characters/:id/rest", handlers.DoRest)
@@ -194,6 +198,7 @@ func main() {
 
 		// Party view
 		auth.GET("/party", handlers.GetPartyView)
+		auth.GET("/users/search", handlers.SearchUsers)
 
 		// Combat
 		auth.GET("/combat", handlers.ListCombatEntries)
