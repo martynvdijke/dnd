@@ -1,0 +1,101 @@
+[
+  {
+    "name": "Dwarf",
+    "description": "Bold and hardy, dwarves are known for their skill in warfare, their ability to withstand physical and magical punishment, and their love of good ale.",
+    "speed": 25,
+    "size": "Medium",
+    "ability_bonuses": "{\"con\":2}",
+    "traits": "{\"darkvision\":60,\"dwarven_resilience\":\"Advantage on saving throws against poison\",\"stonecunning\":\"Double proficiency bonus on History checks related to stonework\",\"tool_proficiency\":\"Proficiency with smith's tools, brewer's supplies, or mason's tools\"}",
+    "languages": "Common, Dwarvish",
+    "system": "dnd5e",
+    "source": "srd"
+  },
+  {
+    "name": "Elf",
+    "description": "Elves are a magical people of otherworldly grace, living in the world but not entirely part of it.",
+    "speed": 30,
+    "size": "Medium",
+    "ability_bonuses": "{\"dex\":2}",
+    "traits": "{\"darkvision\":60,\"keen_senses\":\"Proficiency in Perception\",\"fey_ancestry\":\"Advantage on saving throws against being charmed, magic can't put you to sleep\",\"trance\":\"Meditate 4 hours instead of sleep\"}",
+    "languages": "Common, Elvish",
+    "system": "dnd5e",
+    "source": "srd"
+  },
+  {
+    "name": "Halfling",
+    "description": "The diminutive halflings survive in a world full of larger creatures by avoiding notice or, barring that, avoiding offense.",
+    "speed": 25,
+    "size": "Small",
+    "ability_bonuses": "{\"dex\":2}",
+    "traits": "{\"lucky\":\"When you roll a 1 on an attack roll, ability check, or saving throw, you can reroll\",\"brave\":\"Advantage on saving throws against being frightened\",\"halfling_nimbleness\":\"You can move through the space of any creature larger than you\"}",
+    "languages": "Common, Halfling",
+    "system": "dnd5e",
+    "source": "srd"
+  },
+  {
+    "name": "Human",
+    "description": "Humans are the most adaptable and ambitious people among the common races.",
+    "speed": 30,
+    "size": "Medium",
+    "ability_bonuses": "{\"str\":1,\"dex\":1,\"con\":1,\"int\":1,\"wis\":1,\"cha\":1}",
+    "traits": "{}",
+    "languages": "Common, one additional language",
+    "system": "dnd5e",
+    "source": "srd"
+  },
+  {
+    "name": "Dragonborn",
+    "description": "Dragonborn look very much like dragons standing erect in humanoid form.",
+    "speed": 30,
+    "size": "Medium",
+    "ability_bonuses": "{\"str\":2,\"cha\":1}",
+    "traits": "{\"draconic_ancestry\":\"Choose a dragon type\",\"breath_weapon\":\"5'x30' line or 15' cone, damage type per ancestry, CON save\",\"damage_resistance\":\"Resistance to damage type of your ancestry\"}",
+    "languages": "Common, Draconic",
+    "system": "dnd5e",
+    "source": "srd"
+  },
+  {
+    "name": "Gnome",
+    "description": "A gnome's energy and enthusiasm for all things makes them natural inventors, tinkerers, and alchemists.",
+    "speed": 25,
+    "size": "Small",
+    "ability_bonuses": "{\"int\":2}",
+    "traits": "{\"darkvision\":60,\"gnome_cunning\":\"Advantage on INT/WIS/CHA saving throws against magic\"}",
+    "languages": "Common, Gnomish",
+    "system": "dnd5e",
+    "source": "srd"
+  },
+  {
+    "name": "Half-Elf",
+    "description": "Half-elves combine what some say are the best qualities of their elf and human parents.",
+    "speed": 30,
+    "size": "Medium",
+    "ability_bonuses": "{\"cha\":2}",
+    "traits": "{\"darkvision\":60,\"fey_ancestry\":\"Advantage on saving throws against being charmed, magic can't put you to sleep\",\"skill_versatility\":\"Choose two additional skill proficiencies\"}",
+    "languages": "Common, Elvish, one additional language",
+    "system": "dnd5e",
+    "source": "srd"
+  },
+  {
+    "name": "Half-Orc",
+    "description": "Half-orcs combine the ferocity of orcs with the determination of humans.",
+    "speed": 30,
+    "size": "Medium",
+    "ability_bonuses": "{\"str\":2,\"con\":1}",
+    "traits": "{\"darkvision\":60,\"savage_attacks\":\"When you score a critical hit with a melee weapon, roll one additional damage die\",\"relentless_endurance\":\"When reduced to 0 HP but not killed, you drop to 1 HP once per long rest\"}",
+    "languages": "Common, Orc",
+    "system": "dnd5e",
+    "source": "srd"
+  },
+  {
+    "name": "Tiefling",
+    "description": "Tieflings are derived from human bloodlines, and in the broadest sense, they still look human.",
+    "speed": 30,
+    "size": "Medium",
+    "ability_bonuses": "{\"cha\":2,\"int\":1}",
+    "traits": "{\"darkvision\":60,\"hellish_resistance\":\"Resistance to fire damage\",\"infernal_legacy\":\"You know the thaumaturgy cantrip\"}",
+    "languages": "Common, Infernal",
+    "system": "dnd5e",
+    "source": "srd"
+  }
+]

@@ -477,6 +477,23 @@ CREATE TABLE IF NOT EXISTS campaign_members (
 ALTER TABLE campaign_members ADD COLUMN role TEXT NOT NULL DEFAULT 'player' CHECK(role IN ('dm','player'));
 `,
 	},
+	{
+		version: 11,
+		sql: `
+ALTER TABLE compendium_races ADD COLUMN system TEXT NOT NULL DEFAULT 'dnd5e';
+ALTER TABLE compendium_races ADD COLUMN source TEXT NOT NULL DEFAULT 'srd';
+ALTER TABLE compendium_classes ADD COLUMN system TEXT NOT NULL DEFAULT 'dnd5e';
+ALTER TABLE compendium_classes ADD COLUMN source TEXT NOT NULL DEFAULT 'srd';
+ALTER TABLE compendium_spells ADD COLUMN system TEXT NOT NULL DEFAULT 'dnd5e';
+ALTER TABLE compendium_spells ADD COLUMN source TEXT NOT NULL DEFAULT 'srd';
+ALTER TABLE compendium_feats ADD COLUMN system TEXT NOT NULL DEFAULT 'dnd5e';
+ALTER TABLE compendium_feats ADD COLUMN source TEXT NOT NULL DEFAULT 'srd';
+ALTER TABLE compendium_backgrounds ADD COLUMN system TEXT NOT NULL DEFAULT 'dnd5e';
+ALTER TABLE compendium_backgrounds ADD COLUMN source TEXT NOT NULL DEFAULT 'srd';
+ALTER TABLE compendium_equipment ADD COLUMN system TEXT NOT NULL DEFAULT 'dnd5e';
+ALTER TABLE compendium_equipment ADD COLUMN source TEXT NOT NULL DEFAULT 'srd';
+`,
+	},
 }
 
 func Migrate() error {

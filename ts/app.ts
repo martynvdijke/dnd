@@ -727,12 +727,12 @@ function renderInventory() {
 function renderSpells() {
   const spells = currentChar.spells || [];
   const sc = currentChar.spellcasting || {};
-  document.getElementById('spellsSection')!.innerHTML = sc.spellcasting_ability ? `
+  document.getElementById('spellsSection')!.innerHTML = sc.ability ? `
     <h5>Spellcasting</h5>
     <div class="row g-3 mb-3">
-      <div class="col-md-4"><label class="form-label">Ability</label><input class="form-control form-control-sm" value="${esc(sc.spellcasting_ability)}" onchange="updateSpellcasting('spellcasting_ability',this.value)"></div>
-      <div class="col-md-4"><label class="form-label">Save DC</label><input class="form-control form-control-sm" type="number" value="${sc.spell_save_dc||0}" onchange="updateSpellcasting('spell_save_dc',+this.value)"></div>
-      <div class="col-md-4"><label class="form-label">Atk Bonus</label><input class="form-control form-control-sm" type="number" value="${sc.spell_attack_bonus||0}" onchange="updateSpellcasting('spell_attack_bonus',+this.value)"></div>
+      <div class="col-md-4"><label class="form-label">Ability</label><input class="form-control form-control-sm" value="${esc(sc.ability)}" onchange="updateSpellcasting('ability',this.value)"></div>
+      <div class="col-md-4"><label class="form-label">Save DC</label><input class="form-control form-control-sm" type="number" value="${sc.save_dc||0}" onchange="updateSpellcasting('save_dc',+this.value)"></div>
+      <div class="col-md-4"><label class="form-label">Atk Bonus</label><input class="form-control form-control-sm" type="number" value="${sc.attack_bonus||0}" onchange="updateSpellcasting('attack_bonus',+this.value)"></div>
     </div>
     <h6>Spell Slots</h6>
     <div class="d-flex gap-3 flex-wrap mb-3">
@@ -801,7 +801,7 @@ async function updateSpellSlot(level:number) {
 
 (window as any).enableSpellcasting = async function () {
   currentChar.spellcasting = {
-    spellcasting_ability: 'int', spell_save_dc: 10, spell_attack_bonus: 0,
+    ability: 'int', save_dc: 10, attack_bonus: 0,
     slots_1_max: 2, slots_1_used: 0,
   };
   await api('PUT', `/api/characters/${currentChar.id}/spellcasting`, currentChar.spellcasting);

@@ -5,12 +5,42 @@ import (
 )
 
 func Seed() {
-	seedRaces()
-	seedClasses()
-	seedBackgrounds()
-	seedSpells()
-	seedEquipment()
-	log.Println("Seed data applied")
+	dataDir := "data"
+
+	// Try JSON first for each category; fall back to Go structs
+	type seedTask struct {
+		name string
+		json func(string) bool
+		goFn func()
+	}
+	tasks := []seedTask{
+		{"races", seedJSONCategory("races"), seedRaces},
+		{"classes", seedJSONCategory("classes"), seedClasses},
+		{"backgrounds", seedJSONCategory("backgrounds"), seedBackgrounds},
+		{"spells", seedJSONCategory("spells"), seedSpells},
+		{"equipment", seedJSONCategory("equipment"), seedEquipment},
+	}
+
+	anyLoaded := false
+	for _, t := range tasks {
+		if t.json(dataDir) {
+			anyLoaded = true
+		} else {
+			t.goFn()
+		}
+	}
+	if anyLoaded {
+		log.Println("Seed data loaded (some from JSON)")
+	} else {
+		log.Println("Seed data applied from built-in data")
+	}
+}
+
+// seedJSONCategory returns a function that seeds a single category from JSON if the file exists.
+func seedJSONCategory(category string) func(string) bool {
+	return func(dataDir string) bool {
+		return SeedJSONCategory(dataDir, category)
+	}
 }
 
 func seedRaces() {
@@ -45,8 +75,8 @@ func seedRaces() {
 	}
 
 	for _, r := range races {
-		DB.Exec("INSERT INTO compendium_races(name,description,speed,size,ability_bonuses,traits,languages) VALUES(?,?,?,?,?,?,?)",
-			r.name, r.desc, r.speed, r.size, r.abilities, r.traits, r.langs)
+		DB.Exec("INSERT INTO compendium_races(name,description,speed,size,ability_bonuses,traits,languages,system,source) VALUES(?,?,?,?,?,?,?,?,?)",
+			r.name, r.desc, r.speed, r.size, r.abilities, r.traits, r.langs, "dnd5e", "srd")
 	}
 	log.Printf("Seeded %d races", len(races))
 }
@@ -77,8 +107,8 @@ func seedClasses() {
 	}
 
 	for _, c := range classes {
-		DB.Exec("INSERT INTO compendium_classes(name,description,hit_die,primary_ability,saving_throws,proficiencies,spellcasting_ability) VALUES(?,?,?,?,?,?,?)",
-			c.name, c.desc, c.hitDie, c.primary, c.saves, c.profs, c.spellcasting)
+		DB.Exec("INSERT INTO compendium_classes(name,description,hit_die,primary_ability,saving_throws,proficiencies,spellcasting_ability,system,source) VALUES(?,?,?,?,?,?,?,?,?)",
+			c.name, c.desc, c.hitDie, c.primary, c.saves, c.profs, c.spellcasting, "dnd5e", "srd")
 	}
 	log.Printf("Seeded %d classes", len(classes))
 }
@@ -121,8 +151,8 @@ func seedBackgrounds() {
 	}
 
 	for _, b := range bgs {
-		DB.Exec("INSERT INTO compendium_backgrounds(name,description,feature_name,feature_description,proficiencies) VALUES(?,?,?,?,?)",
-			b.name, b.desc, b.featName, b.featDesc, b.profs)
+		DB.Exec("INSERT INTO compendium_backgrounds(name,description,feature_name,feature_description,proficiencies,system,source) VALUES(?,?,?,?,?,?,?)",
+			b.name, b.desc, b.featName, b.featDesc, b.profs, "dnd5e", "srd")
 	}
 	log.Printf("Seeded %d backgrounds", len(bgs))
 }
@@ -135,8 +165,8 @@ func seedSpells() {
 	}
 
 	for _, s := range SRDSpells {
-		DB.Exec("INSERT INTO compendium_spells(name,level,school,casting_time,range,components,duration,description,higher_levels,classes) VALUES(?,?,?,?,?,?,?,?,?,?)",
-			s.name, s.level, s.school, s.time, s.rng, s.comp, s.dur, s.desc, s.higher, s.classes)
+		DB.Exec("INSERT INTO compendium_spells(name,level,school,casting_time,range,components,duration,description,higher_levels,classes,system,source) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+			s.name, s.level, s.school, s.time, s.rng, s.comp, s.dur, s.desc, s.higher, s.classes, "dnd5e", "srd")
 	}
 	log.Printf("Seeded %d spells", len(SRDSpells))
 }
@@ -180,8 +210,8 @@ func seedEquipment() {
 	}
 
 	for _, e := range equipment {
-		DB.Exec("INSERT INTO compendium_equipment(name,category,cost,weight,description) VALUES(?,?,?,?,?)",
-			e.name, e.cat, e.cost, e.weight, e.desc)
+		DB.Exec("INSERT INTO compendium_equipment(name,category,cost,weight,description,system,source) VALUES(?,?,?,?,?,?,?)",
+			e.name, e.cat, e.cost, e.weight, e.desc, "dnd5e", "srd")
 	}
 	log.Printf("Seeded %d equipment items", len(equipment))
 }

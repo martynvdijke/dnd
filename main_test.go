@@ -89,6 +89,7 @@ func buildRouter() *gin.Engine {
 		auth.GET("/compendium/backgrounds", handlers.ListCompendiumBackgrounds)
 		auth.GET("/compendium/equipment", handlers.ListCompendiumEquipment)
 		auth.GET("/compendium/search", handlers.SearchCompendium)
+		auth.GET("/compendium/api/:category", handlers.FetchFromDnDApi)
 		auth.GET("/locations", handlers.ListLocations)
 		auth.POST("/locations", handlers.CreateLocation)
 		auth.PUT("/locations/:id", handlers.UpdateLocation)
@@ -1023,6 +1024,17 @@ func TestSeedData(t *testing.T) {
 		t.Fatalf("expected >=200 spells, got %d", count)
 	}
 	t.Logf("Total spells seeded: %d", count)
+
+	// Verify system/source fields are populated
+	var sys, src string
+	db.DB.QueryRow("SELECT system, source FROM compendium_races LIMIT 1").Scan(&sys, &src)
+	if sys != "dnd5e" || src != "srd" {
+		t.Errorf("expected race system=dnd5e source=srd, got system=%q source=%q", sys, src)
+	}
+	db.DB.QueryRow("SELECT system, source FROM compendium_spells LIMIT 1").Scan(&sys, &src)
+	if sys != "dnd5e" || src != "srd" {
+		t.Errorf("expected spell system=dnd5e source=srd, got system=%q source=%q", sys, src)
+	}
 }
 
 func TestImportJSON(t *testing.T) {
@@ -2419,4 +2431,127 @@ func TestDiceRollAdvantageDisadvantage(t *testing.T) {
 	}
 	t.Logf("Advantage+5: rolls=[%d,%d] chosen=%d total=%d",
 		int(rolls[0].(float64)), int(rolls[1].(float64)), chosen, total)
+
+	// ─── Compendium System/Source Fields ───
+
+	resp = tc.get("/api/compendium/races", nil)
+	if resp.Code == 200 {
+		var races []map[string]any
+		readJSON(resp, &races)
+		if len(races) > 0 {
+			r := races[0]
+			if _, ok := r["system"]; !ok {
+				t.Error("expected 'system' field in compendium race response")
+			}
+			if _, ok := r["source"]; !ok {
+				t.Error("expected 'source' field in compendium race response")
+			}
+			t.Logf("Race system=%v source=%v", r["system"], r["source"])
+		}
+	}
 }
+
+func TestCompendiumJSONSeed(t *testing.T) {
+	// Test that JSON-seeded data includes system/source fields
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.get("/api/compendium/races", nil)
+	if resp.Code != 200 {
+		t.Fatalf("get races failed: %d", resp.Code)
+	}
+	var races []map[string]any
+	readJSON(resp, &races)
+	if len(races) == 0 {
+		t.Fatal("no races found")
+	}
+	// Check system/source on first race
+	r := races[0]
+	sys, ok := r["system"]
+	if !ok || sys != "dnd5e" {
+		t.Errorf("expected system='dnd5e', got %v", sys)
+	}
+	src, ok := r["source"]
+	if !ok || src != "srd" {
+		t.Errorf("expected source='srd', got %v", src)
+	}
+
+	// Verify classes also have fields
+	resp = tc.get("/api/compendium/classes", nil)
+	var classes []map[string]any
+	readJSON(resp, &classes)
+	if len(classes) > 0 {
+		if _, ok := classes[0]["system"]; !ok {
+			t.Error("expected 'system' in classes")
+		}
+		if _, ok := classes[0]["source"]; !ok {
+			t.Error("expected 'source' in classes")
+		}
+	}
+}
+
+func TestDnDAPIRespectsDB(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Test with empty query (should get 400)
+	resp := tc.get("/api/compendium/api/spells", nil)
+	if resp.Code != 400 {
+		t.Errorf("expected 400 for missing query, got %d", resp.Code)
+	}
+
+	// Test with unknown category
+	resp = tc.get("/api/compendium/api/invalid?q=test", nil)
+	if resp.Code != 400 {
+		t.Errorf("expected 400 for unknown category, got %d", resp.Code)
+	}
+
+	// Test API fallback (may or may not have network access)
+	resp = tc.get("/api/compendium/api/equipment?q=longsword", nil)
+	if resp.Code == 200 {
+		var result map[string]any
+		readJSON(resp, &result)
+		if src, ok := result["source"]; !ok || src != "dnd5eapi" {
+			t.Errorf("expected source=dnd5eapi, got %v", src)
+		}
+		if sys, ok := result["system"]; !ok || sys != "dnd5e" {
+			t.Errorf("expected system=dnd5e, got %v", sys)
+		}
+		if count, ok := result["count"]; ok && count.(float64) > 0 {
+			t.Logf("D&D API returned %d results for 'longsword'", int(count.(float64)))
+		}
+	} else {
+		t.Logf("D&D API unavailable (status %d) - skipping online test", resp.Code)
+	}
+}
+
+func TestCompendiumSystemFilter(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create a custom compendium entry with a different system
+	resp := tc.post("/api/admin/compendium/races", map[string]any{
+		"name": "Test Race PF2e", "description": "A PF2e test race",
+		"speed": 25, "size": "Medium", "system": "pf2e", "source": "custom",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create pf2e race failed: %d", resp.Code)
+	}
+
+	// Verify it appears in the listing
+	resp = tc.get("/api/compendium/races", nil)
+	var races []map[string]any
+	readJSON(resp, &races)
+	found := false
+	for _, r := range races {
+		if r["system"] == "pf2e" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected pf2e race in listing, but none found")
+	}
+}
+
+

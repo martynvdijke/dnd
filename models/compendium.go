@@ -1,5 +1,10 @@
 package models
 
+type CompendiumEntry struct {
+	System string `json:"system"`
+	Source string `json:"source"`
+}
+
 type CompendiumRace struct {
 	ID             int64  `json:"id"`
 	Name           string `json:"name"`
@@ -10,6 +15,8 @@ type CompendiumRace struct {
 	Traits         string `json:"traits"`
 	Languages      string `json:"languages"`
 	SourcePage     string `json:"source_page"`
+	System         string `json:"system,omitempty"`
+	Source         string `json:"source,omitempty"`
 }
 
 type CompendiumClass struct {
@@ -22,6 +29,8 @@ type CompendiumClass struct {
 	Proficiencies       string `json:"proficiencies"`
 	SpellcastingAbility string `json:"spellcasting_ability"`
 	SourcePage          string `json:"source_page"`
+	System              string `json:"system,omitempty"`
+	Source              string `json:"source,omitempty"`
 }
 
 type CompendiumSpell struct {
@@ -37,6 +46,8 @@ type CompendiumSpell struct {
 	HigherLevels string `json:"higher_levels"`
 	Classes      string `json:"classes"`
 	SourcePage   string `json:"source_page"`
+	System       string `json:"system,omitempty"`
+	Source       string `json:"source,omitempty"`
 }
 
 type CompendiumFeat struct {
@@ -45,6 +56,8 @@ type CompendiumFeat struct {
 	Description   string `json:"description"`
 	Prerequisites string `json:"prerequisites"`
 	SourcePage    string `json:"source_page"`
+	System        string `json:"system,omitempty"`
+	Source        string `json:"source,omitempty"`
 }
 
 type CompendiumBackground struct {
@@ -55,6 +68,8 @@ type CompendiumBackground struct {
 	FeatureDescription string `json:"feature_description"`
 	Proficiencies      string `json:"proficiencies"`
 	SourcePage         string `json:"source_page"`
+	System             string `json:"system,omitempty"`
+	Source             string `json:"source,omitempty"`
 }
 
 type CompendiumEquipment struct {
@@ -65,6 +80,8 @@ type CompendiumEquipment struct {
 	Weight      float64 `json:"weight"`
 	Description string  `json:"description"`
 	SourcePage  string  `json:"source_page"`
+	System      string  `json:"system,omitempty"`
+	Source      string  `json:"source,omitempty"`
 }
 
 type ImportCharacter struct {
