@@ -263,6 +263,10 @@ function showView(view: string) {
   document.getElementById('diceView')!.style.display = view === 'dice' ? 'block' : 'none';
   document.getElementById('compendiumView')!.style.display = view === 'compendium' ? 'block' : 'none';
   document.getElementById('partyView')!.style.display = view === 'party' ? 'block' : 'none';
+  document.getElementById('encounterView')!.style.display = view === 'encounter' ? 'block' : 'none';
+  document.getElementById('calendarView')!.style.display = view === 'calendar' ? 'block' : 'none';
+  document.getElementById('timelineView')!.style.display = view === 'timeline' ? 'block' : 'none';
+  document.getElementById('singleEncounterView')!.style.display = view === 'singleEncounter' ? 'block' : 'none';
 }
 (window as any).showView = showView;
 
@@ -317,9 +321,15 @@ const sections = ['stats', 'combat', 'spells', 'inventory', 'features', 'locatio
 function renderSheet() {
   if (!currentChar) return;
   const c = currentChar;
-  document.getElementById('sheetName')!.textContent = c.name;
+  const multi = c.classes && c.classes.length > 0;
+  const classStr = multi
+    ? c.classes.map((cc: any) => `${cc.class}${cc.subclass ? ' (' + cc.subclass + ')' : ''} ${cc.level}`).join(' / ')
+    : `${c.class}${c.subclass ? ' (' + c.subclass + ')' : ''}`;
+  document.getElementById('sheetName')!.innerHTML = c.portrait_url
+    ? `<img src="${esc(c.portrait_url)}" class="character-portrait me-2" alt="">${esc(c.name)}`
+    : esc(c.name);
   document.getElementById('sheetSubtitle')!.textContent =
-    `${c.race} ${c.class}${c.subclass ? ' (' + c.subclass + ')' : ''} · Level ${c.level}`;
+    `${c.race} ${classStr} · Level ${c.level}`;
 
   const tabBar = document.getElementById('tabBar')!;
   tabBar.innerHTML = sections.map(s => `
@@ -989,6 +999,17 @@ function renderDetails() {
   const el = document.getElementById('detailsSection')!;
   el.innerHTML = `
     <div class="row g-3">
+      <div class="col-md-12 mb-2">
+        <label class="form-label">Portrait</label>
+        <div class="d-flex align-items-center gap-2">
+          ${c.portrait_url ? `<img src="${esc(c.portrait_url)}" class="character-portrait-lg me-2" alt="">` : ''}
+          <input type="file" class="form-control form-control-sm" id="portraitUpload" accept="image/*">
+          <button class="btn btn-primary btn-sm" onclick="uploadPortrait()"><i class="fa-solid fa-upload me-1"></i>Upload</button>
+          ${c.portrait_url ? `<button class="btn btn-outline-danger btn-sm" onclick="clearPortrait()"><i class="fa-solid fa-xmark"></i></button>` : ''}
+        </div>
+      </div>
+    </div>
+    <div class="row g-3">
       <div class="col-md-4"><label class="form-label">Race</label><input class="form-control form-control-sm" value="${esc(c.race)}" oninput="autoSaveField('race',this)"></div>
       <div class="col-md-4"><label class="form-label">Class</label><input class="form-control form-control-sm" value="${esc(c.class)}" oninput="autoSaveField('class',this)"></div>
       <div class="col-md-4"><label class="form-label">Subclass</label><input class="form-control form-control-sm" value="${esc(c.subclass)}" oninput="autoSaveField('subclass',this)"></div>
@@ -998,6 +1019,22 @@ function renderDetails() {
       <div class="col-md-4"><label class="form-label">Background</label><input class="form-control form-control-sm" value="${esc(c.background)}" oninput="autoSaveField('background',this)"></div>
       <div class="col-md-4"><label class="form-label">Alignment</label><input class="form-control form-control-sm" value="${esc(c.alignment)}" oninput="autoSaveField('alignment',this)"></div>
     </div>
+    <h5 class="mt-3">Multi-Class</h5>
+    <div id="multiClassArea">
+      ${(c.classes && c.classes.length ? c.classes.map((cc: any) => `
+        <div class="inv-item">
+          <span class="fw-bold">${esc(cc.class)}</span>
+          ${cc.subclass ? `<span class="text-muted small">(${esc(cc.subclass)})</span>` : ''}
+          <span class="badge badge-blood ms-1">Lv ${cc.level}</span>
+          <span class="badge badge-muted ms-1">${esc(cc.hit_dice)}</span>
+          <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-primary" onclick="editClass(${cc.id})"><i class="fa-solid fa-pen"></i></button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteClass(${cc.id})"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>`).join('')
+        : '<div class="text-muted small">Single class. Add multi-class entries below.</div>')}
+    </div>
+    <button class="btn btn-sm btn-outline-primary mt-1" onclick="addClass()"><i class="fa-solid fa-plus me-1"></i>Add Class</button>
     <hr class="my-3">
     ${['personality_traits','ideals','bonds','flaws','appearance'].map(f => `
       <div class="mb-3"><label class="form-label">${capitalize(f.replace(/_/g,' '))}</label>
@@ -2364,6 +2401,613 @@ async function loadCompendiumEquipment() {
 (window as any).logout = async function () {
   await api('POST', '/api/logout');
   window.location.href = '/login';
+};
+
+// ─── Portrait Upload ───
+
+(window as any).uploadPortrait = async function () {
+  const input = document.getElementById('portraitUpload') as HTMLInputElement;
+  if (!input.files || !input.files[0]) { toast('Select an image', true); return; }
+  const form = new FormData();
+  form.append('image', input.files[0]);
+  try {
+    const res = await fetch('/api/upload', {
+      method: 'POST', headers: { 'X-CSRF-Token': csrfToken }, credentials: 'include', body: form,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    await updateField('portrait_url', data.url);
+    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+    renderSheet();
+    toast('Portrait uploaded');
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).clearPortrait = async function () {
+  await updateField('portrait_url', '');
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderSheet();
+  toast('Portrait removed');
+};
+
+// ─── Multi-Class ───
+
+(window as any).addClass = function () {
+  showModal('Add Class', `
+    <div class="mb-3"><label class="form-label">Class</label><input class="form-control" id="mcClass"></div>
+    <div class="mb-3"><label class="form-label">Subclass</label><input class="form-control" id="mcSubclass"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Level</label><input class="form-control" id="mcLevel" type="number" value="1" min="1"></div>
+      <div class="col-6"><label class="form-label">Hit Dice</label>
+        <select class="form-select" id="mcHD"><option value="d6">d6</option><option value="d8">d8</option><option value="d10" selected>d10</option><option value="d12">d12</option></select></div>
+    </div>
+    <button class="btn btn-primary w-100" onclick="saveClass()"><i class="fa-solid fa-plus me-1"></i>Add</button>
+  `);
+};
+
+(window as any).saveClass = async function () {
+  await api('POST', `/api/characters/${currentChar.id}/classes`, {
+    class: (document.getElementById('mcClass') as HTMLInputElement).value,
+    subclass: (document.getElementById('mcSubclass') as HTMLInputElement).value,
+    level: +(document.getElementById('mcLevel') as HTMLInputElement).value || 1,
+    hit_dice: (document.getElementById('mcHD') as HTMLSelectElement).value,
+  });
+  hideModal();
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderSheet();
+  toast('Class added');
+};
+
+(window as any).editClass = function (id: number) {
+  const cc = currentChar.classes.find((c: any) => c.id === id);
+  if (!cc) return;
+  showModal('Edit Class', `
+    <div class="mb-3"><label class="form-label">Class</label><input class="form-control" id="mcClass" value="${esc(cc.class)}"></div>
+    <div class="mb-3"><label class="form-label">Subclass</label><input class="form-control" id="mcSubclass" value="${esc(cc.subclass)}"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Level</label><input class="form-control" id="mcLevel" type="number" value="${cc.level}" min="1"></div>
+      <div class="col-6"><label class="form-label">Hit Dice</label>
+        <select class="form-select" id="mcHD">${['d6','d8','d10','d12'].map(d => `<option value="${d}"${d===cc.hit_dice?' selected':''}>${d}</option>`).join('')}</select></div>
+    </div>
+    <button class="btn btn-primary w-100" onclick="saveEditClass(${id})"><i class="fa-solid fa-save me-1"></i>Save</button>
+  `);
+};
+
+(window as any).saveEditClass = async function (id: number) {
+  await api('PUT', `/api/classes/${id}`, {
+    class: (document.getElementById('mcClass') as HTMLInputElement).value,
+    subclass: (document.getElementById('mcSubclass') as HTMLInputElement).value,
+    level: +(document.getElementById('mcLevel') as HTMLInputElement).value || 1,
+    hit_dice: (document.getElementById('mcHD') as HTMLSelectElement).value,
+  });
+  hideModal();
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderSheet();
+  toast('Class updated');
+};
+
+(window as any).deleteClass = async function (id: number) {
+  if (!confirm('Remove this class?')) return;
+  await api('DELETE', `/api/classes/${id}`);
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderSheet();
+  toast('Class removed');
+};
+
+// ─── Encounter Builder ───
+
+(window as any).showEncounterBuilder = async function () {
+  showView('encounter');
+  const el = document.getElementById('encounterContent')!;
+  el.innerHTML = '<div class="ornament">✧ Loading encounters... ✧</div>';
+  try {
+    const encounters = await api('GET', '/api/encounters');
+    el.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <button class="btn btn-gold btn-sm me-2" onclick="showCreateEncounter()"><i class="fa-solid fa-plus me-1"></i>New Encounter</button>
+          <button class="btn btn-outline-primary btn-sm" onclick="showEncounterXPCalc()"><i class="fa-solid fa-calculator me-1"></i>XP Calculator</button>
+        </div>
+      </div>
+      <div class="row g-3" id="encounterList">
+        ${encounters.length ? encounters.map((e: any) => `
+          <div class="col-md-6 col-lg-4">
+            <div class="character-card" onclick="showEncounterDetail(${e.id})">
+              <div class="char-name">${esc(e.name)}</div>
+              <div class="char-detail">${esc(e.environment)} · ${esc(e.difficulty)} · ${e.total_xp} XP</div>
+              <div class="char-hp mt-1">${esc(e.description).substring(0, 100)}</div>
+            </div>
+          </div>`).join('')
+          : '<div class="empty-state"><i class="fa-solid fa-crosshairs fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Encounters Yet</p><p class="small text-muted">Build balanced encounters with XP budgeting.</p></div>'}
+      </div>`;
+  } catch (e: any) { el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(e.message)}</p></div>`; }
+};
+
+(window as any).showCreateEncounter = function () {
+  showModal('New Encounter', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="encName" placeholder="Goblin Ambush"></div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="encDesc" rows="2"></textarea></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Environment</label>
+        <select class="form-select" id="encEnv">
+          <option value="">Any</option><option value="forest">Forest</option><option value="dungeon">Dungeon</option>
+          <option value="mountain">Mountain</option><option value="swamp">Swamp</option><option value="urban">Urban</option>
+          <option value="underdark">Underdark</option><option value="coastal">Coastal</option><option value="arctic">Arctic</option>
+          <option value="desert">Desert</option><option value="grassland">Grassland</option>
+        </select></div>
+      <div class="col-6"><label class="form-label">Difficulty</label>
+        <select class="form-select" id="encDiff">
+          <option value="easy">Easy</option><option value="medium" selected>Medium</option>
+          <option value="hard">Hard</option><option value="deadly">Deadly</option>
+        </select></div>
+    </div>
+    <button class="btn btn-primary w-100" onclick="saveEncounter()"><i class="fa-solid fa-plus me-1"></i>Create</button>
+  `);
+};
+
+(window as any).saveEncounter = async function () {
+  const name = (document.getElementById('encName') as HTMLInputElement).value;
+  if (!name) { toast('Name required', true); return; }
+  await api('POST', '/api/encounters', {
+    name, description: (document.getElementById('encDesc') as HTMLTextAreaElement).value,
+    environment: (document.getElementById('encEnv') as HTMLSelectElement).value,
+    difficulty: (document.getElementById('encDiff') as HTMLSelectElement).value,
+  });
+  hideModal();
+  (window as any).showEncounterBuilder();
+  toast('Encounter created');
+};
+
+(window as any).showEncounterDetail = async function (id: number) {
+  showView('singleEncounter');
+  const el = document.getElementById('singleEncounterContent')!;
+  el.innerHTML = '<div class="ornament">✧ Loading... ✧</div>';
+  try {
+    const e = await api('GET', `/api/encounters/${id}`);
+    const monsters = e.monsters || [];
+    const totalCount = monsters.reduce((s: number, m: any) => s + m.count, 0);
+    el.innerHTML = `
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
+        <div>
+          <h1 class="h2 mb-0">${esc(e.name)}</h1>
+          <p class="text-muted fst-italic mb-0 mt-1">
+            <span class="badge badge-gold">${esc(e.difficulty)}</span>
+            ${e.environment ? `<span class="badge badge-muted ms-1">${esc(e.environment)}</span>` : ''}
+            <span class="badge badge-blood ms-1">${e.total_xp} XP</span>
+          </p>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-primary btn-sm" onclick="addMonster(${e.id})"><i class="fa-solid fa-plus me-1"></i>Add Monster</button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="editEncounter(${e.id})"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-outline-danger btn-sm" onclick="deleteEncounter(${e.id})"><i class="fa-solid fa-trash"></i></button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="(window as any).showEncounterBuilder();return false"><i class="fa-solid fa-arrow-left me-1"></i>Back</button>
+        </div>
+      </div>
+      ${e.description ? `<p class="text-muted">${esc(e.description)}</p>` : ''}
+      <div class="ornament my-2">✧</div>
+      <h5>Monsters <span class="text-muted small">(${totalCount} total)</span></h5>
+      <div id="monsterList">
+        ${monsters.length ? monsters.map((m: any) => `
+          <div class="inv-item">
+            <div>
+              <span class="fw-bold">${esc(m.name)}</span>
+              <span class="badge badge-blood ms-1">x${m.count}</span>
+              <span class="badge badge-gold ms-1">CR ${esc(m.cr)}</span>
+              <span class="badge badge-muted ms-1">${m.xp} XP</span>
+              <span class="text-muted small ms-2">AC ${m.ac} · HP ${m.hp}</span>
+            </div>
+            <div class="d-flex gap-1">
+              <button class="btn btn-sm btn-outline-primary" onclick="editMonster(${e.id}, ${m.id})"><i class="fa-solid fa-pen"></i></button>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteMonster(${e.id}, ${m.id})"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>`).join('')
+          : '<div class="empty-state"><i class="fa-solid fa-skull fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">No monsters yet. Add some!</p></div>'}
+      </div>
+      <div class="ornament my-2">✧</div>
+      <h5>XP Budget</h5>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="combat-stat"><div class="stat-label">Total Monster XP</div><div class="stat-value">${e.total_xp}</div></div>
+        </div>
+        <div class="col-md-6">
+          <div class="combat-stat"><div class="stat-label">Difficulty</div><div class="stat-value text-capitalize">${esc(e.difficulty)}</div></div>
+        </div>
+      </div>
+      ${e.notes ? `<div class="mt-3"><h6>Notes</h6><p class="text-muted small">${esc(e.notes)}</p></div>` : ''}`;
+  } catch (err: any) {
+    el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(err.message)}</p>
+      <button class="btn btn-outline-secondary btn-sm" onclick="(window as any).showEncounterBuilder()">Back</button></div>`;
+  }
+};
+
+(window as any).editEncounter = function (id: number) { (window as any).showEncounterBuilder(); };
+
+(window as any).deleteEncounter = async function (id: number) {
+  if (!confirm('Delete this encounter?')) return;
+  await api('DELETE', `/api/encounters/${id}`);
+  (window as any).showEncounterBuilder();
+  toast('Encounter deleted');
+};
+
+(window as any).addMonster = function (eid: number) {
+  showModal('Add Monster', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="monName" list="monsterSuggestions">
+      <datalist id="monsterSuggestions">
+        ${['Goblin','Hobgoblin','Bugbear','Orc','Ogre','Troll','Giant Spider','Skeleton','Zombie','Wolf','Dire Wolf','Bandit','Kobold','Gnoll','Owlbear','Harpy','Basilisk','Chimera','Dragon Wyrmling'].map(n => `<option value="${n}">`).join('')}
+      </datalist></div>
+    <div class="row g-3 mb-3">
+      <div class="col-4"><label class="form-label">Count</label><input class="form-control" id="monCount" type="number" value="1" min="1"></div>
+      <div class="col-4"><label class="form-label">CR</label>
+        <select class="form-select" id="monCR">
+          ${['0','1/8','1/4','1/2','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20'].map(c => `<option value="${c}">${c}</option>`).join('')}
+        </select></div>
+      <div class="col-4"><label class="form-label">XP</label><input class="form-control" id="monXP" type="number" value="0"></div>
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-4"><label class="form-label">AC</label><input class="form-control" id="monAC" type="number" value="10"></div>
+      <div class="col-4"><label class="form-label">HP</label><input class="form-control" id="monHP" type="number" value="1"></div>
+      <div class="col-4"><label class="form-label">Init Mod</label><input class="form-control" id="monInit" type="number" value="0"></div>
+    </div>
+    <button class="btn btn-primary w-100" onclick="saveMonster(${eid})"><i class="fa-solid fa-plus me-1"></i>Add</button>
+  `);
+};
+
+(window as any).saveMonster = async function (eid: number) {
+  await api('POST', `/api/encounters/${eid}/monsters`, {
+    name: (document.getElementById('monName') as HTMLInputElement).value,
+    count: +(document.getElementById('monCount') as HTMLInputElement).value || 1,
+    cr: (document.getElementById('monCR') as HTMLSelectElement).value,
+    xp: +(document.getElementById('monXP') as HTMLInputElement).value || 0,
+    ac: +(document.getElementById('monAC') as HTMLInputElement).value || 10,
+    hp: +(document.getElementById('monHP') as HTMLInputElement).value || 1,
+    initiative_mod: +(document.getElementById('monInit') as HTMLInputElement).value || 0,
+  });
+  hideModal();
+  (window as any).showEncounterDetail(eid);
+  toast('Monster added');
+};
+
+(window as any).editMonster = function (eid: number, mid: number) {
+  const e = null; // fetch again or pass data
+  const m = null;
+  showModal('Edit Monster', `<p class="text-muted">Edit via encounter detail page.</p>`);
+};
+
+(window as any).deleteMonster = async function (eid: number, mid: number) {
+  if (!confirm('Remove this monster?')) return;
+  await api('DELETE', `/api/encounter-monsters/${mid}`);
+  (window as any).showEncounterDetail(eid);
+  toast('Monster removed');
+};
+
+(window as any).showEncounterXPCalc = function () {
+  showModal('XP Calculator', `
+    <p class="text-muted small">Enter party levels and monster CRs to calculate encounter difficulty.</p>
+    <div class="mb-3"><label class="form-label">Party Levels (comma-separated)</label>
+      <input class="form-control" id="xpPartyLevels" placeholder="1, 1, 2, 3" value="1,1,1,1"></div>
+    <div class="mb-3"><label class="form-label">Monsters (format: CR,count per line)</label>
+      <textarea class="form-control" id="xpMonsters" rows="3" placeholder="1/4,3&#10;1,1&#10;0,2"></textarea></div>
+    <button class="btn btn-primary w-100" onclick="doXPCalc()"><i class="fa-solid fa-calculator me-1"></i>Calculate</button>
+    <div id="xpCalcResult" class="mt-3"></div>
+  `);
+};
+
+(window as any).doXPCalc = async function () {
+  const levels = (document.getElementById('xpPartyLevels') as HTMLInputElement).value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+  const lines = (document.getElementById('xpMonsters') as HTMLTextAreaElement).value.split('\n').filter(l => l.trim());
+  const monsters = lines.map(l => {
+    const [cr, count] = l.split(',').map(s => s.trim());
+    return { cr, count: parseInt(count) || 1, name: 'Custom' };
+  });
+  if (!levels.length || !monsters.length) { toast('Enter party levels and monsters', true); return; }
+  try {
+    const result = await api('POST', '/api/encounters/calculate-xp', { party_levels: levels, monsters });
+    const el = document.getElementById('xpCalcResult')!;
+    el.innerHTML = `
+      <div class="card mt-2"><div class="card-body">
+        <div class="d-flex justify-content-between"><span class="fw-bold">Total XP</span><span>${result.total_xp}</span></div>
+        <div class="d-flex justify-content-between"><span class="fw-bold">Adjusted XP</span><span>${result.adjusted_xp}</span></div>
+        <div class="d-flex justify-content-between"><span class="fw-bold">Difficulty</span>
+          <span class="badge ${result.difficulty === 'deadly' ? 'bg-danger' : result.difficulty === 'hard' ? 'badge-blood' : result.difficulty === 'medium' ? 'badge-gold' : 'bg-success'}">${result.difficulty}</span></div>
+        <hr>
+        <div class="small text-muted">Party: ${result.party_size} · Monsters: ${result.monster_count} · Mult: ${result.size_multiplier}x</div>
+        <div class="small text-muted">Thresholds: Easy ${result.thresholds.easy} / Med ${result.thresholds.medium} / Hard ${result.thresholds.hard} / Deadly ${result.thresholds.deadly}</div>
+      </div></div>`;
+  } catch (e: any) { toast(e.message, true); }
+};
+
+// ─── Calendar ───
+
+let currentCalendarCampaignId: number | null = null;
+
+(window as any).showCalendar = async function () {
+  showView('calendar');
+  const el = document.getElementById('calendarContent')!;
+  el.innerHTML = '<div class="ornament">✧ Loading calendar... ✧</div>';
+  try {
+    const campaigns = await api('GET', '/api/campaigns');
+    if (!campaigns.length) {
+      el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-calendar fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Campaigns</p><p class="small text-muted">Create a campaign to track in-game dates and events.</p></div>';
+      return;
+    }
+    const cid = currentCalendarCampaignId || campaigns[0].id;
+    const [events] = await Promise.all([api('GET', `/api/calendar?campaign_id=${cid}`)]);
+    currentCalendarCampaignId = cid;
+
+    const groupByDate: Record<string, any[]> = {};
+    events.forEach((ev: any) => {
+      if (!groupByDate[ev.event_date]) groupByDate[ev.event_date] = [];
+      groupByDate[ev.event_date].push(ev);
+    });
+    const sortedDates = Object.keys(groupByDate).sort();
+
+    el.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <select class="form-select form-select-sm d-inline-block" style="width:auto" id="calCampaignSel" onchange="switchCalendarCampaign()">
+            ${campaigns.map((c: any) => `<option value="${c.id}" ${c.id === cid ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
+          </select>
+        </div>
+        <button class="btn btn-gold btn-sm" onclick="showAddCalendarEvent(${cid})"><i class="fa-solid fa-plus me-1"></i>Add Event</button>
+      </div>
+      <div class="row g-3" id="calendarList">
+        ${sortedDates.length ? sortedDates.map(date => `
+          <div class="col-12">
+            <h6 class="text-muted border-bottom pb-1"><i class="fa-regular fa-calendar me-2"></i>${esc(date)}</h6>
+            ${groupByDate[date].map((ev: any) => `
+              <div class="inv-item" style="border-left:3px solid ${ev.color || '#b8963e'}">
+                <div>
+                  <span class="fw-bold">${esc(ev.title)}</span>
+                  <span class="badge badge-muted ms-1">${esc(ev.event_type)}</span>
+                  ${ev.description ? `<div class="small text-muted">${esc(ev.description).substring(0, 100)}</div>` : ''}
+                </div>
+                <div class="d-flex gap-1">
+                  <button class="btn btn-sm btn-outline-primary" onclick="editCalendarEvent(${ev.id})"><i class="fa-solid fa-pen"></i></button>
+                  <button class="btn btn-sm btn-outline-danger" onclick="deleteCalendarEvent(${ev.id})"><i class="fa-solid fa-trash"></i></button>
+                </div>
+              </div>`).join('')}
+          </div>`).join('')
+          : '<div class="empty-state"><i class="fa-regular fa-calendar-plus fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">No events. Add quests, holidays, and sessions to your campaign calendar!</p></div>'}
+      </div>`;
+  } catch (e: any) { el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(e.message)}</p></div>`; }
+};
+
+(window as any).switchCalendarCampaign = function () {
+  currentCalendarCampaignId = +(document.getElementById('calCampaignSel') as HTMLSelectElement).value;
+  (window as any).showCalendar();
+};
+
+(window as any).showAddCalendarEvent = function (cid: number) {
+  const today = new Date().toISOString().slice(0, 10);
+  showModal('Add Calendar Event', `
+    <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="calTitle" placeholder="Full Moon Festival"></div>
+    <div class="mb-3"><label class="form-label">Date</label><input class="form-control" id="calDate" type="date" value="${today}"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Type</label>
+        <select class="form-select" id="calType">
+          <option value="session">Session</option><option value="quest">Quest</option><option value="holiday">Holiday</option>
+          <option value="weather">Weather</option><option value="combat">Combat</option><option value="festival">Festival</option>
+          <option value="other">Other</option>
+        </select></div>
+      <div class="col-6"><label class="form-label">Color</label><input class="form-control" id="calColor" type="color" value="#b8963e"></div>
+    </div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="calDesc" rows="2"></textarea></div>
+    <button class="btn btn-primary w-100" onclick="saveCalendarEvent(${cid})"><i class="fa-solid fa-plus me-1"></i>Add Event</button>
+  `);
+};
+
+(window as any).saveCalendarEvent = async function (cid: number) {
+  const title = (document.getElementById('calTitle') as HTMLInputElement).value;
+  if (!title) { toast('Title required', true); return; }
+  await api('POST', '/api/calendar', {
+    campaign_id: cid, title,
+    event_date: (document.getElementById('calDate') as HTMLInputElement).value,
+    event_type: (document.getElementById('calType') as HTMLSelectElement).value,
+    color: (document.getElementById('calColor') as HTMLInputElement).value,
+    description: (document.getElementById('calDesc') as HTMLTextAreaElement).value,
+  });
+  hideModal();
+  (window as any).showCalendar();
+  toast('Event added');
+};
+
+(window as any).editCalendarEvent = async function (id: number) {
+  try {
+    const campaigns = await api('GET', '/api/campaigns');
+    const cid = currentCalendarCampaignId || (campaigns.length ? campaigns[0].id : null);
+    if (!cid) return;
+    const events = await api('GET', `/api/calendar?campaign_id=${cid}`);
+    const ev = events.find((e: any) => e.id === id);
+    if (!ev) return;
+    showModal('Edit Calendar Event', `
+      <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="calTitle" value="${esc(ev.title)}"></div>
+      <div class="mb-3"><label class="form-label">Date</label><input class="form-control" id="calDate" type="date" value="${esc(ev.event_date)}"></div>
+      <div class="row g-3 mb-3">
+        <div class="col-6"><label class="form-label">Type</label>
+          <select class="form-select" id="calType">${['session','quest','holiday','weather','combat','festival','other'].map(t => `<option value="${t}"${t===ev.event_type?' selected':''}>${capitalize(t)}</option>`).join('')}</select></div>
+        <div class="col-6"><label class="form-label">Color</label><input class="form-control" id="calColor" type="color" value="${ev.color || '#b8963e'}"></div>
+      </div>
+      <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="calDesc" rows="2">${esc(ev.description)}</textarea></div>
+      <button class="btn btn-primary w-100" onclick="saveEditCalendarEvent(${id}, ${cid})"><i class="fa-solid fa-save me-1"></i>Save</button>
+    `);
+  } catch {}
+};
+
+(window as any).saveEditCalendarEvent = async function (id: number, cid: number) {
+  await api('PUT', `/api/calendar/${id}`, {
+    campaign_id: cid,
+    title: (document.getElementById('calTitle') as HTMLInputElement).value,
+    event_date: (document.getElementById('calDate') as HTMLInputElement).value,
+    event_type: (document.getElementById('calType') as HTMLSelectElement).value,
+    color: (document.getElementById('calColor') as HTMLInputElement).value,
+    description: (document.getElementById('calDesc') as HTMLTextAreaElement).value,
+  });
+  hideModal();
+  (window as any).showCalendar();
+  toast('Event updated');
+};
+
+(window as any).deleteCalendarEvent = async function (id: number) {
+  if (!confirm('Delete this event?')) return;
+  await api('DELETE', `/api/calendar/${id}`);
+  (window as any).showCalendar();
+  toast('Event deleted');
+};
+
+// ─── Timeline ───
+
+let currentTimelineCampaignId: number | null = null;
+
+(window as any).showTimeline = async function () {
+  showView('timeline');
+  const el = document.getElementById('timelineContent')!;
+  el.innerHTML = '<div class="ornament">✧ Loading timeline... ✧</div>';
+  try {
+    const campaigns = await api('GET', '/api/campaigns');
+    if (!campaigns.length) {
+      el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-timeline fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Campaigns</p><p class="small text-muted">Create a campaign to build your campaign timeline.</p></div>';
+      return;
+    }
+    const cid = currentTimelineCampaignId || campaigns[0].id;
+    const events = await api('GET', `/api/timeline?campaign_id=${cid}`);
+    currentTimelineCampaignId = cid;
+
+    const TYPE_ICONS: Record<string, string> = {
+      session: 'fa-calendar', quest: 'fa-scroll', combat: 'fa-crosshairs',
+      discovery: 'fa-compass', npc: 'fa-user', location: 'fa-map-pin',
+      milestone: 'fa-star', other: 'fa-circle',
+    };
+
+    el.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <select class="form-select form-select-sm d-inline-block" style="width:auto" id="tlCampaignSel" onchange="switchTimelineCampaign()">
+            ${campaigns.map((c: any) => `<option value="${c.id}" ${c.id === cid ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
+          </select>
+        </div>
+        <button class="btn btn-gold btn-sm" onclick="showAddTimelineEvent(${cid})"><i class="fa-solid fa-plus me-1"></i>Add Event</button>
+      </div>
+      <div class="timeline-container">
+        ${events.length ? events.map((ev: any) => {
+          const icon = TYPE_ICONS[ev.event_type] || 'fa-circle';
+          const stars = '★'.repeat(ev.importance) + '☆'.repeat(5 - ev.importance);
+          return `
+          <div class="timeline-item">
+            <div class="timeline-marker" style="opacity:${0.4 + ev.importance * 0.12}">
+              <i class="fa-solid ${icon}"></i>
+            </div>
+            <div class="timeline-content card mb-2" style="border-left:3px solid ${['#8b0000','#a52a2a','#b8963e','#2d6a2d','#4169e1'][ev.importance - 1] || '#b8963e'}">
+              <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <span class="fw-bold">${esc(ev.title)}</span>
+                    <span class="badge badge-muted ms-1">${esc(ev.event_date)}</span>
+                    <span class="badge badge-gold ms-1">${esc(ev.event_type)}</span>
+                    <span class="ms-2" style="color:var(--gold);font-size:0.8rem">${stars}</span>
+                  </div>
+                  <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-outline-primary" onclick="editTimelineEvent(${ev.id})"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteTimelineEvent(${ev.id})"><i class="fa-solid fa-trash"></i></button>
+                  </div>
+                </div>
+                ${ev.description ? `<p class="mb-0 mt-1 small text-muted">${esc(ev.description).substring(0, 200)}</p>` : ''}
+              </div>
+            </div>
+          </div>`;
+        }).join('')
+        : '<div class="empty-state"><i class="fa-regular fa-calendar-plus fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">No timeline events yet. Add milestones, discoveries, and key moments!</p></div>'}
+      </div>`;
+  } catch (e: any) { el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(e.message)}</p></div>`; }
+};
+
+(window as any).switchTimelineCampaign = function () {
+  currentTimelineCampaignId = +(document.getElementById('tlCampaignSel') as HTMLSelectElement).value;
+  (window as any).showTimeline();
+};
+
+(window as any).showAddTimelineEvent = function (cid: number) {
+  const today = new Date().toISOString().slice(0, 10);
+  showModal('Add Timeline Event', `
+    <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="tlTitle" placeholder="The party discovered..."></div>
+    <div class="mb-3"><label class="form-label">Date</label><input class="form-control" id="tlDate" type="date" value="${today}"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Type</label>
+        <select class="form-select" id="tlType">
+          <option value="milestone">Milestone</option><option value="session">Session</option><option value="quest">Quest</option>
+          <option value="combat">Combat</option><option value="discovery">Discovery</option><option value="npc">NPC</option>
+          <option value="location">Location</option><option value="other">Other</option>
+        </select></div>
+      <div class="col-6"><label class="form-label">Importance (1-5)</label>
+        <select class="form-select" id="tlImportance">
+          <option value="1">★☆☆☆☆ Minor</option><option value="2">★★☆☆☆ Notable</option>
+          <option value="3" selected>★★★☆☆ Important</option>
+          <option value="4">★★★★☆ Major</option><option value="5">★★★★★ Critical</option>
+        </select></div>
+    </div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="tlDesc" rows="3"></textarea></div>
+    <button class="btn btn-primary w-100" onclick="saveTimelineEvent(${cid})"><i class="fa-solid fa-plus me-1"></i>Add Event</button>
+  `);
+};
+
+(window as any).saveTimelineEvent = async function (cid: number) {
+  const title = (document.getElementById('tlTitle') as HTMLInputElement).value;
+  if (!title) { toast('Title required', true); return; }
+  await api('POST', '/api/timeline', {
+    campaign_id: cid, title,
+    event_date: (document.getElementById('tlDate') as HTMLInputElement).value,
+    event_type: (document.getElementById('tlType') as HTMLSelectElement).value,
+    importance: +(document.getElementById('tlImportance') as HTMLSelectElement).value,
+    description: (document.getElementById('tlDesc') as HTMLTextAreaElement).value,
+  });
+  hideModal();
+  (window as any).showTimeline();
+  toast('Timeline event added');
+};
+
+(window as any).editTimelineEvent = async function (id: number) {
+  try {
+    const campaigns = await api('GET', '/api/campaigns');
+    const cid = currentTimelineCampaignId || (campaigns.length ? campaigns[0].id : null);
+    if (!cid) return;
+    const events = await api('GET', `/api/timeline?campaign_id=${cid}`);
+    const ev = events.find((e: any) => e.id === id);
+    if (!ev) return;
+    showModal('Edit Timeline Event', `
+      <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="tlTitle" value="${esc(ev.title)}"></div>
+      <div class="mb-3"><label class="form-label">Date</label><input class="form-control" id="tlDate" type="date" value="${esc(ev.event_date)}"></div>
+      <div class="row g-3 mb-3">
+        <div class="col-6"><label class="form-label">Type</label>
+          <select class="form-select" id="tlType">${['milestone','session','quest','combat','discovery','npc','location','other'].map(t => `<option value="${t}"${t===ev.event_type?' selected':''}>${capitalize(t)}</option>`).join('')}</select></div>
+        <div class="col-6"><label class="form-label">Importance</label>
+          <select class="form-select" id="tlImportance">
+            ${[1,2,3,4,5].map(i => `<option value="${i}"${i===ev.importance?' selected':''}>${'★'.repeat(i)}${'☆'.repeat(5-i)}</option>`).join('')}
+          </select></div>
+      </div>
+      <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="tlDesc" rows="3">${esc(ev.description)}</textarea></div>
+      <button class="btn btn-primary w-100" onclick="saveEditTimelineEvent(${id}, ${cid})"><i class="fa-solid fa-save me-1"></i>Save</button>
+    `);
+  } catch {}
+};
+
+(window as any).saveEditTimelineEvent = async function (id: number, cid: number) {
+  await api('PUT', `/api/timeline/${id}`, {
+    campaign_id: cid,
+    title: (document.getElementById('tlTitle') as HTMLInputElement).value,
+    event_date: (document.getElementById('tlDate') as HTMLInputElement).value,
+    event_type: (document.getElementById('tlType') as HTMLSelectElement).value,
+    importance: +(document.getElementById('tlImportance') as HTMLSelectElement).value,
+    description: (document.getElementById('tlDesc') as HTMLTextAreaElement).value,
+  });
+  hideModal();
+  (window as any).showTimeline();
+  toast('Timeline event updated');
+};
+
+(window as any).deleteTimelineEvent = async function (id: number) {
+  if (!confirm('Delete this timeline event?')) return;
+  await api('DELETE', `/api/timeline/${id}`);
+  (window as any).showTimeline();
+  toast('Timeline event deleted');
 };
 
 init();

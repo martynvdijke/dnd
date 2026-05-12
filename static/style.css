@@ -961,3 +961,88 @@ kbd {
   #locSidebar { max-height: 250px !important; border-right: none !important; border-bottom: 1px solid var(--border) !important; }
   #locMapContainer { min-height: 300px !important; }
 }
+
+/* ─── Portrait ─── */
+
+.character-portrait {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--gold);
+  vertical-align: middle;
+}
+
+.character-portrait-lg {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--gold);
+}
+
+/* ─── Timeline ─── */
+
+.timeline-container {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.timeline-container::before {
+  content: '';
+  position: absolute;
+  left: 0.75rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 0.5rem;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -1.85rem;
+  top: 0.75rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  font-size: 0.9rem;
+  background: var(--parchment-light);
+  border-radius: 50%;
+  z-index: 1;
+}
+
+[data-theme="dark"] .timeline-marker {
+  background: var(--parchment-dark);
+}
+
+.timeline-content {
+  margin-left: 0.5rem;
+}
+
+.timeline-content .card {
+  box-shadow: none !important;
+  border-color: var(--border-light) !important;
+}
+
+.timeline-content .card:hover {
+  box-shadow: var(--shadow) !important;
+}
+
+/* ─── Encounters ─── */
+
+.monster-stat {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.monster-stat strong {
+  color: var(--ink);
+}
