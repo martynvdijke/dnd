@@ -1,3 +1,20 @@
+# [1.4.0](https://github.com/martynvdijke/dnd/compare/v1.3.2...v1.4.0) (2026-05-12)
+
+
+### Bug Fixes
+
+* correct TestSpellcasting copy-paste bug and add missing fts5 build tag to test script ([51f3a2b](https://github.com/martynvdijke/dnd/commit/51f3a2b4836253aec0606aface84e6a2d808ffeb))
+* spellcasting field names, add JSON seed loading, D&D API fallback, and TTRPG system/source support ([5ae5cca](https://github.com/martynvdijke/dnd/commit/5ae5cca126b1a317ab76f6e3847a0ed1b536503f))
+* update test selectors for locations UI changes and add loading overlay CSS ([3ec4bc1](https://github.com/martynvdijke/dnd/commit/3ec4bc174023a09fb9eec21be094c52a59410fbf))
+
+
+### Features
+
+* add campaign members with DM role, email settings UI, footer version, backup improvements, fix advantage/disadvantage ([c58d32f](https://github.com/martynvdijke/dnd/commit/c58d32f85edc944ead93ccf350a82015863805e4))
+* add frontend UI for portrait, multi-class, encounter builder, calendar, and timeline ([98db31b](https://github.com/martynvdijke/dnd/commit/98db31b3875f416265e57c4c5291a759fa4a7e26))
+* add Leaflet map view for locations with interactive markers and sidebar ([7f903e1](https://github.com/martynvdijke/dnd/commit/7f903e109762483a436c2e6a13d6d321c50048bb))
+* add portrait upload, multi-classing, encounter builder, calendar, and timeline features ([f40fd05](https://github.com/martynvdijke/dnd/commit/f40fd05f71c2004dcb33c0e1fc908d038e0840b2))
+
 ## [1.3.2](https://github.com/martynvdijke/dnd/compare/v1.3.1...v1.3.2) (2026-05-12)
 
 
