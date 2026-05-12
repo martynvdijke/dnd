@@ -316,7 +316,7 @@ async function openChar(id: number) {
 
 // ─── Character Sheet ───
 
-const sections = ['stats', 'combat', 'spells', 'inventory', 'features', 'locations', 'npcs', 'sessions', 'quests', 'journal', 'graph', 'analytics', 'details', 'dice'];
+const sections = ['stats', 'combat', 'spells', 'inventory', 'features', 'feats', 'companions', 'locations', 'npcs', 'sessions', 'quests', 'journal', 'notes', 'graph', 'analytics', 'details', 'dice'];
 
 function renderSheet() {
   if (!currentChar) return;
@@ -353,6 +353,9 @@ function renderSheet() {
   if (currentTab === 'journal') renderJournal();
   if (currentTab === 'graph') renderGraph();
   if (currentTab === 'analytics') renderAnalytics();
+  if (currentTab === 'feats') renderFeats();
+  if (currentTab === 'companions') renderCompanions();
+  if (currentTab === 'notes') renderNotes();
   renderDetails();
   renderDiceTab();
 }
@@ -378,14 +381,32 @@ async function rollCheck(type: string, name: string, adv: string) {
 }
 (window as any).rollCheck = rollCheck;
 
-async function applyDamage() {
+(window as any).applyDamage = async function () {
   if (!currentChar) return;
   const dmg = parseInt((document.getElementById('dmgInput') as HTMLInputElement)?.value || '0');
   if (!dmg) return;
   const newHp = Math.max(0, currentChar.hp_current - dmg);
   await updateField('hp_current', newHp);
-}
-(window as any).applyDamage = applyDamage;
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  if (currentChar.concentrating_on) {
+    try {
+      const conc = await api('POST', `/api/characters/${currentChar.id}/check-concentration`, { damage: dmg });
+      if (conc.needs_check) {
+        toast(`Concentration check: DC ${conc.dc} (${conc.damage} damage to ${conc.spell_name})`);
+        showModal('Concentration Check', `
+          <p>You are concentrating on <strong>${esc(conc.spell_name)}</strong>.</p>
+          <p>Damage taken: <strong>${conc.damage}</strong></p>
+          <p class="fw-bold fs-5">CON Save DC ${conc.dc}</p>
+          <div class="d-flex gap-2">
+            <button class="btn btn-success flex-grow-1" onclick="doConcentrationSave(${conc.dc})"><i class="fa-solid fa-dice me-1"></i>Roll Save</button>
+            <button class="btn btn-danger flex-grow-1" onclick="loseConcentration()"><i class="fa-solid fa-xmark me-1"></i>Lose Spell</button>
+          </div>
+        `);
+      }
+    } catch {}
+  }
+  renderSheet();
+};
 
 async function applyHeal() {
   if (!currentChar) return;
@@ -548,68 +569,6 @@ function renderXPBar(c: any) {
 }
 
 // ─── Combat ───
-
-function renderCombat() {
-  const c = currentChar;
-  const el = document.getElementById('combatSection')!;
-  const pct = c.hp_max > 0 ? Math.round((c.hp_current / c.hp_max) * 100) : 0;
-  el.innerHTML = `
-    <div class="row g-3">
-      <div class="col-4"><div class="combat-stat" title="Armor Class — how hard you are to hit"><div class="stat-label">AC</div><div class="stat-value">${c.ac}</div></div></div>
-      <div class="col-4"><div class="combat-stat" title="Initiative modifier — added to d20 for turn order"><div class="stat-label">Initiative</div><div class="stat-value">${c.initiative >= 0 ? '+' : ''}${c.initiative}</div></div></div>
-      <div class="col-4"><div class="combat-stat" title="Movement speed in feet per round"><div class="stat-label">Speed</div><div class="stat-value">${c.speed}</div></div></div>
-    </div>
-    <h5 class="mt-3">Hit Points</h5>
-    <div class="hp-bar position-relative mb-2" title="${c.hp_current} / ${c.hp_max} HP${c.temp_hp > 0 ? ' (+' + c.temp_hp + ' temporary)' : ''}">
-      <div class="hp-bar-fill" style="width:${pct}%"></div>
-      <div class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center text-white small fw-bold" style="font-size:0.8rem">${c.hp_current} / ${c.hp_max}${c.temp_hp > 0 ? ' (+' + c.temp_hp + ' temp)' : ''}</div>
-    </div>
-    <div class="row g-2">
-      <div class="col-4"><label class="form-label small">HP Max</label><input type="number" class="form-control form-control-sm" value="${c.hp_max}" oninput="autoSaveField('hp_max',this)"></div>
-      <div class="col-4"><label class="form-label small">Current</label><input type="number" class="form-control form-control-sm" value="${c.hp_current}" oninput="autoSaveField('hp_current',this)"></div>
-      <div class="col-4"><label class="form-label small">Temp HP</label><input type="number" class="form-control form-control-sm" value="${c.temp_hp}" oninput="autoSaveField('temp_hp',this)"></div>
-    </div>
-    <div class="row g-2 mt-2">
-      <div class="col-6">
-        <label class="form-label small">Damage</label>
-        <div class="input-group input-group-sm"><input type="number" class="form-control" id="dmgInput" value="0"><button class="btn btn-danger" onclick="applyDamage()">Apply</button></div>
-      </div>
-      <div class="col-6">
-        <label class="form-label small">Heal</label>
-        <div class="input-group input-group-sm"><input type="number" class="form-control" id="healInput" value="0"><button class="btn btn-success" onclick="applyHeal()">Apply</button></div>
-      </div>
-    </div>
-    <div class="d-flex gap-2 mt-3">
-      <button class="btn btn-sm btn-outline-primary" onclick="doRest('short')"><i class="fa-solid fa-campground me-1"></i>Short Rest</button>
-      <button class="btn btn-sm btn-outline-primary" onclick="doRest('long')"><i class="fa-solid fa-moon me-1"></i>Long Rest</button>
-      <button class="btn btn-sm btn-gold" onclick="doLevelUp()"><i class="fa-solid fa-arrow-up me-1"></i>Level Up</button>
-    </div>
-    <h5 class="mt-3">Saving Throws <small class="text-muted fw-normal">(click to roll)</small></h5>
-    <div class="d-flex flex-wrap gap-1 mb-3">
-      ${['str','dex','con','int','wis','cha'].map(a => {
-        const mod = (c as any)[`${a}_mod`];
-        const total = c.proficiency_bonus + mod;
-        const sign = total >= 0 ? '+' : '';
-        return `<span class="badge badge-gold" style="cursor:pointer" onclick="rollCheck('save','${a}','normal')">${a.toUpperCase()} ${sign}${total}</span>`;
-      }).join('')}
-    </div>
-    <h5 class="mt-3">Death Saves</h5>
-    <div class="row g-2">
-      <div class="col-6"><label class="form-label small">Successes</label><input type="number" class="form-control form-control-sm" value="${c.death_save_successes}" oninput="autoSaveField('death_save_successes',this)" min="0" max="3"></div>
-      <div class="col-6"><label class="form-label small">Failures</label><input type="number" class="form-control form-control-sm" value="${c.death_save_failures}" oninput="autoSaveField('death_save_failures',this)" min="0" max="3"></div>
-    </div>
-    <h5 class="mt-3">Concentration</h5>
-    <div class="form-check"><input type="checkbox" class="form-check-input" id="concentrationCb" ${c.concentrating ? 'checked' : ''} onchange="autoSaveField('concentrating',this)"><label class="form-check-label" for="concentrationCb">Concentrating on a spell</label></div>
-    <div class="mt-2">
-      <label class="form-label small">Concentrating On</label>
-      <input class="form-control form-control-sm" value="${esc(c.concentrating_on)}" oninput="autoSaveField('concentrating_on',this)" placeholder="e.g. Hunter's Mark">
-    </div>
-    <h5 class="mt-3">Hit Dice</h5>
-    <div class="row g-2">
-      <div class="col-6"><label class="form-label small">Total</label><input type="number" class="form-control form-control-sm" value="${c.hit_dice_total}" oninput="autoSaveField('hit_dice_total',this)"></div>
-      <div class="col-6"><label class="form-label small">Used</label><input type="number" class="form-control form-control-sm" value="${c.hit_dice_used}" oninput="autoSaveField('hit_dice_used',this)"></div>
-    </div>`;
-}
 
 // ─── Currency ───
 
@@ -1018,6 +977,11 @@ function renderDetails() {
       <div class="col-md-4"><label class="form-label">Level</label><input class="form-control form-control-sm" type="number" value="${c.level}" oninput="autoSaveField('level',this)"></div>
       <div class="col-md-4"><label class="form-label">Background</label><input class="form-control form-control-sm" value="${esc(c.background)}" oninput="autoSaveField('background',this)"></div>
       <div class="col-md-4"><label class="form-label">Alignment</label><input class="form-control form-control-sm" value="${esc(c.alignment)}" oninput="autoSaveField('alignment',this)"></div>
+    </div>
+    <div class="mt-2 form-check">
+      <input type="checkbox" class="form-check-input" id="hpAutoCalcCb" ${c.hp_auto_calc ? 'checked' : ''} onchange="autoSaveField('hp_auto_calc',this.checked)">
+      <label class="form-check-label small" for="hpAutoCalcCb">Auto-calculate HP from classes</label>
+      <button class="btn btn-sm btn-outline-gold ms-2" onclick="calcHP()"><i class="fa-solid fa-calculator me-1"></i>Recalculate HP</button>
     </div>
     <h5 class="mt-3">Multi-Class</h5>
     <div id="multiClassArea">
@@ -2026,6 +1990,7 @@ async function loadDiceHistory() {
       <div class="col-6"><label class="form-label">Class</label><input class="form-control" id="newClass" list="classSuggestions"><datalist id="classSuggestions"></datalist></div>
     </div>
     <button class="btn btn-primary w-100" onclick="createChar()"><i class="fa-solid fa-plus me-1"></i>Create</button>
+    <div class="text-center mt-2"><button class="btn btn-sm btn-outline-gold" onclick="generateRandomChar()"><i class="fa-solid fa-dice me-1"></i>Random Character</button></div>
   `);
   fetch('/api/compendium/races', { credentials: 'include' }).then(r => r.json()).then((races:any[]) => {
     document.getElementById('raceSuggestions')!.innerHTML = races.map((r:any) => `<option value="${esc(r.name)}">`).join('');
@@ -2576,12 +2541,11 @@ async function loadCompendiumEquipment() {
             <span class="badge badge-blood ms-1">${e.total_xp} XP</span>
           </p>
         </div>
-        <div class="d-flex gap-2">
-          <button class="btn btn-outline-primary btn-sm" onclick="addMonster(${e.id})"><i class="fa-solid fa-plus me-1"></i>Add Monster</button>
-          <button class="btn btn-outline-secondary btn-sm" onclick="editEncounter(${e.id})"><i class="fa-solid fa-pen"></i></button>
-          <button class="btn btn-outline-danger btn-sm" onclick="deleteEncounter(${e.id})"><i class="fa-solid fa-trash"></i></button>
-          <button class="btn btn-outline-secondary btn-sm" onclick="(window as any).showEncounterBuilder();return false"><i class="fa-solid fa-arrow-left me-1"></i>Back</button>
-        </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <button class="btn btn-gold btn-sm" onclick="newChar()"><i class="fa-solid fa-plus me-1"></i>New Character</button>
+      <button class="btn btn-outline-primary btn-sm" id="compareBtn" onclick="toggleCompareMode()"><i class="fa-solid fa-arrow-right-arrow-left me-1"></i>Compare</button>
+      <button class="btn btn-outline-primary btn-sm" onclick="showImport()"><i class="fa-solid fa-file-import me-1"></i>Import</button>
+    </div>
       </div>
       ${e.description ? `<p class="text-muted">${esc(e.description)}</p>` : ''}
       <div class="ornament my-2">✧</div>
@@ -3008,6 +2972,830 @@ let currentTimelineCampaignId: number | null = null;
   await api('DELETE', `/api/timeline/${id}`);
   (window as any).showTimeline();
   toast('Timeline event deleted');
+};
+
+// ─── Conditions / Ailments ───
+
+(window as any).showAddCondition = function () {
+  showModal('Add Condition', `
+    <div class="mb-3"><label class="form-label">Condition</label>
+      <select class="form-select" id="condType">
+        <option value="">Custom...</option>
+        <option value="blinded">Blinded</option><option value="charmed">Charmed</option>
+        <option value="deafened">Deafened</option><option value="exhaustion">Exhaustion</option>
+        <option value="frightened">Frightened</option><option value="grappled">Grappled</option>
+        <option value="incapacitated">Incapacitated</option><option value="invisible">Invisible</option>
+        <option value="paralyzed">Paralyzed</option><option value="petrified">Petrified</option>
+        <option value="poisoned">Poisoned</option><option value="prone">Prone</option>
+        <option value="restrained">Restrained</option><option value="stunned">Stunned</option>
+        <option value="unconscious">Unconscious</option><option value="concentration">Concentration</option>
+      </select></div>
+    <div class="mb-3" id="condCustomNameDiv"><label class="form-label">Custom Name</label><input class="form-control" id="condName" placeholder="e.g. Cursed"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-4"><label class="form-label">Duration</label><input class="form-control" id="condDuration" type="number" value="1" min="0"></div>
+      <div class="col-4"><label class="form-label">Unit</label>
+        <select class="form-select" id="condDurationType">
+          <option value="round">Rounds</option><option value="minute">Minutes</option>
+          <option value="hour">Hours</option><option value="day">Days</option>
+          <option value="permanent">Permanent</option>
+        </select></div>
+      <div class="col-4"><label class="form-label">Source</label><input class="form-control" id="condSource" placeholder="Spell/effect"></div>
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Save Ends?</label><input class="form-control" id="condSave" placeholder="e.g. con"></div>
+      <div class="col-6"><label class="form-label">Save DC</label><input class="form-control" id="condDC" type="number" value="0"></div>
+    </div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="condDesc" rows="2"></textarea></div>
+    <button class="btn btn-primary w-100" onclick="saveCondition()"><i class="fa-solid fa-plus me-1"></i>Add Condition</button>
+  `);
+  const sel = document.getElementById('condType') as HTMLSelectElement;
+  sel.addEventListener('change', () => {
+    const customDiv = document.getElementById('condCustomNameDiv')!;
+    customDiv.style.display = sel.value ? 'none' : 'block';
+  });
+};
+
+(window as any).saveCondition = async function () {
+  const sel = document.getElementById('condType') as HTMLSelectElement;
+  const name = sel.value || (document.getElementById('condName') as HTMLInputElement).value;
+  if (!name) { toast('Name required', true); return; }
+  await api('POST', '/api/conditions', {
+    character_id: currentChar.id, name, type: sel.value || 'other',
+    duration: +(document.getElementById('condDuration') as HTMLInputElement).value || 1,
+    duration_type: (document.getElementById('condDurationType') as HTMLSelectElement).value,
+    source: (document.getElementById('condSource') as HTMLInputElement).value,
+    saving_throw: (document.getElementById('condSave') as HTMLInputElement).value,
+    save_dc: +(document.getElementById('condDC') as HTMLInputElement).value || 0,
+    description: (document.getElementById('condDesc') as HTMLTextAreaElement).value,
+  });
+  hideModal();
+  renderCombat();
+  toast('Condition added');
+};
+
+(window as any).tickConditions = async function () {
+  if (!currentChar) return;
+  const result = await api('POST', '/api/conditions/tick', {
+    character_id: currentChar.id, count: 1, duration_type: 'round',
+  });
+  renderCombat();
+  if (result.expired > 0) toast(`${result.expired} condition(s) expired`);
+  else toast('Rounds advanced');
+};
+
+(window as any).deleteCondition = async function (id: number) {
+  await api('DELETE', `/api/conditions/${id}`);
+  renderCombat();
+};
+
+// ─── Feats ───
+
+async function renderFeats() {
+  const el = document.getElementById('featsSection')!;
+  if (!currentChar) return;
+  try {
+    const feats = await api('GET', `/api/feats?character_id=${currentChar.id}`);
+    el.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center">
+        <h5>Feats</h5>
+        <button class="btn btn-primary btn-sm" onclick="showAddFeat()"><i class="fa-solid fa-plus me-1"></i>Add Feat</button>
+      </div>
+      <div class="mt-2">
+        ${feats.length ? feats.map((f: any) => `
+          <div class="card mb-2">
+            <div class="card-body py-2 px-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <span class="fw-bold">${esc(f.name)}</span>
+                  <span class="badge badge-blood ms-1">Lv ${f.level_gained}</span>
+                  ${f.source ? `<span class="badge badge-gold ms-1">${esc(f.source)}</span>` : ''}
+                  ${f.prerequisites ? `<span class="badge badge-muted ms-1">${esc(f.prerequisites)}</span>` : ''}
+                  <p class="mb-0 mt-1 small text-muted">${esc(f.description)}</p>
+                </div>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteFeat(${f.id})"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            </div>
+          </div>`).join('')
+          : '<div class="empty-state"><i class="fa-solid fa-star fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Feats</p><p class="small text-muted">Track your character feats here (distinct from class/race features).</p></div>'}
+      </div>`;
+  } catch { el.innerHTML = '<div class="empty-state"><p class="small text-muted">Could not load feats.</p></div>'; }
+}
+
+(window as any).showAddFeat = function () {
+  showModal('Add Feat', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="featName" list="featSuggestions">
+      <datalist id="featSuggestions">
+        ${['Alert','Athlete','Actor','Charger','Crossbow Expert','Defensive Duelist','Dual Wielder','Dungeon Delver','Durable','Elemental Adept','Grappler','Great Weapon Master','Healer','Heavily Armored','Heavy Armor Master','Inspiring Leader','Keen Mind','Lightly Armored','Linguist','Lucky','Mage Slayer','Magic Initiate','Martial Adept','Medium Armor Master','Mobile','Moderately Armored','Mounted Combatant','Observant','Polearm Master','Resilient','Ritual Caster','Sentinel','Sharpshooter','Shield Master','Skilled','Skulker','Spell Sniper','Tavern Brawler','Tough','War Caster','Weapon Master'].map(n => `<option value="${n}">`).join('')}
+      </datalist></div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="featDesc" rows="3"></textarea></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Prerequisites</label><input class="form-control" id="featPrereq" placeholder="e.g. Str 13+"></div>
+      <div class="col-6"><label class="form-label">Source</label><input class="form-control" id="featSource" placeholder="PHB, Tasha's, etc."></div>
+    </div>
+    <div class="mb-3"><label class="form-label">Level Gained</label><input class="form-control" id="featLevel" type="number" value="1"></div>
+    <button class="btn btn-primary w-100" onclick="saveFeat()"><i class="fa-solid fa-plus me-1"></i>Add Feat</button>
+  `);
+};
+
+(window as any).saveFeat = async function () {
+  const name = (document.getElementById('featName') as HTMLInputElement).value;
+  if (!name) { toast('Name required', true); return; }
+  await api('POST', '/api/feats', {
+    character_id: currentChar.id, name,
+    description: (document.getElementById('featDesc') as HTMLTextAreaElement).value,
+    prerequisites: (document.getElementById('featPrereq') as HTMLInputElement).value,
+    source: (document.getElementById('featSource') as HTMLInputElement).value,
+    level_gained: +(document.getElementById('featLevel') as HTMLInputElement).value || 1,
+  });
+  hideModal();
+  renderFeats();
+  toast('Feat added');
+};
+
+(window as any).deleteFeat = async function (id: number) {
+  if (!confirm('Remove this feat?')) return;
+  await api('DELETE', `/api/feats/${id}`);
+  renderFeats();
+  toast('Feat removed');
+};
+
+// ─── Companions ───
+
+async function renderCompanions() {
+  const el = document.getElementById('companionsSection')!;
+  if (!currentChar) return;
+  try {
+    const comps = await api('GET', `/api/companions?character_id=${currentChar.id}`);
+    el.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center">
+        <h5>Companions & Mounts</h5>
+        <button class="btn btn-primary btn-sm" onclick="showAddCompanion()"><i class="fa-solid fa-plus me-1"></i>Add Companion</button>
+      </div>
+      <div class="row g-3 mt-2">
+        ${comps.length ? comps.map((comp: any) => {
+          const hpPct = comp.hp_max > 0 ? Math.round((comp.hp_current / comp.hp_max) * 100) : 0;
+          const abilMod = (s: number) => { const m = Math.floor((s - 10) / 2); return m >= 0 ? '+' + m : '' + m; };
+          return `<div class="col-md-6">
+            <div class="card">
+              <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div>
+                    <span class="fw-bold">${esc(comp.name)}</span>
+                    <span class="badge badge-gold ms-1">${esc(comp.type)}</span>
+                    <span class="badge badge-muted ms-1">${esc(comp.race)}</span>
+                    ${!comp.is_alive ? '<span class="badge bg-danger ms-1">Deceased</span>' : ''}
+                  </div>
+                  <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-outline-primary" onclick="editCompanion(${comp.id})"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteCompanion(${comp.id})"><i class="fa-solid fa-trash"></i></button>
+                  </div>
+                </div>
+                <div class="hp-bar mt-2" style="height:8px">
+                  <div class="hp-bar-fill" style="width:${hpPct}%;height:100%"></div>
+                </div>
+                <div class="small text-muted mt-1">HP: ${comp.hp_current}/${comp.hp_max} · AC: ${comp.ac} · Spd: ${comp.speed}</div>
+                <div class="small text-muted">STR ${comp.str}(${abilMod(comp.str)}) DEX ${comp.dex}(${abilMod(comp.dex)}) CON ${comp.con}(${abilMod(comp.con)}) INT ${comp.int}(${abilMod(comp.int)}) WIS ${comp.wis}(${abilMod(comp.wis)}) CHA ${comp.cha}(${abilMod(comp.cha)})</div>
+                ${comp.abilities ? `<div class="small text-muted mt-1"><i class="fa-solid fa-star me-1"></i>${esc(comp.abilities)}</div>` : ''}
+                ${comp.notes ? `<div class="small text-muted">${esc(comp.notes)}</div>` : ''}
+              </div>
+            </div>
+          </div>`;
+        }).join('')
+        : '<div class="empty-state"><i class="fa-solid fa-dog fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Companions</p><p class="small text-muted">Track familiars, mounts, animal companions, and summoned creatures.</p></div>'}
+      </div>`;
+  } catch { el.innerHTML = '<div class="empty-state"><p class="small text-muted">Could not load companions.</p></div>'; }
+}
+
+(window as any).showAddCompanion = function () {
+  showModal('Add Companion', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="compName"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Type</label>
+        <select class="form-select" id="compType">
+          <option value="familiar">Familiar</option><option value="mount">Mount</option>
+          <option value="companion">Companion</option><option value="summoned">Summoned</option>
+          <option value="pet">Pet</option>
+        </select></div>
+      <div class="col-6"><label class="form-label">Race</label><input class="form-control" id="compRace" placeholder="Owl, Warhorse, etc."></div>
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-4"><label class="form-label">HP Max</label><input class="form-control" id="compHP" type="number" value="10"></div>
+      <div class="col-4"><label class="form-label">AC</label><input class="form-control" id="compAC" type="number" value="10"></div>
+      <div class="col-4"><label class="form-label">Speed</label><input class="form-control" id="compSpeed" type="number" value="30"></div>
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-4"><label class="form-label">STR</label><input class="form-control" id="compStr" type="number" value="10"></div>
+      <div class="col-4"><label class="form-label">DEX</label><input class="form-control" id="compDex" type="number" value="10"></div>
+      <div class="col-4"><label class="form-label">CON</label><input class="form-control" id="compCon" type="number" value="10"></div>
+      <div class="col-4"><label class="form-label">INT</label><input class="form-control" id="compInt" type="number" value="10"></div>
+      <div class="col-4"><label class="form-label">WIS</label><input class="form-control" id="compWis" type="number" value="10"></div>
+      <div class="col-4"><label class="form-label">CHA</label><input class="form-control" id="compCha" type="number" value="10"></div>
+    </div>
+    <div class="mb-3"><label class="form-label">Abilities</label><textarea class="form-control" id="compAbilities" rows="2" placeholder="Flyby, Darkvision 60ft, etc."></textarea></div>
+    <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="compNotes" rows="2"></textarea></div>
+    <button class="btn btn-primary w-100" onclick="saveCompanion()"><i class="fa-solid fa-plus me-1"></i>Add</button>
+  `);
+};
+
+(window as any).saveCompanion = async function () {
+  const name = (document.getElementById('compName') as HTMLInputElement).value;
+  if (!name) { toast('Name required', true); return; }
+  await api('POST', '/api/companions', {
+    character_id: currentChar.id, name,
+    type: (document.getElementById('compType') as HTMLSelectElement).value,
+    race: (document.getElementById('compRace') as HTMLInputElement).value,
+    hp_max: +(document.getElementById('compHP') as HTMLInputElement).value || 10,
+    hp_current: +(document.getElementById('compHP') as HTMLInputElement).value || 10,
+    ac: +(document.getElementById('compAC') as HTMLInputElement).value || 10,
+    str: +(document.getElementById('compStr') as HTMLInputElement).value || 10,
+    dex: +(document.getElementById('compDex') as HTMLInputElement).value || 10,
+    con: +(document.getElementById('compCon') as HTMLInputElement).value || 10,
+    int: +(document.getElementById('compInt') as HTMLInputElement).value || 10,
+    wis: +(document.getElementById('compWis') as HTMLInputElement).value || 10,
+    cha: +(document.getElementById('compCha') as HTMLInputElement).value || 10,
+    speed: +(document.getElementById('compSpeed') as HTMLInputElement).value || 30,
+    abilities: (document.getElementById('compAbilities') as HTMLTextAreaElement).value,
+    notes: (document.getElementById('compNotes') as HTMLTextAreaElement).value,
+    is_alive: true,
+  });
+  hideModal();
+  renderCompanions();
+  toast('Companion added');
+};
+
+(window as any).editCompanion = async function (id: number) {
+  const comps = await api('GET', `/api/companions?character_id=${currentChar.id}`);
+  const comp = comps.find((c: any) => c.id === id);
+  if (!comp) return;
+  showModal('Edit Companion', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="compName" value="${esc(comp.name)}"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Type</label>
+        <select class="form-select" id="compType">${['familiar','mount','companion','summoned','pet'].map(t => `<option value="${t}"${t===comp.type?' selected':''}>${capitalize(t)}</option>`).join('')}</select></div>
+      <div class="col-6"><label class="form-label">Race</label><input class="form-control" id="compRace" value="${esc(comp.race)}"></div>
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-4"><label class="form-label">HP Max</label><input class="form-control" id="compHP" type="number" value="${comp.hp_max}"></div>
+      <div class="col-4"><label class="form-label">HP Current</label><input class="form-control" id="compHPCur" type="number" value="${comp.hp_current}"></div>
+      <div class="col-4"><label class="form-label">AC</label><input class="form-control" id="compAC" type="number" value="${comp.ac}"></div>
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-2"><label class="form-label">STR</label><input class="form-control" id="compStr" type="number" value="${comp.str}"></div>
+      <div class="col-2"><label class="form-label">DEX</label><input class="form-control" id="compDex" type="number" value="${comp.dex}"></div>
+      <div class="col-2"><label class="form-label">CON</label><input class="form-control" id="compCon" type="number" value="${comp.con}"></div>
+      <div class="col-2"><label class="form-label">INT</label><input class="form-control" id="compInt" type="number" value="${comp.int}"></div>
+      <div class="col-2"><label class="form-label">WIS</label><input class="form-control" id="compWis" type="number" value="${comp.wis}"></div>
+      <div class="col-2"><label class="form-label">CHA</label><input class="form-control" id="compCha" type="number" value="${comp.cha}"></div>
+    </div>
+    <div class="mb-3"><label class="form-label">Abilities</label><textarea class="form-control" id="compAbilities" rows="2">${esc(comp.abilities)}</textarea></div>
+    <button class="btn btn-primary w-100" onclick="saveEditCompanion(${id})"><i class="fa-solid fa-save me-1"></i>Save</button>
+  `);
+};
+
+(window as any).saveEditCompanion = async function (id: number) {
+  await api('PUT', `/api/companions/${id}`, {
+    name: (document.getElementById('compName') as HTMLInputElement).value,
+    type: (document.getElementById('compType') as HTMLSelectElement).value,
+    race: (document.getElementById('compRace') as HTMLInputElement).value,
+    hp_max: +(document.getElementById('compHP') as HTMLInputElement).value || 10,
+    hp_current: +(document.getElementById('compHPCur') as HTMLInputElement).value || 10,
+    ac: +(document.getElementById('compAC') as HTMLInputElement).value || 10,
+    str: +(document.getElementById('compStr') as HTMLInputElement).value || 10,
+    dex: +(document.getElementById('compDex') as HTMLInputElement).value || 10,
+    con: +(document.getElementById('compCon') as HTMLInputElement).value || 10,
+    int: +(document.getElementById('compInt') as HTMLInputElement).value || 10,
+    wis: +(document.getElementById('compWis') as HTMLInputElement).value || 10,
+    cha: +(document.getElementById('compCha') as HTMLInputElement).value || 10,
+    speed: +(document.getElementById('compSpeed') as HTMLInputElement).value || 30,
+    abilities: (document.getElementById('compAbilities') as HTMLTextAreaElement).value,
+    notes: (document.getElementById('compNotes') as HTMLTextAreaElement).value,
+    is_alive: true,
+  });
+  hideModal();
+  renderCompanions();
+  toast('Companion updated');
+};
+
+(window as any).deleteCompanion = async function (id: number) {
+  if (!confirm('Remove this companion?')) return;
+  await api('DELETE', `/api/companions/${id}`);
+  renderCompanions();
+  toast('Companion removed');
+};
+
+// ─── Notes ───
+
+async function renderNotes() {
+  const el = document.getElementById('notesSection')!;
+  if (!currentChar) return;
+  try {
+    const notes = await api('GET', `/api/notes?character_id=${currentChar.id}`);
+    const groups: Record<string, any[]> = { general: [], backstory: [], quest: [], lore: [], dm: [], other: [] };
+    notes.forEach((n: any) => { if (groups[n.category]) groups[n.category].push(n); else groups.other.push(n); });
+    let html = `
+      <div class="d-flex justify-content-between align-items-center">
+        <h5>Notes</h5>
+        <button class="btn btn-primary btn-sm" onclick="showAddNote()"><i class="fa-solid fa-plus me-1"></i>New Note</button>
+      </div>`;
+    for (const [cat, items] of Object.entries(groups)) {
+      if (!items.length) continue;
+      html += `<h6 class="mt-3 text-muted">${capitalize(cat)}</h6>`;
+      for (const n of items) {
+        const visIcon = n.visibility === 'dm' ? '<i class="fa-solid fa-eye-slash ms-1 text-muted" title="DM only"></i>' : '';
+        html += `<div class="card mb-2">
+          <div class="card-body py-2 px-3">
+            <div class="d-flex justify-content-between align-items-start">
+              <div><span class="fw-bold">${esc(n.title)}</span> ${visIcon}
+                <span class="badge badge-muted ms-1">${esc(n.visibility)}</span></div>
+              <div class="d-flex gap-1">
+                <button class="btn btn-sm btn-outline-primary" onclick="editNote(${n.id})"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteNote(${n.id})"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            </div>
+            <div class="mt-1 small text-muted" style="white-space:pre-wrap">${esc(n.content).substring(0, 300)}</div>
+          </div>
+        </div>`;
+      }
+    }
+    if (!notes.length) html += '<div class="empty-state"><i class="fa-solid fa-note-sticky fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">No notes yet. Keep track of campaign information, backstory details, and DM secrets.</p></div>';
+    el.innerHTML = html;
+  } catch { el.innerHTML = '<div class="empty-state"><p class="small text-muted">Could not load notes.</p></div>'; }
+}
+
+(window as any).showAddNote = function () {
+  showModal('New Note', `
+    <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="noteTitle" placeholder="Note title"></div>
+    <div class="mb-3"><label class="form-label">Content</label><textarea class="form-control" id="noteContent" rows="6"></textarea></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Visibility</label>
+        <select class="form-select" id="noteVis">
+          <option value="player">Player Only</option><option value="both">Player & DM</option>
+          <option value="dm">DM Only</option>
+        </select></div>
+      <div class="col-6"><label class="form-label">Category</label>
+        <select class="form-select" id="noteCat">
+          <option value="general">General</option><option value="backstory">Backstory</option>
+          <option value="quest">Quest</option><option value="lore">Lore</option>
+          <option value="dm">DM</option><option value="other">Other</option>
+        </select></div>
+    </div>
+    <button class="btn btn-primary w-100" onclick="saveNote()"><i class="fa-solid fa-plus me-1"></i>Create Note</button>
+  `);
+};
+
+(window as any).saveNote = async function () {
+  await api('POST', '/api/notes', {
+    character_id: currentChar.id,
+    title: (document.getElementById('noteTitle') as HTMLInputElement).value,
+    content: (document.getElementById('noteContent') as HTMLTextAreaElement).value,
+    visibility: (document.getElementById('noteVis') as HTMLSelectElement).value,
+    category: (document.getElementById('noteCat') as HTMLSelectElement).value,
+  });
+  hideModal();
+  renderNotes();
+  toast('Note created');
+};
+
+(window as any).editNote = async function (id: number) {
+  const notes = await api('GET', `/api/notes?character_id=${currentChar.id}`);
+  const n = notes.find((x: any) => x.id === id);
+  if (!n) return;
+  showModal('Edit Note', `
+    <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="noteTitle" value="${esc(n.title)}"></div>
+    <div class="mb-3"><label class="form-label">Content</label><textarea class="form-control" id="noteContent" rows="6">${esc(n.content)}</textarea></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Visibility</label>
+        <select class="form-select" id="noteVis">${['player','both','dm'].map(v => `<option value="${v}"${v===n.visibility?' selected':''}>${capitalize(v)}</option>`).join('')}</select></div>
+      <div class="col-6"><label class="form-label">Category</label>
+        <select class="form-select" id="noteCat">${['general','backstory','quest','lore','dm','other'].map(c => `<option value="${c}"${c===n.category?' selected':''}>${capitalize(c)}</option>`).join('')}</select></div>
+    </div>
+    <button class="btn btn-primary w-100" onclick="saveEditNote(${id})"><i class="fa-solid fa-save me-1"></i>Save</button>
+  `);
+};
+
+(window as any).saveEditNote = async function (id: number) {
+  await api('PUT', `/api/notes/${id}`, {
+    title: (document.getElementById('noteTitle') as HTMLInputElement).value,
+    content: (document.getElementById('noteContent') as HTMLTextAreaElement).value,
+    visibility: (document.getElementById('noteVis') as HTMLSelectElement).value,
+    category: (document.getElementById('noteCat') as HTMLSelectElement).value,
+  });
+  hideModal();
+  renderNotes();
+  toast('Note updated');
+};
+
+(window as any).deleteNote = async function (id: number) {
+  if (!confirm('Delete this note?')) return;
+  await api('DELETE', `/api/notes/${id}`);
+  renderNotes();
+  toast('Note deleted');
+};
+
+// ─── Factions View ───
+
+(window as any).showFactions = async function () {
+  showView('factions');
+  const el = document.getElementById('factionsContent')!;
+  el.innerHTML = '<div class="ornament">✧ Loading factions... ✧</div>';
+  try {
+    const [factions, campaigns] = await Promise.all([
+      api('GET', '/api/factions'),
+      api('GET', '/api/campaigns'),
+    ]);
+    el.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex gap-2">
+          <select class="form-select form-select-sm" id="factionCharSel" style="width:auto" onchange="loadFactionReputations()">
+            <option value="">Select character...</option>
+          </select>
+        </div>
+        <button class="btn btn-gold btn-sm" onclick="showCreateFaction()"><i class="fa-solid fa-plus me-1"></i>New Faction</button>
+      </div>
+      <div class="row g-3" id="factionList">
+        ${factions.length ? factions.map((f: any) => `
+          <div class="col-md-6 col-lg-4">
+            <div class="card">
+              <div class="card-body">
+                <div class="d-flex justify-content-between">
+                  <div>
+                    <span class="fw-bold">${esc(f.name)}</span>
+                    <span class="badge badge-gold ms-1">${esc(f.type)}</span>
+                  </div>
+                  <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-outline-primary" onclick="editFaction(${f.id})"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteFaction(${f.id})"><i class="fa-solid fa-trash"></i></button>
+                  </div>
+                </div>
+                ${f.description ? `<p class="mb-0 mt-1 small text-muted">${esc(f.description).substring(0, 150)}</p>` : ''}
+                ${f.headquarters ? `<p class="mb-0 mt-1 small text-muted"><i class="fa-solid fa-location-dot me-1"></i>${esc(f.headquarters)}</p>` : ''}
+              </div>
+            </div>
+          </div>`).join('')
+          : '<div class="empty-state"><i class="fa-solid fa-flag fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Factions</p><p class="small text-muted">Create factions to track character reputation and standing.</p></div>'}
+      </div>
+      <div class="mt-4" id="factionRepArea" style="display:none">
+        <h5>Reputation</h5>
+        <div id="factionRepList"></div>
+      </div>`;
+    // Load character selector
+    const chars = await api('GET', '/api/characters');
+    const sel = document.getElementById('factionCharSel') as HTMLSelectElement;
+    chars.forEach((c: any) => {
+      sel.innerHTML += `<option value="${c.id}">${esc(c.name)}</option>`;
+    });
+  } catch (e: any) { el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(e.message)}</p></div>`; }
+};
+
+(window as any).loadFactionReputations = async function () {
+  const charId = (document.getElementById('factionCharSel') as HTMLSelectElement).value;
+  const area = document.getElementById('factionRepArea')!;
+  const list = document.getElementById('factionRepList')!;
+  if (!charId) { area.style.display = 'none'; return; }
+  area.style.display = 'block';
+  try {
+    const reps = await api('GET', `/api/faction-reputation?character_id=${charId}`);
+    const factions = await api('GET', '/api/factions');
+    list.innerHTML = reps.length ? reps.map((r: any) => {
+      const pct = ((r.standing + 100) / 200) * 100;
+      const color = r.standing >= 50 ? '#2d6a2d' : r.standing >= 0 ? '#b8963e' : r.standing >= -50 ? '#8b4513' : '#8b0000';
+      return `<div class="inv-item">
+        <div>
+          <span class="fw-bold">${esc(r.faction_name)}</span>
+          <span class="badge badge-muted ms-1">${esc(r.faction_type)}</span>
+          ${r.rank ? `<span class="badge badge-gold ms-1">${esc(r.rank)}</span>` : ''}
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <div class="hp-bar" style="width:100px;height:8px;background:var(--parchment-dark)">
+            <div class="hp-bar-fill" style="width:${pct}%;height:100%;background:${color}"></div>
+          </div>
+          <span class="fw-bold" style="color:${color}">${r.standing >= 0 ? '+' : ''}${r.standing}</span>
+          <button class="btn btn-sm btn-outline-primary" onclick="editReputation(${r.character_id}, ${r.faction_id}, ${r.standing}, '${esc(r.rank)}', '${esc(r.notes)}')"><i class="fa-solid fa-pen"></i></button>
+        </div>
+      </div>`;
+    }).join('') : '<p class="text-muted small">No reputation tracked for this character. Click a faction to set reputation.</p>';
+  } catch {}
+};
+
+(window as any).showCreateFaction = function () {
+  showModal('Create Faction', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="facName"></div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="facDesc" rows="2"></textarea></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Type</label>
+        <select class="form-select" id="facType">
+          <option value="organization">Organization</option><option value="guild">Guild</option>
+          <option value="government">Government</option><option value="religion">Religion</option>
+          <option value="cult">Cult</option><option value="military">Military</option>
+          <option value="other">Other</option>
+        </select></div>
+      <div class="col-6"><label class="form-label">Headquarters</label><input class="form-control" id="facHQ"></div>
+    </div>
+    <button class="btn btn-primary w-100" onclick="saveFaction()"><i class="fa-solid fa-plus me-1"></i>Create</button>
+  `);
+};
+
+(window as any).saveFaction = async function () {
+  const name = (document.getElementById('facName') as HTMLInputElement).value;
+  if (!name) { toast('Name required', true); return; }
+  await api('POST', '/api/factions', {
+    name,
+    description: (document.getElementById('facDesc') as HTMLTextAreaElement).value,
+    type: (document.getElementById('facType') as HTMLSelectElement).value,
+    headquarters: (document.getElementById('facHQ') as HTMLInputElement).value,
+  });
+  hideModal();
+  (window as any).showFactions();
+  toast('Faction created');
+};
+
+(window as any).editFaction = async function (id: number) {
+  const factions = await api('GET', '/api/factions');
+  const f = factions.find((x: any) => x.id === id);
+  if (!f) return;
+  showModal('Edit Faction', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="facName" value="${esc(f.name)}"></div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="facDesc" rows="2">${esc(f.description)}</textarea></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Type</label>
+        <select class="form-select" id="facType">${['organization','guild','government','religion','cult','military','other'].map(t => `<option value="${t}"${t===f.type?' selected':''}>${capitalize(t)}</option>`).join('')}</select></div>
+      <div class="col-6"><label class="form-label">Headquarters</label><input class="form-control" id="facHQ" value="${esc(f.headquarters)}"></div>
+    </div>
+    <button class="btn btn-primary w-100" onclick="saveEditFaction(${id})"><i class="fa-solid fa-save me-1"></i>Save</button>
+  `);
+};
+
+(window as any).saveEditFaction = async function (id: number) {
+  await api('PUT', `/api/factions/${id}`, {
+    name: (document.getElementById('facName') as HTMLInputElement).value,
+    description: (document.getElementById('facDesc') as HTMLTextAreaElement).value,
+    type: (document.getElementById('facType') as HTMLSelectElement).value,
+    headquarters: (document.getElementById('facHQ') as HTMLInputElement).value,
+  });
+  hideModal();
+  (window as any).showFactions();
+  toast('Faction updated');
+};
+
+(window as any).deleteFaction = async function (id: number) {
+  if (!confirm('Delete this faction?')) return;
+  await api('DELETE', `/api/factions/${id}`);
+  (window as any).showFactions();
+  toast('Faction deleted');
+};
+
+(window as any).editReputation = function (charId: number, factionId: number, standing: number, rank: string, notes: string) {
+  showModal('Set Reputation', `
+    <div class="mb-3"><label class="form-label">Standing (-100 to 100)</label>
+      <input class="form-control" id="repStanding" type="number" value="${standing}" min="-100" max="100"></div>
+    <div class="mb-3"><label class="form-label">Rank / Title</label><input class="form-control" id="repRank" value="${esc(rank)}"></div>
+    <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="repNotes" rows="2">${esc(notes)}</textarea></div>
+    <button class="btn btn-primary w-100" onclick="saveReputation(${charId}, ${factionId})"><i class="fa-solid fa-save me-1"></i>Save</button>
+  `);
+};
+
+(window as any).saveReputation = async function (charId: number, factionId: number) {
+  await api('POST', '/api/faction-reputation', {
+    character_id: charId, faction_id: factionId,
+    standing: +(document.getElementById('repStanding') as HTMLInputElement).value || 0,
+    rank: (document.getElementById('repRank') as HTMLInputElement).value,
+    notes: (document.getElementById('repNotes') as HTMLTextAreaElement).value,
+  });
+  hideModal();
+  (window as any).loadFactionReputations();
+  toast('Reputation updated');
+};
+
+// ─── Combat Section Update for conditions and concentration ───
+
+function renderCombat() {
+  const c = currentChar;
+  const el = document.getElementById('combatSection')!;
+  const pct = c.hp_max > 0 ? Math.round((c.hp_current / c.hp_max) * 100) : 0;
+  el.innerHTML = `
+    <div class="row g-3">
+      <div class="col-4"><div class="combat-stat" title="Armor Class"><div class="stat-label">AC</div><div class="stat-value">${c.ac}</div></div></div>
+      <div class="col-4"><div class="combat-stat" title="Initiative modifier"><div class="stat-label">Initiative</div><div class="stat-value">${c.initiative >= 0 ? '+' : ''}${c.initiative}</div></div></div>
+      <div class="col-4"><div class="combat-stat" title="Movement speed"><div class="stat-label">Speed</div><div class="stat-value">${c.speed}</div></div></div>
+    </div>
+    <h5 class="mt-3">Hit Points</h5>
+    <div class="hp-bar position-relative mb-2" title="${c.hp_current} / ${c.hp_max} HP${c.temp_hp > 0 ? ' (+' + c.temp_hp + ' temporary)' : ''}">
+      <div class="hp-bar-fill" style="width:${pct}%"></div>
+      <div class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center text-white small fw-bold" style="font-size:0.8rem">${c.hp_current} / ${c.hp_max}${c.temp_hp > 0 ? ' (+' + c.temp_hp + ' temp)' : ''}</div>
+    </div>
+    <div class="row g-2">
+      <div class="col-4"><label class="form-label small">HP Max</label><input type="number" class="form-control form-control-sm" value="${c.hp_max}" oninput="autoSaveField('hp_max',this)"></div>
+      <div class="col-4"><label class="form-label small">Current</label><input type="number" class="form-control form-control-sm" value="${c.hp_current}" oninput="autoSaveField('hp_current',this)"></div>
+      <div class="col-4"><label class="form-label small">Temp HP</label><input type="number" class="form-control form-control-sm" value="${c.temp_hp}" oninput="autoSaveField('temp_hp',this)"></div>
+    </div>
+    <div class="row g-2 mt-2">
+      <div class="col-6">
+        <label class="form-label small">Damage</label>
+        <div class="input-group input-group-sm"><input type="number" class="form-control" id="dmgInput" value="0"><button class="btn btn-danger" onclick="applyDamage()">Apply</button></div>
+      </div>
+      <div class="col-6">
+        <label class="form-label small">Heal</label>
+        <div class="input-group input-group-sm"><input type="number" class="form-control" id="healInput" value="0"><button class="btn btn-success" onclick="applyHeal()">Apply</button></div>
+      </div>
+    </div>
+    <div class="d-flex gap-2 mt-3">
+      <button class="btn btn-sm btn-outline-primary" onclick="doRest('short')"><i class="fa-solid fa-campground me-1"></i>Short Rest</button>
+      <button class="btn btn-sm btn-outline-primary" onclick="doRest('long')"><i class="fa-solid fa-moon me-1"></i>Long Rest</button>
+      <button class="btn btn-sm btn-gold" onclick="doLevelUp()"><i class="fa-solid fa-arrow-up me-1"></i>Level Up</button>
+    </div>
+    <div id="conditionsArea" class="mt-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mt-0 mb-2">Conditions</h5>
+        <div class="d-flex gap-1">
+          <button class="btn btn-sm btn-outline-primary" onclick="showAddCondition()"><i class="fa-solid fa-plus"></i></button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="tickConditions()" title="Advance 1 round"><i class="fa-solid fa-forward"></i></button>
+        </div>
+      </div>
+      <div id="conditionBadges"></div>
+    </div>
+    <h5 class="mt-3">Saving Throws <small class="text-muted fw-normal">(click to roll)</small></h5>
+    <div class="d-flex flex-wrap gap-1 mb-3">
+      ${['str','dex','con','int','wis','cha'].map(a => {
+        const mod = (c as any)[`${a}_mod`];
+        const total = c.proficiency_bonus + mod;
+        const sign = total >= 0 ? '+' : '';
+        return `<span class="badge badge-gold" style="cursor:pointer" onclick="rollCheck('save','${a}','normal')">${a.toUpperCase()} ${sign}${total}</span>`;
+      }).join('')}
+    </div>
+    <h5 class="mt-3">Death Saves</h5>
+    <div class="row g-2">
+      <div class="col-6"><label class="form-label small">Successes</label><input type="number" class="form-control form-control-sm" value="${c.death_saves_successes}" oninput="autoSaveField('death_saves_successes',this)" min="0" max="3"></div>
+      <div class="col-6"><label class="form-label small">Failures</label><input type="number" class="form-control form-control-sm" value="${c.death_saves_failures}" oninput="autoSaveField('death_saves_failures',this)" min="0" max="3"></div>
+    </div>
+    <h5 class="mt-3">Concentration</h5>
+    <div class="form-check"><input type="checkbox" class="form-check-input" id="concentrationCb" ${c.concentrating ? 'checked' : ''} onchange="autoSaveField('concentrating',this)"><label class="form-check-label" for="concentrationCb">Concentrating on a spell</label></div>
+    <div class="mt-2">
+      <label class="form-label small">Concentrating On</label>
+      <input class="form-control form-control-sm" value="${esc(c.concentrating_on)}" oninput="autoSaveField('concentrating_on',this)" placeholder="e.g. Hunter's Mark">
+    </div>
+    <h5 class="mt-3">Hit Dice</h5>
+    <div class="row g-2">
+      <div class="col-6"><label class="form-label small">Total</label><input type="number" class="form-control form-control-sm" value="${c.hit_dice_total}" oninput="autoSaveField('hit_dice_total',this)"></div>
+      <div class="col-6"><label class="form-label small">Used</label><input type="number" class="form-control form-control-sm" value="${c.hit_dice_used}" oninput="autoSaveField('hit_dice_used',this)"></div>
+    </div>`;
+  // Load condition badges async
+  loadConditionBadges();
+}
+
+async function loadConditionBadges() {
+  if (!currentChar) return;
+  try {
+    const conds = await api('GET', `/api/conditions/summary?character_id=${currentChar.id}`);
+    const el = document.getElementById('conditionBadges');
+    if (!el) return;
+    if (!conds.length) {
+      el.innerHTML = '<div class="text-muted small fst-italic">No active conditions</div>';
+      return;
+    }
+    const iconMap: Record<string, string> = {
+      blinded: 'fa-eye-slash', charmed: 'fa-heart', deafened: 'fa-ear-deaf',
+      exhaustion: 'fa-battery-quarter', frightened: 'fa-ghost', grappled: 'fa-handcuffs',
+      incapacitated: 'fa-bed', invisible: 'fa-ghost', paralyzed: 'fa-snowflake',
+      petrified: 'fa-monument', poisoned: 'fa-skull', prone: 'fa-person-falling',
+      restrained: 'fa-lock', stunned: 'fa-star', unconscious: 'fa-circle',
+      concentration: 'fa-brain',
+    };
+    const colorMap: Record<string, string> = {
+      blinded: '#8b0000', charmed: '#dda0dd', deafened: '#666',
+      exhaustion: '#ff8c00', frightened: '#4b0082', grappled: '#8b4513',
+      incapacitated: '#555', invisible: '#87ceeb', paralyzed: '#00bfff',
+      petrified: '#808080', poisoned: '#32cd32', prone: '#d2b48c',
+      restrained: '#ffd700', stunned: '#ff4500', unconscious: '#2f4f4f',
+      concentration: '#4169e1',
+    };
+    el.innerHTML = '<div class="d-flex flex-wrap gap-1 mb-2">' + conds.map((cond: any) => {
+      const icon = iconMap[cond.type] || 'fa-circle';
+      const color = colorMap[cond.type] || '#b8963e';
+      const durStr = cond.duration_type === 'permanent' ? 'perm' : cond.duration + cond.duration_type.substring(0, 1);
+      return `<span class="badge" style="background:${color};color:#fff;font-size:0.75rem;padding:0.3rem 0.5rem;border-radius:4px" title="${esc(cond.name)} (${durStr})">
+        <i class="fa-solid ${icon} me-1"></i>${esc(cond.name)} ${durStr}
+        <a href="#" onclick="deleteCondition(${cond.id});return false" class="text-white text-decoration-none ms-1">×</a>
+      </span>`;
+    }).join('') + '</div>';
+  } catch {}
+}
+
+// ─── HP Auto-Calc in details ───
+
+(window as any).calcHP = async function () {
+  if (!currentChar) return;
+  try {
+    const result = await api('POST', `/api/characters/${currentChar.id}/calc-hp`);
+    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+    renderSheet();
+    toast(`HP calculated: ${result.hp_max} HP`);
+  } catch (e: any) { toast(e.message, true); }
+};
+
+// ─── Random Character Generator ───
+
+(window as any).generateRandomChar = async function () {
+  try {
+    const rc = await api('GET', '/api/generate/character');
+    showModal('Random Character', `
+      <div class="text-center mb-3">
+        <span class="fw-bold fs-5">${esc(rc.name)}</span>
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-6"><span class="text-muted">Race:</span> ${esc(rc.race)}</div>
+        <div class="col-6"><span class="text-muted">Class:</span> ${esc(rc.class)}</div>
+        <div class="col-6"><span class="text-muted">Level:</span> ${rc.level}</div>
+        <div class="col-6"><span class="text-muted">Background:</span> ${esc(rc.background)}</div>
+        <div class="col-6"><span class="text-muted">Alignment:</span> ${esc(rc.alignment)}</div>
+        <div class="col-6"><span class="text-muted">Personality:</span> ${esc(rc.personality)}</div>
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-4 text-center"><div class="combat-stat"><div class="stat-label">STR</div><div class="stat-value">${rc.str}</div></div></div>
+        <div class="col-4 text-center"><div class="combat-stat"><div class="stat-label">DEX</div><div class="stat-value">${rc.dex}</div></div></div>
+        <div class="col-4 text-center"><div class="combat-stat"><div class="stat-label">CON</div><div class="stat-value">${rc.con}</div></div></div>
+        <div class="col-4 text-center"><div class="combat-stat"><div class="stat-label">INT</div><div class="stat-value">${rc.int}</div></div></div>
+        <div class="col-4 text-center"><div class="combat-stat"><div class="stat-label">WIS</div><div class="stat-value">${rc.wis}</div></div></div>
+        <div class="col-4 text-center"><div class="combat-stat"><div class="stat-label">CHA</div><div class="stat-value">${rc.cha}</div></div></div>
+      </div>
+      <div class="mb-2"><span class="text-muted small">Quirk:</span> <span class="small">${esc(rc.quirk)}</span></div>
+      <div><span class="text-muted small">Backstory Hook:</span> <span class="small fst-italic">${esc(rc.backstory_hook)}</span></div>
+      <hr>
+      <p class="small text-muted">Use this as inspiration for your next character!</p>
+    `);
+  } catch (e: any) { toast(e.message, true); }
+};
+
+// ─── Character Comparison ───
+
+(window as any).showComparison = async function () {
+  const sel = document.getElementById('charCompareSelect') as HTMLSelectElement;
+  if (!sel) return;
+  const selected = Array.from(sel.selectedOptions).map(o => o.value).filter(v => v);
+  if (selected.length < 2) { toast('Select at least 2 characters', true); return; }
+  try {
+    const chars = await api('GET', `/api/characters/compare?ids=${selected.join(',')}`);
+    showModal('Character Comparison', `
+      <div class="table-responsive"><table class="table table-sm table-bordered">
+        <thead><tr><th></th>${chars.map((c: any) => `<th class="text-center">${esc(c.name)}</th>`).join('')}</tr></thead>
+        <tbody>
+          ${[['Race','race'],['Class','class'],['Level','level'],['Background','background'],['Alignment','alignment'],
+             ['HP','hp_current + "/" + hp_max'],['AC','ac'],['Speed','speed'],['Initiative','initiative'],
+             ['STR','str'],['DEX','dex'],['CON','con'],['INT','int'],['WIS','wis'],['CHA','cha'],['XP','xp']].map(([label, field]) => `
+            <tr><td class="fw-bold">${label}</td>
+              ${chars.map((c: any) => {
+                if (field === 'hp_current + "/" + hp_max') {
+                  return `<td class="text-center">${c.hp_current}/${c.hp_max}</td>`;
+                }
+                return `<td class="text-center">${c[field] ?? '-'}</td>`;
+              }).join('')}
+            </tr>`).join('')}
+        </tbody>
+      </table></div>
+    `);
+  } catch (e: any) { toast(e.message, true); }
+};
+
+// ─── Add character comparison to character list view ───
+
+let compareMode = false;
+
+(window as any).toggleCompareMode = function () {
+  compareMode = !compareMode;
+  const el = document.getElementById('charGrid')!;
+  const btn = document.getElementById('compareBtn') as HTMLButtonElement;
+  if (compareMode) {
+    el.querySelectorAll('.character-card').forEach(card => card.classList.add('compare-selectable'));
+    // Add compare bar
+    let bar = document.getElementById('compareBar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'compareBar';
+      bar.className = 'd-flex align-items-center gap-2 p-2 mb-2 border rounded';
+      bar.style.background = 'var(--parchment)';
+      bar.innerHTML = `
+        <span class="small fw-bold me-2">Compare:</span>
+        <select multiple class="form-select form-select-sm" id="charCompareSelect" style="height:2rem;width:auto;min-width:200px"></select>
+        <button class="btn btn-sm btn-gold" onclick="showComparison()"><i class="fa-solid fa-arrow-right me-1"></i>Compare</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="toggleCompareMode()">Done</button>`;
+      document.getElementById('charactersView')?.insertBefore(bar, document.getElementById('charGrid'));
+    }
+    // Populate select
+    const select = document.getElementById('charCompareSelect') as HTMLSelectElement;
+    select.innerHTML = '';
+    document.querySelectorAll('#charGrid .character-card').forEach(card => {
+      const id = card.getAttribute('onclick')?.match(/\d+/)?.[0];
+      const name = card.querySelector('.char-name')?.textContent;
+      if (id && name) {
+        select.innerHTML += `<option value="${id}">${esc(name)}</option>`;
+      }
+    });
+    if (btn) btn.textContent = 'Cancel Compare';
+  } else {
+    el.querySelectorAll('.character-card').forEach(card => card.classList.remove('compare-selectable'));
+    const bar = document.getElementById('compareBar');
+    if (bar) bar.remove();
+    if (btn) btn.textContent = 'Compare';
+  }
 };
 
 init();

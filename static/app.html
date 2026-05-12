@@ -29,6 +29,7 @@
         <li class="nav-item"><a class="nav-link" href="#" onclick="showCompendium();return false"><i class="fa-solid fa-book me-1"></i>Compendium</a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="showView('dice');renderDiceTab();return false"><i class="fa-solid fa-dice me-1"></i>Dice</a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="showEncounterBuilder();return false"><i class="fa-solid fa-crosshairs me-1"></i>Encounters</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showFactions();return false"><i class="fa-solid fa-flag me-1"></i>Factions</a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="showCalendar();return false"><i class="fa-solid fa-calendar me-1"></i>Calendar</a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="showTimeline();return false"><i class="fa-solid fa-timeline me-1"></i>Timeline</a></li>
         <li class="nav-item" id="adminNavItem" style="display:none"><a class="nav-link" href="/admin"><i class="fa-solid fa-shield-halved me-1"></i>Admin</a></li>
@@ -96,6 +97,9 @@
   <div id="graphSection" style="display:none"></div>
   <div id="analyticsSection" style="display:none"></div>
   <div id="detailsSection" style="display:none"></div>
+  <div id="featsSection" style="display:none"></div>
+  <div id="companionsSection" style="display:none"></div>
+  <div id="notesSection" style="display:none"></div>
   <div id="diceSection"></div>
 </div>
 
@@ -139,6 +143,11 @@
 
 <div id="singleEncounterView" style="display:none">
   <div id="singleEncounterContent"></div>
+</div>
+
+<div id="factionsView" style="display:none">
+  <h1 class="h2 mb-3"><i class="fa-solid fa-flag me-2"></i>Factions & Reputation</h1>
+  <div id="factionsContent"></div>
 </div>
 
 </div>

@@ -1046,3 +1046,45 @@ kbd {
 .monster-stat strong {
   color: var(--ink);
 }
+
+/* ─── Compare Mode ─── */
+
+.compare-selectable {
+  cursor: pointer;
+  border-color: var(--border) !important;
+}
+
+.compare-selectable.selected {
+  border-color: var(--gold) !important;
+  box-shadow: 0 0 0 2px var(--gold) !important;
+}
+
+/* ─── Condition Badge Animations ─── */
+
+#conditionBadges .badge {
+  animation: condPop 0.2s ease-out;
+}
+
+@keyframes condPop {
+  0% { transform: scale(0.8); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ─── Weather ─── */
+
+.weather-card {
+  background: linear-gradient(135deg, var(--parchment-light), var(--parchment));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  text-align: center;
+}
+
+[data-theme="dark"] .weather-card {
+  background: linear-gradient(135deg, var(--parchment-dark), var(--parchment));
+}
+
+.weather-card .weather-icon {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
