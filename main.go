@@ -212,6 +212,35 @@ func main() {
 		auth.POST("/combat/next-turn", handlers.NextTurn)
 		auth.GET("/combat/current-turn", handlers.GetCurrentTurn)
 
+		// Multi-class
+		auth.POST("/characters/:id/classes", handlers.CreateCharacterClass)
+		auth.PUT("/classes/:ccid", handlers.UpdateCharacterClass)
+		auth.DELETE("/classes/:ccid", handlers.DeleteCharacterClass)
+
+		// Encounter Builder
+		auth.GET("/encounters", handlers.ListEncounters)
+		auth.POST("/encounters", handlers.CreateEncounter)
+		auth.GET("/encounters/:id", handlers.GetEncounter)
+		auth.PUT("/encounters/:id", handlers.UpdateEncounter)
+		auth.DELETE("/encounters/:id", handlers.DeleteEncounter)
+		auth.POST("/encounters/:id/monsters", handlers.AddEncounterMonster)
+		auth.PUT("/encounter-monsters/:mid", handlers.UpdateEncounterMonster)
+		auth.DELETE("/encounter-monsters/:mid", handlers.DeleteEncounterMonster)
+		auth.POST("/encounters/calculate-xp", handlers.CalculateEncounterXP)
+		auth.GET("/monster-xp", handlers.GetMonsterXP)
+
+		// Calendar
+		auth.GET("/calendar", handlers.ListCalendarEvents)
+		auth.POST("/calendar", handlers.CreateCalendarEvent)
+		auth.PUT("/calendar/:id", handlers.UpdateCalendarEvent)
+		auth.DELETE("/calendar/:id", handlers.DeleteCalendarEvent)
+
+		// Timeline
+		auth.GET("/timeline", handlers.ListTimelineEvents)
+		auth.POST("/timeline", handlers.CreateTimelineEvent)
+		auth.PUT("/timeline/:id", handlers.UpdateTimelineEvent)
+		auth.DELETE("/timeline/:id", handlers.DeleteTimelineEvent)
+
 		// Generators
 		auth.GET("/generate/npc", handlers.HandleGenerateNPC)
 		auth.GET("/generate/name", handlers.HandleGenerateName)

@@ -35,6 +35,7 @@ type Character struct {
 	Flaws             string `json:"flaws"`
 	Appearance        string `json:"appearance"`
 	Backstory         string `json:"backstory"`
+	PortraitURL       string `json:"portrait_url"`
 	CreatedAt         string `json:"created_at"`
 	UpdatedAt         string `json:"updated_at"`
 
@@ -57,6 +58,7 @@ type Character struct {
 	Spells        []Spell         `json:"spells,omitempty"`
 	Inventory     []InventoryItem `json:"inventory,omitempty"`
 	Currency      *Currency       `json:"currency,omitempty"`
+	Classes       []CharClass     `json:"classes,omitempty"`
 }
 
 type Currency struct {
@@ -279,4 +281,67 @@ type RestLog struct {
 	HitDiceSpent   int    `json:"hit_dice_spent"`
 	Notes          string `json:"notes"`
 	Timestamp      string `json:"timestamp"`
+}
+
+type CharClass struct {
+	ID          int64  `json:"id"`
+	CharacterID int64  `json:"character_id"`
+	Class       string `json:"class"`
+	Subclass    string `json:"subclass"`
+	Level       int    `json:"level"`
+	HitDice     string `json:"hit_dice"`
+}
+
+type EncounterTemplate struct {
+	ID          int64               `json:"id"`
+	CampaignID  *int64              `json:"campaign_id,omitempty"`
+	UserID      int64               `json:"user_id"`
+	Name        string              `json:"name"`
+	Description string              `json:"description"`
+	Environment string              `json:"environment"`
+	Difficulty  string              `json:"difficulty"`
+	XPBudget    int                 `json:"xp_budget"`
+	TotalXP     int                 `json:"total_xp"`
+	Notes       string              `json:"notes"`
+	Monsters    []EncounterMonster  `json:"monsters,omitempty"`
+	CreatedAt   string              `json:"created_at"`
+}
+
+type EncounterMonster struct {
+	ID           int64  `json:"id"`
+	EncounterID  int64  `json:"encounter_id"`
+	Name         string `json:"name"`
+	Count        int    `json:"count"`
+	CR           string `json:"cr"`
+	XP           int    `json:"xp"`
+	AC           int    `json:"ac"`
+	HP           int    `json:"hp"`
+	InitiativeMod int   `json:"initiative_mod"`
+	Source       string `json:"source"`
+	Notes        string `json:"notes"`
+}
+
+type CalendarEvent struct {
+	ID          int64  `json:"id"`
+	CampaignID  int64  `json:"campaign_id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	EventDate   string `json:"event_date"`
+	EventType   string `json:"event_type"`
+	Color       string `json:"color"`
+	CreatedAt   string `json:"created_at"`
+}
+
+type TimelineEvent struct {
+	ID                int64  `json:"id"`
+	CampaignID        int64  `json:"campaign_id"`
+	Title             string `json:"title"`
+	Description       string `json:"description"`
+	EventDate         string `json:"event_date"`
+	EventType         string `json:"event_type"`
+	Importance        int    `json:"importance"`
+	Icon              string `json:"icon"`
+	LinkedEntityType  string `json:"linked_entity_type"`
+	LinkedEntityID    *int64 `json:"linked_entity_id,omitempty"`
+	CreatedAt         string `json:"created_at"`
 }

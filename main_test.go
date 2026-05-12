@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -140,6 +141,35 @@ func buildRouter() *gin.Engine {
 		auth.POST("/combat/initiative", handlers.RollInitiative)
 		auth.POST("/combat/next-turn", handlers.NextTurn)
 		auth.GET("/combat/current-turn", handlers.GetCurrentTurn)
+
+		// Multi-class
+		auth.POST("/characters/:id/classes", handlers.CreateCharacterClass)
+		auth.PUT("/classes/:ccid", handlers.UpdateCharacterClass)
+		auth.DELETE("/classes/:ccid", handlers.DeleteCharacterClass)
+
+		// Encounter Builder
+		auth.GET("/encounters", handlers.ListEncounters)
+		auth.POST("/encounters", handlers.CreateEncounter)
+		auth.GET("/encounters/:id", handlers.GetEncounter)
+		auth.PUT("/encounters/:id", handlers.UpdateEncounter)
+		auth.DELETE("/encounters/:id", handlers.DeleteEncounter)
+		auth.POST("/encounters/:id/monsters", handlers.AddEncounterMonster)
+		auth.PUT("/encounter-monsters/:mid", handlers.UpdateEncounterMonster)
+		auth.DELETE("/encounter-monsters/:mid", handlers.DeleteEncounterMonster)
+		auth.POST("/encounters/calculate-xp", handlers.CalculateEncounterXP)
+		auth.GET("/monster-xp", handlers.GetMonsterXP)
+
+		// Calendar
+		auth.GET("/calendar", handlers.ListCalendarEvents)
+		auth.POST("/calendar", handlers.CreateCalendarEvent)
+		auth.PUT("/calendar/:id", handlers.UpdateCalendarEvent)
+		auth.DELETE("/calendar/:id", handlers.DeleteCalendarEvent)
+
+		// Timeline
+		auth.GET("/timeline", handlers.ListTimelineEvents)
+		auth.POST("/timeline", handlers.CreateTimelineEvent)
+		auth.PUT("/timeline/:id", handlers.UpdateTimelineEvent)
+		auth.DELETE("/timeline/:id", handlers.DeleteTimelineEvent)
 
 		// Generators
 		auth.GET("/generate/npc", handlers.HandleGenerateNPC)
@@ -2449,6 +2479,251 @@ func TestDiceRollAdvantageDisadvantage(t *testing.T) {
 			t.Logf("Race system=%v source=%v", r["system"], r["source"])
 		}
 	}
+}
+
+// ─── Portrait Tests ───
+
+func TestCharacterPortrait(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{"name": "Portrait Hero", "race": "Human", "class": "Fighter"})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Set portrait URL
+	resp = tc.put(fmt.Sprintf("/api/characters/%d", cid), map[string]any{
+		"name": "Portrait Hero", "race": "Human", "class": "Fighter", "level": 1,
+		"str": 10, "dex": 10, "con": 10, "int": 10, "wis": 10, "cha": 10,
+		"hp_max": 10, "hp_current": 10, "ac": 10, "initiative": 0, "speed": 30,
+		"portrait_url": "/media/test/portrait.jpg",
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update portrait failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	resp = tc.get(fmt.Sprintf("/api/characters/%d", cid), nil)
+	readJSON(resp, &char)
+	if char["portrait_url"] != "/media/test/portrait.jpg" {
+		t.Fatalf("expected portrait_url='/media/test/portrait.jpg', got %v", char["portrait_url"])
+	}
+}
+
+// ─── Multi-class Tests ───
+
+func TestMultiClass(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{"name": "Multi Hero", "race": "Human", "class": "Fighter"})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Add second class
+	resp = tc.post(fmt.Sprintf("/api/characters/%d/classes", cid), map[string]any{
+		"class": "Wizard", "subclass": "Evocation", "level": 3, "hit_dice": "d6",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("add class failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var cc map[string]any
+	readJSON(resp, &cc)
+	ccid := int(cc["id"].(float64))
+
+	// Verify via get character
+	resp = tc.get(fmt.Sprintf("/api/characters/%d", cid), nil)
+	readJSON(resp, &char)
+	classes := char["classes"].([]any)
+	if len(classes) != 1 {
+		t.Fatalf("expected 1 class entry, got %d", len(classes))
+	}
+
+	// Update class
+	resp = tc.put(fmt.Sprintf("/api/classes/%d", ccid), map[string]any{
+		"class": "Wizard", "subclass": "Divination", "level": 4, "hit_dice": "d6",
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update class failed: %d", resp.Code)
+	}
+
+	// Delete class
+	resp = tc.del(fmt.Sprintf("/api/classes/%d", ccid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("delete class failed: %d", resp.Code)
+	}
+}
+
+// ─── Encounter Builder Tests ───
+
+func TestEncounterBuilder(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create encounter
+	resp := tc.post("/api/encounters", map[string]any{
+		"name": "Goblin Ambush", "description": "A goblin attack", "difficulty": "medium",
+		"environment": "forest",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create encounter failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var enc map[string]any
+	readJSON(resp, &enc)
+	eid := int(enc["id"].(float64))
+
+	// Add monsters
+	resp = tc.post(fmt.Sprintf("/api/encounters/%d/monsters", eid), map[string]any{
+		"name": "Goblin", "count": 3, "cr": "1/4", "xp": 50, "ac": 15, "hp": 7,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("add monster failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	// Get encounter
+	resp = tc.get(fmt.Sprintf("/api/encounters/%d", eid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("get encounter failed: %d", resp.Code)
+	}
+	readJSON(resp, &enc)
+	if enc["name"] != "Goblin Ambush" {
+		t.Fatalf("expected 'Goblin Ambush', got %v", enc["name"])
+	}
+
+	// List encounters
+	resp = tc.get("/api/encounters", nil)
+	if resp.Code != 200 {
+		t.Fatalf("list encounters failed: %d", resp.Code)
+	}
+
+	// Calculate XP
+	resp = tc.post("/api/encounters/calculate-xp", map[string]any{
+		"party_levels": []int{1, 1, 1, 1},
+		"monsters":     []map[string]any{{"name": "Goblin", "cr": "1/4", "count": 3, "xp": 50}},
+	})
+	if resp.Code != 200 {
+		t.Fatalf("calculate xp failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var xpResult map[string]any
+	readJSON(resp, &xpResult)
+	if int(xpResult["total_xp"].(float64)) != 150 {
+		t.Fatalf("expected 150 XP, got %v", xpResult["total_xp"])
+	}
+
+	// Get monster XP table
+	resp = tc.get("/api/monster-xp", nil)
+	if resp.Code != 200 {
+		t.Fatalf("monster xp failed: %d", resp.Code)
+	}
+
+	// Delete
+	resp = tc.del(fmt.Sprintf("/api/encounters/%d", eid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("delete encounter failed: %d", resp.Code)
+	}
+}
+
+// ─── Calendar Tests ───
+
+func TestCalendarEvents(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/campaigns", map[string]any{"name": "Calendar Campaign", "description": "Test"})
+	var camp map[string]any
+	readJSON(resp, &camp)
+	cid := int(camp["id"].(float64))
+
+	resp = tc.post("/api/calendar", map[string]any{
+		"campaign_id": cid, "title": "Full Moon", "event_date": "1491-04-15",
+		"event_type": "holiday", "description": "A full moon rises",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create calendar event failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var ev map[string]any
+	readJSON(resp, &ev)
+	eid := int(ev["id"].(float64))
+
+	resp = tc.get("/api/calendar?campaign_id="+strconv.Itoa(cid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("list calendar events failed: %d", resp.Code)
+	}
+	var events []any
+	readJSON(resp, &events)
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+
+	resp = tc.put(fmt.Sprintf("/api/calendar/%d", eid), map[string]any{
+		"campaign_id": cid, "title": "Blood Moon", "event_date": "1491-04-15",
+		"event_type": "holiday", "color": "#ff0000",
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update calendar event failed: %d", resp.Code)
+	}
+
+	resp = tc.del(fmt.Sprintf("/api/calendar/%d", eid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("delete calendar event failed: %d", resp.Code)
+	}
+
+	tc.del(fmt.Sprintf("/api/campaigns/%d", cid), nil)
+}
+
+// ─── Timeline Tests ───
+
+func TestTimelineEvents(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/campaigns", map[string]any{"name": "Timeline Campaign", "description": "Test"})
+	var camp map[string]any
+	readJSON(resp, &camp)
+	cid := int(camp["id"].(float64))
+
+	// Create timeline event
+	resp = tc.post("/api/timeline", map[string]any{
+		"campaign_id": cid, "title": "Party meets in tavern",
+		"event_date": "1491-03-01", "event_type": "milestone",
+		"importance": 5, "description": "The adventure begins",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create timeline event failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var ev map[string]any
+	readJSON(resp, &ev)
+	eid := int(ev["id"].(float64))
+
+	// List
+	resp = tc.get("/api/timeline?campaign_id="+strconv.Itoa(cid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("list timeline failed: %d", resp.Code)
+	}
+	var events []any
+	readJSON(resp, &events)
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(events))
+	}
+
+	// Update
+	resp = tc.put(fmt.Sprintf("/api/timeline/%d", eid), map[string]any{
+		"campaign_id": cid, "title": "Party meets at crossroads",
+		"event_date": "1491-03-01", "event_type": "milestone",
+		"importance": 4, "icon": "fa-crossroads",
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update timeline failed: %d", resp.Code)
+	}
+
+	// Delete
+	resp = tc.del(fmt.Sprintf("/api/timeline/%d", eid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("delete timeline failed: %d", resp.Code)
+	}
+
+	tc.del(fmt.Sprintf("/api/campaigns/%d", cid), nil)
 }
 
 func TestCompendiumJSONSeed(t *testing.T) {

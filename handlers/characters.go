@@ -110,7 +110,7 @@ func GetCharacter(c *gin.Context) {
 			proficiency_bonus, inspiration, passive_perception,
 			death_saves_successes, death_saves_failures, concentrating_on,
 			personality_traits, ideals, bonds, flaws, appearance, backstory,
-			created_at, updated_at
+			portrait_url, created_at, updated_at
 		FROM characters WHERE id=?`, id).Scan(
 		&ch.ID, &ch.UserID, &ch.CampaignID, &ch.Name, &ch.Race, &ch.Class, &ch.Subclass, &ch.Level, &ch.XP,
 		&ch.Background, &ch.Alignment,
@@ -120,7 +120,7 @@ func GetCharacter(c *gin.Context) {
 		&ch.ProficiencyBonus, &ch.Inspiration, &ch.PassivePerception,
 		&ch.DeathSavesSuccesses, &ch.DeathSavesFailures, &ch.ConcentratingOn,
 		&ch.PersonalityTraits, &ch.Ideals, &ch.Bonds, &ch.Flaws, &ch.Appearance, &ch.Backstory,
-		&ch.CreatedAt, &ch.UpdatedAt)
+		&ch.PortraitURL, &ch.CreatedAt, &ch.UpdatedAt)
 	if err == sql.ErrNoRows {
 		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
 		return
@@ -143,6 +143,7 @@ func GetCharacter(c *gin.Context) {
 	ch.Spells = loadSpells(ch.ID)
 	ch.Inventory = loadInventory(ch.ID)
 	ch.Currency = loadCurrency(ch.ID)
+	ch.Classes = loadCharClasses(ch.ID)
 	computeMods(ch)
 
 	c.JSON(http.StatusOK, ch)
@@ -200,8 +201,8 @@ func CreateCharacter(c *gin.Context) {
 			hp_max, hp_current, temp_hp, hit_dice, hit_dice_current,
 			proficiency_bonus, inspiration, passive_perception,
 			death_saves_successes, death_saves_failures, concentrating_on,
-			personality_traits, ideals, bonds, flaws, appearance, backstory)
-		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+			personality_traits, ideals, bonds, flaws, appearance, backstory, portrait_url)
+		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		userID, campaignID,
 		ch.Name, ch.Race, ch.Class, ch.Subclass, ch.Level, ch.XP, ch.Background, ch.Alignment,
 		ch.Str, ch.Dex, ch.Con, ch.Int, ch.Wis, ch.Cha,
@@ -209,7 +210,7 @@ func CreateCharacter(c *gin.Context) {
 		ch.HPMax, ch.HPCurrent, ch.TempHP, ch.HitDice, ch.HitDiceCurrent,
 		ch.ProficiencyBonus, ch.Inspiration, ch.PassivePerception,
 		ch.DeathSavesSuccesses, ch.DeathSavesFailures, ch.ConcentratingOn,
-		ch.PersonalityTraits, ch.Ideals, ch.Bonds, ch.Flaws, ch.Appearance, ch.Backstory)
+		ch.PersonalityTraits, ch.Ideals, ch.Bonds, ch.Flaws, ch.Appearance, ch.Backstory, ch.PortraitURL)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -257,7 +258,7 @@ func UpdateCharacter(c *gin.Context) {
 			hp_max=?, hp_current=?, temp_hp=?, hit_dice=?, hit_dice_current=?,
 			proficiency_bonus=?, inspiration=?, passive_perception=?,
 			death_saves_successes=?, death_saves_failures=?, concentrating_on=?,
-			campaign_id=?,
+			campaign_id=?, portrait_url=?,
 			personality_traits=?, ideals=?, bonds=?, flaws=?, appearance=?, backstory=?,
 			updated_at=datetime('now')
 		WHERE id=?`,
@@ -267,7 +268,7 @@ func UpdateCharacter(c *gin.Context) {
 		ch.HPMax, ch.HPCurrent, ch.TempHP, ch.HitDice, ch.HitDiceCurrent,
 		ch.ProficiencyBonus, ch.Inspiration, ch.PassivePerception,
 		ch.DeathSavesSuccesses, ch.DeathSavesFailures, ch.ConcentratingOn,
-		ch.CampaignID,
+		ch.CampaignID, ch.PortraitURL,
 		ch.PersonalityTraits, ch.Ideals, ch.Bonds, ch.Flaws, ch.Appearance, ch.Backstory,
 		id)
 	if err != nil {
@@ -676,6 +677,109 @@ func loadCurrency(characterID int64) *models.Currency {
 		return nil
 	}
 	return cur
+}
+
+func loadCharClasses(characterID int64) []models.CharClass {
+	rows, err := db.DB.Query("SELECT id, character_id, class, subclass, level, hit_dice FROM character_classes WHERE character_id=? ORDER BY created_at", characterID)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	var out = make([]models.CharClass, 0)
+	for rows.Next() {
+		var cc models.CharClass
+		rows.Scan(&cc.ID, &cc.CharacterID, &cc.Class, &cc.Subclass, &cc.Level, &cc.HitDice)
+		out = append(out, cc)
+	}
+	return out
+}
+
+// ─── Multi-class handlers ───
+
+func CreateCharacterClass(c *gin.Context) {
+	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+
+	var ownerID int64
+	err := db.DB.QueryRow("SELECT user_id FROM characters WHERE id=?", charID).Scan(&ownerID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
+		return
+	}
+	if role != "admin" && ownerID != userID && !isDMOfCharacter(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+
+	var cc models.CharClass
+	if err := c.ShouldBindJSON(&cc); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if cc.Level < 1 {
+		cc.Level = 1
+	}
+	if cc.HitDice == "" {
+		cc.HitDice = "d10"
+	}
+
+	result, err := db.DB.Exec("INSERT INTO character_classes(character_id,class,subclass,level,hit_dice) VALUES(?,?,?,?,?)",
+		charID, cc.Class, cc.Subclass, cc.Level, cc.HitDice)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	cc.ID = id
+	cc.CharacterID = charID
+	c.JSON(http.StatusCreated, cc)
+}
+
+func UpdateCharacterClass(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("ccid"), 10, 64)
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+
+	var ownerID int64
+	var charID int64
+	err := db.DB.QueryRow("SELECT c.user_id, cc.character_id FROM character_classes cc JOIN characters c ON c.id=cc.character_id WHERE cc.id=?", id).Scan(&ownerID, &charID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "class not found"})
+		return
+	}
+	if role != "admin" && ownerID != userID && !isDMOfCharacter(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+
+	var cc models.CharClass
+	if err := c.ShouldBindJSON(&cc); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	db.DB.Exec("UPDATE character_classes SET class=?, subclass=?, level=?, hit_dice=? WHERE id=?",
+		cc.Class, cc.Subclass, cc.Level, cc.HitDice, id)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func DeleteCharacterClass(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("ccid"), 10, 64)
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+
+	var ownerID int64
+	err := db.DB.QueryRow("SELECT c.user_id FROM character_classes cc JOIN characters c ON c.id=cc.character_id WHERE cc.id=?", id).Scan(&ownerID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "class not found"})
+		return
+	}
+	if role != "admin" && ownerID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+	db.DB.Exec("DELETE FROM character_classes WHERE id=?", id)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 // Import
