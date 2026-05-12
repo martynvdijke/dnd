@@ -122,6 +122,11 @@ func buildRouter() *gin.Engine {
 		auth.POST("/campaigns", handlers.CreateCampaign)
 		auth.PUT("/campaigns/:id", handlers.UpdateCampaign)
 		auth.DELETE("/campaigns/:id", handlers.DeleteCampaign)
+		auth.GET("/campaigns/:id/members", handlers.ListCampaignMembers)
+		auth.POST("/campaigns/:id/members", handlers.AddCampaignMember)
+		auth.PUT("/campaigns/:id/members/:userId", handlers.SetCampaignMemberRole)
+		auth.DELETE("/campaigns/:id/members/:userId", handlers.RemoveCampaignMember)
+		auth.GET("/users/search", handlers.SearchUsers)
 		auth.POST("/characters/:id/rest", handlers.DoRest)
 		auth.POST("/characters/:id/levelup", handlers.LevelUp)
 		auth.GET("/party", handlers.GetPartyView)
@@ -2090,4 +2095,316 @@ func TestSpellcasting(t *testing.T) {
 	if resp.Code != 200 {
 		t.Fatalf("loot gen failed: %d", resp.Code)
 	}
+}
+
+// ─── Campaign Member Tests ───
+
+func TestCampaignMemberAddListRemove(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/admin/users", map[string]any{
+		"username": "playertest", "password": "testpass123", "role": "user", "display_name": "Player",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create player user failed: %d", resp.Code)
+	}
+
+	resp = tc.post("/api/campaigns", map[string]any{"name": "Member Campaign", "description": "Test"})
+	if resp.Code != 201 {
+		t.Fatalf("create campaign failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var camp map[string]any
+	readJSON(resp, &camp)
+	cid := int(camp["id"].(float64))
+
+	resp = tc.post(fmt.Sprintf("/api/campaigns/%d/members", cid), map[string]any{"username": "playertest"})
+	if resp.Code != 200 {
+		t.Fatalf("add member failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	resp = tc.get(fmt.Sprintf("/api/campaigns/%d/members", cid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("list members failed: %d", resp.Code)
+	}
+	var members []map[string]any
+	readJSON(resp, &members)
+	if len(members) < 2 {
+		t.Fatalf("expected at least 2 members (owner + player), got %d", len(members))
+	}
+	found := false
+	for _, m := range members {
+		if m["username"] == "playertest" {
+			found = true
+			if m["role"] != "player" {
+				t.Fatalf("expected role 'player', got %v", m["role"])
+			}
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("player member not found in campaign members list")
+	}
+
+	ownerFound := false
+	for _, m := range members {
+		if m["username"] == adminUser {
+			ownerFound = true
+			if m["role"] != "dm" {
+				t.Fatalf("expected owner role 'dm', got %v", m["role"])
+			}
+			break
+		}
+	}
+	if !ownerFound {
+		t.Fatalf("owner not found in campaign members")
+	}
+
+	targetID := 0
+	for _, m := range members {
+		if m["username"] == "playertest" {
+			targetID = int(m["user_id"].(float64))
+		}
+	}
+	if targetID == 0 {
+		t.Fatalf("could not find player user_id")
+	}
+	resp = tc.del(fmt.Sprintf("/api/campaigns/%d/members/%d", cid, targetID), nil)
+	if resp.Code != 200 {
+		t.Fatalf("remove member failed: %d", resp.Code)
+	}
+
+	resp = tc.get(fmt.Sprintf("/api/campaigns/%d/members", cid), nil)
+	readJSON(resp, &members)
+	if len(members) != 1 {
+		t.Fatalf("expected 1 member after removal, got %d", len(members))
+	}
+
+	tc.del(fmt.Sprintf("/api/campaigns/%d", cid), nil)
+	tc.del(fmt.Sprintf("/api/admin/users/%d", targetID), nil)
+}
+
+func TestCampaignDMRoleAllowsCharacterAccess(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/admin/users", map[string]any{
+		"username": "dmtestplayer", "password": "testpass123", "role": "user", "display_name": "DM Player",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create player failed: %d", resp.Code)
+	}
+	var userResp map[string]any
+	readJSON(resp, &userResp)
+	playerID := int(userResp["id"].(float64))
+
+	resp = tc.post("/api/admin/users", map[string]any{
+		"username": "codm", "password": "testpass123", "role": "user", "display_name": "Co-DM",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create co-dm failed: %d", resp.Code)
+	}
+	var coDMResp map[string]any
+	readJSON(resp, &coDMResp)
+	coDMID := int(coDMResp["id"].(float64))
+
+	resp = tc.post("/api/campaigns", map[string]any{"name": "DM Access Campaign", "description": "Test"})
+	if resp.Code != 201 {
+		t.Fatalf("create campaign failed: %d", resp.Code)
+	}
+	var camp map[string]any
+	readJSON(resp, &camp)
+	cid := int(camp["id"].(float64))
+
+	tc.post(fmt.Sprintf("/api/campaigns/%d/members", cid), map[string]any{"username": "dmtestplayer"})
+	tc.post(fmt.Sprintf("/api/campaigns/%d/members", cid), map[string]any{"username": "codm"})
+
+	resp = tc.put(fmt.Sprintf("/api/campaigns/%d/members/%d", cid, coDMID), map[string]any{"role": "dm"})
+	if resp.Code != 200 {
+		t.Fatalf("set co-dm role failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	resp = tc.get(fmt.Sprintf("/api/campaigns/%d/members", cid), nil)
+	var members []map[string]any
+	readJSON(resp, &members)
+	for _, m := range members {
+		if m["username"] == "codm" && m["role"] != "dm" {
+			t.Fatalf("expected co-dm role to be 'dm', got %v", m["role"])
+		}
+	}
+
+	login(t, tc, "dmtestplayer", "testpass123")
+	resp = tc.post("/api/characters", map[string]any{
+		"name": "PlayerChar", "race": "Human", "class": "Fighter",
+		"campaign_id": cid,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("player create char failed: %d", resp.Code)
+	}
+	var playerChar map[string]any
+	readJSON(resp, &playerChar)
+	playerCharID := int(playerChar["id"].(float64))
+
+	login(t, tc, "codm", "testpass123")
+	resp = tc.get(fmt.Sprintf("/api/characters/%d", playerCharID), nil)
+	if resp.Code != 200 {
+		t.Fatalf("co-DM cannot view player character: %d - %s", resp.Code, resp.Body.String())
+	}
+	var charData map[string]any
+	readJSON(resp, &charData)
+	if charData["name"] != "PlayerChar" {
+		t.Fatalf("expected 'PlayerChar', got %v", charData["name"])
+	}
+	t.Logf("Co-DM viewed player character: %s", charData["name"])
+
+	login(t, tc, adminUser, adminPass)
+
+	resp = tc.put(fmt.Sprintf("/api/campaigns/%d/members/%d", cid, coDMID), map[string]any{"role": "player"})
+	if resp.Code != 200 {
+		t.Fatalf("demote co-dm failed: %d", resp.Code)
+	}
+
+	login(t, tc, "codm", "testpass123")
+	resp = tc.get(fmt.Sprintf("/api/characters/%d", playerCharID), nil)
+	if resp.Code != 403 {
+		t.Fatalf("expected 403 for demoted user, got %d - %s", resp.Code, resp.Body.String())
+	}
+	t.Logf("Demoted user correctly denied (got %d)", resp.Code)
+
+	login(t, tc, adminUser, adminPass)
+	tc.del(fmt.Sprintf("/api/characters/%d", playerCharID), nil)
+	tc.del(fmt.Sprintf("/api/campaigns/%d", cid), nil)
+	tc.del(fmt.Sprintf("/api/admin/users/%d", playerID), nil)
+	tc.del(fmt.Sprintf("/api/admin/users/%d", coDMID), nil)
+}
+
+func TestUserSearch(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/admin/users", map[string]any{
+		"username": "searchableuser", "password": "testpass123", "role": "user",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create searchable user failed: %d", resp.Code)
+	}
+	var userResp map[string]any
+	readJSON(resp, &userResp)
+	uid := int(userResp["id"].(float64))
+
+	resp = tc.get("/api/users/search?q=searchableuser", nil)
+	if resp.Code != 200 {
+		t.Fatalf("user search failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var results []map[string]any
+	readJSON(resp, &results)
+	if len(results) == 0 {
+		t.Fatal("expected at least 1 search result")
+	}
+	if results[0]["username"] != "searchableuser" {
+		t.Fatalf("expected 'searchableuser', got %v", results[0]["username"])
+	}
+
+	resp = tc.get("/api/users/search?q=search", nil)
+	readJSON(resp, &results)
+	if len(results) == 0 {
+		t.Fatal("expected partial search results")
+	}
+
+	resp = tc.get("/api/users/search?q=", nil)
+	readJSON(resp, &results)
+	if len(results) != 0 {
+		t.Fatalf("expected empty for empty query, got %d", len(results))
+	}
+
+	resp = tc.get("/api/users/search?q=zzzznonexistent", nil)
+	readJSON(resp, &results)
+	if len(results) != 0 {
+		t.Fatalf("expected 0 for nonexistent, got %d", len(results))
+	}
+
+	tc.del(fmt.Sprintf("/api/admin/users/%d", uid), nil)
+}
+
+func TestDiceRollAdvantageDisadvantage(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/roll", map[string]any{
+		"expression": "1d20",
+		"advantage":  "advantage",
+	})
+	if resp.Code != 200 {
+		t.Fatalf("advantage roll failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var result map[string]any
+	readJSON(resp, &result)
+	breakdown := result["breakdown"].([]any)
+	rolls := breakdown[0].(map[string]any)["rolls"].([]any)
+	if len(rolls) != 2 {
+		t.Fatalf("expected 2 rolls for advantage, got %d", len(rolls))
+	}
+	total := int(result["total"].(float64))
+	r1, r2 := int(rolls[0].(float64)), int(rolls[1].(float64))
+	if total != max(r1, r2) {
+		t.Fatalf("advantage total %d should be max(%d,%d)=%d", total, r1, r2, max(r1, r2))
+	}
+	t.Logf("Advantage: [%d,%d] total=%d", r1, r2, total)
+
+	resp = tc.post("/api/roll", map[string]any{
+		"expression": "1d20",
+		"advantage":  "disadvantage",
+	})
+	if resp.Code != 200 {
+		t.Fatalf("disadvantage roll failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	readJSON(resp, &result)
+	breakdown = result["breakdown"].([]any)
+	rolls = breakdown[0].(map[string]any)["rolls"].([]any)
+	if len(rolls) != 2 {
+		t.Fatalf("expected 2 rolls for disadvantage, got %d", len(rolls))
+	}
+	total = int(result["total"].(float64))
+	r1, r2 = int(rolls[0].(float64)), int(rolls[1].(float64))
+	if total != min(r1, r2) {
+		t.Fatalf("disadvantage total %d should be min(%d,%d)=%d", total, r1, r2, min(r1, r2))
+	}
+	t.Logf("Disadvantage: [%d,%d] total=%d", r1, r2, total)
+
+	resp = tc.post("/api/roll", map[string]any{"expression": "1d20"})
+	if resp.Code != 200 {
+		t.Fatalf("normal roll failed: %d", resp.Code)
+	}
+	readJSON(resp, &result)
+	breakdown = result["breakdown"].([]any)
+	rolls = breakdown[0].(map[string]any)["rolls"].([]any)
+	if len(rolls) != 1 {
+		t.Fatalf("expected 1 roll for normal, got %d", len(rolls))
+	}
+	total = int(result["total"].(float64))
+	if total != int(rolls[0].(float64)) {
+		t.Fatalf("normal total %d != roll %d", total, int(rolls[0].(float64)))
+	}
+	t.Logf("Normal: %d", total)
+
+	resp = tc.post("/api/roll", map[string]any{
+		"expression": "1d20+5",
+		"advantage":  "advantage",
+	})
+	if resp.Code != 200 {
+		t.Fatalf("advantage+mod failed: %d", resp.Code)
+	}
+	readJSON(resp, &result)
+	breakdown = result["breakdown"].([]any)
+	if len(breakdown) != 2 {
+		t.Fatalf("expected 2 breakdown items for adv+mod, got %d", len(breakdown))
+	}
+	rolls = breakdown[0].(map[string]any)["rolls"].([]any)
+	chosen := int(breakdown[0].(map[string]any)["total"].(float64))
+	total = int(result["total"].(float64))
+	if total != chosen+5 {
+		t.Fatalf("adv+5 total %d != chosen %d + 5 = %d", total, chosen, chosen+5)
+	}
+	t.Logf("Advantage+5: rolls=[%d,%d] chosen=%d total=%d",
+		int(rolls[0].(float64)), int(rolls[1].(float64)), chosen, total)
 }

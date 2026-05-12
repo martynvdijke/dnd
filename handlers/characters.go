@@ -131,7 +131,7 @@ func GetCharacter(c *gin.Context) {
 	}
 
 	// Authorization
-	if role != "admin" && ch.UserID != userID {
+	if role != "admin" && ch.UserID != userID && !isDMOfCharacter(c, id) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -238,7 +238,7 @@ func UpdateCharacter(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
 		return
 	}
-	if role != "admin" && ownerID != userID {
+	if role != "admin" && ownerID != userID && !isDMOfCharacter(c, id) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -289,7 +289,7 @@ func DeleteCharacter(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
 		return
 	}
-	if role != "admin" && ownerID != userID {
+	if role != "admin" && ownerID != userID && !isDMOfCharacter(c, id) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -545,6 +545,19 @@ func characterToText(ch *models.Character) string {
 	return b.String()
 }
 
+func isDMOfCharacter(c *gin.Context, characterID int64) bool {
+	currentUID, _ := c.Get("user_id")
+	uid, _ := currentUID.(int64)
+	var campaignID *int64
+	db.DB.QueryRow("SELECT campaign_id FROM characters WHERE id=?", characterID).Scan(&campaignID)
+	if campaignID != nil {
+		var memberRole string
+		err := db.DB.QueryRow("SELECT role FROM campaign_members WHERE campaign_id=? AND user_id=?", *campaignID, uid).Scan(&memberRole)
+		return err == nil && memberRole == "dm"
+	}
+	return false
+}
+
 // checkCharacterAccess verifies the current user owns (or is admin/DM of) the given character
 func checkCharacterAccess(c *gin.Context, characterID int64) bool {
 	userID, _ := c.Get("user_id")
@@ -555,20 +568,7 @@ func checkCharacterAccess(c *gin.Context, characterID int64) bool {
 	if err != nil {
 		return false
 	}
-	if role == "admin" || ownerID == currentUID {
-		return true
-	}
-	// Check if current user is a DM in a campaign this character belongs to
-	var campaignID *int64
-	db.DB.QueryRow("SELECT campaign_id FROM characters WHERE id=?", characterID).Scan(&campaignID)
-	if campaignID != nil {
-		var memberRole string
-		err := db.DB.QueryRow("SELECT role FROM campaign_members WHERE campaign_id=? AND user_id=?", *campaignID, currentUID).Scan(&memberRole)
-		if err == nil && memberRole == "dm" {
-			return true
-		}
-	}
-	return false
+	return role == "admin" || ownerID == currentUID || isDMOfCharacter(c, characterID)
 }
 
 // Internal load helpers
