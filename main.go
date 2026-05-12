@@ -24,7 +24,11 @@ const Version = "1.0.0"
 func main() {
 	dbPath := os.Getenv("DB_PATH")
 	if dbPath == "" {
-		dbPath = "villum.db"
+		if os.Getenv("DOCKER") == "true" {
+			dbPath = "/db/villum.db"
+		} else {
+			dbPath = "villum.db"
+		}
 	}
 
 	if err := db.Init(dbPath); err != nil {
