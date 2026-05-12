@@ -3,7 +3,7 @@
   "version": "1.3.2",
   "private": true,
   "scripts": {
-    "test": "go test ./...",
+    "test": "go test -tags fts5 ./...",
     "test:e2e": "npx playwright test",
     "build:ts": "tsc && sed -i '/^export {};/d' static/js/*.js",
     "watch:ts": "tsc --watch"

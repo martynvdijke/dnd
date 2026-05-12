@@ -2072,29 +2072,41 @@ func TestSpellcasting(t *testing.T) {
 	tc := newTestClient()
 	setupAdmin(t, tc)
 
-	gens := []string{"/api/generate/npc", "/api/generate/name", "/api/generate/encounter", "/api/generate/loot"}
-	for _, g := range gens {
-		t.Run(g, func(t *testing.T) {
-			resp := tc.get(g, nil)
-			if resp.Code != 200 {
-				t.Fatalf("%s failed: %d", g, resp.Code)
-			}
-		})
+	resp := tc.post("/api/characters", map[string]any{
+		"name": "Spellcaster", "race": "Elf", "class": "Wizard",
+		"int": 18, "level": 5,
+	})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	resp = tc.put(fmt.Sprintf("/api/characters/%d/spellcasting", cid), map[string]any{
+		"ability": "int", "save_dc": 15, "attack_bonus": 7,
+		"slots_1_max": 4, "slots_1_used": 2,
+		"slots_2_max": 3, "slots_2_used": 1,
+		"slots_3_max": 2, "slots_3_used": 0,
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update spellcasting failed: %d", resp.Code)
 	}
 
-	// With filters
-	resp := tc.get("/api/generate/name?race=dwarf", nil)
-	if resp.Code != 200 {
-		t.Fatalf("dwarf name gen failed: %d", resp.Code)
+	resp = tc.get(fmt.Sprintf("/api/characters/%d", cid), nil)
+	readJSON(resp, &char)
+	sc := char["spellcasting"].(map[string]any)
+	if int(sc["slots_1_max"].(float64)) != 4 {
+		t.Fatalf("expected slots_1_max=4, got %v", sc["slots_1_max"])
 	}
-	resp = tc.get("/api/generate/encounter?terrain=forest&level=5", nil)
-	if resp.Code != 200 {
-		t.Fatalf("forest encounter gen failed: %d", resp.Code)
+	if int(sc["slots_1_used"].(float64)) != 2 {
+		t.Fatalf("expected slots_1_used=2, got %v", sc["slots_1_used"])
 	}
-	resp = tc.get("/api/generate/loot?cr=5-10", nil)
-	if resp.Code != 200 {
-		t.Fatalf("loot gen failed: %d", resp.Code)
+	if int(sc["slots_3_max"].(float64)) != 2 {
+		t.Fatalf("expected slots_3_max=2, got %v", sc["slots_3_max"])
 	}
+	if int(char["spell_save_dc"].(float64)) != 15 {
+		t.Fatalf("expected spell_save_dc 15, got %v", char["spell_save_dc"])
+	}
+	t.Logf("Spellcasting: save_dc=%v, attack_bonus=%v, slots=%+v",
+		char["spell_save_dc"], char["spell_attack_bonus"], sc)
 }
 
 // ─── Campaign Member Tests ───
