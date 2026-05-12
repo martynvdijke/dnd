@@ -17,6 +17,10 @@ test.describe('Responsive design', () => {
     await page.fill('#password', 'testpassword123');
     await page.click('button[type="submit"]');
     await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => {
+      const o = document.getElementById('loadingOverlay');
+      return o && o.classList.contains('d-none');
+    }, { timeout: 5000 }).catch(() => {});
   });
 
   test('desktop layout works at 1280x720', async ({ page }) => {

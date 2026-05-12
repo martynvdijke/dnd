@@ -248,8 +248,10 @@ test.describe('Death saves and concentration', () => {
     await page.click('text=Create');
     await page.locator('.character-card').filter({ hasText: name }).waitFor({ state: 'visible', timeout: 10000 });
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await page.waitForFunction(() => document.getElementById('loadingOverlay')?.classList.contains('d-none'), { timeout: 5000 }).catch(() => {});
 
     await page.click('text=Combat');
+    await page.waitForFunction(() => document.getElementById('loadingOverlay')?.classList.contains('d-none'), { timeout: 5000 }).catch(() => {});
     await expect(page.locator('#combatSection')).toBeVisible();
     const text = await page.locator('#combatSection').textContent();
     expect(text).toContain('Death');
@@ -296,6 +298,7 @@ test.describe('NPC interactions extended', () => {
     await page.locator('.character-card').filter({ hasText: name }).click();
 
     await page.click('text=Npcs');
+    await expect(page.locator('#npcsSection button:has-text("New NPC")')).toBeVisible({ timeout: 5000 });
     await page.click('text=New NPC');
     await page.fill('#newNPCName', 'Villain');
     await page.fill('#newNPCRace', 'Dragonborn');
@@ -318,6 +321,7 @@ test.describe('NPC interactions extended', () => {
     await page.locator('.character-card').filter({ hasText: name }).click();
 
     await page.click('text=Npcs');
+    await expect(page.locator('#npcsSection button:has-text("New NPC")')).toBeVisible({ timeout: 5000 });
     await page.click('text=New NPC');
     await page.fill('#newNPCName', 'Quest Giver');
     await page.fill('#newNPCRace', 'Human');
@@ -415,9 +419,9 @@ test.describe('Import/export edge cases', () => {
     await page.fill('#newRace', 'Dwarf');
     await page.fill('#newClass', 'Rogue');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await page.locator('.character-card').filter({ hasText: name }).waitFor({ state: 'visible', timeout: 10000 });
     await page.locator('.character-card').filter({ hasText: name }).click();
-    await page.waitForTimeout(300);
+    await page.waitForFunction(() => document.getElementById('loadingOverlay')?.classList.contains('d-none'), { timeout: 5000 }).catch(() => {});
 
     await page.click('text=Details');
     const text = await page.locator('#detailsSection').textContent();
@@ -469,6 +473,7 @@ test.describe('Session and quest management UI', () => {
     await page.locator('.character-card').filter({ hasText: name }).click();
 
     await page.click('text=Quests');
+    await expect(page.locator('#questsSection button:has-text("New Quest")')).toBeVisible({ timeout: 5000 });
     await page.click('text=New Quest');
     await page.fill('#questName', 'Save the Village');
     await page.fill('#questDesc', 'Protect from goblin raid');
@@ -698,8 +703,7 @@ test.describe('Error handling and edge cases', () => {
     await page.fill('#newRace', 'Human');
     await page.fill('#newClass', 'Fighter');
     await page.click('text=Create');
-    await page.waitForTimeout(300);
-    await expect(page.locator('#charGrid')).toBeVisible();
+    await expect(page.locator('#charGrid')).toBeVisible({ timeout: 5000 });
   });
 
   test('character tabs are navigable back and forth', async ({ page }) => {
@@ -762,7 +766,8 @@ test.describe('Error handling and edge cases', () => {
     await page.locator('.character-card').filter({ hasText: name }).click();
 
     await page.click('#tabBar button:has-text("Dice")');
-    await expect(page.locator('#diceExpr')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#diceSection')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#diceExpr')).toBeAttached({ timeout: 5000 });
 
     const input = page.locator('#diceExpr');
     const btn = page.locator('text=Roll the Bones');

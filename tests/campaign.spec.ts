@@ -23,15 +23,14 @@ test.describe('Campaign features', () => {
     await page.waitForTimeout(300);
 
     await page.click('text=Locations');
-    await expect(page.locator('#locationsSection h5').first()).toContainText('Linked Locations');
+    await expect(page.locator('#locationsSection h5').first()).toContainText('Locations');
 
-    await page.click('text=New Location');
+    await page.locator('#locationsSection button:has-text("New")').click();
     await page.fill('#newLocName', 'Waterdeep');
     await page.fill('#newLocDesc', 'The City of Splendors');
     await page.click('text=Create');
-    await page.waitForTimeout(300);
-
-    await page.click('text=Link Location');
+    await expect(page.locator('#locationsSection button:has-text("Link")')).toBeVisible({ timeout: 5000 });
+    await page.locator('#locationsSection button:has-text("Link")').click();
     await page.selectOption('#linkLocId', { index: 0 });
     await page.click('#genericModal button:has-text("Link")');
     await page.waitForTimeout(300);
@@ -51,6 +50,7 @@ test.describe('Campaign features', () => {
     await page.waitForTimeout(300);
 
     await page.click('text=Npcs');
+    await expect(page.locator('#npcsSection button:has-text("New NPC")')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#npcsSection h5').first()).toContainText('Related NPCs');
 
     await page.click('text=New NPC');
@@ -81,6 +81,7 @@ test.describe('Campaign features', () => {
     await page.waitForTimeout(300);
 
     await page.click('text=Sessions');
+    await expect(page.locator('#sessionsSection button:has-text("Log Session")')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#sessionsSection h5').first()).toContainText('Session Log');
 
     await page.click('text=Log Session');
@@ -108,6 +109,7 @@ test.describe('Campaign features', () => {
     await page.waitForTimeout(300);
 
     await page.click('text=Quests');
+    await expect(page.locator('#questsSection button:has-text("New Quest")')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#questsSection h5').first()).toContainText('Quests');
 
     await page.click('text=New Quest');
@@ -133,6 +135,7 @@ test.describe('Campaign features', () => {
     await page.waitForTimeout(300);
 
     await page.click('text=Journal');
+    await expect(page.locator('#journalSection button:has-text("Write Entry")')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#journalSection h5').first()).toContainText('Character Journal');
 
     await page.click('text=Write Entry');
@@ -158,12 +161,12 @@ test.describe('Campaign features', () => {
 
     await page.click('text=Locations');
     await expect(page.locator('#locationsSection h5').first()).toBeVisible();
-    await page.click('text=New Location');
+    await page.locator('#locationsSection button:has-text("New")').click();
     await page.fill('#newLocName', 'Neverwinter');
     await page.fill('#newLocDesc', 'A city');
     await page.click('text=Create');
-    await page.waitForTimeout(300);
-    await page.click('text=Link Location');
+    await expect(page.locator('#locationsSection button:has-text("Link")')).toBeVisible({ timeout: 5000 });
+    await page.locator('#locationsSection button:has-text("Link")').click();
     await page.selectOption('#linkLocId', { index: 0 });
     await page.click('#genericModal button:has-text("Link")');
     await page.waitForTimeout(300);

@@ -943,6 +943,20 @@ kbd {
   color: var(--ink) !important;
 }
 
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.4);
+}
+.loading-overlay.d-none {
+  display: none !important;
+  pointer-events: none !important;
+}
+
 @media (max-width: 768px) {
   #locSidebar { max-height: 250px !important; border-right: none !important; border-bottom: 1px solid var(--border) !important; }
   #locMapContainer { min-height: 300px !important; }
