@@ -581,7 +581,7 @@ func TestCampaigns(t *testing.T) {
 
 	// Create
 	resp := tc.post("/api/campaigns", map[string]any{
-		"name": "Curse of Strahd", "description": "Ravenloft campaign",
+		"name": "Curse of Strahd", "party_name": "The Dawnbringers", "description": "Ravenloft campaign",
 	})
 	if resp.Code != 201 {
 		t.Fatalf("create campaign failed: %d - %s", resp.Code, resp.Body.String())
@@ -595,13 +595,43 @@ func TestCampaigns(t *testing.T) {
 	if resp.Code != 200 {
 		t.Fatalf("list failed: %d", resp.Code)
 	}
+	var camps []map[string]any
+	readJSON(resp, &camps)
+	found := false
+	for _, c := range camps {
+		if int(c["id"].(float64)) == cid {
+			found = true
+			if c["party_name"].(string) != "The Dawnbringers" {
+				t.Fatalf("expected party_name 'The Dawnbringers', got %q", c["party_name"])
+			}
+			break
+		}
+	}
+	if !found {
+		t.Fatal("created campaign not found in list")
+	}
 
 	// Update
 	resp = tc.put(fmt.Sprintf("/api/campaigns/%d", cid), map[string]any{
-		"name": "Curse of Strahd Revised", "description": "Updated campaign",
+		"name": "Curse of Strahd Revised", "party_name": "The Dawnslingers", "description": "Updated campaign",
 	})
 	if resp.Code != 200 {
 		t.Fatalf("update failed: %d", resp.Code)
+	}
+
+	// Verify update persisted
+	resp = tc.get("/api/campaigns", nil)
+	if resp.Code != 200 {
+		t.Fatalf("list after update failed: %d", resp.Code)
+	}
+	readJSON(resp, &camps)
+	for _, c := range camps {
+		if int(c["id"].(float64)) == cid {
+			if c["party_name"].(string) != "The Dawnslingers" {
+				t.Fatalf("expected party_name 'The Dawnslingers' after update, got %q", c["party_name"])
+			}
+			break
+		}
 	}
 
 	// Create character in campaign
@@ -773,11 +803,22 @@ func TestPartyView(t *testing.T) {
 	tc := newTestClient()
 	setupAdmin(t, tc)
 
-	// Create a couple characters
-	tc.post("/api/characters", map[string]any{"name": "Party Hero 1", "race": "Human", "class": "Fighter", "hp_max": 30, "hp_current": 25})
-	tc.post("/api/characters", map[string]any{"name": "Party Hero 2", "race": "Elf", "class": "Wizard", "hp_max": 20, "hp_current": 20})
+	// Create a campaign with party name
+	resp := tc.post("/api/campaigns", map[string]any{
+		"name": "Test Campaign", "party_name": "Test Party",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create campaign failed: %d", resp.Code)
+	}
+	var camp map[string]any
+	readJSON(resp, &camp)
+	cid := int(camp["id"].(float64))
 
-	resp := tc.get("/api/party", nil)
+	// Create characters assigned to campaign
+	tc.post("/api/characters", map[string]any{"name": "Party Hero 1", "race": "Human", "class": "Fighter", "hp_max": 30, "hp_current": 25, "campaign_id": cid})
+	tc.post("/api/characters", map[string]any{"name": "Party Hero 2", "race": "Elf", "class": "Wizard", "hp_max": 20, "hp_current": 20, "campaign_id": cid})
+
+	resp = tc.get("/api/party", nil)
 	if resp.Code != 200 {
 		t.Fatalf("party view failed: %d - %s", resp.Code, resp.Body.String())
 	}
@@ -786,10 +827,14 @@ func TestPartyView(t *testing.T) {
 	if len(groups) < 1 {
 		t.Fatalf("expected at least 1 party group, got %d", len(groups))
 	}
-	// Check members exist
+	// Check party name appears and matches
 	found := false
+	partyNameFound := false
 	for _, g := range groups {
 		gm := g.(map[string]any)
+		if gm["party_name"] == "Test Party" {
+			partyNameFound = true
+		}
 		members := gm["members"].([]any)
 		for _, m := range members {
 			mm := m.(map[string]any)
@@ -797,6 +842,9 @@ func TestPartyView(t *testing.T) {
 				found = true
 			}
 		}
+	}
+	if !partyNameFound {
+		t.Fatal("expected party_name 'Test Party' in party view")
 	}
 	if !found {
 		t.Fatal("expected Party Hero 1 in party view")

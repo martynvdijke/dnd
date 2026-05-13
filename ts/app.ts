@@ -2110,15 +2110,18 @@ async function loadDiceHistory() {
         const own = g.id ? isOwner(g.id) : false;
         const dm = g.id ? isDm(g.id) : false;
         const canOpen = (userId: number) => userId === currentUser?.id || currentUser?.role === 'admin' || dm;
+        const partyLabel = g.party_name ? esc(g.party_name) : esc(g.name || 'Unnamed Campaign');
+        const subLabel = g.party_name ? `<span class="small text-muted ms-2">Campaign: ${esc(g.name)}</span>` : '';
         return `<div class="card mb-3">
           <div class="card-header d-flex justify-content-between align-items-center">
             <div>
-              <strong>${esc(g.name || 'Unnamed Campaign')}</strong>
+              <strong>${partyLabel}</strong>
+              ${subLabel}
               ${g.owner_name ? `<span class="ms-2 small text-muted">DM: ${esc(g.owner_name)}</span>` : ''}
             </div>
             <div class="d-flex align-items-center gap-2">
               <span class="badge badge-gold">${g.members.length} members</span>
-              ${g.id && (own || dm) ? `<button class="btn btn-outline-primary btn-sm" onclick="showManageCampaign(${g.id},'${esc(g.name)}')"><i class="fa-solid fa-users-gear"></i></button>` : ''}
+              ${g.id && (own || dm) ? `<button class="btn btn-outline-primary btn-sm" onclick="showManageCampaign(${g.id},'${esc(g.name)}','${esc(g.party_name || '')}')"><i class="fa-solid fa-users-gear"></i></button>` : ''}
               ${g.id && own ? `<button class="btn btn-outline-danger btn-sm" onclick="deleteCampaign(${g.id})"><i class="fa-solid fa-trash"></i></button>` : ''}
             </div>
           </div>
@@ -2154,6 +2157,7 @@ async function loadDiceHistory() {
 (window as any).showCreateCampaign = function () {
   showModal('Create Campaign', `
     <div class="mb-3"><label class="form-label">Campaign Name</label><input class="form-control" id="newCampaignName"></div>
+    <div class="mb-3"><label class="form-label">Party Name</label><input class="form-control" id="newPartyName" placeholder="e.g. The Dawnbringers"></div>
     <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="newCampaignDesc" rows="2"></textarea></div>
     <button class="btn btn-primary w-100" onclick="doCreateCampaign()">Create</button>
   `);
@@ -2163,7 +2167,8 @@ async function loadDiceHistory() {
   try {
     const name = (document.getElementById('newCampaignName') as HTMLInputElement).value;
     if (!name) { toast('Name required', true); return; }
-    await api('POST', '/api/campaigns', { name, description: (document.getElementById('newCampaignDesc') as HTMLTextAreaElement).value });
+    const partyName = (document.getElementById('newPartyName') as HTMLInputElement).value;
+    await api('POST', '/api/campaigns', { name, party_name: partyName, description: (document.getElementById('newCampaignDesc') as HTMLTextAreaElement).value });
     hideModal();
     toast('Campaign created');
     (window as any).showParty();
@@ -2172,32 +2177,40 @@ async function loadDiceHistory() {
   }
 };
 
-(window as any).showManageCampaign = async function (campaignId: number, name: string) {
-  let membersHtml = '<p class="text-muted">Loading members...</p>';
-  try {
-    const members = await api('GET', `/api/campaigns/${campaignId}/members`);
-    membersHtml = members.length
-      ? `<ul class="list-group mb-3">${members.map((m: any) => {
-          const isDmMember = m.role === 'dm';
-          return `<li class="list-group-item d-flex justify-content-between align-items-center">
-            <span>
-              <i class="fa-solid ${isDmMember ? 'fa-crown text-gold' : 'fa-user'} me-2"></i>
-              ${esc(m.username)}
-              ${isDmMember ? '<span class="badge badge-gold ms-2">DM</span>' : ''}
-            </span>
-            <div class="d-flex gap-1">
-              ${m.username !== currentUser?.username ? `
-                <button class="btn btn-sm ${isDmMember ? 'btn-outline-secondary' : 'btn-outline-gold'}" onclick="doToggleDm(${campaignId}, ${m.user_id}, '${isDmMember ? 'player' : 'dm'}')" title="${isDmMember ? 'Remove DM' : 'Make DM'}">
-                  <i class="fa-solid ${isDmMember ? 'fa-user' : 'fa-crown'}"></i>
-                </button>
-                <button class="btn btn-outline-danger btn-sm" onclick="doRemoveMember(${campaignId}, ${m.user_id})"><i class="fa-solid fa-xmark"></i></button>
-              ` : '<span class="text-muted small">(you)</span>'}
-            </div>
-          </li>`;
-        }).join('')}</ul>`
-      : '<p class="text-muted mb-3">No members yet. Add players by username.</p>';
-  } catch {}
+(window as any).showManageCampaign = async function (campaignId: number, name: string, partyName: string = '') {
+  const [campaigns, members] = await Promise.all([
+    api('GET', '/api/campaigns'),
+    api('GET', `/api/campaigns/${campaignId}/members`).catch(() => []),
+  ]);
+  const c = campaigns.find((x: any) => x.id === campaignId);
+  const curPartyName = (c && c.party_name) || partyName;
+  const curDesc = (c && c.description) || '';
+  const membersHtml = members.length
+    ? `<ul class="list-group mb-3">${members.map((m: any) => {
+        const isDmMember = m.role === 'dm';
+        return `<li class="list-group-item d-flex justify-content-between align-items-center">
+          <span>
+            <i class="fa-solid ${isDmMember ? 'fa-crown text-gold' : 'fa-user'} me-2"></i>
+            ${esc(m.username)}
+            ${isDmMember ? '<span class="badge badge-gold ms-2">DM</span>' : ''}
+          </span>
+          <div class="d-flex gap-1">
+            ${m.username !== currentUser?.username ? `
+              <button class="btn btn-sm ${isDmMember ? 'btn-outline-secondary' : 'btn-outline-gold'}" onclick="doToggleDm(${campaignId}, ${m.user_id}, '${isDmMember ? 'player' : 'dm'}')" title="${isDmMember ? 'Remove DM' : 'Make DM'}">
+                <i class="fa-solid ${isDmMember ? 'fa-user' : 'fa-crown'}"></i>
+              </button>
+              <button class="btn btn-outline-danger btn-sm" onclick="doRemoveMember(${campaignId}, ${m.user_id})"><i class="fa-solid fa-xmark"></i></button>
+            ` : '<span class="text-muted small">(you)</span>'}
+          </div>
+        </li>`;
+      }).join('')}</ul>`
+    : '<p class="text-muted mb-3">No members yet. Add players by username.</p>';
   showModal(`Manage: ${esc(name)}`, `
+    <div class="mb-2"><label class="form-label small">Campaign Name</label><input class="form-control" id="editCampaignName" value="${esc(name)}"></div>
+    <div class="mb-2"><label class="form-label small">Party Name</label><input class="form-control" id="editPartyName" value="${esc(curPartyName)}" placeholder="e.g. The Dawnbringers"></div>
+    <div class="mb-3"><label class="form-label small">Description</label><textarea class="form-control" id="editCampaignDesc" rows="2">${esc(curDesc)}</textarea></div>
+    <button class="btn btn-gold w-100 mb-3" onclick="doUpdateCampaign(${campaignId})"><i class="fa-solid fa-floppy-disk me-1"></i>Save Settings</button>
+    <hr>
     ${membersHtml}
     <div class="input-group mb-3">
       <input class="form-control" id="addMemberUsername" placeholder="Username to add">
@@ -2209,6 +2222,21 @@ async function loadDiceHistory() {
   const input = document.getElementById('addMemberUsername') as HTMLInputElement;
   if (input) {
     input.addEventListener('input', () => searchUsers(input.value));
+  }
+};
+
+(window as any).doUpdateCampaign = async function (campaignId: number) {
+  try {
+    const name = (document.getElementById('editCampaignName') as HTMLInputElement).value;
+    if (!name) { toast('Name required', true); return; }
+    const partyName = (document.getElementById('editPartyName') as HTMLInputElement).value;
+    const description = (document.getElementById('editCampaignDesc') as HTMLTextAreaElement).value;
+    await api('PUT', `/api/campaigns/${campaignId}`, { name, party_name: partyName, description });
+    toast('Campaign updated');
+    (window as any).showParty();
+    hideModal();
+  } catch (e: any) {
+    toast(e.message, true);
   }
 };
 

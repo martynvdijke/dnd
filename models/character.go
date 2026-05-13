@@ -267,6 +267,7 @@ type Campaign struct {
 	ID          int64  `json:"id"`
 	UserID      int64  `json:"user_id"`
 	Name        string `json:"name"`
+	PartyName   string `json:"party_name"`
 	Description string `json:"description"`
 	DMNotes     string `json:"dm_notes"`
 	CreatedAt   string `json:"created_at"`

@@ -21,6 +21,7 @@ type CampaignMemberResponse struct {
 type CampaignGroup struct {
 	ID        int64         `json:"id"`
 	Name      string        `json:"name"`
+	PartyName string        `json:"party_name"`
 	OwnerName string        `json:"owner_name"`
 	Members   []PartyMember `json:"members"`
 }
@@ -775,18 +776,20 @@ func GetPartyView(c *gin.Context) {
 
 	// Get campaign names and owner info
 	campNames := make(map[int64]string)
+	campPartyNames := make(map[int64]string)
 	campOwners := make(map[int64]string)
 	for cid := range campaigns {
-		var name, ownerName string
+		var name, partyName, ownerName string
 		var ownerID int64
-		db.DB.QueryRow("SELECT c.name, u.username, c.user_id FROM campaigns c JOIN users u ON u.id=c.user_id WHERE c.id=?", cid).Scan(&name, &ownerName, &ownerID)
+		db.DB.QueryRow("SELECT c.name, c.party_name, u.username, c.user_id FROM campaigns c JOIN users u ON u.id=c.user_id WHERE c.id=?", cid).Scan(&name, &partyName, &ownerName, &ownerID)
 		campNames[cid] = name
+		campPartyNames[cid] = partyName
 		campOwners[cid] = ownerName
 	}
 
 	var groups []CampaignGroup
 	for cid, members := range campaigns {
-		groups = append(groups, CampaignGroup{ID: cid, Name: campNames[cid], OwnerName: campOwners[cid], Members: members})
+		groups = append(groups, CampaignGroup{ID: cid, Name: campNames[cid], PartyName: campPartyNames[cid], OwnerName: campOwners[cid], Members: members})
 	}
 	if len(uncategorized) > 0 {
 		groups = append(groups, CampaignGroup{Name: "Uncategorized", Members: uncategorized})
@@ -819,7 +822,7 @@ func ListCampaigns(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	currentUID := userID.(int64)
 	rows, err := db.DB.Query(`
-		SELECT c.id,c.user_id,c.name,c.description,c.dm_notes,c.created_at,
+		SELECT c.id,c.user_id,c.name,c.party_name,c.description,c.dm_notes,c.created_at,
 			COALESCE(cm.role, 'dm') as my_role
 		FROM campaigns c
 		LEFT JOIN campaign_members cm ON cm.campaign_id = c.id AND cm.user_id=?
@@ -839,7 +842,7 @@ func ListCampaigns(c *gin.Context) {
 	for rows.Next() {
 		var ca models.Campaign
 		var myRole string
-		rows.Scan(&ca.ID, &ca.UserID, &ca.Name, &ca.Description, &ca.DMNotes, &ca.CreatedAt, &myRole)
+		rows.Scan(&ca.ID, &ca.UserID, &ca.Name, &ca.PartyName, &ca.Description, &ca.DMNotes, &ca.CreatedAt, &myRole)
 		out = append(out, CampaignWithRole{Campaign: ca, MyRole: myRole})
 	}
 	c.JSON(http.StatusOK, out)
@@ -852,8 +855,8 @@ func CreateCampaign(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	result, err := db.DB.Exec("INSERT INTO campaigns(user_id,name,description,dm_notes) VALUES(?,?,?,?)",
-		userID, ca.Name, ca.Description, ca.DMNotes)
+	result, err := db.DB.Exec("INSERT INTO campaigns(user_id,name,party_name,description,dm_notes) VALUES(?,?,?,?,?)",
+		userID, ca.Name, ca.PartyName, ca.Description, ca.DMNotes)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -883,7 +886,7 @@ func UpdateCampaign(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	db.DB.Exec("UPDATE campaigns SET name=?,description=?,dm_notes=? WHERE id=?", ca.Name, ca.Description, ca.DMNotes, id)
+	db.DB.Exec("UPDATE campaigns SET name=?,party_name=?,description=?,dm_notes=? WHERE id=?", ca.Name, ca.PartyName, ca.Description, ca.DMNotes, id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 

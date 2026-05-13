@@ -658,6 +658,12 @@ CREATE INDEX IF NOT EXISTS idx_faction_rep_faction ON faction_reputation(faction
 CREATE INDEX IF NOT EXISTS idx_notes_char ON character_notes(character_id);
 `,
 	},
+	{
+		version: 14,
+		sql: `
+ALTER TABLE campaigns ADD COLUMN party_name TEXT NOT NULL DEFAULT '';
+`,
+	},
 }
 
 func Migrate() error {
