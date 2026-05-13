@@ -1,3 +1,15 @@
+# [1.7.0](https://github.com/martynvdijke/dnd/compare/v1.6.0...v1.7.0) (2026-05-13)
+
+
+### Bug Fixes
+
+* update release prepareCmd to also update Version in main.go ([4b87eee](https://github.com/martynvdijke/dnd/commit/4b87eeeb64dee8a3a46b1b5b65866a976b440b37))
+
+
+### Features
+
+* add WebSocket live updates, feat edit, auto-calc proficiency/perception/spell DC ([a0e4dcb](https://github.com/martynvdijke/dnd/commit/a0e4dcb42bc4d0ca54e0d241db8513bb84525a8a))
+
 # [1.6.0](https://github.com/martynvdijke/dnd/compare/v1.5.1...v1.6.0) (2026-05-13)
 
 
