@@ -249,6 +249,7 @@ function hideLoading() {
 // ─── API ───
 
 async function api(method: string, path: string, body?: any): Promise<any> {
+(window as any).api = api;
   showLoading();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
@@ -446,7 +447,7 @@ async function openChar(id: number) {
 
 // ─── Character Sheet ───
 
-const sections = ['stats', 'combat', 'spells', 'inventory', 'features', 'feats', 'companions', 'locations', 'npcs', 'sessions', 'quests', 'journal', 'notes', 'graph', 'analytics', 'details', 'dice'];
+const sections = ['stats', 'combat', 'spells', 'inventory', 'features', 'feats', 'companions', 'crafting', 'locations', 'npcs', 'sessions', 'quests', 'journal', 'notes', 'graph', 'analytics', 'details', 'dice'];
 
 function renderSheet() {
   if (!currentChar) return;
@@ -485,6 +486,7 @@ function renderSheet() {
   if (currentTab === 'analytics') renderAnalytics();
   if (currentTab === 'feats') renderFeats();
   if (currentTab === 'companions') renderCompanions();
+  if (currentTab === 'crafting') renderCrafting();
   if (currentTab === 'notes') renderNotes();
   renderDetails();
   renderDiceTab();
@@ -3867,6 +3869,172 @@ async function loadConditionBadges() {
     }).join('') + '</div>';
   } catch {}
 }
+
+// ─── Crafting ───
+
+async function renderCrafting() {
+  const el = document.getElementById('craftingSection')!;
+  if (!currentChar) return;
+  try {
+    const [recipes, projects] = await Promise.all([
+      api('GET', '/api/crafting/recipes'),
+      api('GET', `/api/characters/${currentChar.id}/crafting`),
+    ]);
+
+    let html = `<div class="d-flex justify-content-between align-items-center"><h5>Crafting</h5>
+      <button class="btn btn-primary btn-sm" onclick="showStartCrafting()"><i class="fa-solid fa-hammer me-1"></i>Start Crafting</button>
+    </div>`;
+
+    // Active projects
+    const active = projects.filter((p: any) => p.status === 'in-progress');
+    if (active.length > 0) {
+      html += `<h6 class="mt-3 text-muted">In Progress</h6>`;
+      for (const p of active) {
+        const pct = p.total_hours_required > 0 ? Math.min(100, Math.round((p.progress_hours / p.total_hours_required) * 100)) : 0;
+        html += `<div class="card mb-2">
+          <div class="card-body py-2 px-3">
+            <div class="d-flex justify-content-between align-items-start">
+              <div><span class="fw-bold">${esc(p.name)}</span>
+                <span class="badge badge-gold ms-1">DC ${p.dc}</span>
+                <span class="badge badge-muted ms-1">${p.progress_hours}/${p.total_hours_required}h</span>
+              </div>
+              <div class="d-flex gap-1">
+                <button class="btn btn-sm btn-outline-primary" onclick="advanceCrafting(${p.id})" title="Advance 1 hour"><i class="fa-solid fa-forward"></i></button>
+                <button class="btn btn-sm btn-outline-success" onclick="completeCrafting(${p.id})" title="Complete"><i class="fa-solid fa-check"></i></button>
+                <button class="btn btn-sm btn-outline-danger" onclick="abandonCrafting(${p.id})" title="Abandon"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+            </div>
+            <div class="hp-bar mt-1" style="height:4px"><div class="hp-bar-fill" style="width:${pct}%;height:100%;background:var(--gold)"></div></div>
+          </div>
+        </div>`;
+      }
+    }
+
+    // Completed projects
+    const done = projects.filter((p: any) => p.status === 'complete');
+    if (done.length > 0) {
+      html += `<h6 class="mt-3 text-muted">Completed</h6>`;
+      for (const p of done) {
+        html += `<div class="card mb-1"><div class="card-body py-1 px-3 small text-muted">
+          <i class="fa-solid fa-check-circle text-success me-1"></i>${esc(p.name)}
+        </div></div>`;
+      }
+    }
+
+    // Recipes
+    html += `<h6 class="mt-3 text-muted">Known Recipes (${recipes.length})</h6>
+      <div class="row g-2">`;
+    for (const r of recipes) {
+      html += `<div class="col-md-6"><div class="card">
+        <div class="card-body py-2 px-3">
+          <div class="d-flex justify-content-between">
+            <span class="fw-bold small">${esc(r.name)}</span>
+            <span class="badge ${r.category === 'potion' ? 'badge-blood' : r.category === 'scroll' ? 'badge-gold' : 'badge-muted'}" style="font-size:0.6rem">${r.category}</span>
+          </div>
+          <div class="small text-muted">${esc(r.description)}</div>
+          <div class="small mt-1"><span class="text-muted">DC ${r.difficulty_dc}</span> · <span class="text-muted">${r.crafting_time_hours}h</span></div>
+          <div class="mt-1"><button class="btn btn-sm btn-outline-gold py-0 px-1" style="font-size:0.65rem" onclick="startRecipe(${r.id})">Craft</button></div>
+        </div>
+      </div></div>`;
+    }
+    html += `</div>`;
+
+    el.innerHTML = html;
+  } catch (e: any) {
+    el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(e.message)}</p></div>`;
+  }
+}
+
+(window as any).startRecipe = async function (recipeId: number) {
+  try {
+    const recipes = await api('GET', '/api/crafting/recipes');
+    const recipe = recipes.find((r: any) => r.id === recipeId);
+    if (!recipe) return;
+    const materials = JSON.parse(recipe.required_materials || '[]');
+    const tools = JSON.parse(recipe.required_tools || '[]');
+    showModal('Start Crafting', `
+      <p class="mb-2"><strong>${esc(recipe.name)}</strong></p>
+      <p class="small text-muted">${esc(recipe.description)}</p>
+      <div class="mb-2"><span class="text-muted small">DC:</span> <strong>${recipe.difficulty_dc}</strong> &middot;
+        <span class="text-muted small">Time:</span> <strong>${recipe.crafting_time_hours}h</strong></div>
+      ${tools.length ? `<div class="mb-2"><span class="text-muted small">Tools:</span> ${tools.map((t: string) => `<span class="badge badge-muted me-1" style="font-size:0.6rem">${esc(t)}</span>`).join('')}</div>` : ''}
+      ${materials.length ? `<div class="mb-2"><span class="text-muted small">Materials:</span><ul class="small mb-0">${materials.map((m: any) => `<li>${esc(m.name)} x${m.quantity}${m.consumed ? ' (consumed)' : ''}</li>`).join('')}</ul></div>` : ''}
+      <div class="mb-2"><span class="text-muted small">Result:</span> <strong>${esc(recipe.result_item_name)}</strong> x${recipe.result_quantity}</div>
+      <button class="btn btn-gold w-100 mt-2" onclick="confirmStartRecipe(${recipe.id},'${esc(recipe.name)}',${recipe.crafting_time_hours},${recipe.difficulty_dc})"><i class="fa-solid fa-hammer me-1"></i>Begin Crafting</button>
+    `);
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).confirmStartRecipe = async function (recipeId: number, name: string, hours: number, dc: number) {
+  try {
+    await api('POST', `/api/characters/${currentChar.id}/crafting`, {
+      recipe_id: recipeId,
+      name: name,
+      total_hours_required: hours,
+      dc: dc,
+      materials_allocated: '[]',
+      notes: '',
+    });
+    hideModal();
+    renderCrafting();
+    toast('Crafting started!');
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).advanceCrafting = async function (id: number) {
+  try {
+    await api('PUT', `/api/crafting/${id}`, { progress_hours: 1 });
+    renderCrafting();
+    toast('Crafting advanced by 1 hour');
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).completeCrafting = async function (id: number) {
+  try {
+    await api('PUT', `/api/crafting/${id}`, { status: 'complete' });
+    renderCrafting();
+    toast('Crafting completed! Item added to inventory.');
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).abandonCrafting = async function (id: number) {
+  if (!confirm('Abandon this project?')) return;
+  try {
+    await api('PUT', `/api/crafting/${id}`, { status: 'abandoned' });
+    renderCrafting();
+    toast('Project abandoned');
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).showStartCrafting = function () {
+  showModal('Start Crafting', `
+    <p class="small text-muted">Browse recipes from the Crafting tab, or create a custom project.</p>
+    <div class="mb-3"><label class="form-label">Project Name</label><input class="form-control" id="custCraftName" placeholder="e.g. Brewing a custom potion"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Est. Hours</label><input class="form-control" id="custCraftHours" type="number" value="1" min="0.5" step="0.5"></div>
+      <div class="col-6"><label class="form-label">DC</label><input class="form-control" id="custCraftDC" type="number" value="10"></div>
+    </div>
+    <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="custCraftNotes" rows="2"></textarea></div>
+    <button class="btn btn-primary w-100" onclick="confirmCustomCraft()"><i class="fa-solid fa-hammer me-1"></i>Start</button>
+  `);
+};
+
+(window as any).confirmCustomCraft = async function () {
+  const name = (document.getElementById('custCraftName') as HTMLInputElement).value;
+  if (!name) { toast('Enter a project name', true); return; }
+  try {
+    await api('POST', `/api/characters/${currentChar.id}/crafting`, {
+      name: name,
+      total_hours_required: +(document.getElementById('custCraftHours') as HTMLInputElement).value || 1,
+      dc: +(document.getElementById('custCraftDC') as HTMLInputElement).value || 10,
+      materials_allocated: '[]',
+      notes: (document.getElementById('custCraftNotes') as HTMLTextAreaElement).value,
+    });
+    hideModal();
+    renderCrafting();
+    toast('Custom crafting started!');
+  } catch (e: any) { toast(e.message, true); }
+};
 
 // ─── HP Auto-Calc in details ───
 

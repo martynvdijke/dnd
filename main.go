@@ -51,6 +51,7 @@ func main() {
 	handlers.SetMediaPath(mediaPath)
 
 	db.Seed()
+	handlers.SeedCraftingRecipes()
 	handlers.SetDBPath(dbPath)
 	middleware.StartCleanupTask()
 	handlers.StartBackupScheduler()
@@ -286,6 +287,15 @@ func main() {
 
 		// HP Auto-Calc
 		auth.POST("/characters/:id/calc-hp", handlers.CalculateHP)
+
+		// Crafting
+		auth.GET("/crafting/recipes", handlers.ListCraftingRecipes)
+		auth.POST("/crafting/recipes", handlers.CreateCraftingRecipe)
+		auth.DELETE("/crafting/recipes/:id", handlers.DeleteCraftingRecipe)
+		auth.GET("/characters/:id/crafting", handlers.ListCharacterCrafting)
+		auth.POST("/characters/:id/crafting", handlers.CreateCharacterCrafting)
+		auth.PUT("/crafting/:id", handlers.UpdateCharacterCrafting)
+		auth.DELETE("/crafting/:id", handlers.DeleteCharacterCrafting)
 
 		// Character Comparison
 		auth.GET("/characters/compare", handlers.CompareCharacters)
