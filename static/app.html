@@ -29,6 +29,7 @@
         <li class="nav-item"><a class="nav-link" href="#" onclick="showCompendium();return false"><i class="fa-solid fa-book me-1"></i>Compendium</a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="showView('dice');renderDiceTab();return false"><i class="fa-solid fa-dice me-1"></i>Dice</a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="showEncounterBuilder();return false"><i class="fa-solid fa-crosshairs me-1"></i>Encounters</a></li>
+        <li class="nav-item" id="combatNavItem" style="display:none"><a class="nav-link" href="#" onclick="showCombatTracker();return false"><i class="fa-solid fa-swords me-1"></i>Combat</a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="showFactions();return false"><i class="fa-solid fa-flag me-1"></i>Factions</a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="showCalendar();return false"><i class="fa-solid fa-calendar me-1"></i>Calendar</a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="showTimeline();return false"><i class="fa-solid fa-timeline me-1"></i>Timeline</a></li>
@@ -149,6 +150,11 @@
 
 <div id="singleEncounterView" style="display:none">
   <div id="singleEncounterContent"></div>
+</div>
+
+<div id="combatTrackerView" style="display:none">
+  <h1 class="h2 mb-3"><i class="fa-solid fa-swords me-2"></i>Combat Tracker</h1>
+  <div id="combatTrackerContent"></div>
 </div>
 
 <div id="factionsView" style="display:none">

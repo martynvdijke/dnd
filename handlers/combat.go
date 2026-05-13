@@ -59,7 +59,7 @@ func ListCombatEntries(c *gin.Context) {
 	}
 	defer rows.Close()
 
-	var entries []CombatEntry
+	var entries = make([]CombatEntry, 0)
 	for rows.Next() {
 		var e CombatEntry
 		var isActive int
@@ -127,15 +127,23 @@ func RollInitiative(c *gin.Context) {
 
 func NextTurn(c *gin.Context) {
 	campaignID := c.Query("campaign_id")
-	if campaignID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "campaign_id required"})
-		return
-	}
 	// Find the highest turn_order, advance it (wrap around)
 	var maxOrder int
-	db.DB.QueryRow("SELECT COALESCE(MAX(turn_order),0) FROM combat_entries WHERE campaign_id=? AND is_active=1", campaignID).Scan(&maxOrder)
-	db.DB.Exec("UPDATE combat_entries SET turn_order = CASE WHEN turn_order >= ? THEN 0 ELSE turn_order + 1 END WHERE campaign_id=? AND is_active=1", maxOrder, campaignID)
-	c.JSON(http.StatusOK, gin.H{"ok": true})
+	var currentEntry CombatEntry
+	if campaignID != "" {
+		db.DB.QueryRow("SELECT COALESCE(MAX(turn_order),0) FROM combat_entries WHERE campaign_id=? AND is_active=1", campaignID).Scan(&maxOrder)
+		db.DB.Exec("UPDATE combat_entries SET turn_order = CASE WHEN turn_order >= ? THEN 0 ELSE turn_order + 1 END WHERE campaign_id=? AND is_active=1", maxOrder, campaignID)
+		var isActive int
+		db.DB.QueryRow("SELECT id,character_id,campaign_id,name,type,initiative_roll,initiative_mod,hp_max,hp_current,ac,is_active,turn_order,condition_ids,notes FROM combat_entries WHERE campaign_id=? AND is_active=1 ORDER BY turn_order DESC LIMIT 1", campaignID).
+			Scan(&currentEntry.ID, &currentEntry.CharacterID, &currentEntry.CampaignID, &currentEntry.Name, &currentEntry.Type,
+				&currentEntry.InitiativeRoll, &currentEntry.InitiativeMod, &currentEntry.HPMax, &currentEntry.HPCurrent, &currentEntry.AC,
+				&isActive, &currentEntry.TurnOrder, &currentEntry.ConditionIDs, &currentEntry.Notes)
+		currentEntry.IsActive = isActive == 1
+	} else {
+		db.DB.QueryRow("SELECT COALESCE(MAX(turn_order),0) FROM combat_entries WHERE is_active=1").Scan(&maxOrder)
+		db.DB.Exec("UPDATE combat_entries SET turn_order = CASE WHEN turn_order >= ? THEN 0 ELSE turn_order + 1 END WHERE is_active=1", maxOrder)
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "current_entry": currentEntry})
 }
 
 func GetCurrentTurn(c *gin.Context) {
