@@ -127,6 +127,7 @@ func main() {
 		auth.GET("/compendium/backgrounds", handlers.ListCompendiumBackgrounds)
 		auth.GET("/compendium/equipment", handlers.ListCompendiumEquipment)
 		auth.GET("/compendium/search", handlers.SearchCompendium)
+		auth.GET("/search", handlers.HandleSearch)
 
 		// D&D 5e API fallback lookup
 		auth.GET("/compendium/api/:category", handlers.FetchFromDnDApi)

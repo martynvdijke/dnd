@@ -1,0 +1,77 @@
+import { test, expect } from '@playwright/test';
+
+const uniqueName = () => `Search-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+test.describe('Advanced Search', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+    await page.fill('#username', 'admin');
+    await page.fill('#password', 'testpassword123');
+    await page.click('button[type="submit"]');
+    await page.waitForURL('/', { waitUntil: 'domcontentloaded', timeout: 10000 });
+    await page.waitForTimeout(800);
+  });
+
+  test('search bar is visible in navbar', async ({ page }) => {
+    await expect(page.locator('#searchInput')).toBeVisible();
+    await expect(page.locator('#searchBtn')).toBeVisible();
+  });
+
+  test('doSearch function exists on window', async ({ page }) => {
+    const exists = await page.evaluate(() => typeof window.doSearch);
+    expect(exists).toBe('function');
+  });
+
+  test('search finds fireball in compendium', async ({ page }) => {
+    await page.fill('#searchInput', 'fireball');
+    await page.evaluate(() => window.doSearch());
+    await page.waitForTimeout(1000);
+    await expect(page.locator('#searchPanel')).toContainText('Spells');
+  });
+
+  test('search shows no results for nonsense query', async ({ page }) => {
+    await page.fill('#searchInput', 'xyznonexistent12345');
+    await page.evaluate(() => window.doSearch());
+    await page.waitForTimeout(1000);
+    await expect(page.locator('#searchPanel')).toContainText('No Results');
+  });
+
+  test('search finds character by name', async ({ page }) => {
+    const name = uniqueName();
+    await page.click('button:has-text("New Character")');
+    await page.waitForTimeout(300);
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Elf');
+    await page.fill('#newClass', 'Ranger');
+    await page.click('.modal button:has-text("Create")');
+    await page.waitForTimeout(1000);
+
+    const searchTerm = name.slice(0, 10);
+    await page.fill('#searchInput', searchTerm);
+    await page.evaluate(() => window.doSearch());
+    await page.waitForTimeout(1000);
+    await expect(page.locator('#searchPanel')).toContainText(name);
+  });
+
+  test('search result navigates to character sheet', async ({ page }) => {
+    const name = uniqueName();
+    await page.click('button:has-text("New Character")');
+    await page.waitForTimeout(300);
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Dwarf');
+    await page.fill('#newClass', 'Fighter');
+    await page.click('.modal button:has-text("Create")');
+    await page.waitForTimeout(1000);
+
+    await page.fill('#searchInput', name);
+    await page.evaluate(() => window.doSearch());
+    await page.waitForTimeout(1000);
+
+    const result = page.locator('.search-result-item').first();
+    await expect(result).toBeVisible();
+    await result.click();
+    await page.waitForTimeout(500);
+
+    await expect(page.locator('#sheetName')).toContainText(name);
+  });
+});

@@ -34,6 +34,12 @@
         <li class="nav-item"><a class="nav-link" href="#" onclick="showTimeline();return false"><i class="fa-solid fa-timeline me-1"></i>Timeline</a></li>
         <li class="nav-item" id="adminNavItem" style="display:none"><a class="nav-link" href="/admin"><i class="fa-solid fa-shield-halved me-1"></i>Admin</a></li>
       </ul>
+      <div class="d-flex me-2" role="search">
+        <div class="input-group input-group-sm">
+          <input class="form-control" type="search" id="searchInput" placeholder="Search everything..." aria-label="Search" style="min-width:180px">
+          <button class="btn btn-outline-gold" id="searchBtn"><i class="fa-solid fa-search"></i></button>
+        </div>
+      </div>
       <span class="navbar-text me-3" id="userName"></span>
       <a href="#" class="btn btn-outline-primary btn-sm" onclick="logout();return false"><i class="fa-solid fa-right-from-bracket me-1"></i>Logout</a>
     </div>
