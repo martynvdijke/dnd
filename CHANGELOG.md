@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/martynvdijke/dnd/compare/v1.5.1...v1.6.0) (2026-05-13)
+
+
+### Features
+
+* add party naming to campaigns with party_name field ([eb3633d](https://github.com/martynvdijke/dnd/commit/eb3633d62f1f3f12be126fab9149afdbd9e57cf9))
+
 ## [1.5.1](https://github.com/martynvdijke/dnd/compare/v1.5.0...v1.5.1) (2026-05-13)
 
 # [1.5.0](https://github.com/martynvdijke/dnd/compare/v1.4.0...v1.5.0) (2026-05-12)
