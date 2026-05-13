@@ -214,6 +214,20 @@ func main() {
 		auth.POST("/combat/next-turn", handlers.NextTurn)
 		auth.GET("/combat/current-turn", handlers.GetCurrentTurn)
 
+		// Shops
+		auth.GET("/shops", handlers.ListShops)
+		auth.GET("/shops/:id/items", handlers.ListShopItems)
+		auth.POST("/shops/:id/buy", handlers.BuyItem)
+		auth.POST("/shops/:id/sell", handlers.SellItem)
+		auth.GET("/shop-transactions", handlers.ListShopTransactions)
+
+		// Wiki
+		auth.GET("/campaigns/:id/wiki", handlers.ListWikiPages)
+		auth.POST("/campaigns/:id/wiki", handlers.CreateWikiPage)
+		auth.GET("/wiki/:id", handlers.GetWikiPage)
+		auth.PUT("/wiki/:id", handlers.UpdateWikiPage)
+		auth.DELETE("/wiki/:id", handlers.DeleteWikiPage)
+
 		// Multi-class
 		auth.POST("/characters/:id/classes", handlers.CreateCharacterClass)
 		auth.PUT("/classes/:ccid", handlers.UpdateCharacterClass)
@@ -332,6 +346,13 @@ func main() {
 		// Email settings
 		admin.GET("/email-settings", handlers.GetEmailSettings)
 		admin.POST("/email-settings", handlers.SaveEmailSettings)
+
+		// Shop management (admin only)
+		admin.POST("/shops", handlers.CreateShop)
+		admin.PUT("/shops/:id", handlers.UpdateShop)
+		admin.DELETE("/shops/:id", handlers.DeleteShop)
+		admin.POST("/shops/:id/items", handlers.CreateShopItem)
+		admin.DELETE("/shop-items/:id", handlers.DeleteShopItem)
 
 		// Compendium CRUD
 		admin.POST("/compendium/:type", handlers.AdminCreateCompendiumEntry)

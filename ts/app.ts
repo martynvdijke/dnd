@@ -1,6 +1,7 @@
 declare const vis: any;
 declare const Chart: any;
 declare const bootstrap: any;
+declare const marked: any;
 
 (() => {
 
@@ -375,6 +376,7 @@ async function init() {
     if (user.role === 'admin') {
       document.getElementById('adminNavItem')!.style.display = '';
       document.getElementById('combatNavItem')!.style.display = '';
+      document.getElementById('shopsNavItem')!.style.display = '';
     }
     showView('characters');
     loadCharacters();
@@ -398,6 +400,8 @@ function showView(view: string) {
   document.getElementById('timelineView')!.style.display = view === 'timeline' ? 'block' : 'none';
   document.getElementById('singleEncounterView')!.style.display = view === 'singleEncounter' ? 'block' : 'none';
   document.getElementById('combatTrackerView')!.style.display = view === 'combatTracker' ? 'block' : 'none';
+  document.getElementById('shopsView')!.style.display = view === 'shops' ? 'block' : 'none';
+  document.getElementById('wikiView')!.style.display = view === 'wiki' ? 'block' : 'none';
 }
 (window as any).showView = showView;
 
@@ -4363,6 +4367,244 @@ let draggedCombatId: number | null = null;
     draggedCombatId = null;
     (window as any).showCombatTracker();
     toast('Reordered');
+  } catch (e: any) { toast(e.message, true); }
+};
+
+// ─── Shops ───
+
+(window as any).showShops = async function () {
+  showView('shops');
+  const el = document.getElementById('shopsContent')!;
+  el.innerHTML = '<div class="ornament">✧ Loading shops... ✧</div>';
+  try {
+    const [shops, chars] = await Promise.all([api('GET', '/api/shops'), api('GET', '/api/characters')]);
+    if (!shops.length) {
+      el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-store fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Shops Yet</p><p class="small text-muted">Ask your DM to set up shops for buying and selling.</p></div>';
+      return;
+    }
+    let html = `<div class="d-flex justify-content-between align-items-center mb-3">
+      <div><select class="form-select form-select-sm d-inline-block" id="shopSelect" style="width:auto" onchange="loadShopItems()">
+        ${shops.map((s: any) => `<option value="${s.id}">${esc(s.name)}</option>`).join('')}
+      </select></div>
+      <div><select class="form-select form-select-sm d-inline-block" id="shopCharSelect" style="width:auto">
+        ${chars.map((c: any) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}
+      </select></div>
+    </div>
+    <div id="shopItemsContainer"><p class="text-muted small">Select a shop to browse items.</p></div>
+    <div id="shopCharGold" class="small text-muted"></div>
+    <div id="shopTransactions" class="mt-3"></div>`;
+    el.innerHTML = html;
+    await (window as any).loadShopItems();
+  } catch (e: any) { el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(e.message)}</p></div>`; }
+};
+
+(window as any).loadShopItems = async function () {
+  const shopId = (document.getElementById('shopSelect') as HTMLSelectElement)?.value;
+  const charId = (document.getElementById('shopCharSelect') as HTMLSelectElement)?.value;
+  if (!shopId) return;
+  try {
+    const [items, chars] = await Promise.all([
+      api('GET', `/api/shops/${shopId}/items`),
+      api('GET', '/api/characters'),
+    ]);
+    const char = chars.find((c: any) => c.id === parseInt(charId));
+    const gold = char ? await api('GET', `/api/characters/${charId}`).then((ch: any) => ch.currency?.gp || 0).catch(() => 0) : 0;
+    document.getElementById('shopCharGold')!.textContent = `💰 ${gold} GP`;
+
+    if (!items.length) {
+      document.getElementById('shopItemsContainer')!.innerHTML = '<p class="text-muted small fst-italic">This shop has no items yet.</p>';
+      return;
+    }
+    let html = '<div class="row g-2">';
+    for (const it of items) {
+      const stockLabel = it.quantity_available >= 0 ? `${it.quantity_available} in stock` : 'unlimited';
+      html += `<div class="col-md-6"><div class="card">
+        <div class="card-body py-2 px-3">
+          <div class="d-flex justify-content-between">
+            <span class="fw-bold small">${esc(it.item_name)}</span>
+            <span class="fw-bold" style="color:var(--gold)">${it.price_gp} GP</span>
+          </div>
+          <div class="small text-muted">${esc(it.description)}</div>
+          <div class="d-flex justify-content-between align-items-center mt-1">
+            <span class="small text-muted">${stockLabel}${it.is_magical ? ' · ✨ Magic' : ''}</span>
+            <div class="d-flex gap-1">
+              <input type="number" class="form-control form-control-sm" id="buyQty-${it.id}" value="1" style="width:50px;font-size:0.7rem;height:24px">
+              <button class="btn btn-sm btn-gold py-0 px-1" style="font-size:0.65rem;height:24px" onclick="buyShopItem(${shopId},${it.id},${charId})">Buy</button>
+            </div>
+          </div>
+        </div>
+      </div></div>`;
+    }
+    html += '</div>';
+    document.getElementById('shopItemsContainer')!.innerHTML = html;
+
+    // Load transactions
+    const txns = await api('GET', `/api/shop-transactions?character_id=${charId}`);
+    if (txns.length) {
+      const tHtml = txns.map((t: any) => `<div class="small text-muted">${t.transaction_type === 'buy' ? '🛒' : '💰'} ${esc(t.item_name)} x${t.quantity} for ${t.price_gp} GP</div>`).join('');
+      document.getElementById('shopTransactions')!.innerHTML = `<h6 class="text-muted mt-3">Recent Transactions</h6>${tHtml}`;
+    }
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).buyShopItem = async function (shopId: number, itemId: number, charId: number) {
+  const qtyInput = document.getElementById('buyQty-' + itemId) as HTMLInputElement;
+  const qty = parseInt(qtyInput?.value || '1');
+  try {
+    const result = await api('POST', `/api/shops/${shopId}/buy`, { item_id: itemId, character_id: charId, quantity: qty });
+    toast(`Bought ${result.quantity}x ${result.item} for ${result.price} GP`);
+    (window as any).loadShopItems();
+  } catch (e: any) { toast(e.message, true); }
+};
+
+// ─── Wiki ───
+
+(window as any).showWiki = async function (campaignId?: number) {
+  showView('wiki');
+  const el = document.getElementById('wikiContent')!;
+  el.innerHTML = '<div class="ornament">✧ Loading wiki... ✧</div>';
+  try {
+    const campaigns = await api('GET', '/api/campaigns');
+    if (!campaigns.length) {
+      el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-book fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Campaigns</p><p class="small text-muted">Create a campaign to start building your campaign wiki.</p></div>';
+      return;
+    }
+    const cid = campaignId || campaigns[0].id;
+    const camp = campaigns.find((c: any) => c.id === cid);
+    const pages = await api('GET', `/api/campaigns/${cid}/wiki`);
+
+    const rootPages = pages.filter((p: any) => !p.parent_id);
+    const childMap: Record<number, any[]> = {};
+    pages.forEach((p: any) => {
+      if (p.parent_id) {
+        if (!childMap[p.parent_id]) childMap[p.parent_id] = [];
+        childMap[p.parent_id].push(p);
+      }
+    });
+
+    let sidebarHtml = '<div class="list-group list-group-flush">';
+    for (const p of rootPages) {
+      sidebarHtml += `<a href="#" class="list-group-item list-group-item-action py-1" onclick="loadWikiPage(${p.id})">${esc(p.title)}</a>
+        ${buildWikiChildren(p.id, childMap, 1)}`;
+    }
+    sidebarHtml += '</div>';
+
+    if (!rootPages.length) {
+      el.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h4 class="mb-0"><i class="fa-solid fa-book me-2"></i>${esc(camp?.name || 'Wiki')}</h4>
+          <button class="btn btn-gold btn-sm" onclick="showAddWikiPage(${cid})"><i class="fa-solid fa-plus me-1"></i>New Page</button>
+        </div>
+        <div class="empty-state"><i class="fa-solid fa-book-open fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">Empty Wiki</p><p class="small text-muted">Start building your campaign lore by creating pages.</p></div>`;
+      return;
+    }
+
+    el.innerHTML = `
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0"><i class="fa-solid fa-book me-2"></i>${esc(camp?.name || 'Wiki')}</h4>
+        <button class="btn btn-gold btn-sm" onclick="showAddWikiPage(${cid})"><i class="fa-solid fa-plus me-1"></i>New Page</button>
+      </div>
+      <div class="row g-0" style="min-height:500px">
+        <div class="col-12 col-md-3" style="overflow-y:auto;max-height:70vh;border-right:1px solid var(--border)">
+          <div class="p-2"><small class="fw-bold text-muted">PAGES</small></div>
+          ${sidebarHtml}
+        </div>
+        <div class="col-12 col-md-9" id="wikiPageContent">
+          <div class="p-3 text-center text-muted"><i class="fa-solid fa-book-open fa-2x mb-2 d-block"></i><p>Select a page from the sidebar</p></div>
+        </div>
+      </div>`;
+  } catch (e: any) { el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(e.message)}</p></div>`; }
+};
+
+function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, depth: number): string {
+  const children = childMap[parentId] || [];
+  if (!children.length) return '';
+  const pad = depth * 16;
+  return children.map((c: any) =>
+    `<a href="#" class="list-group-item list-group-item-action py-1 ps-${3 + depth}" style="padding-left:${pad + 16}px!important;font-size:0.9rem" onclick="loadWikiPage(${c.id})">↳ ${esc(c.title)}</a>
+    ${buildWikiChildren(c.id, childMap, depth + 1)}`
+  ).join('');
+}
+
+(window as any).loadWikiPage = async function (pageId: number) {
+  try {
+    const page = await api('GET', `/api/wiki/${pageId}`);
+    const el = document.getElementById('wikiPageContent')!;
+    const renderContent = typeof marked !== 'undefined' ? marked.parse(page.content) : esc(page.content).replace(/\n/g, '<br>');
+    el.innerHTML = `
+      <div class="p-3">
+        <div class="d-flex justify-content-between align-items-start">
+          <h3 class="mb-0">${esc(page.title)}</h3>
+          <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-primary" onclick="showEditWikiPage(${page.id},'${esc(page.title)}','${esc(page.content.replace(/'/g, "\\'"))}','${page.visibility}')"><i class="fa-solid fa-pen"></i></button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteWikiPage(${page.id})"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>
+        <hr>
+        <div class="wiki-content">${renderContent}</div>
+        <div class="small text-muted mt-3">Updated: ${page.updated_at}</div>
+      </div>`;
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).showAddWikiPage = function (campaignId: number) {
+  showModal('New Wiki Page', `
+    <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="wikiTitle"></div>
+    <div class="mb-3"><label class="form-label">Content (Markdown)</label><textarea class="form-control" id="wikiContent" rows="8" placeholder="Write in Markdown..."></textarea></div>
+    <div class="mb-3"><label class="form-label">Visibility</label>
+      <select class="form-select" id="wikiVis"><option value="public">Public</option><option value="dm-only">DM Only</option></select></div>
+    <button class="btn btn-primary w-100" onclick="saveWikiPage(${campaignId})">Create Page</button>
+  `);
+};
+
+(window as any).saveWikiPage = async function (campaignId: number) {
+  try {
+    await api('POST', `/api/campaigns/${campaignId}/wiki`, {
+      campaign_id: campaignId,
+      title: (document.getElementById('wikiTitle') as HTMLInputElement).value,
+      content: (document.getElementById('wikiContent') as HTMLTextAreaElement).value,
+      visibility: (document.getElementById('wikiVis') as HTMLSelectElement).value,
+      tags: '[]',
+      sort_order: 0,
+    });
+    hideModal();
+    (window as any).showWiki(campaignId);
+    toast('Wiki page created');
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).showEditWikiPage = function (id: number, title: string, content: string, visibility: string) {
+  showModal('Edit Wiki Page', `
+    <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="wikiTitle" value="${esc(title)}"></div>
+    <div class="mb-3"><label class="form-label">Content (Markdown)</label><textarea class="form-control" id="wikiContent" rows="8">${esc(content)}</textarea></div>
+    <div class="mb-3"><label class="form-label">Visibility</label>
+      <select class="form-select" id="wikiVis"><option value="public" ${visibility === 'public' ? 'selected' : ''}>Public</option><option value="dm-only" ${visibility === 'dm-only' ? 'selected' : ''}>DM Only</option></select></div>
+    <button class="btn btn-primary w-100" onclick="saveEditWikiPage(${id})">Save</button>
+  `);
+};
+
+(window as any).saveEditWikiPage = async function (id: number) {
+  try {
+    const page = await api('GET', `/api/wiki/${id}`);
+    await api('PUT', `/api/wiki/${id}`, {
+      ...page,
+      title: (document.getElementById('wikiTitle') as HTMLInputElement).value,
+      content: (document.getElementById('wikiContent') as HTMLTextAreaElement).value,
+      visibility: (document.getElementById('wikiVis') as HTMLSelectElement).value,
+    });
+    hideModal();
+    (window as any).loadWikiPage(id);
+    toast('Wiki page updated');
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).deleteWikiPage = async function (id: number) {
+  if (!confirm('Delete this wiki page?')) return;
+  try {
+    await api('DELETE', `/api/wiki/${id}`);
+    const cid = await api('GET', '/api/campaigns').then((cs: any[]) => cs[0]?.id);
+    (window as any).showWiki(cid);
+    toast('Wiki page deleted');
   } catch (e: any) { toast(e.message, true); }
 };
 
