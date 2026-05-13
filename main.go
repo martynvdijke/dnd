@@ -301,6 +301,13 @@ func main() {
 		auth.GET("/uploads", handlers.GetUploads)
 	}
 
+	// WebSocket (auth required, but no CSRF)
+	ws := r.Group("/api")
+	ws.Use(middleware.AuthRequired())
+	{
+		ws.GET("/ws", handlers.HandleWebSocket)
+	}
+
 	// Admin routes
 	admin := r.Group("/api/admin")
 	admin.Use(middleware.AuthRequired(), middleware.AdminRequired(), middleware.CSRFRequired())

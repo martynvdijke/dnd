@@ -3398,4 +3398,145 @@ func TestCompendiumSystemFilter(t *testing.T) {
 	}
 }
 
+func TestFeatUpdate(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{"name": "Feat Edit", "race": "Human", "class": "Fighter"})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	resp = tc.post("/api/feats", map[string]any{
+		"character_id": cid, "name": "Alert",
+		"description": "+5 initiative", "source": "PHB", "level_gained": 1,
+	})
+	var feat map[string]any
+	readJSON(resp, &feat)
+	fid := int(feat["id"].(float64))
+
+	resp = tc.put(fmt.Sprintf("/api/feats/%d", fid), map[string]any{
+		"name": "Alert Updated", "description": "+5 initiative, can't be surprised",
+		"prerequisites": "", "source": "PHB", "level_gained": 1,
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update feat failed: %d", resp.Code)
+	}
+
+	resp = tc.get("/api/feats?character_id="+strconv.Itoa(cid), nil)
+	var feats []any
+	readJSON(resp, &feats)
+	if len(feats) != 1 {
+		t.Fatalf("expected 1 feat after update, got %d", len(feats))
+	}
+	f := feats[0].(map[string]any)
+	if f["name"] != "Alert Updated" {
+		t.Fatalf("expected updated name 'Alert Updated', got %q", f["name"])
+	}
+}
+
+func TestSpellcastingAutoCalc(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{
+		"name": "Wizard Hero", "race": "Elf", "class": "Wizard",
+		"int": 18, "level": 5,
+	})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Set spellcasting with ability=int, save_dc=0, attack_bonus=0 to trigger auto-calc
+	resp = tc.put(fmt.Sprintf("/api/characters/%d/spellcasting", cid), map[string]any{
+		"ability": "int", "save_dc": 0, "attack_bonus": 0,
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update spellcasting failed: %d", resp.Code)
+	}
+
+	// Verify auto-calc: PB=3 (lvl5), int=18 => mod=4, DC=8+3+4=15, atk=3+4=7
+	resp = tc.get(fmt.Sprintf("/api/characters/%d", cid), nil)
+	readJSON(resp, &char)
+	sc := char["spellcasting"].(map[string]any)
+	if sc["save_dc"].(float64) != 15 {
+		t.Fatalf("expected save_dc 15 (8+3+4), got %v", sc["save_dc"])
+	}
+	if sc["attack_bonus"].(float64) != 7 {
+		t.Fatalf("expected attack_bonus 7 (3+4), got %v", sc["attack_bonus"])
+	}
+}
+
+func TestPassivePerceptionAutoCalc(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{
+		"name": "Perceptive Hero", "race": "Elf", "class": "Ranger",
+		"wis": 16, "level": 1, "proficiency_bonus": 2,
+	})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Add Perception proficiency
+	resp = tc.post("/api/proficiencies", map[string]any{
+		"character_id": cid, "type": "skill", "name": "Perception",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("add perception proficiency failed: %d", resp.Code)
+	}
+
+	// Update character to trigger passive perception auto-calc
+	resp = tc.put(fmt.Sprintf("/api/characters/%d", cid), map[string]any{
+		"name": "Perceptive Hero", "race": "Elf", "class": "Ranger",
+		"level": 1, "wis": 16, "proficiency_bonus": 2,
+		"ac": 10, "initiative": 0, "speed": 30, "str": 10, "dex": 14,
+		"con": 12, "int": 10, "cha": 10,
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update character failed: %d", resp.Code)
+	}
+
+	// Verify passive perception: 10 + wisMod(3) + PB(2) = 15
+	resp = tc.get(fmt.Sprintf("/api/characters/%d", cid), nil)
+	readJSON(resp, &char)
+	pp := int(char["passive_perception"].(float64))
+	if pp != 15 {
+		t.Fatalf("expected passive_perception 15 (10+3+2), got %d", pp)
+	}
+}
+
+func TestProficiencyBonusOnLevelUp(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{
+		"name": "Level Hero", "race": "Human", "class": "Fighter",
+		"level": 1, "hp_max": 12, "hp_current": 12, "con": 14,
+	})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Level up from 1 to 5 (should go from PB=2 to PB=3)
+	for i := 0; i < 4; i++ {
+		resp = tc.post(fmt.Sprintf("/api/characters/%d/levelup", cid), nil)
+		if resp.Code != 200 {
+			t.Fatalf("levelup failed at iteration %d: %d", i, resp.Code)
+		}
+	}
+
+	resp = tc.get(fmt.Sprintf("/api/characters/%d", cid), nil)
+	readJSON(resp, &char)
+	lvl := int(char["level"].(float64))
+	if lvl != 5 {
+		t.Fatalf("expected level 5, got %d", lvl)
+	}
+	pb := int(char["proficiency_bonus"].(float64))
+	if pb != 3 {
+		t.Fatalf("expected proficiency_bonus 3 at level 5, got %d", pb)
+	}
+}
+
 

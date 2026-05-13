@@ -233,6 +233,33 @@ function toast(msg: string, isError = false) {
   setTimeout(() => el.remove(), 6000);
 }
 
+// ─── WebSocket ───
+
+let ws: WebSocket | null = null;
+let wsReconnectTimer: any = null;
+
+function connectWS() {
+  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${proto}//${window.location.host}/api/ws`);
+  ws.onmessage = (ev) => {
+    try {
+      const msg = JSON.parse(ev.data);
+      if (msg.type === 'character_update' && currentView === 'sheet' && currentChar && msg.payload.character_id === currentChar.id) {
+        openChar(currentChar.id);
+      }
+      if (msg.type === 'party_update' && currentView === 'party') {
+        (window as any).showParty();
+      }
+    } catch {}
+  };
+  ws.onclose = () => {
+    ws = null;
+    wsReconnectTimer = setTimeout(connectWS, 5000);
+  };
+  ws.onerror = () => ws?.close();
+}
+
 // ─── Init ───
 
 async function init() {
@@ -249,6 +276,7 @@ async function init() {
     }
     showView('characters');
     loadCharacters();
+    connectWS();
     api('GET', '/api/locations').then(l => allLocations = l).catch(() => {});
     api('GET', '/api/npcs').then(n => allNPCs = n).catch(() => {});
   } catch {
@@ -3100,7 +3128,10 @@ async function renderFeats() {
                   ${f.prerequisites ? `<span class="badge badge-muted ms-1">${esc(f.prerequisites)}</span>` : ''}
                   <p class="mb-0 mt-1 small text-muted">${esc(f.description)}</p>
                 </div>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteFeat(${f.id})"><i class="fa-solid fa-trash"></i></button>
+                <div class="d-flex gap-1">
+                  <button class="btn btn-sm btn-outline-primary" onclick="showEditFeat(${f.id},'${esc(f.name)}','${esc(f.description)}','${esc(f.prerequisites)}','${esc(f.source)}',${f.level_gained})"><i class="fa-solid fa-pen"></i></button>
+                  <button class="btn btn-sm btn-outline-danger" onclick="deleteFeat(${f.id})"><i class="fa-solid fa-trash"></i></button>
+                </div>
               </div>
             </div>
           </div>`).join('')
@@ -3110,6 +3141,7 @@ async function renderFeats() {
 }
 
 (window as any).showAddFeat = function () {
+  editingFeatId = null;
   showModal('Add Feat', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="featName" list="featSuggestions">
       <datalist id="featSuggestions">
@@ -3125,19 +3157,45 @@ async function renderFeats() {
   `);
 };
 
+let editingFeatId: number | null = null;
+
+(window as any).showEditFeat = function (id: number, name: string, description: string, prerequisites: string, source: string, level: number) {
+  editingFeatId = id;
+  showModal('Edit Feat', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="featName" value="${esc(name)}" list="featSuggestions">
+      <datalist id="featSuggestions">
+        ${['Alert','Athlete','Actor','Charger','Crossbow Expert','Defensive Duelist','Dual Wielder','Dungeon Delver','Durable','Elemental Adept','Grappler','Great Weapon Master','Healer','Heavily Armored','Heavy Armor Master','Inspiring Leader','Keen Mind','Lightly Armored','Linguist','Lucky','Mage Slayer','Magic Initiate','Martial Adept','Medium Armor Master','Mobile','Moderately Armored','Mounted Combatant','Observant','Polearm Master','Resilient','Ritual Caster','Sentinel','Sharpshooter','Shield Master','Skilled','Skulker','Spell Sniper','Tavern Brawler','Tough','War Caster','Weapon Master'].map(n => `<option value="${n}">`).join('')}
+      </datalist></div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="featDesc" rows="3">${esc(description)}</textarea></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Prerequisites</label><input class="form-control" id="featPrereq" value="${esc(prerequisites)}" placeholder="e.g. Str 13+"></div>
+      <div class="col-6"><label class="form-label">Source</label><input class="form-control" id="featSource" value="${esc(source)}" placeholder="PHB, Tasha's, etc."></div>
+    </div>
+    <div class="mb-3"><label class="form-label">Level Gained</label><input class="form-control" id="featLevel" type="number" value="${level}"></div>
+    <button class="btn btn-primary w-100" onclick="saveFeat()"><i class="fa-solid fa-floppy-disk me-1"></i>Save Feat</button>
+  `);
+};
+
 (window as any).saveFeat = async function () {
   const name = (document.getElementById('featName') as HTMLInputElement).value;
   if (!name) { toast('Name required', true); return; }
-  await api('POST', '/api/feats', {
-    character_id: currentChar.id, name,
+  const data = {
+    name,
     description: (document.getElementById('featDesc') as HTMLTextAreaElement).value,
     prerequisites: (document.getElementById('featPrereq') as HTMLInputElement).value,
     source: (document.getElementById('featSource') as HTMLInputElement).value,
     level_gained: +(document.getElementById('featLevel') as HTMLInputElement).value || 1,
-  });
+  };
+  if (editingFeatId) {
+    await api('PUT', `/api/feats/${editingFeatId}`, data);
+    editingFeatId = null;
+    toast('Feat updated');
+  } else {
+    await api('POST', '/api/feats', { ...data, character_id: currentChar.id });
+    toast('Feat added');
+  }
   hideModal();
   renderFeats();
-  toast('Feat added');
 };
 
 (window as any).deleteFeat = async function (id: number) {

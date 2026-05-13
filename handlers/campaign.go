@@ -1133,6 +1133,9 @@ func DoRest(c *gin.Context) {
 	db.DB.Exec("INSERT INTO rest_log(character_id,rest_type,hp_healed,notes) VALUES(?,?,?,?)",
 		charID, req.RestType, hpHealed, "")
 
+	SendCharacterUpdate(charID)
+	SendPartyUpdate()
+
 	c.JSON(http.StatusOK, gin.H{"ok": true, "hp_healed": hpHealed, "rest_type": req.RestType})
 }
 

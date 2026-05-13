@@ -276,6 +276,23 @@ func UpdateCharacter(c *gin.Context) {
 		return
 	}
 
+	// Auto-calc passive perception
+	var wis int
+	db.DB.QueryRow("SELECT wis FROM characters WHERE id=?", id).Scan(&wis)
+	wisMod := abilityMod(wis)
+	pp := 10 + wisMod
+	var perceptionCount int
+	db.DB.QueryRow("SELECT COUNT(*) FROM character_proficiencies WHERE character_id=? AND type='skill' AND LOWER(name)='perception'", id).Scan(&perceptionCount)
+	if perceptionCount > 0 {
+		var pb int
+		db.DB.QueryRow("SELECT proficiency_bonus FROM characters WHERE id=?", id).Scan(&pb)
+		pp += pb
+	}
+	db.DB.Exec("UPDATE characters SET passive_perception=? WHERE id=?", pp, id)
+
+	SendCharacterUpdate(id)
+	SendPartyUpdate()
+
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -922,6 +939,36 @@ func UpdateSpellcasting(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Auto-calc save DC and attack bonus from ability + proficiency
+	var profBonus int
+	var strMod, dexMod, conMod, intMod, wisMod, chaMod int
+	err := db.DB.QueryRow("SELECT proficiency_bonus, str, dex, con, int, wis, cha FROM characters WHERE id=?", id).
+		Scan(&profBonus, &strMod, &dexMod, &conMod, &intMod, &wisMod, &chaMod)
+	if err == nil {
+		var abilMod int
+		switch sc.Ability {
+		case "str":
+			abilMod = abilityMod(strMod)
+		case "dex":
+			abilMod = abilityMod(dexMod)
+		case "con":
+			abilMod = abilityMod(conMod)
+		case "int":
+			abilMod = abilityMod(intMod)
+		case "wis":
+			abilMod = abilityMod(wisMod)
+		case "cha":
+			abilMod = abilityMod(chaMod)
+		}
+		if sc.SaveDC == 0 {
+			sc.SaveDC = 8 + profBonus + abilMod
+		}
+		if sc.AttackBonus == 0 {
+			sc.AttackBonus = profBonus + abilMod
+		}
+	}
+
 	db.DB.Exec(`
 		INSERT INTO character_spellcasting(character_id,ability,save_dc,attack_bonus,
 			slots_1_max,slots_1_used,slots_2_max,slots_2_used,
