@@ -15,7 +15,7 @@ plugins:
   - [
       "@semantic-release/exec",
       {
-        prepareCmd: "sed -i 's/\"version\": \".*\"/\"version\": \"${nextRelease.version}\"/' package.json && sed -i 's/\"version\": \".*\"/\"version\": \"${nextRelease.version}\"/' handlers/health.go"
+        prepareCmd: "sed -i 's/\"version\": \".*\"/\"version\": \"${nextRelease.version}\"/' package.json && sed -i 's/const Version = \".*\"/const Version = \"${nextRelease.version}\"/' main.go && sed -i 's/\"version\": \".*\"/\"version\": \"${nextRelease.version}\"/' handlers/health.go"
       }
     ]
   - [
