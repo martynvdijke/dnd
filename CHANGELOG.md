@@ -1,3 +1,18 @@
+# [1.8.0](https://github.com/martynvdijke/dnd/compare/v1.7.0...v1.8.0) (2026-05-14)
+
+
+### Bug Fixes
+
+* resolve Playwright test failures on CI, ensure parallel execution safety ([147c78f](https://github.com/martynvdijke/dnd/commit/147c78f3cada64115488316d26010566fe398a05)), closes [#tabBar](https://github.com/martynvdijke/dnd/issues/tabBar)
+
+
+### Features
+
+* add campaign-level combat tracker with drag-and-drop and inline actions ([6a93ec7](https://github.com/martynvdijke/dnd/commit/6a93ec772275e127aacd05ed07031bc20a5bc40d))
+* add crafting system with recipes and progress tracking ([4e3f7e9](https://github.com/martynvdijke/dnd/commit/4e3f7e9e2f568c7650f24d7428074c7349e86a72))
+* add global advanced search across all content types ([8954564](https://github.com/martynvdijke/dnd/commit/8954564a8db2d836f1d542cf68263aae6626c73e))
+* add shops/trading system and campaign wiki with markdown ([9cda7f0](https://github.com/martynvdijke/dnd/commit/9cda7f04719d4431fb5f733714f795be5dd262e0))
+
 # [1.7.0](https://github.com/martynvdijke/dnd/compare/v1.6.0...v1.7.0) (2026-05-13)
 
 
