@@ -10,17 +10,23 @@ async function ensureNavOpen(page) {
   }
 }
 
+async function waitLoadingDone(page) {
+  await page.waitForFunction(() => {
+    const o = document.getElementById('loadingOverlay');
+    return o && o.classList.contains('d-none');
+  }, { timeout: 5000 }).catch(() => {});
+}
+
 test.describe('Full feature coverage', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => {
-      const o = document.getElementById('loadingOverlay');
-      return o && o.classList.contains('d-none');
-    }, { timeout: 5000 }).catch(() => {});
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
   });
 
   test('campaign lifecycle: create, assign character, delete', async ({ page }) => {
@@ -51,6 +57,7 @@ test.describe('Full feature coverage', () => {
     await page.waitForTimeout(500);
 
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
     await expect(page.locator('#sheetName')).toContainText(name);
     await expect(page.locator('#sheetSubtitle')).toContainText('Dragonborn Sorcerer');
   });
@@ -64,8 +71,9 @@ test.describe('Full feature coverage', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
-    await page.click('text=Details');
+    await page.click('#tabBar button:has-text("Details")');
     await expect(page.locator('#detailsSection')).toBeVisible();
 
     const raceInput = page.locator('#detailsSection input').first();
@@ -81,8 +89,9 @@ test.describe('Full feature coverage', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
-    await page.click('text=Combat');
+    await page.click('#tabBar button:has-text("Combat")');
     await expect(page.locator('#combatSection')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#combatSection')).toContainText('Hit Points');
   });
@@ -96,6 +105,7 @@ test.describe('Full feature coverage', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
     await page.click('#tabBar button:has-text("Dice")');
     await expect(page.locator('#diceExpr')).toBeVisible({ timeout: 5000 });

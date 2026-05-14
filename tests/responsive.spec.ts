@@ -10,17 +10,23 @@ async function ensureNavOpen(page) {
   }
 }
 
+async function waitLoadingDone(page) {
+  await page.waitForFunction(() => {
+    const o = document.getElementById('loadingOverlay');
+    return o && o.classList.contains('d-none');
+  }, { timeout: 5000 }).catch(() => {});
+}
+
 test.describe('Responsive design', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
-    await page.waitForFunction(() => {
-      const o = document.getElementById('loadingOverlay');
-      return o && o.classList.contains('d-none');
-    }, { timeout: 5000 }).catch(() => {});
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
   });
 
   test('desktop layout works at 1280x720', async ({ page }) => {
@@ -47,6 +53,7 @@ test.describe('Responsive design', () => {
     await page.waitForTimeout(500);
 
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
     await expect(page.locator('#sheetName')).toBeVisible();
 
     await expect(page.locator('#statsSection .ability-box').first()).toBeVisible();
@@ -63,9 +70,10 @@ test.describe('Responsive design', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
     await expect(page.locator('#sheetName')).toBeVisible();
-    await page.click('text=Combat');
+    await page.click('#tabBar button:has-text("Combat")');
     await expect(page.locator('#combatSection')).toBeVisible();
   });
 

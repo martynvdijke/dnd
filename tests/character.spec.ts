@@ -2,14 +2,23 @@ import { test, expect } from '@playwright/test';
 
 const uniqueName = () => `Test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
+async function waitLoadingDone(page) {
+  await page.waitForFunction(() => {
+    const o = document.getElementById('loadingOverlay');
+    return o && o.classList.contains('d-none');
+  }, { timeout: 5000 }).catch(() => {});
+}
+
 test.describe('Character management', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login');
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { timeout: 10000 });
-    await page.waitForSelector('.character-card', { timeout: 5000 }).catch(() => {});
+    await Promise.all([
+      page.waitForURL('/', { timeout: 10000 }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
   });
 
   test('shows character list', async ({ page }) => {
@@ -38,8 +47,13 @@ test.describe('Character management', () => {
     await page.waitForTimeout(1000);
 
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
     await expect(page.locator('#sheetName')).toContainText(name);
-    await expect(page.locator('#sheetSubtitle')).toContainText('Human Fighter');
+    await page.waitForFunction((n) => {
+      const el = document.getElementById('sheetSubtitle');
+      return el && el.textContent?.includes(n);
+    }, name, { timeout: 10000 }).catch(() => {});
+    await expect(page.locator('#sheetSubtitle')).toContainText('Human Fighter', { timeout: 10000 });
   });
 
   test('shows ability scores', async ({ page }) => {
@@ -52,6 +66,7 @@ test.describe('Character management', () => {
     await page.waitForTimeout(1000);
 
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
     const abilityValues = await page.locator('.ability-box .abil-value-input').allTextContents();
     expect(abilityValues.length).toBeGreaterThanOrEqual(6);
   });

@@ -10,13 +10,23 @@ async function ensureNavOpen(page) {
   }
 }
 
+async function waitLoadingDone(page) {
+  await page.waitForFunction(() => {
+    const o = document.getElementById('loadingOverlay');
+    return o && o.classList.contains('d-none');
+  }, { timeout: 5000 }).catch(() => {});
+}
+
 test.describe('Character sheet editing', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
   });
 
   test('can edit character name and stats', async ({ page }) => {
@@ -28,9 +38,10 @@ test.describe('Character sheet editing', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
     await expect(page.locator('#sheetName')).toContainText(name);
-    await page.click('text=Details');
+    await page.click('#tabBar button:has-text("Details")');
     await expect(page.locator('#detailsSection')).toBeVisible();
     await expect(page.locator('#sheetName')).toContainText(name);
   });
@@ -44,8 +55,9 @@ test.describe('Character sheet editing', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
-    await page.click('text=Inventory');
+    await page.click('#tabBar button:has-text("Inventory")');
     await page.click('text=Add Item');
     await page.fill('#invName', 'Longsword');
     await page.fill('#invQty', '1');
@@ -65,8 +77,9 @@ test.describe('Character sheet editing', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
-    await page.click('text=Spells');
+    await page.click('#tabBar button:has-text("Spells")');
     const setupBtn = page.locator('button:has-text("Set Up Spellcasting")');
     if (await setupBtn.count() > 0) {
       await setupBtn.click();
@@ -74,7 +87,7 @@ test.describe('Character sheet editing', () => {
     }
     await expect(page.locator('#spellsSection')).toBeVisible();
 
-    await page.click('text=Features');
+    await page.click('#tabBar button:has-text("Features")');
     await page.click('text=Add Feature');
     await page.fill('#featName', 'Darkvision');
     await page.fill('#featDesc', 'See in darkness');
@@ -95,6 +108,7 @@ test.describe('Character sheet editing', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
     await page.click('text=Add Proficiency');
     await page.fill('#profName', 'Stealth');
@@ -110,8 +124,11 @@ test.describe('Rest and level up', () => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
   });
 
   test('can perform short rest', async ({ page }) => {
@@ -123,8 +140,9 @@ test.describe('Rest and level up', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
-    await page.click('text=Combat');
+    await page.click('#tabBar button:has-text("Combat")');
     await page.click('text=Short Rest');
     await page.waitForTimeout(500);
 
@@ -140,8 +158,9 @@ test.describe('Rest and level up', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
-    await page.click('text=Combat');
+    await page.click('#tabBar button:has-text("Combat")');
     await page.click('text=Long Rest');
     await page.waitForTimeout(500);
 
@@ -157,8 +176,9 @@ test.describe('Rest and level up', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
-    await page.click('text=Combat');
+    await page.click('#tabBar button:has-text("Combat")');
     await page.click('text=Level Up');
     await page.waitForTimeout(500);
 
@@ -171,8 +191,11 @@ test.describe('Campaign management UI', () => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
   });
 
   test('party view shows characters', async ({ page }) => {
@@ -200,7 +223,7 @@ test.describe('Campaign management UI', () => {
     await page.waitForTimeout(500);
 
     await page.locator('.character-card').filter({ hasText: name }).click();
-    await page.waitForTimeout(300);
+    await waitLoadingDone(page);
 
     page.on('dialog', dialog => dialog.accept());
     await page.click('text=Delete');
@@ -235,8 +258,11 @@ test.describe('Death saves and concentration', () => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
   });
 
   test('shows death save tracker on combat tab', async ({ page }) => {
@@ -248,10 +274,10 @@ test.describe('Death saves and concentration', () => {
     await page.click('text=Create');
     await page.locator('.character-card').filter({ hasText: name }).waitFor({ state: 'visible', timeout: 10000 });
     await page.locator('.character-card').filter({ hasText: name }).click();
-    await page.waitForFunction(() => document.getElementById('loadingOverlay')?.classList.contains('d-none'), { timeout: 5000 }).catch(() => {});
+    await waitLoadingDone(page);
 
-    await page.click('text=Combat');
-    await page.waitForFunction(() => document.getElementById('loadingOverlay')?.classList.contains('d-none'), { timeout: 5000 }).catch(() => {});
+    await page.click('#tabBar button:has-text("Combat")');
+    await waitLoadingDone(page);
     await expect(page.locator('#combatSection')).toBeVisible();
     const text = await page.locator('#combatSection').textContent();
     expect(text).toContain('Death');
@@ -266,8 +292,9 @@ test.describe('Death saves and concentration', () => {
     await page.click('text=Create');
     await page.locator('.character-card').filter({ hasText: name }).waitFor({ state: 'visible', timeout: 10000 });
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
-    await page.click('text=Combat');
+    await page.click('#tabBar button:has-text("Combat")');
     const text = await page.locator('#combatSection').textContent();
     expect(text).toBeTruthy();
     expect(text).toContain('Concentration');
@@ -279,8 +306,11 @@ test.describe('NPC interactions extended', () => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
   });
 
   async function waitModalClosed(page: any) {
@@ -296,8 +326,9 @@ test.describe('NPC interactions extended', () => {
     await page.click('text=Create');
     await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
-    await page.click('text=Npcs');
+    await page.click('#tabBar button:has-text("Npcs")');
     await expect(page.locator('#npcsSection button:has-text("New NPC")')).toBeVisible({ timeout: 5000 });
     await page.click('text=New NPC');
     await page.fill('#newNPCName', 'Villain');
@@ -319,8 +350,9 @@ test.describe('NPC interactions extended', () => {
     await page.click('text=Create');
     await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
-    await page.click('text=Npcs');
+    await page.click('#tabBar button:has-text("Npcs")');
     await expect(page.locator('#npcsSection button:has-text("New NPC")')).toBeVisible({ timeout: 5000 });
     await page.click('text=New NPC');
     await page.fill('#newNPCName', 'Quest Giver');
@@ -345,8 +377,11 @@ test.describe('Spellcasting management', () => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
   });
 
   test('can configure spellcasting ability', async ({ page }) => {
@@ -358,8 +393,9 @@ test.describe('Spellcasting management', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
-    await page.click('text=Spells');
+    await page.click('#tabBar button:has-text("Spells")');
     await expect(page.locator('#spellsSection')).toBeVisible({ timeout: 3000 });
 
     const enableBtn = page.locator('text=Set Up Spellcasting');
@@ -378,8 +414,9 @@ test.describe('Spellcasting management', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
-    await page.click('text=Spells');
+    await page.click('#tabBar button:has-text("Spells")');
     const text = await page.locator('#spellsSection').textContent();
     expect(text).toBeTruthy();
   });
@@ -390,22 +427,25 @@ test.describe('Import/export edge cases', () => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
   });
 
   test('import handles empty JSON gracefully', async ({ page }) => {
     await page.click('button:has-text("Import")');
-    await page.waitForTimeout(500);
+    await expect(page.locator('#genericModal')).toHaveClass(/show|fade/, { timeout: 5000 });
     const textarea = page.locator('#importJson');
-    await expect(textarea).toBeVisible();
+    await expect(textarea).toBeVisible({ timeout: 10000 });
   });
 
   test('import handles malformed JSON', async ({ page }) => {
     await page.click('button:has-text("Import")');
-    await page.waitForTimeout(500);
+    await expect(page.locator('#genericModal')).toHaveClass(/show|fade/, { timeout: 5000 });
     const textarea = page.locator('#importJson');
-    await expect(textarea).toBeVisible();
+    await expect(textarea).toBeVisible({ timeout: 10000 });
 
     await textarea.fill('{not valid json}');
     await page.click('#genericModal button:has-text("Import")');
@@ -421,9 +461,9 @@ test.describe('Import/export edge cases', () => {
     await page.click('text=Create');
     await page.locator('.character-card').filter({ hasText: name }).waitFor({ state: 'visible', timeout: 10000 });
     await page.locator('.character-card').filter({ hasText: name }).click();
-    await page.waitForFunction(() => document.getElementById('loadingOverlay')?.classList.contains('d-none'), { timeout: 5000 }).catch(() => {});
+    await waitLoadingDone(page);
 
-    await page.click('text=Details');
+    await page.click('#tabBar button:has-text("Details")');
     const text = await page.locator('#detailsSection').textContent();
     expect(text).toContain('CP');
     expect(text).toContain('GP');
@@ -435,8 +475,11 @@ test.describe('Session and quest management UI', () => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
   });
 
   test('can log session with events', async ({ page }) => {
@@ -448,8 +491,9 @@ test.describe('Session and quest management UI', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
-    await page.click('text=Sessions');
+    await page.click('#tabBar button:has-text("Sessions")');
     await page.click('text=Log Session');
     await page.fill('#sessTitle', 'The Dragon Hunt');
     await page.fill('#sessNotes', 'We tracked the dragon to its lair');
@@ -471,8 +515,9 @@ test.describe('Session and quest management UI', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
-    await page.click('text=Quests');
+    await page.click('#tabBar button:has-text("Quests")');
     await expect(page.locator('#questsSection button:has-text("New Quest")')).toBeVisible({ timeout: 5000 });
     await page.click('text=New Quest');
     await page.fill('#questName', 'Save the Village');
@@ -491,8 +536,11 @@ test.describe('Theme and loading', () => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
   });
 
   test('dark mode toggle switches theme and persists', async ({ page }) => {
@@ -528,8 +576,11 @@ test.describe('Empty states', () => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
   });
 
   test('shows empty states for sections with no data', async ({ page }) => {
@@ -541,6 +592,7 @@ test.describe('Empty states', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).first().click();
+    await waitLoadingDone(page);
 
     await page.click('#tabBar button:has-text("Features")');
     await expect(page.locator('#featuresSection .empty-state')).toBeVisible();
@@ -564,8 +616,11 @@ test.describe('Keyboard shortcuts', () => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
   });
 
   test('? opens keyboard shortcuts help', async ({ page }) => {
@@ -597,8 +652,11 @@ test.describe('Auto-save', () => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
   });
 
   test('inline edit auto-saves after typing', async ({ page }) => {
@@ -610,6 +668,7 @@ test.describe('Auto-save', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
     const firstInput = page.locator('.abil-value-input').first();
     await firstInput.click();
@@ -618,8 +677,9 @@ test.describe('Auto-save', () => {
 
     await page.reload();
     await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await waitLoadingDone(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
-    await page.waitForTimeout(500);
+    await waitLoadingDone(page);
 
     await expect(page.locator('.abil-value-input').first()).toHaveValue('18');
   });
@@ -630,8 +690,11 @@ test.describe('Tooltips', () => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
   });
 
   test('ability boxes have tooltips', async ({ page }) => {
@@ -643,6 +706,7 @@ test.describe('Tooltips', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
     const firstAbility = page.locator('.ability-box').first();
     await expect(firstAbility).toHaveAttribute('title', /Strength|Dexterity|Constitution|Intelligence|Wisdom|Charisma/);
@@ -657,6 +721,7 @@ test.describe('Tooltips', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
     const firstSkill = page.locator('.skill-row').first();
     await expect(firstSkill).toHaveAttribute('title', /STR|DEX|CON|INT|WIS|CHA/);
@@ -668,8 +733,11 @@ test.describe('XP progress bar', () => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
   });
 
   test('shows XP progress bar on stats tab', async ({ page }) => {
@@ -681,6 +749,7 @@ test.describe('XP progress bar', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
     await expect(page.locator('#xpBarContainer')).toBeVisible();
     await expect(page.locator('#xpBarContainer')).toContainText('Level');
@@ -693,8 +762,11 @@ test.describe('Error handling and edge cases', () => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
   });
 
   test('handles character creation without name', async ({ page }) => {
@@ -715,21 +787,22 @@ test.describe('Error handling and edge cases', () => {
     await page.click('text=Create');
     await page.waitForTimeout(500);
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
-    await page.click('text=Stats');
+    await page.click('#tabBar button:has-text("Stats")');
     await page.waitForTimeout(100);
     await expect(page.locator('#statsSection')).toBeVisible();
 
-    await page.click('text=Combat');
+    await page.click('#tabBar button:has-text("Combat")');
     await page.waitForTimeout(200);
     await expect(page.locator('#combatSection')).toBeVisible();
 
     for (const tab of ['Spells', 'Inventory', 'Features', 'Details']) {
-      await page.click(`text=${tab}`);
+      await page.click(`#tabBar button:has-text("${tab}")`);
       await page.waitForTimeout(150);
     }
 
-    await page.click('text=Stats');
+    await page.click('#tabBar button:has-text("Stats")');
     await page.waitForTimeout(100);
     await expect(page.locator('#statsSection')).toBeVisible();
   });
@@ -743,6 +816,7 @@ test.describe('Error handling and edge cases', () => {
     await page.click('text=Create');
     await expect(page.locator('.character-card').filter({ hasText: name })).toBeVisible({ timeout: 10000 });
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
     await page.click('#tabBar button:has-text("Dice")');
     await expect(page.locator('#diceExpr')).toBeVisible({ timeout: 5000 });
@@ -764,6 +838,7 @@ test.describe('Error handling and edge cases', () => {
     await page.click('text=Create');
     await expect(page.locator('.character-card').filter({ hasText: name })).toBeVisible({ timeout: 10000 });
     await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
 
     await page.click('#tabBar button:has-text("Dice")');
     await expect(page.locator('#diceSection')).toBeVisible({ timeout: 5000 });

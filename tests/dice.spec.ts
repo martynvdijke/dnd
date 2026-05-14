@@ -8,13 +8,23 @@ async function ensureNavOpen(page) {
   }
 }
 
+async function waitLoadingDone(page) {
+  await page.waitForFunction(() => {
+    const o = document.getElementById('loadingOverlay');
+    return o && o.classList.contains('d-none');
+  }, { timeout: 5000 }).catch(() => {});
+}
+
 test.describe('Dice rolling', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
   });
 
   test('dice roller works', async ({ page }) => {

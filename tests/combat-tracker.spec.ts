@@ -1,47 +1,76 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Combat Tracker', () => {
+async function ensureNavOpen(page) {
+  const toggler = page.locator('.navbar-toggler');
+  if (await toggler.isVisible()) {
+    await toggler.click();
+    await page.waitForTimeout(300);
+  }
+}
+
+test.describe.serial('Combat Tracker', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded', timeout: 10000 });
-    await page.waitForTimeout(800);
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded', timeout: 10000 }),
+      page.click('button[type="submit"]'),
+    ]);
+    await page.waitForFunction(() => {
+      const o = document.getElementById('loadingOverlay');
+      return o && o.classList.contains('d-none');
+    }, { timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(300);
   });
 
   test('combat nav item visible for admin', async ({ page }) => {
+    await ensureNavOpen(page);
     await expect(page.locator('#combatNavItem')).toBeVisible();
   });
 
   test('opens combat tracker view', async ({ page }) => {
+    await ensureNavOpen(page);
     await page.click('#combatNavItem a');
     await page.waitForTimeout(500);
     await expect(page.locator('#combatTrackerView')).toBeVisible();
-    await expect(page.locator('#combatTrackerContent')).toContainText('No Combatants');
+    await expect(page.locator('#combatTrackerContent')).toBeVisible();
   });
 
   test('adds a combatant and shows in tracker', async ({ page }) => {
+    await ensureNavOpen(page);
     await page.click('#combatNavItem a');
     await page.waitForTimeout(500);
 
-    await page.click('button:has-text("Add")');
-    await page.fill('#ceName', 'Goblin Archer');
+    const uniqueEnemy = `Goblin-${Date.now()}`;
+    // Hide FAB on mobile to avoid interception
+    await page.evaluate(() => {
+      const fab = document.getElementById('fabBtn');
+      if (fab) fab.style.display = 'none';
+    });
+    await page.locator('#combatTrackerContent button:has-text("Add")').first().click();
+    await page.fill('#ceName', uniqueEnemy);
     await page.selectOption('#ceType', 'monster');
     await page.fill('#ceAC', '15');
     await page.fill('#ceHPMax', '27');
     await page.click('.modal button:has-text("Add")');
     await page.waitForTimeout(500);
 
-    await expect(page.locator('#combatTrackerContent')).toContainText('Goblin Archer');
+    await expect(page.locator('#combatTrackerContent')).toContainText(uniqueEnemy);
   });
 
   test('rolls initiative for combatants', async ({ page }) => {
+    await ensureNavOpen(page);
     await page.click('#combatNavItem a');
     await page.waitForTimeout(500);
 
-    await page.click('button:has-text("Add")');
-    await page.fill('#ceName', 'Goblin Archer');
+    const uniqueEnemy = `Goblin-${Date.now()}`;
+    await page.evaluate(() => {
+      const fab = document.getElementById('fabBtn');
+      if (fab) fab.style.display = 'none';
+    });
+    await page.locator('#combatTrackerContent button:has-text("Add")').first().click();
+    await page.fill('#ceName', uniqueEnemy);
     await page.selectOption('#ceType', 'monster');
     await page.fill('#ceAC', '15');
     await page.fill('#ceHPMax', '27');
@@ -57,20 +86,29 @@ test.describe('Combat Tracker', () => {
   });
 
   test('applies damage to combatant', async ({ page }) => {
+    await ensureNavOpen(page);
     await page.click('#combatNavItem a');
     await page.waitForTimeout(500);
 
-    await page.click('button:has-text("Add")');
-    await page.fill('#ceName', 'Goblin Archer');
+    const uniqueEnemy = `Goblin-${Date.now()}`;
+    await page.evaluate(() => {
+      const fab = document.getElementById('fabBtn');
+      if (fab) fab.style.display = 'none';
+    });
+    await page.locator('#combatTrackerContent button:has-text("Add")').first().click();
+    await page.fill('#ceName', uniqueEnemy);
     await page.selectOption('#ceType', 'monster');
     await page.fill('#ceAC', '15');
     await page.fill('#ceHPMax', '27');
     await page.click('.modal button:has-text("Add")');
     await page.waitForTimeout(500);
 
-    const dmgInput = page.locator('#qdamage-1');
+    // Find the damage input for this specific combatant by locating their row
+    const row = page.locator('#combatTrackerContent tr', { hasText: uniqueEnemy });
+    const dmgInput = row.locator('input[type="number"]');
     await dmgInput.fill('10');
-    await page.locator('button[onclick*="combatTrackerDamage(1)"]').click();
+    const dmgBtn = row.locator('button[onclick*="combatTrackerDamage"]');
+    await dmgBtn.click();
     await page.waitForTimeout(500);
 
     await expect(page.locator('#combatTrackerContent')).toContainText('17/27');

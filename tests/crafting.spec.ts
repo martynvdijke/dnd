@@ -2,14 +2,24 @@ import { test, expect } from '@playwright/test';
 
 const uniqueName = () => `Craft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
+async function waitLoadingDone(page) {
+  await page.waitForFunction(() => {
+    const o = document.getElementById('loadingOverlay');
+    return o && o.classList.contains('d-none');
+  }, { timeout: 5000 }).catch(() => {});
+}
+
 test.describe('Crafting System', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded', timeout: 10000 });
-    await page.waitForTimeout(800);
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded', timeout: 10000 }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
+    await page.waitForTimeout(200);
   });
 
   test('crafting tab shows recipes', async ({ page }) => {
@@ -23,7 +33,7 @@ test.describe('Crafting System', () => {
     await page.waitForTimeout(1000);
 
     await page.locator('.character-card').filter({ hasText: name }).click();
-    await page.waitForTimeout(500);
+    await waitLoadingDone(page);
 
     await page.click('text=Crafting');
     await page.waitForTimeout(500);
@@ -39,7 +49,7 @@ test.describe('Crafting System', () => {
     await page.fill('#newRace', 'Elf');
     await page.fill('#newClass', 'Wizard');
     await page.click('.modal button:has-text("Create")');
-    await page.waitForTimeout(1000);
+    await page.locator('.character-card').filter({ hasText: name }).waitFor({ state: 'visible', timeout: 10000 });
 
     // Get character ID from the card's onclick attribute
     const cardOnclick = await page.locator('.character-card').filter({ hasText: name }).getAttribute('onclick');
@@ -71,7 +81,7 @@ test.describe('Crafting System', () => {
 
     // Switch to crafting tab to see the project
     await page.locator('.character-card').filter({ hasText: name }).click();
-    await page.waitForTimeout(500);
+    await waitLoadingDone(page);
     await page.click('text=Crafting');
     await page.waitForTimeout(500);
     await expect(page.locator('#craftingSection')).toContainText('Potion of Healing');
@@ -124,7 +134,7 @@ test.describe('Crafting System', () => {
 
     // Switch to crafting tab
     await page.locator('.character-card').filter({ hasText: name }).click();
-    await page.waitForTimeout(500);
+    await waitLoadingDone(page);
     await page.click('text=Crafting');
     await page.waitForTimeout(500);
     await expect(page.locator('#craftingSection')).toContainText('Potion of Healing');

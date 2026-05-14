@@ -2,17 +2,32 @@ import { test, expect } from '@playwright/test';
 
 const uniqueName = () => `Search-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
+async function ensureNavOpen(page) {
+  const toggler = page.locator('.navbar-toggler');
+  if (await toggler.isVisible()) {
+    await toggler.click();
+    await page.waitForTimeout(300);
+  }
+}
+
 test.describe('Advanced Search', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded', timeout: 10000 });
-    await page.waitForTimeout(800);
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded', timeout: 10000 }),
+      page.click('button[type="submit"]'),
+    ]);
+    await page.waitForFunction(() => {
+      const o = document.getElementById('loadingOverlay');
+      return o && o.classList.contains('d-none');
+    }, { timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(300);
   });
 
   test('search bar is visible in navbar', async ({ page }) => {
+    await ensureNavOpen(page);
     await expect(page.locator('#searchInput')).toBeVisible();
     await expect(page.locator('#searchBtn')).toBeVisible();
   });
@@ -23,6 +38,7 @@ test.describe('Advanced Search', () => {
   });
 
   test('search finds fireball in compendium', async ({ page }) => {
+    await ensureNavOpen(page);
     await page.fill('#searchInput', 'fireball');
     await page.evaluate(() => window.doSearch());
     await page.waitForTimeout(1000);
@@ -30,6 +46,7 @@ test.describe('Advanced Search', () => {
   });
 
   test('search shows no results for nonsense query', async ({ page }) => {
+    await ensureNavOpen(page);
     await page.fill('#searchInput', 'xyznonexistent12345');
     await page.evaluate(() => window.doSearch());
     await page.waitForTimeout(1000);
@@ -47,6 +64,7 @@ test.describe('Advanced Search', () => {
     await page.waitForTimeout(1000);
 
     const searchTerm = name.slice(0, 10);
+    await ensureNavOpen(page);
     await page.fill('#searchInput', searchTerm);
     await page.evaluate(() => window.doSearch());
     await page.waitForTimeout(1000);
@@ -63,6 +81,7 @@ test.describe('Advanced Search', () => {
     await page.click('.modal button:has-text("Create")');
     await page.waitForTimeout(1000);
 
+    await ensureNavOpen(page);
     await page.fill('#searchInput', name);
     await page.evaluate(() => window.doSearch());
     await page.waitForTimeout(1000);

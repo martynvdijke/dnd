@@ -8,6 +8,13 @@ async function ensureNavOpen(page) {
   }
 }
 
+async function waitLoadingDone(page) {
+  await page.waitForFunction(() => {
+    const o = document.getElementById('loadingOverlay');
+    return o && o.classList.contains('d-none');
+  }, { timeout: 5000 }).catch(() => {});
+}
+
 async function goToAdmin(page) {
   await page.waitForTimeout(300);
   await page.goto('/admin', { waitUntil: 'domcontentloaded', timeout: 10000 });
@@ -18,8 +25,11 @@ test.describe('Admin panel', () => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
     await page.fill('#username', 'admin');
     await page.fill('#password', 'testpassword123');
-    await page.click('button[type="submit"]');
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
   });
 
   test('admin link is visible for admin users', async ({ page }) => {
