@@ -327,7 +327,15 @@ func main() {
 		// Media upload
 		auth.POST("/upload", handlers.HandleUpload)
 		auth.GET("/uploads", handlers.GetUploads)
+
+		// Share links
+		auth.POST("/share", handlers.CreateShareLink)
+		auth.GET("/share", handlers.ListShareLinks)
+		auth.DELETE("/share/:token", handlers.DeleteShareLink)
 	}
+
+	// Public share routes (no auth required)
+	r.GET("/api/share/:token", handlers.GetSharedEntity)
 
 	// WebSocket (auth required, but no CSRF)
 	ws := r.Group("/api")
@@ -349,6 +357,8 @@ func main() {
 		// Email settings
 		admin.GET("/email-settings", handlers.GetEmailSettings)
 		admin.POST("/email-settings", handlers.SaveEmailSettings)
+		admin.POST("/test-email", handlers.TestEmail)
+		admin.POST("/campaign-highlights", handlers.SendCampaignHighlights)
 
 		// Shop management (admin only)
 		admin.POST("/shops", handlers.CreateShop)

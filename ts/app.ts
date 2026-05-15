@@ -1149,6 +1149,9 @@ function renderDetails() {
         <input class="form-control form-control-sm" id="coin${coin}" value="${c.currency?.[coin]||0}" type="number"></div>
       `).join('')}
       <div class="col-4 col-md-2 d-flex align-items-end"><button class="btn btn-gold btn-sm w-100" onclick="updateCurrency()">Save</button></div>
+    </div>
+    <div class="mt-3">
+      <button class="btn btn-outline-primary btn-sm" onclick="shareCharacter()"><i class="fa-solid fa-share-nodes me-1"></i>Share Character</button>
     </div>`;
 }
 
@@ -2257,8 +2260,12 @@ async function loadDiceHistory() {
             </div>
             <div class="d-flex align-items-center gap-2">
               <span class="badge badge-gold">${g.members.length} members</span>
-              ${g.id && (own || dm) ? `<button class="btn btn-outline-primary btn-sm" onclick="showManageCampaign(${g.id},'${esc(g.name)}','${esc(g.party_name || '')}')"><i class="fa-solid fa-users-gear"></i></button>` : ''}
-              ${g.id && own ? `<button class="btn btn-outline-danger btn-sm" onclick="deleteCampaign(${g.id})"><i class="fa-solid fa-trash"></i></button>` : ''}
+              ${g.id && (own || dm) ? `
+                <button class="btn btn-outline-primary btn-sm" onclick="showManageCampaign(${g.id},'${esc(g.name)}','${esc(g.party_name || '')}')" title="Manage"><i class="fa-solid fa-users-gear"></i></button>
+                <button class="btn btn-outline-info btn-sm" onclick="shareParty(${g.id})" title="Share Party"><i class="fa-solid fa-share-nodes"></i></button>
+              ` : ''}
+              ${g.id && own ? `<button class="btn btn-outline-danger btn-sm" onclick="deleteCampaign(${g.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>` : ''}
+              ${g.id && (own || dm) && currentUser?.role === 'admin' ? `<button class="btn btn-outline-gold btn-sm" onclick="sendCampaignHighlights(${g.id})" title="Email Highlights"><i class="fa-solid fa-envelope"></i></button>` : ''}
             </div>
           </div>
           <div class="card-body">
@@ -2430,6 +2437,74 @@ async function searchUsers(q: string) {
     await api('DELETE', `/api/campaigns/${campaignId}`);
     toast('Campaign deleted');
     (window as any).showParty();
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+// ─── Share & Email ───
+
+(window as any).shareCharacter = async function () {
+  if (!currentChar) return;
+  try {
+    const result = await api('POST', '/api/share', {
+      entity_type: 'character',
+      entity_id: currentChar.id,
+    });
+    showModal('Share Character', `
+      <p>Share this link to let others view <strong>${esc(currentChar.name)}</strong>.</p>
+      <div class="input-group mb-3">
+        <input class="form-control" id="shareUrl" value="${esc(result.url)}" readonly onclick="this.select()">
+        <button class="btn btn-gold" onclick="copyShareUrl()"><i class="fa-solid fa-copy"></i></button>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary flex-grow-1" onclick="window.open('mailto:?subject=Check out my character ${esc(currentChar.name)}&body=${encodeURIComponent(result.url)}','_blank')"><i class="fa-solid fa-envelope me-1"></i>Email</button>
+        <button class="btn btn-outline-secondary" onclick="hideModal()">Close</button>
+      </div>
+    `);
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+(window as any).copyShareUrl = function () {
+  const input = document.getElementById('shareUrl') as HTMLInputElement;
+  if (input) {
+    input.select();
+    navigator.clipboard.writeText(input.value).then(() => toast('Link copied!')).catch(() => {});
+  }
+};
+
+(window as any).shareParty = async function (campaignId: number) {
+  try {
+    const result = await api('POST', '/api/share', {
+      entity_type: 'party',
+      entity_id: campaignId,
+    });
+    showModal('Share Party', `
+      <p>Share this link to let others view your party.</p>
+      <div class="input-group mb-3">
+        <input class="form-control" id="shareUrl" value="${esc(result.url)}" readonly onclick="this.select()">
+        <button class="btn btn-gold" onclick="copyShareUrl()"><i class="fa-solid fa-copy"></i></button>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary flex-grow-1" onclick="window.open('mailto:?subject=Check out our party&body=${encodeURIComponent(result.url)}','_blank')"><i class="fa-solid fa-envelope me-1"></i>Email</button>
+        <button class="btn btn-outline-secondary" onclick="hideModal()">Close</button>
+      </div>
+    `);
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+(window as any).sendCampaignHighlights = async function (campaignId: number) {
+  try {
+    const result = await api('POST', '/api/admin/campaign-highlights', { campaign_id: campaignId });
+    const msg = result.errors && result.errors.length
+      ? `Sent to ${result.sent} recipients, but ${result.errors.length} failed.`
+      : `Campaign highlights sent to ${result.sent} recipient(s)!`;
+    toast(msg);
+    if (result.errors) console.warn('Email errors:', result.errors);
   } catch (e: any) {
     toast(e.message, true);
   }

@@ -231,7 +231,15 @@ func buildRouter() *gin.Engine {
 
 		// Campaign graph
 		auth.GET("/campaigns/:id/graph", handlers.GetCampaignGraphData)
+
+		// Share links
+		auth.POST("/share", handlers.CreateShareLink)
+		auth.GET("/share", handlers.ListShareLinks)
+		auth.DELETE("/share/:token", handlers.DeleteShareLink)
 	}
+
+	// Public share routes
+	r.GET("/api/share/:token", handlers.GetSharedEntity)
 
 	admin := r.Group("/api/admin")
 	admin.Use(middleware.AuthRequired(), middleware.AdminRequired(), middleware.CSRFRequired())
@@ -241,6 +249,10 @@ func buildRouter() *gin.Engine {
 		admin.PUT("/users/:id", handlers.AdminUpdateUser)
 		admin.DELETE("/users/:id", handlers.AdminDeleteUser)
 		admin.PUT("/users/:id/password", handlers.AdminResetPassword)
+		admin.GET("/email-settings", handlers.GetEmailSettings)
+		admin.POST("/email-settings", handlers.SaveEmailSettings)
+		admin.POST("/test-email", handlers.TestEmail)
+		admin.POST("/campaign-highlights", handlers.SendCampaignHighlights)
 		admin.POST("/compendium/:type", handlers.AdminCreateCompendiumEntry)
 		admin.PUT("/compendium/:type/:id", handlers.AdminUpdateCompendiumEntry)
 		admin.DELETE("/compendium/:type/:id", handlers.AdminDeleteCompendiumEntry)
@@ -3607,6 +3619,274 @@ func TestProficiencyBonusOnLevelUp(t *testing.T) {
 	pb := int(char["proficiency_bonus"].(float64))
 	if pb != 3 {
 		t.Fatalf("expected proficiency_bonus 3 at level 5, got %d", pb)
+	}
+}
+
+func TestShareLinks(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create a character
+	resp := tc.post("/api/characters", map[string]any{
+		"name": "Shareable Hero", "race": "Elf", "class": "Ranger", "level": 3,
+		"str": 12, "dex": 16, "con": 14, "int": 10, "wis": 14, "cha": 8,
+		"hp_max": 28, "hp_current": 22,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create character failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Create campaign for party share
+	resp = tc.post("/api/campaigns", map[string]any{
+		"name": "Share Campaign", "party_name": "Share Party",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create campaign failed: %d", resp.Code)
+	}
+	var camp map[string]any
+	readJSON(resp, &camp)
+	campaignID := int(camp["id"].(float64))
+
+	// Assign character to campaign
+	tc.put(fmt.Sprintf("/api/characters/%d", cid), map[string]any{
+		"name": "Shareable Hero", "race": "Elf", "class": "Ranger", "level": 3,
+		"campaign_id": campaignID,
+		"str": 12, "dex": 16, "con": 14, "int": 10, "wis": 14, "cha": 8,
+		"hp_max": 28, "hp_current": 22, "ac": 15, "initiative": 3, "speed": 30,
+	})
+
+	// --- Character share ---
+	resp = tc.post("/api/share", map[string]any{
+		"entity_type": "character",
+		"entity_id":   cid,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create character share link failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var shareResp map[string]any
+	readJSON(resp, &shareResp)
+	charToken := shareResp["token"].(string)
+	charURL := shareResp["url"].(string)
+	if charToken == "" {
+		t.Fatal("expected non-empty token")
+	}
+	if charURL == "" {
+		t.Fatal("expected non-empty url")
+	}
+
+	// --- Party share ---
+	resp = tc.post("/api/share", map[string]any{
+		"entity_type": "party",
+		"entity_id":   campaignID,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create party share link failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	readJSON(resp, &shareResp)
+	partyToken := shareResp["token"].(string)
+	if partyToken == "" {
+		t.Fatal("expected non-empty party token")
+	}
+
+	// --- List share links ---
+	resp = tc.get("/api/share", nil)
+	if resp.Code != 200 {
+		t.Fatalf("list share links failed: %d", resp.Code)
+	}
+	var links []any
+	readJSON(resp, &links)
+	if len(links) < 2 {
+		t.Fatalf("expected at least 2 share links, got %d", len(links))
+	}
+
+	// --- Get shared character via public route ---
+	tc2 := newTestClient() // no auth
+	resp = tc2.get("/api/share/"+charToken, nil)
+	if resp.Code != 200 {
+		t.Fatalf("get shared character failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var sharedChar map[string]any
+	readJSON(resp, &sharedChar)
+	if sharedChar["name"] != "Shareable Hero" {
+		t.Fatalf("expected 'Shareable Hero', got %q", sharedChar["name"])
+	}
+	if sharedChar["race"] != "Elf" {
+		t.Fatalf("expected race 'Elf', got %q", sharedChar["race"])
+	}
+	if sharedChar["level"].(float64) != 3 {
+		t.Fatalf("expected level 3, got %v", sharedChar["level"])
+	}
+	t.Logf("Shared character: %s (%s Lvl %v)", sharedChar["name"], sharedChar["race"], sharedChar["level"])
+
+	// --- Get shared party via public route ---
+	resp = tc2.get("/api/share/"+partyToken, nil)
+	if resp.Code != 200 {
+		t.Fatalf("get shared party failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var sharedParty map[string]any
+	readJSON(resp, &sharedParty)
+	campaign := sharedParty["campaign"].(map[string]any)
+	if campaign["name"] != "Share Campaign" {
+		t.Fatalf("expected campaign name 'Share Campaign', got %q", campaign["name"])
+	}
+	members := sharedParty["members"].([]any)
+	if len(members) != 1 {
+		t.Fatalf("expected 1 party member, got %d", len(members))
+	}
+	member := members[0].(map[string]any)
+	if member["name"] != "Shareable Hero" {
+		t.Fatalf("expected 'Shareable Hero' in party, got %q", member["name"])
+	}
+	t.Logf("Shared party: %s with %d members", campaign["name"], len(members))
+
+	// --- Invalid token ---
+	resp = tc2.get("/api/share/invalidtoken123", nil)
+	if resp.Code != 404 {
+		t.Fatalf("expected 404 for invalid token, got %d", resp.Code)
+	}
+
+	// --- Delete share links ---
+	resp = tc.del("/api/share/"+charToken, nil)
+	if resp.Code != 200 {
+		t.Fatalf("delete char share link failed: %d", resp.Code)
+	}
+	resp = tc.del("/api/share/"+partyToken, nil)
+	if resp.Code != 200 {
+		t.Fatalf("delete party share link failed: %d", resp.Code)
+	}
+
+	// Verify deleted
+	resp = tc2.get("/api/share/"+charToken, nil)
+	if resp.Code != 404 {
+		t.Fatalf("expected 404 for deleted share, got %d", resp.Code)
+	}
+}
+
+func TestEmailSettingsConfig(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Save email settings
+	resp := tc.post("/api/admin/email-settings", map[string]any{
+		"smtp_host": "smtp.example.com",
+		"smtp_port": 587,
+		"username":  "test@example.com",
+		"password":  "secret",
+		"from_addr": "test@example.com",
+		"enabled":   true,
+	})
+	if resp.Code != 200 {
+		t.Fatalf("save email settings failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	// Get email settings (password should be masked)
+	resp = tc.get("/api/admin/email-settings", nil)
+	if resp.Code != 200 {
+		t.Fatalf("get email settings failed: %d", resp.Code)
+	}
+	var settings map[string]any
+	readJSON(resp, &settings)
+	if settings["smtp_host"] != "smtp.example.com" {
+		t.Fatalf("expected smtp_host 'smtp.example.com', got %q", settings["smtp_host"])
+	}
+	if settings["has_password"] != true {
+		t.Fatalf("expected has_password true, got %v", settings["has_password"])
+	}
+	if settings["enabled"] != true {
+		t.Fatalf("expected enabled true, got %v", settings["enabled"])
+	}
+	t.Logf("Email settings: host=%s, port=%v, enabled=%v", settings["smtp_host"], settings["smtp_port"], settings["enabled"])
+
+	// Save with empty password (should preserve existing)
+	resp = tc.post("/api/admin/email-settings", map[string]any{
+		"smtp_host": "smtp.example.com",
+		"smtp_port": 587,
+		"username":  "test@example.com",
+		"password":  "",
+		"from_addr": "test@example.com",
+		"enabled":   true,
+	})
+	if resp.Code != 200 {
+		t.Fatalf("save email settings (empty pw) failed: %d", resp.Code)
+	}
+
+	// Update to different host
+	resp = tc.post("/api/admin/email-settings", map[string]any{
+		"smtp_host": "smtp.newhost.com",
+		"smtp_port": 465,
+		"username":  "new@example.com",
+		"password":  "newsecret",
+		"from_addr": "new@example.com",
+		"enabled":   false,
+	})
+	if resp.Code != 200 {
+		t.Fatalf("save updated email settings failed: %d", resp.Code)
+	}
+
+	resp = tc.get("/api/admin/email-settings", nil)
+	readJSON(resp, &settings)
+	if settings["smtp_host"] != "smtp.newhost.com" {
+		t.Fatalf("expected smtp_host 'smtp.newhost.com', got %q", settings["smtp_host"])
+	}
+	if settings["enabled"] != false {
+		t.Fatalf("expected enabled false, got %v", settings["enabled"])
+	}
+	t.Logf("Updated email settings: host=%s, enabled=%v", settings["smtp_host"], settings["enabled"])
+
+	// Test email (will fail because SMTP is not reachable - that's expected)
+	resp = tc.post("/api/admin/test-email", nil)
+	if resp.Code == 200 {
+		t.Log("Test email reported success (SMTP may be available)")
+	} else {
+		// Expected to fail since we can't reach smtp.newhost.com
+		t.Logf("Test email failed as expected: %d - %s", resp.Code, resp.Body.String())
+		// Verify it's an email-send error, not a server error
+		if resp.Code != 400 && resp.Code != 500 {
+			t.Fatalf("expected 400 or 500 for test email, got %d", resp.Code)
+		}
+	}
+}
+
+func TestShareLinkExpiration(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create a character
+	resp := tc.post("/api/characters", map[string]any{
+		"name": "Expiring Hero", "race": "Human", "class": "Fighter",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create character failed: %d", resp.Code)
+	}
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Create share link with 1 hour expiration
+	resp = tc.post("/api/share", map[string]any{
+		"entity_type": "character",
+		"entity_id":   cid,
+		"expires_in":  1,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create expiring share link failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var shareResp map[string]any
+	readJSON(resp, &shareResp)
+	token := shareResp["token"].(string)
+	if shareResp["expires_at"] == "" {
+		t.Fatal("expected expires_at for expiring share link")
+	}
+	t.Logf("Expiring share link: token=%s, expires_at=%s", token, shareResp["expires_at"])
+
+	// Token should work immediately
+	tc2 := newTestClient()
+	resp = tc2.get("/api/share/"+token, nil)
+	if resp.Code != 200 {
+		t.Fatalf("expiring share link should work immediately: %d", resp.Code)
 	}
 }
 
