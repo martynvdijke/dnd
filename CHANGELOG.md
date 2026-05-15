@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/martynvdijke/dnd/compare/v1.8.0...v1.9.0) (2026-05-15)
+
+
+### Features
+
+* add campaign-level graph showing all entities and relationships using vis-network ([41298f1](https://github.com/martynvdijke/dnd/commit/41298f1cc6a9b36219bacf2e8394e13ea2a562c2))
+
 # [1.8.0](https://github.com/martynvdijke/dnd/compare/v1.7.0...v1.8.0) (2026-05-14)
 
 
