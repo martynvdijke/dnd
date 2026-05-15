@@ -637,6 +637,403 @@ func GetGraphData(c *gin.Context) {
 	c.JSON(http.StatusOK, gd)
 }
 
+func GetCampaignGraphData(c *gin.Context) {
+	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+
+	gd := models.GraphData{Nodes: []models.GraphNode{}, Edges: []models.GraphEdge{}}
+	nodeSet := map[string]bool{}
+
+	// ─── Campaign node ───
+	var campName string
+	db.DB.QueryRow("SELECT name FROM campaigns WHERE id=?", campaignID).Scan(&campName)
+	gd.Nodes = append(gd.Nodes, models.GraphNode{
+		ID: "camp_" + strconv.FormatInt(campaignID, 10), Label: campName,
+		Group: "campaign", Color: "#8b0000", Size: 35,
+	})
+	nodeSet["camp_"+strconv.FormatInt(campaignID, 10)] = true
+
+	// ─── Check user access ───
+	if role != "admin" {
+		var isMember bool
+		db.DB.QueryRow("SELECT COUNT(*)>0 FROM campaign_members WHERE campaign_id=? AND user_id=?", campaignID, userID).Scan(&isMember)
+		var isOwner bool
+		db.DB.QueryRow("SELECT COUNT(*)>0 FROM campaigns WHERE id=? AND user_id=?", campaignID, userID).Scan(&isOwner)
+		if !isMember && !isOwner {
+			c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+			return
+		}
+	}
+
+	// ─── Characters ───
+	charRows, _ := db.DB.Query("SELECT id, name, race, class, level FROM characters WHERE campaign_id=?", campaignID)
+	if charRows != nil {
+		for charRows.Next() {
+			var cid int64
+			var cname, race, cls string
+			var lvl int
+			charRows.Scan(&cid, &cname, &race, &cls, &lvl)
+			nid := "char_" + strconv.FormatInt(cid, 10)
+			if !nodeSet[nid] {
+				gd.Nodes = append(gd.Nodes, models.GraphNode{
+					ID: nid, Label: cname + " (Lvl " + strconv.Itoa(lvl) + " " + race + " " + cls + ")",
+					Group: "character", Color: "#8b0000", Size: 28, CharID: cid,
+				})
+				nodeSet[nid] = true
+			}
+			gd.Edges = append(gd.Edges, models.GraphEdge{
+				From: "camp_" + strconv.FormatInt(campaignID, 10), To: nid, Label: "member", Width: 2, Dashes: false,
+			})
+		}
+		charRows.Close()
+	}
+
+	// ─── Wiki pages ───
+	wikiRows, _ := db.DB.Query("SELECT id, title, parent_id FROM campaign_wiki_pages WHERE campaign_id=? ORDER BY sort_order, title", campaignID)
+	wikiMap := map[int64]string{}
+	if wikiRows != nil {
+		for wikiRows.Next() {
+			var wid int64
+			var wtitle string
+			var parentID sql.NullInt64
+			wikiRows.Scan(&wid, &wtitle, &parentID)
+			nid := "wiki_" + strconv.FormatInt(wid, 10)
+			if !nodeSet[nid] {
+				gd.Nodes = append(gd.Nodes, models.GraphNode{
+					ID: nid, Label: wtitle, Group: "wiki", Color: "#b8963e", Size: 18,
+				})
+				nodeSet[nid] = true
+			}
+			wikiMap[wid] = nid
+			gd.Edges = append(gd.Edges, models.GraphEdge{
+				From: "camp_" + strconv.FormatInt(campaignID, 10), To: nid, Label: "wiki", Width: 1, Dashes: false,
+			})
+			if parentID.Valid {
+				if pnid, ok := wikiMap[parentID.Int64]; ok {
+					gd.Edges = append(gd.Edges, models.GraphEdge{
+						From: pnid, To: nid, Label: "child", Width: 1, Dashes: true,
+					})
+				}
+			}
+		}
+		wikiRows.Close()
+	}
+
+	// ─── Locations linked to campaign characters ───
+	locRows, _ := db.DB.Query(`
+		SELECT DISTINCT cl.location_id, cl.relationship, l.name, l.type
+		FROM character_locations cl
+		JOIN locations l ON cl.location_id = l.id
+		JOIN characters c ON cl.character_id = c.id
+		WHERE c.campaign_id=?`, campaignID)
+	if locRows != nil {
+		for locRows.Next() {
+			var locID int64
+			var rel, locName, locType string
+			locRows.Scan(&locID, &rel, &locName, &locType)
+			nid := "loc_" + strconv.FormatInt(locID, 10)
+			if !nodeSet[nid] {
+				gd.Nodes = append(gd.Nodes, models.GraphNode{
+					ID: nid, Label: locName + " (" + locType + ")", Group: "location", Color: "#b8963e", Size: 20,
+				})
+				nodeSet[nid] = true
+			}
+		}
+		locRows.Close()
+	}
+
+	// ─── Character-Location edges ───
+	clRows, _ := db.DB.Query(`
+		SELECT cl.character_id, cl.location_id, cl.relationship
+		FROM character_locations cl
+		JOIN characters c ON cl.character_id = c.id
+		WHERE c.campaign_id=?`, campaignID)
+	if clRows != nil {
+		for clRows.Next() {
+			var charID, locID int64
+			var rel string
+			clRows.Scan(&charID, &locID, &rel)
+			from := "char_" + strconv.FormatInt(charID, 10)
+			to := "loc_" + strconv.FormatInt(locID, 10)
+			if nodeSet[from] && nodeSet[to] {
+				gd.Edges = append(gd.Edges, models.GraphEdge{
+					From: from, To: to, Label: rel, Width: 2, Dashes: false,
+				})
+			}
+		}
+		clRows.Close()
+	}
+
+	// ─── NPCs linked to campaign characters ───
+	npcRows, _ := db.DB.Query(`
+		SELECT DISTINCT cn.npc_id, n.name, n.race, n.class
+		FROM character_npcs cn
+		JOIN npcs n ON cn.npc_id = n.id
+		JOIN characters c ON cn.character_id = c.id
+		WHERE c.campaign_id=?`, campaignID)
+	if npcRows != nil {
+		for npcRows.Next() {
+			var npcID int64
+			var npcName, npcRace, npcClass string
+			npcRows.Scan(&npcID, &npcName, &npcRace, &npcClass)
+			nid := "npc_" + strconv.FormatInt(npcID, 10)
+			if !nodeSet[nid] {
+				label := npcName + " (NPC)"
+				if npcRace != "" || npcClass != "" {
+					label = npcName + " (" + npcRace + " " + npcClass + ")"
+				}
+				gd.Nodes = append(gd.Nodes, models.GraphNode{
+					ID: nid, Label: label, Group: "npc", Color: "#2d6a2d", Size: 20,
+				})
+				nodeSet[nid] = true
+			}
+		}
+		npcRows.Close()
+	}
+
+	// ─── Character-NPC edges ───
+	cnRows, _ := db.DB.Query(`
+		SELECT cn.character_id, cn.npc_id, cn.relationship, cn.interaction_count
+		FROM character_npcs cn
+		JOIN characters c ON cn.character_id = c.id
+		WHERE c.campaign_id=?`, campaignID)
+	if cnRows != nil {
+		for cnRows.Next() {
+			var charID, npcID, intCount int64
+			var rel string
+			cnRows.Scan(&charID, &npcID, &rel, &intCount)
+			from := "char_" + strconv.FormatInt(charID, 10)
+			to := "npc_" + strconv.FormatInt(npcID, 10)
+			edgeWidth := 1
+			if intCount > 5 {
+				edgeWidth = 5
+			} else if intCount > 2 {
+				edgeWidth = 3
+			} else if intCount > 0 {
+				edgeWidth = 2
+			}
+			if nodeSet[from] && nodeSet[to] {
+				gd.Edges = append(gd.Edges, models.GraphEdge{
+					From: from, To: to, Label: rel, Width: edgeWidth, Dashes: false,
+				})
+			}
+		}
+		cnRows.Close()
+	}
+
+	// ─── Quests ───
+	questRows, _ := db.DB.Query(`
+		SELECT q.id, q.character_id, q.name, q.status
+		FROM quests q
+		JOIN characters c ON q.character_id = c.id
+		WHERE c.campaign_id=?`, campaignID)
+	if questRows != nil {
+		for questRows.Next() {
+			var qid, charID int64
+			var qname, status string
+			questRows.Scan(&qid, &charID, &qname, &status)
+			nid := "quest_" + strconv.FormatInt(qid, 10)
+			if !nodeSet[nid] {
+				qcolor := "#b8963e"
+				if status == "complete" {
+					qcolor = "#2d6a2d"
+				} else if status == "failed" || status == "abandoned" {
+					qcolor = "#666"
+				}
+				gd.Nodes = append(gd.Nodes, models.GraphNode{
+					ID: nid, Label: qname + " [" + status + "]", Group: "quest", Color: qcolor, Size: 18,
+				})
+				nodeSet[nid] = true
+			}
+			from := "char_" + strconv.FormatInt(charID, 10)
+			if nodeSet[from] {
+				gd.Edges = append(gd.Edges, models.GraphEdge{
+					From: from, To: nid, Label: status, Width: 1, Dashes: status == "available",
+				})
+			}
+		}
+		questRows.Close()
+	}
+
+	// ─── Sessions ───
+	sessRows, _ := db.DB.Query(`
+		SELECT s.id, s.character_id, s.title, s.session_date
+		FROM sessions s
+		JOIN characters c ON s.character_id = c.id
+		WHERE c.campaign_id=? ORDER BY s.session_date DESC LIMIT 30`, campaignID)
+	if sessRows != nil {
+		for sessRows.Next() {
+			var sid, charID int64
+			var title, sdate string
+			sessRows.Scan(&sid, &charID, &title, &sdate)
+			nid := "session_" + strconv.FormatInt(sid, 10)
+			if !nodeSet[nid] {
+				slabel := title
+				if slabel == "" {
+					slabel = "Session " + sdate
+				}
+				gd.Nodes = append(gd.Nodes, models.GraphNode{
+					ID: nid, Label: slabel, Group: "session", Color: "#5c3a2a", Size: 14,
+				})
+				nodeSet[nid] = true
+			}
+			from := "char_" + strconv.FormatInt(charID, 10)
+			if nodeSet[from] {
+				gd.Edges = append(gd.Edges, models.GraphEdge{
+					From: from, To: nid, Label: "played", Width: 1, Dashes: false,
+				})
+			}
+		}
+		sessRows.Close()
+	}
+
+	// ─── Factions ───
+	facRows, _ := db.DB.Query("SELECT id, name, type FROM factions WHERE campaign_id=? OR campaign_id IS NULL", campaignID)
+	factionIDs := []int64{}
+	if facRows != nil {
+		for facRows.Next() {
+			var fid int64
+			var fname, ftype string
+			facRows.Scan(&fid, &fname, &ftype)
+			nid := "faction_" + strconv.FormatInt(fid, 10)
+			if !nodeSet[nid] {
+				gd.Nodes = append(gd.Nodes, models.GraphNode{
+					ID: nid, Label: fname + " (" + ftype + ")", Group: "faction", Color: "#9b59b6", Size: 20,
+				})
+				nodeSet[nid] = true
+			}
+			factionIDs = append(factionIDs, fid)
+		}
+		facRows.Close()
+	}
+
+	// ─── Faction-Character edges ───
+	for _, fid := range factionIDs {
+		frRows, _ := db.DB.Query(`
+			SELECT fr.character_id, fr.standing
+			FROM faction_reputation fr
+			JOIN characters c ON fr.character_id = c.id
+			WHERE fr.faction_id=? AND c.campaign_id=?`, fid, campaignID)
+		if frRows != nil {
+			for frRows.Next() {
+				var charID int64
+				var standing int
+				frRows.Scan(&charID, &standing)
+				from := "char_" + strconv.FormatInt(charID, 10)
+				to := "faction_" + strconv.FormatInt(fid, 10)
+				relLabel := "neutral"
+				if standing >= 50 {
+					relLabel = "revered"
+				} else if standing >= 25 {
+					relLabel = "allied"
+				} else if standing <= -50 {
+					relLabel = "hostile"
+				} else if standing <= -25 {
+					relLabel = "unfriendly"
+				}
+				if nodeSet[from] && nodeSet[to] {
+					gd.Edges = append(gd.Edges, models.GraphEdge{
+						From: from, To: to, Label: relLabel + " (" + strconv.Itoa(standing) + ")", Width: 2, Dashes: false,
+					})
+				}
+			}
+			frRows.Close()
+		}
+	}
+
+	// ─── Encounters ───
+	encRows, _ := db.DB.Query("SELECT id, name, difficulty FROM encounter_templates WHERE campaign_id=?", campaignID)
+	if encRows != nil {
+		for encRows.Next() {
+			var eid int64
+			var ename, diff string
+			encRows.Scan(&eid, &ename, &diff)
+			nid := "encounter_" + strconv.FormatInt(eid, 10)
+			if !nodeSet[nid] {
+				encColor := "#e67e22"
+				if diff == "hard" {
+					encColor = "#c0392b"
+				} else if diff == "deadly" {
+					encColor = "#7b0000"
+				}
+				gd.Nodes = append(gd.Nodes, models.GraphNode{
+					ID: nid, Label: ename + " [" + diff + "]", Group: "encounter", Color: encColor, Size: 18,
+				})
+				nodeSet[nid] = true
+			}
+			gd.Edges = append(gd.Edges, models.GraphEdge{
+				From: "camp_" + strconv.FormatInt(campaignID, 10), To: nid, Label: "encounter", Width: 1, Dashes: false,
+			})
+		}
+		encRows.Close()
+	}
+
+	// ─── Timeline events with entity links ───
+	tlRows, _ := db.DB.Query(`
+		SELECT id, title, event_type, linked_entity_type, linked_entity_id
+		FROM campaign_timeline_events WHERE campaign_id=? AND linked_entity_type != '' AND linked_entity_id IS NOT NULL`, campaignID)
+	if tlRows != nil {
+		for tlRows.Next() {
+			var tlID int64
+			var tlTitle, tlType, linkedType string
+			var linkedID int64
+			tlRows.Scan(&tlID, &tlTitle, &tlType, &linkedType, &linkedID)
+			nid := "timeline_" + strconv.FormatInt(tlID, 10)
+			if !nodeSet[nid] {
+				gd.Nodes = append(gd.Nodes, models.GraphNode{
+					ID: nid, Label: tlTitle + " [" + tlType + "]", Group: "timeline", Color: "#5c3a2a", Size: 14,
+				})
+				nodeSet[nid] = true
+			}
+			var targetNID string
+			switch linkedType {
+			case "character":
+				targetNID = "char_" + strconv.FormatInt(linkedID, 10)
+			case "npc":
+				targetNID = "npc_" + strconv.FormatInt(linkedID, 10)
+			case "location":
+				targetNID = "loc_" + strconv.FormatInt(linkedID, 10)
+			case "wiki":
+				targetNID = "wiki_" + strconv.FormatInt(linkedID, 10)
+			}
+			if targetNID != "" && nodeSet[targetNID] {
+				gd.Edges = append(gd.Edges, models.GraphEdge{
+					From: targetNID, To: nid, Label: tlType, Width: 1, Dashes: true,
+				})
+			}
+			gd.Edges = append(gd.Edges, models.GraphEdge{
+				From: "camp_" + strconv.FormatInt(campaignID, 10), To: nid, Label: "timeline", Width: 1, Dashes: false,
+			})
+		}
+		tlRows.Close()
+	}
+
+	// ─── Calendar events ───
+	calRows, _ := db.DB.Query(`
+		SELECT id, title, event_type FROM campaign_calendar_events WHERE campaign_id=? LIMIT 30`, campaignID)
+	if calRows != nil {
+		for calRows.Next() {
+			var calID int64
+			var calTitle, calType string
+			calRows.Scan(&calID, &calTitle, &calType)
+			nid := "calendar_" + strconv.FormatInt(calID, 10)
+			if !nodeSet[nid] {
+				gd.Nodes = append(gd.Nodes, models.GraphNode{
+					ID: nid, Label: calTitle + " [" + calType + "]", Group: "calendar", Color: "#b8963e", Size: 14,
+				})
+				nodeSet[nid] = true
+			}
+			gd.Edges = append(gd.Edges, models.GraphEdge{
+				From: "camp_" + strconv.FormatInt(campaignID, 10), To: nid, Label: "event", Width: 1, Dashes: false,
+			})
+		}
+		calRows.Close()
+	}
+
+	c.JSON(http.StatusOK, gd)
+}
+
 // ─── Party View ───
 
 type PartyMember struct {

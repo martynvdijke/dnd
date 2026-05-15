@@ -4493,7 +4493,10 @@ let draggedCombatId: number | null = null;
       el.innerHTML = `
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h4 class="mb-0"><i class="fa-solid fa-book me-2"></i>${esc(camp?.name || 'Wiki')}</h4>
-          <button class="btn btn-gold btn-sm" onclick="showAddWikiPage(${cid})"><i class="fa-solid fa-plus me-1"></i>New Page</button>
+          <div class="d-flex gap-1">
+            <button class="btn btn-gold btn-sm" onclick="showAddWikiPage(${cid})"><i class="fa-solid fa-plus me-1"></i>New Page</button>
+            <button class="btn btn-outline-gold btn-sm" onclick="showCampaignGraph(${cid})"><i class="fa-solid fa-project-diagram me-1"></i>Graph</button>
+          </div>
         </div>
         <div class="empty-state"><i class="fa-solid fa-book-open fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">Empty Wiki</p><p class="small text-muted">Start building your campaign lore by creating pages.</p></div>`;
       return;
@@ -4502,7 +4505,10 @@ let draggedCombatId: number | null = null;
     el.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h4 class="mb-0"><i class="fa-solid fa-book me-2"></i>${esc(camp?.name || 'Wiki')}</h4>
-        <button class="btn btn-gold btn-sm" onclick="showAddWikiPage(${cid})"><i class="fa-solid fa-plus me-1"></i>New Page</button>
+        <div class="d-flex gap-1">
+          <button class="btn btn-gold btn-sm" onclick="showAddWikiPage(${cid})"><i class="fa-solid fa-plus me-1"></i>New Page</button>
+          <button class="btn btn-outline-gold btn-sm" onclick="showCampaignGraph(${cid})"><i class="fa-solid fa-project-diagram me-1"></i>Graph</button>
+        </div>
       </div>
       <div class="row g-0" style="min-height:500px">
         <div class="col-12 col-md-3" style="overflow-y:auto;max-height:70vh;border-right:1px solid var(--border)">
@@ -4606,6 +4612,77 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
     (window as any).showWiki(cid);
     toast('Wiki page deleted');
   } catch (e: any) { toast(e.message, true); }
+};
+
+// ─── Campaign Graph ───
+
+(window as any).showCampaignGraph = async function (campaignId: number) {
+  const modalEl = document.getElementById('genericModal')!;
+  const dialogEl = modalEl.querySelector('.modal-dialog') as HTMLElement;
+  const origClass = dialogEl.className;
+  dialogEl.className = 'modal-dialog modal-xl modal-dialog-scrollable';
+  showModal('Campaign Web', `
+    <div id="campaignGraphContainer" style="width:100%;height:600px;border:1px solid var(--border);border-radius:4px;background:var(--parchment-light)"></div>
+    <div class="text-center mt-2"><small class="text-muted" id="campaignGraphStats">Loading all connections...</small></div>
+  `);
+  try {
+    const data = await api('GET', `/api/campaigns/${campaignId}/graph`);
+    if (typeof vis !== 'undefined') {
+      const container = document.getElementById('campaignGraphContainer')!;
+      const nodes = new vis.DataSet(data.nodes.map((n:any) => ({
+        id: n.id, label: n.label, group: n.group,
+        color: { background: n.color, border: '#2c1810' },
+        font: { face: 'Playfair Display', color: '#2c1810', size: n.size > 25 ? 14 : n.size > 18 ? 12 : 10 },
+        size: n.size,
+        borderWidth: 2,
+      })));
+      const edges = new vis.DataSet(data.edges.map((e:any) => ({
+        from: e.from, to: e.to, label: e.label,
+        dashes: e.dashes, width: e.width,
+        color: { color: '#8b7355', highlight: '#8b0000' },
+        font: { face: 'Vollkorn', size: 9, color: '#5c3a2a', align: 'middle' },
+        smooth: { type: 'curvedCW', roundness: 0.15 },
+      })));
+      new vis.Network(container, { nodes, edges }, {
+        physics: {
+          solver: 'forceAtlas2Based',
+          forceAtlas2Based: { gravitationalConstant: -120, centralGravity: 0.008, springLength: 250, springConstant: 0.01, damping: 0.4 },
+          stabilization: { iterations: 150 },
+        },
+        interaction: { hover: true, tooltipDelay: 200, navigationButtons: true, keyboard: true, zoomView: true },
+        groups: {
+          campaign: { shape: 'ellipse', color: { background: '#8b0000', border: '#5c0000' }, font: { color: '#fff', size: 18 } },
+          character: { shape: 'ellipse', color: { background: '#8b0000', border: '#5c0000' }, font: { color: '#fff', size: 14 } },
+          location: { shape: 'square', color: { background: '#b8963e', border: '#8a7020' } },
+          npc: { shape: 'diamond', color: { background: '#2d6a2d', border: '#1a4a1a' } },
+          quest: { shape: 'star', color: { background: '#8b4513', border: '#5c2e0d' } },
+          session: { shape: 'dot', color: { background: '#5c3a2a', border: '#3c2010' } },
+          wiki: { shape: 'hexagon', color: { background: '#b8963e', border: '#8a7020' } },
+          faction: { shape: 'triangle', color: { background: '#9b59b6', border: '#7d3c98' } },
+          encounter: { shape: 'dot', color: { background: '#e67e22', border: '#c0392b' } },
+          timeline: { shape: 'dot', color: { background: '#5c3a2a', border: '#3c2010' } },
+          calendar: { shape: 'dot', color: { background: '#b8963e', border: '#8a7020' } },
+        },
+        edges: { smooth: true },
+      });
+      document.getElementById('campaignGraphStats')!.innerHTML =
+        `${data.nodes.length} entities &middot; ${data.edges.length} connections`;
+    } else {
+      document.getElementById('campaignGraphContainer')!.innerHTML = `
+        <div class="p-3 text-center small">
+          <h5>Campaign Web</h5>
+          <p>${data.nodes.map((n:any) => esc(n.label) + ' [' + n.group + ']').join(' &rarr; ')}</p>
+          <p class="text-muted fst-italic mt-2">${data.nodes.length} entities &middot; ${data.edges.length} connections</p>
+        </div>`;
+    }
+  } catch (e:any) {
+    const container = document.getElementById('campaignGraphContainer');
+    if (container) container.innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">${esc(e.message)}</p></div>`;
+  }
+  modalEl.addEventListener('hidden.bs.modal', function restore() {
+    dialogEl.className = origClass;
+    modalEl.removeEventListener('hidden.bs.modal', restore);
+  }, { once: true });
 };
 
 // ─── Show combat nav for admin ───

@@ -228,6 +228,9 @@ func main() {
 		auth.PUT("/wiki/:id", handlers.UpdateWikiPage)
 		auth.DELETE("/wiki/:id", handlers.DeleteWikiPage)
 
+		// Campaign graph
+		auth.GET("/campaigns/:id/graph", handlers.GetCampaignGraphData)
+
 		// Multi-class
 		auth.POST("/characters/:id/classes", handlers.CreateCharacterClass)
 		auth.PUT("/classes/:ccid", handlers.UpdateCharacterClass)

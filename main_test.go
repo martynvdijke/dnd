@@ -221,6 +221,16 @@ func buildRouter() *gin.Engine {
 		auth.GET("/generate/encounter", handlers.HandleGenerateEncounter)
 		auth.GET("/generate/loot", handlers.HandleGenerateLoot)
 		auth.GET("/generate/character", handlers.HandleGenerateRandomCharacter)
+
+		// Wiki
+		auth.GET("/campaigns/:id/wiki", handlers.ListWikiPages)
+		auth.POST("/campaigns/:id/wiki", handlers.CreateWikiPage)
+		auth.GET("/wiki/:id", handlers.GetWikiPage)
+		auth.PUT("/wiki/:id", handlers.UpdateWikiPage)
+		auth.DELETE("/wiki/:id", handlers.DeleteWikiPage)
+
+		// Campaign graph
+		auth.GET("/campaigns/:id/graph", handlers.GetCampaignGraphData)
 	}
 
 	admin := r.Group("/api/admin")
@@ -906,6 +916,67 @@ func TestGraphData(t *testing.T) {
 		t.Fatal("expected at least 1 graph node")
 	}
 	t.Logf("Graph: %d nodes, %d edges", len(nodes), len(gdata["edges"].([]any)))
+}
+
+func TestCampaignGraphData(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/campaigns", map[string]any{"name": "Graph Campaign", "description": "For graph testing"})
+	var camp map[string]any
+	readJSON(resp, &camp)
+	campID := int(camp["id"].(float64))
+
+	resp = tc.post("/api/characters", map[string]any{
+		"name": "Graph Hero", "race": "Elf", "class": "Ranger",
+		"campaign_id": campID, "level": 3,
+	})
+	var char map[string]any
+	readJSON(resp, &char)
+	charID := int(char["id"].(float64))
+
+	resp = tc.post("/api/locations", map[string]any{"name": "Forest", "type": "wilderness"})
+	var loc map[string]any
+	readJSON(resp, &loc)
+	locID := int(loc["id"].(float64))
+
+	tc.post(fmt.Sprintf("/api/characters/%d/locations", charID), map[string]any{
+		"location_id": locID, "relationship": "visited",
+	})
+
+	resp = tc.post("/api/npcs", map[string]any{"name": "Elara", "race": "Elf", "class": "Druid"})
+	var npc map[string]any
+	readJSON(resp, &npc)
+	npcID := int(npc["id"].(float64))
+
+	tc.post(fmt.Sprintf("/api/characters/%d/npcs", charID), map[string]any{
+		"npc_id": npcID, "relationship": "ally",
+	})
+
+	tc.post(fmt.Sprintf("/api/characters/%d/quests", charID), map[string]any{
+		"name": "Save the Forest", "status": "active",
+	})
+
+	tc.post(fmt.Sprintf("/api/campaigns/%d/wiki", campID), map[string]any{
+		"title": "The Great Forest", "content": "Lore about the forest...",
+		"campaign_id": campID,
+	})
+
+	resp = tc.get(fmt.Sprintf("/api/campaigns/%d/graph", campID), nil)
+	if resp.Code != 200 {
+		t.Fatalf("campaign graph failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var gdata map[string]any
+	readJSON(resp, &gdata)
+	nodes := gdata["nodes"].([]any)
+	edges := gdata["edges"].([]any)
+	if len(nodes) < 3 {
+		t.Fatalf("expected at least 3 graph nodes (campaign + character + wiki), got %d", len(nodes))
+	}
+	if len(edges) < 2 {
+		t.Fatalf("expected at least 2 edges, got %d", len(edges))
+	}
+	t.Logf("Campaign graph: %d nodes, %d edges", len(nodes), len(edges))
 }
 
 func TestRestAndLevelUp(t *testing.T) {
