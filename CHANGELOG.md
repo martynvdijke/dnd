@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/martynvdijke/dnd/compare/v1.9.0...v1.10.0) (2026-05-15)
+
+
+### Features
+
+* add sharable character/party links and built-in email sending ([d0aa613](https://github.com/martynvdijke/dnd/commit/d0aa6134c577ce68f4016a37e224d59e11f5f137))
+
 # [1.9.0](https://github.com/martynvdijke/dnd/compare/v1.8.0...v1.9.0) (2026-05-15)
 
 
