@@ -332,6 +332,66 @@ func main() {
 		auth.POST("/share", handlers.CreateShareLink)
 		auth.GET("/share", handlers.ListShareLinks)
 		auth.DELETE("/share/:token", handlers.DeleteShareLink)
+
+		// Campaign Dashboard
+		auth.GET("/campaigns/:id/dashboard", handlers.GetCampaignDashboard)
+
+		// Character Resources
+		auth.GET("/characters/:id/resources", handlers.ListCharacterResources)
+		auth.POST("/characters/:id/resources", handlers.CreateCharacterResource)
+		auth.PUT("/resources/:id", handlers.UpdateCharacterResource)
+		auth.DELETE("/resources/:id", handlers.DeleteCharacterResource)
+		auth.POST("/characters/:id/recover-resources", handlers.RecoverResourcesOnRest)
+
+		// Combat Log
+		auth.GET("/combat-log", handlers.ListCombatLogEntries)
+		auth.POST("/combat-log", handlers.CreateCombatLogEntry)
+		auth.GET("/combat-log/stats", handlers.GetCombatLogStats)
+
+		// Homebrew Content Manager
+		auth.GET("/homebrew/:type", handlers.ListHomebrewContent)
+		auth.POST("/homebrew/:type", handlers.CreateHomebrewContent)
+		auth.PUT("/homebrew/:type/:id", handlers.UpdateHomebrewContent)
+		auth.DELETE("/homebrew/:type/:id", handlers.DeleteHomebrewContent)
+
+		// Campaign Maps
+		auth.GET("/campaigns/:id/maps", handlers.ListCampaignMaps)
+		auth.POST("/campaigns/:id/maps", handlers.CreateCampaignMap)
+		auth.PUT("/maps/:id", handlers.UpdateCampaignMap)
+		auth.DELETE("/maps/:id", handlers.DeleteCampaignMap)
+		auth.POST("/campaigns/:id/maps/:mapId/activate", handlers.SetActiveCampaignMap)
+		auth.PUT("/maps/:id/fog", handlers.UpdateFogOfWar)
+		auth.GET("/campaigns/:id/maps/active", handlers.GetActiveCampaignMap)
+		auth.GET("/maps/:mapId/pins", handlers.ListMapPins)
+		auth.POST("/maps/:mapId/pins", handlers.CreateMapPin)
+		auth.PUT("/map-pins/:id", handlers.UpdateMapPin)
+		auth.DELETE("/map-pins/:id", handlers.DeleteMapPin)
+
+		// Quick Reference
+		auth.GET("/quickref", handlers.GetQuickReference)
+
+		// Downtime Activities
+		auth.GET("/characters/:id/downtime", handlers.ListDowntimeActivities)
+		auth.POST("/characters/:id/downtime", handlers.CreateDowntimeActivity)
+		auth.PUT("/downtime/:id", handlers.UpdateDowntimeActivity)
+		auth.DELETE("/downtime/:id", handlers.DeleteDowntimeActivity)
+		auth.POST("/downtime/:id/advance", handlers.AdvanceDowntimeDay)
+		auth.GET("/downtime/types", handlers.GetDowntimeTypes)
+
+		// Level Up Planner
+		auth.GET("/characters/:id/level-plan", handlers.GetLevelUpPlan)
+		auth.POST("/characters/:id/level-plan", handlers.SaveLevelUpPlan)
+		auth.DELETE("/characters/:id/level-plan", handlers.DeleteLevelUpPlan)
+		auth.GET("/characters/:id/level-suggestions", handlers.GetLevelUpSuggestions)
+
+		// Campaign Recaps
+		auth.GET("/campaigns/:id/recaps", handlers.ListCampaignRecaps)
+		auth.POST("/campaigns/:id/recaps", handlers.CreateCampaignRecap)
+		auth.GET("/recaps/:id", handlers.GetCampaignRecap)
+		auth.PUT("/recaps/:id", handlers.UpdateCampaignRecap)
+		auth.DELETE("/recaps/:id", handlers.DeleteCampaignRecap)
+		auth.POST("/campaigns/:id/recaps/generate", handlers.GenerateCampaignRecap)
+		auth.POST("/recaps/:id/mark-sent", handlers.MarkRecapAsSent)
 	}
 
 	// Public share routes (no auth required)
