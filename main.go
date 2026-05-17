@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"io/fs"
 	"log"
@@ -10,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"villum/db"
 	"villum/handlers"
@@ -66,9 +68,22 @@ func main() {
 	r.Use(gin.Logger(), gin.Recovery())
 	r.Use(middleware.SecurityHeaders())
 
+	tp, err := initTelemetry()
+	if err != nil {
+		log.Printf("Failed to initialize telemetry: %v", err)
+	} else {
+		r.Use(metricsMiddleware())
+		defer func() {
+			if err := tp.Shutdown(context.Background()); err != nil {
+				log.Printf("Error shutting down tracer provider: %v", err)
+			}
+		}()
+	}
+
 	// Public routes
 	r.GET("/healthz", handlers.HandleHealth)
 	r.GET("/metrics", handlers.HandleMetrics)
+	r.GET("/metrics/prometheus", gin.WrapH(promhttp.Handler()))
 	r.GET("/api/check-setup", handlers.CheckSetup)
 	r.POST("/api/login", handlers.HandleLogin)
 
