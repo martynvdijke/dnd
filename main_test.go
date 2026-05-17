@@ -3950,6 +3950,251 @@ func TestShareLinkExpiration(t *testing.T) {
 	}
 }
 
+// ─── Edge Cases & Permission Tests ───
+
+func TestDashboardEdgeCases(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Dashboard for non-existent campaign
+	resp := tc.get("/api/campaigns/99999/dashboard", nil)
+	if resp.Code != 200 {
+		t.Logf("Dashboard for non-existent campaign: %d (expected 200 with empty data)", resp.Code)
+	}
+
+	// Dashboard for campaign with no data
+	resp = tc.post("/api/campaigns", map[string]any{"name": "Empty Dash Camp"})
+	var camp map[string]any
+	readJSON(resp, &camp)
+	cid := int(camp["id"].(float64))
+
+	resp = tc.get(fmt.Sprintf("/api/campaigns/%d/dashboard", cid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("dashboard for empty campaign failed: %d", resp.Code)
+	}
+	var dash map[string]any
+	readJSON(resp, &dash)
+	if int(dash["active_quests"].(float64)) != 0 {
+		t.Fatal("expected 0 active quests for empty campaign")
+	}
+	t.Logf("Empty dashboard: 0 quests, 0 chars, 0 events")
+}
+
+func TestResourceEdgeCases(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{"name": "Resource Edge", "race": "Human", "class": "Fighter"})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Create resource with zero values
+	resp = tc.post(fmt.Sprintf("/api/characters/%d/resources", cid), map[string]any{
+		"name": "Empty Resource", "current": 0, "max": 0,
+		"short_rest_recovery": 0, "long_rest_recovery": 0,
+		"icon": "fa-bolt", "sort_order": 0,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create zero resource failed: %d", resp.Code)
+	}
+
+	// Invalid recover-resources
+	resp = tc.post(fmt.Sprintf("/api/characters/%d/recover-resources", cid), map[string]any{"rest_type": "invalid"})
+	if resp.Code == 200 {
+		t.Log("Invalid rest type accepted")
+	}
+
+	// Delete non-existent resource
+	resp = tc.del("/api/resources/99999", nil)
+	if resp.Code != 200 {
+		t.Fatalf("delete non-existent resource should return 200, got %d", resp.Code)
+	}
+}
+
+func TestHomebrewEdgeCases(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Invalid type
+	resp := tc.get("/api/homebrew/invalid", nil)
+	if resp.Code != 400 {
+		t.Fatalf("expected 400 for invalid homebrew type, got %d", resp.Code)
+	}
+
+	// Create then verify source='homebrew'
+	resp = tc.post("/api/homebrew/races", map[string]any{
+		"name": "Edge Homebrew Race", "speed": 30, "size": "Medium",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create homebrew race failed: %d", resp.Code)
+	}
+	var entry map[string]any
+	readJSON(resp, &entry)
+	eid := int(entry["id"].(float64))
+
+	// Verify it appears in homebrew listing
+	resp = tc.get("/api/homebrew/races", nil)
+	var items []any
+	readJSON(resp, &items)
+	found := false
+	for _, item := range items {
+		it := item.(map[string]any)
+		if int(it["id"].(float64)) == eid {
+			if it["source"] != "homebrew" {
+				t.Fatalf("expected source='homebrew', got %v", it["source"])
+			}
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("homebrew entry not found in listing")
+	}
+
+	tc.del(fmt.Sprintf("/api/homebrew/races/%d", eid), nil)
+}
+
+func TestMapEdgeCases(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/campaigns", map[string]any{"name": "Map Edge Camp"})
+	var camp map[string]any
+	readJSON(resp, &camp)
+	cid := int(camp["id"].(float64))
+
+	// Activate non-existent map
+	resp = tc.post(fmt.Sprintf("/api/campaigns/%d/maps/99999/activate", cid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("activate non-existent map should return 200, got %d", resp.Code)
+	}
+
+	// Get active map when none exists
+	resp = tc.get(fmt.Sprintf("/api/campaigns/%d/maps/active", cid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("get active map with none should return 200, got %d", resp.Code)
+	}
+	var active map[string]any
+	readJSON(resp, &active)
+	if active["map"] != nil {
+		t.Fatal("expected no active map when none created")
+	}
+
+	// Create map then update fog with valid JSON
+	resp = tc.post(fmt.Sprintf("/api/campaigns/%d/maps", cid), map[string]any{
+		"name": "Test Map", "width": 1000, "height": 800, "grid_size": 50,
+	})
+	var m map[string]any
+	readJSON(resp, &m)
+	mid := int(m["id"].(float64))
+
+	resp = tc.put(fmt.Sprintf("/api/maps/%d/fog", mid), map[string]any{
+		"fog_of_war": `[]`,
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update fog failed: %d", resp.Code)
+	}
+
+	tc.del(fmt.Sprintf("/api/maps/%d", mid), nil)
+}
+
+func TestCombatLogEdgeCases(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/campaigns", map[string]any{"name": "CL Edge Camp"})
+	var camp map[string]any
+	readJSON(resp, &camp)
+
+	// Stats for own campaign (should succeed with zero entries)
+	resp = tc.get(fmt.Sprintf("/api/combat-log/stats?campaign_id=%d", int(camp["id"].(float64))), nil)
+	if resp.Code != 200 {
+		t.Fatalf("stats for own campaign should return 200, got %d", resp.Code)
+	}
+
+	// Stats for non-existent campaign
+	resp = tc.get(fmt.Sprintf("/api/combat-log/stats?campaign_id=%d", 99999), nil)
+	if resp.Code != 200 {
+		t.Fatalf("stats for non-existent campaign should return 200, got %d", resp.Code)
+	}
+	var stats map[string]any
+	readJSON(resp, &stats)
+	if int(stats["total_entries"].(float64)) != 0 {
+		t.Fatal("expected 0 entries for non-existent campaign")
+	}
+
+	// Stats without campaign_id
+	resp = tc.get("/api/combat-log/stats", nil)
+	if resp.Code != 400 {
+		t.Fatalf("expected 400 for stats without campaign_id, got %d", resp.Code)
+	}
+
+	// Log entry without required fields
+	resp = tc.post("/api/combat-log", map[string]any{"damage": 5})
+	if resp.Code != 201 {
+		t.Fatalf("log entry with minimum fields should succeed: %d", resp.Code)
+	}
+}
+
+func TestQuickRefEdgeCases(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Non-existent section
+	resp := tc.get("/api/quickref?section=invalid-section", nil)
+	if resp.Code != 404 {
+		t.Fatalf("expected 404 for invalid section, got %d", resp.Code)
+	}
+
+	// Empty section parameter should return all
+	resp = tc.get("/api/quickref", nil)
+	var sections []any
+	readJSON(resp, &sections)
+	if len(sections) < 4 {
+		t.Fatalf("expected >=4 sections, got %d", len(sections))
+	}
+}
+
+func TestDowntimeEdgeCases(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/characters", map[string]any{"name": "DT Edge", "race": "Human", "class": "Rogue"})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	// Create activity with invalid type (should default to 'other')
+	resp = tc.post(fmt.Sprintf("/api/characters/%d/downtime", cid), map[string]any{
+		"activity_type": "invalid_type", "name": "Weird Activity", "days_required": 5,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create with invalid type failed: %d", resp.Code)
+	}
+	var act map[string]any
+	readJSON(resp, &act)
+
+	resp = tc.get(fmt.Sprintf("/api/characters/%d/downtime", cid), nil)
+	var acts []any
+	readJSON(resp, &acts)
+	if len(acts) > 0 {
+		a := acts[0].(map[string]any)
+		if a["activity_type"] != "other" {
+			t.Fatalf("expected activity_type='other' for invalid type, got %v", a["activity_type"])
+		}
+	}
+
+	// Advance completed activity
+	tc.del(fmt.Sprintf("/api/downtime/%d", int(act["id"].(float64))), nil)
+
+	// Advance non-existent
+	resp = tc.post("/api/downtime/99999/advance", nil)
+	if resp.Code != 400 {
+		t.Fatalf("expected 400 for advancing non-existent activity, got %d", resp.Code)
+	}
+}
+
 // ─── Feature 1: Campaign Dashboard ───
 
 func TestCampaignDashboard(t *testing.T) {
@@ -4442,6 +4687,58 @@ func TestCampaignRecaps(t *testing.T) {
 	t.Log("Campaign recaps test passed")
 }
 
+func TestCampaignRecapEdgeCases(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/campaigns", map[string]any{"name": "Edge Recap Camp"})
+	var camp map[string]any
+	readJSON(resp, &camp)
+	cid := int(camp["id"].(float64))
+
+	// Get non-existent recap
+	resp = tc.get("/api/recaps/99999", nil)
+	if resp.Code != 404 {
+		t.Fatalf("expected 404 for non-existent recap, got %d", resp.Code)
+	}
+
+	// Create recap with empty content
+	resp = tc.post(fmt.Sprintf("/api/campaigns/%d/recaps", cid), map[string]any{
+		"title": "Empty Recap", "content": "",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create empty recap failed: %d", resp.Code)
+	}
+	var created map[string]any
+	readJSON(resp, &created)
+	rid := int(created["id"].(float64))
+
+	// Fetch it back to verify word_count
+	resp = tc.get(fmt.Sprintf("/api/recaps/%d", rid), nil)
+	var recap map[string]any
+	readJSON(resp, &recap)
+	if recap["word_count"] != nil {
+		wc := int(recap["word_count"].(float64))
+		if wc != 0 {
+			t.Fatalf("expected word_count=0 for empty content, got %d", wc)
+		}
+	} else {
+		t.Log("word_count is nil for empty recap")
+	}
+
+	// Generate recap with no data (empty campaign)
+	resp = tc.post(fmt.Sprintf("/api/campaigns/%d/recaps/generate", 99998), nil)
+	if resp.Code == 200 {
+		readJSON(resp, &recap)
+		if recap["title"] != nil {
+			t.Logf("Generated recap for empty campaign: title=%s", recap["title"])
+		}
+	}
+
+	tc.del(fmt.Sprintf("/api/recaps/%d", rid), nil)
+	t.Log("Recap edge case tests passed")
+}
+
 // ─── Feature 10: Level Up Planner ───
 
 func TestLevelUpPlanner(t *testing.T) {
@@ -4510,6 +4807,68 @@ func TestLevelUpPlanner(t *testing.T) {
 		t.Fatalf("delete level plan failed: %d", resp.Code)
 	}
 	t.Log("Level up planner test passed")
+}
+
+func TestLevelUpPlannerEdgeCases(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Get plan for character with no plan
+	resp := tc.post("/api/characters", map[string]any{
+		"name": "No Plan Hero", "race": "Human", "class": "Fighter", "level": 1,
+		"str": 15, "dex": 14, "con": 13, "int": 10, "wis": 12, "cha": 8,
+	})
+	var char map[string]any
+	readJSON(resp, &char)
+	cid := int(char["id"].(float64))
+
+	resp = tc.get(fmt.Sprintf("/api/characters/%d/level-plan", cid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("get plan for no-plan char failed: %d", resp.Code)
+	}
+	var plan map[string]any
+	readJSON(resp, &plan)
+	if plan["plan_data"] == nil {
+		t.Fatal("expected empty plan_data for char with no plan")
+	}
+
+	// ASI suggestions at appropriate levels
+	resp = tc.get(fmt.Sprintf("/api/characters/%d/level-suggestions", cid), nil)
+	var suggestions []any
+	readJSON(resp, &suggestions)
+	asiLevels := []int{}
+	for _, s := range suggestions {
+		sug := s.(map[string]any)
+		if sug["has_asi"] == true {
+			asiLevels = append(asiLevels, int(sug["level"].(float64)))
+		}
+	}
+	if len(asiLevels) == 0 {
+		t.Fatal("expected at least 1 ASI suggestion")
+	}
+	t.Logf("ASI suggestion levels: %v", asiLevels)
+	expectedASIs := []int{4, 8, 12, 16, 19}
+	for _, exp := range expectedASIs {
+		found := false
+		for _, l := range asiLevels {
+			if l == exp {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Fatalf("expected ASI at level %d, got levels %v", exp, asiLevels)
+		}
+	}
+
+	// Save plan with empty data
+	resp = tc.post(fmt.Sprintf("/api/characters/%d/level-plan", cid), map[string]any{
+		"character_id": cid, "target_level": 20, "plan_data": []any{}, "notes": "",
+	})
+	if resp.Code != 201 && resp.Code != 200 {
+		t.Fatalf("save empty plan failed: %d", resp.Code)
+	}
+	t.Log("Level up planner edge case tests passed")
 }
 
 

@@ -98,8 +98,8 @@ func GetLevelUpSuggestions(c *gin.Context) {
 			"features": []string{},
 		}
 
-		// ASI/Feat at levels 4, 8, 12, 16, 19
-		if lvl%4 == 0 && lvl <= 20 {
+		// ASI/Feat at levels 4, 8, 12, 16, 19 (5e rules)
+		if (lvl%4 == 0 && lvl < 20) || lvl == 19 {
 			entry["has_asi"] = true
 			lowestStat := "str"
 			lowestVal := str
