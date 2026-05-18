@@ -1,0 +1,25 @@
+{{if .Spell}}
+<input type="hidden" name="id" value="{{.Spell.ID}}">
+{{end}}
+<input type="hidden" name="character_id" value="{{.CharacterID}}">
+<div class="mb-3"><label class="form-label">Name</label><input class="form-control" name="name" value="{{if .Spell}}{{.Spell.Name}}{{end}}"></div>
+<div class="row g-3 mb-3">
+  <div class="col-4"><label class="form-label">Level</label>
+    <select class="form-select" name="level">
+      {{range $i := seq 0 9}}<option value="{{$i}}" {{if and $.Spell (eq $.Spell.Level $i)}}selected{{end}}>{{if eq $i 0}}Cantrip{{else}}{{$i}}{{end}}</option>{{end}}
+    </select>
+  </div>
+  <div class="col-4"><label class="form-label">School</label><input class="form-control" name="school" placeholder="Evocation, etc." value="{{if .Spell}}{{.Spell.School}}{{end}}"></div>
+  <div class="col-4"><label class="form-label">Casting Time</label><input class="form-control" name="casting_time" placeholder="1 action" value="{{if .Spell}}{{.Spell.CastingTime}}{{end}}"></div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-4"><label class="form-label">Range</label><input class="form-control" name="range" placeholder="60ft" value="{{if .Spell}}{{.Spell.Range}}{{end}}"></div>
+  <div class="col-4"><label class="form-label">Duration</label><input class="form-control" name="duration" placeholder="Instantaneous" value="{{if .Spell}}{{.Spell.Duration}}{{end}}"></div>
+  <div class="col-4"><label class="form-label">Components</label><input class="form-control" name="components" placeholder="V, S, M" value="{{if .Spell}}{{.Spell.Components}}{{end}}"></div>
+</div>
+<div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="4">{{if .Spell}}{{.Spell.Description}}{{end}}</textarea></div>
+{{if .Spell}}
+<button class="btn btn-primary w-100" hx-put="/htmx/spells/{{.Spell.ID}}" hx-target="#spellsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Spell</button>
+{{else}}
+<button class="btn btn-primary w-100" hx-post="/htmx/spells" hx-target="#spellsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add Spell</button>
+{{end}}

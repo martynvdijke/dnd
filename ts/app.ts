@@ -2,6 +2,7 @@ declare const vis: any;
 declare const Chart: any;
 declare const bootstrap: any;
 declare const marked: any;
+declare const htmx: any;
 
 (() => {
 
@@ -372,6 +373,10 @@ async function init() {
     currentUser = user;
     const tokenRes = await api('GET', '/api/csrf-token');
     csrfToken = tokenRes.token;
+    document.querySelector('meta[name="csrf-token"]')?.setAttribute('content', csrfToken);
+    document.body.addEventListener('htmx:configRequest', (e: any) => {
+      e.detail.headers['X-CSRF-Token'] = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || csrfToken;
+    });
     document.getElementById('userName')!.textContent = user.username;
     if (user.role === 'admin') {
       document.getElementById('adminNavItem')!.style.display = '';
@@ -478,27 +483,30 @@ function renderSheet() {
 
   renderStats();
   renderCombat();
-  renderSpells();
-  renderInventory();
-  renderFeatures();
-  if (currentTab === 'locations') renderLocations();
-  if (currentTab === 'npcs') renderNPCs();
-  if (currentTab === 'sessions') renderSessions();
-  if (currentTab === 'quests') renderQuests();
-  if (currentTab === 'journal') renderJournal();
-  if (currentTab === 'graph') renderGraph();
-  if (currentTab === 'analytics') renderAnalytics();
-  if (currentTab === 'feats') renderFeats();
-  if (currentTab === 'companions') renderCompanions();
-  if (currentTab === 'crafting') renderCrafting();
-  if (currentTab === 'notes') renderNotes();
+  renderGraph();
+  renderAnalytics();
+  renderCrafting();
   renderDetails();
   renderDiceTab();
 }
 
+const htmxTabs = ['spells', 'inventory', 'features', 'feats', 'companions', 'crafting', 'locations', 'npcs', 'sessions', 'quests', 'journal', 'notes'];
+
 function switchTab(tab: string) {
   currentTab = tab;
-  renderSheet();
+  if (htmxTabs.includes(tab) && currentChar) {
+    renderSheet();
+    const el = document.getElementById(tab + 'Section');
+    if (el) {
+      el.setAttribute('hx-get', `/htmx/${tab}?character_id=${currentChar.id}`);
+      el.setAttribute('hx-trigger', 'load');
+      el.setAttribute('hx-swap', 'innerHTML');
+      el.innerHTML = '<div class="ornament">✧ Loading... ✧</div>';
+      htmx.process(el);
+    }
+  } else {
+    renderSheet();
+  }
 }
 (window as any).switchTab = switchTab;
 
@@ -2921,296 +2929,26 @@ async function loadCompendiumEquipment() {
 
 // ─── Calendar ───
 
-let currentCalendarCampaignId: number | null = null;
-
-(window as any).showCalendar = async function () {
+(window as any).showCalendar = function () {
   showView('calendar');
   const el = document.getElementById('calendarContent')!;
+  el.setAttribute('hx-get', '/htmx/calendar');
+  el.setAttribute('hx-trigger', 'load');
+  el.setAttribute('hx-swap', 'innerHTML');
   el.innerHTML = '<div class="ornament">✧ Loading calendar... ✧</div>';
-  try {
-    const campaigns = await api('GET', '/api/campaigns');
-    if (!campaigns.length) {
-      el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-calendar fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Campaigns</p><p class="small text-muted">Create a campaign to track in-game dates and events.</p></div>';
-      return;
-    }
-    const cid = currentCalendarCampaignId || campaigns[0].id;
-    const [events] = await Promise.all([api('GET', `/api/calendar?campaign_id=${cid}`)]);
-    currentCalendarCampaignId = cid;
-
-    const groupByDate: Record<string, any[]> = {};
-    events.forEach((ev: any) => {
-      if (!groupByDate[ev.event_date]) groupByDate[ev.event_date] = [];
-      groupByDate[ev.event_date].push(ev);
-    });
-    const sortedDates = Object.keys(groupByDate).sort();
-
-    el.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-          <select class="form-select form-select-sm d-inline-block" style="width:auto" id="calCampaignSel" onchange="switchCalendarCampaign()">
-            ${campaigns.map((c: any) => `<option value="${c.id}" ${c.id === cid ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
-          </select>
-        </div>
-        <button class="btn btn-gold btn-sm" onclick="showAddCalendarEvent(${cid})"><i class="fa-solid fa-plus me-1"></i>Add Event</button>
-      </div>
-      <div class="row g-3" id="calendarList">
-        ${sortedDates.length ? sortedDates.map(date => `
-          <div class="col-12">
-            <h6 class="text-muted border-bottom pb-1"><i class="fa-regular fa-calendar me-2"></i>${esc(date)}</h6>
-            ${groupByDate[date].map((ev: any) => `
-              <div class="inv-item" style="border-left:3px solid ${ev.color || '#b8963e'}">
-                <div>
-                  <span class="fw-bold">${esc(ev.title)}</span>
-                  <span class="badge badge-muted ms-1">${esc(ev.event_type)}</span>
-                  ${ev.description ? `<div class="small text-muted">${esc(ev.description).substring(0, 100)}</div>` : ''}
-                </div>
-                <div class="d-flex gap-1">
-                  <button class="btn btn-sm btn-outline-primary" onclick="editCalendarEvent(${ev.id})"><i class="fa-solid fa-pen"></i></button>
-                  <button class="btn btn-sm btn-outline-danger" onclick="deleteCalendarEvent(${ev.id})"><i class="fa-solid fa-trash"></i></button>
-                </div>
-              </div>`).join('')}
-          </div>`).join('')
-          : '<div class="empty-state"><i class="fa-regular fa-calendar-plus fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">No events. Add quests, holidays, and sessions to your campaign calendar!</p></div>'}
-      </div>`;
-  } catch (e: any) { el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(e.message)}</p></div>`; }
-};
-
-(window as any).switchCalendarCampaign = function () {
-  currentCalendarCampaignId = +(document.getElementById('calCampaignSel') as HTMLSelectElement).value;
-  (window as any).showCalendar();
-};
-
-(window as any).showAddCalendarEvent = function (cid: number) {
-  const today = new Date().toISOString().slice(0, 10);
-  showModal('Add Calendar Event', `
-    <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="calTitle" placeholder="Full Moon Festival"></div>
-    <div class="mb-3"><label class="form-label">Date</label><input class="form-control" id="calDate" type="date" value="${today}"></div>
-    <div class="row g-3 mb-3">
-      <div class="col-6"><label class="form-label">Type</label>
-        <select class="form-select" id="calType">
-          <option value="session">Session</option><option value="quest">Quest</option><option value="holiday">Holiday</option>
-          <option value="weather">Weather</option><option value="combat">Combat</option><option value="festival">Festival</option>
-          <option value="other">Other</option>
-        </select></div>
-      <div class="col-6"><label class="form-label">Color</label><input class="form-control" id="calColor" type="color" value="#b8963e"></div>
-    </div>
-    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="calDesc" rows="2"></textarea></div>
-    <button class="btn btn-primary w-100" onclick="saveCalendarEvent(${cid})"><i class="fa-solid fa-plus me-1"></i>Add Event</button>
-  `);
-};
-
-(window as any).saveCalendarEvent = async function (cid: number) {
-  const title = (document.getElementById('calTitle') as HTMLInputElement).value;
-  if (!title) { toast('Title required', true); return; }
-  await api('POST', '/api/calendar', {
-    campaign_id: cid, title,
-    event_date: (document.getElementById('calDate') as HTMLInputElement).value,
-    event_type: (document.getElementById('calType') as HTMLSelectElement).value,
-    color: (document.getElementById('calColor') as HTMLInputElement).value,
-    description: (document.getElementById('calDesc') as HTMLTextAreaElement).value,
-  });
-  hideModal();
-  (window as any).showCalendar();
-  toast('Event added');
-};
-
-(window as any).editCalendarEvent = async function (id: number) {
-  try {
-    const campaigns = await api('GET', '/api/campaigns');
-    const cid = currentCalendarCampaignId || (campaigns.length ? campaigns[0].id : null);
-    if (!cid) return;
-    const events = await api('GET', `/api/calendar?campaign_id=${cid}`);
-    const ev = events.find((e: any) => e.id === id);
-    if (!ev) return;
-    showModal('Edit Calendar Event', `
-      <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="calTitle" value="${esc(ev.title)}"></div>
-      <div class="mb-3"><label class="form-label">Date</label><input class="form-control" id="calDate" type="date" value="${esc(ev.event_date)}"></div>
-      <div class="row g-3 mb-3">
-        <div class="col-6"><label class="form-label">Type</label>
-          <select class="form-select" id="calType">${['session','quest','holiday','weather','combat','festival','other'].map(t => `<option value="${t}"${t===ev.event_type?' selected':''}>${capitalize(t)}</option>`).join('')}</select></div>
-        <div class="col-6"><label class="form-label">Color</label><input class="form-control" id="calColor" type="color" value="${ev.color || '#b8963e'}"></div>
-      </div>
-      <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="calDesc" rows="2">${esc(ev.description)}</textarea></div>
-      <button class="btn btn-primary w-100" onclick="saveEditCalendarEvent(${id}, ${cid})"><i class="fa-solid fa-save me-1"></i>Save</button>
-    `);
-  } catch {}
-};
-
-(window as any).saveEditCalendarEvent = async function (id: number, cid: number) {
-  await api('PUT', `/api/calendar/${id}`, {
-    campaign_id: cid,
-    title: (document.getElementById('calTitle') as HTMLInputElement).value,
-    event_date: (document.getElementById('calDate') as HTMLInputElement).value,
-    event_type: (document.getElementById('calType') as HTMLSelectElement).value,
-    color: (document.getElementById('calColor') as HTMLInputElement).value,
-    description: (document.getElementById('calDesc') as HTMLTextAreaElement).value,
-  });
-  hideModal();
-  (window as any).showCalendar();
-  toast('Event updated');
-};
-
-(window as any).deleteCalendarEvent = async function (id: number) {
-  if (!confirm('Delete this event?')) return;
-  await api('DELETE', `/api/calendar/${id}`);
-  (window as any).showCalendar();
-  toast('Event deleted');
+  htmx.process(el);
 };
 
 // ─── Timeline ───
 
-let currentTimelineCampaignId: number | null = null;
-
-(window as any).showTimeline = async function () {
+(window as any).showTimeline = function () {
   showView('timeline');
   const el = document.getElementById('timelineContent')!;
+  el.setAttribute('hx-get', '/htmx/timeline');
+  el.setAttribute('hx-trigger', 'load');
+  el.setAttribute('hx-swap', 'innerHTML');
   el.innerHTML = '<div class="ornament">✧ Loading timeline... ✧</div>';
-  try {
-    const campaigns = await api('GET', '/api/campaigns');
-    if (!campaigns.length) {
-      el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-timeline fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Campaigns</p><p class="small text-muted">Create a campaign to build your campaign timeline.</p></div>';
-      return;
-    }
-    const cid = currentTimelineCampaignId || campaigns[0].id;
-    const events = await api('GET', `/api/timeline?campaign_id=${cid}`);
-    currentTimelineCampaignId = cid;
-
-    const TYPE_ICONS: Record<string, string> = {
-      session: 'fa-calendar', quest: 'fa-scroll', combat: 'fa-crosshairs',
-      discovery: 'fa-compass', npc: 'fa-user', location: 'fa-map-pin',
-      milestone: 'fa-star', other: 'fa-circle',
-    };
-
-    el.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-          <select class="form-select form-select-sm d-inline-block" style="width:auto" id="tlCampaignSel" onchange="switchTimelineCampaign()">
-            ${campaigns.map((c: any) => `<option value="${c.id}" ${c.id === cid ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
-          </select>
-        </div>
-        <button class="btn btn-gold btn-sm" onclick="showAddTimelineEvent(${cid})"><i class="fa-solid fa-plus me-1"></i>Add Event</button>
-      </div>
-      <div class="timeline-container">
-        ${events.length ? events.map((ev: any) => {
-          const icon = TYPE_ICONS[ev.event_type] || 'fa-circle';
-          const stars = '★'.repeat(ev.importance) + '☆'.repeat(5 - ev.importance);
-          return `
-          <div class="timeline-item">
-            <div class="timeline-marker" style="opacity:${0.4 + ev.importance * 0.12}">
-              <i class="fa-solid ${icon}"></i>
-            </div>
-            <div class="timeline-content card mb-2" style="border-left:3px solid ${['#8b0000','#a52a2a','#b8963e','#2d6a2d','#4169e1'][ev.importance - 1] || '#b8963e'}">
-              <div class="card-body py-2 px-3">
-                <div class="d-flex justify-content-between align-items-start">
-                  <div>
-                    <span class="fw-bold">${esc(ev.title)}</span>
-                    <span class="badge badge-muted ms-1">${esc(ev.event_date)}</span>
-                    <span class="badge badge-gold ms-1">${esc(ev.event_type)}</span>
-                    <span class="ms-2" style="color:var(--gold);font-size:0.8rem">${stars}</span>
-                  </div>
-                  <div class="d-flex gap-1">
-                    <button class="btn btn-sm btn-outline-primary" onclick="editTimelineEvent(${ev.id})"><i class="fa-solid fa-pen"></i></button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteTimelineEvent(${ev.id})"><i class="fa-solid fa-trash"></i></button>
-                  </div>
-                </div>
-                ${ev.description ? `<p class="mb-0 mt-1 small text-muted">${esc(ev.description).substring(0, 200)}</p>` : ''}
-              </div>
-            </div>
-          </div>`;
-        }).join('')
-        : '<div class="empty-state"><i class="fa-regular fa-calendar-plus fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">No timeline events yet. Add milestones, discoveries, and key moments!</p></div>'}
-      </div>`;
-  } catch (e: any) { el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(e.message)}</p></div>`; }
-};
-
-(window as any).switchTimelineCampaign = function () {
-  currentTimelineCampaignId = +(document.getElementById('tlCampaignSel') as HTMLSelectElement).value;
-  (window as any).showTimeline();
-};
-
-(window as any).showAddTimelineEvent = function (cid: number) {
-  const today = new Date().toISOString().slice(0, 10);
-  showModal('Add Timeline Event', `
-    <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="tlTitle" placeholder="The party discovered..."></div>
-    <div class="mb-3"><label class="form-label">Date</label><input class="form-control" id="tlDate" type="date" value="${today}"></div>
-    <div class="row g-3 mb-3">
-      <div class="col-6"><label class="form-label">Type</label>
-        <select class="form-select" id="tlType">
-          <option value="milestone">Milestone</option><option value="session">Session</option><option value="quest">Quest</option>
-          <option value="combat">Combat</option><option value="discovery">Discovery</option><option value="npc">NPC</option>
-          <option value="location">Location</option><option value="other">Other</option>
-        </select></div>
-      <div class="col-6"><label class="form-label">Importance (1-5)</label>
-        <select class="form-select" id="tlImportance">
-          <option value="1">★☆☆☆☆ Minor</option><option value="2">★★☆☆☆ Notable</option>
-          <option value="3" selected>★★★☆☆ Important</option>
-          <option value="4">★★★★☆ Major</option><option value="5">★★★★★ Critical</option>
-        </select></div>
-    </div>
-    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="tlDesc" rows="3"></textarea></div>
-    <button class="btn btn-primary w-100" onclick="saveTimelineEvent(${cid})"><i class="fa-solid fa-plus me-1"></i>Add Event</button>
-  `);
-};
-
-(window as any).saveTimelineEvent = async function (cid: number) {
-  const title = (document.getElementById('tlTitle') as HTMLInputElement).value;
-  if (!title) { toast('Title required', true); return; }
-  await api('POST', '/api/timeline', {
-    campaign_id: cid, title,
-    event_date: (document.getElementById('tlDate') as HTMLInputElement).value,
-    event_type: (document.getElementById('tlType') as HTMLSelectElement).value,
-    importance: +(document.getElementById('tlImportance') as HTMLSelectElement).value,
-    description: (document.getElementById('tlDesc') as HTMLTextAreaElement).value,
-  });
-  hideModal();
-  (window as any).showTimeline();
-  toast('Timeline event added');
-};
-
-(window as any).editTimelineEvent = async function (id: number) {
-  try {
-    const campaigns = await api('GET', '/api/campaigns');
-    const cid = currentTimelineCampaignId || (campaigns.length ? campaigns[0].id : null);
-    if (!cid) return;
-    const events = await api('GET', `/api/timeline?campaign_id=${cid}`);
-    const ev = events.find((e: any) => e.id === id);
-    if (!ev) return;
-    showModal('Edit Timeline Event', `
-      <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="tlTitle" value="${esc(ev.title)}"></div>
-      <div class="mb-3"><label class="form-label">Date</label><input class="form-control" id="tlDate" type="date" value="${esc(ev.event_date)}"></div>
-      <div class="row g-3 mb-3">
-        <div class="col-6"><label class="form-label">Type</label>
-          <select class="form-select" id="tlType">${['milestone','session','quest','combat','discovery','npc','location','other'].map(t => `<option value="${t}"${t===ev.event_type?' selected':''}>${capitalize(t)}</option>`).join('')}</select></div>
-        <div class="col-6"><label class="form-label">Importance</label>
-          <select class="form-select" id="tlImportance">
-            ${[1,2,3,4,5].map(i => `<option value="${i}"${i===ev.importance?' selected':''}>${'★'.repeat(i)}${'☆'.repeat(5-i)}</option>`).join('')}
-          </select></div>
-      </div>
-      <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="tlDesc" rows="3">${esc(ev.description)}</textarea></div>
-      <button class="btn btn-primary w-100" onclick="saveEditTimelineEvent(${id}, ${cid})"><i class="fa-solid fa-save me-1"></i>Save</button>
-    `);
-  } catch {}
-};
-
-(window as any).saveEditTimelineEvent = async function (id: number, cid: number) {
-  await api('PUT', `/api/timeline/${id}`, {
-    campaign_id: cid,
-    title: (document.getElementById('tlTitle') as HTMLInputElement).value,
-    event_date: (document.getElementById('tlDate') as HTMLInputElement).value,
-    event_type: (document.getElementById('tlType') as HTMLSelectElement).value,
-    importance: +(document.getElementById('tlImportance') as HTMLSelectElement).value,
-    description: (document.getElementById('tlDesc') as HTMLTextAreaElement).value,
-  });
-  hideModal();
-  (window as any).showTimeline();
-  toast('Timeline event updated');
-};
-
-(window as any).deleteTimelineEvent = async function (id: number) {
-  if (!confirm('Delete this timeline event?')) return;
-  await api('DELETE', `/api/timeline/${id}`);
-  (window as any).showTimeline();
-  toast('Timeline event deleted');
+  htmx.process(el);
 };
 
 // ─── Conditions / Ailments ───
@@ -3663,57 +3401,14 @@ async function renderNotes() {
 
 // ─── Factions View ───
 
-(window as any).showFactions = async function () {
+(window as any).showFactions = function () {
   showView('factions');
   const el = document.getElementById('factionsContent')!;
+  el.setAttribute('hx-get', '/htmx/factions');
+  el.setAttribute('hx-trigger', 'load');
+  el.setAttribute('hx-swap', 'innerHTML');
   el.innerHTML = '<div class="ornament">✧ Loading factions... ✧</div>';
-  try {
-    const [factions, campaigns] = await Promise.all([
-      api('GET', '/api/factions'),
-      api('GET', '/api/campaigns'),
-    ]);
-    el.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="d-flex gap-2">
-          <select class="form-select form-select-sm" id="factionCharSel" style="width:auto" onchange="loadFactionReputations()">
-            <option value="">Select character...</option>
-          </select>
-        </div>
-        <button class="btn btn-gold btn-sm" onclick="showCreateFaction()"><i class="fa-solid fa-plus me-1"></i>New Faction</button>
-      </div>
-      <div class="row g-3" id="factionList">
-        ${factions.length ? factions.map((f: any) => `
-          <div class="col-md-6 col-lg-4">
-            <div class="card">
-              <div class="card-body">
-                <div class="d-flex justify-content-between">
-                  <div>
-                    <span class="fw-bold">${esc(f.name)}</span>
-                    <span class="badge badge-gold ms-1">${esc(f.type)}</span>
-                  </div>
-                  <div class="d-flex gap-1">
-                    <button class="btn btn-sm btn-outline-primary" onclick="editFaction(${f.id})"><i class="fa-solid fa-pen"></i></button>
-                    <button class="btn btn-sm btn-outline-danger" onclick="deleteFaction(${f.id})"><i class="fa-solid fa-trash"></i></button>
-                  </div>
-                </div>
-                ${f.description ? `<p class="mb-0 mt-1 small text-muted">${esc(f.description).substring(0, 150)}</p>` : ''}
-                ${f.headquarters ? `<p class="mb-0 mt-1 small text-muted"><i class="fa-solid fa-location-dot me-1"></i>${esc(f.headquarters)}</p>` : ''}
-              </div>
-            </div>
-          </div>`).join('')
-          : '<div class="empty-state"><i class="fa-solid fa-flag fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Factions</p><p class="small text-muted">Create factions to track character reputation and standing.</p></div>'}
-      </div>
-      <div class="mt-4" id="factionRepArea" style="display:none">
-        <h5>Reputation</h5>
-        <div id="factionRepList"></div>
-      </div>`;
-    // Load character selector
-    const chars = await api('GET', '/api/characters');
-    const sel = document.getElementById('factionCharSel') as HTMLSelectElement;
-    chars.forEach((c: any) => {
-      sel.innerHTML += `<option value="${c.id}">${esc(c.name)}</option>`;
-    });
-  } catch (e: any) { el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(e.message)}</p></div>`; }
+  htmx.process(el);
 };
 
 (window as any).loadFactionReputations = async function () {
@@ -3744,73 +3439,6 @@ async function renderNotes() {
       </div>`;
     }).join('') : '<p class="text-muted small">No reputation tracked for this character. Click a faction to set reputation.</p>';
   } catch {}
-};
-
-(window as any).showCreateFaction = function () {
-  showModal('Create Faction', `
-    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="facName"></div>
-    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="facDesc" rows="2"></textarea></div>
-    <div class="row g-3 mb-3">
-      <div class="col-6"><label class="form-label">Type</label>
-        <select class="form-select" id="facType">
-          <option value="organization">Organization</option><option value="guild">Guild</option>
-          <option value="government">Government</option><option value="religion">Religion</option>
-          <option value="cult">Cult</option><option value="military">Military</option>
-          <option value="other">Other</option>
-        </select></div>
-      <div class="col-6"><label class="form-label">Headquarters</label><input class="form-control" id="facHQ"></div>
-    </div>
-    <button class="btn btn-primary w-100" onclick="saveFaction()"><i class="fa-solid fa-plus me-1"></i>Create</button>
-  `);
-};
-
-(window as any).saveFaction = async function () {
-  const name = (document.getElementById('facName') as HTMLInputElement).value;
-  if (!name) { toast('Name required', true); return; }
-  await api('POST', '/api/factions', {
-    name,
-    description: (document.getElementById('facDesc') as HTMLTextAreaElement).value,
-    type: (document.getElementById('facType') as HTMLSelectElement).value,
-    headquarters: (document.getElementById('facHQ') as HTMLInputElement).value,
-  });
-  hideModal();
-  (window as any).showFactions();
-  toast('Faction created');
-};
-
-(window as any).editFaction = async function (id: number) {
-  const factions = await api('GET', '/api/factions');
-  const f = factions.find((x: any) => x.id === id);
-  if (!f) return;
-  showModal('Edit Faction', `
-    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="facName" value="${esc(f.name)}"></div>
-    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="facDesc" rows="2">${esc(f.description)}</textarea></div>
-    <div class="row g-3 mb-3">
-      <div class="col-6"><label class="form-label">Type</label>
-        <select class="form-select" id="facType">${['organization','guild','government','religion','cult','military','other'].map(t => `<option value="${t}"${t===f.type?' selected':''}>${capitalize(t)}</option>`).join('')}</select></div>
-      <div class="col-6"><label class="form-label">Headquarters</label><input class="form-control" id="facHQ" value="${esc(f.headquarters)}"></div>
-    </div>
-    <button class="btn btn-primary w-100" onclick="saveEditFaction(${id})"><i class="fa-solid fa-save me-1"></i>Save</button>
-  `);
-};
-
-(window as any).saveEditFaction = async function (id: number) {
-  await api('PUT', `/api/factions/${id}`, {
-    name: (document.getElementById('facName') as HTMLInputElement).value,
-    description: (document.getElementById('facDesc') as HTMLTextAreaElement).value,
-    type: (document.getElementById('facType') as HTMLSelectElement).value,
-    headquarters: (document.getElementById('facHQ') as HTMLInputElement).value,
-  });
-  hideModal();
-  (window as any).showFactions();
-  toast('Faction updated');
-};
-
-(window as any).deleteFaction = async function (id: number) {
-  if (!confirm('Delete this faction?')) return;
-  await api('DELETE', `/api/factions/${id}`);
-  (window as any).showFactions();
-  toast('Faction deleted');
 };
 
 (window as any).editReputation = function (charId: number, factionId: number, standing: number, rank: string, notes: string) {

@@ -407,7 +407,13 @@ func main() {
 		auth.DELETE("/recaps/:id", handlers.DeleteCampaignRecap)
 		auth.POST("/campaigns/:id/recaps/generate", handlers.GenerateCampaignRecap)
 		auth.POST("/recaps/:id/mark-sent", handlers.MarkRecapAsSent)
+
 	}
+
+	// htmx endpoints (separate group, outside /api, with auth + CSRF)
+	htmxGroup := r.Group("/")
+	htmxGroup.Use(middleware.AuthRequired(), middleware.CSRFRequired())
+	handlers.HtmxRegisterRoutes(htmxGroup)
 
 	// Public share routes (no auth required)
 	r.GET("/api/share/:token", handlers.GetSharedEntity)

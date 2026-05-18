@@ -1,0 +1,50 @@
+{{if .Condition}}
+<input type="hidden" name="id" value="{{.Condition.ID}}">
+{{end}}
+<input type="hidden" name="character_id" value="{{.CharacterID}}">
+<div class="row g-3 mb-3">
+  <div class="col-6"><label class="form-label">Name</label><input class="form-control" name="name" value="{{if .Condition}}{{.Condition.Name}}{{end}}"></div>
+  <div class="col-6"><label class="form-label">Type</label>
+    <select class="form-select" name="type">
+      <option value="">Custom</option>
+      <option value="blinded" {{if and .Condition (eq .Condition.Type "blinded")}}selected{{end}}>Blinded</option>
+      <option value="charmed" {{if and .Condition (eq .Condition.Type "charmed")}}selected{{end}}>Charmed</option>
+      <option value="deafened" {{if and .Condition (eq .Condition.Type "deafened")}}selected{{end}}>Deafened</option>
+      <option value="exhaustion" {{if and .Condition (eq .Condition.Type "exhaustion")}}selected{{end}}>Exhaustion</option>
+      <option value="frightened" {{if and .Condition (eq .Condition.Type "frightened")}}selected{{end}}>Frightened</option>
+      <option value="grappled" {{if and .Condition (eq .Condition.Type "grappled")}}selected{{end}}>Grappled</option>
+      <option value="incapacitated" {{if and .Condition (eq .Condition.Type "incapacitated")}}selected{{end}}>Incapacitated</option>
+      <option value="invisible" {{if and .Condition (eq .Condition.Type "invisible")}}selected{{end}}>Invisible</option>
+      <option value="paralyzed" {{if and .Condition (eq .Condition.Type "paralyzed")}}selected{{end}}>Paralyzed</option>
+      <option value="petrified" {{if and .Condition (eq .Condition.Type "petrified")}}selected{{end}}>Petrified</option>
+      <option value="poisoned" {{if and .Condition (eq .Condition.Type "poisoned")}}selected{{end}}>Poisoned</option>
+      <option value="prone" {{if and .Condition (eq .Condition.Type "prone")}}selected{{end}}>Prone</option>
+      <option value="restrained" {{if and .Condition (eq .Condition.Type "restrained")}}selected{{end}}>Restrained</option>
+      <option value="stunned" {{if and .Condition (eq .Condition.Type "stunned")}}selected{{end}}>Stunned</option>
+      <option value="unconscious" {{if and .Condition (eq .Condition.Type "unconscious")}}selected{{end}}>Unconscious</option>
+      <option value="concentration" {{if and .Condition (eq .Condition.Type "concentration")}}selected{{end}}>Concentration</option>
+    </select>
+  </div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-6"><label class="form-label">Source</label><input class="form-control" name="source" placeholder="Spell, trap, etc." value="{{if .Condition}}{{.Condition.Source}}{{end}}"></div>
+  <div class="col-6"><label class="form-label">Save DC</label><input class="form-control" name="save_dc" type="number" value="{{if .Condition}}{{.Condition.SaveDC}}{{else}}0{{end}}"></div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-6"><label class="form-label">Duration</label><input class="form-control" name="duration" type="number" value="{{if .Condition}}{{.Condition.Duration}}{{else}}0{{end}}"></div>
+  <div class="col-6"><label class="form-label">Duration Type</label>
+    <select class="form-select" name="duration_type">
+      <option value="round" {{if and .Condition (eq .Condition.DurationType "round")}}selected{{end}}>Round</option>
+      <option value="minute" {{if and .Condition (eq .Condition.DurationType "minute")}}selected{{end}}>Minute</option>
+      <option value="hour" {{if and .Condition (eq .Condition.DurationType "hour")}}selected{{end}}>Hour</option>
+      <option value="day" {{if and .Condition (eq .Condition.DurationType "day")}}selected{{end}}>Day</option>
+      <option value="permanent" {{if and .Condition (eq .Condition.DurationType "permanent")}}selected{{end}}>Permanent</option>
+    </select>
+  </div>
+</div>
+<div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="2">{{if .Condition}}{{.Condition.Description}}{{end}}</textarea></div>
+{{if .Condition}}
+<button class="btn btn-primary w-100" hx-put="/htmx/conditions/{{.Condition.ID}}" hx-target="#conditionsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Condition</button>
+{{else}}
+<button class="btn btn-primary w-100" hx-post="/htmx/conditions" hx-target="#conditionsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add Condition</button>
+{{end}}

@@ -1,0 +1,36 @@
+<div class="d-flex justify-content-between align-items-center">
+  <h5>Companions & Mounts</h5>
+  <button class="btn btn-primary btn-sm" hx-get="/htmx/companions/new?character_id={{.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='Add Companion'"><i class="fa-solid fa-plus me-1"></i>Add Companion</button>
+</div>
+<div class="row g-3 mt-2">
+{{if .Companions}}
+  {{range .Companions}}
+  {{$hpPct := div (mul .HPCurrent 100) .HPMax}}
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body py-2 px-3">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <span class="fw-bold">{{.Name}}</span>
+            <span class="badge badge-gold ms-1">{{.Type}}</span>
+            <span class="badge badge-muted ms-1">{{.Race}}</span>
+            {{if not .IsAlive}}<span class="badge bg-danger ms-1">Deceased</span>{{end}}
+          </div>
+          <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/companions/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='Edit Companion'"><i class="fa-solid fa-pen"></i></button>
+            <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/companions/{{.ID}}" hx-target="#companionsSection" hx-swap="outerHTML" hx-confirm="Remove this companion?"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>
+        <div class="hp-bar mt-2" style="height:8px"><div class="hp-bar-fill" style="width:{{$hpPct}}%;height:100%"></div></div>
+        <div class="small text-muted mt-1">HP: {{.HPCurrent}}/{{.HPMax}} &middot; AC: {{.AC}} &middot; Spd: {{.Speed}}</div>
+        <div class="small text-muted">STR {{.Str}}({{sign (div (sub .Str 10) 2)}}) DEX {{.Dex}}({{sign (div (sub .Dex 10) 2)}}) CON {{.Con}}({{sign (div (sub .Con 10) 2)}}) INT {{.Int}}({{sign (div (sub .Int 10) 2)}}) WIS {{.Wis}}({{sign (div (sub .Wis 10) 2)}}) CHA {{.Cha}}({{sign (div (sub .Cha 10) 2)}})</div>
+        {{if .Abilities}}<div class="small text-muted mt-1"><i class="fa-solid fa-star me-1"></i>{{.Abilities}}</div>{{end}}
+        {{if .Notes}}<div class="small text-muted">{{.Notes}}</div>{{end}}
+      </div>
+    </div>
+  </div>
+  {{end}}
+{{else}}
+  <div class="empty-state"><i class="fa-solid fa-dog fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Companions</p><p class="small text-muted">Track familiars, mounts, animal companions, and summoned creatures.</p></div>
+{{end}}
+</div>

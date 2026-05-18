@@ -1,0 +1,42 @@
+{{if .Companion}}
+<input type="hidden" name="id" value="{{.Companion.ID}}">
+{{end}}
+<input type="hidden" name="character_id" value="{{.CharacterID}}">
+<div class="mb-3"><label class="form-label">Name</label><input class="form-control" name="name" value="{{if .Companion}}{{.Companion.Name}}{{end}}"></div>
+<div class="row g-3 mb-3">
+  <div class="col-6"><label class="form-label">Type</label>
+    <select class="form-select" name="type">
+      <option value="familiar" {{if and .Companion (eq .Companion.Type "familiar")}}selected{{end}}>Familiar</option>
+      <option value="mount" {{if and .Companion (eq .Companion.Type "mount")}}selected{{end}}>Mount</option>
+      <option value="companion" {{if and .Companion (eq .Companion.Type "companion")}}selected{{end}}>Companion</option>
+      <option value="summoned" {{if and .Companion (eq .Companion.Type "summoned")}}selected{{end}}>Summoned</option>
+      <option value="pet" {{if and .Companion (eq .Companion.Type "pet")}}selected{{end}}>Pet</option>
+    </select>
+  </div>
+  <div class="col-6"><label class="form-label">Race</label><input class="form-control" name="race" placeholder="Owl, Warhorse, etc." value="{{if .Companion}}{{.Companion.Race}}{{end}}"></div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-4"><label class="form-label">HP Max</label><input class="form-control" name="hp_max" type="number" value="{{if .Companion}}{{.Companion.HPMax}}{{else}}10{{end}}"></div>
+  <div class="col-4"><label class="form-label">HP Current</label><input class="form-control" name="hp_current" type="number" value="{{if .Companion}}{{.Companion.HPCurrent}}{{else}}10{{end}}"></div>
+  <div class="col-4"><label class="form-label">AC</label><input class="form-control" name="ac" type="number" value="{{if .Companion}}{{.Companion.AC}}{{else}}10{{end}}"></div>
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-4"><label class="form-label">STR</label><input class="form-control" name="str" type="number" value="{{if .Companion}}{{.Companion.Str}}{{else}}10{{end}}"></div>
+  <div class="col-4"><label class="form-label">DEX</label><input class="form-control" name="dex" type="number" value="{{if .Companion}}{{.Companion.Dex}}{{else}}10{{end}}"></div>
+  <div class="col-4"><label class="form-label">CON</label><input class="form-control" name="con" type="number" value="{{if .Companion}}{{.Companion.Con}}{{else}}10{{end}}"></div>
+  <div class="col-4"><label class="form-label">INT</label><input class="form-control" name="int" type="number" value="{{if .Companion}}{{.Companion.Int}}{{else}}10{{end}}"></div>
+  <div class="col-4"><label class="form-label">WIS</label><input class="form-control" name="wis" type="number" value="{{if .Companion}}{{.Companion.Wis}}{{else}}10{{end}}"></div>
+  <div class="col-4"><label class="form-label">CHA</label><input class="form-control" name="cha" type="number" value="{{if .Companion}}{{.Companion.Cha}}{{else}}10{{end}}"></div>
+</div>
+<div class="mb-3"><label class="form-label">Abilities</label><textarea class="form-control" name="abilities" rows="2" placeholder="Flyby, Darkvision 60ft, etc.">{{if .Companion}}{{.Companion.Abilities}}{{end}}</textarea></div>
+<div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" name="notes" rows="2">{{if .Companion}}{{.Companion.Notes}}{{end}}</textarea></div>
+<div class="mb-3"><label class="form-label">Speed</label><input class="form-control" name="speed" type="number" value="{{if .Companion}}{{.Companion.Speed}}{{else}}30{{end}}"></div>
+<div class="form-check mb-3">
+  <input class="form-check-input" type="checkbox" name="is_alive" value="true" id="compAlive" {{if or (not .Companion) .Companion.IsAlive}}checked{{end}}>
+  <label class="form-check-label" for="compAlive">Alive</label>
+</div>
+{{if .Companion}}
+<button class="btn btn-primary w-100" hx-put="/htmx/companions/{{.Companion.ID}}" hx-target="#companionsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Companion</button>
+{{else}}
+<button class="btn btn-primary w-100" hx-post="/htmx/companions" hx-target="#companionsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add Companion</button>
+{{end}}

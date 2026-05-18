@@ -298,6 +298,10 @@ func buildRouter() *gin.Engine {
 		auth.POST("/recaps/:id/mark-sent", handlers.MarkRecapAsSent)
 	}
 
+	htmxGroup := r.Group("/")
+	htmxGroup.Use(middleware.AuthRequired(), middleware.CSRFRequired())
+	handlers.HtmxRegisterRoutes(htmxGroup)
+
 	// Public share routes
 	r.GET("/api/share/:token", handlers.GetSharedEntity)
 

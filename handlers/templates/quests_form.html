@@ -1,0 +1,24 @@
+{{if .Quest}}
+<input type="hidden" name="id" value="{{.Quest.ID}}">
+{{end}}
+<input type="hidden" name="character_id" value="{{.CharacterID}}">
+<div class="mb-3"><label class="form-label">Name</label><input class="form-control" name="name" value="{{if .Quest}}{{.Quest.Name}}{{end}}"></div>
+<div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3">{{if .Quest}}{{.Quest.Description}}{{end}}</textarea></div>
+<div class="row g-3 mb-3">
+  <div class="col-6"><label class="form-label">Status</label>
+    <select class="form-select" name="status">
+      <option value="active" {{if and .Quest (eq .Quest.Status "active")}}selected{{end}}>Active</option>
+      <option value="completed" {{if and .Quest (eq .Quest.Status "completed")}}selected{{end}}>Completed</option>
+      <option value="failed" {{if and .Quest (eq .Quest.Status "failed")}}selected{{end}}>Failed</option>
+      <option value="on_hold" {{if and .Quest (eq .Quest.Status "on_hold")}}selected{{end}}>On Hold</option>
+    </select>
+  </div>
+  <div class="col-6"><label class="form-label">Objectives</label><textarea class="form-control" name="objectives" rows="2">{{if .Quest}}{{.Quest.Objectives}}{{end}}</textarea></div>
+</div>
+<div class="mb-3"><label class="form-label">Rewards</label><textarea class="form-control" name="rewards" rows="2">{{if .Quest}}{{.Quest.Rewards}}{{end}}</textarea></div>
+<div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" name="notes" rows="2">{{if .Quest}}{{.Quest.Notes}}{{end}}</textarea></div>
+{{if .Quest}}
+<button class="btn btn-primary w-100" hx-put="/htmx/quests/{{.Quest.ID}}" hx-target="#questsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Quest</button>
+{{else}}
+<button class="btn btn-primary w-100" hx-post="/htmx/quests" hx-target="#questsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create Quest</button>
+{{end}}

@@ -1,0 +1,23 @@
+{{if .Faction}}
+<input type="hidden" name="id" value="{{.Faction.ID}}">
+{{end}}
+<div class="mb-3"><label class="form-label">Name</label><input class="form-control" name="name" value="{{if .Faction}}{{.Faction.Name}}{{end}}"></div>
+<div class="row g-3 mb-3">
+  <div class="col-6"><label class="form-label">Type</label>
+    <select class="form-select" name="type">
+      <option value="guild" {{if and .Faction (eq .Faction.Type "guild")}}selected{{end}}>Guild</option>
+      <option value="religion" {{if and .Faction (eq .Faction.Type "religion")}}selected{{end}}>Religion</option>
+      <option value="government" {{if and .Faction (eq .Faction.Type "government")}}selected{{end}}>Government</option>
+      <option value="order" {{if and .Faction (eq .Faction.Type "order")}}selected{{end}}>Order</option>
+      <option value="criminal" {{if and .Faction (eq .Faction.Type "criminal")}}selected{{end}}>Criminal</option>
+      <option value="other" {{if and .Faction (eq .Faction.Type "other")}}selected{{end}}>Other</option>
+    </select>
+  </div>
+  <div class="col-6"><label class="form-label">Headquarters</label><input class="form-control" name="headquarters" value="{{if .Faction}}{{.Faction.Headquarters}}{{end}}"></div>
+</div>
+<div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3">{{if .Faction}}{{.Faction.Description}}{{end}}</textarea></div>
+{{if .Faction}}
+<button class="btn btn-primary w-100" hx-put="/htmx/factions/{{.Faction.ID}}" hx-target="#factionsContent" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Faction</button>
+{{else}}
+<button class="btn btn-primary w-100" hx-post="/htmx/factions" hx-target="#factionsContent" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create Faction</button>
+{{end}}

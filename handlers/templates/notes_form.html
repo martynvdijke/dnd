@@ -1,0 +1,28 @@
+{{if .Note}}
+<input type="hidden" name="id" value="{{.Note.ID}}">
+{{end}}
+<input type="hidden" name="character_id" value="{{.CharacterID}}">
+<div class="mb-3"><label class="form-label">Title</label><input class="form-control" name="title" value="{{if .Note}}{{.Note.Title}}{{end}}" placeholder="Note title"></div>
+<div class="mb-3"><label class="form-label">Content</label><textarea class="form-control" name="content" rows="6">{{if .Note}}{{.Note.Content}}{{end}}</textarea></div>
+<div class="row g-3 mb-3">
+  <div class="col-6"><label class="form-label">Visibility</label>
+    <select class="form-select" name="visibility">
+      <option value="player" {{if and .Note (eq .Note.Visibility "player")}}selected{{end}}>Player Only</option>
+      <option value="both" {{if and .Note (eq .Note.Visibility "both")}}selected{{end}}>Player & DM</option>
+      <option value="dm" {{if and .Note (eq .Note.Visibility "dm")}}selected{{end}}>DM Only</option>
+    </select></div>
+  <div class="col-6"><label class="form-label">Category</label>
+    <select class="form-select" name="category">
+      <option value="general" {{if and .Note (eq .Note.Category "general")}}selected{{end}}>General</option>
+      <option value="backstory" {{if and .Note (eq .Note.Category "backstory")}}selected{{end}}>Backstory</option>
+      <option value="quest" {{if and .Note (eq .Note.Category "quest")}}selected{{end}}>Quest</option>
+      <option value="lore" {{if and .Note (eq .Note.Category "lore")}}selected{{end}}>Lore</option>
+      <option value="dm" {{if and .Note (eq .Note.Category "dm")}}selected{{end}}>DM</option>
+      <option value="other" {{if and .Note (eq .Note.Category "other")}}selected{{end}}>Other</option>
+    </select></div>
+</div>
+{{if .Note}}
+<button class="btn btn-primary w-100" hx-put="/htmx/notes/{{.Note.ID}}" hx-target="#notesSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Note</button>
+{{else}}
+<button class="btn btn-primary w-100" hx-post="/htmx/notes" hx-target="#notesSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create Note</button>
+{{end}}

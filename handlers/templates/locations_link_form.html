@@ -1,0 +1,10 @@
+<input type="hidden" name="character_id" value="{{.CharacterID}}">
+<div class="mb-3"><label class="form-label">Select Location</label>
+  <select class="form-select" name="location_id">
+    <option value="">Select a location...</option>
+    {{range .AllLocations}}
+    <option value="{{.ID}}">{{.Name}} {{if .Type}}({{.Type}}){{end}}</option>
+    {{end}}
+  </select>
+</div>
+<button class="btn btn-primary w-100" hx-post="/htmx/locations/link" hx-target="#locationsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-link me-1"></i>Link Location</button>

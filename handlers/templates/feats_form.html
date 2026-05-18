@@ -1,0 +1,20 @@
+{{if .Feat}}
+<input type="hidden" name="id" value="{{.Feat.ID}}">
+{{end}}
+<input type="hidden" name="character_id" value="{{.CharacterID}}">
+<div class="mb-3"><label class="form-label">Name</label><input class="form-control" name="name" list="featSuggestions" value="{{if .Feat}}{{.Feat.Name}}{{end}}">
+  <datalist id="featSuggestions">
+    <option value="Alert"><option value="Athlete"><option value="Actor"><option value="Charger"><option value="Crossbow Expert"><option value="Defensive Duelist"><option value="Dual Wielder"><option value="Dungeon Delver"><option value="Durable"><option value="Elemental Adept"><option value="Grappler"><option value="Great Weapon Master"><option value="Healer"><option value="Heavily Armored"><option value="Heavy Armor Master"><option value="Inspiring Leader"><option value="Keen Mind"><option value="Lightly Armored"><option value="Linguist"><option value="Lucky"><option value="Mage Slayer"><option value="Magic Initiate"><option value="Martial Adept"><option value="Medium Armor Master"><option value="Mobile"><option value="Moderately Armored"><option value="Mounted Combatant"><option value="Observant"><option value="Polearm Master"><option value="Resilient"><option value="Ritual Caster"><option value="Sentinel"><option value="Sharpshooter"><option value="Shield Master"><option value="Skilled"><option value="Skulker"><option value="Spell Sniper"><option value="Tavern Brawler"><option value="Tough"><option value="War Caster"><option value="Weapon Master">
+  </datalist>
+</div>
+<div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3">{{if .Feat}}{{.Feat.Description}}{{end}}</textarea></div>
+<div class="row g-3 mb-3">
+  <div class="col-6"><label class="form-label">Prerequisites</label><input class="form-control" name="prerequisites" placeholder="e.g. Str 13+" value="{{if .Feat}}{{.Feat.Prerequisites}}{{end}}"></div>
+  <div class="col-6"><label class="form-label">Source</label><input class="form-control" name="source" placeholder="PHB, Tasha's, etc." value="{{if .Feat}}{{.Feat.Source}}{{end}}"></div>
+</div>
+<div class="mb-3"><label class="form-label">Level Gained</label><input class="form-control" name="level_gained" type="number" value="{{if .Feat}}{{.Feat.LevelGained}}{{else}}1{{end}}"></div>
+{{if .Feat}}
+<button class="btn btn-primary w-100" hx-put="/htmx/feats/{{.Feat.ID}}" hx-target="#featsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-floppy-disk me-1"></i>Save Feat</button>
+{{else}}
+<button class="btn btn-primary w-100" hx-post="/htmx/feats" hx-target="#featsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add Feat</button>
+{{end}}

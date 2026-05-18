@@ -1,0 +1,25 @@
+<div class="d-flex justify-content-between align-items-center">
+  <h5>Quests</h5>
+  <button class="btn btn-primary btn-sm" hx-get="/htmx/quests/new?character_id={{.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='New Quest'"><i class="fa-solid fa-plus me-1"></i>New Quest</button>
+</div>
+{{if .Quests}}
+  {{range .Quests}}
+  <div class="card mb-2">
+    <div class="card-body py-2 px-3">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <span class="fw-bold">{{.Name}}</span>
+          <span class="badge {{if eq .Status "active"}}badge-blood{{else if eq .Status "completed"}}badge-gold{{else}}badge-muted{{end}} ms-1">{{.Status}}</span>
+          <p class="mb-0 mt-1 small text-muted">{{.Description | truncate 200}}</p>
+        </div>
+        <div class="d-flex gap-1">
+          <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/quests/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='Edit Quest'"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/quests/{{.ID}}" hx-target="#questsSection" hx-swap="outerHTML" hx-confirm="Delete this quest?"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+  {{end}}
+{{else}}
+  <div class="empty-state"><i class="fa-solid fa-scroll fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Quests</p><p class="small text-muted">Track your active and completed quests.</p></div>
+{{end}}

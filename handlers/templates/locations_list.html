@@ -1,0 +1,25 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="mb-0"><i class="fa-solid fa-map me-2"></i>Locations</h5>
+  <div>
+    <button class="btn btn-outline-primary btn-sm me-1" hx-get="/htmx/locations/new" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='Create Location'"><i class="fa-solid fa-plus me-1"></i>New</button>
+    <button class="btn btn-primary btn-sm" hx-get="/htmx/locations/link?character_id={{.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='Link Location'"><i class="fa-solid fa-link me-1"></i>Link</button>
+  </div>
+</div>
+<div id="locationList" class="list-group">
+{{if .Locations}}
+  {{range .Locations}}
+  <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+    <div>
+      <span class="fw-bold">{{.LocationName}}</span>
+      {{if .LocationType}}<span class="badge badge-gold ms-1">{{.LocationType}}</span>{{end}}
+      <div class="small text-muted">{{if .Description}}{{.Description | truncate 100}}{{end}}</div>
+    </div>
+    <div class="d-flex gap-1">
+      <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/locations/link/{{.ID}}" hx-target="#locationsSection" hx-swap="outerHTML" hx-confirm="Unlink this location?"><i class="fa-solid fa-unlink"></i></button>
+    </div>
+  </div>
+  {{end}}
+{{else}}
+  <div class="empty-state"><i class="fa-solid fa-map-pin fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Locations</p><p class="small text-muted">Track important locations your character has visited.</p></div>
+{{end}}
+</div>

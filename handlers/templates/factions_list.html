@@ -1,0 +1,29 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5>Factions & Reputation</h5>
+  <button class="btn btn-gold btn-sm" hx-get="/htmx/factions/new" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='New Faction'"><i class="fa-solid fa-plus me-1"></i>New Faction</button>
+</div>
+{{if .Factions}}
+<div class="row g-3">
+  {{range .Factions}}
+  <div class="col-md-6 col-lg-4">
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between">
+          <div>
+            <span class="fw-bold">{{.Name}}</span>
+            {{if .Type}}<span class="badge badge-muted ms-1">{{.Type}}</span>{{end}}
+            <p class="small text-muted mt-1 mb-0">{{.Description | truncate 100}}</p>
+          </div>
+          <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/factions/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='Edit Faction'"><i class="fa-solid fa-pen"></i></button>
+            <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/factions/{{.ID}}" hx-target="#factionsContent" hx-swap="outerHTML" hx-confirm="Delete this faction?"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {{end}}
+</div>
+{{else}}
+<div class="empty-state"><i class="fa-solid fa-flag fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Factions</p><p class="small text-muted">Create factions to track reputation and relationships.</p></div>
+{{end}}

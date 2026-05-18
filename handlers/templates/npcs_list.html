@@ -1,0 +1,26 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="mb-0"><i class="fa-solid fa-user me-2"></i>NPCs</h5>
+  <div>
+    <button class="btn btn-outline-primary btn-sm me-1" hx-get="/htmx/npcs/new?character_id={{.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='Create NPC'"><i class="fa-solid fa-plus me-1"></i>New</button>
+    <button class="btn btn-primary btn-sm" hx-get="/htmx/npcs/link?character_id={{.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='Link NPC'"><i class="fa-solid fa-link me-1"></i>Link</button>
+  </div>
+</div>
+<div id="npcList" class="list-group">
+{{if .NPCs}}
+  {{range .NPCs}}
+  <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+    <div>
+      <span class="fw-bold">{{.NPCName}}</span>
+      {{if .NPCRace}}<span class="badge badge-gold ms-1">{{.NPCRace}}</span>{{end}}
+      {{if .NPCClass}}<span class="badge badge-muted ms-1">{{.NPCClass}}</span>{{end}}
+      <div class="small text-muted">{{if .Relationship}}R: {{.Relationship}}{{end}}{{if .Notes}} - {{.Notes | truncate 100}}{{end}}</div>
+    </div>
+    <div class="d-flex gap-1">
+      <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/npcs/link/{{.ID}}" hx-target="#npcsSection" hx-swap="outerHTML" hx-confirm="Unlink this NPC?"><i class="fa-solid fa-unlink"></i></button>
+    </div>
+  </div>
+  {{end}}
+{{else}}
+  <div class="empty-state"><i class="fa-solid fa-users fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No NPCs Linked</p><p class="small text-muted">Link NPCs to this character to track relationships.</p></div>
+{{end}}
+</div>

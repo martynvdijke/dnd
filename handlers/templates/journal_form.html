@@ -1,0 +1,12 @@
+{{if .Entry}}
+<input type="hidden" name="id" value="{{.Entry.ID}}">
+{{end}}
+<input type="hidden" name="character_id" value="{{.CharacterID}}">
+<div class="mb-3"><label class="form-label">Title</label><input class="form-control" name="title" value="{{if .Entry}}{{.Entry.Title}}{{end}}"></div>
+<div class="mb-3"><label class="form-label">Date</label><input class="form-control" name="entry_date" type="date" value="{{if .Entry}}{{.Entry.EntryDate}}{{end}}"></div>
+<div class="mb-3"><label class="form-label">Content</label><textarea class="form-control" name="entry" rows="6">{{if .Entry}}{{.Entry.Entry}}{{end}}</textarea></div>
+{{if .Entry}}
+<button class="btn btn-primary w-100" hx-put="/htmx/journal/{{.Entry.ID}}" hx-target="#journalSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Entry</button>
+{{else}}
+<button class="btn btn-primary w-100" hx-post="/htmx/journal" hx-target="#journalSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create Entry</button>
+{{end}}

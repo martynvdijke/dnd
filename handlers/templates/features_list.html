@@ -1,0 +1,39 @@
+<div class="d-flex justify-content-between align-items-center">
+  <h5>Features & Proficiencies</h5>
+  <button class="btn btn-primary btn-sm" hx-get="/htmx/features/new?character_id={{.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='Add Feature'"><i class="fa-solid fa-plus me-1"></i>Add Feature</button>
+</div>
+<div class="mt-2">
+{{if .Features}}
+  {{range .Features}}
+  <div class="card mb-2">
+    <div class="card-body py-2 px-3">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <span class="fw-bold">{{.Name}}</span>
+          <span class="badge badge-blood ms-1">Lv {{.LevelGained}}</span>
+          {{if .Source}}<span class="badge badge-gold ms-1">{{.Source}}</span>{{end}}
+          <p class="mb-0 mt-1 small text-muted">{{.Description}}</p>
+        </div>
+        <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/features/{{.ID}}" hx-target="#featuresSection" hx-swap="outerHTML" hx-confirm="Remove this feature?"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>
+  </div>
+  {{end}}
+{{else}}
+  <div class="empty-state"><i class="fa-solid fa-star fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Features Yet</p><p class="small text-muted">Track class, race, and feat features here.</p></div>
+{{end}}
+</div>
+<hr class="my-3">
+<h6>Proficiencies</h6>
+<button class="btn btn-outline-primary btn-sm mb-2" hx-get="/htmx/proficiencies/new?character_id={{.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='Add Proficiency'"><i class="fa-solid fa-plus me-1"></i>Add Proficiency</button>
+{{if .Proficiencies}}
+<div class="d-flex flex-wrap gap-2">
+  {{range .Proficiencies}}
+  <span class="badge bg-secondary d-inline-flex align-items-center gap-1">
+    {{.Name}} <i class="fa-solid fa-xmark" style="cursor:pointer" hx-delete="/htmx/proficiencies/{{.ID}}" hx-target="#featuresSection" hx-swap="outerHTML" hx-confirm="Remove this proficiency?"></i>
+  </span>
+  {{end}}
+</div>
+{{else}}
+<div class="small text-muted">No proficiencies added yet.</div>
+{{end}}

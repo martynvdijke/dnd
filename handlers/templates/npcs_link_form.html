@@ -1,0 +1,10 @@
+<input type="hidden" name="character_id" value="{{.CharacterID}}">
+<div class="mb-3"><label class="form-label">Select NPC</label>
+  <select class="form-select" name="npc_id">
+    <option value="">Select an NPC...</option>
+    {{range .AllNPCs}}
+    <option value="{{.ID}}">{{.Name}} {{if .Race}}({{.Race}}){{end}}</option>
+    {{end}}
+  </select>
+</div>
+<button class="btn btn-primary w-100" hx-post="/htmx/npcs/link" hx-target="#npcsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-link me-1"></i>Link NPC</button>

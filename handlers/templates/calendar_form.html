@@ -1,0 +1,22 @@
+{{if .Event}}
+<input type="hidden" name="id" value="{{.Event.ID}}">
+{{end}}
+<div class="mb-3"><label class="form-label">Title</label><input class="form-control" name="title" value="{{if .Event}}{{.Event.Title}}{{end}}"></div>
+<div class="mb-3"><label class="form-label">Date</label><input class="form-control" name="event_date" type="date" value="{{if .Event}}{{.Event.EventDate}}{{end}}"></div>
+<div class="row g-3 mb-3">
+  <div class="col-6"><label class="form-label">Type</label>
+    <select class="form-select" name="event_type">
+      <option value="session" {{if and .Event (eq .Event.EventType "session")}}selected{{end}}>Session</option>
+      <option value="holiday" {{if and .Event (eq .Event.EventType "holiday")}}selected{{end}}>Holiday</option>
+      <option value="deadline" {{if and .Event (eq .Event.EventType "deadline")}}selected{{end}}>Deadline</option>
+      <option value="event" {{if and .Event (eq .Event.EventType "event")}}selected{{end}}>Event</option>
+    </select>
+  </div>
+  <div class="col-6"><label class="form-label">Campaign ID</label><input class="form-control" name="campaign_id" type="number" value="{{if .Event}}{{.Event.CampaignID}}{{else}}1{{end}}"></div>
+</div>
+<div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3">{{if .Event}}{{.Event.Description}}{{end}}</textarea></div>
+{{if .Event}}
+<button class="btn btn-primary w-100" hx-put="/htmx/calendar/{{.Event.ID}}" hx-target="#calendarContent" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Event</button>
+{{else}}
+<button class="btn btn-primary w-100" hx-post="/htmx/calendar" hx-target="#calendarContent" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create Event</button>
+{{end}}
