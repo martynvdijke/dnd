@@ -668,14 +668,14 @@ func (_c *CharacterCreate) AddFeatures(v ...*CharacterFeature) *CharacterCreate 
 }
 
 // AddSpellcastingIDs adds the "spellcasting" edge to the CharacterSpellcasting entity by IDs.
-func (_c *CharacterCreate) AddSpellcastingIDs(ids ...int) *CharacterCreate {
+func (_c *CharacterCreate) AddSpellcastingIDs(ids ...int64) *CharacterCreate {
 	_c.mutation.AddSpellcastingIDs(ids...)
 	return _c
 }
 
 // AddSpellcasting adds the "spellcasting" edges to the CharacterSpellcasting entity.
 func (_c *CharacterCreate) AddSpellcasting(v ...*CharacterSpellcasting) *CharacterCreate {
-	ids := make([]int, len(v))
+	ids := make([]int64, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1551,7 +1551,7 @@ func (_c *CharacterCreate) createSpec() (*Character, *sqlgraph.CreateSpec) {
 			Columns: []string{character.SpellcastingColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

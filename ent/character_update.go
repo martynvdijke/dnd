@@ -836,14 +836,14 @@ func (_u *CharacterUpdate) AddFeatures(v ...*CharacterFeature) *CharacterUpdate 
 }
 
 // AddSpellcastingIDs adds the "spellcasting" edge to the CharacterSpellcasting entity by IDs.
-func (_u *CharacterUpdate) AddSpellcastingIDs(ids ...int) *CharacterUpdate {
+func (_u *CharacterUpdate) AddSpellcastingIDs(ids ...int64) *CharacterUpdate {
 	_u.mutation.AddSpellcastingIDs(ids...)
 	return _u
 }
 
 // AddSpellcasting adds the "spellcasting" edges to the CharacterSpellcasting entity.
 func (_u *CharacterUpdate) AddSpellcasting(v ...*CharacterSpellcasting) *CharacterUpdate {
-	ids := make([]int, len(v))
+	ids := make([]int64, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -1216,14 +1216,14 @@ func (_u *CharacterUpdate) ClearSpellcasting() *CharacterUpdate {
 }
 
 // RemoveSpellcastingIDs removes the "spellcasting" edge to CharacterSpellcasting entities by IDs.
-func (_u *CharacterUpdate) RemoveSpellcastingIDs(ids ...int) *CharacterUpdate {
+func (_u *CharacterUpdate) RemoveSpellcastingIDs(ids ...int64) *CharacterUpdate {
 	_u.mutation.RemoveSpellcastingIDs(ids...)
 	return _u
 }
 
 // RemoveSpellcasting removes "spellcasting" edges to CharacterSpellcasting entities.
 func (_u *CharacterUpdate) RemoveSpellcasting(v ...*CharacterSpellcasting) *CharacterUpdate {
-	ids := make([]int, len(v))
+	ids := make([]int64, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -2037,7 +2037,7 @@ func (_u *CharacterUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{character.SpellcastingColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt64),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -2050,7 +2050,7 @@ func (_u *CharacterUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{character.SpellcastingColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {
@@ -2066,7 +2066,7 @@ func (_u *CharacterUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Columns: []string{character.SpellcastingColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {
@@ -3734,14 +3734,14 @@ func (_u *CharacterUpdateOne) AddFeatures(v ...*CharacterFeature) *CharacterUpda
 }
 
 // AddSpellcastingIDs adds the "spellcasting" edge to the CharacterSpellcasting entity by IDs.
-func (_u *CharacterUpdateOne) AddSpellcastingIDs(ids ...int) *CharacterUpdateOne {
+func (_u *CharacterUpdateOne) AddSpellcastingIDs(ids ...int64) *CharacterUpdateOne {
 	_u.mutation.AddSpellcastingIDs(ids...)
 	return _u
 }
 
 // AddSpellcasting adds the "spellcasting" edges to the CharacterSpellcasting entity.
 func (_u *CharacterUpdateOne) AddSpellcasting(v ...*CharacterSpellcasting) *CharacterUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]int64, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -4114,14 +4114,14 @@ func (_u *CharacterUpdateOne) ClearSpellcasting() *CharacterUpdateOne {
 }
 
 // RemoveSpellcastingIDs removes the "spellcasting" edge to CharacterSpellcasting entities by IDs.
-func (_u *CharacterUpdateOne) RemoveSpellcastingIDs(ids ...int) *CharacterUpdateOne {
+func (_u *CharacterUpdateOne) RemoveSpellcastingIDs(ids ...int64) *CharacterUpdateOne {
 	_u.mutation.RemoveSpellcastingIDs(ids...)
 	return _u
 }
 
 // RemoveSpellcasting removes "spellcasting" edges to CharacterSpellcasting entities.
 func (_u *CharacterUpdateOne) RemoveSpellcasting(v ...*CharacterSpellcasting) *CharacterUpdateOne {
-	ids := make([]int, len(v))
+	ids := make([]int64, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
 	}
@@ -4965,7 +4965,7 @@ func (_u *CharacterUpdateOne) sqlSave(ctx context.Context) (_node *Character, er
 			Columns: []string{character.SpellcastingColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt64),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
@@ -4978,7 +4978,7 @@ func (_u *CharacterUpdateOne) sqlSave(ctx context.Context) (_node *Character, er
 			Columns: []string{character.SpellcastingColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {
@@ -4994,7 +4994,7 @@ func (_u *CharacterUpdateOne) sqlSave(ctx context.Context) (_node *Character, er
 			Columns: []string{character.SpellcastingColumn},
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt),
+				IDSpec: sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

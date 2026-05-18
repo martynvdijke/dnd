@@ -29,19 +29,19 @@ const (
 	// EdgeNpc holds the string denoting the npc edge name in mutations.
 	EdgeNpc = "npc"
 	// Table holds the table name of the characternpc in the database.
-	Table = "character_np_cs"
+	Table = "character_npcs"
 	// CharacterTable is the table that holds the character relation/edge.
-	CharacterTable = "character_np_cs"
+	CharacterTable = "character_npcs"
 	// CharacterInverseTable is the table name for the Character entity.
 	// It exists in this package in order to avoid circular dependency with the "character" package.
 	CharacterInverseTable = "characters"
 	// CharacterColumn is the table column denoting the character relation/edge.
 	CharacterColumn = "character_id"
 	// NpcTable is the table that holds the npc relation/edge.
-	NpcTable = "character_np_cs"
+	NpcTable = "character_npcs"
 	// NpcInverseTable is the table name for the NPC entity.
 	// It exists in this package in order to avoid circular dependency with the "npc" package.
-	NpcInverseTable = "np_cs"
+	NpcInverseTable = "npcs"
 	// NpcColumn is the table column denoting the npc relation/edge.
 	NpcColumn = "npc_id"
 )

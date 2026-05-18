@@ -45,9 +45,9 @@ const (
 	// EdgeCharacter holds the string denoting the character edge name in mutations.
 	EdgeCharacter = "character"
 	// Table holds the table name of the inventoryitem in the database.
-	Table = "inventory_items"
+	Table = "inventory"
 	// CharacterTable is the table that holds the character relation/edge.
-	CharacterTable = "inventory_items"
+	CharacterTable = "inventory"
 	// CharacterInverseTable is the table name for the Character entity.
 	// It exists in this package in order to avoid circular dependency with the "character" package.
 	CharacterInverseTable = "characters"

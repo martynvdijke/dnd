@@ -28,7 +28,7 @@ const (
 	// FieldSource holds the string denoting the source field in the database.
 	FieldSource = "source"
 	// Table holds the table name of the compendiumequipment in the database.
-	Table = "compendium_equipments"
+	Table = "compendium_equipment"
 )
 
 // Columns holds all SQL columns for compendiumequipment fields.

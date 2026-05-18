@@ -1836,7 +1836,7 @@ func TestLongRestRecoversSpellSlots(t *testing.T) {
 
 	resp = tc.post(fmt.Sprintf("/api/characters/%d/rest", cid), map[string]any{"rest_type": "long"})
 	if resp.Code != 200 {
-		t.Fatalf("long rest failed: %d", resp.Code)
+		t.Fatalf("long rest failed: %d - %s", resp.Code, resp.Body.String())
 	}
 
 	resp = tc.get(fmt.Sprintf("/api/characters/%d", cid), nil)

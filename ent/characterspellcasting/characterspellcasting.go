@@ -59,9 +59,9 @@ const (
 	// EdgeCharacter holds the string denoting the character edge name in mutations.
 	EdgeCharacter = "character"
 	// Table holds the table name of the characterspellcasting in the database.
-	Table = "character_spellcastings"
+	Table = "character_spellcasting"
 	// CharacterTable is the table that holds the character relation/edge.
-	CharacterTable = "character_spellcastings"
+	CharacterTable = "character_spellcasting"
 	// CharacterInverseTable is the table name for the Character entity.
 	// It exists in this package in order to avoid circular dependency with the "character" package.
 	CharacterInverseTable = "characters"

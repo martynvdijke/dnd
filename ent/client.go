@@ -4500,7 +4500,7 @@ func (c *CharacterSpellcastingClient) UpdateOne(_m *CharacterSpellcasting) *Char
 }
 
 // UpdateOneID returns an update builder for the given id.
-func (c *CharacterSpellcastingClient) UpdateOneID(id int) *CharacterSpellcastingUpdateOne {
+func (c *CharacterSpellcastingClient) UpdateOneID(id int64) *CharacterSpellcastingUpdateOne {
 	mutation := newCharacterSpellcastingMutation(c.config, OpUpdateOne, withCharacterSpellcastingID(id))
 	return &CharacterSpellcastingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
 }
@@ -4517,7 +4517,7 @@ func (c *CharacterSpellcastingClient) DeleteOne(_m *CharacterSpellcasting) *Char
 }
 
 // DeleteOneID returns a builder for deleting the given entity by its id.
-func (c *CharacterSpellcastingClient) DeleteOneID(id int) *CharacterSpellcastingDeleteOne {
+func (c *CharacterSpellcastingClient) DeleteOneID(id int64) *CharacterSpellcastingDeleteOne {
 	builder := c.Delete().Where(characterspellcasting.ID(id))
 	builder.mutation.id = &id
 	builder.mutation.op = OpDeleteOne
@@ -4534,12 +4534,12 @@ func (c *CharacterSpellcastingClient) Query() *CharacterSpellcastingQuery {
 }
 
 // Get returns a CharacterSpellcasting entity by its id.
-func (c *CharacterSpellcastingClient) Get(ctx context.Context, id int) (*CharacterSpellcasting, error) {
+func (c *CharacterSpellcastingClient) Get(ctx context.Context, id int64) (*CharacterSpellcasting, error) {
 	return c.Query().Where(characterspellcasting.ID(id)).Only(ctx)
 }
 
 // GetX is like Get, but panics if an error occurs.
-func (c *CharacterSpellcastingClient) GetX(ctx context.Context, id int) *CharacterSpellcasting {
+func (c *CharacterSpellcastingClient) GetX(ctx context.Context, id int64) *CharacterSpellcasting {
 	obj, err := c.Get(ctx, id)
 	if err != nil {
 		panic(err)

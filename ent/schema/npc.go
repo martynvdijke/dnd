@@ -2,6 +2,8 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -9,6 +11,12 @@ import (
 
 type NPC struct {
 	ent.Schema
+}
+
+func (NPC) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Table("npcs"),
+	}
 }
 
 func (NPC) Fields() []ent.Field {

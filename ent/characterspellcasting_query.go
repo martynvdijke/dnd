@@ -106,8 +106,8 @@ func (_q *CharacterSpellcastingQuery) FirstX(ctx context.Context) *CharacterSpel
 
 // FirstID returns the first CharacterSpellcasting ID from the query.
 // Returns a *NotFoundError when no CharacterSpellcasting ID was found.
-func (_q *CharacterSpellcastingQuery) FirstID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (_q *CharacterSpellcastingQuery) FirstID(ctx context.Context) (id int64, err error) {
+	var ids []int64
 	if ids, err = _q.Limit(1).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryFirstID)); err != nil {
 		return
 	}
@@ -119,7 +119,7 @@ func (_q *CharacterSpellcastingQuery) FirstID(ctx context.Context) (id int, err 
 }
 
 // FirstIDX is like FirstID, but panics if an error occurs.
-func (_q *CharacterSpellcastingQuery) FirstIDX(ctx context.Context) int {
+func (_q *CharacterSpellcastingQuery) FirstIDX(ctx context.Context) int64 {
 	id, err := _q.FirstID(ctx)
 	if err != nil && !IsNotFound(err) {
 		panic(err)
@@ -157,8 +157,8 @@ func (_q *CharacterSpellcastingQuery) OnlyX(ctx context.Context) *CharacterSpell
 // OnlyID is like Only, but returns the only CharacterSpellcasting ID in the query.
 // Returns a *NotSingularError when more than one CharacterSpellcasting ID is found.
 // Returns a *NotFoundError when no entities are found.
-func (_q *CharacterSpellcastingQuery) OnlyID(ctx context.Context) (id int, err error) {
-	var ids []int
+func (_q *CharacterSpellcastingQuery) OnlyID(ctx context.Context) (id int64, err error) {
+	var ids []int64
 	if ids, err = _q.Limit(2).IDs(setContextOp(ctx, _q.ctx, ent.OpQueryOnlyID)); err != nil {
 		return
 	}
@@ -174,7 +174,7 @@ func (_q *CharacterSpellcastingQuery) OnlyID(ctx context.Context) (id int, err e
 }
 
 // OnlyIDX is like OnlyID, but panics if an error occurs.
-func (_q *CharacterSpellcastingQuery) OnlyIDX(ctx context.Context) int {
+func (_q *CharacterSpellcastingQuery) OnlyIDX(ctx context.Context) int64 {
 	id, err := _q.OnlyID(ctx)
 	if err != nil {
 		panic(err)
@@ -202,7 +202,7 @@ func (_q *CharacterSpellcastingQuery) AllX(ctx context.Context) []*CharacterSpel
 }
 
 // IDs executes the query and returns a list of CharacterSpellcasting IDs.
-func (_q *CharacterSpellcastingQuery) IDs(ctx context.Context) (ids []int, err error) {
+func (_q *CharacterSpellcastingQuery) IDs(ctx context.Context) (ids []int64, err error) {
 	if _q.ctx.Unique == nil && _q.path != nil {
 		_q.Unique(true)
 	}
@@ -214,7 +214,7 @@ func (_q *CharacterSpellcastingQuery) IDs(ctx context.Context) (ids []int, err e
 }
 
 // IDsX is like IDs, but panics if an error occurs.
-func (_q *CharacterSpellcastingQuery) IDsX(ctx context.Context) []int {
+func (_q *CharacterSpellcastingQuery) IDsX(ctx context.Context) []int64 {
 	ids, err := _q.IDs(ctx)
 	if err != nil {
 		panic(err)
@@ -441,7 +441,7 @@ func (_q *CharacterSpellcastingQuery) sqlCount(ctx context.Context) (int, error)
 }
 
 func (_q *CharacterSpellcastingQuery) querySpec() *sqlgraph.QuerySpec {
-	_spec := sqlgraph.NewQuerySpec(characterspellcasting.Table, characterspellcasting.Columns, sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewQuerySpec(characterspellcasting.Table, characterspellcasting.Columns, sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt64))
 	_spec.From = _q.sql
 	if unique := _q.ctx.Unique; unique != nil {
 		_spec.Unique = *unique

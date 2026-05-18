@@ -322,6 +322,12 @@ func (_c *CharacterSpellcastingCreate) SetNillableSlots9Used(v *int) *CharacterS
 	return _c
 }
 
+// SetID sets the "id" field.
+func (_c *CharacterSpellcastingCreate) SetID(v int64) *CharacterSpellcastingCreate {
+	_c.mutation.SetID(v)
+	return _c
+}
+
 // SetCharacter sets the "character" edge to the Character entity.
 func (_c *CharacterSpellcastingCreate) SetCharacter(v *Character) *CharacterSpellcastingCreate {
 	return _c.SetCharacterID(v.ID)
@@ -533,8 +539,10 @@ func (_c *CharacterSpellcastingCreate) sqlSave(ctx context.Context) (*CharacterS
 		}
 		return nil, err
 	}
-	id := _spec.ID.Value.(int64)
-	_node.ID = int(id)
+	if _spec.ID.Value != _node.ID {
+		id := _spec.ID.Value.(int64)
+		_node.ID = int64(id)
+	}
 	_c.mutation.id = &_node.ID
 	_c.mutation.done = true
 	return _node, nil
@@ -543,9 +551,13 @@ func (_c *CharacterSpellcastingCreate) sqlSave(ctx context.Context) (*CharacterS
 func (_c *CharacterSpellcastingCreate) createSpec() (*CharacterSpellcasting, *sqlgraph.CreateSpec) {
 	var (
 		_node = &CharacterSpellcasting{config: _c.config}
-		_spec = sqlgraph.NewCreateSpec(characterspellcasting.Table, sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt))
+		_spec = sqlgraph.NewCreateSpec(characterspellcasting.Table, sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt64))
 	)
 	_spec.OnConflict = _c.conflict
+	if id, ok := _c.mutation.ID(); ok {
+		_node.ID = id
+		_spec.ID.Value = id
+	}
 	if value, ok := _c.mutation.Ability(); ok {
 		_spec.SetField(characterspellcasting.FieldAbility, field.TypeString, value)
 		_node.Ability = value
@@ -1083,16 +1095,24 @@ func (u *CharacterSpellcastingUpsert) AddSlots9Used(v int) *CharacterSpellcastin
 	return u
 }
 
-// UpdateNewValues updates the mutable fields using the new values that were set on create.
+// UpdateNewValues updates the mutable fields using the new values that were set on create except the ID field.
 // Using this option is equivalent to using:
 //
 //	client.CharacterSpellcasting.Create().
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(characterspellcasting.FieldID)
+//			}),
 //		).
 //		Exec(ctx)
 func (u *CharacterSpellcastingUpsertOne) UpdateNewValues() *CharacterSpellcastingUpsertOne {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		if _, exists := u.create.mutation.ID(); exists {
+			s.SetIgnore(characterspellcasting.FieldID)
+		}
+	}))
 	return u
 }
 
@@ -1587,7 +1607,7 @@ func (u *CharacterSpellcastingUpsertOne) ExecX(ctx context.Context) {
 }
 
 // Exec executes the UPSERT query and returns the inserted/updated ID.
-func (u *CharacterSpellcastingUpsertOne) ID(ctx context.Context) (id int, err error) {
+func (u *CharacterSpellcastingUpsertOne) ID(ctx context.Context) (id int64, err error) {
 	node, err := u.create.Save(ctx)
 	if err != nil {
 		return id, err
@@ -1596,7 +1616,7 @@ func (u *CharacterSpellcastingUpsertOne) ID(ctx context.Context) (id int, err er
 }
 
 // IDX is like ID, but panics if an error occurs.
-func (u *CharacterSpellcastingUpsertOne) IDX(ctx context.Context) int {
+func (u *CharacterSpellcastingUpsertOne) IDX(ctx context.Context) int64 {
 	id, err := u.ID(ctx)
 	if err != nil {
 		panic(err)
@@ -1651,9 +1671,9 @@ func (_c *CharacterSpellcastingCreateBulk) Save(ctx context.Context) ([]*Charact
 					return nil, err
 				}
 				mutation.id = &nodes[i].ID
-				if specs[i].ID.Value != nil {
+				if specs[i].ID.Value != nil && nodes[i].ID == 0 {
 					id := specs[i].ID.Value.(int64)
-					nodes[i].ID = int(id)
+					nodes[i].ID = int64(id)
 				}
 				mutation.done = true
 				return nodes[i], nil
@@ -1741,10 +1761,20 @@ type CharacterSpellcastingUpsertBulk struct {
 //	client.CharacterSpellcasting.Create().
 //		OnConflict(
 //			sql.ResolveWithNewValues(),
+//			sql.ResolveWith(func(u *sql.UpdateSet) {
+//				u.SetIgnore(characterspellcasting.FieldID)
+//			}),
 //		).
 //		Exec(ctx)
 func (u *CharacterSpellcastingUpsertBulk) UpdateNewValues() *CharacterSpellcastingUpsertBulk {
 	u.create.conflict = append(u.create.conflict, sql.ResolveWithNewValues())
+	u.create.conflict = append(u.create.conflict, sql.ResolveWith(func(s *sql.UpdateSet) {
+		for _, b := range u.create.builders {
+			if _, exists := b.mutation.ID(); exists {
+				s.SetIgnore(characterspellcasting.FieldID)
+			}
+		}
+	}))
 	return u
 }
 

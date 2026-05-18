@@ -2,12 +2,20 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
 
 type CharacterCurrency struct {
 	ent.Schema
+}
+
+func (CharacterCurrency) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Table("character_currency"),
+	}
 }
 
 func (CharacterCurrency) Fields() []ent.Field {

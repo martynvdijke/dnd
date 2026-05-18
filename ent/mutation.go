@@ -8855,8 +8855,8 @@ type CharacterMutation struct {
 	features                   map[int64]struct{}
 	removedfeatures            map[int64]struct{}
 	clearedfeatures            bool
-	spellcasting               map[int]struct{}
-	removedspellcasting        map[int]struct{}
+	spellcasting               map[int64]struct{}
+	removedspellcasting        map[int64]struct{}
 	clearedspellcasting        bool
 	spells                     map[int64]struct{}
 	removedspells              map[int64]struct{}
@@ -11144,9 +11144,9 @@ func (m *CharacterMutation) ResetFeatures() {
 }
 
 // AddSpellcastingIDs adds the "spellcasting" edge to the CharacterSpellcasting entity by ids.
-func (m *CharacterMutation) AddSpellcastingIDs(ids ...int) {
+func (m *CharacterMutation) AddSpellcastingIDs(ids ...int64) {
 	if m.spellcasting == nil {
-		m.spellcasting = make(map[int]struct{})
+		m.spellcasting = make(map[int64]struct{})
 	}
 	for i := range ids {
 		m.spellcasting[ids[i]] = struct{}{}
@@ -11164,9 +11164,9 @@ func (m *CharacterMutation) SpellcastingCleared() bool {
 }
 
 // RemoveSpellcastingIDs removes the "spellcasting" edge to the CharacterSpellcasting entity by IDs.
-func (m *CharacterMutation) RemoveSpellcastingIDs(ids ...int) {
+func (m *CharacterMutation) RemoveSpellcastingIDs(ids ...int64) {
 	if m.removedspellcasting == nil {
-		m.removedspellcasting = make(map[int]struct{})
+		m.removedspellcasting = make(map[int64]struct{})
 	}
 	for i := range ids {
 		delete(m.spellcasting, ids[i])
@@ -11175,7 +11175,7 @@ func (m *CharacterMutation) RemoveSpellcastingIDs(ids ...int) {
 }
 
 // RemovedSpellcasting returns the removed IDs of the "spellcasting" edge to the CharacterSpellcasting entity.
-func (m *CharacterMutation) RemovedSpellcastingIDs() (ids []int) {
+func (m *CharacterMutation) RemovedSpellcastingIDs() (ids []int64) {
 	for id := range m.removedspellcasting {
 		ids = append(ids, id)
 	}
@@ -11183,7 +11183,7 @@ func (m *CharacterMutation) RemovedSpellcastingIDs() (ids []int) {
 }
 
 // SpellcastingIDs returns the "spellcasting" edge IDs in the mutation.
-func (m *CharacterMutation) SpellcastingIDs() (ids []int) {
+func (m *CharacterMutation) SpellcastingIDs() (ids []int64) {
 	for id := range m.spellcasting {
 		ids = append(ids, id)
 	}
@@ -22331,7 +22331,7 @@ type CharacterSpellcastingMutation struct {
 	config
 	op               Op
 	typ              string
-	id               *int
+	id               *int64
 	ability          *string
 	save_dc          *int
 	addsave_dc       *int
@@ -22401,7 +22401,7 @@ func newCharacterSpellcastingMutation(c config, op Op, opts ...characterspellcas
 }
 
 // withCharacterSpellcastingID sets the ID field of the mutation.
-func withCharacterSpellcastingID(id int) characterspellcastingOption {
+func withCharacterSpellcastingID(id int64) characterspellcastingOption {
 	return func(m *CharacterSpellcastingMutation) {
 		var (
 			err   error
@@ -22451,9 +22451,15 @@ func (m CharacterSpellcastingMutation) Tx() (*Tx, error) {
 	return tx, nil
 }
 
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of CharacterSpellcasting entities.
+func (m *CharacterSpellcastingMutation) SetID(id int64) {
+	m.id = &id
+}
+
 // ID returns the ID value in the mutation. Note that the ID is only available
 // if it was provided to the builder or after it was returned from the database.
-func (m *CharacterSpellcastingMutation) ID() (id int, exists bool) {
+func (m *CharacterSpellcastingMutation) ID() (id int64, exists bool) {
 	if m.id == nil {
 		return
 	}
@@ -22464,12 +22470,12 @@ func (m *CharacterSpellcastingMutation) ID() (id int, exists bool) {
 // That means, if the mutation is applied within a transaction with an isolation level such
 // as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
 // or updated by the mutation.
-func (m *CharacterSpellcastingMutation) IDs(ctx context.Context) ([]int, error) {
+func (m *CharacterSpellcastingMutation) IDs(ctx context.Context) ([]int64, error) {
 	switch {
 	case m.op.Is(OpUpdateOne | OpDeleteOne):
 		id, exists := m.ID()
 		if exists {
-			return []int{id}, nil
+			return []int64{id}, nil
 		}
 		fallthrough
 	case m.op.Is(OpUpdate | OpDelete):

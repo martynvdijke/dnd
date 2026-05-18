@@ -25,9 +25,9 @@ const (
 	// EdgeCharacter holds the string denoting the character edge name in mutations.
 	EdgeCharacter = "character"
 	// Table holds the table name of the journalentry in the database.
-	Table = "journal_entries"
+	Table = "journal"
 	// CharacterTable is the table that holds the character relation/edge.
-	CharacterTable = "journal_entries"
+	CharacterTable = "journal"
 	// CharacterInverseTable is the table name for the Character entity.
 	// It exists in this package in order to avoid circular dependency with the "character" package.
 	CharacterInverseTable = "characters"

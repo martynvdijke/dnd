@@ -54,10 +54,10 @@ const (
 	// UserColumn is the table column denoting the user relation/edge.
 	UserColumn = "user_id"
 	// CharacterCraftingTable is the table that holds the character_crafting relation/edge.
-	CharacterCraftingTable = "character_craftings"
+	CharacterCraftingTable = "character_crafting"
 	// CharacterCraftingInverseTable is the table name for the CharacterCrafting entity.
 	// It exists in this package in order to avoid circular dependency with the "charactercrafting" package.
-	CharacterCraftingInverseTable = "character_craftings"
+	CharacterCraftingInverseTable = "character_crafting"
 	// CharacterCraftingColumn is the table column denoting the character_crafting relation/edge.
 	CharacterCraftingColumn = "recipe_id"
 )

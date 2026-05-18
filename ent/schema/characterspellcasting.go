@@ -2,6 +2,8 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
@@ -10,8 +12,15 @@ type CharacterSpellcasting struct {
 	ent.Schema
 }
 
+func (CharacterSpellcasting) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Table("character_spellcasting"),
+	}
+}
+
 func (CharacterSpellcasting) Fields() []ent.Field {
 	return []ent.Field{
+		field.Int64("id"),
 		field.Int64("character_id"),
 		field.String("ability").Default(""),
 		field.Int("save_dc").Default(10),

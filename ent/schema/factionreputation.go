@@ -2,6 +2,8 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 	"entgo.io/ent/schema/index"
@@ -9,6 +11,12 @@ import (
 
 type FactionReputation struct {
 	ent.Schema
+}
+
+func (FactionReputation) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Table("faction_reputation"),
+	}
 }
 
 func (FactionReputation) Fields() []ent.Field {

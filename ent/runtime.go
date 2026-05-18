@@ -654,87 +654,87 @@ func init() {
 	characterspellcastingFields := schema.CharacterSpellcasting{}.Fields()
 	_ = characterspellcastingFields
 	// characterspellcastingDescAbility is the schema descriptor for ability field.
-	characterspellcastingDescAbility := characterspellcastingFields[1].Descriptor()
+	characterspellcastingDescAbility := characterspellcastingFields[2].Descriptor()
 	// characterspellcasting.DefaultAbility holds the default value on creation for the ability field.
 	characterspellcasting.DefaultAbility = characterspellcastingDescAbility.Default.(string)
 	// characterspellcastingDescSaveDc is the schema descriptor for save_dc field.
-	characterspellcastingDescSaveDc := characterspellcastingFields[2].Descriptor()
+	characterspellcastingDescSaveDc := characterspellcastingFields[3].Descriptor()
 	// characterspellcasting.DefaultSaveDc holds the default value on creation for the save_dc field.
 	characterspellcasting.DefaultSaveDc = characterspellcastingDescSaveDc.Default.(int)
 	// characterspellcastingDescAttackBonus is the schema descriptor for attack_bonus field.
-	characterspellcastingDescAttackBonus := characterspellcastingFields[3].Descriptor()
+	characterspellcastingDescAttackBonus := characterspellcastingFields[4].Descriptor()
 	// characterspellcasting.DefaultAttackBonus holds the default value on creation for the attack_bonus field.
 	characterspellcasting.DefaultAttackBonus = characterspellcastingDescAttackBonus.Default.(int)
 	// characterspellcastingDescSlots1Max is the schema descriptor for slots_1_max field.
-	characterspellcastingDescSlots1Max := characterspellcastingFields[4].Descriptor()
+	characterspellcastingDescSlots1Max := characterspellcastingFields[5].Descriptor()
 	// characterspellcasting.DefaultSlots1Max holds the default value on creation for the slots_1_max field.
 	characterspellcasting.DefaultSlots1Max = characterspellcastingDescSlots1Max.Default.(int)
 	// characterspellcastingDescSlots1Used is the schema descriptor for slots_1_used field.
-	characterspellcastingDescSlots1Used := characterspellcastingFields[5].Descriptor()
+	characterspellcastingDescSlots1Used := characterspellcastingFields[6].Descriptor()
 	// characterspellcasting.DefaultSlots1Used holds the default value on creation for the slots_1_used field.
 	characterspellcasting.DefaultSlots1Used = characterspellcastingDescSlots1Used.Default.(int)
 	// characterspellcastingDescSlots2Max is the schema descriptor for slots_2_max field.
-	characterspellcastingDescSlots2Max := characterspellcastingFields[6].Descriptor()
+	characterspellcastingDescSlots2Max := characterspellcastingFields[7].Descriptor()
 	// characterspellcasting.DefaultSlots2Max holds the default value on creation for the slots_2_max field.
 	characterspellcasting.DefaultSlots2Max = characterspellcastingDescSlots2Max.Default.(int)
 	// characterspellcastingDescSlots2Used is the schema descriptor for slots_2_used field.
-	characterspellcastingDescSlots2Used := characterspellcastingFields[7].Descriptor()
+	characterspellcastingDescSlots2Used := characterspellcastingFields[8].Descriptor()
 	// characterspellcasting.DefaultSlots2Used holds the default value on creation for the slots_2_used field.
 	characterspellcasting.DefaultSlots2Used = characterspellcastingDescSlots2Used.Default.(int)
 	// characterspellcastingDescSlots3Max is the schema descriptor for slots_3_max field.
-	characterspellcastingDescSlots3Max := characterspellcastingFields[8].Descriptor()
+	characterspellcastingDescSlots3Max := characterspellcastingFields[9].Descriptor()
 	// characterspellcasting.DefaultSlots3Max holds the default value on creation for the slots_3_max field.
 	characterspellcasting.DefaultSlots3Max = characterspellcastingDescSlots3Max.Default.(int)
 	// characterspellcastingDescSlots3Used is the schema descriptor for slots_3_used field.
-	characterspellcastingDescSlots3Used := characterspellcastingFields[9].Descriptor()
+	characterspellcastingDescSlots3Used := characterspellcastingFields[10].Descriptor()
 	// characterspellcasting.DefaultSlots3Used holds the default value on creation for the slots_3_used field.
 	characterspellcasting.DefaultSlots3Used = characterspellcastingDescSlots3Used.Default.(int)
 	// characterspellcastingDescSlots4Max is the schema descriptor for slots_4_max field.
-	characterspellcastingDescSlots4Max := characterspellcastingFields[10].Descriptor()
+	characterspellcastingDescSlots4Max := characterspellcastingFields[11].Descriptor()
 	// characterspellcasting.DefaultSlots4Max holds the default value on creation for the slots_4_max field.
 	characterspellcasting.DefaultSlots4Max = characterspellcastingDescSlots4Max.Default.(int)
 	// characterspellcastingDescSlots4Used is the schema descriptor for slots_4_used field.
-	characterspellcastingDescSlots4Used := characterspellcastingFields[11].Descriptor()
+	characterspellcastingDescSlots4Used := characterspellcastingFields[12].Descriptor()
 	// characterspellcasting.DefaultSlots4Used holds the default value on creation for the slots_4_used field.
 	characterspellcasting.DefaultSlots4Used = characterspellcastingDescSlots4Used.Default.(int)
 	// characterspellcastingDescSlots5Max is the schema descriptor for slots_5_max field.
-	characterspellcastingDescSlots5Max := characterspellcastingFields[12].Descriptor()
+	characterspellcastingDescSlots5Max := characterspellcastingFields[13].Descriptor()
 	// characterspellcasting.DefaultSlots5Max holds the default value on creation for the slots_5_max field.
 	characterspellcasting.DefaultSlots5Max = characterspellcastingDescSlots5Max.Default.(int)
 	// characterspellcastingDescSlots5Used is the schema descriptor for slots_5_used field.
-	characterspellcastingDescSlots5Used := characterspellcastingFields[13].Descriptor()
+	characterspellcastingDescSlots5Used := characterspellcastingFields[14].Descriptor()
 	// characterspellcasting.DefaultSlots5Used holds the default value on creation for the slots_5_used field.
 	characterspellcasting.DefaultSlots5Used = characterspellcastingDescSlots5Used.Default.(int)
 	// characterspellcastingDescSlots6Max is the schema descriptor for slots_6_max field.
-	characterspellcastingDescSlots6Max := characterspellcastingFields[14].Descriptor()
+	characterspellcastingDescSlots6Max := characterspellcastingFields[15].Descriptor()
 	// characterspellcasting.DefaultSlots6Max holds the default value on creation for the slots_6_max field.
 	characterspellcasting.DefaultSlots6Max = characterspellcastingDescSlots6Max.Default.(int)
 	// characterspellcastingDescSlots6Used is the schema descriptor for slots_6_used field.
-	characterspellcastingDescSlots6Used := characterspellcastingFields[15].Descriptor()
+	characterspellcastingDescSlots6Used := characterspellcastingFields[16].Descriptor()
 	// characterspellcasting.DefaultSlots6Used holds the default value on creation for the slots_6_used field.
 	characterspellcasting.DefaultSlots6Used = characterspellcastingDescSlots6Used.Default.(int)
 	// characterspellcastingDescSlots7Max is the schema descriptor for slots_7_max field.
-	characterspellcastingDescSlots7Max := characterspellcastingFields[16].Descriptor()
+	characterspellcastingDescSlots7Max := characterspellcastingFields[17].Descriptor()
 	// characterspellcasting.DefaultSlots7Max holds the default value on creation for the slots_7_max field.
 	characterspellcasting.DefaultSlots7Max = characterspellcastingDescSlots7Max.Default.(int)
 	// characterspellcastingDescSlots7Used is the schema descriptor for slots_7_used field.
-	characterspellcastingDescSlots7Used := characterspellcastingFields[17].Descriptor()
+	characterspellcastingDescSlots7Used := characterspellcastingFields[18].Descriptor()
 	// characterspellcasting.DefaultSlots7Used holds the default value on creation for the slots_7_used field.
 	characterspellcasting.DefaultSlots7Used = characterspellcastingDescSlots7Used.Default.(int)
 	// characterspellcastingDescSlots8Max is the schema descriptor for slots_8_max field.
-	characterspellcastingDescSlots8Max := characterspellcastingFields[18].Descriptor()
+	characterspellcastingDescSlots8Max := characterspellcastingFields[19].Descriptor()
 	// characterspellcasting.DefaultSlots8Max holds the default value on creation for the slots_8_max field.
 	characterspellcasting.DefaultSlots8Max = characterspellcastingDescSlots8Max.Default.(int)
 	// characterspellcastingDescSlots8Used is the schema descriptor for slots_8_used field.
-	characterspellcastingDescSlots8Used := characterspellcastingFields[19].Descriptor()
+	characterspellcastingDescSlots8Used := characterspellcastingFields[20].Descriptor()
 	// characterspellcasting.DefaultSlots8Used holds the default value on creation for the slots_8_used field.
 	characterspellcasting.DefaultSlots8Used = characterspellcastingDescSlots8Used.Default.(int)
 	// characterspellcastingDescSlots9Max is the schema descriptor for slots_9_max field.
-	characterspellcastingDescSlots9Max := characterspellcastingFields[20].Descriptor()
+	characterspellcastingDescSlots9Max := characterspellcastingFields[21].Descriptor()
 	// characterspellcasting.DefaultSlots9Max holds the default value on creation for the slots_9_max field.
 	characterspellcasting.DefaultSlots9Max = characterspellcastingDescSlots9Max.Default.(int)
 	// characterspellcastingDescSlots9Used is the schema descriptor for slots_9_used field.
-	characterspellcastingDescSlots9Used := characterspellcastingFields[21].Descriptor()
+	characterspellcastingDescSlots9Used := characterspellcastingFields[22].Descriptor()
 	// characterspellcasting.DefaultSlots9Used holds the default value on creation for the slots_9_used field.
 	characterspellcasting.DefaultSlots9Used = characterspellcastingDescSlots9Used.Default.(int)
 	combatentryFields := schema.CombatEntry{}.Fields()

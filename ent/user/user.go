@@ -63,10 +63,10 @@ const (
 	// LocationsColumn is the table column denoting the locations relation/edge.
 	LocationsColumn = "user_id"
 	// NpcsTable is the table that holds the npcs relation/edge.
-	NpcsTable = "np_cs"
+	NpcsTable = "npcs"
 	// NpcsInverseTable is the table name for the NPC entity.
 	// It exists in this package in order to avoid circular dependency with the "npc" package.
-	NpcsInverseTable = "np_cs"
+	NpcsInverseTable = "npcs"
 	// NpcsColumn is the table column denoting the npcs relation/edge.
 	NpcsColumn = "user_id"
 	// CampaignsTable is the table that holds the campaigns relation/edge.

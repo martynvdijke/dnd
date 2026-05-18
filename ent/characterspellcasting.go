@@ -16,7 +16,7 @@ import (
 type CharacterSpellcasting struct {
 	config `json:"-"`
 	// ID of the ent.
-	ID int `json:"id,omitempty"`
+	ID int64 `json:"id,omitempty"`
 	// CharacterID holds the value of the "character_id" field.
 	CharacterID int64 `json:"character_id,omitempty"`
 	// Ability holds the value of the "ability" field.
@@ -116,7 +116,7 @@ func (_m *CharacterSpellcasting) assignValues(columns []string, values []any) er
 			if !ok {
 				return fmt.Errorf("unexpected type %T for field id", value)
 			}
-			_m.ID = int(value.Int64)
+			_m.ID = int64(value.Int64)
 		case characterspellcasting.FieldCharacterID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field character_id", values[i])

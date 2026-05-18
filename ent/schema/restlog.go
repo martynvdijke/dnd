@@ -2,12 +2,20 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/dialect/entsql"
+	"entgo.io/ent/schema"
 	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
 
 type RestLog struct {
 	ent.Schema
+}
+
+func (RestLog) Annotations() []schema.Annotation {
+	return []schema.Annotation{
+		entsql.Table("rest_log"),
+	}
 }
 
 func (RestLog) Fields() []ent.Field {

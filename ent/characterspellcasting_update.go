@@ -531,7 +531,7 @@ func (_u *CharacterSpellcastingUpdate) sqlSave(ctx context.Context) (_node int, 
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(characterspellcasting.Table, characterspellcasting.Columns, sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(characterspellcasting.Table, characterspellcasting.Columns, sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt64))
 	if ps := _u.mutation.predicates; len(ps) > 0 {
 		_spec.Predicate = func(selector *sql.Selector) {
 			for i := range ps {
@@ -1227,7 +1227,7 @@ func (_u *CharacterSpellcastingUpdateOne) sqlSave(ctx context.Context) (_node *C
 	if err := _u.check(); err != nil {
 		return _node, err
 	}
-	_spec := sqlgraph.NewUpdateSpec(characterspellcasting.Table, characterspellcasting.Columns, sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt))
+	_spec := sqlgraph.NewUpdateSpec(characterspellcasting.Table, characterspellcasting.Columns, sqlgraph.NewFieldSpec(characterspellcasting.FieldID, field.TypeInt64))
 	id, ok := _u.mutation.ID()
 	if !ok {
 		return nil, &ValidationError{Name: "id", err: errors.New(`ent: missing "CharacterSpellcasting.id" for update`)}

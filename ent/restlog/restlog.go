@@ -29,9 +29,9 @@ const (
 	// EdgeCharacter holds the string denoting the character edge name in mutations.
 	EdgeCharacter = "character"
 	// Table holds the table name of the restlog in the database.
-	Table = "rest_logs"
+	Table = "rest_log"
 	// CharacterTable is the table that holds the character relation/edge.
-	CharacterTable = "rest_logs"
+	CharacterTable = "rest_log"
 	// CharacterInverseTable is the table name for the Character entity.
 	// It exists in this package in order to avoid circular dependency with the "character" package.
 	CharacterInverseTable = "characters"

@@ -37,16 +37,16 @@ const (
 	// EdgeRecipe holds the string denoting the recipe edge name in mutations.
 	EdgeRecipe = "recipe"
 	// Table holds the table name of the charactercrafting in the database.
-	Table = "character_craftings"
+	Table = "character_crafting"
 	// CharacterTable is the table that holds the character relation/edge.
-	CharacterTable = "character_craftings"
+	CharacterTable = "character_crafting"
 	// CharacterInverseTable is the table name for the Character entity.
 	// It exists in this package in order to avoid circular dependency with the "character" package.
 	CharacterInverseTable = "characters"
 	// CharacterColumn is the table column denoting the character relation/edge.
 	CharacterColumn = "character_id"
 	// RecipeTable is the table that holds the recipe relation/edge.
-	RecipeTable = "character_craftings"
+	RecipeTable = "character_crafting"
 	// RecipeInverseTable is the table name for the CraftingRecipe entity.
 	// It exists in this package in order to avoid circular dependency with the "craftingrecipe" package.
 	RecipeInverseTable = "crafting_recipes"

@@ -38,10 +38,10 @@ const (
 	// CampaignColumn is the table column denoting the campaign relation/edge.
 	CampaignColumn = "campaign_id"
 	// ReputationsTable is the table that holds the reputations relation/edge.
-	ReputationsTable = "faction_reputations"
+	ReputationsTable = "faction_reputation"
 	// ReputationsInverseTable is the table name for the FactionReputation entity.
 	// It exists in this package in order to avoid circular dependency with the "factionreputation" package.
-	ReputationsInverseTable = "faction_reputations"
+	ReputationsInverseTable = "faction_reputation"
 	// ReputationsColumn is the table column denoting the reputations relation/edge.
 	ReputationsColumn = "faction_id"
 )

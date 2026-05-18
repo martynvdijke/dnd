@@ -152,10 +152,10 @@ const (
 	// UserColumn is the table column denoting the user relation/edge.
 	UserColumn = "user_id"
 	// CurrencyTable is the table that holds the currency relation/edge.
-	CurrencyTable = "character_currencies"
+	CurrencyTable = "character_currency"
 	// CurrencyInverseTable is the table name for the CharacterCurrency entity.
 	// It exists in this package in order to avoid circular dependency with the "charactercurrency" package.
-	CurrencyInverseTable = "character_currencies"
+	CurrencyInverseTable = "character_currency"
 	// CurrencyColumn is the table column denoting the currency relation/edge.
 	CurrencyColumn = "character_id"
 	// ProficienciesTable is the table that holds the proficiencies relation/edge.
@@ -173,10 +173,10 @@ const (
 	// FeaturesColumn is the table column denoting the features relation/edge.
 	FeaturesColumn = "character_id"
 	// SpellcastingTable is the table that holds the spellcasting relation/edge.
-	SpellcastingTable = "character_spellcastings"
+	SpellcastingTable = "character_spellcasting"
 	// SpellcastingInverseTable is the table name for the CharacterSpellcasting entity.
 	// It exists in this package in order to avoid circular dependency with the "characterspellcasting" package.
-	SpellcastingInverseTable = "character_spellcastings"
+	SpellcastingInverseTable = "character_spellcasting"
 	// SpellcastingColumn is the table column denoting the spellcasting relation/edge.
 	SpellcastingColumn = "character_id"
 	// SpellsTable is the table that holds the spells relation/edge.
@@ -187,10 +187,10 @@ const (
 	// SpellsColumn is the table column denoting the spells relation/edge.
 	SpellsColumn = "character_id"
 	// InventoryTable is the table that holds the inventory relation/edge.
-	InventoryTable = "inventory_items"
+	InventoryTable = "inventory"
 	// InventoryInverseTable is the table name for the InventoryItem entity.
 	// It exists in this package in order to avoid circular dependency with the "inventoryitem" package.
-	InventoryInverseTable = "inventory_items"
+	InventoryInverseTable = "inventory"
 	// InventoryColumn is the table column denoting the inventory relation/edge.
 	InventoryColumn = "character_id"
 	// ClassesTable is the table that holds the classes relation/edge.
@@ -236,10 +236,10 @@ const (
 	// ResourcesColumn is the table column denoting the resources relation/edge.
 	ResourcesColumn = "character_id"
 	// CraftingTable is the table that holds the crafting relation/edge.
-	CraftingTable = "character_craftings"
+	CraftingTable = "character_crafting"
 	// CraftingInverseTable is the table name for the CharacterCrafting entity.
 	// It exists in this package in order to avoid circular dependency with the "charactercrafting" package.
-	CraftingInverseTable = "character_craftings"
+	CraftingInverseTable = "character_crafting"
 	// CraftingColumn is the table column denoting the crafting relation/edge.
 	CraftingColumn = "character_id"
 	// SessionsTable is the table that holds the sessions relation/edge.
@@ -257,17 +257,17 @@ const (
 	// QuestsColumn is the table column denoting the quests relation/edge.
 	QuestsColumn = "character_id"
 	// JournalTable is the table that holds the journal relation/edge.
-	JournalTable = "journal_entries"
+	JournalTable = "journal"
 	// JournalInverseTable is the table name for the JournalEntry entity.
 	// It exists in this package in order to avoid circular dependency with the "journalentry" package.
-	JournalInverseTable = "journal_entries"
+	JournalInverseTable = "journal"
 	// JournalColumn is the table column denoting the journal relation/edge.
 	JournalColumn = "character_id"
 	// RestLogsTable is the table that holds the rest_logs relation/edge.
-	RestLogsTable = "rest_logs"
+	RestLogsTable = "rest_log"
 	// RestLogsInverseTable is the table name for the RestLog entity.
 	// It exists in this package in order to avoid circular dependency with the "restlog" package.
-	RestLogsInverseTable = "rest_logs"
+	RestLogsInverseTable = "rest_log"
 	// RestLogsColumn is the table column denoting the rest_logs relation/edge.
 	RestLogsColumn = "character_id"
 	// DowntimeActivitiesTable is the table that holds the downtime_activities relation/edge.
@@ -292,17 +292,17 @@ const (
 	// CharacterLocationsColumn is the table column denoting the character_locations relation/edge.
 	CharacterLocationsColumn = "character_id"
 	// CharacterNpcsTable is the table that holds the character_npcs relation/edge.
-	CharacterNpcsTable = "character_np_cs"
+	CharacterNpcsTable = "character_npcs"
 	// CharacterNpcsInverseTable is the table name for the CharacterNPC entity.
 	// It exists in this package in order to avoid circular dependency with the "characternpc" package.
-	CharacterNpcsInverseTable = "character_np_cs"
+	CharacterNpcsInverseTable = "character_npcs"
 	// CharacterNpcsColumn is the table column denoting the character_npcs relation/edge.
 	CharacterNpcsColumn = "character_id"
 	// FactionReputationsTable is the table that holds the faction_reputations relation/edge.
-	FactionReputationsTable = "faction_reputations"
+	FactionReputationsTable = "faction_reputation"
 	// FactionReputationsInverseTable is the table name for the FactionReputation entity.
 	// It exists in this package in order to avoid circular dependency with the "factionreputation" package.
-	FactionReputationsInverseTable = "faction_reputations"
+	FactionReputationsInverseTable = "faction_reputation"
 	// FactionReputationsColumn is the table column denoting the faction_reputations relation/edge.
 	FactionReputationsColumn = "character_id"
 	// CombatEntriesTable is the table that holds the combat_entries relation/edge.

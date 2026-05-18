@@ -3,6 +3,7 @@
 package migrate
 
 import (
+	"entgo.io/ent/dialect/entsql"
 	"entgo.io/ent/dialect/sql/schema"
 	"entgo.io/ent/schema/field"
 )
@@ -431,8 +432,8 @@ var (
 			},
 		},
 	}
-	// CharacterCraftingsColumns holds the columns for the "character_craftings" table.
-	CharacterCraftingsColumns = []*schema.Column{
+	// CharacterCraftingColumns holds the columns for the "character_crafting" table.
+	CharacterCraftingColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "progress_hours", Type: field.TypeFloat64, Default: 0},
@@ -445,21 +446,21 @@ var (
 		{Name: "character_id", Type: field.TypeInt64},
 		{Name: "recipe_id", Type: field.TypeInt64, Nullable: true},
 	}
-	// CharacterCraftingsTable holds the schema information for the "character_craftings" table.
-	CharacterCraftingsTable = &schema.Table{
-		Name:       "character_craftings",
-		Columns:    CharacterCraftingsColumns,
-		PrimaryKey: []*schema.Column{CharacterCraftingsColumns[0]},
+	// CharacterCraftingTable holds the schema information for the "character_crafting" table.
+	CharacterCraftingTable = &schema.Table{
+		Name:       "character_crafting",
+		Columns:    CharacterCraftingColumns,
+		PrimaryKey: []*schema.Column{CharacterCraftingColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "character_craftings_characters_crafting",
-				Columns:    []*schema.Column{CharacterCraftingsColumns[9]},
+				Symbol:     "character_crafting_characters_crafting",
+				Columns:    []*schema.Column{CharacterCraftingColumns[9]},
 				RefColumns: []*schema.Column{CharactersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
-				Symbol:     "character_craftings_crafting_recipes_character_crafting",
-				Columns:    []*schema.Column{CharacterCraftingsColumns[10]},
+				Symbol:     "character_crafting_crafting_recipes_character_crafting",
+				Columns:    []*schema.Column{CharacterCraftingColumns[10]},
 				RefColumns: []*schema.Column{CraftingRecipesColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -468,12 +469,12 @@ var (
 			{
 				Name:    "charactercrafting_character_id",
 				Unique:  false,
-				Columns: []*schema.Column{CharacterCraftingsColumns[9]},
+				Columns: []*schema.Column{CharacterCraftingColumns[9]},
 			},
 		},
 	}
-	// CharacterCurrenciesColumns holds the columns for the "character_currencies" table.
-	CharacterCurrenciesColumns = []*schema.Column{
+	// CharacterCurrencyColumns holds the columns for the "character_currency" table.
+	CharacterCurrencyColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "cp", Type: field.TypeInt, Default: 0},
 		{Name: "sp", Type: field.TypeInt, Default: 0},
@@ -482,15 +483,15 @@ var (
 		{Name: "pp", Type: field.TypeInt, Default: 0},
 		{Name: "character_id", Type: field.TypeInt64},
 	}
-	// CharacterCurrenciesTable holds the schema information for the "character_currencies" table.
-	CharacterCurrenciesTable = &schema.Table{
-		Name:       "character_currencies",
-		Columns:    CharacterCurrenciesColumns,
-		PrimaryKey: []*schema.Column{CharacterCurrenciesColumns[0]},
+	// CharacterCurrencyTable holds the schema information for the "character_currency" table.
+	CharacterCurrencyTable = &schema.Table{
+		Name:       "character_currency",
+		Columns:    CharacterCurrencyColumns,
+		PrimaryKey: []*schema.Column{CharacterCurrencyColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "character_currencies_characters_currency",
-				Columns:    []*schema.Column{CharacterCurrenciesColumns[6]},
+				Symbol:     "character_currency_characters_currency",
+				Columns:    []*schema.Column{CharacterCurrencyColumns[6]},
 				RefColumns: []*schema.Column{CharactersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -591,8 +592,8 @@ var (
 			},
 		},
 	}
-	// CharacterNpCsColumns holds the columns for the "character_np_cs" table.
-	CharacterNpCsColumns = []*schema.Column{
+	// CharacterNpcsColumns holds the columns for the "character_npcs" table.
+	CharacterNpcsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
 		{Name: "relationship", Type: field.TypeString, Default: "acquaintance"},
 		{Name: "notes", Type: field.TypeString, Default: ""},
@@ -601,22 +602,22 @@ var (
 		{Name: "character_id", Type: field.TypeInt64},
 		{Name: "npc_id", Type: field.TypeInt64},
 	}
-	// CharacterNpCsTable holds the schema information for the "character_np_cs" table.
-	CharacterNpCsTable = &schema.Table{
-		Name:       "character_np_cs",
-		Columns:    CharacterNpCsColumns,
-		PrimaryKey: []*schema.Column{CharacterNpCsColumns[0]},
+	// CharacterNpcsTable holds the schema information for the "character_npcs" table.
+	CharacterNpcsTable = &schema.Table{
+		Name:       "character_npcs",
+		Columns:    CharacterNpcsColumns,
+		PrimaryKey: []*schema.Column{CharacterNpcsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "character_np_cs_characters_character_npcs",
-				Columns:    []*schema.Column{CharacterNpCsColumns[5]},
+				Symbol:     "character_npcs_characters_character_npcs",
+				Columns:    []*schema.Column{CharacterNpcsColumns[5]},
 				RefColumns: []*schema.Column{CharactersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
-				Symbol:     "character_np_cs_np_cs_character_npcs",
-				Columns:    []*schema.Column{CharacterNpCsColumns[6]},
-				RefColumns: []*schema.Column{NpCsColumns[0]},
+				Symbol:     "character_npcs_npcs_character_npcs",
+				Columns:    []*schema.Column{CharacterNpcsColumns[6]},
+				RefColumns: []*schema.Column{NpcsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 		},
@@ -624,12 +625,12 @@ var (
 			{
 				Name:    "characternpc_character_id",
 				Unique:  false,
-				Columns: []*schema.Column{CharacterNpCsColumns[5]},
+				Columns: []*schema.Column{CharacterNpcsColumns[5]},
 			},
 			{
 				Name:    "characternpc_npc_id",
 				Unique:  false,
-				Columns: []*schema.Column{CharacterNpCsColumns[6]},
+				Columns: []*schema.Column{CharacterNpcsColumns[6]},
 			},
 		},
 	}
@@ -720,9 +721,9 @@ var (
 			},
 		},
 	}
-	// CharacterSpellcastingsColumns holds the columns for the "character_spellcastings" table.
-	CharacterSpellcastingsColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeInt, Increment: true},
+	// CharacterSpellcastingColumns holds the columns for the "character_spellcasting" table.
+	CharacterSpellcastingColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
 		{Name: "ability", Type: field.TypeString, Default: ""},
 		{Name: "save_dc", Type: field.TypeInt, Default: 10},
 		{Name: "attack_bonus", Type: field.TypeInt, Default: 0},
@@ -746,15 +747,15 @@ var (
 		{Name: "slots_9_used", Type: field.TypeInt, Default: 0},
 		{Name: "character_id", Type: field.TypeInt64},
 	}
-	// CharacterSpellcastingsTable holds the schema information for the "character_spellcastings" table.
-	CharacterSpellcastingsTable = &schema.Table{
-		Name:       "character_spellcastings",
-		Columns:    CharacterSpellcastingsColumns,
-		PrimaryKey: []*schema.Column{CharacterSpellcastingsColumns[0]},
+	// CharacterSpellcastingTable holds the schema information for the "character_spellcasting" table.
+	CharacterSpellcastingTable = &schema.Table{
+		Name:       "character_spellcasting",
+		Columns:    CharacterSpellcastingColumns,
+		PrimaryKey: []*schema.Column{CharacterSpellcastingColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "character_spellcastings_characters_spellcasting",
-				Columns:    []*schema.Column{CharacterSpellcastingsColumns[22]},
+				Symbol:     "character_spellcasting_characters_spellcasting",
+				Columns:    []*schema.Column{CharacterSpellcastingColumns[22]},
 				RefColumns: []*schema.Column{CharactersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -936,8 +937,8 @@ var (
 		Columns:    CompendiumClassesColumns,
 		PrimaryKey: []*schema.Column{CompendiumClassesColumns[0]},
 	}
-	// CompendiumEquipmentsColumns holds the columns for the "compendium_equipments" table.
-	CompendiumEquipmentsColumns = []*schema.Column{
+	// CompendiumEquipmentColumns holds the columns for the "compendium_equipment" table.
+	CompendiumEquipmentColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "category", Type: field.TypeString, Default: ""},
@@ -948,11 +949,11 @@ var (
 		{Name: "system", Type: field.TypeString, Default: "dnd5e"},
 		{Name: "source", Type: field.TypeString, Default: "srd"},
 	}
-	// CompendiumEquipmentsTable holds the schema information for the "compendium_equipments" table.
-	CompendiumEquipmentsTable = &schema.Table{
-		Name:       "compendium_equipments",
-		Columns:    CompendiumEquipmentsColumns,
-		PrimaryKey: []*schema.Column{CompendiumEquipmentsColumns[0]},
+	// CompendiumEquipmentTable holds the schema information for the "compendium_equipment" table.
+	CompendiumEquipmentTable = &schema.Table{
+		Name:       "compendium_equipment",
+		Columns:    CompendiumEquipmentColumns,
+		PrimaryKey: []*schema.Column{CompendiumEquipmentColumns[0]},
 	}
 	// CompendiumFeatsColumns holds the columns for the "compendium_feats" table.
 	CompendiumFeatsColumns = []*schema.Column{
@@ -1250,8 +1251,8 @@ var (
 			},
 		},
 	}
-	// FactionReputationsColumns holds the columns for the "faction_reputations" table.
-	FactionReputationsColumns = []*schema.Column{
+	// FactionReputationColumns holds the columns for the "faction_reputation" table.
+	FactionReputationColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
 		{Name: "standing", Type: field.TypeInt, Default: 0},
 		{Name: "rank", Type: field.TypeString, Default: ""},
@@ -1259,21 +1260,21 @@ var (
 		{Name: "character_id", Type: field.TypeInt64},
 		{Name: "faction_id", Type: field.TypeInt64},
 	}
-	// FactionReputationsTable holds the schema information for the "faction_reputations" table.
-	FactionReputationsTable = &schema.Table{
-		Name:       "faction_reputations",
-		Columns:    FactionReputationsColumns,
-		PrimaryKey: []*schema.Column{FactionReputationsColumns[0]},
+	// FactionReputationTable holds the schema information for the "faction_reputation" table.
+	FactionReputationTable = &schema.Table{
+		Name:       "faction_reputation",
+		Columns:    FactionReputationColumns,
+		PrimaryKey: []*schema.Column{FactionReputationColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "faction_reputations_characters_faction_reputations",
-				Columns:    []*schema.Column{FactionReputationsColumns[4]},
+				Symbol:     "faction_reputation_characters_faction_reputations",
+				Columns:    []*schema.Column{FactionReputationColumns[4]},
 				RefColumns: []*schema.Column{CharactersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
-				Symbol:     "faction_reputations_factions_reputations",
-				Columns:    []*schema.Column{FactionReputationsColumns[5]},
+				Symbol:     "faction_reputation_factions_reputations",
+				Columns:    []*schema.Column{FactionReputationColumns[5]},
 				RefColumns: []*schema.Column{FactionsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1282,17 +1283,17 @@ var (
 			{
 				Name:    "factionreputation_character_id",
 				Unique:  false,
-				Columns: []*schema.Column{FactionReputationsColumns[4]},
+				Columns: []*schema.Column{FactionReputationColumns[4]},
 			},
 			{
 				Name:    "factionreputation_faction_id",
 				Unique:  false,
-				Columns: []*schema.Column{FactionReputationsColumns[5]},
+				Columns: []*schema.Column{FactionReputationColumns[5]},
 			},
 		},
 	}
-	// InventoryItemsColumns holds the columns for the "inventory_items" table.
-	InventoryItemsColumns = []*schema.Column{
+	// InventoryColumns holds the columns for the "inventory" table.
+	InventoryColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "quantity", Type: field.TypeInt, Default: 1},
@@ -1310,15 +1311,15 @@ var (
 		{Name: "notes", Type: field.TypeString, Default: ""},
 		{Name: "character_id", Type: field.TypeInt64},
 	}
-	// InventoryItemsTable holds the schema information for the "inventory_items" table.
-	InventoryItemsTable = &schema.Table{
-		Name:       "inventory_items",
-		Columns:    InventoryItemsColumns,
-		PrimaryKey: []*schema.Column{InventoryItemsColumns[0]},
+	// InventoryTable holds the schema information for the "inventory" table.
+	InventoryTable = &schema.Table{
+		Name:       "inventory",
+		Columns:    InventoryColumns,
+		PrimaryKey: []*schema.Column{InventoryColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "inventory_items_characters_inventory",
-				Columns:    []*schema.Column{InventoryItemsColumns[15]},
+				Symbol:     "inventory_characters_inventory",
+				Columns:    []*schema.Column{InventoryColumns[15]},
 				RefColumns: []*schema.Column{CharactersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1327,12 +1328,12 @@ var (
 			{
 				Name:    "inventoryitem_character_id",
 				Unique:  false,
-				Columns: []*schema.Column{InventoryItemsColumns[15]},
+				Columns: []*schema.Column{InventoryColumns[15]},
 			},
 		},
 	}
-	// JournalEntriesColumns holds the columns for the "journal_entries" table.
-	JournalEntriesColumns = []*schema.Column{
+	// JournalColumns holds the columns for the "journal" table.
+	JournalColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
 		{Name: "title", Type: field.TypeString, Default: ""},
 		{Name: "entry", Type: field.TypeString, Default: ""},
@@ -1340,15 +1341,15 @@ var (
 		{Name: "created_at", Type: field.TypeString, Default: ""},
 		{Name: "character_id", Type: field.TypeInt64},
 	}
-	// JournalEntriesTable holds the schema information for the "journal_entries" table.
-	JournalEntriesTable = &schema.Table{
-		Name:       "journal_entries",
-		Columns:    JournalEntriesColumns,
-		PrimaryKey: []*schema.Column{JournalEntriesColumns[0]},
+	// JournalTable holds the schema information for the "journal" table.
+	JournalTable = &schema.Table{
+		Name:       "journal",
+		Columns:    JournalColumns,
+		PrimaryKey: []*schema.Column{JournalColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "journal_entries_characters_journal",
-				Columns:    []*schema.Column{JournalEntriesColumns[5]},
+				Symbol:     "journal_characters_journal",
+				Columns:    []*schema.Column{JournalColumns[5]},
 				RefColumns: []*schema.Column{CharactersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1357,7 +1358,7 @@ var (
 			{
 				Name:    "journalentry_character_id",
 				Unique:  false,
-				Columns: []*schema.Column{JournalEntriesColumns[5]},
+				Columns: []*schema.Column{JournalColumns[5]},
 			},
 		},
 	}
@@ -1436,8 +1437,8 @@ var (
 			},
 		},
 	}
-	// NpCsColumns holds the columns for the "np_cs" table.
-	NpCsColumns = []*schema.Column{
+	// NpcsColumns holds the columns for the "npcs" table.
+	NpcsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "race", Type: field.TypeString, Default: ""},
@@ -1456,15 +1457,15 @@ var (
 		{Name: "created_at", Type: field.TypeString, Default: ""},
 		{Name: "user_id", Type: field.TypeInt64},
 	}
-	// NpCsTable holds the schema information for the "np_cs" table.
-	NpCsTable = &schema.Table{
-		Name:       "np_cs",
-		Columns:    NpCsColumns,
-		PrimaryKey: []*schema.Column{NpCsColumns[0]},
+	// NpcsTable holds the schema information for the "npcs" table.
+	NpcsTable = &schema.Table{
+		Name:       "npcs",
+		Columns:    NpcsColumns,
+		PrimaryKey: []*schema.Column{NpcsColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "np_cs_users_npcs",
-				Columns:    []*schema.Column{NpCsColumns[16]},
+				Symbol:     "npcs_users_npcs",
+				Columns:    []*schema.Column{NpcsColumns[16]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1473,7 +1474,7 @@ var (
 			{
 				Name:    "npc_user_id",
 				Unique:  false,
-				Columns: []*schema.Column{NpCsColumns[16]},
+				Columns: []*schema.Column{NpcsColumns[16]},
 			},
 		},
 	}
@@ -1511,8 +1512,8 @@ var (
 			},
 		},
 	}
-	// RestLogsColumns holds the columns for the "rest_logs" table.
-	RestLogsColumns = []*schema.Column{
+	// RestLogColumns holds the columns for the "rest_log" table.
+	RestLogColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
 		{Name: "rest_type", Type: field.TypeString},
 		{Name: "hp_healed", Type: field.TypeInt, Default: 0},
@@ -1522,15 +1523,15 @@ var (
 		{Name: "timestamp", Type: field.TypeString, Default: ""},
 		{Name: "character_id", Type: field.TypeInt64},
 	}
-	// RestLogsTable holds the schema information for the "rest_logs" table.
-	RestLogsTable = &schema.Table{
-		Name:       "rest_logs",
-		Columns:    RestLogsColumns,
-		PrimaryKey: []*schema.Column{RestLogsColumns[0]},
+	// RestLogTable holds the schema information for the "rest_log" table.
+	RestLogTable = &schema.Table{
+		Name:       "rest_log",
+		Columns:    RestLogColumns,
+		PrimaryKey: []*schema.Column{RestLogColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "rest_logs_characters_rest_logs",
-				Columns:    []*schema.Column{RestLogsColumns[7]},
+				Symbol:     "rest_log_characters_rest_logs",
+				Columns:    []*schema.Column{RestLogColumns[7]},
 				RefColumns: []*schema.Column{CharactersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1805,22 +1806,22 @@ var (
 		CharactersTable,
 		CharacterClassesTable,
 		CharacterConditionsTable,
-		CharacterCraftingsTable,
-		CharacterCurrenciesTable,
+		CharacterCraftingTable,
+		CharacterCurrencyTable,
 		CharacterFeatsTable,
 		CharacterFeaturesTable,
 		CharacterLocationsTable,
-		CharacterNpCsTable,
+		CharacterNpcsTable,
 		CharacterNotesTable,
 		CharacterProficienciesTable,
 		CharacterResourcesTable,
-		CharacterSpellcastingsTable,
+		CharacterSpellcastingTable,
 		CombatEntriesTable,
 		CombatLogEntriesTable,
 		CompanionsTable,
 		CompendiumBackgroundsTable,
 		CompendiumClassesTable,
-		CompendiumEquipmentsTable,
+		CompendiumEquipmentTable,
 		CompendiumFeatsTable,
 		CompendiumRacesTable,
 		CompendiumSpellsTable,
@@ -1831,14 +1832,14 @@ var (
 		EncounterMonstersTable,
 		EncounterTemplatesTable,
 		FactionsTable,
-		FactionReputationsTable,
-		InventoryItemsTable,
-		JournalEntriesTable,
+		FactionReputationTable,
+		InventoryTable,
+		JournalTable,
 		LevelUpPlansTable,
 		LocationsTable,
-		NpCsTable,
+		NpcsTable,
 		QuestsTable,
-		RestLogsTable,
+		RestLogTable,
 		SessionsTable,
 		ShareLinksTable,
 		ShopsTable,
@@ -1865,23 +1866,38 @@ func init() {
 	CharactersTable.ForeignKeys[0].RefTable = UsersTable
 	CharacterClassesTable.ForeignKeys[0].RefTable = CharactersTable
 	CharacterConditionsTable.ForeignKeys[0].RefTable = CharactersTable
-	CharacterCraftingsTable.ForeignKeys[0].RefTable = CharactersTable
-	CharacterCraftingsTable.ForeignKeys[1].RefTable = CraftingRecipesTable
-	CharacterCurrenciesTable.ForeignKeys[0].RefTable = CharactersTable
+	CharacterCraftingTable.ForeignKeys[0].RefTable = CharactersTable
+	CharacterCraftingTable.ForeignKeys[1].RefTable = CraftingRecipesTable
+	CharacterCraftingTable.Annotation = &entsql.Annotation{
+		Table: "character_crafting",
+	}
+	CharacterCurrencyTable.ForeignKeys[0].RefTable = CharactersTable
+	CharacterCurrencyTable.Annotation = &entsql.Annotation{
+		Table: "character_currency",
+	}
 	CharacterFeatsTable.ForeignKeys[0].RefTable = CharactersTable
 	CharacterFeaturesTable.ForeignKeys[0].RefTable = CharactersTable
 	CharacterLocationsTable.ForeignKeys[0].RefTable = CharactersTable
 	CharacterLocationsTable.ForeignKeys[1].RefTable = LocationsTable
-	CharacterNpCsTable.ForeignKeys[0].RefTable = CharactersTable
-	CharacterNpCsTable.ForeignKeys[1].RefTable = NpCsTable
+	CharacterNpcsTable.ForeignKeys[0].RefTable = CharactersTable
+	CharacterNpcsTable.ForeignKeys[1].RefTable = NpcsTable
+	CharacterNpcsTable.Annotation = &entsql.Annotation{
+		Table: "character_npcs",
+	}
 	CharacterNotesTable.ForeignKeys[0].RefTable = CharactersTable
 	CharacterProficienciesTable.ForeignKeys[0].RefTable = CharactersTable
 	CharacterResourcesTable.ForeignKeys[0].RefTable = CharactersTable
-	CharacterSpellcastingsTable.ForeignKeys[0].RefTable = CharactersTable
+	CharacterSpellcastingTable.ForeignKeys[0].RefTable = CharactersTable
+	CharacterSpellcastingTable.Annotation = &entsql.Annotation{
+		Table: "character_spellcasting",
+	}
 	CombatEntriesTable.ForeignKeys[0].RefTable = CampaignsTable
 	CombatEntriesTable.ForeignKeys[1].RefTable = CharactersTable
 	CombatLogEntriesTable.ForeignKeys[0].RefTable = CampaignsTable
 	CompanionsTable.ForeignKeys[0].RefTable = CharactersTable
+	CompendiumEquipmentTable.Annotation = &entsql.Annotation{
+		Table: "compendium_equipment",
+	}
 	CraftingRecipesTable.ForeignKeys[0].RefTable = UsersTable
 	DiceRollsTable.ForeignKeys[0].RefTable = UsersTable
 	DowntimeActivitiesTable.ForeignKeys[0].RefTable = CharactersTable
@@ -1889,16 +1905,31 @@ func init() {
 	EncounterTemplatesTable.ForeignKeys[0].RefTable = CampaignsTable
 	EncounterTemplatesTable.ForeignKeys[1].RefTable = UsersTable
 	FactionsTable.ForeignKeys[0].RefTable = CampaignsTable
-	FactionReputationsTable.ForeignKeys[0].RefTable = CharactersTable
-	FactionReputationsTable.ForeignKeys[1].RefTable = FactionsTable
-	InventoryItemsTable.ForeignKeys[0].RefTable = CharactersTable
-	JournalEntriesTable.ForeignKeys[0].RefTable = CharactersTable
+	FactionReputationTable.ForeignKeys[0].RefTable = CharactersTable
+	FactionReputationTable.ForeignKeys[1].RefTable = FactionsTable
+	FactionReputationTable.Annotation = &entsql.Annotation{
+		Table: "faction_reputation",
+	}
+	InventoryTable.ForeignKeys[0].RefTable = CharactersTable
+	InventoryTable.Annotation = &entsql.Annotation{
+		Table: "inventory",
+	}
+	JournalTable.ForeignKeys[0].RefTable = CharactersTable
+	JournalTable.Annotation = &entsql.Annotation{
+		Table: "journal",
+	}
 	LevelUpPlansTable.ForeignKeys[0].RefTable = CharactersTable
 	LocationsTable.ForeignKeys[0].RefTable = LocationsTable
 	LocationsTable.ForeignKeys[1].RefTable = UsersTable
-	NpCsTable.ForeignKeys[0].RefTable = UsersTable
+	NpcsTable.ForeignKeys[0].RefTable = UsersTable
+	NpcsTable.Annotation = &entsql.Annotation{
+		Table: "npcs",
+	}
 	QuestsTable.ForeignKeys[0].RefTable = CharactersTable
-	RestLogsTable.ForeignKeys[0].RefTable = CharactersTable
+	RestLogTable.ForeignKeys[0].RefTable = CharactersTable
+	RestLogTable.Annotation = &entsql.Annotation{
+		Table: "rest_log",
+	}
 	SessionsTable.ForeignKeys[0].RefTable = CharactersTable
 	ShareLinksTable.ForeignKeys[0].RefTable = UsersTable
 	ShopsTable.ForeignKeys[0].RefTable = CampaignsTable

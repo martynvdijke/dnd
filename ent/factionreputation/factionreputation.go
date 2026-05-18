@@ -27,16 +27,16 @@ const (
 	// EdgeFaction holds the string denoting the faction edge name in mutations.
 	EdgeFaction = "faction"
 	// Table holds the table name of the factionreputation in the database.
-	Table = "faction_reputations"
+	Table = "faction_reputation"
 	// CharacterTable is the table that holds the character relation/edge.
-	CharacterTable = "faction_reputations"
+	CharacterTable = "faction_reputation"
 	// CharacterInverseTable is the table name for the Character entity.
 	// It exists in this package in order to avoid circular dependency with the "character" package.
 	CharacterInverseTable = "characters"
 	// CharacterColumn is the table column denoting the character relation/edge.
 	CharacterColumn = "character_id"
 	// FactionTable is the table that holds the faction relation/edge.
-	FactionTable = "faction_reputations"
+	FactionTable = "faction_reputation"
 	// FactionInverseTable is the table name for the Faction entity.
 	// It exists in this package in order to avoid circular dependency with the "faction" package.
 	FactionInverseTable = "factions"
