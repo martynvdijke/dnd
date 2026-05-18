@@ -1,3 +1,20 @@
+# [1.11.0](https://github.com/martynvdijke/dnd/compare/v1.10.0...v1.11.0) (2026-05-18)
+
+
+### Features
+
+* Add action/combat log with statistics ([a84c066](https://github.com/martynvdijke/dnd/commit/a84c066e7d6c6fdd5283bcb0ca9378784e34e46d))
+* Add all feature routes and comprehensive tests ([39cb9f1](https://github.com/martynvdijke/dnd/commit/39cb9f11567e0ab1ad772254f40c53edb27973e9))
+* Add campaign dashboard with aggregated overview data ([392d466](https://github.com/martynvdijke/dnd/commit/392d46601111be65d79862ed9369fc738c197232))
+* Add campaign recap generator with auto-generation ([73bf798](https://github.com/martynvdijke/dnd/commit/73bf7988cbf24d7b36c96f9413301b267e47bea8))
+* Add downtime activity tracker with day advancement ([19fbb09](https://github.com/martynvdijke/dnd/commit/19fbb09e3a1593181478592858e3a11b8f8058df))
+* Add homebrew content manager for custom game content ([2ce09ee](https://github.com/martynvdijke/dnd/commit/2ce09ee63ac8ecdf072254d897bf99141e05be38))
+* Add interactive campaign world map with pins and fog of war ([a913fc0](https://github.com/martynvdijke/dnd/commit/a913fc07e1ce7f9f7ce4597f3cb687fc24ee8d79))
+* Add level-up planner with build tree visualization ([6da8609](https://github.com/martynvdijke/dnd/commit/6da86092d1ac668fdd6c421057403683038c5986))
+* add opentelemetry tracing and prometheus metrics support ([a1004a3](https://github.com/martynvdijke/dnd/commit/a1004a34a648adbb8939373b56779a10e0965e5a))
+* Add quick reference panel for D&D rules ([8df36d5](https://github.com/martynvdijke/dnd/commit/8df36d594316ba516821752b8d047c45dac8bfa5))
+* Add spell slot & resource tracker with rest recovery ([77c8fac](https://github.com/martynvdijke/dnd/commit/77c8fac6ffb5f433c75fa20b0fd2b954ca3f113b))
+
 # [1.10.0](https://github.com/martynvdijke/dnd/compare/v1.9.0...v1.10.0) (2026-05-15)
 
 
