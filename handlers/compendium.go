@@ -561,6 +561,6 @@ func ImportFromAPI(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("user_id")
-	results := importCharacters(userID.(int64), chars)
+	results := importCharacters(c.Request.Context(), userID.(int64), chars)
 	c.JSON(http.StatusOK, results)
 }

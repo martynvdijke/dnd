@@ -166,13 +166,14 @@ func GetSharedEntity(c *gin.Context) {
 			return
 		}
 
-		ch.Proficiencies = loadProficiencies(ch.ID)
-		ch.Features = loadFeatures(ch.ID)
-		ch.Spellcasting = loadSpellcasting(ch.ID)
-		ch.Spells = loadSpells(ch.ID)
-		ch.Inventory = loadInventory(ch.ID)
-		ch.Currency = loadCurrency(ch.ID)
-		ch.Classes = loadCharClasses(ch.ID)
+		ctx := c.Request.Context()
+		ch.Proficiencies = loadProficiencies(ctx, ch.ID)
+		ch.Features = loadFeatures(ctx, ch.ID)
+		ch.Spellcasting = loadSpellcasting(ctx, ch.ID)
+		ch.Spells = loadSpells(ctx, ch.ID)
+		ch.Inventory = loadInventory(ctx, ch.ID)
+		ch.Currency = loadCurrency(ctx, ch.ID)
+		ch.Classes = loadCharClasses(ctx, ch.ID)
 		computeMods(ch)
 
 		c.JSON(http.StatusOK, SharedCharacterView{Character: *ch, OwnerName: ownerName})

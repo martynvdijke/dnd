@@ -7,9 +7,15 @@ import (
 	"path/filepath"
 
 	_ "github.com/mattn/go-sqlite3"
+
+	"entgo.io/ent/dialect"
+	entsql "entgo.io/ent/dialect/sql"
+
+	"villum/ent"
 )
 
 var DB *sql.DB
+var Client *ent.Client
 
 func Init(dbPath string) error {
 	dir := filepath.Dir(dbPath)
@@ -37,10 +43,17 @@ func Init(dbPath string) error {
 		return fmt.Errorf("enable fk: %w", err)
 	}
 
+	// Initialize ent client
+	drv := entsql.OpenDB(dialect.SQLite, DB)
+	Client = ent.NewClient(ent.Driver(drv))
+
 	return Migrate()
 }
 
 func Close() {
+	if Client != nil {
+		Client.Close()
+	}
 	if DB != nil {
 		DB.Close()
 	}

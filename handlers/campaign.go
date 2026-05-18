@@ -1,14 +1,33 @@
 package handlers
 
 import (
-	"database/sql"
 	"net/http"
 	"strconv"
-	"strings"
+	"time"
 
+	"entgo.io/ent/dialect/sql"
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
+	"villum/ent"
+	"villum/ent/campaign"
+	"villum/ent/campaigncalendarevent"
+	"villum/ent/campaignmember"
+	"villum/ent/campaigntimelineevent"
+	"villum/ent/campaignwikipage"
+	"villum/ent/character"
+	"villum/ent/characterlocation"
+	"villum/ent/characternpc"
+	"villum/ent/characterspellcasting"
+	"villum/ent/encountertemplate"
+	"villum/ent/faction"
+	"villum/ent/factionreputation"
+	"villum/ent/journalentry"
+	"villum/ent/location"
+	"villum/ent/npc"
+	"villum/ent/quest"
+	"villum/ent/session"
+	"villum/ent/user"
 	"villum/models"
 )
 
@@ -30,16 +49,30 @@ type CampaignGroup struct {
 
 func ListLocations(c *gin.Context) {
 	userID, _ := c.Get("user_id")
-	rows, err := db.DB.Query("SELECT id,user_id,name,type,description,parent_id,latitude,longitude,created_at FROM locations WHERE user_id=? ORDER BY name", userID)
+	locs, err := db.Client.Location.Query().Where(location.UserID(userID.(int64))).Order(location.ByName()).All(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
 	var out = make([]models.Location, 0)
-	for rows.Next() {
-		var l models.Location
-		rows.Scan(&l.ID, &l.UserID, &l.Name, &l.Type, &l.Description, &l.ParentID, &l.Latitude, &l.Longitude, &l.CreatedAt)
+	for _, loc := range locs {
+		l := models.Location{
+			ID:          loc.ID,
+			UserID:      loc.UserID,
+			Name:        loc.Name,
+			Type:        loc.Type,
+			Description: loc.Description,
+			CreatedAt:   loc.CreatedAt,
+		}
+		if loc.ParentID != 0 {
+			l.ParentID = &loc.ParentID
+		}
+		if loc.Latitude != 0 {
+			l.Latitude = &loc.Latitude
+		}
+		if loc.Longitude != 0 {
+			l.Longitude = &loc.Longitude
+		}
 		out = append(out, l)
 	}
 	c.JSON(http.StatusOK, out)
@@ -52,27 +85,39 @@ func CreateLocation(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	result, err := db.DB.Exec("INSERT INTO locations(user_id,name,type,description,parent_id,latitude,longitude) VALUES(?,?,?,?,?,?,?)",
-		userID, l.Name, l.Type, l.Description, l.ParentID, l.Latitude, l.Longitude)
+	create := db.Client.Location.Create().SetUserID(userID.(int64)).SetName(l.Name).SetType(l.Type).SetDescription(l.Description)
+	if l.ParentID != nil {
+		create.SetParentID(*l.ParentID)
+	}
+	if l.Latitude != nil {
+		create.SetLatitude(*l.Latitude)
+	}
+	if l.Longitude != nil {
+		create.SetLongitude(*l.Longitude)
+	}
+	result, err := create.Save(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	id, _ := result.LastInsertId()
-	c.JSON(http.StatusCreated, gin.H{"id": id})
+	c.JSON(http.StatusCreated, gin.H{"id": result.ID})
 }
 
 func UpdateLocation(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
-	var ownerID int64
-	err := db.DB.QueryRow("SELECT user_id FROM locations WHERE id=?", id).Scan(&ownerID)
+
+	loc, err := db.Client.Location.Get(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "location not found"})
+		if ent.IsNotFound(err) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "location not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if role != "admin" && ownerID != userID {
+	if role != "admin" && loc.UserID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -81,8 +126,17 @@ func UpdateLocation(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	db.DB.Exec("UPDATE locations SET name=?,type=?,description=?,parent_id=?,latitude=?,longitude=? WHERE id=?",
-		l.Name, l.Type, l.Description, l.ParentID, l.Latitude, l.Longitude, id)
+	update := db.Client.Location.UpdateOneID(id).SetName(l.Name).SetType(l.Type).SetDescription(l.Description)
+	if l.ParentID != nil {
+		update.SetParentID(*l.ParentID)
+	}
+	if l.Latitude != nil {
+		update.SetLatitude(*l.Latitude)
+	}
+	if l.Longitude != nil {
+		update.SetLongitude(*l.Longitude)
+	}
+	update.Save(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -90,17 +144,21 @@ func DeleteLocation(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
-	var ownerID int64
-	err := db.DB.QueryRow("SELECT user_id FROM locations WHERE id=?", id).Scan(&ownerID)
+
+	loc, err := db.Client.Location.Get(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "location not found"})
+		if ent.IsNotFound(err) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "location not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if role != "admin" && ownerID != userID {
+	if role != "admin" && loc.UserID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-	db.DB.Exec("DELETE FROM locations WHERE id=?", id)
+	db.Client.Location.DeleteOneID(id).Exec(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -111,8 +169,13 @@ func LinkLocation(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	_, err := db.DB.Exec("INSERT OR REPLACE INTO character_locations(character_id,location_id,relationship,notes) VALUES(?,?,?,?)",
-		charID, cl.LocationID, cl.Relationship, cl.Notes)
+	_, err := db.Client.CharacterLocation.Create().
+		SetCharacterID(charID).
+		SetLocationID(cl.LocationID).
+		SetRelationship(cl.Relationship).
+		SetNotes(cl.Notes).
+		OnConflict(sql.ResolveWithNewValues()).
+		ID(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -122,32 +185,30 @@ func LinkLocation(c *gin.Context) {
 
 func UnlinkLocation(c *gin.Context) {
 	linkID, _ := strconv.ParseInt(c.Param("lid"), 10, 64)
-	var charID int64
-	err := db.DB.QueryRow("SELECT character_id FROM character_locations WHERE id=?", linkID).Scan(&charID)
+	cl, err := db.Client.CharacterLocation.Get(c.Request.Context(), linkID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "link not found"})
 		return
 	}
-	if !checkCharacterAccess(c, charID) {
+	if !checkCharacterAccess(c, cl.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-	db.DB.Exec("DELETE FROM character_locations WHERE id=?", linkID)
+	db.Client.CharacterLocation.DeleteOneID(linkID).Exec(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 func GetCharacterLocations(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	rows, err := db.DB.Query(`
-		SELECT cl.id, cl.character_id, cl.location_id, cl.relationship, cl.notes,
-			l.name, l.type, l.description
-		FROM character_locations cl JOIN locations l ON cl.location_id = l.id
-		WHERE cl.character_id=? ORDER BY cl.relationship`, charID)
+	cls, err := db.Client.CharacterLocation.Query().
+		Where(characterlocation.CharacterID(charID)).
+		WithLocation().
+		Order(ent.Asc(characterlocation.FieldRelationship)).
+		All(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
 	type LocLink struct {
 		models.CharacterLocation
 		LocationName string `json:"location_name"`
@@ -155,11 +216,20 @@ func GetCharacterLocations(c *gin.Context) {
 		Description  string `json:"description"`
 	}
 	var out = make([]LocLink, 0)
-	for rows.Next() {
-		var ll LocLink
-		rows.Scan(&ll.ID, &ll.CharacterID, &ll.LocationID, &ll.Relationship, &ll.Notes,
-			&ll.LocationName, &ll.LocationType, &ll.Description)
-		out = append(out, ll)
+	for _, cl := range cls {
+		loc := cl.Edges.Location
+		out = append(out, LocLink{
+			CharacterLocation: models.CharacterLocation{
+				ID:           cl.ID,
+				CharacterID:  cl.CharacterID,
+				LocationID:   cl.LocationID,
+				Relationship: cl.Relationship,
+				Notes:        cl.Notes,
+			},
+			LocationName: loc.Name,
+			LocationType: loc.Type,
+			Description:  loc.Description,
+		})
 	}
 	c.JSON(http.StatusOK, out)
 }
@@ -168,18 +238,32 @@ func GetCharacterLocations(c *gin.Context) {
 
 func ListNPCs(c *gin.Context) {
 	userID, _ := c.Get("user_id")
-	rows, err := db.DB.Query("SELECT id,user_id,name,race,class,description,notes,str,dex,con,int,wis,cha,hp_max,hp_current,is_alive,created_at FROM npcs WHERE user_id=? ORDER BY name", userID)
+	npcs, err := db.Client.NPC.Query().Where(npc.UserID(userID.(int64))).Order(npc.ByName()).All(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
 	var out = make([]models.NPC, 0)
-	for rows.Next() {
-		var n models.NPC
-		rows.Scan(&n.ID, &n.UserID, &n.Name, &n.Race, &n.Class, &n.Description, &n.Notes,
-			&n.Str, &n.Dex, &n.Con, &n.Int, &n.Wis, &n.Cha, &n.HPMax, &n.HPCurrent, &n.IsAlive, &n.CreatedAt)
-		out = append(out, n)
+	for _, n := range npcs {
+		out = append(out, models.NPC{
+			ID:          n.ID,
+			UserID:      n.UserID,
+			Name:        n.Name,
+			Race:        n.Race,
+			Class:       n.Class,
+			Description: n.Description,
+			Notes:       n.Notes,
+			Str:         n.Str,
+			Dex:         n.Dex,
+			Con:         n.Con,
+			Int:         n.Int,
+			Wis:         n.Wis,
+			Cha:         n.Cha,
+			HPMax:       n.HpMax,
+			HPCurrent:   n.HpCurrent,
+			IsAlive:     n.IsAlive,
+			CreatedAt:   n.CreatedAt,
+		})
 	}
 	c.JSON(http.StatusOK, out)
 }
@@ -191,28 +275,45 @@ func CreateNPC(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	result, err := db.DB.Exec("INSERT INTO npcs(user_id,name,race,class,description,notes,str,dex,con,int,wis,cha,hp_max,hp_current,is_alive) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-		userID, n.Name, n.Race, n.Class, n.Description, n.Notes,
-		n.Str, n.Dex, n.Con, n.Int, n.Wis, n.Cha, n.HPMax, n.HPCurrent, n.IsAlive)
+	result, err := db.Client.NPC.Create().
+		SetUserID(userID.(int64)).
+		SetName(n.Name).
+		SetRace(n.Race).
+		SetClass(n.Class).
+		SetDescription(n.Description).
+		SetNotes(n.Notes).
+		SetStr(n.Str).
+		SetDex(n.Dex).
+		SetCon(n.Con).
+		SetInt(n.Int).
+		SetWis(n.Wis).
+		SetCha(n.Cha).
+		SetHpMax(n.HPMax).
+		SetHpCurrent(n.HPCurrent).
+		SetIsAlive(n.IsAlive).
+		Save(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	id, _ := result.LastInsertId()
-	c.JSON(http.StatusCreated, gin.H{"id": id})
+	c.JSON(http.StatusCreated, gin.H{"id": result.ID})
 }
 
 func UpdateNPC(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
-	var ownerID int64
-	err := db.DB.QueryRow("SELECT user_id FROM npcs WHERE id=?", id).Scan(&ownerID)
+
+	npcEnt, err := db.Client.NPC.Get(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "NPC not found"})
+		if ent.IsNotFound(err) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "NPC not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if role != "admin" && ownerID != userID {
+	if role != "admin" && npcEnt.UserID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -221,9 +322,22 @@ func UpdateNPC(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	db.DB.Exec("UPDATE npcs SET name=?,race=?,class=?,description=?,notes=?,str=?,dex=?,con=?,int=?,wis=?,cha=?,hp_max=?,hp_current=?,is_alive=? WHERE id=?",
-		n.Name, n.Race, n.Class, n.Description, n.Notes,
-		n.Str, n.Dex, n.Con, n.Int, n.Wis, n.Cha, n.HPMax, n.HPCurrent, n.IsAlive, id)
+	db.Client.NPC.UpdateOneID(id).
+		SetName(n.Name).
+		SetRace(n.Race).
+		SetClass(n.Class).
+		SetDescription(n.Description).
+		SetNotes(n.Notes).
+		SetStr(n.Str).
+		SetDex(n.Dex).
+		SetCon(n.Con).
+		SetInt(n.Int).
+		SetWis(n.Wis).
+		SetCha(n.Cha).
+		SetHpMax(n.HPMax).
+		SetHpCurrent(n.HPCurrent).
+		SetIsAlive(n.IsAlive).
+		Save(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -231,17 +345,21 @@ func DeleteNPC(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
-	var ownerID int64
-	err := db.DB.QueryRow("SELECT user_id FROM npcs WHERE id=?", id).Scan(&ownerID)
+
+	npcEnt, err := db.Client.NPC.Get(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "NPC not found"})
+		if ent.IsNotFound(err) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "NPC not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if role != "admin" && ownerID != userID {
+	if role != "admin" && npcEnt.UserID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-	db.DB.Exec("DELETE FROM npcs WHERE id=?", id)
+	db.Client.NPC.DeleteOneID(id).Exec(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -252,8 +370,13 @@ func LinkNPC(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	_, err := db.DB.Exec("INSERT OR REPLACE INTO character_npcs(character_id,npc_id,relationship,notes) VALUES(?,?,?,?)",
-		charID, cn.NPCID, cn.Relationship, cn.Notes)
+	_, err := db.Client.CharacterNPC.Create().
+		SetCharacterID(charID).
+		SetNpcID(cn.NPCID).
+		SetRelationship(cn.Relationship).
+		SetNotes(cn.Notes).
+		OnConflict(sql.ResolveWithNewValues()).
+		ID(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -263,33 +386,30 @@ func LinkNPC(c *gin.Context) {
 
 func UnlinkNPC(c *gin.Context) {
 	linkID, _ := strconv.ParseInt(c.Param("nid"), 10, 64)
-	var charID int64
-	err := db.DB.QueryRow("SELECT character_id FROM character_npcs WHERE id=?", linkID).Scan(&charID)
+	cn, err := db.Client.CharacterNPC.Get(c.Request.Context(), linkID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "link not found"})
 		return
 	}
-	if !checkCharacterAccess(c, charID) {
+	if !checkCharacterAccess(c, cn.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-	db.DB.Exec("DELETE FROM character_npcs WHERE id=?", linkID)
+	db.Client.CharacterNPC.DeleteOneID(linkID).Exec(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 func GetCharacterNPCs(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	rows, err := db.DB.Query(`
-		SELECT cn.id, cn.character_id, cn.npc_id, cn.relationship, cn.notes,
-			cn.interaction_count, cn.last_interacted,
-			n.name, n.race, n.class, n.hp_max, n.hp_current, n.is_alive
-		FROM character_npcs cn JOIN npcs n ON cn.npc_id = n.id
-		WHERE cn.character_id=? ORDER BY cn.interaction_count DESC`, charID)
+	cnpcs, err := db.Client.CharacterNPC.Query().
+		Where(characternpc.CharacterID(charID)).
+		WithNpc().
+		Order(ent.Desc(characternpc.FieldInteractionCount)).
+		All(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
 	type NPCLink struct {
 		models.CharacterNPC
 		NPCName  string `json:"npc_name"`
@@ -300,12 +420,25 @@ func GetCharacterNPCs(c *gin.Context) {
 		NPCAlive bool   `json:"npc_is_alive"`
 	}
 	var out = make([]NPCLink, 0)
-	for rows.Next() {
-		var nl NPCLink
-		rows.Scan(&nl.ID, &nl.CharacterID, &nl.NPCID, &nl.Relationship, &nl.Notes,
-			&nl.InteractionCount, &nl.LastInteracted,
-			&nl.NPCName, &nl.NPCRace, &nl.NPCClass, &nl.NPHPMax, &nl.NPHPCurr, &nl.NPCAlive)
-		out = append(out, nl)
+	for _, cn := range cnpcs {
+		npcEnt := cn.Edges.Npc
+		out = append(out, NPCLink{
+			CharacterNPC: models.CharacterNPC{
+				ID:               cn.ID,
+				CharacterID:      cn.CharacterID,
+				NPCID:            cn.NpcID,
+				Relationship:     cn.Relationship,
+				Notes:            cn.Notes,
+				InteractionCount: cn.InteractionCount,
+				LastInteracted:   cn.LastInteracted,
+			},
+			NPCName:  npcEnt.Name,
+			NPCRace:  npcEnt.Race,
+			NPCClass: npcEnt.Class,
+			NPHPMax:  npcEnt.HpMax,
+			NPHPCurr: npcEnt.HpCurrent,
+			NPCAlive: npcEnt.IsAlive,
+		})
 	}
 	c.JSON(http.StatusOK, out)
 }
@@ -314,17 +447,27 @@ func GetCharacterNPCs(c *gin.Context) {
 
 func ListSessions(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	rows, err := db.DB.Query("SELECT id,character_id,session_date,title,notes,xp_earned,gold_earned,important_events,created_at FROM sessions WHERE character_id=? ORDER BY session_date DESC", charID)
+	sessions, err := db.Client.Session.Query().
+		Where(session.CharacterID(charID)).
+		Order(ent.Desc(session.FieldSessionDate)).
+		All(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
 	var out = make([]models.Session, 0)
-	for rows.Next() {
-		var s models.Session
-		rows.Scan(&s.ID, &s.CharacterID, &s.SessionDate, &s.Title, &s.Notes, &s.XPEarned, &s.GoldEarned, &s.ImportantEvents, &s.CreatedAt)
-		out = append(out, s)
+	for _, s := range sessions {
+		out = append(out, models.Session{
+			ID:              s.ID,
+			CharacterID:     s.CharacterID,
+			SessionDate:     s.SessionDate,
+			Title:           s.Title,
+			Notes:           s.Notes,
+			XPEarned:        s.XpEarned,
+			GoldEarned:      s.GoldEarned,
+			ImportantEvents: s.ImportantEvents,
+			CreatedAt:       s.CreatedAt,
+		})
 	}
 	c.JSON(http.StatusOK, out)
 }
@@ -336,25 +479,30 @@ func CreateSession(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	result, err := db.DB.Exec("INSERT INTO sessions(character_id,session_date,title,notes,xp_earned,gold_earned,important_events) VALUES(?,?,?,?,?,?,?)",
-		charID, s.SessionDate, s.Title, s.Notes, s.XPEarned, s.GoldEarned, s.ImportantEvents)
+	result, err := db.Client.Session.Create().
+		SetCharacterID(charID).
+		SetSessionDate(s.SessionDate).
+		SetTitle(s.Title).
+		SetNotes(s.Notes).
+		SetXpEarned(s.XPEarned).
+		SetGoldEarned(s.GoldEarned).
+		SetImportantEvents(s.ImportantEvents).
+		Save(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	id, _ := result.LastInsertId()
-	c.JSON(http.StatusCreated, gin.H{"id": id})
+	c.JSON(http.StatusCreated, gin.H{"id": result.ID})
 }
 
 func UpdateSession(c *gin.Context) {
 	sid, _ := strconv.ParseInt(c.Param("sid"), 10, 64)
-	var charID int64
-	err := db.DB.QueryRow("SELECT character_id FROM sessions WHERE id=?", sid).Scan(&charID)
+	sess, err := db.Client.Session.Get(c.Request.Context(), sid)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "session not found"})
 		return
 	}
-	if !checkCharacterAccess(c, charID) {
+	if !checkCharacterAccess(c, sess.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -363,24 +511,29 @@ func UpdateSession(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	db.DB.Exec("UPDATE sessions SET session_date=?,title=?,notes=?,xp_earned=?,gold_earned=?,important_events=? WHERE id=?",
-		s.SessionDate, s.Title, s.Notes, s.XPEarned, s.GoldEarned, s.ImportantEvents, sid)
+	db.Client.Session.UpdateOneID(sid).
+		SetSessionDate(s.SessionDate).
+		SetTitle(s.Title).
+		SetNotes(s.Notes).
+		SetXpEarned(s.XPEarned).
+		SetGoldEarned(s.GoldEarned).
+		SetImportantEvents(s.ImportantEvents).
+		Save(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 func DeleteSession(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("sid"), 10, 64)
-	var charID int64
-	err := db.DB.QueryRow("SELECT character_id FROM sessions WHERE id=?", id).Scan(&charID)
+	sess, err := db.Client.Session.Get(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "session not found"})
 		return
 	}
-	if !checkCharacterAccess(c, charID) {
+	if !checkCharacterAccess(c, sess.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-	db.DB.Exec("DELETE FROM sessions WHERE id=?", id)
+	db.Client.Session.DeleteOneID(id).Exec(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -388,17 +541,28 @@ func DeleteSession(c *gin.Context) {
 
 func ListQuests(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	rows, err := db.DB.Query("SELECT id,character_id,name,description,status,objectives,rewards,notes,created_at,updated_at FROM quests WHERE character_id=? ORDER BY status,name", charID)
+	quests, err := db.Client.Quest.Query().
+		Where(quest.CharacterID(charID)).
+		Order(quest.ByStatus(), quest.ByName()).
+		All(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
 	var out = make([]models.Quest, 0)
-	for rows.Next() {
-		var q models.Quest
-		rows.Scan(&q.ID, &q.CharacterID, &q.Name, &q.Description, &q.Status, &q.Objectives, &q.Rewards, &q.Notes, &q.CreatedAt, &q.UpdatedAt)
-		out = append(out, q)
+	for _, q := range quests {
+		out = append(out, models.Quest{
+			ID:          q.ID,
+			CharacterID: q.CharacterID,
+			Name:        q.Name,
+			Description: q.Description,
+			Status:      q.Status,
+			Objectives:  q.Objectives,
+			Rewards:     q.Rewards,
+			Notes:       q.Notes,
+			CreatedAt:   q.CreatedAt,
+			UpdatedAt:   q.UpdatedAt,
+		})
 	}
 	c.JSON(http.StatusOK, out)
 }
@@ -413,14 +577,20 @@ func CreateQuest(c *gin.Context) {
 	if q.Status == "" {
 		q.Status = "active"
 	}
-	result, err := db.DB.Exec("INSERT INTO quests(character_id,name,description,status,objectives,rewards,notes) VALUES(?,?,?,?,?,?,?)",
-		charID, q.Name, q.Description, q.Status, q.Objectives, q.Rewards, q.Notes)
+	result, err := db.Client.Quest.Create().
+		SetCharacterID(charID).
+		SetName(q.Name).
+		SetDescription(q.Description).
+		SetStatus(q.Status).
+		SetObjectives(q.Objectives).
+		SetRewards(q.Rewards).
+		SetNotes(q.Notes).
+		Save(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	id, _ := result.LastInsertId()
-	c.JSON(http.StatusCreated, gin.H{"id": id})
+	c.JSON(http.StatusCreated, gin.H{"id": result.ID})
 }
 
 func UpdateQuest(c *gin.Context) {
@@ -430,24 +600,30 @@ func UpdateQuest(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	db.DB.Exec("UPDATE quests SET name=?,description=?,status=?,objectives=?,rewards=?,notes=?,updated_at=datetime('now') WHERE id=?",
-		q.Name, q.Description, q.Status, q.Objectives, q.Rewards, q.Notes, qid)
+	db.Client.Quest.UpdateOneID(qid).
+		SetName(q.Name).
+		SetDescription(q.Description).
+		SetStatus(q.Status).
+		SetObjectives(q.Objectives).
+		SetRewards(q.Rewards).
+		SetNotes(q.Notes).
+		SetUpdatedAt(time.Now().Format("2006-01-02 15:04:05")).
+		Save(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 func DeleteQuest(c *gin.Context) {
 	qid, _ := strconv.ParseInt(c.Param("qid"), 10, 64)
-	var charID int64
-	err := db.DB.QueryRow("SELECT character_id FROM quests WHERE id=?", qid).Scan(&charID)
+	q, err := db.Client.Quest.Get(c.Request.Context(), qid)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "quest not found"})
 		return
 	}
-	if !checkCharacterAccess(c, charID) {
+	if !checkCharacterAccess(c, q.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-	db.DB.Exec("DELETE FROM quests WHERE id=?", qid)
+	db.Client.Quest.DeleteOneID(qid).Exec(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -455,17 +631,24 @@ func DeleteQuest(c *gin.Context) {
 
 func ListJournal(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	rows, err := db.DB.Query("SELECT id,character_id,title,entry,entry_date,created_at FROM journal WHERE character_id=? ORDER BY entry_date DESC", charID)
+	entries, err := db.Client.JournalEntry.Query().
+		Where(journalentry.CharacterID(charID)).
+		Order(ent.Desc(journalentry.FieldEntryDate)).
+		All(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
 	var out = make([]models.JournalEntry, 0)
-	for rows.Next() {
-		var j models.JournalEntry
-		rows.Scan(&j.ID, &j.CharacterID, &j.Title, &j.Entry, &j.EntryDate, &j.CreatedAt)
-		out = append(out, j)
+	for _, j := range entries {
+		out = append(out, models.JournalEntry{
+			ID:          j.ID,
+			CharacterID: j.CharacterID,
+			Title:       j.Title,
+			Entry:       j.Entry,
+			EntryDate:   j.EntryDate,
+			CreatedAt:   j.CreatedAt,
+		})
 	}
 	c.JSON(http.StatusOK, out)
 }
@@ -477,25 +660,27 @@ func CreateJournalEntry(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	result, err := db.DB.Exec("INSERT INTO journal(character_id,title,entry,entry_date) VALUES(?,?,?,?)",
-		charID, j.Title, j.Entry, j.EntryDate)
+	result, err := db.Client.JournalEntry.Create().
+		SetCharacterID(charID).
+		SetTitle(j.Title).
+		SetEntry(j.Entry).
+		SetEntryDate(j.EntryDate).
+		Save(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	id, _ := result.LastInsertId()
-	c.JSON(http.StatusCreated, gin.H{"id": id})
+	c.JSON(http.StatusCreated, gin.H{"id": result.ID})
 }
 
 func UpdateJournalEntry(c *gin.Context) {
 	jid, _ := strconv.ParseInt(c.Param("jid"), 10, 64)
-	var charID int64
-	err := db.DB.QueryRow("SELECT character_id FROM journal WHERE id=?", jid).Scan(&charID)
+	je, err := db.Client.JournalEntry.Get(c.Request.Context(), jid)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "journal entry not found"})
 		return
 	}
-	if !checkCharacterAccess(c, charID) {
+	if !checkCharacterAccess(c, je.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -504,23 +689,26 @@ func UpdateJournalEntry(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	db.DB.Exec("UPDATE journal SET title=?,entry=?,entry_date=? WHERE id=?", j.Title, j.Entry, j.EntryDate, jid)
+	db.Client.JournalEntry.UpdateOneID(jid).
+		SetTitle(j.Title).
+		SetEntry(j.Entry).
+		SetEntryDate(j.EntryDate).
+		Save(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 func DeleteJournalEntry(c *gin.Context) {
 	jid, _ := strconv.ParseInt(c.Param("jid"), 10, 64)
-	var charID int64
-	err := db.DB.QueryRow("SELECT character_id FROM journal WHERE id=?", jid).Scan(&charID)
+	je, err := db.Client.JournalEntry.Get(c.Request.Context(), jid)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "journal entry not found"})
 		return
 	}
-	if !checkCharacterAccess(c, charID) {
+	if !checkCharacterAccess(c, je.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-	db.DB.Exec("DELETE FROM journal WHERE id=?", jid)
+	db.Client.JournalEntry.DeleteOneID(jid).Exec(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -530,108 +718,88 @@ func GetGraphData(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	gd := models.GraphData{Nodes: []models.GraphNode{}, Edges: []models.GraphEdge{}}
 
-	// Character node
-	charName, race, class := "", "", ""
-	db.DB.QueryRow("SELECT name,race,class FROM characters WHERE id=?", charID).Scan(&charName, &race, &class)
-	gd.Nodes = append(gd.Nodes, models.GraphNode{
-		ID: "char_" + strconv.FormatInt(charID, 10), Label: charName + " (" + race + " " + class + ")",
-		Group: "character", Color: "#8b0000", Size: 30, CharID: charID,
-	})
-
-	// Location nodes + edges
-	lrows, _ := db.DB.Query(`
-		SELECT cl.id, cl.location_id, cl.relationship, l.name, l.type
-		FROM character_locations cl JOIN locations l ON cl.location_id = l.id
-		WHERE cl.character_id=?`, charID)
-	if lrows != nil {
-		for lrows.Next() {
-			var linkID, locID int64
-			var rel, locName, locType string
-			lrows.Scan(&linkID, &locID, &rel, &locName, &locType)
-			nid := "loc_" + strconv.FormatInt(locID, 10)
-			gd.Nodes = append(gd.Nodes, models.GraphNode{
-				ID: nid, Label: locName + " (" + locType + ")", Group: "location", Color: "#b8963e", Size: 20,
-			})
-			gd.Edges = append(gd.Edges, models.GraphEdge{
-				From: "char_" + strconv.FormatInt(charID, 10), To: nid, Label: rel, Width: 2, Dashes: false,
-			})
-		}
-		lrows.Close()
+	char, err := db.Client.Character.Get(c.Request.Context(), charID)
+	if err == nil {
+		gd.Nodes = append(gd.Nodes, models.GraphNode{
+			ID: "char_" + strconv.FormatInt(charID, 10), Label: char.Name + " (" + char.Race + " " + char.Class + ")",
+			Group: "character", Color: "#8b0000", Size: 30, CharID: charID,
+		})
 	}
 
-	// NPC nodes + edges
-	nrows, _ := db.DB.Query(`
-		SELECT cn.npc_id, cn.relationship, cn.interaction_count, n.name
-		FROM character_npcs cn JOIN npcs n ON cn.npc_id = n.id
-		WHERE cn.character_id=?`, charID)
-	if nrows != nil {
-		for nrows.Next() {
-			var npcID, intCount int64
-			var rel, npcName string
-			nrows.Scan(&npcID, &rel, &intCount, &npcName)
-			nid := "npc_" + strconv.FormatInt(npcID, 10)
-			edgeWidth := 1
-			if intCount > 5 {
-				edgeWidth = 5
-			} else if intCount > 2 {
-				edgeWidth = 3
-			} else if intCount > 0 {
-				edgeWidth = 2
-			}
-			gd.Nodes = append(gd.Nodes, models.GraphNode{
-				ID: nid, Label: npcName + " (NPC)", Group: "npc", Color: "#2c6b2f", Size: 20,
-			})
-			gd.Edges = append(gd.Edges, models.GraphEdge{
-				From: "char_" + strconv.FormatInt(charID, 10), To: nid, Label: rel, Width: edgeWidth, Dashes: false,
-			})
-		}
-		nrows.Close()
+	cls, _ := db.Client.CharacterLocation.Query().
+		Where(characterlocation.CharacterID(charID)).
+		WithLocation().
+		All(c.Request.Context())
+	for _, cl := range cls {
+		loc := cl.Edges.Location
+		nid := "loc_" + strconv.FormatInt(loc.ID, 10)
+		gd.Nodes = append(gd.Nodes, models.GraphNode{
+			ID: nid, Label: loc.Name + " (" + loc.Type + ")", Group: "location", Color: "#b8963e", Size: 20,
+		})
+		gd.Edges = append(gd.Edges, models.GraphEdge{
+			From: "char_" + strconv.FormatInt(charID, 10), To: nid, Label: cl.Relationship, Width: 2, Dashes: false,
+		})
 	}
 
-	// Quest nodes + edges
-	qrows, _ := db.DB.Query("SELECT id, name, status FROM quests WHERE character_id=?", charID)
-	if qrows != nil {
-		for qrows.Next() {
-			var qid int64
-			var qname, status string
-			qrows.Scan(&qid, &qname, &status)
-			nid := "quest_" + strconv.FormatInt(qid, 10)
-			qcolor := "#b8963e"
-			if status == "complete" {
-				qcolor = "#2d6a2d"
-			} else if status == "failed" || status == "abandoned" {
-				qcolor = "#666"
-			}
-			gd.Nodes = append(gd.Nodes, models.GraphNode{
-				ID: nid, Label: qname + " [" + status + "]", Group: "quest", Color: qcolor, Size: 18,
-			})
-			gd.Edges = append(gd.Edges, models.GraphEdge{
-				From: "char_" + strconv.FormatInt(charID, 10), To: nid, Label: status, Width: 1, Dashes: status == "available",
-			})
+	cnpcs, _ := db.Client.CharacterNPC.Query().
+		Where(characternpc.CharacterID(charID)).
+		WithNpc().
+		All(c.Request.Context())
+	for _, cn := range cnpcs {
+		npcEnt := cn.Edges.Npc
+		nid := "npc_" + strconv.FormatInt(npcEnt.ID, 10)
+		edgeWidth := 1
+		if cn.InteractionCount > 5 {
+			edgeWidth = 5
+		} else if cn.InteractionCount > 2 {
+			edgeWidth = 3
+		} else if cn.InteractionCount > 0 {
+			edgeWidth = 2
 		}
-		qrows.Close()
+		gd.Nodes = append(gd.Nodes, models.GraphNode{
+			ID: nid, Label: npcEnt.Name + " (NPC)", Group: "npc", Color: "#2c6b2f", Size: 20,
+		})
+		gd.Edges = append(gd.Edges, models.GraphEdge{
+			From: "char_" + strconv.FormatInt(charID, 10), To: nid, Label: cn.Relationship, Width: edgeWidth, Dashes: false,
+		})
 	}
 
-	// Session nodes
-	srows, _ := db.DB.Query("SELECT id, title, session_date FROM sessions WHERE character_id=? ORDER BY session_date DESC LIMIT 10", charID)
-	if srows != nil {
-		for srows.Next() {
-			var sid int64
-			var title, sdate string
-			srows.Scan(&sid, &title, &sdate)
-			nid := "session_" + strconv.FormatInt(sid, 10)
-			slabel := title
-			if slabel == "" {
-				slabel = "Session " + sdate
-			}
-			gd.Nodes = append(gd.Nodes, models.GraphNode{
-				ID: nid, Label: slabel, Group: "session", Color: "#5c3a2a", Size: 15,
-			})
-			gd.Edges = append(gd.Edges, models.GraphEdge{
-				From: "char_" + strconv.FormatInt(charID, 10), To: nid, Label: "played", Width: 1, Dashes: false,
-			})
+	quests, _ := db.Client.Quest.Query().
+		Where(quest.CharacterID(charID)).
+		All(c.Request.Context())
+	for _, q := range quests {
+		nid := "quest_" + strconv.FormatInt(q.ID, 10)
+		qcolor := "#b8963e"
+		if q.Status == "complete" {
+			qcolor = "#2d6a2d"
+		} else if q.Status == "failed" || q.Status == "abandoned" {
+			qcolor = "#666"
 		}
-		srows.Close()
+		gd.Nodes = append(gd.Nodes, models.GraphNode{
+			ID: nid, Label: q.Name + " [" + q.Status + "]", Group: "quest", Color: qcolor, Size: 18,
+		})
+		gd.Edges = append(gd.Edges, models.GraphEdge{
+			From: "char_" + strconv.FormatInt(charID, 10), To: nid, Label: q.Status, Width: 1, Dashes: q.Status == "available",
+		})
+	}
+
+	sessions, _ := db.Client.Session.Query().
+		Where(session.CharacterID(charID)).
+		Order(ent.Desc(session.FieldSessionDate)).
+		Limit(10).
+		All(c.Request.Context())
+	for _, s := range sessions {
+		nid := "session_" + strconv.FormatInt(s.ID, 10)
+		slabel := s.Title
+		if slabel == "" {
+			slabel = "Session " + s.SessionDate
+		}
+		gd.Nodes = append(gd.Nodes, models.GraphNode{
+			ID: nid, Label: slabel, Group: "session", Color: "#5c3a2a", Size: 15,
+		})
+		gd.Edges = append(gd.Edges, models.GraphEdge{
+			From: "char_" + strconv.FormatInt(charID, 10), To: nid, Label: "played", Width: 1, Dashes: false,
+		})
 	}
 
 	c.JSON(http.StatusOK, gd)
@@ -645,390 +813,298 @@ func GetCampaignGraphData(c *gin.Context) {
 	gd := models.GraphData{Nodes: []models.GraphNode{}, Edges: []models.GraphEdge{}}
 	nodeSet := map[string]bool{}
 
-	// ─── Campaign node ───
-	var campName string
-	db.DB.QueryRow("SELECT name FROM campaigns WHERE id=?", campaignID).Scan(&campName)
-	gd.Nodes = append(gd.Nodes, models.GraphNode{
-		ID: "camp_" + strconv.FormatInt(campaignID, 10), Label: campName,
-		Group: "campaign", Color: "#8b0000", Size: 35,
-	})
+	camp, _ := db.Client.Campaign.Get(c.Request.Context(), campaignID)
+	if camp != nil {
+		gd.Nodes = append(gd.Nodes, models.GraphNode{
+			ID: "camp_" + strconv.FormatInt(campaignID, 10), Label: camp.Name,
+			Group: "campaign", Color: "#8b0000", Size: 35,
+		})
+	}
 	nodeSet["camp_"+strconv.FormatInt(campaignID, 10)] = true
 
-	// ─── Check user access ───
 	if role != "admin" {
-		var isMember bool
-		db.DB.QueryRow("SELECT COUNT(*)>0 FROM campaign_members WHERE campaign_id=? AND user_id=?", campaignID, userID).Scan(&isMember)
-		var isOwner bool
-		db.DB.QueryRow("SELECT COUNT(*)>0 FROM campaigns WHERE id=? AND user_id=?", campaignID, userID).Scan(&isOwner)
-		if !isMember && !isOwner {
+		exists, _ := db.Client.CampaignMember.Query().
+			Where(campaignmember.And(campaignmember.CampaignID(campaignID), campaignmember.UserID(userID.(int64)))).
+			Exist(c.Request.Context())
+		isOwner, _ := db.Client.Campaign.Query().
+			Where(campaign.And(campaign.ID(campaignID), campaign.UserID(userID.(int64)))).
+			Exist(c.Request.Context())
+		if !exists && !isOwner {
 			c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 			return
 		}
 	}
 
-	// ─── Characters ───
-	charRows, _ := db.DB.Query("SELECT id, name, race, class, level FROM characters WHERE campaign_id=?", campaignID)
-	if charRows != nil {
-		for charRows.Next() {
-			var cid int64
-			var cname, race, cls string
-			var lvl int
-			charRows.Scan(&cid, &cname, &race, &cls, &lvl)
-			nid := "char_" + strconv.FormatInt(cid, 10)
-			if !nodeSet[nid] {
-				gd.Nodes = append(gd.Nodes, models.GraphNode{
-					ID: nid, Label: cname + " (Lvl " + strconv.Itoa(lvl) + " " + race + " " + cls + ")",
-					Group: "character", Color: "#8b0000", Size: 28, CharID: cid,
-				})
-				nodeSet[nid] = true
-			}
-			gd.Edges = append(gd.Edges, models.GraphEdge{
-				From: "camp_" + strconv.FormatInt(campaignID, 10), To: nid, Label: "member", Width: 2, Dashes: false,
+	chars, _ := db.Client.Character.Query().
+		Where(character.CampaignID(campaignID)).
+		All(c.Request.Context())
+	for _, ch := range chars {
+		nid := "char_" + strconv.FormatInt(ch.ID, 10)
+		if !nodeSet[nid] {
+			gd.Nodes = append(gd.Nodes, models.GraphNode{
+				ID: nid, Label: ch.Name + " (Lvl " + strconv.Itoa(ch.Level) + " " + ch.Race + " " + ch.Class + ")",
+				Group: "character", Color: "#8b0000", Size: 28, CharID: ch.ID,
 			})
+			nodeSet[nid] = true
 		}
-		charRows.Close()
+		gd.Edges = append(gd.Edges, models.GraphEdge{
+			From: "camp_" + strconv.FormatInt(campaignID, 10), To: nid, Label: "member", Width: 2, Dashes: false,
+		})
 	}
 
-	// ─── Wiki pages ───
-	wikiRows, _ := db.DB.Query("SELECT id, title, parent_id FROM campaign_wiki_pages WHERE campaign_id=? ORDER BY sort_order, title", campaignID)
+	wikiPages, _ := db.Client.CampaignWikiPage.Query().
+		Where(campaignwikipage.CampaignID(campaignID)).
+		Order(campaignwikipage.BySortOrder(), campaignwikipage.ByTitle()).
+		All(c.Request.Context())
 	wikiMap := map[int64]string{}
-	if wikiRows != nil {
-		for wikiRows.Next() {
-			var wid int64
-			var wtitle string
-			var parentID sql.NullInt64
-			wikiRows.Scan(&wid, &wtitle, &parentID)
-			nid := "wiki_" + strconv.FormatInt(wid, 10)
-			if !nodeSet[nid] {
-				gd.Nodes = append(gd.Nodes, models.GraphNode{
-					ID: nid, Label: wtitle, Group: "wiki", Color: "#b8963e", Size: 18,
-				})
-				nodeSet[nid] = true
-			}
-			wikiMap[wid] = nid
-			gd.Edges = append(gd.Edges, models.GraphEdge{
-				From: "camp_" + strconv.FormatInt(campaignID, 10), To: nid, Label: "wiki", Width: 1, Dashes: false,
+	for _, wp := range wikiPages {
+		nid := "wiki_" + strconv.FormatInt(wp.ID, 10)
+		if !nodeSet[nid] {
+			gd.Nodes = append(gd.Nodes, models.GraphNode{
+				ID: nid, Label: wp.Title, Group: "wiki", Color: "#b8963e", Size: 18,
 			})
-			if parentID.Valid {
-				if pnid, ok := wikiMap[parentID.Int64]; ok {
-					gd.Edges = append(gd.Edges, models.GraphEdge{
-						From: pnid, To: nid, Label: "child", Width: 1, Dashes: true,
-					})
-				}
-			}
+			nodeSet[nid] = true
 		}
-		wikiRows.Close()
-	}
-
-	// ─── Locations linked to campaign characters ───
-	locRows, _ := db.DB.Query(`
-		SELECT DISTINCT cl.location_id, cl.relationship, l.name, l.type
-		FROM character_locations cl
-		JOIN locations l ON cl.location_id = l.id
-		JOIN characters c ON cl.character_id = c.id
-		WHERE c.campaign_id=?`, campaignID)
-	if locRows != nil {
-		for locRows.Next() {
-			var locID int64
-			var rel, locName, locType string
-			locRows.Scan(&locID, &rel, &locName, &locType)
-			nid := "loc_" + strconv.FormatInt(locID, 10)
-			if !nodeSet[nid] {
-				gd.Nodes = append(gd.Nodes, models.GraphNode{
-					ID: nid, Label: locName + " (" + locType + ")", Group: "location", Color: "#b8963e", Size: 20,
-				})
-				nodeSet[nid] = true
-			}
-		}
-		locRows.Close()
-	}
-
-	// ─── Character-Location edges ───
-	clRows, _ := db.DB.Query(`
-		SELECT cl.character_id, cl.location_id, cl.relationship
-		FROM character_locations cl
-		JOIN characters c ON cl.character_id = c.id
-		WHERE c.campaign_id=?`, campaignID)
-	if clRows != nil {
-		for clRows.Next() {
-			var charID, locID int64
-			var rel string
-			clRows.Scan(&charID, &locID, &rel)
-			from := "char_" + strconv.FormatInt(charID, 10)
-			to := "loc_" + strconv.FormatInt(locID, 10)
-			if nodeSet[from] && nodeSet[to] {
+		wikiMap[wp.ID] = nid
+		gd.Edges = append(gd.Edges, models.GraphEdge{
+			From: "camp_" + strconv.FormatInt(campaignID, 10), To: nid, Label: "wiki", Width: 1, Dashes: false,
+		})
+		if wp.ParentID != 0 {
+			if pnid, ok := wikiMap[wp.ParentID]; ok {
 				gd.Edges = append(gd.Edges, models.GraphEdge{
-					From: from, To: to, Label: rel, Width: 2, Dashes: false,
+					From: pnid, To: nid, Label: "child", Width: 1, Dashes: true,
 				})
 			}
 		}
-		clRows.Close()
 	}
 
-	// ─── NPCs linked to campaign characters ───
-	npcRows, _ := db.DB.Query(`
-		SELECT DISTINCT cn.npc_id, n.name, n.race, n.class
-		FROM character_npcs cn
-		JOIN npcs n ON cn.npc_id = n.id
-		JOIN characters c ON cn.character_id = c.id
-		WHERE c.campaign_id=?`, campaignID)
-	if npcRows != nil {
-		for npcRows.Next() {
-			var npcID int64
-			var npcName, npcRace, npcClass string
-			npcRows.Scan(&npcID, &npcName, &npcRace, &npcClass)
-			nid := "npc_" + strconv.FormatInt(npcID, 10)
-			if !nodeSet[nid] {
-				label := npcName + " (NPC)"
-				if npcRace != "" || npcClass != "" {
-					label = npcName + " (" + npcRace + " " + npcClass + ")"
-				}
-				gd.Nodes = append(gd.Nodes, models.GraphNode{
-					ID: nid, Label: label, Group: "npc", Color: "#2d6a2d", Size: 20,
-				})
-				nodeSet[nid] = true
-			}
+	cls, _ := db.Client.CharacterLocation.Query().
+		Where(characterlocation.HasCharacterWith(character.CampaignID(campaignID))).
+		WithLocation().
+		All(c.Request.Context())
+	for _, cl := range cls {
+		loc := cl.Edges.Location
+		nid := "loc_" + strconv.FormatInt(loc.ID, 10)
+		if !nodeSet[nid] {
+			gd.Nodes = append(gd.Nodes, models.GraphNode{
+				ID: nid, Label: loc.Name + " (" + loc.Type + ")", Group: "location", Color: "#b8963e", Size: 20,
+			})
+			nodeSet[nid] = true
 		}
-		npcRows.Close()
 	}
 
-	// ─── Character-NPC edges ───
-	cnRows, _ := db.DB.Query(`
-		SELECT cn.character_id, cn.npc_id, cn.relationship, cn.interaction_count
-		FROM character_npcs cn
-		JOIN characters c ON cn.character_id = c.id
-		WHERE c.campaign_id=?`, campaignID)
-	if cnRows != nil {
-		for cnRows.Next() {
-			var charID, npcID, intCount int64
-			var rel string
-			cnRows.Scan(&charID, &npcID, &rel, &intCount)
-			from := "char_" + strconv.FormatInt(charID, 10)
-			to := "npc_" + strconv.FormatInt(npcID, 10)
-			edgeWidth := 1
-			if intCount > 5 {
-				edgeWidth = 5
-			} else if intCount > 2 {
-				edgeWidth = 3
-			} else if intCount > 0 {
-				edgeWidth = 2
-			}
-			if nodeSet[from] && nodeSet[to] {
-				gd.Edges = append(gd.Edges, models.GraphEdge{
-					From: from, To: to, Label: rel, Width: edgeWidth, Dashes: false,
-				})
-			}
+	for _, cl := range cls {
+		from := "char_" + strconv.FormatInt(cl.CharacterID, 10)
+		to := "loc_" + strconv.FormatInt(cl.LocationID, 10)
+		if nodeSet[from] && nodeSet[to] {
+			gd.Edges = append(gd.Edges, models.GraphEdge{
+				From: from, To: to, Label: cl.Relationship, Width: 2, Dashes: false,
+			})
 		}
-		cnRows.Close()
 	}
 
-	// ─── Quests ───
-	questRows, _ := db.DB.Query(`
-		SELECT q.id, q.character_id, q.name, q.status
-		FROM quests q
-		JOIN characters c ON q.character_id = c.id
-		WHERE c.campaign_id=?`, campaignID)
-	if questRows != nil {
-		for questRows.Next() {
-			var qid, charID int64
-			var qname, status string
-			questRows.Scan(&qid, &charID, &qname, &status)
-			nid := "quest_" + strconv.FormatInt(qid, 10)
-			if !nodeSet[nid] {
-				qcolor := "#b8963e"
-				if status == "complete" {
-					qcolor = "#2d6a2d"
-				} else if status == "failed" || status == "abandoned" {
-					qcolor = "#666"
-				}
-				gd.Nodes = append(gd.Nodes, models.GraphNode{
-					ID: nid, Label: qname + " [" + status + "]", Group: "quest", Color: qcolor, Size: 18,
-				})
-				nodeSet[nid] = true
+	cnpcs, _ := db.Client.CharacterNPC.Query().
+		Where(characternpc.HasCharacterWith(character.CampaignID(campaignID))).
+		WithNpc().
+		All(c.Request.Context())
+	for _, cn := range cnpcs {
+		npcEnt := cn.Edges.Npc
+		nid := "npc_" + strconv.FormatInt(npcEnt.ID, 10)
+		if !nodeSet[nid] {
+			label := npcEnt.Name + " (NPC)"
+			if npcEnt.Race != "" || npcEnt.Class != "" {
+				label = npcEnt.Name + " (" + npcEnt.Race + " " + npcEnt.Class + ")"
 			}
-			from := "char_" + strconv.FormatInt(charID, 10)
-			if nodeSet[from] {
-				gd.Edges = append(gd.Edges, models.GraphEdge{
-					From: from, To: nid, Label: status, Width: 1, Dashes: status == "available",
-				})
-			}
+			gd.Nodes = append(gd.Nodes, models.GraphNode{
+				ID: nid, Label: label, Group: "npc", Color: "#2d6a2d", Size: 20,
+			})
+			nodeSet[nid] = true
 		}
-		questRows.Close()
 	}
 
-	// ─── Sessions ───
-	sessRows, _ := db.DB.Query(`
-		SELECT s.id, s.character_id, s.title, s.session_date
-		FROM sessions s
-		JOIN characters c ON s.character_id = c.id
-		WHERE c.campaign_id=? ORDER BY s.session_date DESC LIMIT 30`, campaignID)
-	if sessRows != nil {
-		for sessRows.Next() {
-			var sid, charID int64
-			var title, sdate string
-			sessRows.Scan(&sid, &charID, &title, &sdate)
-			nid := "session_" + strconv.FormatInt(sid, 10)
-			if !nodeSet[nid] {
-				slabel := title
-				if slabel == "" {
-					slabel = "Session " + sdate
-				}
-				gd.Nodes = append(gd.Nodes, models.GraphNode{
-					ID: nid, Label: slabel, Group: "session", Color: "#5c3a2a", Size: 14,
-				})
-				nodeSet[nid] = true
-			}
-			from := "char_" + strconv.FormatInt(charID, 10)
-			if nodeSet[from] {
-				gd.Edges = append(gd.Edges, models.GraphEdge{
-					From: from, To: nid, Label: "played", Width: 1, Dashes: false,
-				})
-			}
+	for _, cn := range cnpcs {
+		from := "char_" + strconv.FormatInt(cn.CharacterID, 10)
+		to := "npc_" + strconv.FormatInt(cn.NpcID, 10)
+		edgeWidth := 1
+		if cn.InteractionCount > 5 {
+			edgeWidth = 5
+		} else if cn.InteractionCount > 2 {
+			edgeWidth = 3
+		} else if cn.InteractionCount > 0 {
+			edgeWidth = 2
 		}
-		sessRows.Close()
+		if nodeSet[from] && nodeSet[to] {
+			gd.Edges = append(gd.Edges, models.GraphEdge{
+				From: from, To: to, Label: cn.Relationship, Width: edgeWidth, Dashes: false,
+			})
+		}
 	}
 
-	// ─── Factions ───
-	facRows, _ := db.DB.Query("SELECT id, name, type FROM factions WHERE campaign_id=? OR campaign_id IS NULL", campaignID)
+	quests, _ := db.Client.Quest.Query().
+		Where(quest.HasCharacterWith(character.CampaignID(campaignID))).
+		All(c.Request.Context())
+	for _, q := range quests {
+		nid := "quest_" + strconv.FormatInt(q.ID, 10)
+		if !nodeSet[nid] {
+			qcolor := "#b8963e"
+			if q.Status == "complete" {
+				qcolor = "#2d6a2d"
+			} else if q.Status == "failed" || q.Status == "abandoned" {
+				qcolor = "#666"
+			}
+			gd.Nodes = append(gd.Nodes, models.GraphNode{
+				ID: nid, Label: q.Name + " [" + q.Status + "]", Group: "quest", Color: qcolor, Size: 18,
+			})
+			nodeSet[nid] = true
+		}
+		from := "char_" + strconv.FormatInt(q.CharacterID, 10)
+		if nodeSet[from] {
+			gd.Edges = append(gd.Edges, models.GraphEdge{
+				From: from, To: nid, Label: q.Status, Width: 1, Dashes: q.Status == "available",
+			})
+		}
+	}
+
+	sessions, _ := db.Client.Session.Query().
+		Where(session.HasCharacterWith(character.CampaignID(campaignID))).
+		Order(ent.Desc(session.FieldSessionDate)).
+		Limit(30).
+		All(c.Request.Context())
+	for _, s := range sessions {
+		nid := "session_" + strconv.FormatInt(s.ID, 10)
+		if !nodeSet[nid] {
+			slabel := s.Title
+			if slabel == "" {
+				slabel = "Session " + s.SessionDate
+			}
+			gd.Nodes = append(gd.Nodes, models.GraphNode{
+				ID: nid, Label: slabel, Group: "session", Color: "#5c3a2a", Size: 14,
+			})
+			nodeSet[nid] = true
+		}
+		from := "char_" + strconv.FormatInt(s.CharacterID, 10)
+		if nodeSet[from] {
+			gd.Edges = append(gd.Edges, models.GraphEdge{
+				From: from, To: nid, Label: "played", Width: 1, Dashes: false,
+			})
+		}
+	}
+
+	factions, _ := db.Client.Faction.Query().
+		Where(faction.CampaignIDIn(campaignID, 0)).
+		All(c.Request.Context())
 	factionIDs := []int64{}
-	if facRows != nil {
-		for facRows.Next() {
-			var fid int64
-			var fname, ftype string
-			facRows.Scan(&fid, &fname, &ftype)
-			nid := "faction_" + strconv.FormatInt(fid, 10)
-			if !nodeSet[nid] {
-				gd.Nodes = append(gd.Nodes, models.GraphNode{
-					ID: nid, Label: fname + " (" + ftype + ")", Group: "faction", Color: "#9b59b6", Size: 20,
-				})
-				nodeSet[nid] = true
-			}
-			factionIDs = append(factionIDs, fid)
+	for _, f := range factions {
+		nid := "faction_" + strconv.FormatInt(f.ID, 10)
+		if !nodeSet[nid] {
+			gd.Nodes = append(gd.Nodes, models.GraphNode{
+				ID: nid, Label: f.Name + " (" + f.Type + ")", Group: "faction", Color: "#9b59b6", Size: 20,
+			})
+			nodeSet[nid] = true
 		}
-		facRows.Close()
+		factionIDs = append(factionIDs, f.ID)
 	}
 
-	// ─── Faction-Character edges ───
 	for _, fid := range factionIDs {
-		frRows, _ := db.DB.Query(`
-			SELECT fr.character_id, fr.standing
-			FROM faction_reputation fr
-			JOIN characters c ON fr.character_id = c.id
-			WHERE fr.faction_id=? AND c.campaign_id=?`, fid, campaignID)
-		if frRows != nil {
-			for frRows.Next() {
-				var charID int64
-				var standing int
-				frRows.Scan(&charID, &standing)
-				from := "char_" + strconv.FormatInt(charID, 10)
-				to := "faction_" + strconv.FormatInt(fid, 10)
-				relLabel := "neutral"
-				if standing >= 50 {
-					relLabel = "revered"
-				} else if standing >= 25 {
-					relLabel = "allied"
-				} else if standing <= -50 {
-					relLabel = "hostile"
-				} else if standing <= -25 {
-					relLabel = "unfriendly"
-				}
-				if nodeSet[from] && nodeSet[to] {
-					gd.Edges = append(gd.Edges, models.GraphEdge{
-						From: from, To: to, Label: relLabel + " (" + strconv.Itoa(standing) + ")", Width: 2, Dashes: false,
-					})
-				}
+		frs, _ := db.Client.FactionReputation.Query().
+			Where(factionreputation.And(
+				factionreputation.FactionID(fid),
+				factionreputation.HasCharacterWith(character.CampaignID(campaignID)),
+			)).
+			All(c.Request.Context())
+		for _, fr := range frs {
+			from := "char_" + strconv.FormatInt(fr.CharacterID, 10)
+			to := "faction_" + strconv.FormatInt(fid, 10)
+			relLabel := "neutral"
+			if fr.Standing >= 50 {
+				relLabel = "revered"
+			} else if fr.Standing >= 25 {
+				relLabel = "allied"
+			} else if fr.Standing <= -50 {
+				relLabel = "hostile"
+			} else if fr.Standing <= -25 {
+				relLabel = "unfriendly"
 			}
-			frRows.Close()
-		}
-	}
-
-	// ─── Encounters ───
-	encRows, _ := db.DB.Query("SELECT id, name, difficulty FROM encounter_templates WHERE campaign_id=?", campaignID)
-	if encRows != nil {
-		for encRows.Next() {
-			var eid int64
-			var ename, diff string
-			encRows.Scan(&eid, &ename, &diff)
-			nid := "encounter_" + strconv.FormatInt(eid, 10)
-			if !nodeSet[nid] {
-				encColor := "#e67e22"
-				if diff == "hard" {
-					encColor = "#c0392b"
-				} else if diff == "deadly" {
-					encColor = "#7b0000"
-				}
-				gd.Nodes = append(gd.Nodes, models.GraphNode{
-					ID: nid, Label: ename + " [" + diff + "]", Group: "encounter", Color: encColor, Size: 18,
-				})
-				nodeSet[nid] = true
-			}
-			gd.Edges = append(gd.Edges, models.GraphEdge{
-				From: "camp_" + strconv.FormatInt(campaignID, 10), To: nid, Label: "encounter", Width: 1, Dashes: false,
-			})
-		}
-		encRows.Close()
-	}
-
-	// ─── Timeline events with entity links ───
-	tlRows, _ := db.DB.Query(`
-		SELECT id, title, event_type, linked_entity_type, linked_entity_id
-		FROM campaign_timeline_events WHERE campaign_id=? AND linked_entity_type != '' AND linked_entity_id IS NOT NULL`, campaignID)
-	if tlRows != nil {
-		for tlRows.Next() {
-			var tlID int64
-			var tlTitle, tlType, linkedType string
-			var linkedID int64
-			tlRows.Scan(&tlID, &tlTitle, &tlType, &linkedType, &linkedID)
-			nid := "timeline_" + strconv.FormatInt(tlID, 10)
-			if !nodeSet[nid] {
-				gd.Nodes = append(gd.Nodes, models.GraphNode{
-					ID: nid, Label: tlTitle + " [" + tlType + "]", Group: "timeline", Color: "#5c3a2a", Size: 14,
-				})
-				nodeSet[nid] = true
-			}
-			var targetNID string
-			switch linkedType {
-			case "character":
-				targetNID = "char_" + strconv.FormatInt(linkedID, 10)
-			case "npc":
-				targetNID = "npc_" + strconv.FormatInt(linkedID, 10)
-			case "location":
-				targetNID = "loc_" + strconv.FormatInt(linkedID, 10)
-			case "wiki":
-				targetNID = "wiki_" + strconv.FormatInt(linkedID, 10)
-			}
-			if targetNID != "" && nodeSet[targetNID] {
+			if nodeSet[from] && nodeSet[to] {
 				gd.Edges = append(gd.Edges, models.GraphEdge{
-					From: targetNID, To: nid, Label: tlType, Width: 1, Dashes: true,
+					From: from, To: to, Label: relLabel + " (" + strconv.Itoa(fr.Standing) + ")", Width: 2, Dashes: false,
 				})
 			}
-			gd.Edges = append(gd.Edges, models.GraphEdge{
-				From: "camp_" + strconv.FormatInt(campaignID, 10), To: nid, Label: "timeline", Width: 1, Dashes: false,
-			})
 		}
-		tlRows.Close()
 	}
 
-	// ─── Calendar events ───
-	calRows, _ := db.DB.Query(`
-		SELECT id, title, event_type FROM campaign_calendar_events WHERE campaign_id=? LIMIT 30`, campaignID)
-	if calRows != nil {
-		for calRows.Next() {
-			var calID int64
-			var calTitle, calType string
-			calRows.Scan(&calID, &calTitle, &calType)
-			nid := "calendar_" + strconv.FormatInt(calID, 10)
-			if !nodeSet[nid] {
-				gd.Nodes = append(gd.Nodes, models.GraphNode{
-					ID: nid, Label: calTitle + " [" + calType + "]", Group: "calendar", Color: "#b8963e", Size: 14,
-				})
-				nodeSet[nid] = true
+	encs, _ := db.Client.EncounterTemplate.Query().
+		Where(encountertemplate.CampaignID(campaignID)).
+		All(c.Request.Context())
+	for _, e := range encs {
+		nid := "encounter_" + strconv.FormatInt(e.ID, 10)
+		if !nodeSet[nid] {
+			encColor := "#e67e22"
+			if e.Difficulty == "hard" {
+				encColor = "#c0392b"
+			} else if e.Difficulty == "deadly" {
+				encColor = "#7b0000"
 			}
+			gd.Nodes = append(gd.Nodes, models.GraphNode{
+				ID: nid, Label: e.Name + " [" + e.Difficulty + "]", Group: "encounter", Color: encColor, Size: 18,
+			})
+			nodeSet[nid] = true
+		}
+		gd.Edges = append(gd.Edges, models.GraphEdge{
+			From: "camp_" + strconv.FormatInt(campaignID, 10), To: nid, Label: "encounter", Width: 1, Dashes: false,
+		})
+	}
+
+	tls, _ := db.Client.CampaignTimelineEvent.Query().
+		Where(campaigntimelineevent.And(
+			campaigntimelineevent.CampaignID(campaignID),
+			campaigntimelineevent.LinkedEntityTypeNEQ(""),
+		)).
+		All(c.Request.Context())
+	for _, tl := range tls {
+		nid := "timeline_" + strconv.FormatInt(tl.ID, 10)
+		if !nodeSet[nid] {
+			gd.Nodes = append(gd.Nodes, models.GraphNode{
+				ID: nid, Label: tl.Title + " [" + tl.EventType + "]", Group: "timeline", Color: "#5c3a2a", Size: 14,
+			})
+			nodeSet[nid] = true
+		}
+		var targetNID string
+		switch tl.LinkedEntityType {
+		case "character":
+			targetNID = "char_" + strconv.FormatInt(tl.LinkedEntityID, 10)
+		case "npc":
+			targetNID = "npc_" + strconv.FormatInt(tl.LinkedEntityID, 10)
+		case "location":
+			targetNID = "loc_" + strconv.FormatInt(tl.LinkedEntityID, 10)
+		case "wiki":
+			targetNID = "wiki_" + strconv.FormatInt(tl.LinkedEntityID, 10)
+		}
+		if targetNID != "" && nodeSet[targetNID] {
 			gd.Edges = append(gd.Edges, models.GraphEdge{
-				From: "camp_" + strconv.FormatInt(campaignID, 10), To: nid, Label: "event", Width: 1, Dashes: false,
+				From: targetNID, To: nid, Label: tl.EventType, Width: 1, Dashes: true,
 			})
 		}
-		calRows.Close()
+		gd.Edges = append(gd.Edges, models.GraphEdge{
+			From: "camp_" + strconv.FormatInt(campaignID, 10), To: nid, Label: "timeline", Width: 1, Dashes: false,
+		})
+	}
+
+	cals, _ := db.Client.CampaignCalendarEvent.Query().
+		Where(campaigncalendarevent.CampaignID(campaignID)).
+		Limit(30).
+		All(c.Request.Context())
+	for _, cal := range cals {
+		nid := "calendar_" + strconv.FormatInt(cal.ID, 10)
+		if !nodeSet[nid] {
+			gd.Nodes = append(gd.Nodes, models.GraphNode{
+				ID: nid, Label: cal.Title + " [" + cal.EventType + "]", Group: "calendar", Color: "#b8963e", Size: 14,
+			})
+			nodeSet[nid] = true
+		}
+		gd.Edges = append(gd.Edges, models.GraphEdge{
+			From: "camp_" + strconv.FormatInt(campaignID, 10), To: nid, Label: "event", Width: 1, Dashes: false,
+		})
 	}
 
 	c.JSON(http.StatusOK, gd)
@@ -1054,134 +1130,112 @@ type PartyMember struct {
 
 func GetPartyView(c *gin.Context) {
 	userID, _ := c.Get("user_id")
+	currentUID := userID.(int64)
 	role, _ := c.Get("role")
+	ctx := c.Request.Context()
 
-	var campaignIDs []int64
-
-	if role == "admin" {
-		// Admins: all campaigns, all users
-		campRows, _ := db.DB.Query("SELECT id FROM campaigns")
-		for campRows.Next() {
-			var cid int64
-			campRows.Scan(&cid)
-			campaignIDs = append(campaignIDs, cid)
-		}
-		campRows.Close()
-	} else {
-		// Get campaigns owned by or where user is a member
-		rows, err := db.DB.Query(`
-			SELECT id FROM campaigns WHERE user_id=?
-			UNION
-			SELECT campaign_id FROM campaign_members WHERE user_id=?
-		`, userID, userID)
-		if err == nil {
-			for rows.Next() {
-				var cid int64
-				rows.Scan(&cid)
-				campaignIDs = append(campaignIDs, cid)
-			}
-			rows.Close()
-		}
-	}
-
-	// Build set of user_ids whose characters to include
-	includeAll := false
-	currentUserID := userID.(int64)
-	userSet := make(map[int64]bool)
-	userSet[currentUserID] = true
-
-	for _, cid := range campaignIDs {
-		// Campaign owner
-		var ownerID int64
-		db.DB.QueryRow("SELECT user_id FROM campaigns WHERE id=?", cid).Scan(&ownerID)
-		userSet[ownerID] = true
-		// Campaign members
-		mrows, _ := db.DB.Query("SELECT user_id FROM campaign_members WHERE campaign_id=?", cid)
-		for mrows.Next() {
-			var uid int64
-			mrows.Scan(&uid)
-			userSet[uid] = true
-		}
-		mrows.Close()
-	}
-
-	if role == "admin" {
-		includeAll = true
-	}
-
-	// Build list of user IDs for IN clause
-	uidList := make([]int64, 0, len(userSet))
-	for uid := range userSet {
-		uidList = append(uidList, uid)
-	}
-
-	// Fetch characters
-	var rows *sql.Rows
+	var camps []*ent.Campaign
 	var err error
-	if includeAll {
-		rows, err = db.DB.Query(`
-			SELECT c.id, c.user_id, COALESCE(u.username, ''), c.name, c.race, c.class,
-				c.level, c.ac, c.hp_max, c.hp_current, c.temp_hp, c.campaign_id
-			FROM characters c
-			LEFT JOIN users u ON u.id = c.user_id
-			ORDER BY c.campaign_id, c.name`)
-	} else if len(uidList) == 0 {
-		c.JSON(http.StatusOK, []CampaignGroup{})
-		return
+
+	if role == "admin" {
+		camps, err = db.Client.Campaign.Query().WithUser().All(ctx)
 	} else {
-		placeholders := make([]string, len(uidList))
-		args := make([]interface{}, len(uidList))
-		for i, uid := range uidList {
-			placeholders[i] = "?"
-			args[i] = uid
-		}
-		rows, err = db.DB.Query(`
-			SELECT c.id, c.user_id, COALESCE(u.username, ''), c.name, c.race, c.class,
-				c.level, c.ac, c.hp_max, c.hp_current, c.temp_hp, c.campaign_id
-			FROM characters c
-			LEFT JOIN users u ON u.id = c.user_id
-			WHERE c.user_id IN (`+strings.Join(placeholders, ",")+`)
-			ORDER BY c.campaign_id, c.name`, args...)
+		camps, err = db.Client.Campaign.Query().
+			Where(campaign.Or(
+				campaign.UserID(currentUID),
+				campaign.HasMembersWith(campaignmember.UserID(currentUID)),
+			)).
+			WithUser().
+			All(ctx)
 	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
+
+	includeAll := role == "admin"
+	userSet := make(map[int64]bool)
+	userSet[currentUID] = true
+	for _, ca := range camps {
+		userSet[ca.UserID] = true
+		if !includeAll {
+			members, _ := db.Client.CampaignMember.Query().
+				Where(campaignmember.CampaignID(ca.ID)).
+				All(ctx)
+			for _, m := range members {
+				userSet[m.UserID] = true
+			}
+		}
+	}
+
+	uidList := make([]int64, 0, len(userSet))
+	for uid := range userSet {
+		uidList = append(uidList, uid)
+	}
+
+	var chars []*ent.Character
+	if includeAll {
+		chars, err = db.Client.Character.Query().WithUser().Order(character.ByCampaignID(), character.ByName()).All(ctx)
+	} else if len(uidList) == 0 {
+		c.JSON(http.StatusOK, []CampaignGroup{})
+		return
+	} else {
+		chars, err = db.Client.Character.Query().
+			Where(character.UserIDIn(uidList...)).
+			WithUser().
+			Order(character.ByCampaignID(), character.ByName()).
+			All(ctx)
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
 	campaigns := make(map[int64][]PartyMember)
 	var uncategorized []PartyMember
 
-	for rows.Next() {
-		var pm PartyMember
-		var cid *int64
-		rows.Scan(&pm.ID, &pm.UserID, &pm.OwnerName, &pm.Name, &pm.Race, &pm.Class,
-			&pm.Level, &pm.AC, &pm.HPMax, &pm.HPCurrent, &pm.TempHP, &cid)
-		pm.CampaignID = cid
-		pm.Status = "alive"
+	for _, ch := range chars {
+		ownerName := ""
+		if ch.Edges.User != nil {
+			ownerName = ch.Edges.User.Username
+		}
+		pm := PartyMember{
+			ID:        ch.ID,
+			UserID:    ch.UserID,
+			OwnerName: ownerName,
+			Name:      ch.Name,
+			Race:      ch.Race,
+			Class:     ch.Class,
+			Level:     ch.Level,
+			AC:        ch.Ac,
+			HPMax:     ch.HpMax,
+			HPCurrent: ch.HpCurrent,
+			TempHP:    ch.TempHp,
+			Status:    "alive",
+		}
 		if pm.HPCurrent <= 0 {
 			pm.Status = "down"
 		} else if float64(pm.HPCurrent)/float64(pm.HPMax) < 0.25 {
 			pm.Status = "injured"
 		}
-		if cid != nil {
-			campaigns[*cid] = append(campaigns[*cid], pm)
+		if ch.CampaignID != 0 {
+			cid := ch.CampaignID
+			pm.CampaignID = &cid
+			campaigns[ch.CampaignID] = append(campaigns[ch.CampaignID], pm)
 		} else {
 			uncategorized = append(uncategorized, pm)
 		}
 	}
 
-	// Get campaign names and owner info
 	campNames := make(map[int64]string)
 	campPartyNames := make(map[int64]string)
 	campOwners := make(map[int64]string)
-	for cid := range campaigns {
-		var name, partyName, ownerName string
-		var ownerID int64
-		db.DB.QueryRow("SELECT c.name, c.party_name, u.username, c.user_id FROM campaigns c JOIN users u ON u.id=c.user_id WHERE c.id=?", cid).Scan(&name, &partyName, &ownerName, &ownerID)
-		campNames[cid] = name
-		campPartyNames[cid] = partyName
-		campOwners[cid] = ownerName
+	for _, ca := range camps {
+		campNames[ca.ID] = ca.Name
+		campPartyNames[ca.ID] = ca.PartyName
+		if ca.Edges.User != nil {
+			campOwners[ca.ID] = ca.Edges.User.Username
+		}
 	}
 
 	var groups []CampaignGroup
@@ -1199,17 +1253,19 @@ func GetPartyView(c *gin.Context) {
 
 func LogNPCInteraction(c *gin.Context) {
 	nid, _ := strconv.ParseInt(c.Param("nid"), 10, 64)
-	var charID int64
-	err := db.DB.QueryRow("SELECT character_id FROM character_npcs WHERE id=?", nid).Scan(&charID)
+	cn, err := db.Client.CharacterNPC.Get(c.Request.Context(), nid)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "NPC link not found"})
 		return
 	}
-	if !checkCharacterAccess(c, charID) {
+	if !checkCharacterAccess(c, cn.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-	db.DB.Exec("UPDATE character_npcs SET interaction_count = interaction_count + 1, last_interacted = datetime('now') WHERE id=?", nid)
+	db.Client.CharacterNPC.UpdateOneID(nid).
+		AddInteractionCount(1).
+		SetLastInteracted(time.Now().Format("2006-01-02 15:04:05")).
+		Save(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -1218,29 +1274,46 @@ func LogNPCInteraction(c *gin.Context) {
 func ListCampaigns(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	currentUID := userID.(int64)
-	rows, err := db.DB.Query(`
-		SELECT c.id,c.user_id,c.name,c.party_name,c.description,c.dm_notes,c.created_at,
-			COALESCE(cm.role, 'dm') as my_role
-		FROM campaigns c
-		LEFT JOIN campaign_members cm ON cm.campaign_id = c.id AND cm.user_id=?
-		WHERE c.user_id=? OR cm.user_id=?
-		ORDER BY c.name
-	`, currentUID, currentUID, currentUID)
+	ctx := c.Request.Context()
+
+	camps, err := db.Client.Campaign.Query().
+		Where(campaign.Or(
+			campaign.UserID(currentUID),
+			campaign.HasMembersWith(campaignmember.UserID(currentUID)),
+		)).
+		Order(campaign.ByName()).
+		All(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
 	type CampaignWithRole struct {
 		models.Campaign
 		MyRole string `json:"my_role"`
 	}
 	var out = make([]CampaignWithRole, 0)
-	for rows.Next() {
-		var ca models.Campaign
-		var myRole string
-		rows.Scan(&ca.ID, &ca.UserID, &ca.Name, &ca.PartyName, &ca.Description, &ca.DMNotes, &ca.CreatedAt, &myRole)
-		out = append(out, CampaignWithRole{Campaign: ca, MyRole: myRole})
+	for _, ca := range camps {
+		myRole := "dm"
+		if ca.UserID != currentUID {
+			m, err := db.Client.CampaignMember.Query().
+				Where(campaignmember.And(campaignmember.CampaignID(ca.ID), campaignmember.UserID(currentUID))).
+				Only(ctx)
+			if err == nil {
+				myRole = m.Role
+			}
+		}
+		out = append(out, CampaignWithRole{
+			Campaign: models.Campaign{
+				ID:          ca.ID,
+				UserID:      ca.UserID,
+				Name:        ca.Name,
+				PartyName:   ca.PartyName,
+				Description: ca.Description,
+				DMNotes:     ca.DmNotes,
+				CreatedAt:   ca.CreatedAt,
+			},
+			MyRole: myRole,
+		})
 	}
 	c.JSON(http.StatusOK, out)
 }
@@ -1252,38 +1325,56 @@ func CreateCampaign(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	result, err := db.DB.Exec("INSERT INTO campaigns(user_id,name,party_name,description,dm_notes) VALUES(?,?,?,?,?)",
-		userID, ca.Name, ca.PartyName, ca.Description, ca.DMNotes)
+	result, err := db.Client.Campaign.Create().
+		SetUserID(userID.(int64)).
+		SetName(ca.Name).
+		SetPartyName(ca.PartyName).
+		SetDescription(ca.Description).
+		SetDmNotes(ca.DMNotes).
+		Save(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	id, _ := result.LastInsertId()
-	// Auto-add owner as DM member
-	db.DB.Exec("INSERT OR IGNORE INTO campaign_members(campaign_id,user_id,role) VALUES(?,?,?)", id, userID, "dm")
-	c.JSON(http.StatusCreated, gin.H{"id": id, "name": ca.Name})
+	db.Client.CampaignMember.Create().
+		SetCampaignID(result.ID).
+		SetUserID(userID.(int64)).
+		SetRole("dm").
+		OnConflict(sql.ResolveWithIgnore()).
+		Exec(c.Request.Context())
+	c.JSON(http.StatusCreated, gin.H{"id": result.ID, "name": ca.Name})
 }
 
 func UpdateCampaign(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
-	var ownerID int64
-	err := db.DB.QueryRow("SELECT user_id FROM campaigns WHERE id=?", id).Scan(&ownerID)
+	ctx := c.Request.Context()
+
+	ca, err := db.Client.Campaign.Get(ctx, id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
+		if ent.IsNotFound(err) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if role != "admin" && ownerID != userID {
+	if role != "admin" && ca.UserID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-	var ca models.Campaign
-	if err := c.ShouldBindJSON(&ca); err != nil {
+	var camp models.Campaign
+	if err := c.ShouldBindJSON(&camp); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	db.DB.Exec("UPDATE campaigns SET name=?,party_name=?,description=?,dm_notes=? WHERE id=?", ca.Name, ca.PartyName, ca.Description, ca.DMNotes, id)
+	db.Client.Campaign.UpdateOneID(id).
+		SetName(camp.Name).
+		SetPartyName(camp.PartyName).
+		SetDescription(camp.Description).
+		SetDmNotes(camp.DMNotes).
+		Save(ctx)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -1291,18 +1382,23 @@ func DeleteCampaign(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
-	var ownerID int64
-	err := db.DB.QueryRow("SELECT user_id FROM campaigns WHERE id=?", id).Scan(&ownerID)
+	ctx := c.Request.Context()
+
+	ca, err := db.Client.Campaign.Get(ctx, id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
+		if ent.IsNotFound(err) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if role != "admin" && ownerID != userID {
+	if role != "admin" && ca.UserID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-	db.DB.Exec("UPDATE characters SET campaign_id=NULL WHERE campaign_id=?", id)
-	db.DB.Exec("DELETE FROM campaigns WHERE id=?", id)
+	db.Client.Character.Update().Where(character.CampaignID(id)).SetCampaignID(0).Save(ctx)
+	db.Client.Campaign.DeleteOneID(id).Exec(ctx)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -1310,20 +1406,25 @@ func DeleteCampaign(c *gin.Context) {
 
 func ListCampaignMembers(c *gin.Context) {
 	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	rows, err := db.DB.Query(`
-		SELECT cm.user_id, COALESCE(u.username, ''), cm.role FROM campaign_members cm
-		JOIN users u ON u.id = cm.user_id
-		WHERE cm.campaign_id = ? ORDER BY u.username`, campaignID)
+	members, err := db.Client.CampaignMember.Query().
+		Where(campaignmember.CampaignID(campaignID)).
+		WithUser().
+		All(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
 	var out []CampaignMemberResponse
-	for rows.Next() {
-		var m CampaignMemberResponse
-		rows.Scan(&m.UserID, &m.Username, &m.Role)
-		out = append(out, m)
+	for _, m := range members {
+		username := ""
+		if m.Edges.User != nil {
+			username = m.Edges.User.Username
+		}
+		out = append(out, CampaignMemberResponse{
+			UserID:   m.UserID,
+			Username: username,
+			Role:     m.Role,
+		})
 	}
 	c.JSON(http.StatusOK, out)
 }
@@ -1332,14 +1433,18 @@ func AddCampaignMember(c *gin.Context) {
 	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
+	ctx := c.Request.Context()
 
-	var ownerID int64
-	err := db.DB.QueryRow("SELECT user_id FROM campaigns WHERE id=?", campaignID).Scan(&ownerID)
+	ca, err := db.Client.Campaign.Get(ctx, campaignID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
+		if ent.IsNotFound(err) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if role != "admin" && ownerID != userID {
+	if role != "admin" && ca.UserID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "only the campaign owner can add members"})
 		return
 	}
@@ -1352,14 +1457,22 @@ func AddCampaignMember(c *gin.Context) {
 		return
 	}
 
-	var targetID int64
-	err = db.DB.QueryRow("SELECT id FROM users WHERE username=?", req.Username).Scan(&targetID)
+	targetUser, err := db.Client.User.Query().Where(user.Username(req.Username)).Only(ctx)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		if ent.IsNotFound(err) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	_, err = db.DB.Exec("INSERT OR IGNORE INTO campaign_members(campaign_id,user_id,role) VALUES(?,?,'player')", campaignID, targetID)
+	_, err = db.Client.CampaignMember.Create().
+		SetCampaignID(campaignID).
+		SetUserID(targetUser.ID).
+		SetRole("player").
+		OnConflict(sql.ResolveWithIgnore()).
+		ID(ctx)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -1372,14 +1485,18 @@ func SetCampaignMemberRole(c *gin.Context) {
 	targetID, _ := strconv.ParseInt(c.Param("userId"), 10, 64)
 	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
+	ctx := c.Request.Context()
 
-	var ownerID int64
-	err := db.DB.QueryRow("SELECT user_id FROM campaigns WHERE id=?", campaignID).Scan(&ownerID)
+	ca, err := db.Client.Campaign.Get(ctx, campaignID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
+		if ent.IsNotFound(err) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if role != "admin" && ownerID != userID {
+	if role != "admin" && ca.UserID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "only the campaign owner can change roles"})
 		return
 	}
@@ -1392,7 +1509,10 @@ func SetCampaignMemberRole(c *gin.Context) {
 		return
 	}
 
-	db.DB.Exec("UPDATE campaign_members SET role=? WHERE campaign_id=? AND user_id=?", req.Role, campaignID, targetID)
+	db.Client.CampaignMember.Update().
+		Where(campaignmember.And(campaignmember.CampaignID(campaignID), campaignmember.UserID(targetID))).
+		SetRole(req.Role).
+		Save(ctx)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -1401,19 +1521,25 @@ func RemoveCampaignMember(c *gin.Context) {
 	targetID, _ := strconv.ParseInt(c.Param("userId"), 10, 64)
 	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
+	ctx := c.Request.Context()
 
-	var ownerID int64
-	err := db.DB.QueryRow("SELECT user_id FROM campaigns WHERE id=?", campaignID).Scan(&ownerID)
+	ca, err := db.Client.Campaign.Get(ctx, campaignID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
+		if ent.IsNotFound(err) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if role != "admin" && ownerID != userID {
+	if role != "admin" && ca.UserID != userID {
 		c.JSON(http.StatusForbidden, gin.H{"error": "only the campaign owner can remove members"})
 		return
 	}
 
-	db.DB.Exec("DELETE FROM campaign_members WHERE campaign_id=? AND user_id=?", campaignID, targetID)
+	db.Client.CampaignMember.Delete().
+		Where(campaignmember.And(campaignmember.CampaignID(campaignID), campaignmember.UserID(targetID))).
+		Exec(ctx)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -1425,21 +1551,22 @@ func SearchUsers(c *gin.Context) {
 		c.JSON(http.StatusOK, []struct{}{})
 		return
 	}
-	rows, err := db.DB.Query("SELECT id, username FROM users WHERE username LIKE ? ORDER BY username LIMIT 20", "%"+q+"%")
+	users, err := db.Client.User.Query().
+		Where(user.UsernameContainsFold(q)).
+		Order(user.ByUsername()).
+		Limit(20).
+		All(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
 	type UserResult struct {
 		ID       int64  `json:"id"`
 		Username string `json:"username"`
 	}
 	var out []UserResult
-	for rows.Next() {
-		var u UserResult
-		rows.Scan(&u.ID, &u.Username)
-		out = append(out, u)
+	for _, u := range users {
+		out = append(out, UserResult{ID: u.ID, Username: u.Username})
 	}
 	c.JSON(http.StatusOK, out)
 }
@@ -1448,6 +1575,8 @@ func SearchUsers(c *gin.Context) {
 
 func DoRest(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	ctx := c.Request.Context()
+
 	var req struct {
 		RestType     string `json:"rest_type"`
 		HitDiceCount int    `json:"hit_dice_count"`
@@ -1461,10 +1590,7 @@ func DoRest(c *gin.Context) {
 		return
 	}
 
-	var hpMax, hpCur, con, level, hdCurrent int
-	var hitDice string
-	err := db.DB.QueryRow("SELECT hp_max, hp_current, hit_dice, hit_dice_current, con, level FROM characters WHERE id=?", charID).
-		Scan(&hpMax, &hpCur, &hitDice, &hdCurrent, &con, &level)
+	char, err := db.Client.Character.Get(ctx, charID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
 		return
@@ -1472,45 +1598,56 @@ func DoRest(c *gin.Context) {
 
 	hpHealed := 0
 	if req.RestType == "long" {
-		// Long rest: full heal, recover half max hit dice, reset spell slots/death saves
-		hpHealed = hpMax - hpCur
-		recoveredHD := level / 2
+		hpHealed = char.HpMax - char.HpCurrent
+		recoveredHD := char.Level / 2
 		if recoveredHD < 1 {
 			recoveredHD = 1
 		}
-		newHD := hdCurrent + recoveredHD
-		if newHD > level {
-			newHD = level
+		newHD := char.HitDiceCurrent + recoveredHD
+		if newHD > char.Level {
+			newHD = char.Level
 		}
-		db.DB.Exec("UPDATE characters SET hp_current=hp_max, hit_dice_current=?, death_saves_successes=0, death_saves_failures=0, concentrating_on='' WHERE id=?", newHD, charID)
-		db.DB.Exec(`UPDATE character_spellcasting SET
-			slots_1_used=0, slots_2_used=0, slots_3_used=0, slots_4_used=0,
-			slots_5_used=0, slots_6_used=0, slots_7_used=0, slots_8_used=0, slots_9_used=0
-			WHERE character_id=?`, charID)
+		db.Client.Character.UpdateOneID(charID).
+			SetHpCurrent(char.HpMax).
+			SetHitDiceCurrent(newHD).
+			SetDeathSavesSuccesses(0).
+			SetDeathSavesFailures(0).
+			SetConcentratingOn("").
+			Save(ctx)
+		db.Client.CharacterSpellcasting.Update().
+			Where(characterspellcasting.CharacterID(charID)).
+			SetSlots1Used(0).
+			SetSlots2Used(0).
+			SetSlots3Used(0).
+			SetSlots4Used(0).
+			SetSlots5Used(0).
+			SetSlots6Used(0).
+			SetSlots7Used(0).
+			SetSlots8Used(0).
+			SetSlots9Used(0).
+			Save(ctx)
 	} else {
-		// Short rest: spend individual hit dice
 		count := req.HitDiceCount
 		if count < 0 {
 			count = 0
 		}
-		if count > hdCurrent {
-			count = hdCurrent
+		if count > char.HitDiceCurrent {
+			count = char.HitDiceCurrent
 		}
-		if count == 0 && hpMax > 0 {
-			// Default to spending 1 hit die if none specified
+		if count == 0 && char.HpMax > 0 {
 			count = 1
-			if count > hdCurrent {
-				count = hdCurrent
+			if count > char.HitDiceCurrent {
+				count = char.HitDiceCurrent
 			}
 		}
 		hitDieSize := 10
-		if len(hitDice) > 1 {
-			dieSizeStr := hitDice[2:]
+		if len(char.HitDice) > 1 {
+			dieSizeStr := char.HitDice[2:]
 			if d, err2 := strconv.Atoi(dieSizeStr); err2 == nil {
 				hitDieSize = d
 			}
 		}
-		conMod := abilityMod(con)
+		conMod := abilityMod(char.Con)
 		for i := 0; i < count; i++ {
 			roll, _ := randInt(1, hitDieSize)
 			heal := roll + conMod
@@ -1519,16 +1656,23 @@ func DoRest(c *gin.Context) {
 			}
 			hpHealed += heal
 		}
-		newHp := hpCur + hpHealed
-		if newHp > hpMax {
-			newHp = hpMax
+		newHp := char.HpCurrent + hpHealed
+		if newHp > char.HpMax {
+			newHp = char.HpMax
 		}
-		hpHealed = newHp - hpCur
-		db.DB.Exec("UPDATE characters SET hp_current=?, hit_dice_current=hit_dice_current-? WHERE id=?", newHp, count, charID)
+		hpHealed = newHp - char.HpCurrent
+		db.Client.Character.UpdateOneID(charID).
+			SetHpCurrent(newHp).
+			SetHitDiceCurrent(char.HitDiceCurrent - count).
+			Save(ctx)
 	}
 
-	db.DB.Exec("INSERT INTO rest_log(character_id,rest_type,hp_healed,notes) VALUES(?,?,?,?)",
-		charID, req.RestType, hpHealed, "")
+	db.Client.RestLog.Create().
+		SetCharacterID(charID).
+		SetRestType(req.RestType).
+		SetHpHealed(hpHealed).
+		SetNotes("").
+		Save(ctx)
 
 	SendCharacterUpdate(charID)
 	SendPartyUpdate()
@@ -1538,39 +1682,40 @@ func DoRest(c *gin.Context) {
 
 func LevelUp(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	ctx := c.Request.Context()
 
-	var level, hpMax, hpCur, con int
-	var hitDice string
-	err := db.DB.QueryRow("SELECT level, hp_max, hp_current, hit_dice, con FROM characters WHERE id=?", charID).Scan(&level, &hpMax, &hpCur, &hitDice, &con)
+	char, err := db.Client.Character.Get(ctx, charID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
 		return
 	}
 
-	newLevel := level + 1
-	// Estimate HP gain: average of hit die + CON mod
-	hitDieSize := 10 // default
-	if len(hitDice) > 1 {
-		// Extract die size from "1dX"
-		dieSizeStr := hitDice[2:]
+	newLevel := char.Level + 1
+	hitDieSize := 10
+	if len(char.HitDice) > 1 {
+		dieSizeStr := char.HitDice[2:]
 		if d, err2 := strconv.Atoi(dieSizeStr); err2 == nil {
 			hitDieSize = d
 		}
 	}
-	conMod := abilityMod(con)
-	hpGain := (hitDieSize/2 + 1) + conMod // average roll + CON
+	conMod := abilityMod(char.Con)
+	hpGain := (hitDieSize/2 + 1) + conMod
 	if hpGain < 1 {
 		hpGain = 1
 	}
 
-	newHP := hpMax + hpGain
-	newCur := hpCur + hpGain
+	newHP := char.HpMax + hpGain
+	newCur := char.HpCurrent + hpGain
 	if newCur > newHP {
 		newCur = newHP
 	}
-	db.DB.Exec("UPDATE characters SET level=?, hp_max=?, hp_current=?, hit_dice_current=hit_dice_current+1 WHERE id=?", newLevel, newHP, newCur, charID)
+	db.Client.Character.UpdateOneID(charID).
+		SetLevel(newLevel).
+		SetHpMax(newHP).
+		SetHpCurrent(newCur).
+		SetHitDiceCurrent(char.HitDiceCurrent + 1).
+		Save(ctx)
 
-	// Update proficiency bonus
 	newProf := 2
 	if newLevel >= 17 {
 		newProf = 6
@@ -1581,7 +1726,9 @@ func LevelUp(c *gin.Context) {
 	} else if newLevel >= 5 {
 		newProf = 3
 	}
-	db.DB.Exec("UPDATE characters SET proficiency_bonus=? WHERE id=? AND proficiency_bonus<?", newProf, charID, newProf)
+	if newProf > char.ProficiencyBonus {
+		db.Client.Character.UpdateOneID(charID).SetProficiencyBonus(newProf).Save(ctx)
+	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": true, "new_level": newLevel, "hp_gain": hpGain, "new_hp_max": newHP})
 }

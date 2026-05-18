@@ -1,19 +1,30 @@
 package handlers
 
 import (
-	"database/sql"
+	"context"
 	"encoding/json"
 	"fmt"
 	"math"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
 	"villum/db"
+	"villum/ent"
+	"villum/ent/campaignmember"
+	"villum/ent/character"
+	"villum/ent/characterclass"
+	"villum/ent/charactercurrency"
+	"villum/ent/characterfeature"
+	"villum/ent/characterproficiency"
+	"villum/ent/characterspellcasting"
+	"villum/ent/inventoryitem"
+	"villum/ent/spell"
 	"villum/models"
 )
 
@@ -53,31 +64,6 @@ func ListCharacters(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
 
-	var rows *sql.Rows
-	var err error
-	if role == "admin" {
-		query := c.DefaultQuery("q", "")
-		if query != "" {
-			rows, err = db.DB.Query(`
-				SELECT c.id, c.user_id, c.name, c.race, c.class, c.level, c.hp_max, c.hp_current
-				FROM characters c JOIN characters_fts fts ON c.id = fts.rowid
-				WHERE characters_fts MATCH ? ORDER BY c.updated_at DESC`, query)
-		} else {
-			rows, err = db.DB.Query(`
-				SELECT c.id, c.user_id, c.name, c.race, c.class, c.level, c.hp_max, c.hp_current
-				FROM characters c ORDER BY c.updated_at DESC`)
-		}
-	} else {
-		rows, err = db.DB.Query(`
-			SELECT c.id, c.user_id, c.name, c.race, c.class, c.level, c.hp_max, c.hp_current
-			FROM characters c WHERE c.user_id=? ORDER BY c.updated_at DESC`, userID)
-	}
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	defer rows.Close()
-
 	type CharSummary struct {
 		ID        int64  `json:"id"`
 		UserID    int64  `json:"user_id"`
@@ -89,10 +75,44 @@ func ListCharacters(c *gin.Context) {
 		HPCurrent int    `json:"hp_current"`
 	}
 	chars := []CharSummary{}
-	for rows.Next() {
-		var c CharSummary
-		rows.Scan(&c.ID, &c.UserID, &c.Name, &c.Race, &c.Class, &c.Level, &c.HPMax, &c.HPCurrent)
-		chars = append(chars, c)
+
+	if role == "admin" {
+		query := c.DefaultQuery("q", "")
+		if query != "" {
+			rows, err := db.DB.Query(`
+				SELECT c.id, c.user_id, c.name, c.race, c.class, c.level, c.hp_max, c.hp_current
+				FROM characters c JOIN characters_fts fts ON c.id = fts.rowid
+				WHERE characters_fts MATCH ? ORDER BY c.updated_at DESC`, query)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			defer rows.Close()
+			for rows.Next() {
+				var ch CharSummary
+				rows.Scan(&ch.ID, &ch.UserID, &ch.Name, &ch.Race, &ch.Class, &ch.Level, &ch.HPMax, &ch.HPCurrent)
+				chars = append(chars, ch)
+			}
+		} else {
+			entChars, err := db.Client.Character.Query().Order(ent.Desc(character.FieldUpdatedAt)).All(c.Request.Context())
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			for _, e := range entChars {
+				chars = append(chars, CharSummary{ID: e.ID, UserID: e.UserID, Name: e.Name, Race: e.Race, Class: e.Class, Level: e.Level, HPMax: e.HpMax, HPCurrent: e.HpCurrent})
+			}
+		}
+	} else {
+		uid, _ := userID.(int64)
+		entChars, err := db.Client.Character.Query().Where(character.UserID(uid)).Order(ent.Desc(character.FieldUpdatedAt)).All(c.Request.Context())
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		for _, e := range entChars {
+			chars = append(chars, CharSummary{ID: e.ID, UserID: e.UserID, Name: e.Name, Race: e.Race, Class: e.Class, Level: e.Level, HPMax: e.HpMax, HPCurrent: e.HpCurrent})
+		}
 	}
 	c.JSON(http.StatusOK, chars)
 }
@@ -102,26 +122,8 @@ func GetCharacter(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
 
-	ch := &models.Character{}
-	err := db.DB.QueryRow(`
-		SELECT id, user_id, campaign_id, name, race, class, subclass, level, xp, background, alignment,
-			str, dex, con, int, wis, cha, ac, initiative, speed,
-			hp_max, hp_current, temp_hp, hit_dice, hit_dice_current,
-			proficiency_bonus, inspiration, passive_perception,
-			death_saves_successes, death_saves_failures, concentrating_on,
-			personality_traits, ideals, bonds, flaws, appearance, backstory,
-			portrait_url, created_at, updated_at
-		FROM characters WHERE id=?`, id).Scan(
-		&ch.ID, &ch.UserID, &ch.CampaignID, &ch.Name, &ch.Race, &ch.Class, &ch.Subclass, &ch.Level, &ch.XP,
-		&ch.Background, &ch.Alignment,
-		&ch.Str, &ch.Dex, &ch.Con, &ch.Int, &ch.Wis, &ch.Cha,
-		&ch.AC, &ch.Initiative, &ch.Speed,
-		&ch.HPMax, &ch.HPCurrent, &ch.TempHP, &ch.HitDice, &ch.HitDiceCurrent,
-		&ch.ProficiencyBonus, &ch.Inspiration, &ch.PassivePerception,
-		&ch.DeathSavesSuccesses, &ch.DeathSavesFailures, &ch.ConcentratingOn,
-		&ch.PersonalityTraits, &ch.Ideals, &ch.Bonds, &ch.Flaws, &ch.Appearance, &ch.Backstory,
-		&ch.PortraitURL, &ch.CreatedAt, &ch.UpdatedAt)
-	if err == sql.ErrNoRows {
+	entChar, err := db.Client.Character.Query().Where(character.ID(id)).Only(c.Request.Context())
+	if ent.IsNotFound(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
 		return
 	}
@@ -130,6 +132,8 @@ func GetCharacter(c *gin.Context) {
 		return
 	}
 
+	ch := entCharacterToModel(entChar)
+
 	// Authorization
 	if role != "admin" && ch.UserID != userID && !isDMOfCharacter(c, id) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
@@ -137,13 +141,14 @@ func GetCharacter(c *gin.Context) {
 	}
 
 	// Load sub-resources
-	ch.Proficiencies = loadProficiencies(ch.ID)
-	ch.Features = loadFeatures(ch.ID)
-	ch.Spellcasting = loadSpellcasting(ch.ID)
-	ch.Spells = loadSpells(ch.ID)
-	ch.Inventory = loadInventory(ch.ID)
-	ch.Currency = loadCurrency(ch.ID)
-	ch.Classes = loadCharClasses(ch.ID)
+	ctx := c.Request.Context()
+	ch.Proficiencies = loadProficiencies(ctx, ch.ID)
+	ch.Features = loadFeatures(ctx, ch.ID)
+	ch.Spellcasting = loadSpellcasting(ctx, ch.ID)
+	ch.Spells = loadSpells(ctx, ch.ID)
+	ch.Inventory = loadInventory(ctx, ch.ID)
+	ch.Currency = loadCurrency(ctx, ch.ID)
+	ch.Classes = loadCharClasses(ctx, ch.ID)
 	computeMods(ch)
 
 	c.JSON(http.StatusOK, ch)
@@ -193,36 +198,65 @@ func CreateCharacter(c *gin.Context) {
 		ch.HitDiceCurrent = 1
 	}
 
-	campaignID := ch.CampaignID
-	result, err := db.DB.Exec(`
-		INSERT INTO characters(
-			user_id, campaign_id, name, race, class, subclass, level, xp, background, alignment,
-			str, dex, con, int, wis, cha, ac, initiative, speed,
-			hp_max, hp_current, temp_hp, hit_dice, hit_dice_current,
-			proficiency_bonus, inspiration, passive_perception,
-			death_saves_successes, death_saves_failures, concentrating_on,
-			personality_traits, ideals, bonds, flaws, appearance, backstory, portrait_url)
-		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-		userID, campaignID,
-		ch.Name, ch.Race, ch.Class, ch.Subclass, ch.Level, ch.XP, ch.Background, ch.Alignment,
-		ch.Str, ch.Dex, ch.Con, ch.Int, ch.Wis, ch.Cha,
-		ch.AC, ch.Initiative, ch.Speed,
-		ch.HPMax, ch.HPCurrent, ch.TempHP, ch.HitDice, ch.HitDiceCurrent,
-		ch.ProficiencyBonus, ch.Inspiration, ch.PassivePerception,
-		ch.DeathSavesSuccesses, ch.DeathSavesFailures, ch.ConcentratingOn,
-		ch.PersonalityTraits, ch.Ideals, ch.Bonds, ch.Flaws, ch.Appearance, ch.Backstory, ch.PortraitURL)
+	uid, _ := userID.(int64)
+	now := time.Now().Format("2006-01-02 15:04:05")
+
+	charCreate := db.Client.Character.Create().
+		SetUserID(uid).
+		SetName(ch.Name).
+		SetRace(ch.Race).
+		SetClass(ch.Class).
+		SetSubclass(ch.Subclass).
+		SetLevel(ch.Level).
+		SetXp(ch.XP).
+		SetBackground(ch.Background).
+		SetAlignment(ch.Alignment).
+		SetStr(ch.Str).
+		SetDex(ch.Dex).
+		SetCon(ch.Con).
+		SetInt(ch.Int).
+		SetWis(ch.Wis).
+		SetCha(ch.Cha).
+		SetAc(ch.AC).
+		SetInitiative(ch.Initiative).
+		SetSpeed(ch.Speed).
+		SetHpMax(ch.HPMax).
+		SetHpCurrent(ch.HPCurrent).
+		SetTempHp(ch.TempHP).
+		SetHitDice(ch.HitDice).
+		SetHitDiceCurrent(ch.HitDiceCurrent).
+		SetProficiencyBonus(ch.ProficiencyBonus).
+		SetInspiration(ch.Inspiration).
+		SetPassivePerception(ch.PassivePerception).
+		SetDeathSavesSuccesses(ch.DeathSavesSuccesses).
+		SetDeathSavesFailures(ch.DeathSavesFailures).
+		SetConcentratingOn(ch.ConcentratingOn).
+		SetPersonalityTraits(ch.PersonalityTraits).
+		SetIdeals(ch.Ideals).
+		SetBonds(ch.Bonds).
+		SetFlaws(ch.Flaws).
+		SetAppearance(ch.Appearance).
+		SetBackstory(ch.Backstory).
+		SetPortraitURL(ch.PortraitURL).
+		SetCreatedAt(now).
+		SetUpdatedAt(now)
+
+	if ch.CampaignID != nil {
+		charCreate.SetCampaignID(*ch.CampaignID)
+	}
+
+	char, err := charCreate.Save(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	id, _ := result.LastInsertId()
+	id := char.ID
 
 	// Create default currency entry
-	db.DB.Exec("INSERT OR IGNORE INTO character_currency(character_id) VALUES(?)", id)
+	db.Client.CharacterCurrency.Create().SetCharacterID(id).Save(c.Request.Context())
 
 	ch.ID = id
-	uid, _ := userID.(int64)
 	ch.UserID = uid
 	c.JSON(http.StatusCreated, ch)
 }
@@ -233,13 +267,18 @@ func UpdateCharacter(c *gin.Context) {
 	role, _ := c.Get("role")
 
 	// Check ownership
-	var ownerID int64
-	err := db.DB.QueryRow("SELECT user_id FROM characters WHERE id=?", id).Scan(&ownerID)
-	if err != nil {
+	entChar, err := db.Client.Character.Query().Where(character.ID(id)).Select(character.FieldUserID).Only(c.Request.Context())
+	if ent.IsNotFound(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
 		return
 	}
-	if role != "admin" && ownerID != userID && !isDMOfCharacter(c, id) {
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	ownerID := entChar.UserID
+	uid, _ := userID.(int64)
+	if role != "admin" && ownerID != uid && !isDMOfCharacter(c, id) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -250,45 +289,73 @@ func UpdateCharacter(c *gin.Context) {
 		return
 	}
 
-	_, err = db.DB.Exec(`
-		UPDATE characters SET
-			name=?, race=?, class=?, subclass=?, level=?, xp=?, background=?, alignment=?,
-			str=?, dex=?, con=?, int=?, wis=?, cha=?,
-			ac=?, initiative=?, speed=?,
-			hp_max=?, hp_current=?, temp_hp=?, hit_dice=?, hit_dice_current=?,
-			proficiency_bonus=?, inspiration=?, passive_perception=?,
-			death_saves_successes=?, death_saves_failures=?, concentrating_on=?,
-			campaign_id=?, portrait_url=?,
-			personality_traits=?, ideals=?, bonds=?, flaws=?, appearance=?, backstory=?,
-			updated_at=datetime('now')
-		WHERE id=?`,
-		ch.Name, ch.Race, ch.Class, ch.Subclass, ch.Level, ch.XP, ch.Background, ch.Alignment,
-		ch.Str, ch.Dex, ch.Con, ch.Int, ch.Wis, ch.Cha,
-		ch.AC, ch.Initiative, ch.Speed,
-		ch.HPMax, ch.HPCurrent, ch.TempHP, ch.HitDice, ch.HitDiceCurrent,
-		ch.ProficiencyBonus, ch.Inspiration, ch.PassivePerception,
-		ch.DeathSavesSuccesses, ch.DeathSavesFailures, ch.ConcentratingOn,
-		ch.CampaignID, ch.PortraitURL,
-		ch.PersonalityTraits, ch.Ideals, ch.Bonds, ch.Flaws, ch.Appearance, ch.Backstory,
-		id)
+	upd := db.Client.Character.UpdateOneID(id).
+		SetName(ch.Name).
+		SetRace(ch.Race).
+		SetClass(ch.Class).
+		SetSubclass(ch.Subclass).
+		SetLevel(ch.Level).
+		SetXp(ch.XP).
+		SetBackground(ch.Background).
+		SetAlignment(ch.Alignment).
+		SetStr(ch.Str).
+		SetDex(ch.Dex).
+		SetCon(ch.Con).
+		SetInt(ch.Int).
+		SetWis(ch.Wis).
+		SetCha(ch.Cha).
+		SetAc(ch.AC).
+		SetInitiative(ch.Initiative).
+		SetSpeed(ch.Speed).
+		SetHpMax(ch.HPMax).
+		SetHpCurrent(ch.HPCurrent).
+		SetTempHp(ch.TempHP).
+		SetHitDice(ch.HitDice).
+		SetHitDiceCurrent(ch.HitDiceCurrent).
+		SetProficiencyBonus(ch.ProficiencyBonus).
+		SetInspiration(ch.Inspiration).
+		SetPassivePerception(ch.PassivePerception).
+		SetDeathSavesSuccesses(ch.DeathSavesSuccesses).
+		SetDeathSavesFailures(ch.DeathSavesFailures).
+		SetConcentratingOn(ch.ConcentratingOn).
+		SetPersonalityTraits(ch.PersonalityTraits).
+		SetIdeals(ch.Ideals).
+		SetBonds(ch.Bonds).
+		SetFlaws(ch.Flaws).
+		SetAppearance(ch.Appearance).
+		SetBackstory(ch.Backstory).
+		SetPortraitURL(ch.PortraitURL).
+		SetUpdatedAt(time.Now().Format("2006-01-02 15:04:05"))
+
+	if ch.CampaignID != nil {
+		upd.SetCampaignID(*ch.CampaignID)
+	} else {
+		upd.ClearCampaignID()
+	}
+
+	_, err = upd.Save(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Auto-calc passive perception
-	var wis int
-	db.DB.QueryRow("SELECT wis FROM characters WHERE id=?", id).Scan(&wis)
-	wisMod := abilityMod(wis)
-	pp := 10 + wisMod
-	var perceptionCount int
-	db.DB.QueryRow("SELECT COUNT(*) FROM character_proficiencies WHERE character_id=? AND type='skill' AND LOWER(name)='perception'", id).Scan(&perceptionCount)
-	if perceptionCount > 0 {
-		var pb int
-		db.DB.QueryRow("SELECT proficiency_bonus FROM characters WHERE id=?", id).Scan(&pb)
-		pp += pb
+	charStats, err := db.Client.Character.Query().Where(character.ID(id)).Select(character.FieldWis, character.FieldProficiencyBonus).Only(c.Request.Context())
+	if err == nil {
+		wisMod := abilityMod(charStats.Wis)
+		pp := 10 + wisMod
+		perceptionCount, _ := db.Client.CharacterProficiency.Query().
+			Where(
+				characterproficiency.CharacterID(id),
+				characterproficiency.TypeEQ("skill"),
+				characterproficiency.NameEqualFold("perception"),
+			).
+			Count(c.Request.Context())
+		if perceptionCount > 0 {
+			pp += charStats.ProficiencyBonus
+		}
+		db.Client.Character.UpdateOneID(id).SetPassivePerception(pp).Exec(c.Request.Context())
 	}
-	db.DB.Exec("UPDATE characters SET passive_perception=? WHERE id=?", pp, id)
 
 	SendCharacterUpdate(id)
 	SendPartyUpdate()
@@ -301,50 +368,48 @@ func DeleteCharacter(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
 
-	var ownerID int64
-	err := db.DB.QueryRow("SELECT user_id FROM characters WHERE id=?", id).Scan(&ownerID)
-	if err != nil {
+	entChar, err := db.Client.Character.Query().Where(character.ID(id)).Select(character.FieldUserID).Only(c.Request.Context())
+	if ent.IsNotFound(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
 		return
 	}
-	if role != "admin" && ownerID != userID && !isDMOfCharacter(c, id) {
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	ownerID := entChar.UserID
+	uid, _ := userID.(int64)
+	if role != "admin" && ownerID != uid && !isDMOfCharacter(c, id) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
 
-	db.DB.Exec("DELETE FROM characters WHERE id=?", id)
+	db.Client.Character.DeleteOneID(id).Exec(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 func ExportCharacter(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 
-	ch := &models.Character{}
-	err := db.DB.QueryRow(`
-		SELECT id, user_id, name, race, class, subclass, level, xp, background, alignment,
-			str, dex, con, int, wis, cha, ac, initiative, speed,
-			hp_max, hp_current, temp_hp, hit_dice, hit_dice_current,
-			proficiency_bonus, inspiration, passive_perception,
-			personality_traits, ideals, bonds, flaws, appearance, backstory
-		FROM characters WHERE id=?`, id).Scan(
-		&ch.ID, &ch.UserID, &ch.Name, &ch.Race, &ch.Class, &ch.Subclass,
-		&ch.Level, &ch.XP, &ch.Background, &ch.Alignment,
-		&ch.Str, &ch.Dex, &ch.Con, &ch.Int, &ch.Wis, &ch.Cha,
-		&ch.AC, &ch.Initiative, &ch.Speed,
-		&ch.HPMax, &ch.HPCurrent, &ch.TempHP, &ch.HitDice, &ch.HitDiceCurrent,
-		&ch.ProficiencyBonus, &ch.Inspiration, &ch.PassivePerception,
-		&ch.PersonalityTraits, &ch.Ideals, &ch.Bonds, &ch.Flaws, &ch.Appearance, &ch.Backstory)
-	if err != nil {
+	entChar, err := db.Client.Character.Query().Where(character.ID(id)).Only(c.Request.Context())
+	if ent.IsNotFound(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
 		return
 	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-	ch.Proficiencies = loadProficiencies(ch.ID)
-	ch.Features = loadFeatures(ch.ID)
-	ch.Spellcasting = loadSpellcasting(ch.ID)
-	ch.Spells = loadSpells(ch.ID)
-	ch.Inventory = loadInventory(ch.ID)
-	ch.Currency = loadCurrency(ch.ID)
+	ch := entCharacterToModel(entChar)
+
+	ctx := c.Request.Context()
+	ch.Proficiencies = loadProficiencies(ctx, ch.ID)
+	ch.Features = loadFeatures(ctx, ch.ID)
+	ch.Spellcasting = loadSpellcasting(ctx, ch.ID)
+	ch.Spells = loadSpells(ctx, ch.ID)
+	ch.Inventory = loadInventory(ctx, ch.ID)
+	ch.Currency = loadCurrency(ctx, ch.ID)
 	computeMods(ch)
 
 	format := c.DefaultQuery("format", "json")
@@ -358,32 +423,25 @@ func ExportCharacter(c *gin.Context) {
 func PrintCharacter(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 
-	ch := &models.Character{}
-	err := db.DB.QueryRow(`
-		SELECT id, user_id, name, race, class, subclass, level, xp, background, alignment,
-			str, dex, con, int, wis, cha, ac, initiative, speed,
-			hp_max, hp_current, temp_hp, hit_dice, hit_dice_current,
-			proficiency_bonus, inspiration, passive_perception,
-			personality_traits, ideals, bonds, flaws, appearance, backstory
-		FROM characters WHERE id=?`, id).Scan(
-		&ch.ID, &ch.UserID, &ch.Name, &ch.Race, &ch.Class, &ch.Subclass,
-		&ch.Level, &ch.XP, &ch.Background, &ch.Alignment,
-		&ch.Str, &ch.Dex, &ch.Con, &ch.Int, &ch.Wis, &ch.Cha,
-		&ch.AC, &ch.Initiative, &ch.Speed,
-		&ch.HPMax, &ch.HPCurrent, &ch.TempHP, &ch.HitDice, &ch.HitDiceCurrent,
-		&ch.ProficiencyBonus, &ch.Inspiration, &ch.PassivePerception,
-		&ch.PersonalityTraits, &ch.Ideals, &ch.Bonds, &ch.Flaws, &ch.Appearance, &ch.Backstory)
-	if err != nil {
+	entChar, err := db.Client.Character.Query().Where(character.ID(id)).Only(c.Request.Context())
+	if ent.IsNotFound(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
 		return
 	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-	ch.Proficiencies = loadProficiencies(ch.ID)
-	ch.Features = loadFeatures(ch.ID)
-	ch.Spellcasting = loadSpellcasting(ch.ID)
-	ch.Spells = loadSpells(ch.ID)
-	ch.Inventory = loadInventory(ch.ID)
-	ch.Currency = loadCurrency(ch.ID)
+	ch := entCharacterToModel(entChar)
+
+	ctx := c.Request.Context()
+	ch.Proficiencies = loadProficiencies(ctx, ch.ID)
+	ch.Features = loadFeatures(ctx, ch.ID)
+	ch.Spellcasting = loadSpellcasting(ctx, ch.ID)
+	ch.Spells = loadSpells(ctx, ch.ID)
+	ch.Inventory = loadInventory(ctx, ch.ID)
+	ch.Currency = loadCurrency(ctx, ch.ID)
 	computeMods(ch)
 
 	c.Header("Content-Type", "text/plain; charset=utf-8")
@@ -566,12 +624,24 @@ func characterToText(ch *models.Character) string {
 func isDMOfCharacter(c *gin.Context, characterID int64) bool {
 	currentUID, _ := c.Get("user_id")
 	uid, _ := currentUID.(int64)
-	var campaignID *int64
-	db.DB.QueryRow("SELECT campaign_id FROM characters WHERE id=?", characterID).Scan(&campaignID)
-	if campaignID != nil {
-		var memberRole string
-		err := db.DB.QueryRow("SELECT role FROM campaign_members WHERE campaign_id=? AND user_id=?", *campaignID, uid).Scan(&memberRole)
-		return err == nil && memberRole == "dm"
+
+	entChar, err := db.Client.Character.Query().
+		Where(character.ID(characterID)).
+		Select(character.FieldCampaignID).
+		Only(c.Request.Context())
+	if err != nil {
+		return false
+	}
+
+	if entChar.CampaignID != 0 {
+		count, err := db.Client.CampaignMember.Query().
+			Where(
+				campaignmember.CampaignIDEQ(entChar.CampaignID),
+				campaignmember.UserIDEQ(uid),
+				campaignmember.RoleEQ("dm"),
+			).
+			Count(c.Request.Context())
+		return err == nil && count > 0
 	}
 	return false
 }
@@ -581,150 +651,185 @@ func checkCharacterAccess(c *gin.Context, characterID int64) bool {
 	userID, _ := c.Get("user_id")
 	currentUID, _ := userID.(int64)
 	role, _ := c.Get("role")
-	var ownerID int64
-	err := db.DB.QueryRow("SELECT user_id FROM characters WHERE id=?", characterID).Scan(&ownerID)
+
+	entChar, err := db.Client.Character.Query().
+		Where(character.ID(characterID)).
+		Select(character.FieldUserID).
+		Only(c.Request.Context())
 	if err != nil {
 		return false
 	}
-	return role == "admin" || ownerID == currentUID || isDMOfCharacter(c, characterID)
+	return role == "admin" || entChar.UserID == currentUID || isDMOfCharacter(c, characterID)
+}
+
+func entCharacterToModel(e *ent.Character) *models.Character {
+	ch := &models.Character{
+		ID:                  e.ID,
+		UserID:              e.UserID,
+		Name:                e.Name,
+		Race:                e.Race,
+		Class:               e.Class,
+		Subclass:            e.Subclass,
+		Level:               e.Level,
+		XP:                  e.Xp,
+		Background:          e.Background,
+		Alignment:           e.Alignment,
+		Str:                 e.Str,
+		Dex:                 e.Dex,
+		Con:                 e.Con,
+		Int:                 e.Int,
+		Wis:                 e.Wis,
+		Cha:                 e.Cha,
+		AC:                  e.Ac,
+		Initiative:          e.Initiative,
+		Speed:               e.Speed,
+		HPMax:               e.HpMax,
+		HPCurrent:           e.HpCurrent,
+		TempHP:              e.TempHp,
+		HitDice:             e.HitDice,
+		HitDiceCurrent:      e.HitDiceCurrent,
+		ProficiencyBonus:    e.ProficiencyBonus,
+		Inspiration:         e.Inspiration,
+		PassivePerception:   e.PassivePerception,
+		PersonalityTraits:   e.PersonalityTraits,
+		Ideals:              e.Ideals,
+		Bonds:               e.Bonds,
+		Flaws:               e.Flaws,
+		Appearance:          e.Appearance,
+		Backstory:           e.Backstory,
+		PortraitURL:         e.PortraitURL,
+		CreatedAt:           e.CreatedAt,
+		UpdatedAt:           e.UpdatedAt,
+		DeathSavesSuccesses: e.DeathSavesSuccesses,
+		DeathSavesFailures:  e.DeathSavesFailures,
+		ConcentratingOn:     e.ConcentratingOn,
+	}
+	if e.CampaignID != 0 {
+		ch.CampaignID = &e.CampaignID
+	}
+	return ch
 }
 
 // Internal load helpers
 
-func loadProficiencies(characterID int64) []models.Proficiency {
-	rows, err := db.DB.Query("SELECT id, character_id, type, name FROM character_proficiencies WHERE character_id=?", characterID)
+func loadProficiencies(ctx context.Context, characterID int64) []models.Proficiency {
+	ents, err := db.Client.CharacterProficiency.Query().Where(characterproficiency.CharacterID(characterID)).All(ctx)
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
-	var out = make([]models.Proficiency, 0)
-	for rows.Next() {
-		var p models.Proficiency
-		rows.Scan(&p.ID, &p.CharacterID, &p.Type, &p.Name)
-		out = append(out, p)
+	out := make([]models.Proficiency, 0, len(ents))
+	for _, e := range ents {
+		out = append(out, models.Proficiency{ID: e.ID, CharacterID: e.CharacterID, Type: e.Type, Name: e.Name})
 	}
 	return out
 }
 
-func loadFeatures(characterID int64) []models.Feature {
-	rows, err := db.DB.Query("SELECT id, character_id, name, description, source, level_gained FROM character_features WHERE character_id=?", characterID)
+func loadFeatures(ctx context.Context, characterID int64) []models.Feature {
+	ents, err := db.Client.CharacterFeature.Query().Where(characterfeature.CharacterID(characterID)).All(ctx)
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
-	var out = make([]models.Feature, 0)
-	for rows.Next() {
-		var f models.Feature
-		rows.Scan(&f.ID, &f.CharacterID, &f.Name, &f.Description, &f.Source, &f.LevelGained)
-		out = append(out, f)
+	out := make([]models.Feature, 0, len(ents))
+	for _, e := range ents {
+		out = append(out, models.Feature{ID: e.ID, CharacterID: e.CharacterID, Name: e.Name, Description: e.Description, Source: e.Source, LevelGained: e.LevelGained})
 	}
 	return out
 }
 
-func loadSpellcasting(characterID int64) *models.Spellcasting {
-	sc := &models.Spellcasting{}
-	err := db.DB.QueryRow(`
-		SELECT character_id, ability, save_dc, attack_bonus,
-			slots_1_max, slots_1_used, slots_2_max, slots_2_used,
-			slots_3_max, slots_3_used, slots_4_max, slots_4_used,
-			slots_5_max, slots_5_used, slots_6_max, slots_6_used,
-			slots_7_max, slots_7_used, slots_8_max, slots_8_used,
-			slots_9_max, slots_9_used
-		FROM character_spellcasting WHERE character_id=?`, characterID).Scan(
-		&sc.CharacterID, &sc.Ability, &sc.SaveDC, &sc.AttackBonus,
-		&sc.Slots1Max, &sc.Slots1Used, &sc.Slots2Max, &sc.Slots2Used,
-		&sc.Slots3Max, &sc.Slots3Used, &sc.Slots4Max, &sc.Slots4Used,
-		&sc.Slots5Max, &sc.Slots5Used, &sc.Slots6Max, &sc.Slots6Used,
-		&sc.Slots7Max, &sc.Slots7Used, &sc.Slots8Max, &sc.Slots8Used,
-		&sc.Slots9Max, &sc.Slots9Used)
+func loadSpellcasting(ctx context.Context, characterID int64) *models.Spellcasting {
+	e, err := db.Client.CharacterSpellcasting.Query().Where(characterspellcasting.CharacterID(characterID)).Only(ctx)
 	if err != nil {
 		return nil
 	}
-	return sc
+	return &models.Spellcasting{
+		CharacterID: e.CharacterID,
+		Ability:     e.Ability,
+		SaveDC:      e.SaveDc,
+		AttackBonus: e.AttackBonus,
+		Slots1Max:   e.Slots1Max, Slots1Used: e.Slots1Used,
+		Slots2Max: e.Slots2Max, Slots2Used: e.Slots2Used,
+		Slots3Max: e.Slots3Max, Slots3Used: e.Slots3Used,
+		Slots4Max: e.Slots4Max, Slots4Used: e.Slots4Used,
+		Slots5Max: e.Slots5Max, Slots5Used: e.Slots5Used,
+		Slots6Max: e.Slots6Max, Slots6Used: e.Slots6Used,
+		Slots7Max: e.Slots7Max, Slots7Used: e.Slots7Used,
+		Slots8Max: e.Slots8Max, Slots8Used: e.Slots8Used,
+		Slots9Max: e.Slots9Max, Slots9Used: e.Slots9Used,
+	}
 }
 
-func loadSpells(characterID int64) []models.Spell {
-	rows, err := db.DB.Query(`
-		SELECT id, character_id, name, level, school, casting_time, range, components, duration,
-			description, prepared, always_prepared, source, notes
-		FROM spells WHERE character_id=? ORDER BY level, name`, characterID)
+func loadSpells(ctx context.Context, characterID int64) []models.Spell {
+	ents, err := db.Client.Spell.Query().Where(spell.CharacterID(characterID)).Order(spell.ByLevel(), spell.ByName()).All(ctx)
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
-	var out = make([]models.Spell, 0)
-	for rows.Next() {
-		var s models.Spell
-		rows.Scan(&s.ID, &s.CharacterID, &s.Name, &s.Level, &s.School,
-			&s.CastingTime, &s.Range, &s.Components, &s.Duration,
-			&s.Description, &s.Prepared, &s.AlwaysPrepared, &s.Source, &s.Notes)
-		out = append(out, s)
+	out := make([]models.Spell, 0, len(ents))
+	for _, e := range ents {
+		out = append(out, models.Spell{
+			ID: e.ID, CharacterID: e.CharacterID, Name: e.Name, Level: e.Level, School: e.School,
+			CastingTime: e.CastingTime, Range: e.Range, Components: e.Components, Duration: e.Duration,
+			Description: e.Description, Prepared: e.Prepared, AlwaysPrepared: e.AlwaysPrepared, Source: e.Source, Notes: e.Notes,
+		})
 	}
 	return out
 }
 
-func loadInventory(characterID int64) []models.InventoryItem {
-	rows, err := db.DB.Query(`
-		SELECT id, character_id, name, quantity, weight, category,
-			damage_dice, damage_type, weapon_properties,
-			ac_bonus, armor_type, description,
-			is_equipped, is_magical, attunement, notes
-		FROM inventory WHERE character_id=? ORDER BY is_equipped DESC, name`, characterID)
+func loadInventory(ctx context.Context, characterID int64) []models.InventoryItem {
+	ents, err := db.Client.InventoryItem.Query().Where(inventoryitem.CharacterID(characterID)).Order(ent.Desc(inventoryitem.FieldIsEquipped), inventoryitem.ByName()).All(ctx)
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
-	var out = make([]models.InventoryItem, 0)
-	for rows.Next() {
-		var item models.InventoryItem
-		rows.Scan(&item.ID, &item.CharacterID, &item.Name, &item.Quantity, &item.Weight, &item.Category,
-			&item.DamageDice, &item.DamageType, &item.WeaponProperties,
-			&item.ACBonus, &item.ArmorType, &item.Description,
-			&item.IsEquipped, &item.IsMagical, &item.Attunement, &item.Notes)
-		out = append(out, item)
+	out := make([]models.InventoryItem, 0, len(ents))
+	for _, e := range ents {
+		out = append(out, models.InventoryItem{
+			ID: e.ID, CharacterID: e.CharacterID, Name: e.Name, Quantity: e.Quantity, Weight: e.Weight,
+			Category: e.Category, DamageDice: e.DamageDice, DamageType: e.DamageType, WeaponProperties: e.WeaponProperties,
+			ACBonus: e.AcBonus, ArmorType: e.ArmorType, Description: e.Description,
+			IsEquipped: e.IsEquipped, IsMagical: e.IsMagical, Attunement: e.Attunement, Notes: e.Notes,
+		})
 	}
 	return out
 }
 
-func loadCurrency(characterID int64) *models.Currency {
-	cur := &models.Currency{}
-	err := db.DB.QueryRow("SELECT character_id, cp, sp, ep, gp, pp FROM character_currency WHERE character_id=?", characterID).
-		Scan(&cur.CharacterID, &cur.CP, &cur.SP, &cur.EP, &cur.GP, &cur.PP)
+func loadCurrency(ctx context.Context, characterID int64) *models.Currency {
+	e, err := db.Client.CharacterCurrency.Query().Where(charactercurrency.CharacterID(characterID)).Only(ctx)
 	if err != nil {
 		return nil
 	}
-	return cur
+	return &models.Currency{CharacterID: e.CharacterID, CP: e.Cp, SP: e.Sp, EP: e.Ep, GP: e.Gp, PP: e.Pp}
 }
 
-func loadCharClasses(characterID int64) []models.CharClass {
-	rows, err := db.DB.Query("SELECT id, character_id, class, subclass, level, hit_dice FROM character_classes WHERE character_id=? ORDER BY created_at", characterID)
+func loadCharClasses(ctx context.Context, characterID int64) []models.CharClass {
+	ents, err := db.Client.CharacterClass.Query().Where(characterclass.CharacterID(characterID)).Order(characterclass.ByCreatedAt()).All(ctx)
 	if err != nil {
 		return nil
 	}
-	defer rows.Close()
-	var out = make([]models.CharClass, 0)
-	for rows.Next() {
-		var cc models.CharClass
-		rows.Scan(&cc.ID, &cc.CharacterID, &cc.Class, &cc.Subclass, &cc.Level, &cc.HitDice)
-		out = append(out, cc)
+	out := make([]models.CharClass, 0, len(ents))
+	for _, e := range ents {
+		out = append(out, models.CharClass{ID: e.ID, CharacterID: e.CharacterID, Class: e.Class, Subclass: e.Subclass, Level: e.Level, HitDice: e.HitDice})
 	}
 	return out
 }
 
-// ─── Multi-class handlers ───
+// Multi-class handlers
 
 func CreateCharacterClass(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
 
-	var ownerID int64
-	err := db.DB.QueryRow("SELECT user_id FROM characters WHERE id=?", charID).Scan(&ownerID)
-	if err != nil {
+	entChar, err := db.Client.Character.Query().Where(character.ID(charID)).Select(character.FieldUserID).Only(c.Request.Context())
+	if ent.IsNotFound(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
 		return
 	}
-	if role != "admin" && ownerID != userID && !isDMOfCharacter(c, charID) {
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	ownerID := entChar.UserID
+	uid, _ := userID.(int64)
+	if role != "admin" && ownerID != uid && !isDMOfCharacter(c, charID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -741,14 +846,19 @@ func CreateCharacterClass(c *gin.Context) {
 		cc.HitDice = "d10"
 	}
 
-	result, err := db.DB.Exec("INSERT INTO character_classes(character_id,class,subclass,level,hit_dice) VALUES(?,?,?,?,?)",
-		charID, cc.Class, cc.Subclass, cc.Level, cc.HitDice)
+	entCC, err := db.Client.CharacterClass.Create().
+		SetCharacterID(charID).
+		SetClass(cc.Class).
+		SetSubclass(cc.Subclass).
+		SetLevel(cc.Level).
+		SetHitDice(cc.HitDice).
+		Save(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	id, _ := result.LastInsertId()
-	cc.ID = id
+
+	cc.ID = entCC.ID
 	cc.CharacterID = charID
 	c.JSON(http.StatusCreated, cc)
 }
@@ -758,14 +868,25 @@ func UpdateCharacterClass(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
 
-	var ownerID int64
-	var charID int64
-	err := db.DB.QueryRow("SELECT c.user_id, cc.character_id FROM character_classes cc JOIN characters c ON c.id=cc.character_id WHERE cc.id=?", id).Scan(&ownerID, &charID)
+	entCC, err := db.Client.CharacterClass.Query().Where(characterclass.ID(id)).Select(characterclass.FieldCharacterID).Only(c.Request.Context())
+	if ent.IsNotFound(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "class not found"})
+		return
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	charID := entCC.CharacterID
+
+	entChar, err := db.Client.Character.Query().Where(character.ID(charID)).Select(character.FieldUserID).Only(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "class not found"})
 		return
 	}
-	if role != "admin" && ownerID != userID && !isDMOfCharacter(c, charID) {
+	ownerID := entChar.UserID
+	uid, _ := userID.(int64)
+	if role != "admin" && ownerID != uid && !isDMOfCharacter(c, charID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -775,8 +896,12 @@ func UpdateCharacterClass(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	db.DB.Exec("UPDATE character_classes SET class=?, subclass=?, level=?, hit_dice=? WHERE id=?",
-		cc.Class, cc.Subclass, cc.Level, cc.HitDice, id)
+	db.Client.CharacterClass.UpdateOneID(id).
+		SetClass(cc.Class).
+		SetSubclass(cc.Subclass).
+		SetLevel(cc.Level).
+		SetHitDice(cc.HitDice).
+		Exec(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -785,17 +910,29 @@ func DeleteCharacterClass(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	role, _ := c.Get("role")
 
-	var ownerID int64
-	err := db.DB.QueryRow("SELECT c.user_id FROM character_classes cc JOIN characters c ON c.id=cc.character_id WHERE cc.id=?", id).Scan(&ownerID)
+	entCC, err := db.Client.CharacterClass.Query().Where(characterclass.ID(id)).Select(characterclass.FieldCharacterID).Only(c.Request.Context())
+	if ent.IsNotFound(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "class not found"})
+		return
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	charID := entCC.CharacterID
+
+	entChar, err := db.Client.Character.Query().Where(character.ID(charID)).Select(character.FieldUserID).Only(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "class not found"})
 		return
 	}
-	if role != "admin" && ownerID != userID {
+	ownerID := entChar.UserID
+	uid, _ := userID.(int64)
+	if role != "admin" && ownerID != uid {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-	db.DB.Exec("DELETE FROM character_classes WHERE id=?", id)
+	db.Client.CharacterClass.DeleteOneID(id).Exec(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -822,94 +959,147 @@ func ImportCharacterJSON(c *gin.Context) {
 		imp.HitDice = "1d10"
 	}
 
-	tx, err := db.DB.Begin()
+	tx, err := db.Client.Tx(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	defer tx.Rollback()
 
-	result, err := tx.Exec(`
-		INSERT INTO characters(
-			user_id, name, race, class, subclass, level, xp, background, alignment,
-			str, dex, con, int, wis, cha, ac, initiative, speed,
-			hp_max, hp_current, temp_hp, hit_dice, hit_dice_current,
-			proficiency_bonus, inspiration, passive_perception,
-			personality_traits, ideals, bonds, flaws, appearance, backstory)
-		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-		userID,
-		imp.Name, imp.Race, imp.Class, imp.Subclass, imp.Level, imp.XP, imp.Background, imp.Alignment,
-		imp.Str, imp.Dex, imp.Con, imp.Int, imp.Wis, imp.Cha,
-		imp.AC, imp.Initiative, imp.Speed,
-		imp.HPMax, imp.HPCurrent, imp.TempHP, imp.HitDice, 0,
-		0, 0, 0,
-		imp.PersonalityTraits, imp.Ideals, imp.Bonds, imp.Flaws, imp.Appearance, imp.Backstory)
+	uid, _ := userID.(int64)
+	now := time.Now().Format("2006-01-02 15:04:05")
+
+	char, err := tx.Character.Create().
+		SetUserID(uid).
+		SetName(imp.Name).
+		SetRace(imp.Race).
+		SetClass(imp.Class).
+		SetSubclass(imp.Subclass).
+		SetLevel(imp.Level).
+		SetXp(imp.XP).
+		SetBackground(imp.Background).
+		SetAlignment(imp.Alignment).
+		SetStr(imp.Str).
+		SetDex(imp.Dex).
+		SetCon(imp.Con).
+		SetInt(imp.Int).
+		SetWis(imp.Wis).
+		SetCha(imp.Cha).
+		SetAc(imp.AC).
+		SetInitiative(imp.Initiative).
+		SetSpeed(imp.Speed).
+		SetHpMax(imp.HPMax).
+		SetHpCurrent(imp.HPCurrent).
+		SetTempHp(imp.TempHP).
+		SetHitDice(imp.HitDice).
+		SetHitDiceCurrent(0).
+		SetProficiencyBonus(0).
+		SetInspiration(0).
+		SetPassivePerception(0).
+		SetPersonalityTraits(imp.PersonalityTraits).
+		SetIdeals(imp.Ideals).
+		SetBonds(imp.Bonds).
+		SetFlaws(imp.Flaws).
+		SetAppearance(imp.Appearance).
+		SetBackstory(imp.Backstory).
+		SetCreatedAt(now).
+		SetUpdatedAt(now).
+		Save(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	charID, _ := result.LastInsertId()
+	charID := char.ID
 
 	// Currency
-	tx.Exec("INSERT INTO character_currency(character_id,cp,sp,ep,gp,pp) VALUES(?,?,?,?,?,?)",
-		charID, imp.Currency.CP, imp.Currency.SP, imp.Currency.EP, imp.Currency.GP, imp.Currency.PP)
+	tx.CharacterCurrency.Create().
+		SetCharacterID(charID).
+		SetCp(imp.Currency.CP).
+		SetSp(imp.Currency.SP).
+		SetEp(imp.Currency.EP).
+		SetGp(imp.Currency.GP).
+		SetPp(imp.Currency.PP).
+		Save(c.Request.Context())
 
 	// Proficiencies
 	for _, p := range imp.Proficiencies {
-		tx.Exec("INSERT INTO character_proficiencies(character_id,type,name) VALUES(?,?,?)", charID, p.Type, p.Name)
+		tx.CharacterProficiency.Create().
+			SetCharacterID(charID).
+			SetType(p.Type).
+			SetName(p.Name).
+			Save(c.Request.Context())
 	}
 
 	// Features
 	for _, f := range imp.Features {
-		tx.Exec("INSERT INTO character_features(character_id,name,description,source,level_gained) VALUES(?,?,?,?,?)",
-			charID, f.Name, f.Description, f.Source, f.LevelGained)
+		tx.CharacterFeature.Create().
+			SetCharacterID(charID).
+			SetName(f.Name).
+			SetDescription(f.Description).
+			SetSource(f.Source).
+			SetLevelGained(f.LevelGained).
+			Save(c.Request.Context())
 	}
 
 	// Spellcasting
 	if imp.Spellcasting != nil {
-		tx.Exec(`
-			INSERT INTO character_spellcasting(character_id,ability,save_dc,attack_bonus,
-				slots_1_max,slots_1_used,slots_2_max,slots_2_used,
-				slots_3_max,slots_3_used,slots_4_max,slots_4_used,
-				slots_5_max,slots_5_used,slots_6_max,slots_6_used,
-				slots_7_max,slots_7_used,slots_8_max,slots_8_used,
-				slots_9_max,slots_9_used)
-			VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-			charID, imp.Spellcasting.Ability, imp.Spellcasting.SaveDC, imp.Spellcasting.AttackBonus,
-			imp.Spellcasting.Slots1Max, imp.Spellcasting.Slots1Used,
-			imp.Spellcasting.Slots2Max, imp.Spellcasting.Slots2Used,
-			imp.Spellcasting.Slots3Max, imp.Spellcasting.Slots3Used,
-			imp.Spellcasting.Slots4Max, imp.Spellcasting.Slots4Used,
-			imp.Spellcasting.Slots5Max, imp.Spellcasting.Slots5Used,
-			imp.Spellcasting.Slots6Max, imp.Spellcasting.Slots6Used,
-			imp.Spellcasting.Slots7Max, imp.Spellcasting.Slots7Used,
-			imp.Spellcasting.Slots8Max, imp.Spellcasting.Slots8Used,
-			imp.Spellcasting.Slots9Max, imp.Spellcasting.Slots9Used)
+		sc := imp.Spellcasting
+		tx.CharacterSpellcasting.Create().
+			SetCharacterID(charID).
+			SetAbility(sc.Ability).
+			SetSaveDc(sc.SaveDC).
+			SetAttackBonus(sc.AttackBonus).
+			SetSlots1Max(sc.Slots1Max).SetSlots1Used(sc.Slots1Used).
+			SetSlots2Max(sc.Slots2Max).SetSlots2Used(sc.Slots2Used).
+			SetSlots3Max(sc.Slots3Max).SetSlots3Used(sc.Slots3Used).
+			SetSlots4Max(sc.Slots4Max).SetSlots4Used(sc.Slots4Used).
+			SetSlots5Max(sc.Slots5Max).SetSlots5Used(sc.Slots5Used).
+			SetSlots6Max(sc.Slots6Max).SetSlots6Used(sc.Slots6Used).
+			SetSlots7Max(sc.Slots7Max).SetSlots7Used(sc.Slots7Used).
+			SetSlots8Max(sc.Slots8Max).SetSlots8Used(sc.Slots8Used).
+			SetSlots9Max(sc.Slots9Max).SetSlots9Used(sc.Slots9Used).
+			Save(c.Request.Context())
 	}
 
 	// Spells
 	for _, sp := range imp.Spells {
-		tx.Exec(`
-			INSERT INTO spells(character_id,name,level,school,casting_time,range,components,duration,
-				description,prepared,always_prepared,source,notes)
-			VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-			charID, sp.Name, sp.Level, sp.School, sp.CastingTime, sp.Range, sp.Components, sp.Duration,
-			sp.Description, sp.Prepared, sp.AlwaysPrepared, sp.Source, sp.Notes)
+		tx.Spell.Create().
+			SetCharacterID(charID).
+			SetName(sp.Name).
+			SetLevel(sp.Level).
+			SetSchool(sp.School).
+			SetCastingTime(sp.CastingTime).
+			SetRange(sp.Range).
+			SetComponents(sp.Components).
+			SetDuration(sp.Duration).
+			SetDescription(sp.Description).
+			SetPrepared(sp.Prepared).
+			SetAlwaysPrepared(sp.AlwaysPrepared).
+			SetSource(sp.Source).
+			SetNotes(sp.Notes).
+			Save(c.Request.Context())
 	}
 
 	// Inventory
 	for _, item := range imp.Inventory {
-		tx.Exec(`
-			INSERT INTO inventory(character_id,name,quantity,weight,category,
-				damage_dice,damage_type,weapon_properties,
-				ac_bonus,armor_type,description,
-				is_equipped,is_magical,attunement,notes)
-			VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-			charID, item.Name, item.Quantity, item.Weight, item.Category,
-			item.DamageDice, item.DamageType, item.WeaponProperties,
-			item.ACBonus, item.ArmorType, item.Description,
-			item.IsEquipped, item.IsMagical, item.Attunement, item.Notes)
+		tx.InventoryItem.Create().
+			SetCharacterID(charID).
+			SetName(item.Name).
+			SetQuantity(item.Quantity).
+			SetWeight(item.Weight).
+			SetCategory(item.Category).
+			SetDamageDice(item.DamageDice).
+			SetDamageType(item.DamageType).
+			SetWeaponProperties(item.WeaponProperties).
+			SetAcBonus(item.ACBonus).
+			SetArmorType(item.ArmorType).
+			SetDescription(item.Description).
+			SetIsEquipped(item.IsEquipped).
+			SetIsMagical(item.IsMagical).
+			SetAttunement(item.Attunement).
+			SetNotes(item.Notes).
+			Save(c.Request.Context())
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -927,8 +1117,14 @@ func UpdateCurrency(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	db.DB.Exec(`UPDATE character_currency SET cp=?,sp=?,ep=?,gp=?,pp=? WHERE character_id=?`,
-		cur.CP, cur.SP, cur.EP, cur.GP, cur.PP, id)
+	db.Client.CharacterCurrency.Update().
+		Where(charactercurrency.CharacterID(id)).
+		SetCp(cur.CP).
+		SetSp(cur.SP).
+		SetEp(cur.EP).
+		SetGp(cur.GP).
+		SetPp(cur.PP).
+		Exec(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -941,59 +1137,52 @@ func UpdateSpellcasting(c *gin.Context) {
 	}
 
 	// Auto-calc save DC and attack bonus from ability + proficiency
-	var profBonus int
-	var strMod, dexMod, conMod, intMod, wisMod, chaMod int
-	err := db.DB.QueryRow("SELECT proficiency_bonus, str, dex, con, int, wis, cha FROM characters WHERE id=?", id).
-		Scan(&profBonus, &strMod, &dexMod, &conMod, &intMod, &wisMod, &chaMod)
+	entChar, err := db.Client.Character.Query().
+		Where(character.ID(id)).
+		Select(character.FieldProficiencyBonus, character.FieldStr, character.FieldDex, character.FieldCon, character.FieldInt, character.FieldWis, character.FieldCha).
+		Only(c.Request.Context())
 	if err == nil {
 		var abilMod int
 		switch sc.Ability {
 		case "str":
-			abilMod = abilityMod(strMod)
+			abilMod = abilityMod(entChar.Str)
 		case "dex":
-			abilMod = abilityMod(dexMod)
+			abilMod = abilityMod(entChar.Dex)
 		case "con":
-			abilMod = abilityMod(conMod)
+			abilMod = abilityMod(entChar.Con)
 		case "int":
-			abilMod = abilityMod(intMod)
+			abilMod = abilityMod(entChar.Int)
 		case "wis":
-			abilMod = abilityMod(wisMod)
+			abilMod = abilityMod(entChar.Wis)
 		case "cha":
-			abilMod = abilityMod(chaMod)
+			abilMod = abilityMod(entChar.Cha)
 		}
 		if sc.SaveDC == 0 {
-			sc.SaveDC = 8 + profBonus + abilMod
+			sc.SaveDC = 8 + entChar.ProficiencyBonus + abilMod
 		}
 		if sc.AttackBonus == 0 {
-			sc.AttackBonus = profBonus + abilMod
+			sc.AttackBonus = entChar.ProficiencyBonus + abilMod
 		}
 	}
 
-	db.DB.Exec(`
-		INSERT INTO character_spellcasting(character_id,ability,save_dc,attack_bonus,
-			slots_1_max,slots_1_used,slots_2_max,slots_2_used,
-			slots_3_max,slots_3_used,slots_4_max,slots_4_used,
-			slots_5_max,slots_5_used,slots_6_max,slots_6_used,
-			slots_7_max,slots_7_used,slots_8_max,slots_8_used,
-			slots_9_max,slots_9_used)
-		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-		ON CONFLICT(character_id) DO UPDATE SET
-			ability=excluded.ability, save_dc=excluded.save_dc, attack_bonus=excluded.attack_bonus,
-			slots_1_max=excluded.slots_1_max, slots_1_used=excluded.slots_1_used,
-			slots_2_max=excluded.slots_2_max, slots_2_used=excluded.slots_2_used,
-			slots_3_max=excluded.slots_3_max, slots_3_used=excluded.slots_3_used,
-			slots_4_max=excluded.slots_4_max, slots_4_used=excluded.slots_4_used,
-			slots_5_max=excluded.slots_5_max, slots_5_used=excluded.slots_5_used,
-			slots_6_max=excluded.slots_6_max, slots_6_used=excluded.slots_6_used,
-			slots_7_max=excluded.slots_7_max, slots_7_used=excluded.slots_7_used,
-			slots_8_max=excluded.slots_8_max, slots_8_used=excluded.slots_8_used,
-			slots_9_max=excluded.slots_9_max, slots_9_used=excluded.slots_9_used`,
-		id, sc.Ability, sc.SaveDC, sc.AttackBonus,
-		sc.Slots1Max, sc.Slots1Used, sc.Slots2Max, sc.Slots2Used,
-		sc.Slots3Max, sc.Slots3Used, sc.Slots4Max, sc.Slots4Used,
-		sc.Slots5Max, sc.Slots5Used, sc.Slots6Max, sc.Slots6Used,
-		sc.Slots7Max, sc.Slots7Used, sc.Slots8Max, sc.Slots8Used,
-		sc.Slots9Max, sc.Slots9Used)
+	db.Client.CharacterSpellcasting.Create().
+		SetCharacterID(id).
+		SetAbility(sc.Ability).
+		SetSaveDc(sc.SaveDC).
+		SetAttackBonus(sc.AttackBonus).
+		SetSlots1Max(sc.Slots1Max).SetSlots1Used(sc.Slots1Used).
+		SetSlots2Max(sc.Slots2Max).SetSlots2Used(sc.Slots2Used).
+		SetSlots3Max(sc.Slots3Max).SetSlots3Used(sc.Slots3Used).
+		SetSlots4Max(sc.Slots4Max).SetSlots4Used(sc.Slots4Used).
+		SetSlots5Max(sc.Slots5Max).SetSlots5Used(sc.Slots5Used).
+		SetSlots6Max(sc.Slots6Max).SetSlots6Used(sc.Slots6Used).
+		SetSlots7Max(sc.Slots7Max).SetSlots7Used(sc.Slots7Used).
+		SetSlots8Max(sc.Slots8Max).SetSlots8Used(sc.Slots8Used).
+		SetSlots9Max(sc.Slots9Max).SetSlots9Used(sc.Slots9Used).
+		OnConflictColumns("character_id").
+		UpdateNewValues().
+		Exec(c.Request.Context())
+
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -1006,22 +1195,28 @@ func CreateInventory(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	result, err := db.DB.Exec(`
-		INSERT INTO inventory(character_id,name,quantity,weight,category,
-			damage_dice,damage_type,weapon_properties,
-			ac_bonus,armor_type,description,
-			is_equipped,is_magical,attunement,notes)
-		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-		charID, item.Name, item.Quantity, item.Weight, item.Category,
-		item.DamageDice, item.DamageType, item.WeaponProperties,
-		item.ACBonus, item.ArmorType, item.Description,
-		item.IsEquipped, item.IsMagical, item.Attunement, item.Notes)
+	result, err := db.Client.InventoryItem.Create().
+		SetCharacterID(charID).
+		SetName(item.Name).
+		SetQuantity(item.Quantity).
+		SetWeight(item.Weight).
+		SetCategory(item.Category).
+		SetDamageDice(item.DamageDice).
+		SetDamageType(item.DamageType).
+		SetWeaponProperties(item.WeaponProperties).
+		SetAcBonus(item.ACBonus).
+		SetArmorType(item.ArmorType).
+		SetDescription(item.Description).
+		SetIsEquipped(item.IsEquipped).
+		SetIsMagical(item.IsMagical).
+		SetAttunement(item.Attunement).
+		SetNotes(item.Notes).
+		Save(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	id, _ := result.LastInsertId()
-	c.JSON(http.StatusCreated, gin.H{"id": id})
+	c.JSON(http.StatusCreated, gin.H{"id": result.ID})
 }
 
 func UpdateInventory(c *gin.Context) {
@@ -1031,16 +1226,22 @@ func UpdateInventory(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	_, err := db.DB.Exec(`
-		UPDATE inventory SET name=?,quantity=?,weight=?,category=?,
-			damage_dice=?,damage_type=?,weapon_properties=?,
-			ac_bonus=?,armor_type=?,description=?,
-			is_equipped=?,is_magical=?,attunement=?,notes=?
-		WHERE id=?`,
-		item.Name, item.Quantity, item.Weight, item.Category,
-		item.DamageDice, item.DamageType, item.WeaponProperties,
-		item.ACBonus, item.ArmorType, item.Description,
-		item.IsEquipped, item.IsMagical, item.Attunement, item.Notes, iid)
+	_, err := db.Client.InventoryItem.UpdateOneID(iid).
+		SetName(item.Name).
+		SetQuantity(item.Quantity).
+		SetWeight(item.Weight).
+		SetCategory(item.Category).
+		SetDamageDice(item.DamageDice).
+		SetDamageType(item.DamageType).
+		SetWeaponProperties(item.WeaponProperties).
+		SetAcBonus(item.ACBonus).
+		SetArmorType(item.ArmorType).
+		SetDescription(item.Description).
+		SetIsEquipped(item.IsEquipped).
+		SetIsMagical(item.IsMagical).
+		SetAttunement(item.Attunement).
+		SetNotes(item.Notes).
+		Save(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -1050,17 +1251,20 @@ func UpdateInventory(c *gin.Context) {
 
 func DeleteInventory(c *gin.Context) {
 	iid, _ := strconv.ParseInt(c.Param("iid"), 10, 64)
-	var charID int64
-	err := db.DB.QueryRow("SELECT character_id FROM inventory WHERE id=?", iid).Scan(&charID)
-	if err != nil {
+	entItem, err := db.Client.InventoryItem.Query().Where(inventoryitem.ID(iid)).Select(inventoryitem.FieldCharacterID).Only(c.Request.Context())
+	if ent.IsNotFound(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "item not found"})
 		return
 	}
-	if !checkCharacterAccess(c, charID) {
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if !checkCharacterAccess(c, entItem.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-	db.DB.Exec("DELETE FROM inventory WHERE id=?", iid)
+	db.Client.InventoryItem.DeleteOneID(iid).Exec(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -1073,18 +1277,26 @@ func CreateSpell(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	result, err := db.DB.Exec(`
-		INSERT INTO spells(character_id,name,level,school,casting_time,range,components,duration,
-			description,prepared,always_prepared,source,notes)
-		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-		charID, sp.Name, sp.Level, sp.School, sp.CastingTime, sp.Range, sp.Components, sp.Duration,
-		sp.Description, sp.Prepared, sp.AlwaysPrepared, sp.Source, sp.Notes)
+	result, err := db.Client.Spell.Create().
+		SetCharacterID(charID).
+		SetName(sp.Name).
+		SetLevel(sp.Level).
+		SetSchool(sp.School).
+		SetCastingTime(sp.CastingTime).
+		SetRange(sp.Range).
+		SetComponents(sp.Components).
+		SetDuration(sp.Duration).
+		SetDescription(sp.Description).
+		SetPrepared(sp.Prepared).
+		SetAlwaysPrepared(sp.AlwaysPrepared).
+		SetSource(sp.Source).
+		SetNotes(sp.Notes).
+		Save(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	id, _ := result.LastInsertId()
-	c.JSON(http.StatusCreated, gin.H{"id": id})
+	c.JSON(http.StatusCreated, gin.H{"id": result.ID})
 }
 
 func UpdateSpell(c *gin.Context) {
@@ -1094,12 +1306,20 @@ func UpdateSpell(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	_, err := db.DB.Exec(`
-		UPDATE spells SET name=?,level=?,school=?,casting_time=?,range=?,components=?,duration=?,
-			description=?,prepared=?,always_prepared=?,source=?,notes=?
-		WHERE id=?`,
-		sp.Name, sp.Level, sp.School, sp.CastingTime, sp.Range, sp.Components, sp.Duration,
-		sp.Description, sp.Prepared, sp.AlwaysPrepared, sp.Source, sp.Notes, sid)
+	_, err := db.Client.Spell.UpdateOneID(sid).
+		SetName(sp.Name).
+		SetLevel(sp.Level).
+		SetSchool(sp.School).
+		SetCastingTime(sp.CastingTime).
+		SetRange(sp.Range).
+		SetComponents(sp.Components).
+		SetDuration(sp.Duration).
+		SetDescription(sp.Description).
+		SetPrepared(sp.Prepared).
+		SetAlwaysPrepared(sp.AlwaysPrepared).
+		SetSource(sp.Source).
+		SetNotes(sp.Notes).
+		Save(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -1109,17 +1329,20 @@ func UpdateSpell(c *gin.Context) {
 
 func DeleteSpell(c *gin.Context) {
 	sid, _ := strconv.ParseInt(c.Param("sid"), 10, 64)
-	var charID int64
-	err := db.DB.QueryRow("SELECT character_id FROM spells WHERE id=?", sid).Scan(&charID)
-	if err != nil {
+	entSpell, err := db.Client.Spell.Query().Where(spell.ID(sid)).Select(spell.FieldCharacterID).Only(c.Request.Context())
+	if ent.IsNotFound(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "spell not found"})
 		return
 	}
-	if !checkCharacterAccess(c, charID) {
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if !checkCharacterAccess(c, entSpell.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-	db.DB.Exec("DELETE FROM spells WHERE id=?", sid)
+	db.Client.Spell.DeleteOneID(sid).Exec(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -1132,15 +1355,18 @@ func CreateFeature(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	result, err := db.DB.Exec(`
-		INSERT INTO character_features(character_id,name,description,source,level_gained)
-		VALUES(?,?,?,?,?)`, charID, f.Name, f.Description, f.Source, f.LevelGained)
+	result, err := db.Client.CharacterFeature.Create().
+		SetCharacterID(charID).
+		SetName(f.Name).
+		SetDescription(f.Description).
+		SetSource(f.Source).
+		SetLevelGained(f.LevelGained).
+		Save(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	id, _ := result.LastInsertId()
-	c.JSON(http.StatusCreated, gin.H{"id": id})
+	c.JSON(http.StatusCreated, gin.H{"id": result.ID})
 }
 
 func UpdateFeature(c *gin.Context) {
@@ -1150,8 +1376,12 @@ func UpdateFeature(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	_, err := db.DB.Exec(`UPDATE character_features SET name=?,description=?,source=?,level_gained=? WHERE id=?`,
-		f.Name, f.Description, f.Source, f.LevelGained, fid)
+	_, err := db.Client.CharacterFeature.UpdateOneID(fid).
+		SetName(f.Name).
+		SetDescription(f.Description).
+		SetSource(f.Source).
+		SetLevelGained(f.LevelGained).
+		Save(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -1161,17 +1391,20 @@ func UpdateFeature(c *gin.Context) {
 
 func DeleteFeature(c *gin.Context) {
 	fid, _ := strconv.ParseInt(c.Param("fid"), 10, 64)
-	var charID int64
-	err := db.DB.QueryRow("SELECT character_id FROM character_features WHERE id=?", fid).Scan(&charID)
-	if err != nil {
+	entFeature, err := db.Client.CharacterFeature.Query().Where(characterfeature.ID(fid)).Select(characterfeature.FieldCharacterID).Only(c.Request.Context())
+	if ent.IsNotFound(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "feature not found"})
 		return
 	}
-	if !checkCharacterAccess(c, charID) {
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if !checkCharacterAccess(c, entFeature.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-	db.DB.Exec("DELETE FROM character_features WHERE id=?", fid)
+	db.Client.CharacterFeature.DeleteOneID(fid).Exec(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -1183,29 +1416,34 @@ func CreateProficiency(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	result, err := db.DB.Exec(`INSERT INTO character_proficiencies(character_id,type,name) VALUES(?,?,?)`,
-		p.CharacterID, p.Type, p.Name)
+	result, err := db.Client.CharacterProficiency.Create().
+		SetCharacterID(p.CharacterID).
+		SetType(p.Type).
+		SetName(p.Name).
+		Save(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	id, _ := result.LastInsertId()
-	c.JSON(http.StatusCreated, gin.H{"id": id})
+	c.JSON(http.StatusCreated, gin.H{"id": result.ID})
 }
 
 func DeleteProficiency(c *gin.Context) {
 	pid, _ := strconv.ParseInt(c.Param("pid"), 10, 64)
-	var charID int64
-	err := db.DB.QueryRow("SELECT character_id FROM character_proficiencies WHERE id=?", pid).Scan(&charID)
-	if err != nil {
+	entProf, err := db.Client.CharacterProficiency.Query().Where(characterproficiency.ID(pid)).Select(characterproficiency.FieldCharacterID).Only(c.Request.Context())
+	if ent.IsNotFound(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "proficiency not found"})
 		return
 	}
-	if !checkCharacterAccess(c, charID) {
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if !checkCharacterAccess(c, entProf.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-	db.DB.Exec("DELETE FROM character_proficiencies WHERE id=?", pid)
+	db.Client.CharacterProficiency.DeleteOneID(pid).Exec(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -1233,7 +1471,7 @@ func ImportJSON(c *gin.Context) {
 			}
 			chars = []models.ImportCharacter{single}
 		}
-		results := importCharacters(userID.(int64), chars)
+		results := importCharacters(c.Request.Context(), userID.(int64), chars)
 		c.JSON(http.StatusOK, results)
 		return
 	}
@@ -1248,11 +1486,11 @@ func ImportJSON(c *gin.Context) {
 		chars = []models.ImportCharacter{single}
 	}
 
-	results := importCharacters(userID.(int64), chars)
+	results := importCharacters(c.Request.Context(), userID.(int64), chars)
 	c.JSON(http.StatusOK, results)
 }
 
-func importCharacters(userID int64, chars []models.ImportCharacter) []gin.H {
+func importCharacters(ctx context.Context, userID int64, chars []models.ImportCharacter) []gin.H {
 	var results []gin.H
 	for _, imp := range chars {
 		if imp.Name == "" {
@@ -1269,65 +1507,125 @@ func importCharacters(userID int64, chars []models.ImportCharacter) []gin.H {
 			imp.HitDice = fmt.Sprintf("1d%d", 10)
 		}
 
-		tx, err := db.DB.Begin()
+		tx, err := db.Client.Tx(ctx)
 		if err != nil {
 			results = append(results, gin.H{"error": err.Error()})
 			continue
 		}
 
-		result, err := tx.Exec(`INSERT INTO characters(user_id,name,race,class,subclass,level,xp,background,alignment,
-			str,dex,con,int,wis,cha,ac,initiative,speed,hp_max,hp_current,temp_hp,hit_dice,hit_dice_current,
-			proficiency_bonus,inspiration,passive_perception,personality_traits,ideals,bonds,flaws,appearance,backstory)
-			VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0,0,0,?,?,?,?,?,?)`,
-			userID, imp.Name, imp.Race, imp.Class, imp.Subclass, imp.Level, imp.XP, imp.Background, imp.Alignment,
-			imp.Str, imp.Dex, imp.Con, imp.Int, imp.Wis, imp.Cha,
-			imp.AC, imp.Initiative, imp.Speed, imp.HPMax, imp.HPCurrent, imp.TempHP, imp.HitDice, 0,
-			imp.PersonalityTraits, imp.Ideals, imp.Bonds, imp.Flaws, imp.Appearance, imp.Backstory)
+		now := time.Now().Format("2006-01-02 15:04:05")
+
+		char, err := tx.Character.Create().
+			SetUserID(userID).
+			SetName(imp.Name).
+			SetRace(imp.Race).
+			SetClass(imp.Class).
+			SetSubclass(imp.Subclass).
+			SetLevel(imp.Level).
+			SetXp(imp.XP).
+			SetBackground(imp.Background).
+			SetAlignment(imp.Alignment).
+			SetStr(imp.Str).
+			SetDex(imp.Dex).
+			SetCon(imp.Con).
+			SetInt(imp.Int).
+			SetWis(imp.Wis).
+			SetCha(imp.Cha).
+			SetAc(imp.AC).
+			SetInitiative(imp.Initiative).
+			SetSpeed(imp.Speed).
+			SetHpMax(imp.HPMax).
+			SetHpCurrent(imp.HPCurrent).
+			SetTempHp(imp.TempHP).
+			SetHitDice(imp.HitDice).
+			SetHitDiceCurrent(0).
+			SetProficiencyBonus(0).
+			SetInspiration(0).
+			SetPassivePerception(0).
+			SetPersonalityTraits(imp.PersonalityTraits).
+			SetIdeals(imp.Ideals).
+			SetBonds(imp.Bonds).
+			SetFlaws(imp.Flaws).
+			SetAppearance(imp.Appearance).
+			SetBackstory(imp.Backstory).
+			SetCreatedAt(now).
+			SetUpdatedAt(now).
+			Save(ctx)
 		if err != nil {
 			tx.Rollback()
 			results = append(results, gin.H{"error": err.Error(), "name": imp.Name})
 			continue
 		}
-		charID, _ := result.LastInsertId()
-		tx.Exec("INSERT INTO character_currency(character_id) VALUES(?)", charID)
+		charID := char.ID
+
+		tx.CharacterCurrency.Create().SetCharacterID(charID).Save(ctx)
 
 		// Proficiencies
 		for _, p := range imp.Proficiencies {
-			tx.Exec("INSERT INTO character_proficiencies(character_id,type,name) VALUES(?,?,?)", charID, p.Type, p.Name)
+			tx.CharacterProficiency.Create().SetCharacterID(charID).SetType(p.Type).SetName(p.Name).Save(ctx)
 		}
 		for _, f := range imp.Features {
-			tx.Exec("INSERT INTO character_features(character_id,name,description,source,level_gained) VALUES(?,?,?,?,?)",
-				charID, f.Name, f.Description, f.Source, f.LevelGained)
+			tx.CharacterFeature.Create().
+				SetCharacterID(charID).
+				SetName(f.Name).
+				SetDescription(f.Description).
+				SetSource(f.Source).
+				SetLevelGained(f.LevelGained).
+				Save(ctx)
 		}
 		if imp.Spellcasting != nil {
 			sc := imp.Spellcasting
-			tx.Exec(`INSERT INTO character_spellcasting(character_id,ability,save_dc,attack_bonus,
-				slots_1_max,slots_1_used,slots_2_max,slots_2_used,
-				slots_3_max,slots_3_used,slots_4_max,slots_4_used,
-				slots_5_max,slots_5_used,slots_6_max,slots_6_used,
-				slots_7_max,slots_7_used,slots_8_max,slots_8_used,
-				slots_9_max,slots_9_used) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-				charID, sc.Ability, sc.SaveDC, sc.AttackBonus,
-				sc.Slots1Max, sc.Slots1Used, sc.Slots2Max, sc.Slots2Used,
-				sc.Slots3Max, sc.Slots3Used, sc.Slots4Max, sc.Slots4Used,
-				sc.Slots5Max, sc.Slots5Used, sc.Slots6Max, sc.Slots6Used,
-				sc.Slots7Max, sc.Slots7Used, sc.Slots8Max, sc.Slots8Used,
-				sc.Slots9Max, sc.Slots9Used)
+			tx.CharacterSpellcasting.Create().
+				SetCharacterID(charID).
+				SetAbility(sc.Ability).
+				SetSaveDc(sc.SaveDC).
+				SetAttackBonus(sc.AttackBonus).
+				SetSlots1Max(sc.Slots1Max).SetSlots1Used(sc.Slots1Used).
+				SetSlots2Max(sc.Slots2Max).SetSlots2Used(sc.Slots2Used).
+				SetSlots3Max(sc.Slots3Max).SetSlots3Used(sc.Slots3Used).
+				SetSlots4Max(sc.Slots4Max).SetSlots4Used(sc.Slots4Used).
+				SetSlots5Max(sc.Slots5Max).SetSlots5Used(sc.Slots5Used).
+				SetSlots6Max(sc.Slots6Max).SetSlots6Used(sc.Slots6Used).
+				SetSlots7Max(sc.Slots7Max).SetSlots7Used(sc.Slots7Used).
+				SetSlots8Max(sc.Slots8Max).SetSlots8Used(sc.Slots8Used).
+				SetSlots9Max(sc.Slots9Max).SetSlots9Used(sc.Slots9Used).
+				Save(ctx)
 		}
 		for _, sp := range imp.Spells {
-			tx.Exec(`INSERT INTO spells(character_id,name,level,school,casting_time,range,components,duration,
-				description,prepared,always_prepared,source,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-				charID, sp.Name, sp.Level, sp.School, sp.CastingTime, sp.Range, sp.Components, sp.Duration,
-				sp.Description, sp.Prepared, sp.AlwaysPrepared, sp.Source, sp.Notes)
+			tx.Spell.Create().
+				SetCharacterID(charID).
+				SetName(sp.Name).
+				SetLevel(sp.Level).
+				SetSchool(sp.School).
+				SetCastingTime(sp.CastingTime).
+				SetRange(sp.Range).
+				SetComponents(sp.Components).
+				SetDuration(sp.Duration).
+				SetDescription(sp.Description).
+				SetPrepared(sp.Prepared).
+				SetAlwaysPrepared(sp.AlwaysPrepared).
+				SetSource(sp.Source).
+				SetNotes(sp.Notes).
+				Save(ctx)
 		}
 		for _, item := range imp.Inventory {
-			tx.Exec(`INSERT INTO inventory(character_id,name,quantity,weight,category,
-				damage_dice,damage_type,weapon_properties,ac_bonus,armor_type,description,
-				is_equipped,is_magical,attunement,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-				charID, item.Name, item.Quantity, item.Weight, item.Category,
-				item.DamageDice, item.DamageType, item.WeaponProperties,
-				item.ACBonus, item.ArmorType, item.Description,
-				item.IsEquipped, item.IsMagical, item.Attunement, item.Notes)
+			tx.InventoryItem.Create().
+				SetCharacterID(charID).
+				SetName(item.Name).
+				SetQuantity(item.Quantity).
+				SetWeight(item.Weight).
+				SetCategory(item.Category).
+				SetDamageDice(item.DamageDice).
+				SetDamageType(item.DamageType).
+				SetWeaponProperties(item.WeaponProperties).
+				SetAcBonus(item.ACBonus).
+				SetArmorType(item.ArmorType).
+				SetDescription(item.Description).
+				SetIsEquipped(item.IsEquipped).
+				SetIsMagical(item.IsMagical).
+				SetAttunement(item.Attunement).
+				SetNotes(item.Notes).
+				Save(ctx)
 		}
 		if err := tx.Commit(); err != nil {
 			results = append(results, gin.H{"error": err.Error(), "name": imp.Name})

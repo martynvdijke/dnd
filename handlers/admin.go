@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"database/sql"
 	"net/http"
 	"os"
 	"strconv"
@@ -10,23 +9,29 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"villum/db"
+	"villum/ent"
+	"villum/ent/user"
 	"villum/models"
 )
 
 func AdminListUsers(c *gin.Context) {
-	rows, err := db.DB.Query("SELECT id, username, display_name, role, email, created_at FROM users ORDER BY id")
+	users, err := db.Client.User.Query().Order(ent.Asc(user.FieldID)).All(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
-	var users []models.User
-	for rows.Next() {
-		var u models.User
-		rows.Scan(&u.ID, &u.Username, &u.DisplayName, &u.Role, &u.Email, &u.CreatedAt)
-		users = append(users, u)
+	result := make([]models.User, len(users))
+	for i, u := range users {
+		result[i] = models.User{
+			ID:          u.ID,
+			Username:    u.Username,
+			DisplayName: u.DisplayName,
+			Role:        u.Role,
+			Email:       u.Email,
+			CreatedAt:   u.CreatedAt,
+		}
 	}
-	c.JSON(http.StatusOK, users)
+	c.JSON(http.StatusOK, result)
 }
 
 func AdminCreateUser(c *gin.Context) {
@@ -57,14 +62,22 @@ func AdminCreateUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
 		return
 	}
-	result, err := db.DB.Exec("INSERT INTO users(username,password,display_name,role,email) VALUES(?,?,?,?,?)",
-		req.Username, string(hash), req.DisplayName, req.Role, req.Email)
+	u, err := db.Client.User.Create().
+		SetUsername(req.Username).
+		SetPassword(string(hash)).
+		SetDisplayName(req.DisplayName).
+		SetRole(req.Role).
+		SetEmail(req.Email).
+		Save(c.Request.Context())
 	if err != nil {
+		if ent.IsConstraintError(err) {
+			c.JSON(http.StatusConflict, gin.H{"error": "username may already exist"})
+			return
+		}
 		c.JSON(http.StatusConflict, gin.H{"error": "username may already exist"})
 		return
 	}
-	id, _ := result.LastInsertId()
-	c.JSON(http.StatusCreated, gin.H{"id": id})
+	c.JSON(http.StatusCreated, gin.H{"id": u.ID})
 }
 
 func AdminUpdateUser(c *gin.Context) {
@@ -79,20 +92,23 @@ func AdminUpdateUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	db.DB.Exec("UPDATE users SET username=?, display_name=?, role=?, email=? WHERE id=?",
-		req.Username, req.DisplayName, req.Role, req.Email, id)
+	db.Client.User.UpdateOneID(id).
+		SetUsername(req.Username).
+		SetDisplayName(req.DisplayName).
+		SetRole(req.Role).
+		SetEmail(req.Email).
+		Exec(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 func AdminDeleteUser(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	// Don't allow deleting self
 	currentUserID, _ := c.Get("user_id")
 	if currentUserID == id {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "cannot delete yourself"})
 		return
 	}
-	db.DB.Exec("DELETE FROM users WHERE id=?", id)
+	db.Client.User.DeleteOneID(id).Exec(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -114,27 +130,21 @@ func AdminResetPassword(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash"})
 		return
 	}
-	db.DB.Exec("UPDATE users SET password=? WHERE id=?", string(hash), id)
+	db.Client.User.UpdateOneID(id).SetPassword(string(hash)).Exec(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
-// Backup settings
-
 func GetBackupSettings(c *gin.Context) {
-	var enabled bool
-	var intervalDays int
-	var keepCount int
-	var lastBackup string
-	err := db.DB.QueryRow("SELECT enabled, COALESCE(interval_days, 7), COALESCE(keep_count, 7), last_backup FROM backup_settings WHERE id=1").Scan(&enabled, &intervalDays, &keepCount, &lastBackup)
-	if err == sql.ErrNoRows {
-		c.JSON(http.StatusOK, gin.H{"enabled": true, "interval_days": 7, "keep_count": 7, "last_backup": ""})
-		return
-	}
+	s, err := db.Client.BackupSetting.Query().Only(c.Request.Context())
 	if err != nil {
+		if ent.IsNotFound(err) {
+			c.JSON(http.StatusOK, gin.H{"enabled": true, "interval_days": 7, "keep_count": 7, "last_backup": ""})
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{"enabled": true, "interval_days": 7, "keep_count": 7, "last_backup": ""})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"enabled": enabled, "interval_days": intervalDays, "keep_count": keepCount, "last_backup": lastBackup})
+	c.JSON(http.StatusOK, gin.H{"enabled": s.Enabled, "interval_days": s.IntervalDays, "keep_count": s.KeepCount, "last_backup": s.LastBackup})
 }
 
 func SaveBackupSettings(c *gin.Context) {
@@ -153,9 +163,16 @@ func SaveBackupSettings(c *gin.Context) {
 	if req.KeepCount < 1 {
 		req.KeepCount = 7
 	}
-	db.DB.Exec(`INSERT INTO backup_settings(id,enabled,interval_days,keep_count,last_backup) VALUES(1,?,?,?,'')
-		ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled, interval_days=excluded.interval_days, keep_count=excluded.keep_count`,
-		req.Enabled, req.IntervalDays, req.KeepCount)
+	db.Client.BackupSetting.Create().
+		SetID(1).
+		SetEnabled(req.Enabled).
+		SetIntervalDays(req.IntervalDays).
+		SetKeepCount(req.KeepCount).
+		OnConflict().
+		UpdateEnabled().
+		UpdateIntervalDays().
+		UpdateKeepCount().
+		Exec(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -170,7 +187,6 @@ func TriggerBackup(c *gin.Context) {
 }
 
 func ListBackups(c *gin.Context) {
-	// List backup files from the backups directory
 	backupDir := "backups"
 	entries, err := os.ReadDir(backupDir)
 	if err != nil {
