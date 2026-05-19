@@ -10,6 +10,13 @@ async function ensureNavOpen(page) {
   }
 }
 
+async function waitModalClosed(page) {
+  await page.waitForFunction(() => {
+    const modal = document.getElementById('genericModal');
+    return !modal || !modal.classList.contains('show');
+  }, { timeout: 10000 }).catch(() => {});
+}
+
 test.describe('Advanced Search', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
@@ -56,12 +63,12 @@ test.describe('Advanced Search', () => {
   test('search finds character by name', async ({ page }) => {
     const name = uniqueName();
     await page.click('button:has-text("New Character")');
-    await page.waitForTimeout(300);
+    await page.locator('#newName').waitFor({ state: 'visible', timeout: 5000 });
     await page.fill('#newName', name);
     await page.fill('#newRace', 'Elf');
     await page.fill('#newClass', 'Ranger');
     await page.click('.modal button:has-text("Create")');
-    await page.waitForTimeout(1000);
+    await waitModalClosed(page);
 
     const searchTerm = name.slice(0, 10);
     await ensureNavOpen(page);
@@ -74,12 +81,12 @@ test.describe('Advanced Search', () => {
   test('search result navigates to character sheet', async ({ page }) => {
     const name = uniqueName();
     await page.click('button:has-text("New Character")');
-    await page.waitForTimeout(300);
+    await page.locator('#newName').waitFor({ state: 'visible', timeout: 5000 });
     await page.fill('#newName', name);
     await page.fill('#newRace', 'Dwarf');
     await page.fill('#newClass', 'Fighter');
     await page.click('.modal button:has-text("Create")');
-    await page.waitForTimeout(1000);
+    await waitModalClosed(page);
 
     await ensureNavOpen(page);
     await page.fill('#searchInput', name);

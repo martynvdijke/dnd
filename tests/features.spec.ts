@@ -17,6 +17,13 @@ async function waitLoadingDone(page) {
   }, { timeout: 5000 }).catch(() => {});
 }
 
+async function waitModalClosed(page) {
+  await page.waitForFunction(() => {
+    const modal = document.getElementById('genericModal');
+    return !modal || !modal.classList.contains('show');
+  }, { timeout: 10000 }).catch(() => {});
+}
+
 test.describe('Full feature coverage', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
@@ -42,7 +49,7 @@ test.describe('Full feature coverage', () => {
     await page.fill('#newRace', 'Half-Elf');
     await page.fill('#newClass', 'Paladin');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await expect(page.locator('#charGrid')).toContainText(name);
   });
@@ -54,7 +61,7 @@ test.describe('Full feature coverage', () => {
     await page.fill('#newRace', 'Dragonborn');
     await page.fill('#newClass', 'Sorcerer');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
@@ -69,7 +76,7 @@ test.describe('Full feature coverage', () => {
     await page.fill('#newRace', 'Human');
     await page.fill('#newClass', 'Fighter');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
@@ -87,7 +94,7 @@ test.describe('Full feature coverage', () => {
     await page.fill('#newRace', 'Dwarf');
     await page.fill('#newClass', 'Barbarian');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
@@ -103,7 +110,7 @@ test.describe('Full feature coverage', () => {
     await page.fill('#newRace', 'Elf');
     await page.fill('#newClass', 'Rogue');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
@@ -118,7 +125,7 @@ test.describe('Full feature coverage', () => {
     await page.fill('#newRace', 'Gnome');
     await page.fill('#newClass', 'Wizard');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await ensureNavOpen(page);
     await page.click('a:has-text("Characters")');
@@ -140,7 +147,7 @@ test.describe('Full feature coverage', () => {
 
   test('import modal opens', async ({ page }) => {
     await page.click('button:has-text("Import")');
-    await page.waitForTimeout(300);
-    await expect(page.locator('#importJson')).toBeVisible();
+    await expect(page.locator('#genericModal')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#importJson')).toBeVisible({ timeout: 5000 });
   });
 });

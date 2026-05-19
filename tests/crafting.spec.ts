@@ -9,6 +9,13 @@ async function waitLoadingDone(page) {
   }, { timeout: 5000 }).catch(() => {});
 }
 
+async function waitModalClosed(page) {
+  await page.waitForFunction(() => {
+    const modal = document.getElementById('genericModal');
+    return !modal || !modal.classList.contains('show');
+  }, { timeout: 10000 }).catch(() => {});
+}
+
 test.describe('Crafting System', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
@@ -25,12 +32,12 @@ test.describe('Crafting System', () => {
   test('crafting tab shows recipes', async ({ page }) => {
     const name = uniqueName();
     await page.click('button:has-text("New Character")');
-    await page.waitForTimeout(300);
+    await page.locator('#newName').waitFor({ state: 'visible', timeout: 5000 });
     await page.fill('#newName', name);
     await page.fill('#newRace', 'Human');
     await page.fill('#newClass', 'Artificer');
     await page.click('.modal button:has-text("Create")');
-    await page.waitForTimeout(1000);
+    await waitModalClosed(page);
 
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
@@ -44,11 +51,12 @@ test.describe('Crafting System', () => {
   test('starts crafting via API', async ({ page }) => {
     const name = uniqueName();
     await page.click('button:has-text("New Character")');
-    await page.waitForTimeout(300);
+    await page.locator('#newName').waitFor({ state: 'visible', timeout: 5000 });
     await page.fill('#newName', name);
     await page.fill('#newRace', 'Elf');
     await page.fill('#newClass', 'Wizard');
     await page.click('.modal button:has-text("Create")');
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).waitFor({ state: 'visible', timeout: 10000 });
 
     // Get character ID from the card's onclick attribute
@@ -91,12 +99,12 @@ test.describe('Crafting System', () => {
   test('advances crafting progress via API', async ({ page }) => {
     const name = uniqueName();
     await page.click('button:has-text("New Character")');
-    await page.waitForTimeout(300);
+    await page.locator('#newName').waitFor({ state: 'visible', timeout: 5000 });
     await page.fill('#newName', name);
     await page.fill('#newRace', 'Gnome');
     await page.fill('#newClass', 'Artificer');
     await page.click('.modal button:has-text("Create")');
-    await page.waitForTimeout(1000);
+    await waitModalClosed(page);
 
     const cardOnclick = await page.locator('.character-card').filter({ hasText: name }).getAttribute('onclick');
     const charId = cardOnclick ? parseInt(cardOnclick.replace(/\D/g, '')) : null;

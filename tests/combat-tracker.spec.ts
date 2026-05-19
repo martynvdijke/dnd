@@ -8,6 +8,13 @@ async function ensureNavOpen(page) {
   }
 }
 
+async function waitModalClosed(page) {
+  await page.waitForFunction(() => {
+    const modal = document.getElementById('genericModal');
+    return !modal || !modal.classList.contains('show');
+  }, { timeout: 10000 }).catch(() => {});
+}
+
 test.describe.serial('Combat Tracker', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
@@ -54,7 +61,7 @@ test.describe.serial('Combat Tracker', () => {
     await page.fill('#ceAC', '15');
     await page.fill('#ceHPMax', '27');
     await page.click('.modal button:has-text("Add")');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await expect(page.locator('#combatTrackerContent')).toContainText(uniqueEnemy);
   });
@@ -75,7 +82,7 @@ test.describe.serial('Combat Tracker', () => {
     await page.fill('#ceAC', '15');
     await page.fill('#ceHPMax', '27');
     await page.click('.modal button:has-text("Add")');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await page.click('button:has-text("Roll Init")');
     await page.waitForTimeout(500);
@@ -101,7 +108,7 @@ test.describe.serial('Combat Tracker', () => {
     await page.fill('#ceAC', '15');
     await page.fill('#ceHPMax', '27');
     await page.click('.modal button:has-text("Add")');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     // Find the damage input for this specific combatant by locating their row
     const row = page.locator('#combatTrackerContent tr', { hasText: uniqueEnemy });

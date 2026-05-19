@@ -314,6 +314,9 @@ function showModal(title: string, bodyHtml: string) {
 
 function hideModal() {
   getModal().hide();
+  document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+  document.body.classList.remove('modal-open');
+  document.body.style.removeProperty('padding-right');
 }
 (window as any).hideModal = hideModal;
 

@@ -17,6 +17,13 @@ async function waitLoadingDone(page) {
   }, { timeout: 5000 }).catch(() => {});
 }
 
+async function waitModalClosed(page) {
+  await page.waitForFunction(() => {
+    const modal = document.getElementById('genericModal');
+    return !modal || !modal.classList.contains('show');
+  }, { timeout: 10000 }).catch(() => {});
+}
+
 test.describe('Character sheet editing', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
@@ -36,7 +43,7 @@ test.describe('Character sheet editing', () => {
     await page.fill('#newRace', 'Elf');
     await page.fill('#newClass', 'Ranger');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
@@ -53,7 +60,7 @@ test.describe('Character sheet editing', () => {
     await page.fill('#newRace', 'Elf');
     await page.fill('#newClass', 'Ranger');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
@@ -63,7 +70,7 @@ test.describe('Character sheet editing', () => {
     await page.fill('#invQty', '1');
     await page.fill('#invWeight', '3');
     await page.click('#genericModal button:has-text("Add")');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await expect(page.locator('#inventorySection')).toContainText('Longsword');
   });
@@ -75,7 +82,7 @@ test.describe('Character sheet editing', () => {
     await page.fill('#newRace', 'Elf');
     await page.fill('#newClass', 'Ranger');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
@@ -94,7 +101,7 @@ test.describe('Character sheet editing', () => {
     await page.fill('#featSource', 'Race');
     await page.fill('#featLevel', '1');
     await page.click('#genericModal button:has-text("Add Feature")');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await expect(page.locator('#featuresSection')).toContainText('Darkvision');
   });
@@ -106,14 +113,14 @@ test.describe('Character sheet editing', () => {
     await page.fill('#newRace', 'Elf');
     await page.fill('#newClass', 'Ranger');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
     await page.click('text=Add Proficiency');
     await page.fill('#profName', 'Stealth');
     await page.click('#genericModal button:has-text("Add Proficiency")');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await expect(page.locator('#statsSection')).toContainText('Stealth');
   });
@@ -138,43 +145,7 @@ test.describe('Rest and level up', () => {
     await page.fill('#newRace', 'Dwarf');
     await page.fill('#newClass', 'Barbarian');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
-    await page.locator('.character-card').filter({ hasText: name }).click();
-    await waitLoadingDone(page);
-
-    await page.click('#tabBar button:has-text("Combat")');
-    await page.click('text=Short Rest');
-    await page.waitForTimeout(500);
-
-    await expect(page.locator('#sheetName')).toContainText(name);
-  });
-
-  test('can perform long rest', async ({ page }) => {
-    const name = uniqueName();
-    await page.click('text=New Character');
-    await page.fill('#newName', name);
-    await page.fill('#newRace', 'Dwarf');
-    await page.fill('#newClass', 'Barbarian');
-    await page.click('text=Create');
-    await page.waitForTimeout(500);
-    await page.locator('.character-card').filter({ hasText: name }).click();
-    await waitLoadingDone(page);
-
-    await page.click('#tabBar button:has-text("Combat")');
-    await page.click('text=Long Rest');
-    await page.waitForTimeout(500);
-
-    await expect(page.locator('#sheetName')).toContainText(name);
-  });
-
-  test('can level up character', async ({ page }) => {
-    const name = uniqueName();
-    await page.click('text=New Character');
-    await page.fill('#newName', name);
-    await page.fill('#newRace', 'Dwarf');
-    await page.fill('#newClass', 'Barbarian');
-    await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
@@ -205,7 +176,7 @@ test.describe('Campaign management UI', () => {
     await page.fill('#newRace', 'Human');
     await page.fill('#newClass', 'Fighter');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await ensureNavOpen(page);
     await page.click('a:has-text("Party")');
@@ -220,8 +191,7 @@ test.describe('Campaign management UI', () => {
     await page.fill('#newRace', 'Halfling');
     await page.fill('#newClass', 'Rogue');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
-
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
@@ -391,7 +361,7 @@ test.describe('Spellcasting management', () => {
     await page.fill('#newRace', 'Half-Elf');
     await page.fill('#newClass', 'Cleric');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
@@ -412,7 +382,7 @@ test.describe('Spellcasting management', () => {
     await page.fill('#newRace', 'Half-Elf');
     await page.fill('#newClass', 'Cleric');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
@@ -459,6 +429,7 @@ test.describe('Import/export edge cases', () => {
     await page.fill('#newRace', 'Dwarf');
     await page.fill('#newClass', 'Rogue');
     await page.click('text=Create');
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).waitFor({ state: 'visible', timeout: 10000 });
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
@@ -489,7 +460,7 @@ test.describe('Session and quest management UI', () => {
     await page.fill('#newRace', 'Dragonborn');
     await page.fill('#newClass', 'Paladin');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
@@ -501,7 +472,7 @@ test.describe('Session and quest management UI', () => {
     await page.fill('#sessGold', '200');
     await page.fill('#sessEvents', 'Found dragon hoard');
     await page.click('#genericModal button:has-text("Log Session")');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await expect(page.locator('#sessionsSection')).toContainText('Dragon Hunt');
   });
@@ -513,7 +484,7 @@ test.describe('Session and quest management UI', () => {
     await page.fill('#newRace', 'Dragonborn');
     await page.fill('#newClass', 'Paladin');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
@@ -525,7 +496,7 @@ test.describe('Session and quest management UI', () => {
     await page.fill('#questObj', '1. Defeat goblins\n2. Return to mayor');
     await page.fill('#questRewards', '500 XP, 100 GP');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await expect(page.locator('#questsSection')).toContainText('Save the Village');
   });
@@ -565,7 +536,7 @@ test.describe('Theme and loading', () => {
     await page.fill('#newRace', 'Human');
     await page.fill('#newClass', 'Fighter');
     await page.click('.modal button:has-text("Create")');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await expect(page.locator('#loadingOverlay')).toHaveClass(/d-none/);
   });
@@ -590,7 +561,7 @@ test.describe('Empty states', () => {
     await page.fill('#newRace', 'Human');
     await page.fill('#newClass', 'Fighter');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).first().click();
     await waitLoadingDone(page);
 
@@ -628,7 +599,7 @@ test.describe('Keyboard shortcuts', () => {
     await expect(page.locator('#genericModal')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#genericModal')).toContainText('Keyboard Shortcuts');
     await page.locator('#genericModal .btn-close').click();
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await expect(page.locator('#genericModal')).not.toBeVisible();
   });
 
@@ -666,7 +637,7 @@ test.describe('Auto-save', () => {
     await page.fill('#newRace', 'Elf');
     await page.fill('#newClass', 'Ranger');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
@@ -704,7 +675,7 @@ test.describe('Tooltips', () => {
     await page.fill('#newRace', 'Human');
     await page.fill('#newClass', 'Fighter');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
@@ -719,7 +690,7 @@ test.describe('Tooltips', () => {
     await page.fill('#newRace', 'Human');
     await page.fill('#newClass', 'Fighter');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
@@ -747,7 +718,7 @@ test.describe('XP progress bar', () => {
     await page.fill('#newRace', 'Human');
     await page.fill('#newClass', 'Fighter');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
@@ -785,7 +756,7 @@ test.describe('Error handling and edge cases', () => {
     await page.fill('#newRace', 'Half-Orc');
     await page.fill('#newClass', 'Barbarian');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 

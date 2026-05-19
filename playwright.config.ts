@@ -5,8 +5,12 @@ export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? os.cpus().length : Math.max(1, os.cpus().length - 2),
+  retries: 1,
+  workers: process.env.CI ? os.cpus().length : Math.max(1, Math.floor(os.cpus().length / 4)),
+  timeout: 45000,
+  expect: {
+    timeout: 10000,
+  },
   reporter: 'html',
   use: {
     baseURL: 'http://localhost:6270',

@@ -9,12 +9,20 @@ async function waitLoadingDone(page) {
   }, { timeout: 5000 }).catch(() => {});
 }
 
+async function waitModalClosed(page) {
+  await page.waitForFunction(() => {
+    const modal = document.getElementById('genericModal');
+    return !modal || !modal.classList.contains('show');
+  }, { timeout: 10000 }).catch(() => {});
+}
+
 async function createCharAndOpen(page, name, race, cls) {
   await page.click('text=New Character');
   await page.fill('#newName', name);
   await page.fill('#newRace', race);
   await page.fill('#newClass', cls);
   await page.click('text=Create');
+  await waitModalClosed(page);
   await page.locator('.character-card').filter({ hasText: name }).waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('.character-card').filter({ hasText: name }).click();
   await waitLoadingDone(page);
@@ -43,11 +51,12 @@ test.describe('Campaign features', () => {
     await page.fill('#newLocName', 'Waterdeep');
     await page.fill('#newLocDesc', 'The City of Splendors');
     await page.click('text=Create');
+    await waitModalClosed(page);
     await expect(page.locator('#locationsSection button:has-text("Link")')).toBeVisible({ timeout: 10000 });
     await page.locator('#locationsSection button:has-text("Link")').click();
     await page.selectOption('#linkLocId', { index: 0 });
     await page.click('#genericModal button:has-text("Link")');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await expect(page.locator('#locationsSection')).toContainText('Waterdeep');
   });
@@ -66,12 +75,12 @@ test.describe('Campaign features', () => {
     await page.fill('#newNPCClass', 'Wizard');
     await page.fill('#newNPCDesc', 'The Sage of Shadowdale');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await page.click('text=Link NPC');
     await page.selectOption('#linkNPCId', { index: 0 });
     await page.click('#genericModal button:has-text("Link")');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await expect(page.locator('#npcsSection')).toContainText('Elminster');
   });
@@ -91,7 +100,7 @@ test.describe('Campaign features', () => {
     await page.fill('#sessGold', '50');
     await page.fill('#sessEvents', 'Met the mysterious stranger');
     await page.click('#genericModal button:has-text("Log Session")');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await expect(page.locator('#sessionsSection')).toContainText('Session 1');
     await expect(page.locator('#sessionsSection')).toContainText('300 XP');
@@ -111,7 +120,7 @@ test.describe('Campaign features', () => {
     await page.fill('#questObj', '1. Enter the dungeon\n2. Defeat the boss');
     await page.fill('#questRewards', '1000 XP, Royal Favor');
     await page.click('text=Create');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await expect(page.locator('#questsSection')).toContainText('Find the Lost Crown');
   });
@@ -128,7 +137,7 @@ test.describe('Campaign features', () => {
     await page.fill('#journalTitle', 'Day 1');
     await page.fill('#journalEntry', 'Today was the first day of my adventure...');
     await page.click('#genericModal button:has-text("Save")');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await expect(page.locator('#journalSection')).toContainText('Day 1');
     await expect(page.locator('#journalSection')).toContainText('first day of my adventure');
@@ -144,11 +153,12 @@ test.describe('Campaign features', () => {
     await page.fill('#newLocName', 'Neverwinter');
     await page.fill('#newLocDesc', 'A city');
     await page.click('text=Create');
+    await waitModalClosed(page);
     await expect(page.locator('#locationsSection button:has-text("Link")')).toBeVisible({ timeout: 10000 });
     await page.locator('#locationsSection button:has-text("Link")').click();
     await page.selectOption('#linkLocId', { index: 0 });
     await page.click('#genericModal button:has-text("Link")');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await page.click('#tabBar button:has-text("Sessions")');
     await expect(page.locator('#sessionsSection h5').first()).toBeVisible();
@@ -157,7 +167,7 @@ test.describe('Campaign features', () => {
     await page.fill('#sessXP', '0');
     await page.fill('#sessGold', '0');
     await page.click('#genericModal button:has-text("Log Session")');
-    await page.waitForTimeout(500);
+    await waitModalClosed(page);
 
     await page.click('#tabBar button:has-text("Graph")');
     await expect(page.locator('#graphContainer')).toBeVisible({ timeout: 5000 });

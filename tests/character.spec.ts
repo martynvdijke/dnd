@@ -9,6 +9,13 @@ async function waitLoadingDone(page) {
   }, { timeout: 5000 }).catch(() => {});
 }
 
+async function waitModalClosed(page) {
+  await page.waitForFunction(() => {
+    const modal = document.getElementById('genericModal');
+    return !modal || !modal.classList.contains('show');
+  }, { timeout: 10000 }).catch(() => {});
+}
+
 test.describe('Character management', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login');
@@ -32,7 +39,7 @@ test.describe('Character management', () => {
     await page.fill('#newRace', 'Elf');
     await page.fill('#newClass', 'Wizard');
     await page.click('.modal button:has-text("Create")');
-    await page.waitForTimeout(1000);
+    await waitModalClosed(page);
 
     await expect(page.getByText(name).first()).toBeVisible();
   });
@@ -44,7 +51,7 @@ test.describe('Character management', () => {
     await page.fill('#newRace', 'Human');
     await page.fill('#newClass', 'Fighter');
     await page.click('.modal button:has-text("Create")');
-    await page.waitForTimeout(1000);
+    await waitModalClosed(page);
 
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
@@ -63,7 +70,7 @@ test.describe('Character management', () => {
     await page.fill('#newRace', 'Dwarf');
     await page.fill('#newClass', 'Barbarian');
     await page.click('.modal button:has-text("Create")');
-    await page.waitForTimeout(1000);
+    await waitModalClosed(page);
 
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
