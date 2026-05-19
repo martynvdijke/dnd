@@ -14,6 +14,11 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
       - run: go mod download
+      - run: npm ci
+      - run: npx tsc
       - run: go vet -tags fts5 ./...
       - run: go test -tags fts5 -v ./...
