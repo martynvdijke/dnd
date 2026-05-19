@@ -1,4 +1,4 @@
-{{if .Faction}}
+<form>{{if .Faction}}
 <input type="hidden" name="id" value="{{.Faction.ID}}">
 {{end}}
 <div class="mb-3"><label class="form-label">Name</label><input class="form-control" name="name" value="{{if .Faction}}{{.Faction.Name}}{{end}}"></div>
@@ -17,7 +17,7 @@
 </div>
 <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3">{{if .Faction}}{{.Faction.Description}}{{end}}</textarea></div>
 {{if .Faction}}
-<button class="btn btn-primary w-100" hx-put="/htmx/factions/{{.Faction.ID}}" hx-target="#factionsContent" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Faction</button>
+<button class="btn btn-primary w-100" hx-put="/htmx/factions/{{.Faction.ID}}" hx-target="#factionsContent" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Faction</button></form>
 {{else}}
-<button class="btn btn-primary w-100" hx-post="/htmx/factions" hx-target="#factionsContent" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create Faction</button>
+<button class="btn btn-primary w-100" hx-post="/htmx/factions" hx-target="#factionsContent" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create Faction</button></form>
 {{end}}

@@ -1,12 +1,12 @@
-{{if .Item}}
+<form>{{if .Item}}
 <input type="hidden" name="id" value="{{.Item.ID}}">
 {{end}}
 <input type="hidden" name="character_id" value="{{.CharacterID}}">
-<div class="mb-3"><label class="form-label">Name</label><input class="form-control" name="name" value="{{if .Item}}{{.Item.Name}}{{end}}"></div>
+<div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="invName" name="name" value="{{if .Item}}{{.Item.Name}}{{end}}"></div>
 <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3">{{if .Item}}{{.Item.Description}}{{end}}</textarea></div>
 <div class="row g-3 mb-3">
-  <div class="col-4"><label class="form-label">Quantity</label><input class="form-control" name="quantity" type="number" value="{{if .Item}}{{.Item.Quantity}}{{else}}1{{end}}"></div>
-  <div class="col-4"><label class="form-label">Weight (lb)</label><input class="form-control" name="weight" type="number" step="0.1" value="{{if .Item}}{{.Item.Weight}}{{else}}0{{end}}"></div>
+  <div class="col-4"><label class="form-label">Quantity</label><input class="form-control" id="invQty" name="quantity" type="number" value="{{if .Item}}{{.Item.Quantity}}{{else}}1{{end}}"></div>
+  <div class="col-4"><label class="form-label">Weight (lb)</label><input class="form-control" id="invWeight" name="weight" type="number" step="0.1" value="{{if .Item}}{{.Item.Weight}}{{else}}0{{end}}"></div>
   <div class="col-4"><label class="form-label">Category</label>
     <select class="form-select" name="category">
       <option value="weapon" {{if and .Item (eq .Item.Category "weapon")}}selected{{end}}>Weapon</option>
@@ -20,7 +20,7 @@
   </div>
 </div>
 {{if .Item}}
-<button class="btn btn-primary w-100" hx-put="/htmx/inventory/{{.Item.ID}}" hx-target="#inventorySection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Item</button>
+<button class="btn btn-primary w-100" hx-put="/htmx/inventory/{{.Item.ID}}" hx-target="#inventorySection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save</button></form>
 {{else}}
-<button class="btn btn-primary w-100" hx-post="/htmx/inventory" hx-target="#inventorySection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add Item</button>
+<button class="btn btn-primary w-100" hx-post="/htmx/inventory" hx-target="#inventorySection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add</button></form>
 {{end}}

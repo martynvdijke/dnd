@@ -1,8 +1,8 @@
-<input type="hidden" name="character_id" value="{{.CharacterID}}">
-<div class="mb-3"><label class="form-label">Name</label><input class="form-control" name="name"></div>
-<div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3"></textarea></div>
+<form><input type="hidden" name="character_id" value="{{.CharacterID}}">
+<div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="featName" name="name"></div>
+<div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="featDesc" name="description" rows="3"></textarea></div>
 <div class="row g-3 mb-3">
-  <div class="col-6"><label class="form-label">Source</label><input class="form-control" name="source" placeholder="Class, Race, etc."></div>
-  <div class="col-6"><label class="form-label">Level Gained</label><input class="form-control" name="level_gained" type="number" value="1"></div>
+  <div class="col-6"><label class="form-label">Source</label><input class="form-control" id="featSource" name="source" placeholder="Class, Race, etc."></div>
+  <div class="col-6"><label class="form-label">Level Gained</label><input class="form-control" id="featLevel" name="level_gained" type="number" value="1"></div>
 </div>
-<button class="btn btn-primary w-100" hx-post="/htmx/features" hx-target="#featuresSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add Feature</button>
+<button class="btn btn-primary w-100" hx-post="/htmx/features" hx-target="#featuresSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add Feature</button></form>

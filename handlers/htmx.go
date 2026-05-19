@@ -785,7 +785,7 @@ func HtmxCreateNPC(c *gin.Context) {
 		c.String(http.StatusBadRequest, "name required")
 		return
 	}
-	result, err := db.DB.Exec("INSERT INTO npcs(user_id,name,race,notes) VALUES(?,?,?,?)", userID, name, c.PostForm("race"), c.PostForm("notes"))
+	result, err := db.DB.Exec("INSERT INTO npcs(user_id,name,race,class,description,notes) VALUES(?,?,?,?,?,?)", userID, name, c.PostForm("race"), c.PostForm("class"), c.PostForm("description"), c.PostForm("notes"))
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -857,7 +857,9 @@ func HtmxListLocations(c *gin.Context) {
 }
 
 func HtmxNewLocationForm(c *gin.Context) {
-	renderTemplate(c, "locations_form.html", htmxLocationData{})
+	charID := c.Query("character_id")
+	cid, _ := strconv.ParseInt(charID, 10, 64)
+	renderTemplate(c, "locations_form.html", htmxLocationData{CharacterID: cid})
 }
 
 func HtmxLinkLocationForm(c *gin.Context) {

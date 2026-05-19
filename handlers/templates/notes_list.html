@@ -1,6 +1,6 @@
 <div class="d-flex justify-content-between align-items-center">
   <h5>Notes</h5>
-  <button class="btn btn-primary btn-sm" hx-get="/htmx/notes/new?character_id={{.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='New Note'"><i class="fa-solid fa-plus me-1"></i>New Note</button>
+  <button class="btn btn-primary btn-sm" hx-get="/htmx/notes/new?character_id={{.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='New Note';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-plus me-1"></i>New Note</button>
 </div>
 {{if .Notes}}
   {{range $cat, $items := .Grouped}}
@@ -15,7 +15,7 @@
             <span class="badge badge-muted ms-1">{{.Visibility}}</span>
           </div>
           <div class="d-flex gap-1">
-            <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/notes/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='Edit Note'"><i class="fa-solid fa-pen"></i></button>
+            <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/notes/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Edit Note';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-pen"></i></button>
             <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/notes/{{.ID}}" hx-target="#notesSection" hx-confirm="Delete this note?" hx-swap="outerHTML"><i class="fa-solid fa-trash"></i></button>
           </div>
         </div>
@@ -27,3 +27,4 @@
 {{else}}
   <div class="empty-state"><i class="fa-solid fa-note-sticky fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">No notes yet. Keep track of campaign information, backstory details, and DM secrets.</p></div>
 {{end}}
+<script>(function(){var m=document.getElementById("genericModal");if(m&&m.classList.contains("show")){bootstrap.Modal.getInstance(m)?.hide()}})()</script>

@@ -1,4 +1,4 @@
-{{if .Condition}}
+<form>{{if .Condition}}
 <input type="hidden" name="id" value="{{.Condition.ID}}">
 {{end}}
 <input type="hidden" name="character_id" value="{{.CharacterID}}">
@@ -44,7 +44,7 @@
 </div>
 <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="2">{{if .Condition}}{{.Condition.Description}}{{end}}</textarea></div>
 {{if .Condition}}
-<button class="btn btn-primary w-100" hx-put="/htmx/conditions/{{.Condition.ID}}" hx-target="#conditionsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Condition</button>
+<button class="btn btn-primary w-100" hx-put="/htmx/conditions/{{.Condition.ID}}" hx-target="#conditionsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Condition</button></form>
 {{else}}
-<button class="btn btn-primary w-100" hx-post="/htmx/conditions" hx-target="#conditionsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add Condition</button>
+<button class="btn btn-primary w-100" hx-post="/htmx/conditions" hx-target="#conditionsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add Condition</button></form>
 {{end}}

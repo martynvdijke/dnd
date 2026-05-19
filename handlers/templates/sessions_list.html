@@ -1,6 +1,6 @@
 <div class="d-flex justify-content-between align-items-center">
   <h5>Game Sessions</h5>
-  <button class="btn btn-primary btn-sm" hx-get="/htmx/sessions/new?character_id={{.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='New Session'"><i class="fa-solid fa-plus me-1"></i>New Session</button>
+  <button class="btn btn-primary btn-sm" hx-get="/htmx/sessions/new?character_id={{.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Log Session';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-plus me-1"></i>New Session</button>
 </div>
 {{if .Sessions}}
   {{range .Sessions}}
@@ -13,7 +13,7 @@
           <p class="mb-0 mt-1 small text-muted">{{.ImportantEvents | truncate 200}}</p>
         </div>
         <div class="d-flex gap-1">
-          <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/sessions/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='Edit Session'"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/sessions/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Edit Session';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-pen"></i></button>
           <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/sessions/{{.ID}}" hx-target="#sessionsSection" hx-swap="outerHTML" hx-confirm="Delete this session?"><i class="fa-solid fa-trash"></i></button>
         </div>
       </div>
@@ -23,3 +23,4 @@
 {{else}}
   <div class="empty-state"><i class="fa-solid fa-calendar-days fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Sessions</p><p class="small text-muted">Log your game sessions to keep track of your adventure.</p></div>
 {{end}}
+<script>(function(){var m=document.getElementById("genericModal");if(m&&m.classList.contains("show")){bootstrap.Modal.getInstance(m)?.hide()}})()</script>

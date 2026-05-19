@@ -1,5 +1,5 @@
-<input type="hidden" name="character_id" value="{{.CharacterID}}">
-<div class="mb-3"><label class="form-label">Name</label><input class="form-control" name="name"></div>
+<form><input type="hidden" name="character_id" value="{{.CharacterID}}">
+<div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="profName" name="name"></div>
 <div class="mb-3"><label class="form-label">Type</label>
   <select class="form-select" name="type">
     <option value="skill">Skill</option>
@@ -11,4 +11,4 @@
     <option value="other">Other</option>
   </select>
 </div>
-<button class="btn btn-primary w-100" hx-post="/htmx/proficiencies" hx-target="#featuresSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add Proficiency</button>
+<button class="btn btn-primary w-100" hx-post="/htmx/proficiencies" hx-target="#featuresSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add Proficiency</button></form>

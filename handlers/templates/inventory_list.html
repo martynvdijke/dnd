@@ -1,6 +1,6 @@
 <div class="d-flex justify-content-between align-items-center">
   <h5>Inventory</h5>
-  <button class="btn btn-primary btn-sm" hx-get="/htmx/inventory/new?character_id={{.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='Add Item'"><i class="fa-solid fa-plus me-1"></i>Add Item</button>
+  <button class="btn btn-primary btn-sm" hx-get="/htmx/inventory/new?character_id={{.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='New Item';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-plus me-1"></i>Add Item</button>
 </div>
 <div class="mt-2">
 {{if .Items}}
@@ -13,7 +13,7 @@
       {{if .Description}}<p class="mb-0 small text-muted">{{.Description}}</p>{{end}}
     </div>
     <div class="d-flex gap-1">
-      <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/inventory/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='Edit Item'"><i class="fa-solid fa-pen"></i></button>
+      <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/inventory/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Edit Item';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-pen"></i></button>
       <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/inventory/{{.ID}}" hx-target="#inventorySection" hx-swap="outerHTML" hx-confirm="Remove this item?"><i class="fa-solid fa-trash"></i></button>
     </div>
   </div>
@@ -22,3 +22,4 @@
   <div class="empty-state"><i class="fa-solid fa-sack fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">Empty Inventory</p><p class="small text-muted">Add weapons, armor, potions, and equipment.</p></div>
 {{end}}
 </div>
+<script>(function(){var m=document.getElementById("genericModal");if(m&&m.classList.contains("show")){bootstrap.Modal.getInstance(m)?.hide()}})()</script>

@@ -1,5 +1,5 @@
-<input type="hidden" name="character_id" value="{{.CharacterID}}">
-<div class="mb-3"><label class="form-label">Location Name</label><input class="form-control" name="name" placeholder="Location name"></div>
+<form><input type="hidden" name="character_id" value="{{.CharacterID}}">
+<div class="mb-3"><label class="form-label">Location Name</label><input class="form-control" id="newLocName" name="name" placeholder="Location name"></div>
 <div class="row g-3 mb-3">
   <div class="col-6"><label class="form-label">Type</label>
     <select class="form-select" name="type">
@@ -15,6 +15,6 @@
       <option value="other">Other</option>
     </select>
   </div>
-  <div class="col-6"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="2"></textarea></div>
+  <div class="col-6"><label class="form-label">Description</label><textarea class="form-control" id="newLocDesc" name="description" rows="2"></textarea></div>
 </div>
-<button class="btn btn-primary w-100" hx-post="/htmx/locations" hx-target="#locationsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create & Link Location</button>
+<button class="btn btn-primary w-100" hx-post="/htmx/locations" hx-target="#locationsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create</button></form>

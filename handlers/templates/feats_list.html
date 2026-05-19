@@ -1,6 +1,6 @@
 <div class="d-flex justify-content-between align-items-center">
   <h5>Feats</h5>
-  <button class="btn btn-primary btn-sm" hx-get="/htmx/feats/new?character_id={{.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='Add Feat'"><i class="fa-solid fa-plus me-1"></i>Add Feat</button>
+  <button class="btn btn-primary btn-sm" hx-get="/htmx/feats/new?character_id={{.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Add Feat';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-plus me-1"></i>Add Feat</button>
 </div>
 <div class="mt-2">
 {{if .Feats}}
@@ -16,7 +16,7 @@
           <p class="mb-0 mt-1 small text-muted">{{.Description}}</p>
         </div>
         <div class="d-flex gap-1">
-          <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/feats/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='Edit Feat'"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/feats/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Edit Feat';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-pen"></i></button>
           <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/feats/{{.ID}}" hx-target="#featsSection" hx-swap="outerHTML" hx-confirm="Remove this feat?"><i class="fa-solid fa-trash"></i></button>
         </div>
       </div>
@@ -27,3 +27,4 @@
   <div class="empty-state"><i class="fa-solid fa-star fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Feats</p><p class="small text-muted">Track your character feats here (distinct from class/race features).</p></div>
 {{end}}
 </div>
+<script>(function(){var m=document.getElementById("genericModal");if(m&&m.classList.contains("show")){bootstrap.Modal.getInstance(m)?.hide()}})()</script>

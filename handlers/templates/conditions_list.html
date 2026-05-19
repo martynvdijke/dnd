@@ -1,6 +1,6 @@
 <div class="d-flex justify-content-between align-items-center">
   <h5>Conditions & Ailments</h5>
-  <button class="btn btn-primary btn-sm" hx-get="/htmx/conditions/new?character_id={{.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='Add Condition'"><i class="fa-solid fa-plus me-1"></i>Add Condition</button>
+  <button class="btn btn-primary btn-sm" hx-get="/htmx/conditions/new?character_id={{.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Add Condition';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-plus me-1"></i>Add Condition</button>
 </div>
 {{if .Conditions}}
 {{range .Conditions}}
@@ -15,7 +15,7 @@
         {{if .Description}}<p class="mb-0 mt-1 small text-muted">{{.Description}}</p>{{end}}
       </div>
       <div class="d-flex gap-1">
-        <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/conditions/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#genericModal" onclick="document.getElementById('genericModalTitle').textContent='Edit Condition'"><i class="fa-solid fa-pen"></i></button>
+        <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/conditions/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Edit Condition';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-pen"></i></button>
         <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/conditions/{{.ID}}" hx-target="#conditionsSection" hx-swap="outerHTML" hx-confirm="Remove this condition?"><i class="fa-solid fa-trash"></i></button>
       </div>
     </div>
@@ -25,3 +25,4 @@
 {{else}}
 <div class="empty-state"><i class="fa-solid fa-heart-crack fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Conditions</p><p class="small text-muted">Track active conditions, ailments, and status effects here.</p></div>
 {{end}}
+<script>(function(){var m=document.getElementById("genericModal");if(m&&m.classList.contains("show")){bootstrap.Modal.getInstance(m)?.hide()}})()</script>

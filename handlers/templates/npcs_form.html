@@ -1,5 +1,5 @@
-<input type="hidden" name="character_id" value="{{.CharacterID}}">
-<div class="mb-3"><label class="form-label">NPC Name</label><input class="form-control" name="name" placeholder="NPC name"></div>
+<form><input type="hidden" name="character_id" value="{{.CharacterID}}">
+<div class="mb-3"><label class="form-label">NPC Name</label><input class="form-control" id="newNPCName" name="name" placeholder="NPC name"></div>
 <div class="row g-3 mb-3">
   <div class="col-6"><label class="form-label">Type</label>
     <select class="form-select" name="type">
@@ -8,8 +8,8 @@
       <option value="quest_giver">Quest Giver</option>
     </select>
   </div>
-  <div class="col-6"><label class="form-label">Race</label><input class="form-control" name="race" placeholder="Elf, Dwarf, etc."></div>
+  <div class="col-6"><label class="form-label">Race</label><input class="form-control" id="newNPCRace" name="race" placeholder="Elf, Dwarf, etc."></div>
 </div>
-<div class="mb-3"><label class="form-label">Location</label><input class="form-control" name="location" placeholder="Where they can be found"></div>
-<div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" name="notes" rows="3"></textarea></div>
-<button class="btn btn-primary w-100" hx-post="/htmx/npcs" hx-target="#npcsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create NPC & Link</button>
+<div class="mb-3"><label class="form-label">Class</label><input class="form-control" id="newNPCClass" name="class" placeholder="NPC class"></div>
+<div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="newNPCDesc" name="description" rows="3"></textarea></div>
+<button class="btn btn-primary w-100" hx-post="/htmx/npcs" hx-target="#npcsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create</button></form>
