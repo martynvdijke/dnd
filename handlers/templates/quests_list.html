@@ -14,7 +14,7 @@
         </div>
         <div class="d-flex gap-1">
           <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/quests/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Edit Quest';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-pen"></i></button>
-          <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/quests/{{.ID}}" hx-target="#questsSection" hx-swap="outerHTML" hx-confirm="Delete this quest?"><i class="fa-solid fa-trash"></i></button>
+          <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/quests/{{.ID}}" hx-target="#questsSection" hx-swap="innerHTML" hx-confirm="Delete this quest?"><i class="fa-solid fa-trash"></i></button>
         </div>
       </div>
     </div>

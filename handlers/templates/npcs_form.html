@@ -12,4 +12,4 @@
 </div>
 <div class="mb-3"><label class="form-label">Class</label><input class="form-control" id="newNPCClass" name="class" placeholder="NPC class"></div>
 <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="newNPCDesc" name="description" rows="3"></textarea></div>
-<button class="btn btn-primary w-100" hx-post="/htmx/npcs" hx-target="#npcsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create</button></form>
+<button class="btn btn-primary w-100" hx-post="/htmx/npcs" hx-target="#npcsSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create</button></form>

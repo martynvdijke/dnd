@@ -493,12 +493,12 @@ function renderSheet() {
   renderDiceTab();
 }
 
-const htmxTabs = ['spells', 'inventory', 'features', 'feats', 'companions', 'crafting', 'locations', 'npcs', 'sessions', 'quests', 'journal', 'notes'];
+const htmxTabs = ['spells', 'features', 'feats', 'companions', 'crafting', 'notes'];
 
 function switchTab(tab: string) {
   currentTab = tab;
+  renderSheet();
   if (htmxTabs.includes(tab) && currentChar) {
-    renderSheet();
     const el = document.getElementById(tab + 'Section');
     if (el) {
       el.setAttribute('hx-get', `/htmx/${tab}?character_id=${currentChar.id}`);
@@ -507,8 +507,17 @@ function switchTab(tab: string) {
       el.innerHTML = '<div class="ornament">✧ Loading... ✧</div>';
       htmx.process(el);
     }
-  } else {
-    renderSheet();
+  }
+  // Client-side rendering for tabs
+  if (currentChar) {
+    switch (tab) {
+      case 'inventory': renderInventory(); break;
+      case 'locations': renderLocations(); break;
+      case 'npcs': renderNPCs(); break;
+      case 'sessions': renderSessions(); break;
+      case 'quests': renderQuests(); break;
+      case 'journal': renderJournal(); break;
+    }
   }
 }
 (window as any).switchTab = switchTab;
@@ -1194,10 +1203,12 @@ function clearLocationMarkers() {
 }
 
 async function renderLocations() {
-  const sidebar = document.getElementById('locSidebar')!;
+  const sidebar = document.getElementById('locSidebar');
+  if (!sidebar) return;
   initLocationMap();
   try {
     const links = await api('GET', `/api/characters/${currentChar.id}/locations`);
+    if (!document.getElementById('locSidebar') || document.getElementById('locationList')) return;
     clearLocationMarkers();
 
     const linkedIds = new Set(links.map((l: any) => l.location_id));

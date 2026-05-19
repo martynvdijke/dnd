@@ -20,7 +20,7 @@
   </div>
 </div>
 {{if .Item}}
-<button class="btn btn-primary w-100" hx-put="/htmx/inventory/{{.Item.ID}}" hx-target="#inventorySection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save</button></form>
+<button class="btn btn-primary w-100" hx-put="/htmx/inventory/{{.Item.ID}}" hx-target="#inventorySection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save</button></form>
 {{else}}
-<button class="btn btn-primary w-100" hx-post="/htmx/inventory" hx-target="#inventorySection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add Item</button></form>
+<button class="btn btn-primary w-100" hx-post="/htmx/inventory" hx-target="#inventorySection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add</button></form>
 {{end}}

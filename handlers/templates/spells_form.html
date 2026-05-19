@@ -19,7 +19,7 @@
 </div>
 <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="4">{{if .Spell}}{{.Spell.Description}}{{end}}</textarea></div>
 {{if .Spell}}
-<button class="btn btn-primary w-100" hx-put="/htmx/spells/{{.Spell.ID}}" hx-target="#spellsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Spell</button></form>
+<button class="btn btn-primary w-100" hx-put="/htmx/spells/{{.Spell.ID}}" hx-target="#spellsSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Spell</button></form>
 {{else}}
-<button class="btn btn-primary w-100" hx-post="/htmx/spells" hx-target="#spellsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add Spell</button></form>
+<button class="btn btn-primary w-100" hx-post="/htmx/spells" hx-target="#spellsSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add Spell</button></form>
 {{end}}

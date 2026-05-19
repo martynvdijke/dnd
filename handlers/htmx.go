@@ -479,7 +479,7 @@ func HtmxListFeatures(c *gin.Context) {
 		c.String(http.StatusBadRequest, "character_id required")
 		return
 	}
-	frows, err := db.DB.Query("SELECT id, character_id, name, description, source, level_gained FROM features WHERE character_id=? ORDER BY level_gained, name", charID)
+	frows, err := db.DB.Query("SELECT id, character_id, name, description, source, level_gained FROM character_features WHERE character_id=? ORDER BY level_gained, name", charID)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -491,7 +491,7 @@ func HtmxListFeatures(c *gin.Context) {
 		frows.Scan(&f.ID, &f.CharacterID, &f.Name, &f.Description, &f.Source, &f.LevelGained)
 		feats = append(feats, f)
 	}
-	prows, err := db.DB.Query("SELECT id, character_id, type, name FROM proficiencies WHERE character_id=? ORDER BY type, name", charID)
+	prows, err := db.DB.Query("SELECT id, character_id, type, name FROM character_proficiencies WHERE character_id=? ORDER BY type, name", charID)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -515,7 +515,7 @@ func HtmxNewFeatureForm(c *gin.Context) {
 
 func HtmxCreateFeature(c *gin.Context) {
 	charID := c.PostForm("character_id")
-	db.DB.Exec("INSERT INTO features(character_id,name,description,source,level_gained) VALUES(?,?,?,?,?)",
+	db.DB.Exec("INSERT INTO character_features(character_id,name,description,source,level_gained) VALUES(?,?,?,?,?)",
 		charID, c.PostForm("name"), c.PostForm("description"), c.PostForm("source"), getIntParam(c, "level_gained", 1))
 	c.Request.URL.RawQuery = "character_id=" + charID
 	HtmxListFeatures(c)
@@ -524,8 +524,8 @@ func HtmxCreateFeature(c *gin.Context) {
 func HtmxDeleteFeature(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var charID string
-	db.DB.QueryRow("SELECT character_id FROM features WHERE id=?", id).Scan(&charID)
-	db.DB.Exec("DELETE FROM features WHERE id=?", id)
+	db.DB.QueryRow("SELECT character_id FROM character_features WHERE id=?", id).Scan(&charID)
+	db.DB.Exec("DELETE FROM character_features WHERE id=?", id)
 	c.Request.URL.RawQuery = "character_id=" + charID
 	HtmxListFeatures(c)
 }
@@ -540,7 +540,7 @@ func HtmxNewProficiencyForm(c *gin.Context) {
 
 func HtmxCreateProficiency(c *gin.Context) {
 	charID := c.PostForm("character_id")
-	db.DB.Exec("INSERT INTO proficiencies(character_id,type,name) VALUES(?,?,?)",
+	db.DB.Exec("INSERT INTO character_proficiencies(character_id,type,name) VALUES(?,?,?)",
 		charID, c.PostForm("type"), c.PostForm("name"))
 	c.Request.URL.RawQuery = "character_id=" + charID
 	HtmxListFeatures(c)
@@ -549,8 +549,8 @@ func HtmxCreateProficiency(c *gin.Context) {
 func HtmxDeleteProficiency(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var charID string
-	db.DB.QueryRow("SELECT character_id FROM proficiencies WHERE id=?", id).Scan(&charID)
-	db.DB.Exec("DELETE FROM proficiencies WHERE id=?", id)
+	db.DB.QueryRow("SELECT character_id FROM character_proficiencies WHERE id=?", id).Scan(&charID)
+	db.DB.Exec("DELETE FROM character_proficiencies WHERE id=?", id)
 	c.Request.URL.RawQuery = "character_id=" + charID
 	HtmxListFeatures(c)
 }

@@ -14,7 +14,7 @@
           {{if .Source}}<span class="badge badge-gold ms-1">{{.Source}}</span>{{end}}
           <p class="mb-0 mt-1 small text-muted">{{.Description}}</p>
         </div>
-        <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/features/{{.ID}}" hx-target="#featuresSection" hx-swap="outerHTML" hx-confirm="Remove this feature?"><i class="fa-solid fa-trash"></i></button>
+        <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/features/{{.ID}}" hx-target="#featuresSection" hx-swap="innerHTML" hx-confirm="Remove this feature?"><i class="fa-solid fa-trash"></i></button>
       </div>
     </div>
   </div>
@@ -30,7 +30,7 @@
 <div class="d-flex flex-wrap gap-2">
   {{range .Proficiencies}}
   <span class="badge bg-secondary d-inline-flex align-items-center gap-1">
-    {{.Name}} <i class="fa-solid fa-xmark" style="cursor:pointer" hx-delete="/htmx/proficiencies/{{.ID}}" hx-target="#featuresSection" hx-swap="outerHTML" hx-confirm="Remove this proficiency?"></i>
+    {{.Name}} <i class="fa-solid fa-xmark" style="cursor:pointer" hx-delete="/htmx/proficiencies/{{.ID}}" hx-target="#featuresSection" hx-swap="innerHTML" hx-confirm="Remove this proficiency?"></i>
   </span>
   {{end}}
 </div>

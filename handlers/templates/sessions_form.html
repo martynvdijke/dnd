@@ -11,7 +11,7 @@
 <div class="mb-3"><label class="form-label">Summary / Important Events</label><textarea class="form-control" id="sessEvents" name="important_events" rows="4">{{if .Session}}{{.Session.ImportantEvents}}{{end}}</textarea></div>
 <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="sessNotes" name="notes" rows="3">{{if .Session}}{{.Session.Notes}}{{end}}</textarea></div>
 {{if .Session}}
-<button class="btn btn-primary w-100" hx-put="/htmx/sessions/{{.Session.ID}}" hx-target="#sessionsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save</button></form>
+<button class="btn btn-primary w-100" hx-put="/htmx/sessions/{{.Session.ID}}" hx-target="#sessionsSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save</button></form>
 {{else}}
-<button class="btn btn-primary w-100" hx-post="/htmx/sessions" hx-target="#sessionsSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Log Session</button></form>
+<button class="btn btn-primary w-100" hx-post="/htmx/sessions" hx-target="#sessionsSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Log Session</button></form>
 {{end}}

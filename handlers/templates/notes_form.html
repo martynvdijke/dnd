@@ -22,7 +22,7 @@
     </select></div>
 </div>
 {{if .Note}}
-<button class="btn btn-primary w-100" hx-put="/htmx/notes/{{.Note.ID}}" hx-target="#notesSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Note</button></form>
+<button class="btn btn-primary w-100" hx-put="/htmx/notes/{{.Note.ID}}" hx-target="#notesSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Note</button></form>
 {{else}}
-<button class="btn btn-primary w-100" hx-post="/htmx/notes" hx-target="#notesSection" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create Note</button></form>
+<button class="btn btn-primary w-100" hx-post="/htmx/notes" hx-target="#notesSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create Note</button></form>
 {{end}}

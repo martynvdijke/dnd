@@ -16,7 +16,7 @@
     </div>
     <div class="d-flex gap-1">
       <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/spells/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Edit Spell';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-pen"></i></button>
-      <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/spells/{{.ID}}" hx-target="#spellsSection" hx-swap="outerHTML" hx-confirm="Remove this spell?"><i class="fa-solid fa-trash"></i></button>
+      <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/spells/{{.ID}}" hx-target="#spellsSection" hx-swap="innerHTML" hx-confirm="Remove this spell?"><i class="fa-solid fa-trash"></i></button>
     </div>
   </div>
   {{end}}

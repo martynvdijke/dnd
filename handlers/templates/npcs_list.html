@@ -16,7 +16,7 @@
       <div class="small text-muted">{{if .Relationship}}R: {{.Relationship}}{{end}}{{if .Notes}} - {{.Notes | truncate 100}}{{end}}</div>
     </div>
     <div class="d-flex gap-1">
-      <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/npcs/link/{{.ID}}" hx-target="#npcsSection" hx-swap="outerHTML" hx-confirm="Unlink this NPC?"><i class="fa-solid fa-unlink"></i></button>
+      <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/npcs/link/{{.ID}}" hx-target="#npcsSection" hx-swap="innerHTML" hx-confirm="Unlink this NPC?"><i class="fa-solid fa-unlink"></i></button>
     </div>
   </div>
   {{end}}
