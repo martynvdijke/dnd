@@ -1,6 +1,7 @@
 node_modules/
 villum-server
 vellum-server
+villum
 villum.db*
 vellum.db*
 *.db-shm
