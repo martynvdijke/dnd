@@ -1,3 +1,21 @@
+# [1.12.0](https://github.com/martynvdijke/dnd/compare/v1.11.0...v1.12.0) (2026-05-20)
+
+
+### Bug Fixes
+
+* add TypeScript build step before go vet in CI ([de31331](https://github.com/martynvdijke/dnd/commit/de31331a5d44e11f152edf9300cd1ed513741a88))
+* align Ent table names with migration schemas and fix test ([5f455c1](https://github.com/martynvdijke/dnd/commit/5f455c1ea8d5c2920a546ef204f6c31f4a7168f7))
+* align htmx form templates with test expectations and fix modal interactions ([02797e1](https://github.com/martynvdijke/dnd/commit/02797e1b18015290e54a8b7ae04f46a93763d5a9))
+* change inventory form button from 'Add' to 'Add Item' to match test expectation ([c134320](https://github.com/martynvdijke/dnd/commit/c1343208c4a784ba33cb03b89a0c42599da07b9c))
+* change inventory form button text from 'Add' to 'Add Item' to match test expectation ([c3be71f](https://github.com/martynvdijke/dnd/commit/c3be71f57c53c11e1217e086c176541352d51cb9))
+* reduce flaky test failures from modal backdrop and parallel contention ([6b4072b](https://github.com/martynvdijke/dnd/commit/6b4072b5c119e19902938b619f7ab5718d43a966))
+* restore test suite - table names, swap mode, and tab rendering ([2bb2a52](https://github.com/martynvdijke/dnd/commit/2bb2a523fc90ec580e913351d99eb1eb8c15dcc8))
+
+
+### Features
+
+* integrate ent ORM alongside gin and migrate core handlers ([619b3aa](https://github.com/martynvdijke/dnd/commit/619b3aa97495f02f988d1eb2acc2591929a2fb51))
+
 # [1.11.0](https://github.com/martynvdijke/dnd/compare/v1.10.0...v1.11.0) (2026-05-18)
 
 
