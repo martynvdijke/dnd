@@ -49,13 +49,13 @@ jobs:
 
       - name: Run Tests
         run: 
-          go test -tags "sqlite_fts5" -v ./...
+          go test -tags "fts5" -v ./...
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium firefox
 
       - name: Build server binary
-        run: CGO_ENABLED=1 go build -o villum-server .
+        run: CGO_ENABLED=1 go build -tags fts5 -o villum-server .
 
       - name: Run Playwright tests
         run: npm run test:e2e
