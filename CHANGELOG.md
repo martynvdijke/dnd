@@ -1,3 +1,10 @@
+## [1.12.1](https://github.com/martynvdijke/dnd/compare/v1.12.0...v1.12.1) (2026-05-20)
+
+
+### Bug Fixes
+
+* correct CI build tags for FTS5 support ([58b1abe](https://github.com/martynvdijke/dnd/commit/58b1abe71d163eb9f3cfa47316d8ca027cbebbe9))
+
 # [1.12.0](https://github.com/martynvdijke/dnd/compare/v1.11.0...v1.12.0) (2026-05-20)
 
 
