@@ -1,3 +1,10 @@
+## [1.12.2](https://github.com/martynvdijke/dnd/compare/v1.12.1...v1.12.2) (2026-05-20)
+
+
+### Bug Fixes
+
+* ensure Gotify notification always fires on release workflow ([6a1f471](https://github.com/martynvdijke/dnd/commit/6a1f47189a113575a8311175216a9955daad78a2))
+
 ## [1.12.1](https://github.com/martynvdijke/dnd/compare/v1.12.0...v1.12.1) (2026-05-20)
 
 
