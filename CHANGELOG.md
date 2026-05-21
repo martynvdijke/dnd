@@ -1,3 +1,17 @@
+# [1.13.0](https://github.com/martynvdijke/dnd/compare/v1.12.2...v1.13.0) (2026-05-21)
+
+
+### Bug Fixes
+
+* playwright tests - expose bootstrap global for HTMX modals, fix journal TipTap editor interaction ([3631653](https://github.com/martynvdijke/dnd/commit/3631653c4ef1aef54d1e4f3f87dcd28f68b0ec1a)), closes [#journalEditor](https://github.com/martynvdijke/dnd/issues/journalEditor) [#journalEntry](https://github.com/martynvdijke/dnd/issues/journalEntry)
+* resolve Playwright test failures ([02ae149](https://github.com/martynvdijke/dnd/commit/02ae149f34e402c579841fe5921c40ee6475a39e))
+* resolve Playwright test failures - race conditions, build script, and timeouts ([b88ef2c](https://github.com/martynvdijke/dnd/commit/b88ef2c49cdf7f23acb78a4236ab52085be9deb4))
+
+
+### Features
+
+* modernize build, graph, and journal/wiki UX ([2df3422](https://github.com/martynvdijke/dnd/commit/2df34225572f17c484aed0f4d4aa0f2deb5dc99f))
+
 ## [1.12.2](https://github.com/martynvdijke/dnd/compare/v1.12.1...v1.12.2) (2026-05-20)
 
 
