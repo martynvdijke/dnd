@@ -1978,10 +1978,8 @@ function createForceGraph(
   node.call(drag as any);
 
   const sim = d3.forceSimulation(data.nodes)
-    .force('link', d3.forceLink(data.edges)
+    .force('link', d3.forceLink(data.edges.map((e: any) => ({ ...e, source: e.from, target: e.to })))
       .id((d: any) => d.id)
-      .source((d: any) => d.from)
-      .target((d: any) => d.to)
       .distance(options?.linkDistance || 200))
     .force('charge', d3.forceManyBody().strength(options?.chargeStrength || -300))
     .force('center', d3.forceCenter(width / 2, height / 2))

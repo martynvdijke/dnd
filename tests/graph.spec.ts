@@ -74,17 +74,20 @@ test.describe('D3 Graph Visualization', () => {
       });
     }, result);
 
-    await page.evaluate((cid) => (window as any).showCampaignGraph(cid), result);
-    await page.waitForTimeout(2000);
+    await page.evaluate(async (cid) => {
+      await (window as any).showCampaignGraph(cid);
+    }, result);
 
     const modal = page.locator('#genericModal');
     await expect(modal).toHaveClass(/show/);
 
-    const stats = page.locator('#campaignGraphStats');
-    await expect(stats).not.toContainText('Loading', { timeout: 10000 });
+    await page.waitForFunction(() => {
+      const el = document.getElementById('campaignGraphStats');
+      return el && !el.textContent?.includes('Loading');
+    }, { timeout: 15000 });
 
     const svg = modal.locator('svg');
-    await expect(svg).toBeVisible({ timeout: 10000 });
+    await expect(svg).toBeVisible({ timeout: 5000 });
   });
 
   test('graph nodes have text labels', async ({ page }) => {
