@@ -6,7 +6,11 @@
     "strict": true,
     "outDir": "./static/js",
     "rootDir": "./ts",
-    "sourceMap": true
+    "sourceMap": false,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true
   },
-  "include": ["ts/**/*.ts"]
+  "include": ["ts/**/*.ts"],
+  "exclude": ["ts/app.ts"]
 }

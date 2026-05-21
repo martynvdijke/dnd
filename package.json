@@ -2,14 +2,28 @@
   "name": "villum",
   "version": "1.12.2",
   "private": true,
+  "type": "module",
   "scripts": {
     "test": "go test -tags fts5 ./...",
     "test:e2e": "npx playwright test",
-    "build:ts": "tsc && sed -i '/^export {};/d' static/js/*.js",
-    "watch:ts": "tsc --watch"
+    "build:ts": "vite build",
+    "watch:ts": "vite build --watch",
+    "dev:ts": "vite build --watch"
+  },
+  "dependencies": {
+    "@tiptap/core": "^2.11.0",
+    "@tiptap/extension-placeholder": "^2.11.0",
+    "@tiptap/pm": "^2.11.0",
+    "@tiptap/starter-kit": "^2.11.0",
+    "bootstrap": "^5.3.0",
+    "chart.js": "^4.4.7",
+    "d3": "^7.9.0",
+    "leaflet": "^1.9.4",
+    "marked": "^12.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
-    "typescript": "^6.0.0"
+    "typescript": "^6.0.0",
+    "vite": "^6.0.0"
   }
 }

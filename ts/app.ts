@@ -1,10 +1,13 @@
-declare const vis: any;
-declare const Chart: any;
-declare const bootstrap: any;
-declare const marked: any;
-declare const htmx: any;
+import * as d3 from 'd3';
+import Chart from 'chart.js/auto';
+import { marked } from 'marked';
+import L from 'leaflet';
+import * as bootstrap from 'bootstrap';
+import { Editor } from '@tiptap/core';
+import StarterKit from '@tiptap/starter-kit';
+import Placeholder from '@tiptap/extension-placeholder';
 
-(() => {
+declare const htmx: any;
 
 let csrfToken = '';
 let currentUser: { id: number; username: string; role: string } | null = null;
@@ -1185,11 +1188,11 @@ let editingLocId: number | null = null;
 function initLocationMap() {
   const container = document.getElementById('locMapContainer');
   if (!container || locationMap) return;
-  locationMap = (window as any).L.map('locMapContainer', {
+  locationMap = L.map('locMapContainer', {
     center: [30, 0], zoom: 2,
     zoomControl: true, attributionControl: false,
   });
-  (window as any).L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
     maxZoom: 19, subdomains: 'abcd',
   }).addTo(locationMap);
   setTimeout(() => locationMap.invalidateSize(), 200);
@@ -1220,7 +1223,7 @@ async function renderLocations() {
       const isLinked = linkedIds.has(l.id);
       const linkInfo = links.find((x: any) => x.location_id === l.id);
       const color = isLinked ? '#8b0000' : '#b8963e';
-      const marker = (window as any).L.circleMarker([l.latitude, l.longitude], {
+      const marker = L.circleMarker([l.latitude, l.longitude], {
         radius: isLinked ? 10 : 7, fillColor: color, color: '#fff', weight: 2, opacity: 1, fillOpacity: 0.9,
       }).addTo(locationMap);
       marker.bindPopup(`
@@ -1241,7 +1244,7 @@ async function renderLocations() {
 
     // Fit bounds if there are markers
     if (withCoords.length > 0) {
-      const group = (window as any).L.featureGroup(locationMarkers);
+      const group = L.featureGroup(locationMarkers);
       locationMap.fitBounds(group.getBounds().pad(0.15));
     } else {
       locationMap.setView([30, 0], 2);
@@ -1428,8 +1431,8 @@ function getLocSidebar(): HTMLElement { return document.getElementById('locSideb
   locationMap.once('click', function (e: any) {
     const lat = e.latlng.lat.toFixed(5);
     const lng = e.latlng.lng.toFixed(5);
-    pickMarker = (window as any).L.marker([lat, lng], {
-      icon: (window as any).L.divIcon({ className: '', html: '<i class="fa-solid fa-map-pin" style="color:#8b0000;font-size:2rem;text-shadow:0 1px 3px rgba(0,0,0,.5)"></i>', iconSize: [24, 24], iconAnchor: [12, 24] }),
+    pickMarker = L.marker([lat, lng], {
+      icon: L.divIcon({ className: '', html: '<i class="fa-solid fa-map-pin" style="color:#8b0000;font-size:2rem;text-shadow:0 1px 3px rgba(0,0,0,.5)"></i>', iconSize: [24, 24], iconAnchor: [12, 24] }),
     }).addTo(locationMap);
     if (mode === 'new') {
       (document.getElementById('newLocLat') as HTMLInputElement).value = lat;
@@ -1685,56 +1688,322 @@ async function renderQuests() {
 
 // ─── Journal ───
 
+let journalEditor: Editor | null = null;
+
+function destroyJournalEditor() {
+  if (journalEditor) { journalEditor.destroy(); journalEditor = null; }
+}
+
+function initJournalEditor(content?: string) {
+  setTimeout(() => {
+    const el = document.getElementById('journalEditor');
+    if (!el) return;
+    journalEditor = new Editor({
+      element: el,
+      extensions: [
+        StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+        Placeholder.configure({ placeholder: 'Write your character\'s thoughts...' }),
+      ],
+      content: content || '<p></p>',
+    });
+    const toolbar = document.getElementById('journalToolbar');
+    if (toolbar) {
+      const btns = [
+        { icon: 'fa-bold', action: () => journalEditor?.chain().focus().toggleBold().run(), test: () => journalEditor?.isActive('bold') },
+        { icon: 'fa-italic', action: () => journalEditor?.chain().focus().toggleItalic().run(), test: () => journalEditor?.isActive('italic') },
+        { icon: 'fa-heading', action: () => journalEditor?.chain().focus().toggleHeading({ level: 2 }).run(), test: () => journalEditor?.isActive('heading', { level: 2 }) },
+        { icon: 'fa-list-ul', action: () => journalEditor?.chain().focus().toggleBulletList().run(), test: () => journalEditor?.isActive('bulletList') },
+        { icon: 'fa-list-ol', action: () => journalEditor?.chain().focus().toggleOrderedList().run(), test: () => journalEditor?.isActive('orderedList') },
+        { icon: 'fa-quote-right', action: () => journalEditor?.chain().focus().toggleBlockquote().run(), test: () => journalEditor?.isActive('blockquote') },
+      ];
+      btns.forEach(b => {
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.className = 'editor-btn';
+        btn.innerHTML = `<i class="fa-solid ${b.icon}"></i>`;
+        btn.onclick = (e: MouseEvent) => { e.preventDefault(); b.action(); };
+        toolbar.appendChild(btn);
+      });
+      journalEditor.on('selectionUpdate', () => {
+        toolbar.querySelectorAll('.editor-btn').forEach((el: Element, i: number) => {
+          el.classList.toggle('active', btns[i]?.test() || false);
+        });
+      });
+    }
+    const modal = document.getElementById('genericModal');
+    modal?.addEventListener('hidden.bs.modal', destroyJournalEditor, { once: true });
+  }, 50);
+}
+
 async function renderJournal() {
   const el = document.getElementById('journalSection')!;
   try {
     const entries = await api('GET', `/api/characters/${currentChar.id}/journal`);
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const groups: Record<string, any[]> = {};
+    entries.forEach((j: any) => {
+      const d = new Date(j.entry_date + 'T00:00:00');
+      const key = months[d.getMonth()] + ' ' + d.getFullYear();
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(j);
+    });
     el.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center"><h5>Character Journal</h5>
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <h5 class="mb-0"><i class="fa-solid fa-book-journal-whills me-2"></i>Character Journal</h5>
         <button class="btn btn-primary btn-sm" onclick="showAddJournal()"><i class="fa-solid fa-plus me-1"></i>Write Entry</button>
       </div>
-      <div class="mt-3">
-        ${entries.map((j:any) => `
-          <div class="card mb-2">
-            <div class="card-body py-2 px-3">
-              <div class="d-flex justify-content-between align-items-start">
-                <div><span class="fw-bold">${esc(j.title) || 'Untitled'}</span>
-                  <span class="badge badge-gold ms-2">${j.entry_date}</span></div>
-                <button class="btn btn-sm btn-outline-danger" onclick="deleteJournal(${j.id})"><i class="fa-solid fa-trash"></i></button>
+      <div class="journal-timeline">
+        ${Object.keys(groups).length ? Object.entries(groups).map(([month, monthEntries]) => `
+          <div class="journal-month-group">
+            <div class="journal-month-header">${month} <small class="text-muted">(${(monthEntries as any[]).length} entries)</small></div>
+            ${(monthEntries as any[]).reverse().map((j: any) => `
+              <div class="journal-entry-card">
+                <div class="journal-entry-header" onclick="this.closest('.journal-entry-card').classList.toggle('expanded')">
+                  <div class="d-flex justify-content-between align-items-start w-100">
+                    <div class="min-w-0">
+                      <span class="fw-bold">${esc(j.title) || 'Untitled'}</span>
+                      <span class="badge badge-gold ms-2">${j.entry_date}</span>
+                    </div>
+                    <div class="d-flex gap-1 flex-shrink-0" onclick="event.stopPropagation()">
+                      <button class="btn btn-sm btn-outline-primary" onclick="showEditJournal(${j.id})"><i class="fa-solid fa-pen"></i></button>
+                      <button class="btn btn-sm btn-outline-danger" onclick="deleteJournal(${j.id})"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                  </div>
+                  <i class="fa-solid fa-chevron-down journal-expand-icon"></i>
+                </div>
+                <div class="journal-entry-body">${j.entry}</div>
               </div>
-              <div class="mt-2 small text-muted" style="white-space:pre-wrap">${esc(j.entry)}</div>
-            </div>
-          </div>`).join('') || '<div class="empty-state"><i class="fa-solid fa-book-open fa-2x mb-2 d-block text-muted"></i>No journal entries yet.</div>'}
+            `).join('')}
+          </div>
+        `).join('') : '<div class="empty-state"><i class="fa-solid fa-book-open fa-2x mb-2 d-block text-muted"></i><p class="fw-bold">Empty Journal</p><p class="small text-muted">Record your character\'s thoughts and experiences.</p></div>'}
       </div>`;
   } catch { el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load journal. Try again later.</p></div>'; }
 }
 
 (window as any).showAddJournal = function () {
   showModal('Journal Entry', `
-    <div class="mb-3"><label class="form-label">Date</label><input class="form-control" id="journalDate" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
-    <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="journalTitle" placeholder="Day 1: Arrival in Waterdeep"></div>
-    <div class="mb-3"><label class="form-label">Entry</label><textarea class="form-control" id="journalEntry" rows="6" placeholder="Write your character's thoughts..."></textarea></div>
-    <button class="btn btn-primary w-100" onclick="saveJournal()"><i class="fa-solid fa-save me-1"></i>Save</button>
+    <div class="journal-editor-modal">
+      <div class="mb-3"><label class="form-label">Date</label><input class="form-control" id="journalDate" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
+      <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="journalTitle" placeholder="Day 1: Arrival in Waterdeep"></div>
+      <div class="mb-3"><label class="form-label">Entry</label><div class="editor-toolbar" id="journalToolbar"></div><div id="journalEditor" class="journal-editor"></div></div>
+      <button class="btn btn-primary w-100" onclick="saveJournal()"><i class="fa-solid fa-save me-1"></i>Save</button>
+    </div>
   `);
+  initJournalEditor();
 };
 
-(window as any).saveJournal = async function () {
-  await api('POST', `/api/characters/${currentChar.id}/journal`, {
-    entry_date: (document.getElementById('journalDate') as HTMLInputElement).value,
-    title: (document.getElementById('journalTitle') as HTMLInputElement).value,
-    entry: (document.getElementById('journalEntry') as HTMLTextAreaElement).value,
-  });
+(window as any).showEditJournal = async function (id: number) {
+  const entries = await api('GET', `/api/characters/${currentChar.id}/journal`);
+  const j = entries.find((e: any) => e.id === id);
+  if (!j) return;
+  showModal('Edit Journal Entry', `
+    <div class="journal-editor-modal">
+      <div class="mb-3"><label class="form-label">Date</label><input class="form-control" id="journalDate" type="date" value="${esc(j.entry_date)}"></div>
+      <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="journalTitle" value="${esc(j.title)}"></div>
+      <div class="mb-3"><label class="form-label">Entry</label><div class="editor-toolbar" id="journalToolbar"></div><div id="journalEditor" class="journal-editor"></div></div>
+      <button class="btn btn-primary w-100" onclick="saveJournal(${id})"><i class="fa-solid fa-save me-1"></i>Update</button>
+    </div>
+  `);
+  initJournalEditor(j.entry);
+};
+
+(window as any).saveJournal = async function (editId?: number) {
+  const entry = journalEditor?.getHTML() || '';
+  const title = (document.getElementById('journalTitle') as HTMLInputElement)?.value || '';
+  const entry_date = (document.getElementById('journalDate') as HTMLInputElement)?.value || new Date().toISOString().split('T')[0];
+  if (editId) {
+    await api('PUT', `/api/journal/${editId}`, { entry_date, title, entry });
+  } else {
+    await api('POST', `/api/characters/${currentChar.id}/journal`, { entry_date, title, entry });
+  }
+  destroyJournalEditor();
   hideModal();
   renderJournal();
-  toast('Journal entry saved');
+  toast(editId ? 'Journal entry updated' : 'Journal entry saved');
 };
 
-(window as any).deleteJournal = async function (id:number) {
+(window as any).deleteJournal = async function (id: number) {
   if (!confirm('Delete this journal entry?')) return;
   await api('DELETE', `/api/journal/${id}`);
   renderJournal();
   toast('Journal entry deleted');
 };
+
+// ─── D3 Force Graph ───
+
+function createForceGraph(
+  container: HTMLElement,
+  data: { nodes: any[], edges: any[] },
+  groups: Record<string, { shape: string, color: string }>,
+  options?: { linkDistance?: number, chargeStrength?: number }
+) {
+  const width = container.clientWidth || 800;
+  const height = container.clientHeight || 600;
+
+  container.innerHTML = '';
+
+  const svg = d3.select(container)
+    .append('svg')
+    .attr('width', width)
+    .attr('height', height)
+    .style('background', 'var(--parchment-light)')
+    .style('cursor', 'grab')
+    .style('border-radius', '4px')
+    .style('display', 'block');
+
+  const strokeColor = '#2c1810';
+  const edgeColor = '#8b7355';
+
+  svg.append('defs').append('marker')
+    .attr('id', 'arrowhead')
+    .attr('viewBox', '0 -5 10 10')
+    .attr('refX', 20)
+    .attr('refY', 0)
+    .attr('markerWidth', 6)
+    .attr('markerHeight', 6)
+    .attr('orient', 'auto')
+    .append('path')
+    .attr('d', 'M0,-5L10,0L0,5')
+    .attr('fill', edgeColor);
+
+  const g = svg.append('g');
+
+  const zoom = d3.zoom<SVGSVGElement, unknown>()
+    .scaleExtent([0.1, 4])
+    .on('zoom', (event) => g.attr('transform', event.transform));
+  svg.call(zoom);
+
+  const link = g.append('g')
+    .selectAll<SVGLineElement, any>('line')
+    .data(data.edges)
+    .join('line')
+    .attr('stroke', edgeColor)
+    .attr('stroke-width', (d: any) => d.width || 1)
+    .attr('stroke-dasharray', (d: any) => d.dashes ? '6,3' : null)
+    .attr('marker-end', 'url(#arrowhead)');
+
+  const linkLabel = g.append('g')
+    .selectAll<SVGTextElement, any>('text')
+    .data(data.edges.filter((d: any) => d.label))
+    .join('text')
+    .text((d: any) => d.label)
+    .attr('font-size', 10)
+    .attr('font-family', 'Vollkorn')
+    .attr('fill', '#5c3a2a')
+    .attr('text-anchor', 'middle')
+    .attr('dy', '-4');
+
+  const node = g.append('g')
+    .selectAll<SVGGElement, any>('g')
+    .data(data.nodes)
+    .join('g')
+    .style('cursor', 'pointer');
+
+  node.each(function (d: any) {
+    const el = d3.select(this);
+    const size = d.size || 15;
+    const grp = groups[d.group] || { shape: 'dot', color: '#8b0000' };
+    const color = d.color || grp.color;
+
+    const shapeEl = (() => {
+      switch (grp.shape) {
+        case 'ellipse':
+          return el.append('ellipse').attr('rx', size).attr('ry', size * 0.7);
+        case 'square':
+          return el.append('rect').attr('x', -size).attr('y', -size)
+            .attr('width', size * 2).attr('height', size * 2).attr('rx', 3);
+        case 'diamond': {
+          const pts = `0,-${size} ${size},0 0,${size} -${size},0`;
+          return el.append('polygon').attr('points', pts);
+        }
+        case 'star': {
+          const pts: string[] = [];
+          for (let i = 0; i < 10; i++) {
+            const r = i % 2 === 0 ? size : size * 0.4;
+            const a = (i * Math.PI) / 5 - Math.PI / 2;
+            pts.push(`${(r * Math.cos(a)).toFixed(1)},${(r * Math.sin(a)).toFixed(1)}`);
+          }
+          return el.append('polygon').attr('points', pts.join(' '));
+        }
+        case 'hexagon': {
+          const pts: string[] = [];
+          for (let i = 0; i < 6; i++) {
+            const a = (i * Math.PI * 2) / 6 - Math.PI / 2;
+            pts.push(`${(size * Math.cos(a)).toFixed(1)},${(size * Math.sin(a)).toFixed(1)}`);
+          }
+          return el.append('polygon').attr('points', pts.join(' '));
+        }
+        case 'triangle':
+          return el.append('polygon')
+            .attr('points', `0,-${size} ${(size * 0.866).toFixed(1)},${(size * 0.5).toFixed(1)} -${(size * 0.866).toFixed(1)},${(size * 0.5).toFixed(1)}`);
+        default:
+          return el.append('circle').attr('r', size * 0.5);
+      }
+    })();
+
+    shapeEl
+      .attr('fill', color)
+      .attr('stroke', strokeColor)
+      .attr('stroke-width', 2);
+
+    const labelSize = d.size > 20 ? 14 : 11;
+    const dy = grp.shape === 'dot' ? size * 0.5 + 14 : size + 10;
+
+    el.append('text')
+      .text(d.label)
+      .attr('dy', dy)
+      .attr('text-anchor', 'middle')
+      .attr('fill', strokeColor)
+      .attr('font-family', 'Playfair Display')
+      .attr('font-size', labelSize);
+
+    el.on('mouseenter', () => shapeEl.attr('stroke', '#b8963e').attr('stroke-width', 3))
+      .on('mouseleave', () => shapeEl.attr('stroke', strokeColor).attr('stroke-width', 2));
+  });
+
+  const drag = d3.drag<SVGGElement, any>()
+    .on('start', (event, d) => {
+      if (!event.active) sim.alphaTarget(0.3).restart();
+      d.fx = d.x;
+      d.fy = d.y;
+    })
+    .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y; })
+    .on('end', (event, d) => {
+      if (!event.active) sim.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+    });
+
+  node.call(drag as any);
+
+  const sim = d3.forceSimulation(data.nodes)
+    .force('link', d3.forceLink(data.edges)
+      .id((d: any) => d.id)
+      .distance(options?.linkDistance || 200))
+    .force('charge', d3.forceManyBody().strength(options?.chargeStrength || -300))
+    .force('center', d3.forceCenter(width / 2, height / 2))
+    .force('collision', d3.forceCollide().radius((d: any) => d.size + 20))
+    .on('tick', () => {
+      link
+        .attr('x1', (d: any) => d.source.x)
+        .attr('y1', (d: any) => d.source.y)
+        .attr('x2', (d: any) => d.target.x)
+        .attr('y2', (d: any) => d.target.y);
+      linkLabel
+        .attr('x', (d: any) => (d.source.x + d.target.x) / 2)
+        .attr('y', (d: any) => (d.source.y + d.target.y) / 2);
+      node.attr('transform', (d: any) => `translate(${d.x},${d.y})`);
+    });
+
+  const ro = new ResizeObserver(() => {
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+    svg.attr('width', w).attr('height', h);
+    sim.force('center', d3.forceCenter(w / 2, h / 2)).alpha(0.3).restart();
+  });
+  ro.observe(container);
+
+  return sim;
+}
 
 // ─── Graph ───
 
@@ -1744,40 +2013,14 @@ async function renderGraph() {
     <div id="graphContainer" style="width:100%;height:600px;border:1px solid var(--border);border-radius:4px;background:var(--parchment-light)"></div>`;
   try {
     const data = await api('GET', `/api/characters/${currentChar.id}/graph`);
-    if (typeof vis !== 'undefined') {
-      const container = document.getElementById('graphContainer')!;
-      const nodes = new vis.DataSet(data.nodes.map((n:any) => ({
-        id: n.id, label: n.label, group: n.group,
-        color: { background: n.color, border: '#2c1810' },
-        font: { face: 'Playfair Display', color: '#2c1810', size: n.size > 20 ? 14 : 11 },
-        size: n.size,
-        borderWidth: 2,
-      })));
-      const edges = new vis.DataSet(data.edges.map((e:any) => ({
-        from: e.from, to: e.to, label: e.label,
-        dashes: e.dashes, width: e.width,
-        color: { color: '#8b7355', highlight: '#8b0000' },
-        font: { face: 'Vollkorn', size: 10, color: '#5c3a2a', align: 'middle' },
-        smooth: { type: 'curvedCW', roundness: 0.15 },
-      })));
-      new vis.Network(container, { nodes, edges }, {
-        physics: { solver: 'forceAtlas2Based', forceAtlas2Based: { gravitationalConstant: -80, centralGravity: 0.005, springLength: 200, springConstant: 0.02, damping: 0.4 }, stabilization: { iterations: 100 } },
-        interaction: { hover: true, tooltipDelay: 200, navigationButtons: true, keyboard: true },
-        groups: {
-          character: { shape: 'ellipse', color: { background: '#8b0000', border: '#5c0000' }, font: { color: '#fff', size: 16 } },
-          location: { shape: 'square', color: { background: '#b8963e', border: '#8a7020' } },
-          npc: { shape: 'diamond', color: { background: '#2d6a2d', border: '#1a4a1a' } },
-          quest: { shape: 'star', color: { background: '#8b4513', border: '#5c2e0d' } },
-          session: { shape: 'dot', color: { background: '#5c3a2a', border: '#3c2010' } },
-        },
-        edges: { smooth: true },
-      });
-    } else {
-      el.innerHTML += `<div class="p-3 small">
-        <h5>Character Web</h5>
-        <p>${data.nodes.map((n:any) => `${n.label} [${n.group}]`).join(' &rarr; ')}</p>
-        <p class="text-muted fst-italic mt-2">${data.nodes.length} connections &middot; ${data.edges.length} relationships</p></div>`;
-    }
+    const container = document.getElementById('graphContainer')!;
+    createForceGraph(container, data, {
+      character: { shape: 'ellipse', color: '#8b0000' },
+      location: { shape: 'square', color: '#b8963e' },
+      npc: { shape: 'diamond', color: '#2d6a2d' },
+      quest: { shape: 'star', color: '#8b4513' },
+      session: { shape: 'dot', color: '#5c3a2a' },
+    }, { linkDistance: 200, chargeStrength: -300 });
   } catch (e:any) {
     el.innerHTML += `<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load graph: ${esc(e.message)}</p></div>`;
   }
@@ -4201,7 +4444,7 @@ let draggedCombatId: number | null = null;
 
     let sidebarHtml = '<div class="list-group list-group-flush">';
     for (const p of rootPages) {
-      sidebarHtml += `<a href="#" class="list-group-item list-group-item-action py-1" onclick="loadWikiPage(${p.id})">${esc(p.title)}</a>
+      sidebarHtml += `<a href="#" class="list-group-item list-group-item-action py-1" onclick="loadWikiPage(${p.id});if(window.innerWidth<768){const o=document.getElementById('wikiOffcanvas');if(o){bootstrap.Offcanvas.getInstance(o)?.hide()}}">${esc(p.title)}</a>
         ${buildWikiChildren(p.id, childMap, 1)}`;
     }
     sidebarHtml += '</div>';
@@ -4220,7 +4463,7 @@ let draggedCombatId: number | null = null;
     }
 
     el.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
         <h4 class="mb-0"><i class="fa-solid fa-book me-2"></i>${esc(camp?.name || 'Wiki')}</h4>
         <div class="d-flex gap-1">
           <button class="btn btn-gold btn-sm" onclick="showAddWikiPage(${cid})"><i class="fa-solid fa-plus me-1"></i>New Page</button>
@@ -4228,15 +4471,33 @@ let draggedCombatId: number | null = null;
         </div>
       </div>
       <div class="row g-0" style="min-height:500px">
-        <div class="col-12 col-md-3" style="overflow-y:auto;max-height:70vh;border-right:1px solid var(--border)">
+        <div class="col-md-3 d-none d-md-block" style="overflow-y:auto;max-height:70vh;border-right:1px solid var(--border)">
           <div class="p-2"><small class="fw-bold text-muted">PAGES</small></div>
           ${sidebarHtml}
         </div>
+        <div class="offcanvas offcanvas-start" id="wikiOffcanvas" tabindex="-1">
+          <div class="offcanvas-header border-bottom">
+            <h5 class="offcanvas-title">${esc(camp?.name || 'Wiki')} Pages</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+          </div>
+          <div class="offcanvas-body p-0">
+            <div class="p-2 border-bottom"><small class="fw-bold text-muted">PAGES</small></div>
+            ${sidebarHtml}
+          </div>
+        </div>
         <div class="col-12 col-md-9" id="wikiPageContent">
+          <div class="d-flex d-md-none gap-1 mb-2">
+            <button class="btn btn-outline-primary btn-sm" onclick="toggleWikiSidebar()"><i class="fa-solid fa-bars me-1"></i> Pages</button>
+          </div>
           <div class="p-3 text-center text-muted"><i class="fa-solid fa-book-open fa-2x mb-2 d-block"></i><p>Select a page from the sidebar</p></div>
         </div>
       </div>`;
   } catch (e: any) { el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(e.message)}</p></div>`; }
+};
+
+(window as any).toggleWikiSidebar = function () {
+  const offcanvas = document.getElementById('wikiOffcanvas');
+  if (offcanvas) bootstrap.Offcanvas.getOrCreateInstance(offcanvas).toggle();
 };
 
 function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, depth: number): string {
@@ -4244,7 +4505,7 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
   if (!children.length) return '';
   const pad = depth * 16;
   return children.map((c: any) =>
-    `<a href="#" class="list-group-item list-group-item-action py-1 ps-${3 + depth}" style="padding-left:${pad + 16}px!important;font-size:0.9rem" onclick="loadWikiPage(${c.id})">↳ ${esc(c.title)}</a>
+    `<a href="#" class="list-group-item list-group-item-action py-1 ps-${3 + depth}" style="padding-left:${pad + 16}px!important;font-size:0.9rem" onclick="loadWikiPage(${c.id});if(window.innerWidth<768){const o=document.getElementById('wikiOffcanvas');if(o){bootstrap.Offcanvas.getInstance(o)?.hide()}}">↳ ${esc(c.title)}</a>
     ${buildWikiChildren(c.id, childMap, depth + 1)}`
   ).join('');
 }
@@ -4253,10 +4514,10 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
   try {
     const page = await api('GET', `/api/wiki/${pageId}`);
     const el = document.getElementById('wikiPageContent')!;
-    const renderContent = typeof marked !== 'undefined' ? marked.parse(page.content) : esc(page.content).replace(/\n/g, '<br>');
+    const renderContent = marked.parse(page.content);
     el.innerHTML = `
       <div class="p-3">
-        <div class="d-flex justify-content-between align-items-start">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
           <h3 class="mb-0">${esc(page.title)}</h3>
           <div class="d-flex gap-1">
             <button class="btn btn-sm btn-outline-primary" onclick="showEditWikiPage(${page.id},'${esc(page.title)}','${esc(page.content.replace(/'/g, "\\'"))}','${page.visibility}')"><i class="fa-solid fa-pen"></i></button>
@@ -4344,54 +4605,22 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
   `);
   try {
     const data = await api('GET', `/api/campaigns/${campaignId}/graph`);
-    if (typeof vis !== 'undefined') {
-      const container = document.getElementById('campaignGraphContainer')!;
-      const nodes = new vis.DataSet(data.nodes.map((n:any) => ({
-        id: n.id, label: n.label, group: n.group,
-        color: { background: n.color, border: '#2c1810' },
-        font: { face: 'Playfair Display', color: '#2c1810', size: n.size > 25 ? 14 : n.size > 18 ? 12 : 10 },
-        size: n.size,
-        borderWidth: 2,
-      })));
-      const edges = new vis.DataSet(data.edges.map((e:any) => ({
-        from: e.from, to: e.to, label: e.label,
-        dashes: e.dashes, width: e.width,
-        color: { color: '#8b7355', highlight: '#8b0000' },
-        font: { face: 'Vollkorn', size: 9, color: '#5c3a2a', align: 'middle' },
-        smooth: { type: 'curvedCW', roundness: 0.15 },
-      })));
-      new vis.Network(container, { nodes, edges }, {
-        physics: {
-          solver: 'forceAtlas2Based',
-          forceAtlas2Based: { gravitationalConstant: -120, centralGravity: 0.008, springLength: 250, springConstant: 0.01, damping: 0.4 },
-          stabilization: { iterations: 150 },
-        },
-        interaction: { hover: true, tooltipDelay: 200, navigationButtons: true, keyboard: true, zoomView: true },
-        groups: {
-          campaign: { shape: 'ellipse', color: { background: '#8b0000', border: '#5c0000' }, font: { color: '#fff', size: 18 } },
-          character: { shape: 'ellipse', color: { background: '#8b0000', border: '#5c0000' }, font: { color: '#fff', size: 14 } },
-          location: { shape: 'square', color: { background: '#b8963e', border: '#8a7020' } },
-          npc: { shape: 'diamond', color: { background: '#2d6a2d', border: '#1a4a1a' } },
-          quest: { shape: 'star', color: { background: '#8b4513', border: '#5c2e0d' } },
-          session: { shape: 'dot', color: { background: '#5c3a2a', border: '#3c2010' } },
-          wiki: { shape: 'hexagon', color: { background: '#b8963e', border: '#8a7020' } },
-          faction: { shape: 'triangle', color: { background: '#9b59b6', border: '#7d3c98' } },
-          encounter: { shape: 'dot', color: { background: '#e67e22', border: '#c0392b' } },
-          timeline: { shape: 'dot', color: { background: '#5c3a2a', border: '#3c2010' } },
-          calendar: { shape: 'dot', color: { background: '#b8963e', border: '#8a7020' } },
-        },
-        edges: { smooth: true },
-      });
-      document.getElementById('campaignGraphStats')!.innerHTML =
-        `${data.nodes.length} entities &middot; ${data.edges.length} connections`;
-    } else {
-      document.getElementById('campaignGraphContainer')!.innerHTML = `
-        <div class="p-3 text-center small">
-          <h5>Campaign Web</h5>
-          <p>${data.nodes.map((n:any) => esc(n.label) + ' [' + n.group + ']').join(' &rarr; ')}</p>
-          <p class="text-muted fst-italic mt-2">${data.nodes.length} entities &middot; ${data.edges.length} connections</p>
-        </div>`;
-    }
+    const container = document.getElementById('campaignGraphContainer')!;
+    createForceGraph(container, data, {
+      campaign: { shape: 'ellipse', color: '#8b0000' },
+      character: { shape: 'ellipse', color: '#8b0000' },
+      location: { shape: 'square', color: '#b8963e' },
+      npc: { shape: 'diamond', color: '#2d6a2d' },
+      quest: { shape: 'star', color: '#8b4513' },
+      session: { shape: 'dot', color: '#5c3a2a' },
+      wiki: { shape: 'hexagon', color: '#b8963e' },
+      faction: { shape: 'triangle', color: '#9b59b6' },
+      encounter: { shape: 'dot', color: '#e67e22' },
+      timeline: { shape: 'dot', color: '#5c3a2a' },
+      calendar: { shape: 'dot', color: '#b8963e' },
+    }, { linkDistance: 250, chargeStrength: -400 });
+    document.getElementById('campaignGraphStats')!.innerHTML =
+      `${data.nodes.length} entities &middot; ${data.edges.length} connections`;
   } catch (e:any) {
     const container = document.getElementById('campaignGraphContainer');
     if (container) container.innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">${esc(e.message)}</p></div>`;
@@ -4406,5 +4635,3 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
 // (handled in init by checking role)
 
 init();
-
-})();

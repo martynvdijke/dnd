@@ -1088,3 +1088,281 @@ kbd {
   font-size: 3rem;
   margin-bottom: 0.5rem;
 }
+
+/* ─── TipTap Journal Editor ─── */
+
+.editor-toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: var(--parchment-dark);
+  flex-wrap: wrap;
+}
+
+.editor-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink-light);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all .15s ease;
+}
+
+.editor-btn:hover {
+  background: var(--parchment-light);
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+.editor-btn.active {
+  background: var(--gold-light);
+  border-color: var(--gold);
+  color: var(--ink);
+}
+
+.journal-editor {
+  border: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  min-height: 150px;
+}
+
+.ProseMirror {
+  padding: 12px;
+  min-height: 150px;
+  outline: none;
+  font-family: var(--font-body);
+  color: var(--ink);
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--ink-muted);
+  pointer-events: none;
+  height: 0;
+  font-style: italic;
+}
+
+.ProseMirror h1, .ProseMirror h2, .ProseMirror h3 {
+  font-family: var(--font-display);
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+.ProseMirror h1 { font-size: 1.5rem; }
+.ProseMirror h2 { font-size: 1.25rem; }
+.ProseMirror h3 { font-size: 1.1rem; }
+
+.ProseMirror ul, .ProseMirror ol {
+  padding-left: 1.5rem;
+}
+
+.ProseMirror blockquote {
+  border-left: 3px solid var(--gold);
+  padding-left: 1rem;
+  color: var(--ink-muted);
+  font-style: italic;
+  margin: 0.5rem 0;
+}
+
+[data-theme="dark"] .ProseMirror blockquote {
+  border-left-color: var(--gold-dark);
+}
+
+[data-theme="dark"] .editor-toolbar {
+  background: var(--parchment);
+}
+
+/* ─── Journal Timeline ─── */
+
+.journal-timeline {
+  position: relative;
+}
+
+.journal-month-group {
+  margin-bottom: 1.5rem;
+}
+
+.journal-month-header {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--ink);
+  padding: 0.5rem 0;
+  border-bottom: 2px solid var(--gold);
+  margin-bottom: 0.75rem;
+  position: sticky;
+  top: 0;
+  background: var(--parchment-light);
+  z-index: 2;
+}
+
+[data-theme="dark"] .journal-month-header {
+  background: #0d0705;
+}
+
+.journal-entry-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+  background: var(--parchment);
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+
+.journal-entry-card:hover {
+  box-shadow: var(--shadow);
+}
+
+.journal-entry-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  user-select: none;
+  gap: 0.5rem;
+}
+
+.journal-entry-header .min-w-0 {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.journal-expand-icon {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.journal-entry-card.expanded .journal-expand-icon {
+  transform: rotate(180deg);
+}
+
+.journal-entry-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  padding: 0 1rem;
+  border-top: 1px solid transparent;
+  line-height: 1.6;
+}
+
+.journal-entry-card.expanded .journal-entry-body {
+  max-height: 2000px;
+  padding: 0.75rem 1rem;
+  border-top-color: var(--border-light);
+}
+
+.journal-entry-body p {
+  margin-bottom: 0.5rem;
+}
+
+.journal-entry-body ul, .journal-entry-body ol {
+  padding-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ─── Wiki Offcanvas ─── */
+
+#wikiOffcanvas {
+  --bs-offcanvas-width: 280px;
+}
+
+#wikiOffcanvas .list-group-item {
+  border: none;
+  border-radius: 0 !important;
+  font-family: var(--font-body);
+}
+
+#wikiOffcanvas .list-group-item:hover {
+  background: var(--parchment-dark);
+}
+
+/* ─── Wiki Content Responsive ─── */
+
+.wiki-content {
+  line-height: 1.7;
+  overflow-wrap: break-word;
+}
+
+.wiki-content h1, .wiki-content h2, .wiki-content h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.wiki-content p {
+  margin-bottom: 0.75rem;
+}
+
+.wiki-content ul, .wiki-content ol {
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.wiki-content blockquote {
+  border-left: 3px solid var(--gold);
+  padding-left: 1rem;
+  color: var(--ink-muted);
+  font-style: italic;
+  margin: 1rem 0;
+}
+
+[data-theme="dark"] .wiki-content blockquote {
+  border-left-color: var(--gold-dark);
+}
+
+.wiki-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+}
+
+.wiki-content code {
+  background: var(--parchment-dark);
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+.wiki-content pre {
+  background: var(--parchment-dark);
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+}
+
+/* ─── Graph SVG base ─── */
+
+#graphContainer svg, #campaignGraphContainer svg {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ─── Journal editor modal fullscreen on mobile ─── */
+
+@media (max-width: 576px) {
+  .journal-editor-modal {
+    margin: -0.5rem;
+  }
+  .journal-editor-modal .modal-body {
+    padding: 0;
+  }
+  .modal-dialog .journal-editor {
+    min-height: 200px;
+  }
+  .modal-dialog .ProseMirror {
+    min-height: 200px;
+  }
+}
