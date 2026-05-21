@@ -3,6 +3,7 @@ import Chart from 'chart.js/auto';
 import { marked } from 'marked';
 import L from 'leaflet';
 import * as bootstrap from 'bootstrap';
+(window as any).bootstrap = bootstrap;
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';

@@ -135,7 +135,8 @@ test.describe('Campaign features', () => {
 
     await page.click('text=Write Entry');
     await page.fill('#journalTitle', 'Day 1');
-    await page.fill('#journalEntry', 'Today was the first day of my adventure...');
+    await page.locator('#journalEditor .ProseMirror').click();
+    await page.locator('#journalEditor .ProseMirror').fill('Today was the first day of my adventure...');
     await page.click('#genericModal button:has-text("Save")');
     await waitModalClosed(page);
 
