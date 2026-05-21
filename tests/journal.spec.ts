@@ -45,7 +45,8 @@ test.describe('Character Journal', () => {
     await waitLoadingDone(page);
     await expect(page.locator('#sheetName')).toBeVisible();
 
-    const cid = await page.evaluate(() => (window as any).currentChar?.id);
+    await page.waitForFunction(() => (window as any).currentChar?.id > 0);
+    const cid = await page.evaluate(() => (window as any).currentChar.id);
 
     await page.evaluate(async (opts) => {
       await window.api('POST', `/api/characters/${opts.cid}/journal`, {
@@ -81,8 +82,7 @@ test.describe('Character Journal', () => {
     await page.click('text=Write Entry');
     await page.waitForTimeout(500);
 
-    await expect(page.locator('#journalToolbar')).toBeVisible();
-    await expect(page.locator('.editor-btn')).toBeVisible();
+    await expect(page.locator('#journalToolbar .editor-btn').first()).toBeVisible();
 
     const editorBtns = page.locator('.editor-btn');
     const count = await editorBtns.count();
@@ -102,7 +102,8 @@ test.describe('Character Journal', () => {
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
-    const cid = await page.evaluate(() => (window as any).currentChar?.id);
+    await page.waitForFunction(() => (window as any).currentChar?.id > 0);
+    const cid = await page.evaluate(() => (window as any).currentChar.id);
 
     await page.evaluate(async (charId) => {
       await window.api('POST', `/api/characters/${charId}/journal`, { entry_date: '2026-05-01', title: 'May Entry', entry: '<p>May content</p>' });
@@ -122,15 +123,16 @@ test.describe('Character Journal', () => {
 
     await page.click('text=New Character');
     await page.fill('#newName', name);
-    await page.fill('#newRace', 'Human');
-    await page.fill('#newClass', 'Fighter');
+    await page.fill('#newRace', 'Dwarf');
+    await page.fill('#newClass', 'Cleric');
     await page.click('text=Create');
     await waitModalClosed(page);
 
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
-    const cid = await page.evaluate(() => (window as any).currentChar?.id);
+    await page.waitForFunction(() => (window as any).currentChar?.id > 0);
+    const cid = await page.evaluate(() => (window as any).currentChar.id);
 
     await page.evaluate(async (charId) => {
       await window.api('POST', `/api/characters/${charId}/journal`, {

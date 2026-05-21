@@ -47,13 +47,14 @@ func CreateWikiPage(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	_, err := db.DB.Exec("INSERT INTO campaign_wiki_pages(campaign_id,user_id,parent_id,title,content,visibility,tags,sort_order) VALUES(?,?,?,?,?,?,?,?)",
+	res, err := db.DB.Exec("INSERT INTO campaign_wiki_pages(campaign_id,user_id,parent_id,title,content,visibility,tags,sort_order) VALUES(?,?,?,?,?,?,?,?)",
 		p.CampaignID, userID, p.ParentID, p.Title, p.Content, p.Visibility, p.Tags, p.SortOrder)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"ok": true})
+	id, _ := res.LastInsertId()
+	c.JSON(http.StatusCreated, gin.H{"id": id, "ok": true})
 }
 
 func GetWikiPage(c *gin.Context) {
