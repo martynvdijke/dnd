@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>villum — Character Folio</title>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Vollkorn:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="/static/style.css">
@@ -24,28 +24,28 @@
     </button>
     <div class="collapse navbar-collapse" id="mainNav">
       <ul class="navbar-nav me-auto mb-2 mb-md-0">
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showView('characters');loadCharacters();return false"><i class="fa-solid fa-users me-1"></i>Characters</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showParty();return false"><i class="fa-solid fa-flag me-1"></i>Party</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showCompendium();return false"><i class="fa-solid fa-book me-1"></i>Compendium</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showView('dice');renderDiceTab();return false"><i class="fa-solid fa-dice me-1"></i>Dice</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showEncounterBuilder();return false"><i class="fa-solid fa-crosshairs me-1"></i>Encounters</a></li>
-        <li class="nav-item" id="combatNavItem" style="display:none"><a class="nav-link" href="#" onclick="showCombatTracker();return false"><i class="fa-solid fa-swords me-1"></i>Combat</a></li>
-        <li class="nav-item" id="shopsNavItem" style="display:none"><a class="nav-link" href="#" onclick="showShops();return false"><i class="fa-solid fa-store me-1"></i>Shops</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showFactions();return false"><i class="fa-solid fa-flag me-1"></i>Factions</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showCalendar();return false"><i class="fa-solid fa-calendar me-1"></i>Calendar</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showTimeline();return false"><i class="fa-solid fa-timeline me-1"></i>Timeline</a></li>
-        <li class="nav-item" id="adminNavItem" style="display:none"><a class="nav-link" href="/admin"><i class="fa-solid fa-shield-halved me-1"></i>Admin</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showView('characters');loadCharacters();return false"><i class="fa-solid fa-users me-1" aria-hidden="true"></i>Characters</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showParty();return false"><i class="fa-solid fa-flag me-1" aria-hidden="true"></i>Party</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showCompendium();return false"><i class="fa-solid fa-book me-1" aria-hidden="true"></i>Compendium</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showView('dice');renderDiceTab();return false"><i class="fa-solid fa-dice me-1" aria-hidden="true"></i>Dice</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showEncounterBuilder();return false"><i class="fa-solid fa-crosshairs me-1" aria-hidden="true"></i>Encounters</a></li>
+        <li class="nav-item" id="combatNavItem" style="display:none"><a class="nav-link" href="#" onclick="showCombatTracker();return false"><i class="fa-solid fa-swords me-1" aria-hidden="true"></i>Combat</a></li>
+        <li class="nav-item" id="shopsNavItem" style="display:none"><a class="nav-link" href="#" onclick="showShops();return false"><i class="fa-solid fa-store me-1" aria-hidden="true"></i>Shops</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showFactions();return false"><i class="fa-solid fa-flag me-1" aria-hidden="true"></i>Factions</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showCalendar();return false"><i class="fa-solid fa-calendar me-1" aria-hidden="true"></i>Calendar</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTimeline();return false"><i class="fa-solid fa-timeline me-1" aria-hidden="true"></i>Timeline</a></li>
+        <li class="nav-item" id="adminNavItem" style="display:none"><a class="nav-link" href="/admin"><i class="fa-solid fa-shield-halved me-1" aria-hidden="true"></i>Admin</a></li>
       </ul>
       <div class="d-flex me-2" role="search">
         <div class="input-group input-group-sm">
           <input class="form-control" type="search" id="searchInput" placeholder="Search everything..." aria-label="Search" style="min-width:180px">
-          <button class="btn btn-outline-gold" id="searchBtn"><i class="fa-solid fa-search"></i></button>
+          <button class="btn btn-outline-gold" id="searchBtn"><i class="fa-solid fa-search" aria-hidden="true"></i></button>
         </div>
       </div>
       <span class="navbar-text me-3" id="userName"></span>
-      <a href="#" class="btn btn-outline-primary btn-sm" onclick="logout();return false"><i class="fa-solid fa-right-from-bracket me-1"></i>Logout</a>
+      <a href="#" class="btn btn-outline-primary btn-sm" onclick="logout();return false"><i class="fa-solid fa-right-from-bracket me-1" aria-hidden="true"></i>Logout</a>
     </div>
-    <button class="btn btn-outline-gold btn-sm me-2" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode"><i class="fa-solid fa-moon" id="themeIcon"></i></button>
+    <button class="btn btn-outline-gold btn-sm me-2" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode"><i class="fa-solid fa-moon" aria-hidden="true" id="themeIcon"></i></button>
   </div>
 </nav>
 
@@ -55,8 +55,8 @@
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <h1 class="h2 mb-0">Character Folio</h1>
     <div class="d-flex gap-2">
-      <button class="btn btn-gold btn-sm" onclick="newChar()"><i class="fa-solid fa-plus me-1"></i>New Character</button>
-      <button class="btn btn-outline-primary btn-sm" onclick="showImport()"><i class="fa-solid fa-file-import me-1"></i>Import</button>
+      <button class="btn btn-gold btn-sm" onclick="newChar()"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i>New Character</button>
+      <button class="btn btn-outline-primary btn-sm" onclick="showImport()"><i class="fa-solid fa-file-import me-1" aria-hidden="true"></i>Import</button>
     </div>
   </div>
   <div class="mb-3">
@@ -72,10 +72,10 @@
       <p class="text-muted fst-italic mb-0 mt-1" id="sheetSubtitle"></p>
     </div>
     <div class="d-flex gap-2 no-print">
-      <button class="btn btn-outline-primary btn-sm" onclick="printChar()"><i class="fa-solid fa-print me-1"></i>Print</button>
-      <button class="btn btn-outline-primary btn-sm" onclick="exportChar()"><i class="fa-solid fa-download me-1"></i>Export</button>
-      <button class="btn btn-outline-secondary btn-sm" onclick="showView('characters');loadCharacters();return false"><i class="fa-solid fa-arrow-left me-1"></i>Back</button>
-      <button class="btn btn-outline-danger btn-sm" onclick="deleteChar()"><i class="fa-solid fa-trash me-1"></i>Delete</button>
+      <button class="btn btn-outline-primary btn-sm" onclick="printChar()"><i class="fa-solid fa-print me-1" aria-hidden="true"></i>Print</button>
+      <button class="btn btn-outline-primary btn-sm" onclick="exportChar()"><i class="fa-solid fa-download me-1" aria-hidden="true"></i>Export</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="showView('characters');loadCharacters();return false"><i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i>Back</button>
+      <button class="btn btn-outline-danger btn-sm" onclick="deleteChar()"><i class="fa-solid fa-trash me-1" aria-hidden="true"></i>Delete</button>
     </div>
   </div>
   <div class="ornament mb-3">✧ ✦ ✧</div>
@@ -87,10 +87,10 @@
   <div id="featuresSection" style="display:none"></div>
   <div id="locationsSection" style="display:none">
   <div class="d-flex justify-content-between align-items-center mb-3">
-    <h5 class="mb-0"><i class="fa-solid fa-map me-2"></i>Locations</h5>
+    <h5 class="mb-0"><i class="fa-solid fa-map me-2" aria-hidden="true"></i>Locations</h5>
     <div>
-      <button class="btn btn-outline-primary btn-sm me-1" onclick="showCreateLocation()"><i class="fa-solid fa-plus me-1"></i>New</button>
-      <button class="btn btn-primary btn-sm" onclick="showLinkLocation()"><i class="fa-solid fa-link me-1"></i>Link</button>
+      <button class="btn btn-outline-primary btn-sm me-1" onclick="showCreateLocation()"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i>New</button>
+      <button class="btn btn-primary btn-sm" onclick="showLinkLocation()"><i class="fa-solid fa-link me-1" aria-hidden="true"></i>Link</button>
     </div>
   </div>
   <div class="row g-0" style="min-height:500px">
@@ -113,7 +113,7 @@
 </div>
 
 <div id="diceView" style="display:none">
-  <h1 class="h2 mb-3"><i class="fa-solid fa-dice me-2"></i>Dice Roller</h1>
+  <h1 class="h2 mb-3"><i class="fa-solid fa-dice me-2" aria-hidden="true"></i>Dice Roller</h1>
   <div id="diceViewSection"></div>
 </div>
 
@@ -122,7 +122,7 @@
 </div>
 
 <div id="compendiumView" style="display:none">
-  <h1 class="h2 mb-3"><i class="fa-solid fa-book me-2"></i>Compendium</h1>
+  <h1 class="h2 mb-3"><i class="fa-solid fa-book me-2" aria-hidden="true"></i>Compendium</h1>
   <ul class="nav nav-tabs mb-3" id="compendiumTabs">
     <li class="nav-item"><button class="nav-link active" id="compTabRaces" onclick="loadCompendiumTab('races')">Races</button></li>
     <li class="nav-item"><button class="nav-link" id="compTabClasses" onclick="loadCompendiumTab('classes')">Classes</button></li>
@@ -136,17 +136,17 @@
 </div>
 
 <div id="encounterView" style="display:none">
-  <h1 class="h2 mb-3"><i class="fa-solid fa-crosshairs me-2"></i>Encounter Builder</h1>
+  <h1 class="h2 mb-3"><i class="fa-solid fa-crosshairs me-2" aria-hidden="true"></i>Encounter Builder</h1>
   <div id="encounterContent"></div>
 </div>
 
 <div id="calendarView" style="display:none">
-  <h1 class="h2 mb-3"><i class="fa-solid fa-calendar me-2"></i>Campaign Calendar</h1>
+  <h1 class="h2 mb-3"><i class="fa-solid fa-calendar me-2" aria-hidden="true"></i>Campaign Calendar</h1>
   <div id="calendarContent"></div>
 </div>
 
 <div id="timelineView" style="display:none">
-  <h1 class="h2 mb-3"><i class="fa-solid fa-timeline me-2"></i>Campaign Timeline</h1>
+  <h1 class="h2 mb-3"><i class="fa-solid fa-timeline me-2" aria-hidden="true"></i>Campaign Timeline</h1>
   <div id="timelineContent"></div>
 </div>
 
@@ -155,12 +155,12 @@
 </div>
 
 <div id="combatTrackerView" style="display:none">
-  <h1 class="h2 mb-3"><i class="fa-solid fa-swords me-2"></i>Combat Tracker</h1>
+  <h1 class="h2 mb-3"><i class="fa-solid fa-swords me-2" aria-hidden="true"></i>Combat Tracker</h1>
   <div id="combatTrackerContent"></div>
 </div>
 
 <div id="shopsView" style="display:none">
-  <h1 class="h2 mb-3"><i class="fa-solid fa-store me-2"></i>Shops & Trading</h1>
+  <h1 class="h2 mb-3"><i class="fa-solid fa-store me-2" aria-hidden="true"></i>Shops & Trading</h1>
   <div id="shopsContent"></div>
 </div>
 
@@ -169,14 +169,14 @@
 </div>
 
 <div id="factionsView" style="display:none">
-  <h1 class="h2 mb-3"><i class="fa-solid fa-flag me-2"></i>Factions & Reputation</h1>
+  <h1 class="h2 mb-3"><i class="fa-solid fa-flag me-2" aria-hidden="true"></i>Factions & Reputation</h1>
   <div id="factionsContent"></div>
 </div>
 
 </div>
 
   <footer class="text-center text-muted py-3 border-top mt-4" style="font-size:0.8rem">
-    <i class="fa-solid fa-code-branch me-1"></i>v{{VERSION}} &mdash; <a href="https://github.com/martynvdijke/dnd" target="_blank" rel="noopener" class="text-muted text-decoration-none"><i class="fa-brands fa-github me-1"></i> Source</a>
+    <i class="fa-solid fa-code-branch me-1" aria-hidden="true"></i>v{{VERSION}} &mdash; <a href="https://github.com/martynvdijke/dnd" target="_blank" rel="noopener" class="text-muted text-decoration-none"><i class="fa-brands fa-github me-1"></i> Source</a>
   </footer>
 
   <div id="loadingOverlay" class="loading-overlay d-none">
@@ -184,12 +184,12 @@
   </div>
 
   <div class="fab" id="fabBtn" onclick="toggleFabMenu()" title="Quick Actions">
-    <i class="fa-solid fa-plus"></i>
+    <i class="fa-solid fa-plus" aria-hidden="true"></i>
   </div>
   <div class="fab-menu" id="fabMenu">
-    <button class="fab-menu-item" onclick="newChar();toggleFabMenu()"><i class="fa-solid fa-plus me-2"></i>New Character</button>
-    <button class="fab-menu-item" onclick="showView('dice');renderDiceTab();toggleFabMenu()"><i class="fa-solid fa-dice me-2"></i>Roll Dice</button>
-    <button class="fab-menu-item" onclick="showParty();toggleFabMenu()"><i class="fa-solid fa-flag me-2"></i>Party View</button>
+    <button class="fab-menu-item" onclick="newChar();toggleFabMenu()"><i class="fa-solid fa-plus me-2" aria-hidden="true"></i>New Character</button>
+    <button class="fab-menu-item" onclick="showView('dice');renderDiceTab();toggleFabMenu()"><i class="fa-solid fa-dice me-2" aria-hidden="true"></i>Roll Dice</button>
+    <button class="fab-menu-item" onclick="showParty();toggleFabMenu()"><i class="fa-solid fa-flag me-2" aria-hidden="true"></i>Party View</button>
   </div>
 
   <div class="toast-container toast-custom" id="toastContainer"></div>
