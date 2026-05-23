@@ -1,3 +1,10 @@
+## [1.13.3](https://github.com/martynvdijke/dnd/compare/v1.13.2...v1.13.3) (2026-05-23)
+
+
+### Bug Fixes
+
+* **ui:** add aria-hidden to icons, fix FA version to 6.7.2 ([ee04cce](https://github.com/martynvdijke/dnd/commit/ee04cce127d1e9696f854e24d787e261778f79ee))
+
 ## [1.13.2](https://github.com/martynvdijke/dnd/compare/v1.13.1...v1.13.2) (2026-05-23)
 
 
