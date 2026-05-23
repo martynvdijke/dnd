@@ -1,3 +1,11 @@
+## [1.13.2](https://github.com/martynvdijke/dnd/compare/v1.13.1...v1.13.2) (2026-05-23)
+
+
+### Bug Fixes
+
+* **deps:** update dependency marked to v18 ([f8cd83c](https://github.com/martynvdijke/dnd/commit/f8cd83c821a61ed880825f1234d69dfe573f1be3))
+* **deps:** update tiptap monorepo to v3 ([f3edffd](https://github.com/martynvdijke/dnd/commit/f3edffd9b4db93ba8e98886320e567bdc893e9f2))
+
 ## [1.13.1](https://github.com/martynvdijke/dnd/compare/v1.13.0...v1.13.1) (2026-05-22)
 
 
