@@ -1,3 +1,13 @@
+# [1.15.0](https://github.com/martynvdijke/dnd/compare/v1.14.0...v1.15.0) (2026-05-24)
+
+
+### Features
+
+* **oneshot:** add clue/mystery tracker with reveal/hide, dependencies, NPC/location links ([6eab978](https://github.com/martynvdijke/dnd/commit/6eab978bada155628e891b06f85d1dd69839a8f1))
+* **oneshot:** add DM screen with quick reference, quick actions, and DM notes ([f05ee9c](https://github.com/martynvdijke/dnd/commit/f05ee9c57856f73eb79a617516e33e73d37bbc6f))
+* **oneshot:** add pregenerated characters with quick gen, party balance check ([cf54d7e](https://github.com/martynvdijke/dnd/commit/cf54d7e2c5ae6ba549ebffb3a860a557d3483507))
+* **oneshot:** add prep dashboard with checklist, session flow, and all-in-one DM view ([0564711](https://github.com/martynvdijke/dnd/commit/05647110a21b94164fa6f28094f34f1a6fe4dd67))
+
 # [1.14.0](https://github.com/martynvdijke/dnd/compare/v1.13.4...v1.14.0) (2026-05-24)
 
 
