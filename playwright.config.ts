@@ -42,7 +42,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'rm -f /tmp/villum-test.db /tmp/villum-test.db-shm /tmp/villum-test.db-wal && DB_PATH=/tmp/villum-test.db go run -tags fts5 .',
+    command: 'rm -f /tmp/villum-test.db /tmp/villum-test.db-shm /tmp/villum-test.db-wal && DB_PATH=/tmp/villum-test.db go run -tags sqlite_fts5 .',
     url: 'http://localhost:6270/api/check-setup',
     reuseExistingServer: false,
     timeout: 30000,
