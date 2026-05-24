@@ -322,6 +322,12 @@ func main() {
 		auth.PUT("/pregens/:id", handlers.UpdatePregen)
 		auth.DELETE("/pregens/:id", handlers.DeletePregen)
 
+		// Prep Dashboard & Checklist
+		auth.GET("/oneshot-adventures/:id/checklist", handlers.ListPrepChecklist)
+		auth.POST("/oneshot-adventures/:id/checklist", handlers.CreatePrepChecklistItem)
+		auth.PUT("/prep-checklist/:cid", handlers.UpdatePrepChecklistItem)
+		auth.DELETE("/prep-checklist/:cid", handlers.DeletePrepChecklistItem)
+
 		// Calendar
 		auth.GET("/calendar", handlers.ListCalendarEvents)
 		auth.POST("/calendar", handlers.CreateCalendarEvent)

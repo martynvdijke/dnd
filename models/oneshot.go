@@ -189,3 +189,24 @@ type PartyBalance struct {
 	Missing    []string                `json:"missing_roles"`
 	Suggestion string                  `json:"suggestion"`
 }
+
+// ─── Prep Dashboard ───
+
+type PrepChecklistItem struct {
+	ID          int64  `json:"id"`
+	AdventureID int64  `json:"adventure_id"`
+	Item        string `json:"item"`
+	Category    string `json:"category"`
+	IsChecked   bool   `json:"is_checked"`
+	SortOrder   int    `json:"sort_order"`
+}
+
+type PrepDashboardData struct {
+	Adventure   OneShotAdventure        `json:"adventure"`
+	Acts        []OneShotAct            `json:"acts"`
+	Clues       []Clue                  `json:"clues"`
+	Pregens     []PregeneratedCharacter `json:"pregens"`
+	Checklist   []PrepChecklistItem     `json:"checklist"`
+	Pacing      *SessionPacing          `json:"pacing,omitempty"`
+	SessionID   *int64                  `json:"session_id,omitempty"`
+}

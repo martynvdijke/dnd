@@ -1,0 +1,222 @@
+<div class="container-fluid px-0">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="mb-1"><i class="fas fa-dragon me-2"></i>{{.D.Adventure.Title}}</h3>
+      <span class="badge bg-secondary me-1">{{.D.Adventure.Template}}</span>
+      <span class="badge bg-info">{{.D.Adventure.Difficulty}}</span>
+      <span class="ms-2 text-muted"><i class="far fa-clock me-1"></i>{{.D.Adventure.EstimatedMinutes}} min</span>
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-outline-primary" onclick="print()"><i class="fas fa-print me-1"></i>Print Flow</button>
+      <a href="/htmx/oneshot-adventures" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Back</a>
+    </div>
+  </div>
+
+  {{if .D.Adventure.Premise}}
+  <div class="alert alert-info">
+    <strong>Premise:</strong> {{.D.Adventure.Premise}}<br>
+    {{if .D.Adventure.Hook}}<strong>Hook:</strong> {{.D.Adventure.Hook}}{{end}}
+  </div>
+  {{end}}
+
+  <div class="row">
+    <!-- Left Column: Acts Flow + Clues -->
+    <div class="col-lg-8">
+      <!-- Session Flow -->
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="fas fa-scroll me-2"></i>Session Flow</h5>
+          <span class="badge bg-primary">{{len .D.Acts}} acts</span>
+        </div>
+        <div class="card-body">
+          {{if eq (len .D.Acts) 0}}
+            <p class="text-muted">No acts created yet. <a href="/htmx/oneshot-adventures/{{.D.Adventure.ID}}">Edit adventure</a> to add acts and scenes.</p>
+          {{else}}
+            {{range $i, $act := .D.Acts}}
+            <div class="mb-3">
+              <div class="d-flex align-items-center mb-2">
+                <span class="badge bg-dark me-2 rounded-pill">{{$act.Number}}</span>
+                <strong class="flex-grow-1">{{$act.Title}}</strong>
+                <small class="text-muted"><i class="far fa-clock me-1"></i>{{$act.EstimatedMinutes}}m</small>
+              </div>
+              <p class="text-muted small mb-2">{{$act.Description}}</p>
+              {{if $act.Scenes}}
+              <div class="ms-4">
+                {{range $j, $scene := $act.Scenes}}
+                <div class="d-flex align-items-center py-1 border-bottom border-light">
+                  <span class="badge bg-light text-dark me-2">{{$scene.Number}}</span>
+                  <span class="flex-grow-1">{{$scene.Title}}</span>
+                  <span class="badge 
+                    {{if eq $scene.SceneType "combat"}}bg-danger
+                    {{else if eq $scene.SceneType "exploration"}}bg-success
+                    {{else if eq $scene.SceneType "roleplay"}}bg-info
+                    {{else if eq $scene.SceneType "puzzle"}}bg-warning text-dark
+                    {{else}}bg-secondary{{end}} me-2">{{$scene.SceneType}}</span>
+                  <small class="text-muted">{{$scene.EstimatedMinutes}}m</small>
+                </div>
+                {{end}}
+              </div>
+              {{end}}
+            </div>
+            {{if ne $i (sub (len $.D.Acts) 1)}}
+            <div class="text-center text-muted mb-2"><i class="fas fa-arrow-down"></i></div>
+            {{end}}
+            {{end}}
+          {{end}}
+        </div>
+      </div>
+
+      <!-- Clue Board -->
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="fas fa-search me-2"></i>Clues</h5>
+          <div>
+            <span class="badge bg-success me-1">{{countRevealed .D.Clues}} revealed</span>
+            <span class="badge bg-secondary me-1">{{countHidden .D.Clues}} hidden</span>
+            <span class="badge bg-danger">{{countRedHerrings .D.Clues}} red herrings</span>
+          </div>
+        </div>
+        <div class="card-body">
+          {{if eq (len .D.Clues) 0}}
+            <p class="text-muted">No clues yet. <a href="javascript:void(0)" onclick="showView('clues')" hx-get="/htmx/clues?adventure_id={{.D.Adventure.ID}}">Add clues</a></p>
+          {{else}}
+          <div class="list-group">
+            {{range .D.Clues}}
+            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+              <div>
+                <span class="badge {{if .IsRevealed}}bg-success{{else}}bg-secondary{{end}} me-2">
+                  {{if .IsRevealed}}Revealed{{else}}Hidden{{end}}
+                </span>
+                {{if .IsRedHerring}}<span class="badge bg-danger me-2">Red Herring</span>{{end}}
+                <strong>{{.Title}}</strong>
+                {{if .ClueType}}<span class="badge bg-info ms-1">{{.ClueType}}</span>{{end}}
+              </div>
+              <small class="text-muted">{{truncate .Description 60}}</small>
+            </div>
+            {{end}}
+          </div>
+          {{end}}
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Checklist + Quick Actions -->
+    <div class="col-lg-4">
+      <!-- Prep Checklist -->
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Prep Checklist</h5>
+        </div>
+        <div class="card-body p-2" id="checklistContainer">
+          <div hx-get="/htmx/oneshot-adventures/{{.D.Adventure.ID}}/checklist" hx-trigger="load" hx-swap="innerHTML">
+            <div class="text-center py-3"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-grid gap-2">
+            {{if .D.SessionID}}
+              <a href="javascript:void(0)" class="btn btn-success" 
+                 hx-get="/htmx/session-pacing/{{.D.SessionID}}" hx-target="#pacingDashboard" hx-swap="innerHTML"
+                 onclick="document.getElementById('pacingDashboard').classList.remove('d-none')">
+                <i class="fas fa-play me-1"></i>Resume Session
+              </a>
+            {{else}}
+              <button class="btn btn-outline-success"
+                hx-post="/api/oneshot-adventures/{{.D.Adventure.ID}}/pacing/start"
+                hx-trigger="click"
+                hx-swap="none"
+                onclick="setTimeout(function(){window.location.reload()}, 500)">
+                <i class="fas fa-play me-1"></i>Start Session
+              </button>
+            {{end}}
+            <a href="/htmx/oneshot-adventures/{{.D.Adventure.ID}}" class="btn btn-outline-primary">
+              <i class="fas fa-edit me-1"></i>Edit Adventure
+            </a>
+            <a href="javascript:void(0)" class="btn btn-outline-info" 
+               hx-get="/htmx/oneshot-adventures/{{.D.Adventure.ID}}/session-flow" hx-target="#sessionFlowView" hx-swap="innerHTML"
+               onclick="document.getElementById('sessionFlowView').classList.remove('d-none')">
+              <i class="fas fa-scroll me-1"></i>Session Flow
+            </a>
+            <a href="/htmx/generators" class="btn btn-outline-warning">
+              <i class="fas fa-dice me-1"></i>Generators
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Linked Resources -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-link me-2"></i>Linked Resources</h5>
+        </div>
+        <div class="card-body">
+          {{if .D.Adventure.NPCs}}
+          <h6>NPCs ({{len .D.Adventure.NPCs}})</h6>
+          <ul class="list-unstyled small mb-3">
+            {{range .D.Adventure.NPCs}}
+            <li><i class="fas fa-user me-1"></i>{{.NPCName}} {{if .Role}}<span class="text-muted">({{.Role}})</span>{{end}}</li>
+            {{end}}
+          </ul>
+          {{end}}
+
+          {{if .D.Adventure.Locations}}
+          <h6>Locations ({{len .D.Adventure.Locations}})</h6>
+          <ul class="list-unstyled small mb-3">
+            {{range .D.Adventure.Locations}}
+            <li><i class="fas fa-map-marker-alt me-1"></i>{{.LocationName}}</li>
+            {{end}}
+          </ul>
+          {{end}}
+
+          {{if .D.Adventure.Encounters}}
+          <h6>Encounters ({{len .D.Adventure.Encounters}})</h6>
+          <ul class="list-unstyled small mb-3">
+            {{range .D.Adventure.Encounters}}
+            <li><i class="fas fa-crosshairs me-1"></i>{{.EncounterName}}</li>
+            {{end}}
+          </ul>
+          {{end}}
+
+          {{if and (eq (len .D.Adventure.NPCs) 0) (eq (len .D.Adventure.Locations) 0) (eq (len .D.Adventure.Encounters) 0)}}
+          <p class="text-muted">No linked resources. <a href="/htmx/oneshot-adventures/{{.D.Adventure.ID}}">Edit adventure</a> to link NPCs, locations, and encounters.</p>
+          {{end}}
+        </div>
+      </div>
+
+      <!-- Pregens -->
+      {{if .D.Pregens}}
+      <div class="card mb-3">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="fas fa-users me-2"></i>Pregenerated Characters</h5>
+        </div>
+        <div class="card-body">
+          <div class="list-group">
+            {{range .D.Pregens}}
+            <div class="list-group-item py-2">
+              <div class="d-flex justify-content-between">
+                <strong>{{.Name}}</strong>
+                <small class="text-muted">{{.Race}} {{.Class}}</small>
+              </div>
+            </div>
+            {{end}}
+          </div>
+        </div>
+      </div>
+      {{end}}
+    </div>
+  </div>
+
+  <!-- Pacing Dashboard (hidden until activated) -->
+  <div id="pacingDashboard" class="d-none mt-3"></div>
+
+  <!-- Session Flow View (hidden until activated) -->
+  <div id="sessionFlowView" class="d-none mt-3"></div>
+</div>

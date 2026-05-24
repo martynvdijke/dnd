@@ -1,0 +1,40 @@
+<div class="prep-checklist">
+  {{range .Items}}
+  <div class="d-flex align-items-center py-1 border-bottom border-light" id="checklist-{{.ID}}">
+    <input type="checkbox" class="form-check-input me-2" 
+      {{if .IsChecked}}checked{{end}}
+      hx-post="/htmx/oneshot-adventures/{{$.AdventureID}}/checklist/{{.ID}}/toggle"
+      hx-target="#checklistContainer" hx-swap="innerHTML">
+    <span class="flex-grow-1 {{if .IsChecked}}text-muted text-decoration-line-through{{end}}">{{.Item}}</span>
+    <span class="badge bg-light text-dark me-1">{{.Category}}</span>
+    <button class="btn btn-sm btn-outline-danger py-0 px-1" 
+      hx-delete="/htmx/oneshot-adventures/{{$.AdventureID}}/checklist/{{.ID}}"
+      hx-target="#checklistContainer" hx-swap="innerHTML">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+  {{else}}
+  <div class="text-center text-muted py-3">
+    <p class="mb-1"><i class="fas fa-clipboard-list me-2"></i>No checklist items yet</p>
+    <small>Add prep tasks below</small>
+  </div>
+  {{end}}
+
+  <div class="d-flex gap-1 mt-2">
+    <input type="text" class="form-control form-control-sm" id="newChecklistItem" name="item" placeholder="Add prep item...">
+    <select class="form-select form-select-sm" id="newChecklistCategory" name="category" style="max-width:120px">
+      <option value="general">General</option>
+      <option value="maps">Maps</option>
+      <option value="npcs">NPCs</option>
+      <option value="encounters">Encounters</option>
+      <option value="loot">Loot</option>
+      <option value="handouts">Handouts</option>
+    </select>
+    <button class="btn btn-sm btn-primary" 
+      hx-post="/htmx/oneshot-adventures/{{.AdventureID}}/checklist"
+      hx-include="#newChecklistItem, #newChecklistCategory"
+      hx-target="#checklistContainer" hx-swap="innerHTML">
+      <i class="fas fa-plus"></i>
+    </button>
+  </div>
+</div>

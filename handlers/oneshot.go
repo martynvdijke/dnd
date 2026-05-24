@@ -2034,3 +2034,411 @@ func HtmxPregenCard(c *gin.Context) {
 	}
 	c.HTML(http.StatusOK, "oneshot_pregen_card.html", gin.H{"C": ch})
 }
+
+// ─── Prep Dashboard Handlers ───
+
+func HtmxGetPrepDashboard(c *gin.Context) {
+	adventureID := c.Param("id")
+	userID, _ := c.Get("user_id")
+
+	// Load adventure
+	var adv models.OneShotAdventure
+	err := db.DB.QueryRow("SELECT id, user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes, created_at, updated_at FROM oneshot_adventures WHERE id=? AND user_id=?", adventureID, userID).
+		Scan(&adv.ID, &adv.UserID, &adv.CampaignID, &adv.Title, &adv.Premise, &adv.Hook, &adv.Template, &adv.EstimatedMinutes, &adv.Difficulty, &adv.Notes, &adv.CreatedAt, &adv.UpdatedAt)
+	if err != nil {
+		c.String(http.StatusNotFound, "Adventure not found")
+		return
+	}
+
+	// Load acts with scenes
+	actRows, _ := db.DB.Query("SELECT id, adventure_id, number, title, description, estimated_minutes FROM oneshot_acts WHERE adventure_id=? ORDER BY number", adventureID)
+	if actRows != nil {
+		defer actRows.Close()
+		for actRows.Next() {
+			var act models.OneShotAct
+			if err := actRows.Scan(&act.ID, &act.AdventureID, &act.Number, &act.Title, &act.Description, &act.EstimatedMinutes); err != nil {
+				continue
+			}
+			// Load scenes for this act
+			sceneRows, _ := db.DB.Query("SELECT id, act_id, number, title, description, scene_type, location_id, encounter_id, estimated_minutes, notes FROM oneshot_scenes WHERE act_id=? ORDER BY number", act.ID)
+			if sceneRows != nil {
+				for sceneRows.Next() {
+					var sc models.OneShotScene
+					if err := sceneRows.Scan(&sc.ID, &sc.ActID, &sc.Number, &sc.Title, &sc.Description, &sc.SceneType, &sc.LocationID, &sc.EncounterID, &sc.EstimatedMinutes, &sc.Notes); err == nil {
+						act.Scenes = append(act.Scenes, sc)
+					}
+				}
+				sceneRows.Close()
+			}
+			adv.Acts = append(adv.Acts, act)
+		}
+	}
+
+	// Load linked NPCs
+	npcRows, _ := db.DB.Query(`
+		SELECT oan.id, oan.adventure_id, oan.npc_id, oan.role, COALESCE(n.name,'')
+		FROM oneshot_adventure_npcs oan
+		LEFT JOIN npcs n ON n.id = oan.npc_id
+		WHERE oan.adventure_id=?
+	`, adventureID)
+	if npcRows != nil {
+		defer npcRows.Close()
+		for npcRows.Next() {
+			var n models.OneShotAdventureNPC
+			if err := npcRows.Scan(&n.ID, &n.AdventureID, &n.NPCID, &n.Role, &n.NPCName); err == nil {
+				adv.NPCs = append(adv.NPCs, n)
+			}
+		}
+	}
+
+	// Load linked locations
+	locRows, _ := db.DB.Query(`
+		SELECT oal.id, oal.adventure_id, oal.location_id, COALESCE(l.name,'')
+		FROM oneshot_adventure_locations oal
+		LEFT JOIN locations l ON l.id = oal.location_id
+		WHERE oal.adventure_id=?
+	`, adventureID)
+	if locRows != nil {
+		defer locRows.Close()
+		for locRows.Next() {
+			var l models.OneShotAdventureLocation
+			if err := locRows.Scan(&l.ID, &l.AdventureID, &l.LocationID, &l.LocationName); err == nil {
+				adv.Locations = append(adv.Locations, l)
+			}
+		}
+	}
+
+	// Load linked encounters
+	encRows, _ := db.DB.Query(`
+		SELECT oae.id, oae.adventure_id, oae.encounter_id, COALESCE(e.name,'')
+		FROM oneshot_adventure_encounters oae
+		LEFT JOIN encounter_templates e ON e.id = oae.encounter_id
+		WHERE oae.adventure_id=?
+	`, adventureID)
+	if encRows != nil {
+		defer encRows.Close()
+		for encRows.Next() {
+			var e models.OneShotAdventureEncounter
+			if err := encRows.Scan(&e.ID, &e.AdventureID, &e.EncounterID, &e.EncounterName); err == nil {
+				adv.Encounters = append(adv.Encounters, e)
+			}
+		}
+	}
+
+	// Load clues for this adventure
+	var clues []models.Clue
+	clueRows, _ := db.DB.Query("SELECT id, adventure_id, title, description, clue_type, is_red_herring, is_revealed, sort_order, notes, created_at, updated_at FROM clues WHERE adventure_id=? ORDER BY is_revealed DESC, id", adventureID)
+	if clueRows != nil {
+		defer clueRows.Close()
+		for clueRows.Next() {
+			var cl models.Clue
+			if err := clueRows.Scan(&cl.ID, &cl.AdventureID, &cl.Title, &cl.Description, &cl.ClueType, &cl.IsRedHerring, &cl.IsRevealed, &cl.SortOrder, &cl.Notes, &cl.CreatedAt, &cl.UpdatedAt); err == nil {
+				clues = append(clues, cl)
+			}
+		}
+	}
+
+	// Load pregens for this user (not adventure-specific, but user-specific)
+	var pregens []models.PregeneratedCharacter
+	pregenRows, _ := db.DB.Query("SELECT id, user_id, name, race, class, subclass, level, background, alignment, str, dex, con, int, wis, cha, hp, ac, speed, skills, equipment, spells, features, personality, backstory, portrait_url, notes, created_at, updated_at FROM pregen_characters WHERE user_id=? ORDER BY updated_at DESC", userID)
+	if pregenRows != nil {
+		defer pregenRows.Close()
+		for pregenRows.Next() {
+			var p models.PregeneratedCharacter
+			if err := pregenRows.Scan(&p.ID, &p.UserID, &p.Name, &p.Race, &p.Class, &p.Subclass, &p.Level, &p.Background, &p.Alignment,
+				&p.Str, &p.Dex, &p.Con, &p.Int, &p.Wis, &p.Cha, &p.HP, &p.AC, &p.Speed,
+				&p.Skills, &p.Equipment, &p.Spells, &p.Features, &p.Personality, &p.Backstory,
+				&p.PortraitURL, &p.Notes, &p.CreatedAt, &p.UpdatedAt); err == nil {
+				pregens = append(pregens, p)
+			}
+		}
+	}
+
+	// Load checklist
+	var checklist []models.PrepChecklistItem
+	clRows, _ := db.DB.Query("SELECT id, adventure_id, item, category, is_checked, sort_order FROM prep_checklist WHERE adventure_id=? ORDER BY sort_order, id", adventureID)
+	if clRows != nil {
+		defer clRows.Close()
+		for clRows.Next() {
+			var item models.PrepChecklistItem
+			var checked int
+			if err := clRows.Scan(&item.ID, &item.AdventureID, &item.Item, &item.Category, &checked, &item.SortOrder); err == nil {
+				item.IsChecked = checked == 1
+				checklist = append(checklist, item)
+			}
+		}
+	}
+
+	// Check for pacing session
+	var sessionID *int64
+	var pacing *models.SessionPacing
+	var sid int64
+	err = db.DB.QueryRow("SELECT id, status FROM session_pacing WHERE adventure_id=? AND status IN ('running','paused') ORDER BY id DESC LIMIT 1", adventureID).Scan(&sid, &pacing.Status)
+	if err == nil {
+		sessionID = &sid
+		pacing = &models.SessionPacing{ID: sid, Status: "running"}
+		// Get elapsed from scene timings
+		db.DB.QueryRow("SELECT COALESCE(SUM(elapsed_seconds),0) FROM scene_timings WHERE session_id=?", sid).Scan(&pacing.ElapsedSeconds)
+	}
+
+	prepData := models.PrepDashboardData{
+		Adventure: adv,
+		Acts:      adv.Acts,
+		Clues:     clues,
+		Pregens:   pregens,
+		Checklist: checklist,
+		Pacing:    pacing,
+		SessionID: sessionID,
+	}
+
+	c.HTML(http.StatusOK, "oneshot_prep_dashboard.html", gin.H{
+		"D": prepData,
+	})
+}
+
+// ─── Prep Checklist Handlers ───
+
+func ListPrepChecklist(c *gin.Context) {
+	adventureID := c.Param("id")
+	rows, err := db.DB.Query("SELECT id, adventure_id, item, category, is_checked, sort_order FROM prep_checklist WHERE adventure_id=? ORDER BY sort_order, id", adventureID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	var items []models.PrepChecklistItem
+	for rows.Next() {
+		var item models.PrepChecklistItem
+		var checked int
+		if err := rows.Scan(&item.ID, &item.AdventureID, &item.Item, &item.Category, &checked, &item.SortOrder); err == nil {
+			item.IsChecked = checked == 1
+			items = append(items, item)
+		}
+	}
+	c.JSON(http.StatusOK, items)
+}
+
+func CreatePrepChecklistItem(c *gin.Context) {
+	adventureID := c.Param("id")
+	var req struct {
+		Item      string `json:"item"`
+		Category  string `json:"category"`
+		SortOrder int    `json:"sort_order"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if req.Category == "" {
+		req.Category = "general"
+	}
+
+	result, err := db.DB.Exec("INSERT INTO prep_checklist(adventure_id, item, category, sort_order) VALUES(?,?,?,?)", adventureID, req.Item, req.Category, req.SortOrder)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+func UpdatePrepChecklistItem(c *gin.Context) {
+	id := c.Param("cid")
+	var req struct {
+		Item      string `json:"item,omitempty"`
+		Category  string `json:"category,omitempty"`
+		IsChecked *bool  `json:"is_checked,omitempty"`
+		SortOrder *int   `json:"sort_order,omitempty"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if req.Item != "" {
+		db.DB.Exec("UPDATE prep_checklist SET item=? WHERE id=?", req.Item, id)
+	}
+	if req.Category != "" {
+		db.DB.Exec("UPDATE prep_checklist SET category=? WHERE id=?", req.Category, id)
+	}
+	if req.IsChecked != nil {
+		val := 0
+		if *req.IsChecked {
+			val = 1
+		}
+		db.DB.Exec("UPDATE prep_checklist SET is_checked=? WHERE id=?", val, id)
+	}
+	if req.SortOrder != nil {
+		db.DB.Exec("UPDATE prep_checklist SET sort_order=? WHERE id=?", *req.SortOrder, id)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "updated"})
+}
+
+func DeletePrepChecklistItem(c *gin.Context) {
+	id := c.Param("cid")
+	_, err := db.DB.Exec("DELETE FROM prep_checklist WHERE id=?", id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
+}
+
+// HTMX handlers for checklist
+func HtmxRenderChecklist(c *gin.Context) {
+	adventureID := c.Param("id")
+	rows, _ := db.DB.Query("SELECT id, adventure_id, item, category, is_checked, sort_order FROM prep_checklist WHERE adventure_id=? ORDER BY sort_order, id", adventureID)
+	if rows != nil {
+		defer rows.Close()
+		var items []models.PrepChecklistItem
+		for rows.Next() {
+			var item models.PrepChecklistItem
+			var checked int
+			if err := rows.Scan(&item.ID, &item.AdventureID, &item.Item, &item.Category, &checked, &item.SortOrder); err == nil {
+				item.IsChecked = checked == 1
+				items = append(items, item)
+			}
+		}
+		c.HTML(http.StatusOK, "oneshot_checklist.html", gin.H{"Items": items, "AdventureID": adventureID})
+		return
+	}
+	c.HTML(http.StatusOK, "oneshot_checklist.html", gin.H{"Items": []models.PrepChecklistItem{}, "AdventureID": adventureID})
+}
+
+func HtmxToggleChecklistItem(c *gin.Context) {
+	id := c.Param("cid")
+	var checked int
+	db.DB.QueryRow("SELECT is_checked FROM prep_checklist WHERE id=?", id).Scan(&checked)
+	newVal := 0
+	if checked == 0 {
+		newVal = 1
+	}
+	db.DB.Exec("UPDATE prep_checklist SET is_checked=? WHERE id=?", newVal, id)
+
+	// Get adventure ID for re-render
+	var adventureID int64
+	db.DB.QueryRow("SELECT adventure_id FROM prep_checklist WHERE id=?", id).Scan(&adventureID)
+
+	// Re-render full checklist
+	rows, _ := db.DB.Query("SELECT id, adventure_id, item, category, is_checked, sort_order FROM prep_checklist WHERE adventure_id=? ORDER BY sort_order, id", adventureID)
+	if rows != nil {
+		defer rows.Close()
+		var items []models.PrepChecklistItem
+		for rows.Next() {
+			var item models.PrepChecklistItem
+			var ck int
+			if err := rows.Scan(&item.ID, &item.AdventureID, &item.Item, &item.Category, &ck, &item.SortOrder); err == nil {
+				item.IsChecked = ck == 1
+				items = append(items, item)
+			}
+		}
+		c.HTML(http.StatusOK, "oneshot_checklist.html", gin.H{"Items": items, "AdventureID": adventureID})
+		return
+	}
+	c.String(http.StatusOK, "")
+}
+
+func HtmxAddChecklistItem(c *gin.Context) {
+	adventureID := c.Param("id")
+	item := c.PostForm("item")
+	category := c.DefaultPostForm("category", "general")
+
+	if item == "" {
+		c.String(http.StatusBadRequest, "Item is required")
+		return
+	}
+
+	// Get max sort order
+	var maxOrder int
+	db.DB.QueryRow("SELECT COALESCE(MAX(sort_order),0) FROM prep_checklist WHERE adventure_id=?", adventureID).Scan(&maxOrder)
+
+	_, err := db.DB.Exec("INSERT INTO prep_checklist(adventure_id, item, category, sort_order) VALUES(?,?,?,?)", adventureID, item, category, maxOrder+1)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "Error adding item")
+		return
+	}
+
+	HtmxRenderChecklist(c)
+}
+
+func HtmxDeleteChecklistItem(c *gin.Context) {
+	id := c.Param("cid")
+
+	// Get adventure ID before delete
+	var adventureID int64
+	db.DB.QueryRow("SELECT adventure_id FROM prep_checklist WHERE id=?", id).Scan(&adventureID)
+
+	db.DB.Exec("DELETE FROM prep_checklist WHERE id=?", id)
+
+	// Re-render
+	rows, _ := db.DB.Query("SELECT id, adventure_id, item, category, is_checked, sort_order FROM prep_checklist WHERE adventure_id=? ORDER BY sort_order, id", adventureID)
+	if rows != nil {
+		defer rows.Close()
+		var items []models.PrepChecklistItem
+		for rows.Next() {
+			var item models.PrepChecklistItem
+			var ck int
+			if err := rows.Scan(&item.ID, &item.AdventureID, &item.Item, &item.Category, &ck, &item.SortOrder); err == nil {
+				item.IsChecked = ck == 1
+				items = append(items, item)
+			}
+		}
+		c.HTML(http.StatusOK, "oneshot_checklist.html", gin.H{"Items": items, "AdventureID": adventureID})
+		return
+	}
+	c.String(http.StatusOK, "")
+}
+
+// ─── Session Flow Print View ───
+
+func HtmxGetSessionFlow(c *gin.Context) {
+	adventureID := c.Param("id")
+	userID, _ := c.Get("user_id")
+
+	var adv models.OneShotAdventure
+	err := db.DB.QueryRow("SELECT id, user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes, created_at, updated_at FROM oneshot_adventures WHERE id=? AND user_id=?", adventureID, userID).
+		Scan(&adv.ID, &adv.UserID, &adv.CampaignID, &adv.Title, &adv.Premise, &adv.Hook, &adv.Template, &adv.EstimatedMinutes, &adv.Difficulty, &adv.Notes, &adv.CreatedAt, &adv.UpdatedAt)
+	if err != nil {
+		c.String(http.StatusNotFound, "Adventure not found")
+		return
+	}
+
+	// Load acts with scenes
+	actRows, _ := db.DB.Query("SELECT id, adventure_id, number, title, description, estimated_minutes FROM oneshot_acts WHERE adventure_id=? ORDER BY number", adventureID)
+	if actRows != nil {
+		defer actRows.Close()
+		for actRows.Next() {
+			var act models.OneShotAct
+			if err := actRows.Scan(&act.ID, &act.AdventureID, &act.Number, &act.Title, &act.Description, &act.EstimatedMinutes); err != nil {
+				continue
+			}
+			sceneRows, _ := db.DB.Query("SELECT id, act_id, number, title, description, scene_type, location_id, encounter_id, estimated_minutes, notes FROM oneshot_scenes WHERE act_id=? ORDER BY number", act.ID)
+			if sceneRows != nil {
+				for sceneRows.Next() {
+					var sc models.OneShotScene
+					if err := sceneRows.Scan(&sc.ID, &sc.ActID, &sc.Number, &sc.Title, &sc.Description, &sc.SceneType, &sc.LocationID, &sc.EncounterID, &sc.EstimatedMinutes, &sc.Notes); err == nil {
+						act.Scenes = append(act.Scenes, sc)
+					}
+				}
+				sceneRows.Close()
+			}
+			adv.Acts = append(adv.Acts, act)
+		}
+	}
+
+	// Calculate total time
+	var totalTime int
+	for _, a := range adv.Acts {
+		totalTime += a.EstimatedMinutes
+		for _, s := range a.Scenes {
+			_ = s
+		}
+	}
+
+	c.HTML(http.StatusOK, "oneshot_session_flow.html", gin.H{
+		"Adventure": adv,
+		"TotalTime": totalTime,
+	})
+}

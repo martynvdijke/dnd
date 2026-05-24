@@ -30,6 +30,27 @@ func init() {
 		"truncate": truncate,
 		"capitalize": strings.Title,
 		"sign": func(n int) string { if n >= 0 { return "+" + strconv.Itoa(n) }; return strconv.Itoa(n) },
+		"countRevealed": func(clues interface{}) int {
+			cls, ok := clues.([]models.Clue)
+			if !ok { return 0 }
+			n := 0
+			for _, c := range cls { if c.IsRevealed { n++ } }
+			return n
+		},
+		"countHidden": func(clues interface{}) int {
+			cls, ok := clues.([]models.Clue)
+			if !ok { return 0 }
+			n := 0
+			for _, c := range cls { if !c.IsRevealed { n++ } }
+			return n
+		},
+		"countRedHerrings": func(clues interface{}) int {
+			cls, ok := clues.([]models.Clue)
+			if !ok { return 0 }
+			n := 0
+			for _, c := range cls { if c.IsRedHerring { n++ } }
+			return n
+		},
 	}
 	htmxTemplates = template.Must(template.New("").Funcs(funcMap).ParseFS(htmxTemplatesFS, "templates/*.html"))
 }
@@ -1468,6 +1489,14 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"GET", "/htmx/pregens", HtmxListPregens},
 		{"GET", "/htmx/pregens/generate", HtmxGeneratePregen},
 		{"GET", "/htmx/pregens/:id", HtmxPregenCard},
+
+		// Prep Dashboard
+		{"GET", "/htmx/oneshot-adventures/:id/dashboard", HtmxGetPrepDashboard},
+		{"GET", "/htmx/oneshot-adventures/:id/session-flow", HtmxGetSessionFlow},
+		{"GET", "/htmx/oneshot-adventures/:id/checklist", HtmxRenderChecklist},
+		{"POST", "/htmx/oneshot-adventures/:id/checklist", HtmxAddChecklistItem},
+		{"POST", "/htmx/oneshot-adventures/:id/checklist/:cid/toggle", HtmxToggleChecklistItem},
+		{"DELETE", "/htmx/oneshot-adventures/:id/checklist/:cid", HtmxDeleteChecklistItem},
 	}
 	for _, rt := range routes {
 		r.Handle(rt.method, rt.path, rt.handler)

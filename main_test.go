@@ -218,6 +218,12 @@ func buildRouter() *gin.Engine {
 		auth.PUT("/pregens/:id", handlers.UpdatePregen)
 		auth.DELETE("/pregens/:id", handlers.DeletePregen)
 
+		// Prep Dashboard & Checklist
+		auth.GET("/oneshot-adventures/:id/checklist", handlers.ListPrepChecklist)
+		auth.POST("/oneshot-adventures/:id/checklist", handlers.CreatePrepChecklistItem)
+		auth.PUT("/prep-checklist/:cid", handlers.UpdatePrepChecklistItem)
+		auth.DELETE("/prep-checklist/:cid", handlers.DeletePrepChecklistItem)
+
 		// Calendar
 		auth.GET("/calendar", handlers.ListCalendarEvents)
 		auth.POST("/calendar", handlers.CreateCalendarEvent)
@@ -6199,6 +6205,121 @@ func TestPartyBalance(t *testing.T) {
 	}
 
 	t.Log("Party balance test passed")
+}
+
+// ─── Prep Dashboard & Checklist Tests ───
+
+func TestPrepChecklistCRUD(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create an adventure for the checklist
+	resp := tc.post("/api/oneshot-adventures", map[string]any{
+		"title":            "Prep Test Adventure",
+		"template":         "custom",
+		"estimated_minutes": 120,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create adventure failed: %d", resp.Code)
+	}
+	var adv map[string]any
+	readJSON(resp, &adv)
+	aid := int(adv["id"].(float64))
+
+	// List empty checklist
+	resp = tc.get("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/checklist", nil)
+	if resp.Code != 200 {
+		t.Fatalf("list empty checklist failed: %d", resp.Code)
+	}
+	var items []any
+	readJSON(resp, &items)
+	if len(items) != 0 {
+		t.Fatalf("expected empty checklist, got %d items", len(items))
+	}
+
+	// Add checklist items
+	itemTitles := []string{"Prepare maps", "Create NPCs", "Print character sheets"}
+	var itemIDs []int
+	for _, title := range itemTitles {
+		resp = tc.post("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/checklist", map[string]any{
+			"item":      title,
+			"category":  "general",
+			"sort_order": len(itemIDs) + 1,
+		})
+		if resp.Code != 201 {
+			t.Fatalf("add checklist item '%s' failed: %d", title, resp.Code)
+		}
+		var result map[string]any
+		readJSON(resp, &result)
+		itemIDs = append(itemIDs, int(result["id"].(float64)))
+	}
+
+	// Verify 3 items
+	resp = tc.get("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/checklist", nil)
+	readJSON(resp, &items)
+	if len(items) != 3 {
+		t.Fatalf("expected 3 items, got %d", len(items))
+	}
+
+	// Toggle first item via PUT
+	resp = tc.put("/api/prep-checklist/"+strconv.Itoa(itemIDs[0]), map[string]any{
+		"is_checked": true,
+	})
+	if resp.Code != 200 {
+		t.Fatalf("toggle item failed: %d", resp.Code)
+	}
+
+	// Delete second item
+	resp = tc.del("/api/prep-checklist/"+strconv.Itoa(itemIDs[1]), nil)
+	if resp.Code != 200 {
+		t.Fatalf("delete item failed: %d", resp.Code)
+	}
+
+	// Verify 2 items remain, one checked
+	resp = tc.get("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/checklist", nil)
+	readJSON(resp, &items)
+	if len(items) != 2 {
+		t.Fatalf("expected 2 items, got %d", len(items))
+	}
+
+	// Clean up
+	tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+
+	t.Log("Prep checklist CRUD test passed")
+}
+
+func TestPrepDashboardDataLoad(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create an adventure with acts and scenes
+	resp := tc.post("/api/oneshot-adventures", map[string]any{
+		"title":            "Dashboard Test",
+		"premise":          "Test premise",
+		"hook":             "Test hook",
+		"template":         "five_room_dungeon",
+		"difficulty":       "medium",
+		"estimated_minutes": 180,
+		"notes":            "Test notes",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create adventure failed: %d", resp.Code)
+	}
+	var adv map[string]any
+	readJSON(resp, &adv)
+	aid := int(adv["id"].(float64))
+
+	// Add checklist items
+	tc.post("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/checklist", map[string]any{
+		"item":      "Test prep item",
+		"category":  "general",
+		"sort_order": 1,
+	})
+
+	// Clean up
+	tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+
+	t.Log("Prep dashboard data load test passed")
 }
 
 
