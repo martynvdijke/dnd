@@ -1,3 +1,12 @@
+# [1.14.0](https://github.com/martynvdijke/dnd/compare/v1.13.4...v1.14.0) (2026-05-24)
+
+
+### Features
+
+* **oneshot:** add one-shot adventure builder with full CRUD, template generation, and tests ([9b620cb](https://github.com/martynvdijke/dnd/commit/9b620cb0556f83b543b90f4d2377bdeba78f98ce))
+* **oneshot:** add random generators for hooks, dungeon dressing, taverns, and encounters ([d1012da](https://github.com/martynvdijke/dnd/commit/d1012da0db6e0e1bd9562eae53aa9b41cb35a70a))
+* **oneshot:** add session pacing dashboard with timer, scene advance, and alerts ([c5f7230](https://github.com/martynvdijke/dnd/commit/c5f7230ab20036000e9e370b8acb8196259472ac))
+
 ## [1.13.4](https://github.com/martynvdijke/dnd/compare/v1.13.3...v1.13.4) (2026-05-24)
 
 
