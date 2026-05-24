@@ -1,3 +1,10 @@
+## [1.13.4](https://github.com/martynvdijke/dnd/compare/v1.13.3...v1.13.4) (2026-05-24)
+
+
+### Bug Fixes
+
+* **tech-debt:** api() window assignment bug, duplicate CSS, inline styles ([f6db7b1](https://github.com/martynvdijke/dnd/commit/f6db7b1d029ac110fda0deed2f51cd8fb03540d8))
+
 ## [1.13.3](https://github.com/martynvdijke/dnd/compare/v1.13.2...v1.13.3) (2026-05-23)
 
 
