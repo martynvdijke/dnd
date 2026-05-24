@@ -184,6 +184,16 @@ func buildRouter() *gin.Engine {
 		auth.PUT("/oneshot-scenes/:id", handlers.UpdateOneShotScene)
 		auth.DELETE("/oneshot-scenes/:id", handlers.DeleteOneShotScene)
 
+		// Session Pacing
+		auth.POST("/oneshot-adventures/:id/pacing/start", handlers.StartPacingSession)
+		auth.GET("/oneshot-adventures/:id/pacing", handlers.GetPacingSession)
+		auth.GET("/session-pacing/:id", handlers.GetPacingSession)
+		auth.POST("/session-pacing/:id/pause", handlers.PausePacingSession)
+		auth.POST("/session-pacing/:id/resume", handlers.ResumePacingSession)
+		auth.POST("/session-pacing/:id/next-scene", handlers.AdvanceToNextScene)
+		auth.POST("/session-pacing/:id/complete", handlers.CompletePacingSession)
+		auth.POST("/session-pacing/:id/tick", handlers.UpdatePacingTimers)
+
 		// Calendar
 		auth.GET("/calendar", handlers.ListCalendarEvents)
 		auth.POST("/calendar", handlers.CreateCalendarEvent)
@@ -5422,6 +5432,223 @@ func TestOneShotAdventureEdgeCases(t *testing.T) {
 	tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
 
 	t.Log("One-shot adventure edge case tests passed")
+}
+
+// ─── Session Pacing Tests ───
+
+func TestSessionPacingLifecycle(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create an adventure first
+	resp := tc.post("/api/oneshot-adventures", map[string]any{
+		"title":            "Pacing Test Adventure",
+		"template":         "five_room_dungeon",
+		"difficulty":       "medium",
+		"estimated_minutes": 120,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create adventure failed: %d", resp.Code)
+	}
+	var adv map[string]any
+	readJSON(resp, &adv)
+	aid := int(adv["id"].(float64))
+
+	// Start pacing session
+	resp = tc.post("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/pacing/start", nil)
+	if resp.Code != 201 {
+		t.Fatalf("start pacing failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var result map[string]any
+	readJSON(resp, &result)
+	sessionID := int(result["id"].(float64))
+	if sessionID == 0 {
+		t.Fatal("expected non-zero session id")
+	}
+
+	// Get pacing session
+	resp = tc.get("/api/session-pacing/"+strconv.Itoa(sessionID), nil)
+	if resp.Code != 200 {
+		t.Fatalf("get pacing session failed: %d", resp.Code)
+	}
+	var session map[string]any
+	readJSON(resp, &session)
+	if session["status"] != "running" {
+		t.Fatalf("expected running status, got %v", session["status"])
+	}
+	if session["adventure_title"] != "Pacing Test Adventure" {
+		t.Fatalf("expected adventure title 'Pacing Test Adventure', got %v", session["adventure_title"])
+	}
+
+	// Pause session
+	resp = tc.post("/api/session-pacing/"+strconv.Itoa(sessionID)+"/pause", nil)
+	if resp.Code != 200 {
+		t.Fatalf("pause pacing failed: %d", resp.Code)
+	}
+
+	resp = tc.get("/api/session-pacing/"+strconv.Itoa(sessionID), nil)
+	readJSON(resp, &session)
+	if session["status"] != "paused" {
+		t.Fatalf("expected paused status, got %v", session["status"])
+	}
+
+	// Resume session
+	resp = tc.post("/api/session-pacing/"+strconv.Itoa(sessionID)+"/resume", nil)
+	if resp.Code != 200 {
+		t.Fatalf("resume pacing failed: %d", resp.Code)
+	}
+
+	resp = tc.get("/api/session-pacing/"+strconv.Itoa(sessionID), nil)
+	readJSON(resp, &session)
+	if session["status"] != "running" {
+		t.Fatalf("expected running status after resume, got %v", session["status"])
+	}
+
+	// Tick timer
+	resp = tc.post("/api/session-pacing/"+strconv.Itoa(sessionID)+"/tick", nil)
+	if resp.Code != 200 {
+		t.Fatalf("tick pacing failed: %d", resp.Code)
+	}
+
+	// Complete session
+	resp = tc.post("/api/session-pacing/"+strconv.Itoa(sessionID)+"/complete", nil)
+	if resp.Code != 200 {
+		t.Fatalf("complete pacing failed: %d", resp.Code)
+	}
+
+	resp = tc.get("/api/session-pacing/"+strconv.Itoa(sessionID), nil)
+	readJSON(resp, &session)
+	if session["status"] != "completed" {
+		t.Fatalf("expected completed status, got %v", session["status"])
+	}
+
+	// Clean up
+	tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+
+	t.Log("Session pacing lifecycle test passed")
+}
+
+func TestSessionPacingSceneAdvance(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create adventure with acts and scenes
+	resp := tc.post("/api/oneshot-adventures", map[string]any{
+		"title":            "Multi-Act Adventure",
+		"template":         "five_room_dungeon",
+		"difficulty":       "easy",
+		"estimated_minutes": 180,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create adventure failed: %d", resp.Code)
+	}
+	var adv map[string]any
+	readJSON(resp, &adv)
+	aid := int(adv["id"].(float64))
+
+	// Start pacing session
+	resp = tc.post("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/pacing/start", nil)
+	if resp.Code != 201 {
+		t.Fatalf("start pacing failed: %d", resp.Code)
+	}
+	var startResult map[string]any
+	readJSON(resp, &startResult)
+	sessionID := int(startResult["id"].(float64))
+
+	// Get initial state
+	resp = tc.get("/api/session-pacing/"+strconv.Itoa(sessionID), nil)
+	if resp.Code != 200 {
+		t.Fatalf("get session failed: %d", resp.Code)
+	}
+	var session map[string]any
+	readJSON(resp, &session)
+
+	advanceCount := 0
+	sceneTimings, _ := session["scene_timings"].([]any)
+	_ = sceneTimings
+
+	// Advance through scenes
+	for i := 0; i < 8; i++ {
+		// Check session detail before advancing to see what we have
+		resp = tc.get("/api/session-pacing/"+strconv.Itoa(sessionID), nil)
+		readJSON(resp, &session)
+		if session["status"] == "completed" {
+			break
+		}
+
+		resp = tc.post("/api/session-pacing/"+strconv.Itoa(sessionID)+"/next-scene", nil)
+		if resp.Code != 200 {
+			t.Fatalf("advance scene failed at step %d: %d - %s", i, resp.Code, resp.Body.String())
+		}
+		advanceCount++
+	}
+
+	if advanceCount < 3 {
+		t.Fatalf("expected at least 3 scene advances, got %d", advanceCount)
+	}
+
+	// Verify session eventually completed or has advanced
+	resp = tc.get("/api/session-pacing/"+strconv.Itoa(sessionID), nil)
+	readJSON(resp, &session)
+
+	if st, ok := session["scene_timings"].([]any); ok {
+		t.Logf("Session advanced %d times, final status: %v, scenes tracked: %d",
+			advanceCount, session["status"], len(st))
+	} else {
+		t.Logf("Session advanced %d times, final status: %v, no scene timings",
+			advanceCount, session["status"])
+	}
+
+	// Clean up
+	tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+
+	t.Log("Session pacing scene advance test passed")
+}
+
+func TestSessionPacingResumeExisting(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create adventure
+	resp := tc.post("/api/oneshot-adventures", map[string]any{
+		"title":            "Resume Test",
+		"template":         "five_room_dungeon",
+		"difficulty":       "medium",
+		"estimated_minutes": 90,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create adventure failed: %d", resp.Code)
+	}
+	var adv map[string]any
+	readJSON(resp, &adv)
+	aid := int(adv["id"].(float64))
+
+	// Start session
+	resp = tc.post("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/pacing/start", nil)
+	if resp.Code != 201 {
+		t.Fatalf("start pacing failed: %d", resp.Code)
+	}
+	var result map[string]any
+	readJSON(resp, &result)
+	sessionID := int(result["id"].(float64))
+
+	// Pause session
+	tc.post("/api/session-pacing/"+strconv.Itoa(sessionID)+"/pause", nil)
+
+	// Start again - should resume existing
+	resp = tc.post("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/pacing/start", nil)
+	if resp.Code != 200 {
+		t.Fatalf("resume existing pacing failed: %d - expected 200", resp.Code)
+	}
+	readJSON(resp, &result)
+	if int(result["id"].(float64)) != sessionID {
+		t.Fatalf("expected same session id %d, got %v", sessionID, result["id"])
+	}
+
+	// Clean up
+	tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+
+	t.Log("Session pacing resume existing test passed")
 }
 
 

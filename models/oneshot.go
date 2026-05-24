@@ -68,3 +68,40 @@ type OneShotAdventureEncounter struct {
 	EncounterID   int64  `json:"encounter_id"`
 	EncounterName string `json:"encounter_name,omitempty"`
 }
+
+// ─── Session Pacing ───
+
+type SessionPacing struct {
+	ID              int64  `json:"id"`
+	AdventureID     int64  `json:"adventure_id"`
+	CurrentActID    *int64 `json:"current_act_id,omitempty"`
+	CurrentSceneID  *int64 `json:"current_scene_id,omitempty"`
+	Status          string `json:"status"`
+	ElapsedSeconds  int    `json:"elapsed_seconds"`
+	StartedAt       string `json:"started_at"`
+	CompletedAt     string `json:"completed_at,omitempty"`
+	AdventureTitle  string `json:"adventure_title,omitempty"`
+	ActTitle        string `json:"act_title,omitempty"`
+	SceneTitle      string `json:"scene_title,omitempty"`
+	SceneEstimated  int    `json:"scene_estimated_minutes,omitempty"`
+	ActNumber       int    `json:"act_number,omitempty"`
+	SceneNumber     int    `json:"scene_number,omitempty"`
+	TotalActs       int    `json:"total_acts,omitempty"`
+	TotalScenes     int    `json:"total_scenes,omitempty"`
+	CompletedActs   int    `json:"completed_acts,omitempty"`
+	CompletedScenes int    `json:"completed_scenes,omitempty"`
+	SceneTimings    []SceneTiming `json:"scene_timings,omitempty"`
+}
+
+type SceneTiming struct {
+	ID             int64  `json:"id"`
+	SessionID      int64  `json:"session_id"`
+	SceneID        int64  `json:"scene_id"`
+	ElapsedSeconds int    `json:"elapsed_seconds"`
+	Status         string `json:"status"`
+	StartedAt      string `json:"started_at"`
+	CompletedAt    string `json:"completed_at,omitempty"`
+	SceneTitle     string `json:"scene_title,omitempty"`
+	SceneType      string `json:"scene_type,omitempty"`
+	EstimatedMin   int    `json:"estimated_minutes,omitempty"`
+}

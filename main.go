@@ -288,6 +288,16 @@ func main() {
 		auth.PUT("/oneshot-scenes/:id", handlers.UpdateOneShotScene)
 		auth.DELETE("/oneshot-scenes/:id", handlers.DeleteOneShotScene)
 
+		// Session Pacing
+		auth.POST("/oneshot-adventures/:id/pacing/start", handlers.StartPacingSession)
+		auth.GET("/oneshot-adventures/:id/pacing", handlers.GetPacingSession)
+		auth.GET("/session-pacing/:id", handlers.GetPacingSession)
+		auth.POST("/session-pacing/:id/pause", handlers.PausePacingSession)
+		auth.POST("/session-pacing/:id/resume", handlers.ResumePacingSession)
+		auth.POST("/session-pacing/:id/next-scene", handlers.AdvanceToNextScene)
+		auth.POST("/session-pacing/:id/complete", handlers.CompletePacingSession)
+		auth.POST("/session-pacing/:id/tick", handlers.UpdatePacingTimers)
+
 		// Calendar
 		auth.GET("/calendar", handlers.ListCalendarEvents)
 		auth.POST("/calendar", handlers.CreateCalendarEvent)

@@ -1460,6 +1460,9 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"DELETE", "/htmx/oneshot-acts/:id", HtmxDeleteAct},
 		{"POST", "/htmx/oneshot-acts/:id/scenes", HtmxCreateScene},
 		{"DELETE", "/htmx/oneshot-scenes/:id", HtmxDeleteScene},
+
+		// Session Pacing
+		{"GET", "/htmx/session-pacing/:id", HtmxGetPacingDashboard},
 	}
 	for _, rt := range routes {
 		r.Handle(rt.method, rt.path, rt.handler)
