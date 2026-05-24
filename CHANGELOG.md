@@ -1,3 +1,10 @@
+## [1.15.1](https://github.com/martynvdijke/dnd/compare/v1.15.0...v1.15.1) (2026-05-24)
+
+
+### Bug Fixes
+
+* **tests:** correct build tag in playwright config from fts5 to sqlite_fts5 ([2ec075e](https://github.com/martynvdijke/dnd/commit/2ec075e0afa4fcaee018b795d607a560a42c84a8))
+
 # [1.15.0](https://github.com/martynvdijke/dnd/compare/v1.14.0...v1.15.0) (2026-05-24)
 
 
