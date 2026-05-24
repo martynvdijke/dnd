@@ -2442,3 +2442,227 @@ func HtmxGetSessionFlow(c *gin.Context) {
 		"TotalTime": totalTime,
 	})
 }
+
+// ─── DM Screen / Quick Reference Handlers ───
+
+// QuickReferenceData returns the embedded 5E quick reference sections
+func QuickReferenceData() []models.DmQuickRefSection {
+	return []models.DmQuickRefSection{
+		{
+			Title: "Conditions",
+			Icon:  "fa-exclamation-triangle",
+			Entries: []models.DmQuickRefEntry{
+				{Name: "Blinded", Description: "Auto-fail Perception (sight). Attack rolls against creature have advantage. Creature's attacks have disadvantage.", Reference: "PHB p.290"},
+				{Name: "Charmed", Description: "Can't attack charmer. Charmer has advantage on social checks. Not immunity.", Reference: "PHB p.290"},
+				{Name: "Deafened", Description: "Auto-fail Perception (hearing).", Reference: "PHB p.290"},
+				{Name: "Exhaustion", Description: "1: Disadvantage on ability checks. 2: Speed halved. 3: Disadvantage on attacks/saves. 4: HP max halved. 5: Speed 0. 6: Death.", Reference: "PHB p.291"},
+				{Name: "Frightened", Description: "Disadvantage on checks/attacks while source visible. Can't move closer to source.", Reference: "PHB p.290"},
+				{Name: "Grappled", Description: "Speed 0. Ends if grappler incapacitated or target breaks free (Athletics/Acrobatics vs DC).", Reference: "PHB p.290"},
+				{Name: "Incapacitated", Description: "Can't take actions, bonus actions, or reactions.", Reference: "PHB p.290"},
+				{Name: "Invisible", Description: "Can't be seen without special senses. Attack rolls have advantage. Attacks against have disadvantage.", Reference: "PHB p.291"},
+				{Name: "Paralyzed", Description: "Incapacitated. Can't move/speak. Auto-fail STR/DEX saves. Attacks have advantage. Auto-crit within 5ft.", Reference: "PHB p.291"},
+				{Name: "Petrified", Description: "Turned to stone + weight x10. Incapacitated. Resist all damage. Immune to poison/disease.", Reference: "PHB p.291"},
+				{Name: "Poisoned", Description: "Disadvantage on attack rolls and ability checks.", Reference: "PHB p.292"},
+				{Name: "Prone", Description: "Can only crawl. Attacks have disadvantage. Attacks within 5ft have advantage, beyond have disadvantage.", Reference: "PHB p.292"},
+				{Name: "Restrained", Description: "Speed 0. Attacks have disadvantage. Attacks against have advantage. DEX saves have disadvantage.", Reference: "PHB p.292"},
+				{Name: "Stunned", Description: "Incapacitated. Can't move. Auto-fail STR/DEX saves. Attacks have advantage.", Reference: "PHB p.292"},
+				{Name: "Unconscious", Description: "Incapacitated + prone. Auto-fail STR/DEX saves. Attacks have advantage. Auto-crit within 5ft.", Reference: "PHB p.292"},
+			},
+		},
+		{
+			Title: "Combat Actions",
+			Icon:  "fa-fist-raised",
+			Entries: []models.DmQuickRefEntry{
+				{Name: "Attack", Description: "Make a melee or ranged weapon attack, or unarmed strike.", Reference: "PHB p.192"},
+				{Name: "Cast a Spell", Description: "Cast a spell with casting time of 1 action. Must have components.", Reference: "PHB p.192"},
+				{Name: "Dash", Description: "Gain extra movement equal to your speed.", Reference: "PHB p.192"},
+				{Name: "Disengage", Description: "Your movement doesn't provoke opportunity attacks.", Reference: "PHB p.192"},
+				{Name: "Dodge", Description: "Attacks against have disadvantage. DEX saves have advantage.", Reference: "PHB p.192"},
+				{Name: "Help", Description: "Give ally advantage on next ability check or attack.", Reference: "PHB p.192"},
+				{Name: "Hide", Description: "Make Stealth check to become unseen.", Reference: "PHB p.192"},
+				{Name: "Ready", Description: "Prepare action with trigger. Use reaction to execute.", Reference: "PHB p.193"},
+				{Name: "Search", Description: "Make Perception or Investigation check.", Reference: "PHB p.193"},
+				{Name: "Use Object", Description: "Interact with an object (second object interaction uses action).", Reference: "PHB p.193"},
+			},
+		},
+		{
+			Title: "Difficulty Classes",
+			Icon:  "fa-tachometer-alt",
+			Entries: []models.DmQuickRefEntry{
+				{Name: "Very Easy", Description: "DC 5"},
+				{Name: "Easy", Description: "DC 10"},
+				{Name: "Medium", Description: "DC 15"},
+				{Name: "Hard", Description: "DC 20"},
+				{Name: "Very Hard", Description: "DC 25"},
+				{Name: "Nearly Impossible", Description: "DC 30"},
+			},
+		},
+		{
+			Title: "Rest & Recovery",
+			Icon:  "fa-bed",
+			Entries: []models.DmQuickRefEntry{
+				{Name: "Short Rest", Description: "1 hour. Spend Hit Dice (any number). Regain abilities that recharge on short rest.", Reference: "PHB p.186"},
+				{Name: "Long Rest", Description: "8 hours (2h light activity, 6h sleep). Regain all HP + half max Hit Dice. Regain all abilities.", Reference: "PHB p.186"},
+				{Name: "Healing", Description: "Restore HP equal to hit die roll + CON mod.", Reference: "PHB p.196"},
+			},
+		},
+		{
+			Title: "Travel Pace",
+			Icon:  "fa-hiking",
+			Entries: []models.DmQuickRefEntry{
+				{Name: "Fast", Description: "400ft/min, 4mph, 30mi/day. -5 Passive Perception. Can't stealth.", Reference: "PHB p.182"},
+				{Name: "Normal", Description: "300ft/min, 3mph, 24mi/day.", Reference: "PHB p.182"},
+				{Name: "Slow", Description: "200ft/min, 2mph, 18mi/day. Can stealth. Can use Perception.", Reference: "PHB p.182"},
+			},
+		},
+		{
+			Title: "Light & Vision",
+			Icon:  "fa-eye",
+			Entries: []models.DmQuickRefEntry{
+				{Name: "Bright Light", Description: "Normal vision. Torches (20ft), lanterns (30ft).", Reference: "PHB p.183"},
+				{Name: "Dim Light", Description: "Lightly obscured. Disadvantage on Perception (sight)."},
+				{Name: "Darkness", Description: "Heavily obscured. Blind. Darkvision ignores up to 60ft (dim) or 120ft (gray).", Reference: "PHB p.183"},
+			},
+		},
+		{
+			Title: "Cover",
+			Icon:  "fa-shield-alt",
+			Entries: []models.DmQuickRefEntry{
+				{Name: "Half Cover", Description: "+2 AC and DEX saves. Behind obstacle, low wall, furniture.", Reference: "PHB p.196"},
+				{Name: "Three-Quarters Cover", Description: "+5 AC and DEX saves. Behind pillar, battlement.", Reference: "PHB p.196"},
+				{Name: "Total Cover", Description: "Can't be targeted directly.", Reference: "PHB p.196"},
+			},
+		},
+		{
+			Title: "Skills by Ability",
+			Icon:  "fa-clipboard-list",
+			Entries: []models.DmQuickRefEntry{
+				{Name: "Strength", Description: "Athletics"},
+				{Name: "Dexterity", Description: "Acrobatics, Sleight of Hand, Stealth"},
+				{Name: "Constitution", Description: "No skills (but CON saves common)"},
+				{Name: "Intelligence", Description: "Arcana, History, Investigation, Nature, Religion"},
+				{Name: "Wisdom", Description: "Animal Handling, Insight, Medicine, Perception, Survival"},
+				{Name: "Charisma", Description: "Deception, Intimidation, Performance, Persuasion"},
+			},
+		},
+	}
+}
+
+func HtmxDmScreen(c *gin.Context) {
+	adventureID := c.Param("id")
+	userID, _ := c.Get("user_id")
+
+	// Load adventure info
+	var adv models.OneShotAdventure
+	err := db.DB.QueryRow(`
+		SELECT id, user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes, created_at, updated_at
+		FROM oneshot_adventures WHERE id=? AND user_id=?
+	`, adventureID, userID).Scan(&adv.ID, &adv.UserID, &adv.CampaignID, &adv.Title, &adv.Premise, &adv.Hook, &adv.Template, &adv.EstimatedMinutes, &adv.Difficulty, &adv.Notes, &adv.CreatedAt, &adv.UpdatedAt)
+	if err != nil {
+		c.String(http.StatusNotFound, "Adventure not found")
+		return
+	}
+
+	// Load DM notes
+	rows, err := db.DB.Query("SELECT id, adventure_id, user_id, title, content, created_at, updated_at FROM dm_notes WHERE adventure_id=? AND user_id=? ORDER BY updated_at DESC", adventureID, userID)
+	var notes []models.DmNote
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var n models.DmNote
+			if err := rows.Scan(&n.ID, &n.AdventureID, &n.UserID, &n.Title, &n.Content, &n.CreatedAt, &n.UpdatedAt); err == nil {
+				notes = append(notes, n)
+			}
+		}
+	}
+	if notes == nil {
+		notes = []models.DmNote{}
+	}
+
+	renderTemplate(c, "oneshot_dm_screen.html", gin.H{
+		"Adventure": adv,
+		"Sections":  QuickReferenceData(),
+		"Notes":     notes,
+	})
+}
+
+// ─── DM Notes API ───
+
+func ListDmNotes(c *gin.Context) {
+	adventureID := c.Param("id")
+	userID, _ := c.Get("user_id")
+
+	rows, err := db.DB.Query("SELECT id, adventure_id, user_id, title, content, created_at, updated_at FROM dm_notes WHERE adventure_id=? AND user_id=? ORDER BY updated_at DESC", adventureID, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	var notes []models.DmNote
+	for rows.Next() {
+		var n models.DmNote
+		if err := rows.Scan(&n.ID, &n.AdventureID, &n.UserID, &n.Title, &n.Content, &n.CreatedAt, &n.UpdatedAt); err == nil {
+			notes = append(notes, n)
+		}
+	}
+	if notes == nil {
+		notes = []models.DmNote{}
+	}
+	c.JSON(http.StatusOK, notes)
+}
+
+func CreateDmNote(c *gin.Context) {
+	adventureID := c.Param("id")
+	userID, _ := c.Get("user_id")
+
+	var input struct {
+		Title   string `json:"title"`
+		Content string `json:"content"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	result, err := db.DB.Exec("INSERT INTO dm_notes(adventure_id, user_id, title, content) VALUES(?,?,?,?)", adventureID, userID, input.Title, input.Content)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+func UpdateDmNote(c *gin.Context) {
+	noteID := c.Param("nid")
+	userID, _ := c.Get("user_id")
+
+	var input struct {
+		Title   string `json:"title"`
+		Content string `json:"content"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	_, err := db.DB.Exec("UPDATE dm_notes SET title=?, content=?, updated_at=datetime('now') WHERE id=? AND user_id=?", input.Title, input.Content, noteID, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "updated"})
+}
+
+func DeleteDmNote(c *gin.Context) {
+	noteID := c.Param("nid")
+	userID, _ := c.Get("user_id")
+
+	_, err := db.DB.Exec("DELETE FROM dm_notes WHERE id=? AND user_id=?", noteID, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
+}

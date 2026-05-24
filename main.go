@@ -328,6 +328,13 @@ func main() {
 		auth.PUT("/prep-checklist/:cid", handlers.UpdatePrepChecklistItem)
 		auth.DELETE("/prep-checklist/:cid", handlers.DeletePrepChecklistItem)
 
+		// DM Screen / Quick Reference
+		auth.GET("/oneshot-adventures/:id/dm-screen", handlers.HtmxDmScreen)
+		auth.GET("/oneshot-adventures/:id/notes", handlers.ListDmNotes)
+		auth.POST("/oneshot-adventures/:id/notes", handlers.CreateDmNote)
+		auth.PUT("/dm-notes/:nid", handlers.UpdateDmNote)
+		auth.DELETE("/oneshot-adventures/:id/notes/:nid", handlers.DeleteDmNote)
+
 		// Calendar
 		auth.GET("/calendar", handlers.ListCalendarEvents)
 		auth.POST("/calendar", handlers.CreateCalendarEvent)

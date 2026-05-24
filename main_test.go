@@ -224,6 +224,13 @@ func buildRouter() *gin.Engine {
 		auth.PUT("/prep-checklist/:cid", handlers.UpdatePrepChecklistItem)
 		auth.DELETE("/prep-checklist/:cid", handlers.DeletePrepChecklistItem)
 
+		// DM Screen / Quick Reference
+		auth.GET("/oneshot-adventures/:id/dm-screen", handlers.HtmxDmScreen)
+		auth.GET("/oneshot-adventures/:id/notes", handlers.ListDmNotes)
+		auth.POST("/oneshot-adventures/:id/notes", handlers.CreateDmNote)
+		auth.PUT("/dm-notes/:nid", handlers.UpdateDmNote)
+		auth.DELETE("/oneshot-adventures/:id/notes/:nid", handlers.DeleteDmNote)
+
 		// Calendar
 		auth.GET("/calendar", handlers.ListCalendarEvents)
 		auth.POST("/calendar", handlers.CreateCalendarEvent)
@@ -6320,6 +6327,129 @@ func TestPrepDashboardDataLoad(t *testing.T) {
 	tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
 
 	t.Log("Prep dashboard data load test passed")
+}
+
+// ─── DM Screen / Quick Reference Tests ───
+
+func TestDmNoteCRUD(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create an adventure
+	resp := tc.post("/api/oneshot-adventures", map[string]any{
+		"title":            "DM Note Test Adventure",
+		"template":         "custom",
+		"estimated_minutes": 60,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create adventure failed: %d", resp.Code)
+	}
+	var adv map[string]any
+	readJSON(resp, &adv)
+	aid := int(adv["id"].(float64))
+
+	// Create a DM note
+	resp = tc.post("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/notes", map[string]any{
+		"title":   "Villain Secret",
+		"content": "The mayor is actually a doppelganger",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create dm note failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var noteResult map[string]any
+	readJSON(resp, &noteResult)
+	nid := int(noteResult["id"].(float64))
+	if nid == 0 {
+		t.Fatal("expected non-zero note id")
+	}
+
+	// List notes
+	resp = tc.get("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/notes", nil)
+	if resp.Code != 200 {
+		t.Fatalf("list notes failed: %d", resp.Code)
+	}
+	var notes []any
+	readJSON(resp, &notes)
+	if len(notes) != 1 {
+		t.Fatalf("expected 1 note, got %d", len(notes))
+	}
+
+	// Update note
+	resp = tc.put("/api/dm-notes/"+strconv.Itoa(nid), map[string]any{
+		"title":   "Villain Secret (Updated)",
+		"content": "The mayor serves the Mind Flayers",
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update note failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	// Delete note
+	resp = tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/notes/"+strconv.Itoa(nid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("delete note failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	// Verify deletion
+	resp = tc.get("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/notes", nil)
+	readJSON(resp, &notes)
+	if len(notes) != 0 {
+		t.Fatalf("expected 0 notes after delete, got %d", len(notes))
+	}
+
+	// Clean up
+	tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+
+	t.Log("DM note CRUD test passed")
+}
+
+func TestDmScreenData(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create an adventure
+	resp := tc.post("/api/oneshot-adventures", map[string]any{
+		"title":            "DM Screen Test",
+		"premise":          "A test adventure for DM screen",
+		"template":         "three_act_structure",
+		"estimated_minutes": 120,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create adventure failed: %d", resp.Code)
+	}
+	var adv map[string]any
+	readJSON(resp, &adv)
+	aid := int(adv["id"].(float64))
+
+	// Access DM screen via HTMX
+	resp = tc.get("/htmx/oneshot-adventures/"+strconv.Itoa(aid)+"/dm-screen", nil)
+	if resp.Code != 200 {
+		t.Fatalf("dm screen failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	// Verify quick reference data via handler
+	sections := handlers.QuickReferenceData()
+	if len(sections) == 0 {
+		t.Fatal("expected quick reference sections")
+	}
+
+	// Verify conditions section exists
+	foundConditions := false
+	for _, s := range sections {
+		if s.Title == "Conditions" {
+			foundConditions = true
+			if len(s.Entries) < 10 {
+				t.Fatalf("expected at least 10 conditions, got %d", len(s.Entries))
+			}
+		}
+	}
+	if !foundConditions {
+		t.Fatal("expected Conditions section in quick reference data")
+	}
+
+	// Clean up
+	tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+
+	t.Log("DM screen data test passed")
 }
 
 

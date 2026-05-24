@@ -210,3 +210,27 @@ type PrepDashboardData struct {
 	Pacing      *SessionPacing          `json:"pacing,omitempty"`
 	SessionID   *int64                  `json:"session_id,omitempty"`
 }
+
+// ─── DM Screen ───
+
+type DmNote struct {
+	ID          int64  `json:"id"`
+	AdventureID int64  `json:"adventure_id"`
+	UserID      int64  `json:"user_id"`
+	Title       string `json:"title"`
+	Content     string `json:"content"`
+	CreatedAt   string `json:"created_at"`
+	UpdatedAt   string `json:"updated_at"`
+}
+
+type DmQuickRefSection struct {
+	Title    string           `json:"title"`
+	Icon     string           `json:"icon"`
+	Entries  []DmQuickRefEntry `json:"entries"`
+}
+
+type DmQuickRefEntry struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Reference   string `json:"reference,omitempty"`
+}

@@ -1,0 +1,231 @@
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">
+      <i class="fas fa-dungeon me-2"></i>DM Screen: {{.Adventure.Title}}
+    </h5>
+    <div>
+      <span class="badge bg-secondary">{{.Adventure.Difficulty}}</span>
+      <span class="badge bg-info">{{.Adventure.EstimatedMinutes}}min</span>
+    </div>
+  </div>
+  <div class="card-body">
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs mb-3" id="dmScreenTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="quickref-tab" data-bs-toggle="tab" data-bs-target="#quickref" type="button" role="tab">
+          <i class="fas fa-book me-1"></i>Quick Reference
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="actions-tab" data-bs-toggle="tab" data-bs-target="#actions" type="button" role="tab">
+          <i class="fas fa-bolt me-1"></i>Quick Actions
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="notes-tab" data-bs-toggle="tab" data-bs-target="#notes" type="button" role="tab">
+          <i class="fas fa-sticky-note me-1"></i>DM Notes
+        </button>
+      </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+      <!-- Quick Reference Tab -->
+      <div class="tab-pane fade show active" id="quickref" role="tabpanel">
+        <div class="accordion" id="quickrefAccordion">
+          {{range $i, $section := .Sections}}
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button {{if gt $i 0}}collapsed{{end}}" type="button" data-bs-toggle="collapse" data-bs-target="#refCol{{$i}}">
+                <i class="fas {{$section.Icon}} me-2"></i>{{$section.Title}}
+              </button>
+            </h2>
+            <div id="refCol{{$i}}" class="accordion-collapse collapse {{if eq $i 0}}show{{end}}" data-bs-parent="#quickrefAccordion">
+              <div class="accordion-body p-0">
+                <table class="table table-sm table-striped mb-0">
+                  <thead class="table-dark">
+                    <tr>
+                      <th style="width:25%">Name</th>
+                      <th>Description</th>
+                      <th style="width:12%">Ref</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {{range $section.Entries}}
+                    <tr>
+                      <td><strong>{{.Name}}</strong></td>
+                      <td>{{.Description}}</td>
+                      <td><small class="text-muted">{{.Reference}}</small></td>
+                    </tr>
+                    {{end}}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          {{end}}
+        </div>
+      </div>
+
+      <!-- Quick Actions Tab -->
+      <div class="tab-pane fade" id="actions" role="tabpanel">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="card h-100 text-center">
+              <div class="card-body">
+                <i class="fas fa-dice-d20 fa-3x mb-3 text-primary"></i>
+                <h6>Dice Roller</h6>
+                <p class="small text-muted">Roll any dice for quick resolution</p>
+                <a href="/dice" class="btn btn-outline-primary btn-sm" target="_blank">Open Dice Roller</a>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card h-100 text-center">
+              <div class="card-body">
+                <i class="fas fa-robot fa-3x mb-3 text-success"></i>
+                <h6>Adventure Hooks</h6>
+                <p class="small text-muted">Generate random adventure hooks</p>
+                <button class="btn btn-outline-success btn-sm" hx-get="/api/generate/adventure-hook" hx-target="#hookResult" hx-swap="innerHTML">
+                  Generate Hook
+                </button>
+                <div id="hookResult" class="mt-2 small"></div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card h-100 text-center">
+              <div class="card-body">
+                <i class="fas fa-city fa-3x mb-3 text-warning"></i>
+                <h6>Random Generators</h6>
+                <p class="small text-muted">Taverns, encounters, dungeon dressing</p>
+                <a href="/oneshot-generators" class="btn btn-outline-warning btn-sm">Open Generators</a>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card h-100 text-center">
+              <div class="card-body">
+                <i class="fas fa-clock fa-3x mb-3 text-info"></i>
+                <h6>Session Pacing</h6>
+                <p class="small text-muted">Track time and progress</p>
+                <button class="btn btn-outline-info btn-sm" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}" hx-target="#viewContent" hx-swap="innerHTML">
+                  Open Adventure
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card h-100 text-center">
+              <div class="card-body">
+                <i class="fas fa-users fa-3x mb-3 text-danger"></i>
+                <h6>NPCs & Encounters</h6>
+                <p class="small text-muted">View linked NPCs and encounters</p>
+                <button class="btn btn-outline-danger btn-sm" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}/edit" hx-target="#viewContent" hx-swap="innerHTML">
+                  Edit Adventure
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card h-100 text-center">
+              <div class="card-body">
+                <i class="fas fa-print fa-3x mb-3 text-secondary"></i>
+                <h6>Session Flow</h6>
+                <p class="small text-muted">Print-friendly session overview</p>
+                <button class="btn btn-outline-secondary btn-sm" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}/session-flow" hx-target="#viewContent" hx-swap="innerHTML">
+                  View Session Flow
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DM Notes Tab -->
+      <div class="tab-pane fade" id="notes" role="tabpanel">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="mb-0">Your DM Notes</h6>
+          <button class="btn btn-sm btn-primary" onclick="showNewNoteForm()">
+            <i class="fas fa-plus me-1"></i>New Note
+          </button>
+        </div>
+
+        <!-- New Note Form -->
+        <div id="newNoteForm" class="card mb-3 d-none">
+          <div class="card-body">
+            <div class="mb-2">
+              <input type="text" id="noteTitle" class="form-control form-control-sm" placeholder="Note title">
+            </div>
+            <div class="mb-2">
+              <textarea id="noteContent" class="form-control form-control-sm" rows="3" placeholder="Note content..."></textarea>
+            </div>
+            <button class="btn btn-sm btn-success" onclick="saveNote({{.Adventure.ID}})">Save</button>
+            <button class="btn btn-sm btn-secondary" onclick="hideNewNoteForm()">Cancel</button>
+          </div>
+        </div>
+
+        <!-- Notes List -->
+        <div id="notesList">
+          {{range .Notes}}
+          <div class="card mb-2" id="note-{{.ID}}">
+            <div class="card-body py-2">
+              <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                  <strong>{{.Title}}</strong>
+                  <p class="mb-0 small text-muted">{{.Content}}</p>
+                  <small class="text-muted">{{.UpdatedAt}}</small>
+                </div>
+                <div class="btn-group btn-group-sm ms-2">
+                  <button class="btn btn-outline-primary" onclick="editNote({{.ID}},'{{.Title}}',{{.Content}})"><i class="fas fa-edit"></i></button>
+                  <button class="btn btn-outline-danger" hx-delete="/api/oneshot-adventures/{{$.Adventure.ID}}/notes/{{.ID}}" hx-target="#note-{{.ID}}" hx-swap="outerHTML"><i class="fas fa-trash"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+          {{else}}
+          <p class="text-muted text-center">No DM notes yet. Click "New Note" to add one.</p>
+          {{end}}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showNewNoteForm() {
+  document.getElementById('newNoteForm').classList.remove('d-none');
+}
+function hideNewNoteForm() {
+  document.getElementById('newNoteForm').classList.add('d-none');
+  document.getElementById('noteTitle').value = '';
+  document.getElementById('noteContent').value = '';
+}
+function saveNote(advId) {
+  var title = document.getElementById('noteTitle').value.trim();
+  var content = document.getElementById('noteContent').value.trim();
+  if (!title) { alert('Please enter a title'); return; }
+  fetch('/api/oneshot-adventures/' + advId + '/notes', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({title: title, content: content})
+  }).then(function(r) { return r.json(); }).then(function() {
+    htmx.trigger('#dmScreenTabs', 'dmNoteSaved');
+    hideNewNoteForm();
+  });
+}
+function editNote(id, title, content) {
+  // Simple prompt-based edit
+  var newTitle = prompt('Note title:', title);
+  if (!newTitle) return;
+  var newContent = prompt('Note content:', content);
+  if (newContent === null) return;
+  fetch('/api/dm-notes/' + id, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({title: newTitle, content: newContent})
+  }).then(function() {
+    htmx.trigger('#dmScreenTabs', 'dmNoteSaved');
+  });
+}
+</script>

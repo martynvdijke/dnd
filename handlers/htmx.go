@@ -1497,6 +1497,9 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"POST", "/htmx/oneshot-adventures/:id/checklist", HtmxAddChecklistItem},
 		{"POST", "/htmx/oneshot-adventures/:id/checklist/:cid/toggle", HtmxToggleChecklistItem},
 		{"DELETE", "/htmx/oneshot-adventures/:id/checklist/:cid", HtmxDeleteChecklistItem},
+
+		// DM Screen / Quick Reference
+		{"GET", "/htmx/oneshot-adventures/:id/dm-screen", HtmxDmScreen},
 	}
 	for _, rt := range routes {
 		r.Handle(rt.method, rt.path, rt.handler)
