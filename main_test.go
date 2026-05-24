@@ -209,6 +209,15 @@ func buildRouter() *gin.Engine {
 		auth.POST("/clues/:id/locations", handlers.LinkClueLocation)
 		auth.DELETE("/clues/:id/locations/:lid", handlers.UnlinkClueLocation)
 
+		// Pregenerated Characters
+		auth.GET("/pregens", handlers.ListPregens)
+		auth.POST("/pregens", handlers.CreatePregen)
+		auth.GET("/pregens/generate", handlers.GeneratePregen)
+		auth.GET("/pregens/balance", handlers.CheckPartyBalance)
+		auth.GET("/pregens/:id", handlers.GetPregen)
+		auth.PUT("/pregens/:id", handlers.UpdatePregen)
+		auth.DELETE("/pregens/:id", handlers.DeletePregen)
+
 		// Calendar
 		auth.GET("/calendar", handlers.ListCalendarEvents)
 		auth.POST("/calendar", handlers.CreateCalendarEvent)
@@ -6015,6 +6024,181 @@ func TestClueNPCLocationLinks(t *testing.T) {
 	tc.del("/api/npcs/"+strconv.Itoa(npcID), nil)
 
 	t.Log("Clue NPC/location links test passed")
+}
+
+// ─── Pregenerated Character Tests ───
+
+func TestPregenCRUD(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create pregen
+	resp := tc.post("/api/pregens", map[string]any{
+		"name":  "Aldric Stoneheart",
+		"race":  "dwarf",
+		"class": "fighter",
+		"level": 3,
+		"str":   16, "dex": 12, "con": 14, "int": 8, "wis": 10, "cha": 10,
+		"hp": 28, "ac": 18, "speed": 25,
+		"skills":    "Athletics, Perception",
+		"equipment": "Chain mail, battleaxe, shield",
+		"alignment": "Lawful Good",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create pregen failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var created map[string]any
+	readJSON(resp, &created)
+	pid := int(created["id"].(float64))
+	if pid == 0 {
+		t.Fatal("expected non-zero id")
+	}
+
+	// Get pregen
+	resp = tc.get("/api/pregens/"+strconv.Itoa(pid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("get pregen failed: %d", resp.Code)
+	}
+	var pregen map[string]any
+	readJSON(resp, &pregen)
+	if pregen["name"] != "Aldric Stoneheart" {
+		t.Fatalf("expected name 'Aldric Stoneheart', got %v", pregen["name"])
+	}
+	if pregen["race"] != "dwarf" {
+		t.Fatalf("expected race 'dwarf', got %v", pregen["race"])
+	}
+
+	// Update pregen
+	resp = tc.put("/api/pregens/"+strconv.Itoa(pid), map[string]any{
+		"name":  "Aldric Ironbane",
+		"race":  "dwarf",
+		"class": "fighter",
+		"level": 5,
+		"str":   18, "dex": 12, "con": 16, "int": 8, "wis": 10, "cha": 10,
+		"hp": 44, "ac": 18, "speed": 25,
+		"skills": "Athletics, Perception, Intimidation",
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update pregen failed: %d", resp.Code)
+	}
+
+	resp = tc.get("/api/pregens/"+strconv.Itoa(pid), nil)
+	readJSON(resp, &pregen)
+	if pregen["name"] != "Aldric Ironbane" {
+		t.Fatalf("expected updated name 'Aldric Ironbane', got %v", pregen["name"])
+	}
+
+	// List pregens
+	resp = tc.get("/api/pregens", nil)
+	if resp.Code != 200 {
+		t.Fatalf("list pregens failed: %d", resp.Code)
+	}
+	var list []any
+	readJSON(resp, &list)
+	if len(list) < 1 {
+		t.Fatal("expected at least 1 pregen")
+	}
+
+	// Delete pregen
+	resp = tc.del("/api/pregens/"+strconv.Itoa(pid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("delete pregen failed: %d", resp.Code)
+	}
+
+	resp = tc.get("/api/pregens/"+strconv.Itoa(pid), nil)
+	if resp.Code != 404 {
+		t.Errorf("expected 404 after delete, got %d", resp.Code)
+	}
+
+	t.Log("Pregen CRUD test passed")
+}
+
+func TestPregenGenerate(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Quick generate a pregen
+	resp := tc.get("/api/pregens/generate?level=3", nil)
+	if resp.Code != 201 {
+		t.Fatalf("generate pregen failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var created map[string]any
+	readJSON(resp, &created)
+	pid := int(created["id"].(float64))
+	if pid == 0 {
+		t.Fatal("expected non-zero id after generate")
+	}
+
+	// Verify the generated pregen has valid data
+	resp = tc.get("/api/pregens/"+strconv.Itoa(pid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("get generated pregen failed: %d", resp.Code)
+	}
+	var pregen map[string]any
+	readJSON(resp, &pregen)
+	if pregen["name"].(string) == "" {
+		t.Fatal("expected non-empty name for generated pregen")
+	}
+	if pregen["race"].(string) == "" {
+		t.Fatal("expected non-empty race for generated pregen")
+	}
+	if pregen["class"].(string) == "" {
+		t.Fatal("expected non-empty class for generated pregen")
+	}
+	if int(pregen["level"].(float64)) != 3 {
+		t.Fatalf("expected level 3, got %v", pregen["level"])
+	}
+
+	// Cleanup
+	tc.del("/api/pregens/"+strconv.Itoa(pid), nil)
+
+	t.Log("Pregen generation test passed")
+}
+
+func TestPartyBalance(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create a few pregens for party balance
+	classes := []string{"fighter", "cleric", "rogue", "wizard"}
+	for _, cls := range classes {
+		resp := tc.post("/api/pregens", map[string]any{
+			"name":  "Hero " + cls,
+			"race":  "human",
+			"class": cls,
+			"level": 3,
+			"str":   12, "dex": 12, "con": 12, "int": 12, "wis": 12, "cha": 12,
+			"hp": 20, "ac": 12, "speed": 30,
+		})
+		if resp.Code != 201 {
+			t.Fatalf("create pregen %s failed: %d", cls, resp.Code)
+		}
+	}
+
+	// Check party balance
+	resp := tc.get("/api/pregens/balance", nil)
+	if resp.Code != 200 {
+		t.Fatalf("party balance failed: %d", resp.Code)
+	}
+	var balance map[string]any
+	readJSON(resp, &balance)
+	roles := balance["roles"].(map[string]any)
+	if roles["tank"].(float64) < 1 {
+		t.Errorf("expected at least 1 tank role, got %v", roles["tank"])
+	}
+	if roles["healer"].(float64) < 1 {
+		t.Errorf("expected at least 1 healer role, got %v", roles["healer"])
+	}
+	chars := balance["characters"].([]any)
+	if len(chars) != 4 {
+		t.Fatalf("expected 4 characters in balance, got %d", len(chars))
+	}
+	rating := balance["rating"].(string)
+	if rating == "" {
+		t.Fatal("expected non-empty rating")
+	}
+
+	t.Log("Party balance test passed")
 }
 
 

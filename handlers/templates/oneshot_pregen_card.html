@@ -1,0 +1,46 @@
+<div class="card">
+  <div class="card-header">
+    <h5 class="mb-0">{{.C.Name}}</h5>
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6">
+        <div class="mb-2">
+          <span class="badge bg-info me-1">{{.C.Race}}</span>
+          <span class="badge bg-primary me-1">{{.C.Class}}</span>
+          {{if .C.Subclass}}<span class="badge bg-secondary me-1">{{.C.Subclass}}</span>{{end}}
+          <span class="badge bg-dark">Level {{.C.Level}}</span>
+        </div>
+        <p class="small mb-1"><strong>Background:</strong> {{.C.Background}}</p>
+        <p class="small mb-1"><strong>Alignment:</strong> {{.C.Alignment}}</p>
+      </div>
+      <div class="col-md-6">
+        <table class="table table-sm small mb-0">
+          <tr><td>HP</td><td class="fw-bold">{{.C.HP}}</td><td>AC</td><td class="fw-bold">{{.C.AC}}</td><td>Speed</td><td class="fw-bold">{{.C.Speed}}</td></tr>
+          <tr><td>STR</td><td class="fw-bold">{{.C.Str}}</td><td>DEX</td><td class="fw-bold">{{.C.Dex}}</td><td>CON</td><td class="fw-bold">{{.C.Con}}</td></tr>
+          <tr><td>INT</td><td class="fw-bold">{{.C.Int}}</td><td>WIS</td><td class="fw-bold">{{.C.Wis}}</td><td>CHA</td><td class="fw-bold">{{.C.Cha}}</td></tr>
+        </table>
+      </div>
+    </div>
+    {{if .C.Skills}}
+    <div class="mt-2">
+      <strong>Skills:</strong> {{.C.Skills}}
+    </div>
+    {{end}}
+    {{if .C.Equipment}}
+    <div class="mt-1">
+      <strong>Equipment:</strong> {{.C.Equipment}}
+    </div>
+    {{end}}
+    {{if .C.Spells}}
+    <div class="mt-1">
+      <strong>Spells:</strong> {{.C.Spells}}
+    </div>
+    {{end}}
+    {{if .C.Personality}}
+    <div class="mt-1">
+      <strong>Personality:</strong> {{.C.Personality}}
+    </div>
+    {{end}}
+  </div>
+</div>

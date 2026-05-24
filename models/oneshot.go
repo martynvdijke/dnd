@@ -147,3 +147,45 @@ type ClueLocation struct {
 	LocationID   int64  `json:"location_id"`
 	LocationName string `json:"location_name,omitempty"`
 }
+
+// ─── Pregenerated Characters ───
+
+type PregeneratedCharacter struct {
+	ID          int64  `json:"id"`
+	UserID      int64  `json:"user_id"`
+	Name        string `json:"name"`
+	Race        string `json:"race"`
+	Class       string `json:"class"`
+	Subclass    string `json:"subclass"`
+	Level       int    `json:"level"`
+	Background  string `json:"background"`
+	Alignment   string `json:"alignment"`
+	Str         int    `json:"str"`
+	Dex         int    `json:"dex"`
+	Con         int    `json:"con"`
+	Int         int    `json:"int"`
+	Wis         int    `json:"wis"`
+	Cha         int    `json:"cha"`
+	HP          int    `json:"hp"`
+	AC          int    `json:"ac"`
+	Speed       int    `json:"speed"`
+	Skills      string `json:"skills"`
+	Equipment   string `json:"equipment"`
+	Spells      string `json:"spells"`
+	Features    string `json:"features"`
+	Personality string `json:"personality"`
+	Backstory   string `json:"backstory"`
+	PortraitURL string `json:"portrait_url"`
+	Notes       string `json:"notes"`
+	CreatedAt   string `json:"created_at"`
+	UpdatedAt   string `json:"updated_at"`
+}
+
+type PartyBalance struct {
+	Characters []PregeneratedCharacter `json:"characters"`
+	Roles      map[string]int          `json:"roles"`
+	Score      int                     `json:"score"`
+	Rating     string                  `json:"rating"`
+	Missing    []string                `json:"missing_roles"`
+	Suggestion string                  `json:"suggestion"`
+}

@@ -1464,16 +1464,10 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		// Session Pacing
 		{"GET", "/htmx/session-pacing/:id", HtmxGetPacingDashboard},
 
-		// Clue/Mystery Tracker
-		{"GET", "/htmx/oneshot-adventures/:id/clues", HtmxListClues},
-		{"GET", "/htmx/clues/:id", HtmxGetClueDetail},
-		{"GET", "/htmx/oneshot-adventures/:id/clues/new", HtmxNewClueForm},
-		{"POST", "/htmx/oneshot-adventures/:id/clues", HtmxCreateClue},
-		{"GET", "/htmx/clues/:id/edit", HtmxEditClueForm},
-		{"PUT", "/htmx/clues/:id", HtmxUpdateClue},
-		{"DELETE", "/htmx/clues/:id", HtmxDeleteClue},
-		{"POST", "/htmx/clues/:id/reveal", HtmxRevealClue},
-		{"POST", "/htmx/clues/:id/hide", HtmxHideClue},
+		// Pregenerated Characters
+		{"GET", "/htmx/pregens", HtmxListPregens},
+		{"GET", "/htmx/pregens/generate", HtmxGeneratePregen},
+		{"GET", "/htmx/pregens/:id", HtmxPregenCard},
 	}
 	for _, rt := range routes {
 		r.Handle(rt.method, rt.path, rt.handler)

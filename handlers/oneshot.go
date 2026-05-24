@@ -1693,3 +1693,344 @@ func HtmxHideClue(c *gin.Context) {
 	db.DB.Exec("UPDATE clues SET is_revealed=0, updated_at=datetime('now') WHERE id=?", id)
 	HtmxGetClueDetail(c)
 }
+
+// ─── Pregenerated Characters ───
+
+func ListPregens(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	rows, err := db.DB.Query("SELECT id, user_id, name, race, class, subclass, level, background, alignment, str, dex, con, int, wis, cha, hp, ac, speed, skills, equipment, spells, features, personality, backstory, portrait_url, notes, created_at, updated_at FROM pregen_characters WHERE user_id=? ORDER BY updated_at DESC", userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	chars := make([]models.PregeneratedCharacter, 0)
+	for rows.Next() {
+		var ch models.PregeneratedCharacter
+		if err := rows.Scan(&ch.ID, &ch.UserID, &ch.Name, &ch.Race, &ch.Class, &ch.Subclass, &ch.Level, &ch.Background, &ch.Alignment,
+			&ch.Str, &ch.Dex, &ch.Con, &ch.Int, &ch.Wis, &ch.Cha, &ch.HP, &ch.AC, &ch.Speed,
+			&ch.Skills, &ch.Equipment, &ch.Spells, &ch.Features, &ch.Personality, &ch.Backstory,
+			&ch.PortraitURL, &ch.Notes, &ch.CreatedAt, &ch.UpdatedAt); err == nil {
+			chars = append(chars, ch)
+		}
+	}
+	c.JSON(http.StatusOK, chars)
+}
+
+func CreatePregen(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	var input struct {
+		Name       string `json:"name"`
+		Race       string `json:"race"`
+		Class      string `json:"class"`
+		Subclass   string `json:"subclass"`
+		Level      int    `json:"level"`
+		Background string `json:"background"`
+		Alignment  string `json:"alignment"`
+		Str        int    `json:"str"`
+		Dex        int    `json:"dex"`
+		Con        int    `json:"con"`
+		Int        int    `json:"int"`
+		Wis        int    `json:"wis"`
+		Cha        int    `json:"cha"`
+		HP         int    `json:"hp"`
+		AC         int    `json:"ac"`
+		Speed      int    `json:"speed"`
+		Skills     string `json:"skills"`
+		Equipment  string `json:"equipment"`
+		Spells     string `json:"spells"`
+		Features   string `json:"features"`
+		Personality string `json:"personality"`
+		Backstory  string `json:"backstory"`
+		PortraitURL string `json:"portrait_url"`
+		Notes      string `json:"notes"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if input.Level == 0 {
+		input.Level = 1
+	}
+	if input.Speed == 0 {
+		input.Speed = 30
+	}
+
+	result, err := db.DB.Exec(`
+		INSERT INTO pregen_characters(user_id, name, race, class, subclass, level, background, alignment,
+			str, dex, con, int, wis, cha, hp, ac, speed, skills, equipment, spells, features, personality, backstory, portrait_url, notes)
+		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+		userID, input.Name, input.Race, input.Class, input.Subclass, input.Level, input.Background, input.Alignment,
+		input.Str, input.Dex, input.Con, input.Int, input.Wis, input.Cha, input.HP, input.AC, input.Speed,
+		input.Skills, input.Equipment, input.Spells, input.Features, input.Personality, input.Backstory, input.PortraitURL, input.Notes)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+func GetPregen(c *gin.Context) {
+	id := c.Param("id")
+	var ch models.PregeneratedCharacter
+	err := db.DB.QueryRow("SELECT id, user_id, name, race, class, subclass, level, background, alignment, str, dex, con, int, wis, cha, hp, ac, speed, skills, equipment, spells, features, personality, backstory, portrait_url, notes, created_at, updated_at FROM pregen_characters WHERE id=?", id).
+		Scan(&ch.ID, &ch.UserID, &ch.Name, &ch.Race, &ch.Class, &ch.Subclass, &ch.Level, &ch.Background, &ch.Alignment,
+			&ch.Str, &ch.Dex, &ch.Con, &ch.Int, &ch.Wis, &ch.Cha, &ch.HP, &ch.AC, &ch.Speed,
+			&ch.Skills, &ch.Equipment, &ch.Spells, &ch.Features, &ch.Personality, &ch.Backstory,
+			&ch.PortraitURL, &ch.Notes, &ch.CreatedAt, &ch.UpdatedAt)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "pregen not found"})
+		return
+	}
+	c.JSON(http.StatusOK, ch)
+}
+
+func UpdatePregen(c *gin.Context) {
+	id := c.Param("id")
+	var input struct {
+		Name       string `json:"name"`
+		Race       string `json:"race"`
+		Class      string `json:"class"`
+		Subclass   string `json:"subclass"`
+		Level      int    `json:"level"`
+		Background string `json:"background"`
+		Alignment  string `json:"alignment"`
+		Str        int    `json:"str"`
+		Dex        int    `json:"dex"`
+		Con        int    `json:"con"`
+		Int        int    `json:"int"`
+		Wis        int    `json:"wis"`
+		Cha        int    `json:"cha"`
+		HP         int    `json:"hp"`
+		AC         int    `json:"ac"`
+		Speed      int    `json:"speed"`
+		Skills     string `json:"skills"`
+		Equipment  string `json:"equipment"`
+		Spells     string `json:"spells"`
+		Features   string `json:"features"`
+		Personality string `json:"personality"`
+		Backstory  string `json:"backstory"`
+		PortraitURL string `json:"portrait_url"`
+		Notes      string `json:"notes"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	_, err := db.DB.Exec(`
+		UPDATE pregen_characters SET name=?, race=?, class=?, subclass=?, level=?, background=?, alignment=?,
+			str=?, dex=?, con=?, int=?, wis=?, cha=?, hp=?, ac=?, speed=?, skills=?, equipment=?, spells=?, features=?,
+			personality=?, backstory=?, portrait_url=?, notes=?, updated_at=datetime('now') WHERE id=?`,
+		input.Name, input.Race, input.Class, input.Subclass, input.Level, input.Background, input.Alignment,
+		input.Str, input.Dex, input.Con, input.Int, input.Wis, input.Cha, input.HP, input.AC, input.Speed,
+		input.Skills, input.Equipment, input.Spells, input.Features, input.Personality, input.Backstory, input.PortraitURL, input.Notes, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "updated"})
+}
+
+func DeletePregen(c *gin.Context) {
+	id := c.Param("id")
+	db.DB.Exec("DELETE FROM pregen_characters WHERE id=?", id)
+	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
+}
+
+// Class role assignments for party balance
+var classRoles = map[string][]string{
+	"barbarian":  {"tank"},
+	"fighter":    {"tank", "damage"},
+	"paladin":    {"tank", "healer"},
+	"cleric":     {"healer"},
+	"druid":      {"healer", "support"},
+	"wizard":     {"damage", "support"},
+	"sorcerer":   {"damage"},
+	"warlock":    {"damage"},
+	"bard":       {"support", "healer"},
+	"rogue":      {"damage", "skill"},
+	"monk":       {"damage"},
+	"ranger":     {"damage", "skill"},
+	"artificer":  {"support"},
+}
+
+var allRoles = []string{"tank", "healer", "damage", "support", "skill"}
+
+func CheckPartyBalance(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	rows, err := db.DB.Query("SELECT id, user_id, name, race, class, subclass, level, background, alignment, str, dex, con, int, wis, cha, hp, ac, speed, skills, equipment, spells, features, personality, backstory, portrait_url, notes, created_at, updated_at FROM pregen_characters WHERE user_id=? ORDER BY updated_at DESC", userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	chars := make([]models.PregeneratedCharacter, 0)
+	for rows.Next() {
+		var ch models.PregeneratedCharacter
+		if err := rows.Scan(&ch.ID, &ch.UserID, &ch.Name, &ch.Race, &ch.Class, &ch.Subclass, &ch.Level, &ch.Background, &ch.Alignment,
+			&ch.Str, &ch.Dex, &ch.Con, &ch.Int, &ch.Wis, &ch.Cha, &ch.HP, &ch.AC, &ch.Speed,
+			&ch.Skills, &ch.Equipment, &ch.Spells, &ch.Features, &ch.Personality, &ch.Backstory,
+			&ch.PortraitURL, &ch.Notes, &ch.CreatedAt, &ch.UpdatedAt); err == nil {
+			chars = append(chars, ch)
+		}
+	}
+
+	roleCounts := map[string]int{}
+	for _, r := range allRoles {
+		roleCounts[r] = 0
+	}
+	for _, ch := range chars {
+		class := ch.Class
+		roles, ok := classRoles[class]
+		if !ok {
+			roles = classRoles["fighter"]
+		}
+		for _, r := range roles {
+			roleCounts[r]++
+		}
+	}
+
+	missing := make([]string, 0)
+	for _, r := range allRoles {
+		if roleCounts[r] == 0 {
+			missing = append(missing, r)
+		}
+	}
+
+	score := 0
+	for _, r := range allRoles {
+		if roleCounts[r] > 0 {
+			score += 2
+		}
+	}
+	score += len(chars) * 2
+	if score > 20 {
+		score = 20
+	}
+
+	rating := "poor"
+	suggestion := "Consider creating more characters to cover missing roles."
+	if len(chars) >= 3 && len(missing) <= 2 {
+		rating = "fair"
+		suggestion = "Your party could use some additional coverage."
+	}
+	if len(chars) >= 4 && len(missing) <= 1 {
+		rating = "good"
+		suggestion = "Your party is well-balanced for most adventures."
+	}
+	if len(chars) >= 4 && len(missing) == 0 {
+		rating = "excellent"
+		suggestion = "Your party covers all essential roles!"
+	}
+	if len(chars) >= 5 && len(missing) <= 1 {
+		rating = "great"
+		suggestion = "Your party has excellent depth and versatility."
+	}
+
+	c.JSON(http.StatusOK, models.PartyBalance{
+		Characters: chars,
+		Roles:      roleCounts,
+		Score:      score,
+		Rating:     rating,
+		Missing:    missing,
+		Suggestion: suggestion,
+	})
+}
+
+func GeneratePregen(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	genLevel, _ := strconv.Atoi(c.DefaultQuery("level", "3"))
+	if genLevel < 1 || genLevel > 20 {
+		genLevel = 3
+	}
+	genRace := c.Query("race")
+	genClass := c.Query("class")
+
+	races := []string{"dwarf", "elf", "halfling", "human", "dragonborn", "gnome", "half-elf", "half-orc", "tiefling"}
+	classes := []string{"barbarian", "fighter", "paladin", "cleric", "druid", "wizard", "sorcerer", "warlock", "bard", "rogue", "monk", "ranger", "artificer"}
+	names := []string{"Aldric", "Briar", "Cassian", "Dorn", "Elara", "Finn", "Grom", "Halia", "Ivy", "Jax", "Kira", "Lark", "Mira", "Nyx", "Orin", "Piper", "Quinn", "Rook", "Sage", "Talon", "Una", "Vex", "Wren", "Xara", "Zephyr"}
+
+	if genClass == "" {
+		genClass = classes[rand.Intn(len(classes))]
+	}
+	if genRace == "" {
+		genRace = races[rand.Intn(len(races))]
+	}
+	name := names[rand.Intn(len(names))]
+
+	str, dex, con, intel, wis, cha := 10, 10, 10, 10, 10, 10
+	switch genClass {
+	case "barbarian", "fighter", "paladin":
+		str, dex, con, intel, wis, cha = 16, 12, 14, 8, 10, 10
+	case "cleric", "druid":
+		str, dex, con, intel, wis, cha = 12, 10, 14, 10, 16, 8
+	case "wizard":
+		str, dex, con, intel, wis, cha = 8, 12, 14, 16, 10, 10
+	case "sorcerer", "warlock", "bard":
+		str, dex, con, intel, wis, cha = 8, 12, 14, 10, 10, 16
+	case "rogue", "ranger", "monk":
+		str, dex, con, intel, wis, cha = 10, 16, 14, 10, 12, 8
+	case "artificer":
+		str, dex, con, intel, wis, cha = 8, 12, 14, 16, 10, 10
+	}
+
+	hp := 8 + (con-10)/2 + (genLevel-1)*5
+	ac := 12 + (dex-10)/2
+
+	result, err := db.DB.Exec(`
+		INSERT INTO pregen_characters(user_id, name, race, class, level, str, dex, con, int, wis, cha, hp, ac, speed)
+		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,30)`,
+		userID, name, genRace, genClass, genLevel, str, dex, con, intel, wis, cha, hp, ac)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+// ─── HTMX Pregenerated Characters ───
+
+func HtmxListPregens(c *gin.Context) {
+	userID, _ := c.Get("user_id")
+	rows, err := db.DB.Query("SELECT id, user_id, name, race, class, subclass, level, background, alignment, str, dex, con, int, wis, cha, hp, ac, speed, skills, equipment, spells, features, personality, backstory, portrait_url, notes, created_at, updated_at FROM pregen_characters WHERE user_id=? ORDER BY level DESC, name ASC", userID)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "query error")
+		return
+	}
+	defer rows.Close()
+	chars := make([]models.PregeneratedCharacter, 0)
+	for rows.Next() {
+		var ch models.PregeneratedCharacter
+		if err := rows.Scan(&ch.ID, &ch.UserID, &ch.Name, &ch.Race, &ch.Class, &ch.Subclass, &ch.Level, &ch.Background, &ch.Alignment,
+			&ch.Str, &ch.Dex, &ch.Con, &ch.Int, &ch.Wis, &ch.Cha, &ch.HP, &ch.AC, &ch.Speed,
+			&ch.Skills, &ch.Equipment, &ch.Spells, &ch.Features, &ch.Personality, &ch.Backstory,
+			&ch.PortraitURL, &ch.Notes, &ch.CreatedAt, &ch.UpdatedAt); err == nil {
+			chars = append(chars, ch)
+		}
+	}
+	c.HTML(http.StatusOK, "oneshot_pregens.html", gin.H{"Pregens": chars})
+}
+
+func HtmxGeneratePregen(c *gin.Context) {
+	GeneratePregen(c)
+	// After generating, redirect to the list
+	c.Request.Method = "GET"
+	HtmxListPregens(c)
+}
+
+func HtmxPregenCard(c *gin.Context) {
+	id := c.Param("id")
+	var ch models.PregeneratedCharacter
+	err := db.DB.QueryRow("SELECT id, user_id, name, race, class, subclass, level, background, alignment, str, dex, con, int, wis, cha, hp, ac, speed, skills, equipment, spells, features, personality, backstory, portrait_url, notes, created_at, updated_at FROM pregen_characters WHERE id=?", id).
+		Scan(&ch.ID, &ch.UserID, &ch.Name, &ch.Race, &ch.Class, &ch.Subclass, &ch.Level, &ch.Background, &ch.Alignment,
+			&ch.Str, &ch.Dex, &ch.Con, &ch.Int, &ch.Wis, &ch.Cha, &ch.HP, &ch.AC, &ch.Speed,
+			&ch.Skills, &ch.Equipment, &ch.Spells, &ch.Features, &ch.Personality, &ch.Backstory,
+			&ch.PortraitURL, &ch.Notes, &ch.CreatedAt, &ch.UpdatedAt)
+	if err != nil {
+		c.String(http.StatusNotFound, "Pregen not found")
+		return
+	}
+	c.HTML(http.StatusOK, "oneshot_pregen_card.html", gin.H{"C": ch})
+}

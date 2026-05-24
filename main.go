@@ -313,6 +313,15 @@ func main() {
 		auth.POST("/clues/:id/locations", handlers.LinkClueLocation)
 		auth.DELETE("/clues/:id/locations/:lid", handlers.UnlinkClueLocation)
 
+		// Pregenerated Characters
+		auth.GET("/pregens", handlers.ListPregens)
+		auth.POST("/pregens", handlers.CreatePregen)
+		auth.GET("/pregens/generate", handlers.GeneratePregen)
+		auth.GET("/pregens/balance", handlers.CheckPartyBalance)
+		auth.GET("/pregens/:id", handlers.GetPregen)
+		auth.PUT("/pregens/:id", handlers.UpdatePregen)
+		auth.DELETE("/pregens/:id", handlers.DeletePregen)
+
 		// Calendar
 		auth.GET("/calendar", handlers.ListCalendarEvents)
 		auth.POST("/calendar", handlers.CreateCalendarEvent)
