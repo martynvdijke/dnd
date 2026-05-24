@@ -1,0 +1,35 @@
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h5 class="mb-0"><i class="fa-solid fa-scroll me-2"></i>One-Shot Adventures</h5>
+  <div>
+    <button class="btn btn-outline-primary btn-sm me-1" hx-get="/htmx/oneshot-adventures/new{{if .Adventure.CampaignID}}?campaign_id={{.Adventure.CampaignID}}{{end}}" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='New One-Shot';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-plus me-1"></i>New</button>
+    <button class="btn btn-primary btn-sm" hx-get="/htmx/oneshot-adventures/new?generate=true{{if .Adventure.CampaignID}}&campaign_id={{.Adventure.CampaignID}}{{end}}" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Generate One-Shot';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate</button>
+  </div>
+</div>
+{{if .Adventures}}
+<div id="oneshotList" class="list-group">
+  {{range .Adventures}}
+  <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" hx-get="/htmx/oneshot-adventures/{{.ID}}" hx-target="#oneshotList" hx-swap="outerHTML" style="cursor:pointer">
+    <div>
+      <span class="fw-bold">{{.Title}}</span>
+      {{if .Difficulty}}<span class="badge {{if eq .Difficulty "easy"}}bg-success{{else if eq .Difficulty "medium"}}bg-warning{{else if eq .Difficulty "hard"}}bg-danger{{else}}bg-dark{{end}} ms-1">{{.Difficulty}}</span>{{end}}
+      {{if .Template}}<span class="badge badge-gold ms-1">{{.Template}}</span>{{end}}
+      <div class="small text-muted mt-1">
+        <i class="fa-regular fa-clock me-1"></i>{{.EstimatedMinutes}} min
+        {{if .Premise}} &middot; {{.Premise | truncate 100}}{{end}}
+      </div>
+    </div>
+    <div class="d-flex gap-1" onclick="event.stopPropagation()">
+      <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/oneshot-adventures/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Edit One-Shot';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-pen"></i></button>
+      <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/oneshot-adventures/{{.ID}}" hx-target="#oneshotSection" hx-swap="innerHTML" hx-confirm="Delete this one-shot adventure?" hx-trigger="click"><i class="fa-solid fa-trash"></i></button>
+    </div>
+  </div>
+  {{end}}
+</div>
+{{else}}
+<div class="empty-state">
+  <i class="fa-solid fa-scroll fa-3x mb-2 d-block text-muted"></i>
+  <p class="fw-bold">No One-Shot Adventures</p>
+  <p class="small text-muted">Create a new one-shot adventure to run for your group, or generate one from a template.</p>
+</div>
+{{end}}
+<script>(function(){var m=document.getElementById("genericModal");if(m&&m.classList.contains("show")){bootstrap.Modal.getInstance(m)?.hide()}})()</script>

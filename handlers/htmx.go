@@ -1446,6 +1446,20 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"POST", "/htmx/factions", HtmxCreateFaction},
 		{"PUT", "/htmx/factions/:id", HtmxUpdateFaction},
 		{"DELETE", "/htmx/factions/:id", HtmxDeleteFaction},
+
+		// One-Shot Adventures
+		{"GET", "/htmx/oneshot-adventures", HtmxListOneShots},
+		{"GET", "/htmx/oneshot-adventures/new", HtmxNewOneShotForm},
+		{"GET", "/htmx/oneshot-adventures/:id", HtmxGetOneShotDetail},
+		{"GET", "/htmx/oneshot-adventures/:id/edit", HtmxEditOneShotForm},
+		{"POST", "/htmx/oneshot-adventures", HtmxCreateOneShot},
+		{"POST", "/htmx/oneshot-adventures/generate", HtmxGenerateOneShot},
+		{"PUT", "/htmx/oneshot-adventures/:id", HtmxUpdateOneShot},
+		{"DELETE", "/htmx/oneshot-adventures/:id", HtmxDeleteOneShot},
+		{"POST", "/htmx/oneshot-adventures/:id/acts", HtmxCreateAct},
+		{"DELETE", "/htmx/oneshot-acts/:id", HtmxDeleteAct},
+		{"POST", "/htmx/oneshot-acts/:id/scenes", HtmxCreateScene},
+		{"DELETE", "/htmx/oneshot-scenes/:id", HtmxDeleteScene},
 	}
 	for _, rt := range routes {
 		r.Handle(rt.method, rt.path, rt.handler)

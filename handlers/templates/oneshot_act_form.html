@@ -1,0 +1,14 @@
+<form>
+<input type="hidden" name="adventure_id" value="{{.Act.AdventureID}}">
+<div class="mb-3"><label class="form-label">Title</label><input class="form-control" name="title" value="{{.Act.Title}}" placeholder="Act title" required></div>
+<div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="2">{{.Act.Description}}</textarea></div>
+<div class="row g-3 mb-3">
+  <div class="col-6"><label class="form-label">Order</label><input class="form-control" type="number" name="number" value="{{if .Act.Number}}{{.Act.Number}}{{else}}1{{end}}" min="1"></div>
+  <div class="col-6"><label class="form-label">Est. Minutes</label><input class="form-control" type="number" name="estimated_minutes" value="{{if .Act.EstimatedMinutes}}{{.Act.EstimatedMinutes}}{{else}}30{{end}}" min="5" step="5"></div>
+</div>
+{{if .Act.ID}}
+<button class="btn btn-primary w-100" hx-put="/htmx/oneshot-acts/{{.Act.ID}}" hx-target="#oneshotSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Update Act</button>
+{{else}}
+<button class="btn btn-primary w-100" hx-post="/htmx/oneshot-adventures/{{.Act.AdventureID}}/acts" hx-target="#oneshotSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add Act</button>
+{{end}}
+</form>

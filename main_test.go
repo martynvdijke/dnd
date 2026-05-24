@@ -159,6 +159,31 @@ func buildRouter() *gin.Engine {
 		auth.POST("/encounters/calculate-xp", handlers.CalculateEncounterXP)
 		auth.GET("/monster-xp", handlers.GetMonsterXP)
 
+		// One-Shot Adventures
+		auth.GET("/oneshot-adventures", handlers.ListOneShotAdventures)
+		auth.POST("/oneshot-adventures", handlers.CreateOneShotAdventure)
+		auth.GET("/oneshot-adventures/:id", handlers.GetOneShotAdventure)
+		auth.PUT("/oneshot-adventures/:id", handlers.UpdateOneShotAdventure)
+		auth.DELETE("/oneshot-adventures/:id", handlers.DeleteOneShotAdventure)
+		auth.POST("/oneshot-adventures/generate", handlers.GenerateOneShotFromTemplate)
+		auth.POST("/oneshot-adventures/:id/acts", handlers.CreateOneShotAct)
+		auth.GET("/oneshot-adventures/:id/npcs", handlers.GetOneShotNPCs)
+		auth.POST("/oneshot-adventures/:id/npcs", handlers.LinkOneShotNPC)
+		auth.DELETE("/oneshot-adventures/:id/npcs/:nid", handlers.UnlinkOneShotNPC)
+		auth.GET("/oneshot-adventures/:id/locations", handlers.GetOneShotLocations)
+		auth.POST("/oneshot-adventures/:id/locations", handlers.LinkOneShotLocation)
+		auth.DELETE("/oneshot-adventures/:id/locations/:lid", handlers.UnlinkOneShotLocation)
+		auth.GET("/oneshot-adventures/:id/encounters", handlers.GetOneShotEncounters)
+		auth.POST("/oneshot-adventures/:id/encounters", handlers.LinkOneShotEncounter)
+		auth.DELETE("/oneshot-adventures/:id/encounters/:eid", handlers.UnlinkOneShotEncounter)
+
+		// Acts & Scenes
+		auth.PUT("/oneshot-acts/:id", handlers.UpdateOneShotAct)
+		auth.DELETE("/oneshot-acts/:id", handlers.DeleteOneShotAct)
+		auth.POST("/oneshot-acts/:id/scenes", handlers.CreateOneShotScene)
+		auth.PUT("/oneshot-scenes/:id", handlers.UpdateOneShotScene)
+		auth.DELETE("/oneshot-scenes/:id", handlers.DeleteOneShotScene)
+
 		// Calendar
 		auth.GET("/calendar", handlers.ListCalendarEvents)
 		auth.POST("/calendar", handlers.CreateCalendarEvent)
@@ -4873,6 +4898,417 @@ func TestLevelUpPlannerEdgeCases(t *testing.T) {
 		t.Fatalf("save empty plan failed: %d", resp.Code)
 	}
 	t.Log("Level up planner edge case tests passed")
+}
+
+// ─── One-Shot Adventure Tests ───
+
+func TestOneShotAdventureCRUD(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create a one-shot adventure
+	resp := tc.post("/api/oneshot-adventures", map[string]any{
+		"title":            "The Lost Temple",
+		"premise":          "An ancient temple has been discovered in the jungle.",
+		"hook":             "The party is hired by a historian to explore the ruins.",
+		"template":         "custom",
+		"estimated_minutes": 180,
+		"difficulty":       "medium",
+		"notes":            "Prepare jungle encounters",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create oneshot failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var created map[string]any
+	readJSON(resp, &created)
+	aid := int(created["id"].(float64))
+	if aid == 0 {
+		t.Fatal("expected non-zero id")
+	}
+
+	// Get the one-shot adventure
+	resp = tc.get("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("get oneshot failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var adventure map[string]any
+	readJSON(resp, &adventure)
+	if adventure["title"] != "The Lost Temple" {
+		t.Fatalf("expected title 'The Lost Temple', got %v", adventure["title"])
+	}
+
+	// Update the one-shot adventure
+	resp = tc.put("/api/oneshot-adventures/"+strconv.Itoa(aid), map[string]any{
+		"title":            "The Lost Temple - Updated",
+		"premise":          "Updated premise",
+		"hook":             "Updated hook",
+		"template":         "five_room_dungeon",
+		"estimated_minutes": 240,
+		"difficulty":       "hard",
+		"notes":            "Updated notes",
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update oneshot failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	// Get updated adventure
+	resp = tc.get("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+	readJSON(resp, &adventure)
+	if adventure["title"] != "The Lost Temple - Updated" {
+		t.Fatalf("expected updated title")
+	}
+
+	// List one-shot adventures
+	resp = tc.get("/api/oneshot-adventures", nil)
+	if resp.Code != 200 {
+		t.Fatalf("list oneshots failed: %d", resp.Code)
+	}
+	var list []any
+	readJSON(resp, &list)
+	if len(list) < 1 {
+		t.Fatal("expected at least 1 one-shot adventure")
+	}
+
+	// Add an act
+	resp = tc.post("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/acts", map[string]any{
+		"title":            "Act 1: Discovery",
+		"description":      "The party arrives at the temple.",
+		"estimated_minutes": 60,
+		"number":           1,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create act failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var actResult map[string]any
+	readJSON(resp, &actResult)
+	actID := int(actResult["id"].(float64))
+	if actID == 0 {
+		t.Fatal("expected non-zero act id")
+	}
+
+	// Add scenes to act
+	resp = tc.post("/api/oneshot-acts/"+strconv.Itoa(actID)+"/scenes", map[string]any{
+		"title":            "Scene 1: The Entrance",
+		"description":      "The party approaches the temple entrance.",
+		"scene_type":       "exploration",
+		"estimated_minutes": 20,
+		"number":           1,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create scene failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	resp = tc.post("/api/oneshot-acts/"+strconv.Itoa(actID)+"/scenes", map[string]any{
+		"title":            "Scene 2: Temple Guardians",
+		"description":      "Golem guardians awaken.",
+		"scene_type":       "combat",
+		"estimated_minutes": 30,
+		"number":           2,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create scene 2 failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	// Get full adventure with acts and scenes
+	resp = tc.get("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("get detailed oneshot failed: %d", resp.Code)
+	}
+	readJSON(resp, &adventure)
+	acts := adventure["acts"].([]any)
+	if len(acts) != 1 {
+		t.Fatalf("expected 1 act, got %d", len(acts))
+	}
+	act := acts[0].(map[string]any)
+	scenes := act["scenes"].([]any)
+	if len(scenes) != 2 {
+		t.Fatalf("expected 2 scenes, got %d", len(scenes))
+	}
+
+	// Update act
+	resp = tc.put("/api/oneshot-acts/"+strconv.Itoa(actID), map[string]any{
+		"title":            "Act 1: Discovery (Updated)",
+		"description":      "Updated description",
+		"estimated_minutes": 90,
+		"number":           1,
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update act failed: %d", resp.Code)
+	}
+
+	// Delete scene
+	var sceneID int
+	resp = tc.get("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+	readJSON(resp, &adventure)
+	acts = adventure["acts"].([]any)
+	if len(acts) > 0 {
+		act = acts[0].(map[string]any)
+		scenes = act["scenes"].([]any)
+		if len(scenes) > 0 {
+			sceneID = int(scenes[0].(map[string]any)["id"].(float64))
+		}
+	}
+	if sceneID > 0 {
+		resp = tc.del("/api/oneshot-scenes/"+strconv.Itoa(sceneID), nil)
+		if resp.Code != 200 {
+			t.Fatalf("delete scene failed: %d", resp.Code)
+		}
+	}
+
+	// Delete act
+	resp = tc.del("/api/oneshot-acts/"+strconv.Itoa(actID), nil)
+	if resp.Code != 200 {
+		t.Fatalf("delete act failed: %d", resp.Code)
+	}
+
+	// Delete the one-shot
+	resp = tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("delete oneshot failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	// Verify deletion
+	resp = tc.get("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+	if resp.Code != 404 {
+		t.Errorf("expected 404 after delete, got %d", resp.Code)
+	}
+
+	t.Log("One-shot adventure CRUD test passed")
+}
+
+func TestOneShotAdventureGeneration(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Generate a 5-room dungeon
+	resp := tc.post("/api/oneshot-adventures/generate", map[string]any{
+		"title":            "Generated Dungeon",
+		"template":         "five_room_dungeon",
+		"difficulty":       "medium",
+		"estimated_minutes": 120,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("generate oneshot failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var created map[string]any
+	readJSON(resp, &created)
+	aid := int(created["id"].(float64))
+	if aid == 0 {
+		t.Fatal("expected non-zero id")
+	}
+
+	// Verify the generated structure
+	resp = tc.get("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("get generated oneshot failed: %d", resp.Code)
+	}
+	var adventure map[string]any
+	readJSON(resp, &adventure)
+	acts := adventure["acts"].([]any)
+	if len(acts) != 5 {
+		t.Fatalf("expected 5 acts (rooms) in five_room_dungeon, got %d", len(acts))
+	}
+	if adventure["template"] != "five_room_dungeon" {
+		t.Fatalf("expected template 'five_room_dungeon', got %v", adventure["template"])
+	}
+
+	t.Log("One-shot adventure generation test passed")
+}
+
+func TestOneShotAdventureLinks(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create a campaign for context
+	resp := tc.post("/api/campaigns", map[string]any{
+		"name": "Test Campaign for One-Shot",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create campaign failed: %d", resp.Code)
+	}
+	var camp map[string]any
+	readJSON(resp, &camp)
+	campaignID := int(camp["id"].(float64))
+
+	// Create a location
+	resp = tc.post("/api/locations", map[string]any{
+		"name": "One-Shot Temple",
+		"type": "dungeon",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create location failed: %d", resp.Code)
+	}
+	var locResult map[string]any
+	readJSON(resp, &locResult)
+	locID := int(locResult["id"].(float64))
+
+	// Create an NPC
+	resp = tc.post("/api/npcs", map[string]any{
+		"name": "Historian Marcus",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create npc failed: %d", resp.Code)
+	}
+	var npcResult map[string]any
+	readJSON(resp, &npcResult)
+	npcID := int(npcResult["id"].(float64))
+
+	// Create an encounter
+	resp = tc.post("/api/encounters", map[string]any{
+		"name":       "Temple Guardians Encounter",
+		"difficulty": "medium",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create encounter failed: %d", resp.Code)
+	}
+	var encResult map[string]any
+	readJSON(resp, &encResult)
+	encID := int(encResult["id"].(float64))
+
+	// Create a one-shot linked to the campaign
+	resp = tc.post("/api/oneshot-adventures", map[string]any{
+		"title":            "Linked Adventure",
+		"campaign_id":      campaignID,
+		"template":         "custom",
+		"estimated_minutes": 180,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create oneshot failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var created map[string]any
+	readJSON(resp, &created)
+	aid := int(created["id"].(float64))
+
+	// Link NPC
+	resp = tc.post("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/npcs", map[string]any{
+		"npc_id": npcID,
+		"role":   "quest giver",
+	})
+	if resp.Code != 200 {
+		t.Fatalf("link npc failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	// Link Location
+	resp = tc.post("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/locations", map[string]any{
+		"location_id": locID,
+	})
+	if resp.Code != 200 {
+		t.Fatalf("link location failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	// Link Encounter
+	resp = tc.post("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/encounters", map[string]any{
+		"encounter_id": encID,
+	})
+	if resp.Code != 200 {
+		t.Fatalf("link encounter failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	// Verify links in detail
+	resp = tc.get("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+	if resp.Code != 200 {
+		t.Fatalf("get linked oneshot failed: %d", resp.Code)
+	}
+	var adventure map[string]any
+	readJSON(resp, &adventure)
+	npcs := adventure["npcs"].([]any)
+	if len(npcs) != 1 {
+		t.Fatalf("expected 1 linked NPC, got %d", len(npcs))
+	}
+	npc := npcs[0].(map[string]any)
+	if npc["role"] != "quest giver" {
+		t.Fatalf("expected NPC role 'quest giver', got %v", npc["role"])
+	}
+
+	locs := adventure["locations"].([]any)
+	if len(locs) != 1 {
+		t.Fatalf("expected 1 linked location, got %d", len(locs))
+	}
+
+	encs := adventure["encounters"].([]any)
+	if len(encs) != 1 {
+		t.Fatalf("expected 1 linked encounter, got %d", len(encs))
+	}
+
+	// Unlink NPC
+	resp = tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/npcs/"+strconv.Itoa(npcID), nil)
+	if resp.Code != 200 {
+		t.Fatalf("unlink npc failed: %d", resp.Code)
+	}
+
+	// Unlink Location
+	resp = tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/locations/"+strconv.Itoa(locID), nil)
+	if resp.Code != 200 {
+		t.Fatalf("unlink location failed: %d", resp.Code)
+	}
+
+	// Unlink Encounter
+	resp = tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/encounters/"+strconv.Itoa(encID), nil)
+	if resp.Code != 200 {
+		t.Fatalf("unlink encounter failed: %d", resp.Code)
+	}
+
+	// Clean up
+	tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+	tc.del("/api/encounters/"+strconv.Itoa(encID), nil)
+	tc.del("/api/npcs/"+strconv.Itoa(npcID), nil)
+	tc.del("/api/locations/"+strconv.Itoa(locID), nil)
+	tc.del("/api/campaigns/"+strconv.Itoa(campaignID), nil)
+
+	t.Log("One-shot adventure links test passed")
+}
+
+func TestOneShotAdventureEdgeCases(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Filter by campaign
+	resp := tc.get("/api/oneshot-adventures?campaign_id=9999", nil)
+	if resp.Code != 200 {
+		t.Fatalf("list by campaign filter failed: %d", resp.Code)
+	}
+
+	// Generate without specifying fields
+	resp = tc.post("/api/oneshot-adventures/generate", map[string]any{
+		"template": "five_room_dungeon",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("generate minimal oneshot failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var created map[string]any
+	readJSON(resp, &created)
+	aid := int(created["id"].(float64))
+	if aid == 0 {
+		t.Fatal("expected non-zero id for minimal generate")
+	}
+
+	// Get NPC links for empty adventure
+	resp = tc.get("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/npcs", nil)
+	if resp.Code != 200 {
+		t.Fatalf("get npcs for empty adventure failed: %d", resp.Code)
+	}
+	var npcs []any
+	readJSON(resp, &npcs)
+	if len(npcs) != 0 {
+		t.Fatalf("expected 0 NPCs for empty adventure, got %d", len(npcs))
+	}
+
+	// Get location links for empty adventure
+	resp = tc.get("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/locations", nil)
+	if resp.Code != 200 {
+		t.Fatalf("get locations for empty adventure failed: %d", resp.Code)
+	}
+
+	// Get encounter links for empty adventure
+	resp = tc.get("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/encounters", nil)
+	if resp.Code != 200 {
+		t.Fatalf("get encounters for empty adventure failed: %d", resp.Code)
+	}
+
+	// Clean up
+	tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+
+	t.Log("One-shot adventure edge case tests passed")
 }
 
 

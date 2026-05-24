@@ -357,6 +357,11 @@ h1 { color: var(--ink) !important; }
   color: #fff !important;
 }
 
+.bg-purple {
+  background-color: #6f42c1 !important;
+  color: #fff !important;
+}
+
 .badge-muted {
   background: var(--parchment-dark) !important;
   color: var(--ink-muted) !important;

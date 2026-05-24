@@ -1,0 +1,21 @@
+<form>
+<input type="hidden" name="act_id" value="{{.Scene.ActID}}">
+<div class="mb-3"><label class="form-label">Title</label><input class="form-control" name="title" value="{{.Scene.Title}}" placeholder="Scene title" required></div>
+<div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="2">{{.Scene.Description}}</textarea></div>
+<div class="row g-3 mb-3">
+  <div class="col-4"><label class="form-label">Order</label><input class="form-control" type="number" name="number" value="{{if .Scene.Number}}{{.Scene.Number}}{{else}}1{{end}}" min="1"></div>
+  <div class="col-4"><label class="form-label">Type</label>
+    <select class="form-select" name="scene_type">
+      {{range .SceneTypes}}
+      <option value="{{.}}" {{if eq $.Scene.SceneType .}}selected{{end}}>{{. | title}}</option>
+      {{end}}
+    </select></div>
+  <div class="col-4"><label class="form-label">Est. Minutes</label><input class="form-control" type="number" name="estimated_minutes" value="{{if .Scene.EstimatedMinutes}}{{.Scene.EstimatedMinutes}}{{else}}15{{end}}" min="5" step="5"></div>
+</div>
+<div class="mb-3"><label class="form-label">DM Notes</label><textarea class="form-control" name="notes" rows="2">{{.Scene.Notes}}</textarea></div>
+{{if .Scene.ID}}
+<button class="btn btn-primary w-100" hx-put="/htmx/oneshot-scenes/{{.Scene.ID}}" hx-target="#oneshotSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Update Scene</button>
+{{else}}
+<button class="btn btn-primary w-100" hx-post="/htmx/oneshot-acts/{{.Scene.ActID}}/scenes" hx-target="#oneshotSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add Scene</button>
+{{end}}
+</form>

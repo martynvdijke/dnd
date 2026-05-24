@@ -263,6 +263,31 @@ func main() {
 		auth.POST("/encounters/calculate-xp", handlers.CalculateEncounterXP)
 		auth.GET("/monster-xp", handlers.GetMonsterXP)
 
+		// One-Shot Adventures
+		auth.GET("/oneshot-adventures", handlers.ListOneShotAdventures)
+		auth.POST("/oneshot-adventures", handlers.CreateOneShotAdventure)
+		auth.GET("/oneshot-adventures/:id", handlers.GetOneShotAdventure)
+		auth.PUT("/oneshot-adventures/:id", handlers.UpdateOneShotAdventure)
+		auth.DELETE("/oneshot-adventures/:id", handlers.DeleteOneShotAdventure)
+		auth.POST("/oneshot-adventures/generate", handlers.GenerateOneShotFromTemplate)
+		auth.POST("/oneshot-adventures/:id/acts", handlers.CreateOneShotAct)
+		auth.GET("/oneshot-adventures/:id/npcs", handlers.GetOneShotNPCs)
+		auth.POST("/oneshot-adventures/:id/npcs", handlers.LinkOneShotNPC)
+		auth.DELETE("/oneshot-adventures/:id/npcs/:nid", handlers.UnlinkOneShotNPC)
+		auth.GET("/oneshot-adventures/:id/locations", handlers.GetOneShotLocations)
+		auth.POST("/oneshot-adventures/:id/locations", handlers.LinkOneShotLocation)
+		auth.DELETE("/oneshot-adventures/:id/locations/:lid", handlers.UnlinkOneShotLocation)
+		auth.GET("/oneshot-adventures/:id/encounters", handlers.GetOneShotEncounters)
+		auth.POST("/oneshot-adventures/:id/encounters", handlers.LinkOneShotEncounter)
+		auth.DELETE("/oneshot-adventures/:id/encounters/:eid", handlers.UnlinkOneShotEncounter)
+
+		// Acts & Scenes
+		auth.PUT("/oneshot-acts/:id", handlers.UpdateOneShotAct)
+		auth.DELETE("/oneshot-acts/:id", handlers.DeleteOneShotAct)
+		auth.POST("/oneshot-acts/:id/scenes", handlers.CreateOneShotScene)
+		auth.PUT("/oneshot-scenes/:id", handlers.UpdateOneShotScene)
+		auth.DELETE("/oneshot-scenes/:id", handlers.DeleteOneShotScene)
+
 		// Calendar
 		auth.GET("/calendar", handlers.ListCalendarEvents)
 		auth.POST("/calendar", handlers.CreateCalendarEvent)

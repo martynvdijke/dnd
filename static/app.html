@@ -29,6 +29,7 @@
         <li class="nav-item"><a class="nav-link" href="#" onclick="showCompendium();return false"><i class="fa-solid fa-book me-1" aria-hidden="true"></i>Compendium</a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="showView('dice');renderDiceTab();return false"><i class="fa-solid fa-dice me-1" aria-hidden="true"></i>Dice</a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="showEncounterBuilder();return false"><i class="fa-solid fa-crosshairs me-1" aria-hidden="true"></i>Encounters</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showOneShots();return false"><i class="fa-solid fa-scroll me-1" aria-hidden="true"></i>One-Shots</a></li>
         <li class="nav-item" id="combatNavItem" style="display:none"><a class="nav-link" href="#" onclick="showCombatTracker();return false"><i class="fa-solid fa-swords me-1" aria-hidden="true"></i>Combat</a></li>
         <li class="nav-item" id="shopsNavItem" style="display:none"><a class="nav-link" href="#" onclick="showShops();return false"><i class="fa-solid fa-store me-1" aria-hidden="true"></i>Shops</a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="showFactions();return false"><i class="fa-solid fa-flag me-1" aria-hidden="true"></i>Factions</a></li>
@@ -171,6 +172,11 @@
 <div id="factionsView" style="display:none">
   <h1 class="h2 mb-3"><i class="fa-solid fa-flag me-2" aria-hidden="true"></i>Factions & Reputation</h1>
   <div id="factionsContent"></div>
+</div>
+
+<div id="oneshotView" style="display:none">
+  <h1 class="h2 mb-3"><i class="fa-solid fa-scroll me-2" aria-hidden="true"></i>One-Shot Adventures</h1>
+  <div id="oneshotSection"></div>
 </div>
 
 </div>

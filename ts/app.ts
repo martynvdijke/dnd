@@ -412,6 +412,7 @@ function showView(view: string) {
   document.getElementById('combatTrackerView')!.style.display = view === 'combatTracker' ? 'block' : 'none';
   document.getElementById('shopsView')!.style.display = view === 'shops' ? 'block' : 'none';
   document.getElementById('wikiView')!.style.display = view === 'wiki' ? 'block' : 'none';
+  document.getElementById('oneshotView')!.style.display = view === 'oneshot' ? 'block' : 'none';
 }
 (window as any).showView = showView;
 
@@ -3665,6 +3666,16 @@ async function renderNotes() {
   el.setAttribute('hx-trigger', 'load');
   el.setAttribute('hx-swap', 'innerHTML');
   el.innerHTML = '<div class="ornament">✧ Loading factions... ✧</div>';
+  htmx.process(el);
+};
+
+(window as any).showOneShots = function () {
+  showView('oneshot');
+  const el = document.getElementById('oneshotSection')!;
+  el.setAttribute('hx-get', '/htmx/oneshot-adventures');
+  el.setAttribute('hx-trigger', 'load');
+  el.setAttribute('hx-swap', 'innerHTML');
+  el.innerHTML = '<div class="ornament">✧ Loading one-shot adventures... ✧</div>';
   htmx.process(el);
 };
 
