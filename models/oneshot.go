@@ -105,3 +105,45 @@ type SceneTiming struct {
 	SceneType      string `json:"scene_type,omitempty"`
 	EstimatedMin   int    `json:"estimated_minutes,omitempty"`
 }
+
+// ─── Clue/Mystery Tracker ───
+
+type Clue struct {
+	ID           int64  `json:"id"`
+	AdventureID  int64  `json:"adventure_id"`
+	Title        string `json:"title"`
+	Description  string `json:"description"`
+	ClueType     string `json:"clue_type"`
+	IsRedHerring bool   `json:"is_red_herring"`
+	IsRevealed   bool   `json:"is_revealed"`
+	SortOrder    int    `json:"sort_order"`
+	Notes        string `json:"notes"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+	// Loaded relations
+	Dependencies []ClueDependency `json:"dependencies"`
+	DependedBy   []ClueDependency `json:"depended_by"`
+	NPCs         []ClueNPC        `json:"npcs"`
+	Locations    []ClueLocation   `json:"locations"`
+}
+
+type ClueDependency struct {
+	ID            int64  `json:"id"`
+	ClueID        int64  `json:"clue_id"`
+	DependsOnID   int64  `json:"depends_on_id"`
+	DependsOnTitle string `json:"depends_on_title,omitempty"`
+}
+
+type ClueNPC struct {
+	ID      int64  `json:"id"`
+	ClueID  int64  `json:"clue_id"`
+	NPCID   int64  `json:"npc_id"`
+	NPCName string `json:"npc_name,omitempty"`
+}
+
+type ClueLocation struct {
+	ID           int64  `json:"id"`
+	ClueID       int64  `json:"clue_id"`
+	LocationID   int64  `json:"location_id"`
+	LocationName string `json:"location_name,omitempty"`
+}

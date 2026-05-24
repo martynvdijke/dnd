@@ -1317,3 +1317,379 @@ func formatDuration(seconds int) string {
 	s := seconds % 60
 	return fmt.Sprintf("%02d:%02d", m, s)
 }
+
+// ─── Clue/Mystery Tracker API Handlers ───
+
+func ListClues(c *gin.Context) {
+	adventureID := c.Param("id")
+	rows, err := db.DB.Query("SELECT id, adventure_id, title, description, clue_type, is_red_herring, is_revealed, sort_order, notes, created_at, updated_at FROM clues WHERE adventure_id=? ORDER BY sort_order, id", adventureID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	clues := make([]models.Clue, 0)
+	for rows.Next() {
+		var cl models.Clue
+		if err := rows.Scan(&cl.ID, &cl.AdventureID, &cl.Title, &cl.Description, &cl.ClueType, &cl.IsRedHerring, &cl.IsRevealed, &cl.SortOrder, &cl.Notes, &cl.CreatedAt, &cl.UpdatedAt); err == nil {
+			loadClueRelations(&cl)
+			clues = append(clues, cl)
+		}
+	}
+	c.JSON(http.StatusOK, clues)
+}
+
+func CreateClue(c *gin.Context) {
+	adventureID := c.Param("id")
+	userID, _ := c.Get("user_id")
+
+	// Verify adventure belongs to user
+	var exists bool
+	db.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM oneshot_adventures WHERE id=? AND user_id=?)", adventureID, userID).Scan(&exists)
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "adventure not found"})
+		return
+	}
+
+	var input struct {
+		Title        string `json:"title"`
+		Description  string `json:"description"`
+		ClueType     string `json:"clue_type"`
+		IsRedHerring bool   `json:"is_red_herring"`
+		SortOrder    int    `json:"sort_order"`
+		Notes        string `json:"notes"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if input.ClueType == "" {
+		input.ClueType = "direct"
+	}
+
+	result, err := db.DB.Exec("INSERT INTO clues(adventure_id, title, description, clue_type, is_red_herring, sort_order, notes) VALUES(?,?,?,?,?,?,?)",
+		adventureID, input.Title, input.Description, input.ClueType, boolToInt(input.IsRedHerring), input.SortOrder, input.Notes)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+func GetClue(c *gin.Context) {
+	id := c.Param("id")
+	var cl models.Clue
+	err := db.DB.QueryRow("SELECT id, adventure_id, title, description, clue_type, is_red_herring, is_revealed, sort_order, notes, created_at, updated_at FROM clues WHERE id=?", id).
+		Scan(&cl.ID, &cl.AdventureID, &cl.Title, &cl.Description, &cl.ClueType, &cl.IsRedHerring, &cl.IsRevealed, &cl.SortOrder, &cl.Notes, &cl.CreatedAt, &cl.UpdatedAt)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "clue not found"})
+		return
+	}
+	loadClueRelations(&cl)
+	c.JSON(http.StatusOK, cl)
+}
+
+func UpdateClue(c *gin.Context) {
+	id := c.Param("id")
+	var input struct {
+		Title        string `json:"title"`
+		Description  string `json:"description"`
+		ClueType     string `json:"clue_type"`
+		IsRedHerring bool   `json:"is_red_herring"`
+		SortOrder    int    `json:"sort_order"`
+		Notes        string `json:"notes"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	_, err := db.DB.Exec("UPDATE clues SET title=?, description=?, clue_type=?, is_red_herring=?, sort_order=?, notes=?, updated_at=datetime('now') WHERE id=?",
+		input.Title, input.Description, input.ClueType, boolToInt(input.IsRedHerring), input.SortOrder, input.Notes, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "updated"})
+}
+
+func DeleteClue(c *gin.Context) {
+	id := c.Param("id")
+	db.DB.Exec("DELETE FROM clues WHERE id=?", id)
+	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
+}
+
+func RevealClue(c *gin.Context) {
+	id := c.Param("id")
+	db.DB.Exec("UPDATE clues SET is_revealed=1, updated_at=datetime('now') WHERE id=?", id)
+	c.JSON(http.StatusOK, gin.H{"status": "revealed"})
+}
+
+func HideClue(c *gin.Context) {
+	id := c.Param("id")
+	db.DB.Exec("UPDATE clues SET is_revealed=0, updated_at=datetime('now') WHERE id=?", id)
+	c.JSON(http.StatusOK, gin.H{"status": "hidden"})
+}
+
+func AddClueDependency(c *gin.Context) {
+	id := c.Param("id")
+	var input struct {
+		DependsOnID int64 `json:"depends_on_id"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	_, err := db.DB.Exec("INSERT OR IGNORE INTO clue_dependencies(clue_id, depends_on_id) VALUES(?,?)", id, input.DependsOnID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"status": "linked"})
+}
+
+func RemoveClueDependency(c *gin.Context) {
+	id := c.Param("id")
+	depID := c.Param("did")
+	db.DB.Exec("DELETE FROM clue_dependencies WHERE clue_id=? AND depends_on_id=?", id, depID)
+	c.JSON(http.StatusOK, gin.H{"status": "removed"})
+}
+
+func LinkClueNPC(c *gin.Context) {
+	id := c.Param("id")
+	var input struct {
+		NPCID int64 `json:"npc_id"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	_, err := db.DB.Exec("INSERT OR IGNORE INTO clue_npcs(clue_id, npc_id) VALUES(?,?)", id, input.NPCID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "linked"})
+}
+
+func UnlinkClueNPC(c *gin.Context) {
+	id := c.Param("id")
+	npcID := c.Param("nid")
+	db.DB.Exec("DELETE FROM clue_npcs WHERE clue_id=? AND npc_id=?", id, npcID)
+	c.JSON(http.StatusOK, gin.H{"status": "removed"})
+}
+
+func LinkClueLocation(c *gin.Context) {
+	id := c.Param("id")
+	var input struct {
+		LocationID int64 `json:"location_id"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	_, err := db.DB.Exec("INSERT OR IGNORE INTO clue_locations(clue_id, location_id) VALUES(?,?)", id, input.LocationID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "linked"})
+}
+
+func UnlinkClueLocation(c *gin.Context) {
+	id := c.Param("id")
+	locID := c.Param("lid")
+	db.DB.Exec("DELETE FROM clue_locations WHERE clue_id=? AND location_id=?", id, locID)
+	c.JSON(http.StatusOK, gin.H{"status": "removed"})
+}
+
+func loadClueRelations(cl *models.Clue) {
+	cl.Dependencies = make([]models.ClueDependency, 0)
+	cl.DependedBy = make([]models.ClueDependency, 0)
+	cl.NPCs = make([]models.ClueNPC, 0)
+	cl.Locations = make([]models.ClueLocation, 0)
+
+	// Dependencies
+	depRows, err := db.DB.Query("SELECT cd.id, cd.clue_id, cd.depends_on_id, COALESCE(c.title,'') FROM clue_dependencies cd LEFT JOIN clues c ON c.id=cd.depends_on_id WHERE cd.clue_id=?", cl.ID)
+	if err == nil {
+		defer depRows.Close()
+		for depRows.Next() {
+			var d models.ClueDependency
+			if depRows.Scan(&d.ID, &d.ClueID, &d.DependsOnID, &d.DependsOnTitle) == nil {
+				cl.Dependencies = append(cl.Dependencies, d)
+			}
+		}
+	}
+	// Depended by
+	depByRows, err := db.DB.Query("SELECT cd.id, cd.clue_id, cd.depends_on_id, COALESCE(c.title,'') FROM clue_dependencies cd LEFT JOIN clues c ON c.id=cd.clue_id WHERE cd.depends_on_id=?", cl.ID)
+	if err == nil {
+		defer depByRows.Close()
+		for depByRows.Next() {
+			var d models.ClueDependency
+			if depByRows.Scan(&d.ID, &d.ClueID, &d.DependsOnID, &d.DependsOnTitle) == nil {
+				cl.DependedBy = append(cl.DependedBy, d)
+			}
+		}
+	}
+	// NPCs
+	npcRows, err := db.DB.Query("SELECT cn.id, cn.clue_id, cn.npc_id, COALESCE(n.name,'') FROM clue_npcs cn LEFT JOIN npcs n ON n.id=cn.npc_id WHERE cn.clue_id=?", cl.ID)
+	if err == nil {
+		defer npcRows.Close()
+		for npcRows.Next() {
+			var n models.ClueNPC
+			if npcRows.Scan(&n.ID, &n.ClueID, &n.NPCID, &n.NPCName) == nil {
+				cl.NPCs = append(cl.NPCs, n)
+			}
+		}
+	}
+	// Locations
+	locRows, err := db.DB.Query("SELECT cl.id, cl.clue_id, cl.location_id, COALESCE(l.name,'') FROM clue_locations cl LEFT JOIN locations l ON l.id=cl.location_id WHERE cl.clue_id=?", cl.ID)
+	if err == nil {
+		defer locRows.Close()
+		for locRows.Next() {
+			var l models.ClueLocation
+			if locRows.Scan(&l.ID, &l.ClueID, &l.LocationID, &l.LocationName) == nil {
+				cl.Locations = append(cl.Locations, l)
+			}
+		}
+	}
+}
+
+func boolToInt(v bool) int {
+	if v {
+		return 1
+	}
+	return 0
+}
+
+// ─── HTMX Clue Handlers ───
+
+func HtmxListClues(c *gin.Context) {
+	adventureID := c.Param("id")
+
+	rows, err := db.DB.Query("SELECT id, adventure_id, title, description, clue_type, is_red_herring, is_revealed, sort_order, notes, created_at, updated_at FROM clues WHERE adventure_id=? ORDER BY sort_order, id", adventureID)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "query error")
+		return
+	}
+	defer rows.Close()
+
+	clues := make([]models.Clue, 0)
+	for rows.Next() {
+		var cl models.Clue
+		if rows.Scan(&cl.ID, &cl.AdventureID, &cl.Title, &cl.Description, &cl.ClueType, &cl.IsRedHerring, &cl.IsRevealed, &cl.SortOrder, &cl.Notes, &cl.CreatedAt, &cl.UpdatedAt) == nil {
+			loadClueRelations(&cl)
+			clues = append(clues, cl)
+		}
+	}
+
+	c.HTML(http.StatusOK, "oneshot_clues.html", gin.H{
+		"Clues": clues,
+		"AdventureID": adventureID,
+	})
+}
+
+func HtmxGetClueDetail(c *gin.Context) {
+	id := c.Param("id")
+	var cl models.Clue
+	err := db.DB.QueryRow("SELECT id, adventure_id, title, description, clue_type, is_red_herring, is_revealed, sort_order, notes, created_at, updated_at FROM clues WHERE id=?", id).
+		Scan(&cl.ID, &cl.AdventureID, &cl.Title, &cl.Description, &cl.ClueType, &cl.IsRedHerring, &cl.IsRevealed, &cl.SortOrder, &cl.Notes, &cl.CreatedAt, &cl.UpdatedAt)
+	if err != nil {
+		c.String(http.StatusNotFound, "Clue not found")
+		return
+	}
+	loadClueRelations(&cl)
+
+	c.HTML(http.StatusOK, "oneshot_clue_detail.html", gin.H{
+		"Clue": cl,
+	})
+}
+
+func HtmxNewClueForm(c *gin.Context) {
+	adventureID := c.Param("id")
+	c.HTML(http.StatusOK, "oneshot_clue_form.html", gin.H{
+		"AdventureID": adventureID,
+		"Clue":        nil,
+	})
+}
+
+func HtmxCreateClue(c *gin.Context) {
+	adventureID := c.Param("id")
+	userID, _ := c.Get("user_id")
+
+	var exists bool
+	db.DB.QueryRow("SELECT EXISTS(SELECT 1 FROM oneshot_adventures WHERE id=? AND user_id=?)", adventureID, userID).Scan(&exists)
+	if !exists {
+		c.String(http.StatusNotFound, "Adventure not found")
+		return
+	}
+
+	title := c.PostForm("title")
+	description := c.PostForm("description")
+	clueType := c.PostForm("clue_type")
+	if clueType == "" {
+		clueType = "direct"
+	}
+	sortOrder, _ := strconv.Atoi(c.PostForm("sort_order"))
+	notes := c.PostForm("notes")
+
+	db.DB.Exec("INSERT INTO clues(adventure_id, title, description, clue_type, is_red_herring, sort_order, notes) VALUES(?,?,?,?,?,?,?)",
+		adventureID, title, description, clueType, 0, sortOrder, notes)
+
+	HtmxListClues(c)
+}
+
+func HtmxEditClueForm(c *gin.Context) {
+	id := c.Param("id")
+	var cl models.Clue
+	err := db.DB.QueryRow("SELECT id, adventure_id, title, description, clue_type, is_red_herring, is_revealed, sort_order, notes, created_at, updated_at FROM clues WHERE id=?", id).
+		Scan(&cl.ID, &cl.AdventureID, &cl.Title, &cl.Description, &cl.ClueType, &cl.IsRedHerring, &cl.IsRevealed, &cl.SortOrder, &cl.Notes, &cl.CreatedAt, &cl.UpdatedAt)
+	if err != nil {
+		c.String(http.StatusNotFound, "Clue not found")
+		return
+	}
+	c.HTML(http.StatusOK, "oneshot_clue_form.html", gin.H{
+		"AdventureID": cl.AdventureID,
+		"Clue":        cl,
+	})
+}
+
+func HtmxUpdateClue(c *gin.Context) {
+	id := c.Param("id")
+	title := c.PostForm("title")
+	description := c.PostForm("description")
+	clueType := c.PostForm("clue_type")
+	sortOrder, _ := strconv.Atoi(c.PostForm("sort_order"))
+	notes := c.PostForm("notes")
+
+	db.DB.Exec("UPDATE clues SET title=?, description=?, clue_type=?, sort_order=?, notes=?, updated_at=datetime('now') WHERE id=?",
+		title, description, clueType, sortOrder, notes, id)
+
+	HtmxGetClueDetail(c)
+}
+
+func HtmxDeleteClue(c *gin.Context) {
+	id := c.Param("id")
+	// Get adventure_id for redirect
+	var advID int64
+	db.DB.QueryRow("SELECT adventure_id FROM clues WHERE id=?", id).Scan(&advID)
+	db.DB.Exec("DELETE FROM clues WHERE id=?", id)
+	if advID > 0 {
+		HtmxListClues(c)
+		return
+	}
+	c.String(http.StatusOK, "Deleted")
+}
+
+func HtmxRevealClue(c *gin.Context) {
+	id := c.Param("id")
+	db.DB.Exec("UPDATE clues SET is_revealed=1, updated_at=datetime('now') WHERE id=?", id)
+	HtmxGetClueDetail(c)
+}
+
+func HtmxHideClue(c *gin.Context) {
+	id := c.Param("id")
+	db.DB.Exec("UPDATE clues SET is_revealed=0, updated_at=datetime('now') WHERE id=?", id)
+	HtmxGetClueDetail(c)
+}

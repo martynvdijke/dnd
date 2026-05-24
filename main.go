@@ -298,6 +298,21 @@ func main() {
 		auth.POST("/session-pacing/:id/complete", handlers.CompletePacingSession)
 		auth.POST("/session-pacing/:id/tick", handlers.UpdatePacingTimers)
 
+		// Clue/Mystery Tracker
+		auth.GET("/oneshot-adventures/:id/clues", handlers.ListClues)
+		auth.POST("/oneshot-adventures/:id/clues", handlers.CreateClue)
+		auth.GET("/clues/:id", handlers.GetClue)
+		auth.PUT("/clues/:id", handlers.UpdateClue)
+		auth.DELETE("/clues/:id", handlers.DeleteClue)
+		auth.POST("/clues/:id/reveal", handlers.RevealClue)
+		auth.POST("/clues/:id/hide", handlers.HideClue)
+		auth.POST("/clues/:id/dependencies", handlers.AddClueDependency)
+		auth.DELETE("/clues/:id/dependencies/:did", handlers.RemoveClueDependency)
+		auth.POST("/clues/:id/npcs", handlers.LinkClueNPC)
+		auth.DELETE("/clues/:id/npcs/:nid", handlers.UnlinkClueNPC)
+		auth.POST("/clues/:id/locations", handlers.LinkClueLocation)
+		auth.DELETE("/clues/:id/locations/:lid", handlers.UnlinkClueLocation)
+
 		// Calendar
 		auth.GET("/calendar", handlers.ListCalendarEvents)
 		auth.POST("/calendar", handlers.CreateCalendarEvent)

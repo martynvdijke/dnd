@@ -1,0 +1,50 @@
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">
+      <i class="fas fa-search me-2"></i>Clue Board
+    </h5>
+    <button class="btn btn-sm btn-primary"
+      hx-get="/htmx/oneshot-adventures/{{.AdventureID}}/clues/new"
+      hx-target="#clueForm" hx-swap="innerHTML">
+      <i class="fas fa-plus me-1"></i>Add Clue
+    </button>
+  </div>
+
+  <div class="card-body">
+    <div id="clueForm"></div>
+
+    <div class="row">
+      {{range .Clues}}
+      <div class="col-md-6 mb-3">
+        <div class="card clue-card {{if .IsRedHerring}}border-danger{{else if .IsRevealed}}border-success{{else}}border-secondary{{end}}"
+          hx-get="/htmx/clues/{{.ID}}" hx-target="#clueDetail" hx-swap="innerHTML" style="cursor:pointer;">
+          <div class="card-body py-2">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <h6 class="mb-1">
+                  {{if .IsRedHerring}}<i class="fas fa-skull text-danger me-1" title="Red Herring"></i>{{end}}
+                  {{if .IsRevealed}}<i class="fas fa-eye text-success me-1" title="Revealed"></i>{{else}}<i class="fas fa-eye-slash text-muted me-1" title="Hidden"></i>{{end}}
+                  {{.Title}}
+                </h6>
+                <small class="text-muted">{{truncate .Description 80}}</small>
+              </div>
+              <span class="badge bg-info">{{.ClueType}}</span>
+            </div>
+            <div class="mt-1">
+              {{if .Dependencies}}<small class="text-muted me-2"><i class="fas fa-arrow-right"></i> {{len .Dependencies}} dep{{if gt (len .Dependencies) 1}}s{{end}}</small>{{end}}
+              {{if .NPCs}}<small class="text-muted me-2"><i class="fas fa-user"></i> {{len .NPCs}}</small>{{end}}
+              {{if .Locations}}<small class="text-muted"><i class="fas fa-map-marker-alt"></i> {{len .Locations}}</small>{{end}}
+            </div>
+          </div>
+        </div>
+      </div>
+      {{else}}
+      <div class="col-12">
+        <p class="text-muted text-center my-4">No clues yet. Add your first clue to build the mystery!</p>
+      </div>
+      {{end}}
+    </div>
+
+    <div id="clueDetail" class="mt-3"></div>
+  </div>
+</div>

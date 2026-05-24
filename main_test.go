@@ -194,6 +194,21 @@ func buildRouter() *gin.Engine {
 		auth.POST("/session-pacing/:id/complete", handlers.CompletePacingSession)
 		auth.POST("/session-pacing/:id/tick", handlers.UpdatePacingTimers)
 
+		// Clue/Mystery Tracker
+		auth.GET("/oneshot-adventures/:id/clues", handlers.ListClues)
+		auth.POST("/oneshot-adventures/:id/clues", handlers.CreateClue)
+		auth.GET("/clues/:id", handlers.GetClue)
+		auth.PUT("/clues/:id", handlers.UpdateClue)
+		auth.DELETE("/clues/:id", handlers.DeleteClue)
+		auth.POST("/clues/:id/reveal", handlers.RevealClue)
+		auth.POST("/clues/:id/hide", handlers.HideClue)
+		auth.POST("/clues/:id/dependencies", handlers.AddClueDependency)
+		auth.DELETE("/clues/:id/dependencies/:did", handlers.RemoveClueDependency)
+		auth.POST("/clues/:id/npcs", handlers.LinkClueNPC)
+		auth.DELETE("/clues/:id/npcs/:nid", handlers.UnlinkClueNPC)
+		auth.POST("/clues/:id/locations", handlers.LinkClueLocation)
+		auth.DELETE("/clues/:id/locations/:lid", handlers.UnlinkClueLocation)
+
 		// Calendar
 		auth.GET("/calendar", handlers.ListCalendarEvents)
 		auth.POST("/calendar", handlers.CreateCalendarEvent)
@@ -5649,6 +5664,357 @@ func TestSessionPacingResumeExisting(t *testing.T) {
 	tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
 
 	t.Log("Session pacing resume existing test passed")
+}
+
+// ─── Clue/Mystery Tracker Tests ───
+
+func TestClueCRUD(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create adventure
+	resp := tc.post("/api/oneshot-adventures", map[string]any{
+		"title":            "Mystery Adventure",
+		"template":         "custom",
+		"difficulty":       "medium",
+		"estimated_minutes": 120,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create adventure failed: %d", resp.Code)
+	}
+	var adv map[string]any
+	readJSON(resp, &adv)
+	aid := int(adv["id"].(float64))
+
+	// Create a clue
+	resp = tc.post("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/clues", map[string]any{
+		"title":       "Bloodstained Dagger",
+		"description": "A dagger with dried blood found at the scene.",
+		"clue_type":   "object",
+		"sort_order":  1,
+		"notes":       "The blood is elven.",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create clue failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var clueResult map[string]any
+	readJSON(resp, &clueResult)
+	clueID := int(clueResult["id"].(float64))
+	if clueID == 0 {
+		t.Fatal("expected non-zero clue id")
+	}
+
+	// Get clue
+	resp = tc.get("/api/clues/"+strconv.Itoa(clueID), nil)
+	if resp.Code != 200 {
+		t.Fatalf("get clue failed: %d", resp.Code)
+	}
+	var clue map[string]any
+	readJSON(resp, &clue)
+	if clue["title"] != "Bloodstained Dagger" {
+		t.Fatalf("expected 'Bloodstained Dagger', got %v", clue["title"])
+	}
+
+	// Update clue
+	resp = tc.put("/api/clues/"+strconv.Itoa(clueID), map[string]any{
+		"title":       "Bloodstained Dagger (Updated)",
+		"description": "Updated description",
+		"clue_type":   "object",
+		"is_red_herring": true,
+		"sort_order":  2,
+		"notes":       "Updated notes",
+	})
+	if resp.Code != 200 {
+		t.Fatalf("update clue failed: %d", resp.Code)
+	}
+
+	// Verify update
+	resp = tc.get("/api/clues/"+strconv.Itoa(clueID), nil)
+	readJSON(resp, &clue)
+	if clue["title"] != "Bloodstained Dagger (Updated)" {
+		t.Fatalf("expected updated title")
+	}
+
+	// List clues
+	resp = tc.get("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/clues", nil)
+	if resp.Code != 200 {
+		t.Fatalf("list clues failed: %d", resp.Code)
+	}
+	var clues []any
+	readJSON(resp, &clues)
+	if len(clues) < 1 {
+		t.Fatal("expected at least 1 clue")
+	}
+
+	// Delete clue
+	resp = tc.del("/api/clues/"+strconv.Itoa(clueID), nil)
+	if resp.Code != 200 {
+		t.Fatalf("delete clue failed: %d", resp.Code)
+	}
+	resp = tc.get("/api/clues/"+strconv.Itoa(clueID), nil)
+	if resp.Code != 404 {
+		t.Errorf("expected 404 after delete, got %d", resp.Code)
+	}
+
+	// Clean up
+	tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+
+	t.Log("Clue CRUD test passed")
+}
+
+func TestClueRevealHide(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/oneshot-adventures", map[string]any{
+		"title":            "Reveal Test",
+		"template":         "custom",
+		"difficulty":       "easy",
+		"estimated_minutes": 60,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create adventure failed: %d", resp.Code)
+	}
+	var adv map[string]any
+	readJSON(resp, &adv)
+	aid := int(adv["id"].(float64))
+
+	// Create clue
+	resp = tc.post("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/clues", map[string]any{
+		"title":       "Secret Letter",
+		"description": "A hidden letter reveals the plot.",
+		"clue_type":   "direct",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create clue failed: %d", resp.Code)
+	}
+	var clueResult map[string]any
+	readJSON(resp, &clueResult)
+	clueID := int(clueResult["id"].(float64))
+
+	// Initially hidden
+	resp = tc.get("/api/clues/"+strconv.Itoa(clueID), nil)
+	readJSON(resp, &clueResult)
+	if clueResult["is_revealed"].(bool) {
+		t.Fatal("expected clue to be initially hidden")
+	}
+
+	// Reveal
+	resp = tc.post("/api/clues/"+strconv.Itoa(clueID)+"/reveal", nil)
+	if resp.Code != 200 {
+		t.Fatalf("reveal clue failed: %d", resp.Code)
+	}
+	resp = tc.get("/api/clues/"+strconv.Itoa(clueID), nil)
+	readJSON(resp, &clueResult)
+	if !clueResult["is_revealed"].(bool) {
+		t.Fatal("expected clue to be revealed")
+	}
+
+	// Hide
+	resp = tc.post("/api/clues/"+strconv.Itoa(clueID)+"/hide", nil)
+	if resp.Code != 200 {
+		t.Fatalf("hide clue failed: %d", resp.Code)
+	}
+	resp = tc.get("/api/clues/"+strconv.Itoa(clueID), nil)
+	readJSON(resp, &clueResult)
+	if clueResult["is_revealed"].(bool) {
+		t.Fatal("expected clue to be hidden after hide")
+	}
+
+	// Clean up
+	tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+
+	t.Log("Clue reveal/hide test passed")
+}
+
+func TestClueDependencies(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.post("/api/oneshot-adventures", map[string]any{
+		"title":            "Dependency Test",
+		"template":         "custom",
+		"difficulty":       "hard",
+		"estimated_minutes": 180,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create adventure failed: %d", resp.Code)
+	}
+	var adv map[string]any
+	readJSON(resp, &adv)
+	aid := int(adv["id"].(float64))
+
+	// Create two clues
+	resp = tc.post("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/clues", map[string]any{
+		"title":       "First Clue",
+		"description": "The initial clue.",
+		"clue_type":   "direct",
+		"sort_order":  1,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create first clue failed: %d", resp.Code)
+	}
+	var c1 map[string]any
+	readJSON(resp, &c1)
+	c1ID := int(c1["id"].(float64))
+
+	resp = tc.post("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/clues", map[string]any{
+		"title":       "Second Clue",
+		"description": "Requires the first clue.",
+		"clue_type":   "location",
+		"sort_order":  2,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create second clue failed: %d", resp.Code)
+	}
+	var c2 map[string]any
+	readJSON(resp, &c2)
+	c2ID := int(c2["id"].(float64))
+
+	// Add dependency: Clue 2 depends on Clue 1
+	resp = tc.post("/api/clues/"+strconv.Itoa(c2ID)+"/dependencies", map[string]any{
+		"depends_on_id": c1ID,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("add dependency failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	// Verify dependency on Clue 2
+	resp = tc.get("/api/clues/"+strconv.Itoa(c2ID), nil)
+	if resp.Code != 200 {
+		t.Fatalf("get clue 2 failed: %d", resp.Code)
+	}
+	readJSON(resp, &c2)
+	deps := c2["dependencies"].([]any)
+	if len(deps) != 1 {
+		t.Fatalf("expected 1 dependency, got %d", len(deps))
+	}
+	dep := deps[0].(map[string]any)
+	if int(dep["depends_on_id"].(float64)) != c1ID {
+		t.Fatalf("expected depends_on_id %d, got %v", c1ID, dep["depends_on_id"])
+	}
+
+	// Verify Clue 1 has depended_by
+	resp = tc.get("/api/clues/"+strconv.Itoa(c1ID), nil)
+	readJSON(resp, &c1)
+	depBy := c1["depended_by"].([]any)
+	if len(depBy) != 1 {
+		t.Fatalf("expected cl 1 to have 1 depended_by, got %d", len(depBy))
+	}
+
+	// Remove dependency
+	resp = tc.del("/api/clues/"+strconv.Itoa(c2ID)+"/dependencies/"+strconv.Itoa(c1ID), nil)
+	if resp.Code != 200 {
+		t.Fatalf("remove dependency failed: %d", resp.Code)
+	}
+
+	// Verify dependency removed
+	resp = tc.get("/api/clues/"+strconv.Itoa(c2ID), nil)
+	readJSON(resp, &c2)
+	deps = c2["dependencies"].([]any)
+	if len(deps) != 0 {
+		t.Fatalf("expected 0 dependencies after removal, got %d", len(deps))
+	}
+
+	// Clean up
+	tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+
+	t.Log("Clue dependencies test passed")
+}
+
+func TestClueNPCLocationLinks(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Create entities
+	resp := tc.post("/api/oneshot-adventures", map[string]any{
+		"title":            "Linked Clues",
+		"template":         "custom",
+		"difficulty":       "medium",
+		"estimated_minutes": 90,
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create adventure failed: %d", resp.Code)
+	}
+	var adv map[string]any
+	readJSON(resp, &adv)
+	aid := int(adv["id"].(float64))
+
+	resp = tc.post("/api/npcs", map[string]any{"name": "Informant Joe"})
+	if resp.Code != 201 {
+		t.Fatalf("create npc failed: %d", resp.Code)
+	}
+	var npcR map[string]any
+	readJSON(resp, &npcR)
+	npcID := int(npcR["id"].(float64))
+
+	resp = tc.post("/api/locations", map[string]any{"name": "Hidden Cave", "type": "cave"})
+	if resp.Code != 201 {
+		t.Fatalf("create location failed: %d", resp.Code)
+	}
+	var locR map[string]any
+	readJSON(resp, &locR)
+	locID := int(locR["id"].(float64))
+
+	// Create clue
+	resp = tc.post("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/clues", map[string]any{
+		"title":       "Linked Clue",
+		"description": "A clue with links.",
+		"clue_type":   "witness",
+	})
+	if resp.Code != 201 {
+		t.Fatalf("create clue failed: %d", resp.Code)
+	}
+	var clueR map[string]any
+	readJSON(resp, &clueR)
+	clueID := int(clueR["id"].(float64))
+
+	// Link NPC
+	resp = tc.post("/api/clues/"+strconv.Itoa(clueID)+"/npcs", map[string]any{
+		"npc_id": npcID,
+	})
+	if resp.Code != 200 {
+		t.Fatalf("link npc to clue failed: %d - %s", resp.Code, resp.Body.String())
+	}
+
+	// Link Location
+	resp = tc.post("/api/clues/"+strconv.Itoa(clueID)+"/locations", map[string]any{
+		"location_id": locID,
+	})
+	if resp.Code != 200 {
+		t.Fatalf("link location to clue failed: %d", resp.Code)
+	}
+
+	// Verify links
+	resp = tc.get("/api/clues/"+strconv.Itoa(clueID), nil)
+	readJSON(resp, &clueR)
+	npcs := clueR["npcs"].([]any)
+	if len(npcs) != 1 {
+		t.Fatalf("expected 1 linked NPC, got %d", len(npcs))
+	}
+	locs := clueR["locations"].([]any)
+	if len(locs) != 1 {
+		t.Fatalf("expected 1 linked location, got %d", len(locs))
+	}
+
+	// Unlink NPC
+	resp = tc.del("/api/clues/"+strconv.Itoa(clueID)+"/npcs/"+strconv.Itoa(npcID), nil)
+	if resp.Code != 200 {
+		t.Fatalf("unlink npc failed: %d", resp.Code)
+	}
+
+	// Unlink Location
+	resp = tc.del("/api/clues/"+strconv.Itoa(clueID)+"/locations/"+strconv.Itoa(locID), nil)
+	if resp.Code != 200 {
+		t.Fatalf("unlink location failed: %d", resp.Code)
+	}
+
+	// Clean up
+	tc.del("/api/oneshot-adventures/"+strconv.Itoa(aid), nil)
+	tc.del("/api/locations/"+strconv.Itoa(locID), nil)
+	tc.del("/api/npcs/"+strconv.Itoa(npcID), nil)
+
+	t.Log("Clue NPC/location links test passed")
 }
 
 
