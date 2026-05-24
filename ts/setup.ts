@@ -38,6 +38,11 @@ async function init() {
     e.preventDefault();
     errorDiv.classList.add('d-none');
 
+    const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+    const origHtml = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Setting up...';
+
     const username = (document.getElementById('username') as HTMLInputElement).value;
     const password = (document.getElementById('password') as HTMLInputElement).value;
     const confirm = (document.getElementById('confirm') as HTMLInputElement).value;
@@ -45,28 +50,37 @@ async function init() {
     if (password !== confirm) {
       errorDiv.textContent = 'Passwords do not match';
       errorDiv.classList.remove('d-none');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = origHtml;
       return;
     }
 
     if (password.length < 8) {
       errorDiv.textContent = 'Password must be at least 8 characters';
       errorDiv.classList.remove('d-none');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = origHtml;
       return;
     }
 
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, setup: true }),
-      credentials: 'include',
-    });
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, setup: true }),
+        credentials: 'include',
+      });
 
-    if (res.ok) {
-      window.location.href = '/';
-    } else {
-      const err = await res.json();
-      errorDiv.textContent = err.error || 'Setup failed';
-      errorDiv.classList.remove('d-none');
+      if (res.ok) {
+        window.location.href = '/';
+      } else {
+        const err = await res.json();
+        errorDiv.textContent = err.error || 'Setup failed';
+        errorDiv.classList.remove('d-none');
+      }
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = origHtml;
     }
   });
 }

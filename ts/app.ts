@@ -147,12 +147,12 @@ function showSearchOverlay() {
   if (!overlay) {
     overlay = document.createElement('div');
     overlay.id = 'searchOverlay';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:flex-start;justify-content:center;padding-top:80px';
+    overlay.className = 'search-overlay';
     overlay.addEventListener('click', (e) => { if (e.target === overlay) hideSearchOverlay(); });
     document.body.appendChild(overlay);
     const panel = document.createElement('div');
     panel.id = 'searchPanel';
-    panel.style.cssText = 'background:var(--bg);border:1px solid var(--border);border-radius:8px;max-width:600px;width:90%;max-height:70vh;overflow-y:auto;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,0.3)';
+    panel.className = 'search-panel';
     overlay.appendChild(panel);
   }
   overlay.style.display = 'flex';
@@ -209,8 +209,6 @@ async function doSearch() {
     toast(e.message, true);
   }
 };
-(window as any).doSearch = doSearch;
-
 function initSearch() {
   const input = document.getElementById('searchInput');
   if (!input) return;
@@ -255,7 +253,6 @@ function hideLoading() {
 // ─── API ───
 
 async function api(method: string, path: string, body?: any): Promise<any> {
-(window as any).api = api;
   showLoading();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
@@ -272,6 +269,7 @@ async function api(method: string, path: string, body?: any): Promise<any> {
     hideLoading();
   }
 }
+(window as any).api = api;
 
 // ─── Theme ───
 

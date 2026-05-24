@@ -495,6 +495,39 @@ h1 { color: var(--ink) !important; }
   opacity: .6 !important;
 }
 
+/* ---- Search Overlay ---- */
+
+.search-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 80px;
+}
+
+.search-panel {
+  background: var(--parchment);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  max-width: 600px;
+  width: 90%;
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .search-panel {
+  background: var(--parchment-dark);
+  border-color: var(--border-light);
+}
+
 /* ---- Empty State ---- */
 
 .empty-state {
@@ -524,41 +557,6 @@ h1 { color: var(--ink) !important; }
 .inv-item.equipped { background: rgba(184,150,62,.08) !important; }
 
 /* ---- Loading Overlay ---- */
-
-.loading-overlay {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,.25);
-  z-index: 1040;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(2px);
-  transition: opacity .2s;
-}
-.spinner-container {
-  background: var(--parchment);
-  border: 2px solid var(--gold);
-  border-radius: var(--radius);
-  padding: 2rem;
-  text-align: center;
-  box-shadow: var(--shadow-lg);
-}
-[data-theme="dark"] .spinner-container {
-  background: var(--parchment-dark);
-}
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid var(--border-light);
-  border-top-color: var(--gold);
-  border-radius: 50%;
-  animation: spin .8s linear infinite;
-  margin: 0 auto;
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
 
 /* ---- Sortable ---- */
 
@@ -955,6 +953,72 @@ kbd {
 .loading-overlay.d-none {
   display: none !important;
   pointer-events: none !important;
+}
+
+.spinner-container {
+  background: var(--parchment);
+  border: 2px solid var(--gold);
+  border-radius: var(--radius);
+  padding: 2rem;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+[data-theme="dark"] .spinner-container {
+  background: var(--parchment-dark);
+}
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--border-light);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---- Reduced Motion ---- */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .dice-3d-cube.rolling { animation: none !important; }
+  .dice-2d.rolling { animation: none !important; }
+  .loading-overlay { backdrop-filter: none !important; }
+}
+
+/* ---- will-change hints for GPU compositing ---- */
+
+.character-card { will-change: transform, box-shadow; }
+.skill-row { will-change: background; }
+.dice-3d-cube { will-change: transform; }
+.die-face { will-change: transform, background, border-color; }
+.slot-dot { will-change: transform, border-color; }
+.fab { will-change: transform; }
+.fab-menu-item { will-change: transform, border-color; }
+.spell-card { will-change: transform, box-shadow; }
+.dice-result-box { will-change: transform, opacity; }
+.roll-total-anim { will-change: transform, opacity; }
+.editor-btn { will-change: background, border-color; }
+.journal-entry-body { will-change: max-height, padding; }
+.journal-entry-card { will-change: box-shadow; }
+
+/* ---- Focus Visible for Keyboard Nav ---- */
+
+:focus-visible {
+  outline: 2px solid var(--gold) !important;
+  outline-offset: 2px !important;
+  border-radius: var(--radius-sm);
+}
+
+.btn:focus-visible, .form-control:focus-visible, .form-select:focus-visible {
+  outline-offset: 0 !important;
 }
 
 @media (max-width: 768px) {

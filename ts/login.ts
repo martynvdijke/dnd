@@ -44,22 +44,32 @@ async function init() {
     e.preventDefault();
     errorDiv.classList.add('d-none');
 
+    const submitBtn = form.querySelector('button[type="submit"]') as HTMLButtonElement;
+    const origHtml = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Signing in...';
+
     const username = (document.getElementById('username') as HTMLInputElement).value;
     const password = (document.getElementById('password') as HTMLInputElement).value;
 
-    const res = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-      credentials: 'include',
-    });
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+        credentials: 'include',
+      });
 
-    if (res.ok) {
-      window.location.href = '/';
-    } else {
-      const err = await res.json();
-      errorDiv.textContent = err.error || 'Invalid credentials';
-      errorDiv.classList.remove('d-none');
+      if (res.ok) {
+        window.location.href = '/';
+      } else {
+        const err = await res.json();
+        errorDiv.textContent = err.error || 'Invalid credentials';
+        errorDiv.classList.remove('d-none');
+      }
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = origHtml;
     }
   });
 }
