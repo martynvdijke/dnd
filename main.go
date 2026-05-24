@@ -363,6 +363,11 @@ func main() {
 		auth.GET("/generate/encounter", handlers.HandleGenerateEncounter)
 		auth.GET("/generate/loot", handlers.HandleGenerateLoot)
 		auth.GET("/generate/character", handlers.HandleGenerateRandomCharacter)
+		auth.GET("/generate/adventure-hook", handlers.HandleGenerateAdventureHook)
+		auth.GET("/generate/dungeon-dressing", handlers.HandleGenerateDungeonDressing)
+		auth.GET("/generate/tavern", handlers.HandleGenerateTavern)
+		auth.GET("/generate/urban-encounter", handlers.HandleGenerateUrbanEncounter)
+		auth.GET("/generate/road-encounter", handlers.HandleGenerateRoadEncounter)
 
 		// Media upload
 		auth.POST("/upload", handlers.HandleUpload)

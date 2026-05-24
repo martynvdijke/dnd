@@ -246,6 +246,11 @@ func buildRouter() *gin.Engine {
 		auth.GET("/generate/encounter", handlers.HandleGenerateEncounter)
 		auth.GET("/generate/loot", handlers.HandleGenerateLoot)
 		auth.GET("/generate/character", handlers.HandleGenerateRandomCharacter)
+		auth.GET("/generate/adventure-hook", handlers.HandleGenerateAdventureHook)
+		auth.GET("/generate/dungeon-dressing", handlers.HandleGenerateDungeonDressing)
+		auth.GET("/generate/tavern", handlers.HandleGenerateTavern)
+		auth.GET("/generate/urban-encounter", handlers.HandleGenerateUrbanEncounter)
+		auth.GET("/generate/road-encounter", handlers.HandleGenerateRoadEncounter)
 
 		// Wiki
 		auth.GET("/campaigns/:id/wiki", handlers.ListWikiPages)
@@ -4898,6 +4903,114 @@ func TestLevelUpPlannerEdgeCases(t *testing.T) {
 		t.Fatalf("save empty plan failed: %d", resp.Code)
 	}
 	t.Log("Level up planner edge case tests passed")
+}
+
+// ─── One-Shot Generator Tests ───
+
+func TestGenerateAdventureHook(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.get("/api/generate/adventure-hook", nil)
+	if resp.Code != 200 {
+		t.Fatalf("generate adventure hook failed: %d", resp.Code)
+	}
+	var data map[string]any
+	readJSON(resp, &data)
+	required := []string{"hook_name", "hook_type", "villain", "macguffin", "stakes", "location_hint", "twist"}
+	for _, k := range required {
+		if _, ok := data[k]; !ok {
+			t.Errorf("missing field: %s", k)
+		}
+	}
+	t.Logf("Adventure hook: %v", data["hook_name"])
+}
+
+func TestGenerateDungeonDressing(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.get("/api/generate/dungeon-dressing", nil)
+	if resp.Code != 200 {
+		t.Fatalf("generate dungeon dressing failed: %d", resp.Code)
+	}
+	var data map[string]any
+	readJSON(resp, &data)
+	required := []string{"room_type", "size", "sound", "smell", "light", "debris"}
+	for _, k := range required {
+		if _, ok := data[k]; !ok {
+			t.Errorf("missing field: %s", k)
+		}
+	}
+	t.Logf("Dungeon dressing: %v / %v", data["room_type"], data["size"])
+}
+
+func TestGenerateTavern(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.get("/api/generate/tavern", nil)
+	if resp.Code != 200 {
+		t.Fatalf("generate tavern failed: %d", resp.Code)
+	}
+	var data map[string]any
+	readJSON(resp, &data)
+	required := []string{"name", "proprietor", "clientele", "specialty_drink", "atmosphere", "prices", "rumors"}
+	for _, k := range required {
+		if _, ok := data[k]; !ok {
+			t.Errorf("missing field: %s", k)
+		}
+	}
+	if _, ok := data["name"].(string); !ok || data["name"].(string) == "" {
+		t.Error("expected non-empty tavern name")
+	}
+	clientele := data["clientele"].([]any)
+	if len(clientele) < 2 {
+		t.Error("expected at least 2 clientele entries")
+	}
+	rumors := data["rumors"].([]any)
+	if len(rumors) < 1 {
+		t.Error("expected at least 1 rumor")
+	}
+	t.Logf("Tavern: %v", data["name"])
+}
+
+func TestGenerateUrbanEncounter(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.get("/api/generate/urban-encounter", nil)
+	if resp.Code != 200 {
+		t.Fatalf("generate urban encounter failed: %d", resp.Code)
+	}
+	var data map[string]any
+	readJSON(resp, &data)
+	required := []string{"theme", "npc", "description", "complication", "possible_resolution"}
+	for _, k := range required {
+		if _, ok := data[k]; !ok {
+			t.Errorf("missing field: %s", k)
+		}
+	}
+	t.Logf("Urban encounter: %v / %v", data["theme"], data["npc"])
+}
+
+func TestGenerateRoadEncounter(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.get("/api/generate/road-encounter", nil)
+	if resp.Code != 200 {
+		t.Fatalf("generate road encounter failed: %d", resp.Code)
+	}
+	var data map[string]any
+	readJSON(resp, &data)
+	required := []string{"terrain", "encounter_type", "description", "creatures", "loot_hint", "complication"}
+	for _, k := range required {
+		if _, ok := data[k]; !ok {
+			t.Errorf("missing field: %s", k)
+		}
+	}
+	t.Logf("Road encounter: %v / %v", data["terrain"], data["encounter_type"])
 }
 
 // ─── One-Shot Adventure Tests ───
