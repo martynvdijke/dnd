@@ -270,7 +270,7 @@ test.describe('One-Shot Adventure Features', () => {
     // Add clue via API fetch inside page context
     const clueR = await apiFetch(page, `/api/oneshot-adventures/${advId}/clues`, {
       method: 'POST',
-      body: { title: 'The Hidden Dagger', description: 'Found in the library', clue_type: 'physical_evidence' }
+      body: { title: 'The Hidden Dagger', description: 'Found in the library', clue_type: 'object' }
     });
     expect(clueR.status).toBe(201);
 
