@@ -1261,7 +1261,7 @@ func HtmxGetPacingDashboard(c *gin.Context) {
 
 	paceCls, pacePct, paceLbl := computePace(s.SceneEstimated, s.SceneTimings)
 
-	c.HTML(http.StatusOK, "oneshot_pacing.html", gin.H{
+	renderTemplate(c, "oneshot_pacing.html", gin.H{
 		"Session":     s,
 		"Elapsed":     formatDuration(s.ElapsedSeconds),
 		"PaceClass":   paceCls,
@@ -1584,7 +1584,7 @@ func HtmxListClues(c *gin.Context) {
 		}
 	}
 
-	c.HTML(http.StatusOK, "oneshot_clues.html", gin.H{
+	renderTemplate(c, "oneshot_clues.html", gin.H{
 		"Clues": clues,
 		"AdventureID": adventureID,
 	})
@@ -1601,14 +1601,14 @@ func HtmxGetClueDetail(c *gin.Context) {
 	}
 	loadClueRelations(&cl)
 
-	c.HTML(http.StatusOK, "oneshot_clue_detail.html", gin.H{
+	renderTemplate(c, "oneshot_clue_detail.html", gin.H{
 		"Clue": cl,
 	})
 }
 
 func HtmxNewClueForm(c *gin.Context) {
 	adventureID := c.Param("id")
-	c.HTML(http.StatusOK, "oneshot_clue_form.html", gin.H{
+	renderTemplate(c, "oneshot_clue_form.html", gin.H{
 		"AdventureID": adventureID,
 		"Clue":        nil,
 	})
@@ -1649,7 +1649,7 @@ func HtmxEditClueForm(c *gin.Context) {
 		c.String(http.StatusNotFound, "Clue not found")
 		return
 	}
-	c.HTML(http.StatusOK, "oneshot_clue_form.html", gin.H{
+	renderTemplate(c, "oneshot_clue_form.html", gin.H{
 		"AdventureID": cl.AdventureID,
 		"Clue":        cl,
 	})
@@ -2010,7 +2010,7 @@ func HtmxListPregens(c *gin.Context) {
 			chars = append(chars, ch)
 		}
 	}
-	c.HTML(http.StatusOK, "oneshot_pregens.html", gin.H{"Pregens": chars})
+	renderTemplate(c, "oneshot_pregens.html", gin.H{"Pregens": chars})
 }
 
 func HtmxGeneratePregen(c *gin.Context) {
@@ -2032,7 +2032,7 @@ func HtmxPregenCard(c *gin.Context) {
 		c.String(http.StatusNotFound, "Pregen not found")
 		return
 	}
-	c.HTML(http.StatusOK, "oneshot_pregen_card.html", gin.H{"C": ch})
+	renderTemplate(c, "oneshot_pregen_card.html", gin.H{"C": ch})
 }
 
 // ─── Prep Dashboard Handlers ───
@@ -2191,7 +2191,7 @@ func HtmxGetPrepDashboard(c *gin.Context) {
 		SessionID: sessionID,
 	}
 
-	c.HTML(http.StatusOK, "oneshot_prep_dashboard.html", gin.H{
+	renderTemplate(c, "oneshot_prep_dashboard.html", gin.H{
 		"D": prepData,
 	})
 }
@@ -2301,10 +2301,10 @@ func HtmxRenderChecklist(c *gin.Context) {
 				items = append(items, item)
 			}
 		}
-		c.HTML(http.StatusOK, "oneshot_checklist.html", gin.H{"Items": items, "AdventureID": adventureID})
+		renderTemplate(c, "oneshot_checklist.html", gin.H{"Items": items, "AdventureID": adventureID})
 		return
 	}
-	c.HTML(http.StatusOK, "oneshot_checklist.html", gin.H{"Items": []models.PrepChecklistItem{}, "AdventureID": adventureID})
+	renderTemplate(c, "oneshot_checklist.html", gin.H{"Items": []models.PrepChecklistItem{}, "AdventureID": adventureID})
 }
 
 func HtmxToggleChecklistItem(c *gin.Context) {
@@ -2334,7 +2334,7 @@ func HtmxToggleChecklistItem(c *gin.Context) {
 				items = append(items, item)
 			}
 		}
-		c.HTML(http.StatusOK, "oneshot_checklist.html", gin.H{"Items": items, "AdventureID": adventureID})
+		renderTemplate(c, "oneshot_checklist.html", gin.H{"Items": items, "AdventureID": adventureID})
 		return
 	}
 	c.String(http.StatusOK, "")
@@ -2385,7 +2385,7 @@ func HtmxDeleteChecklistItem(c *gin.Context) {
 				items = append(items, item)
 			}
 		}
-		c.HTML(http.StatusOK, "oneshot_checklist.html", gin.H{"Items": items, "AdventureID": adventureID})
+		renderTemplate(c, "oneshot_checklist.html", gin.H{"Items": items, "AdventureID": adventureID})
 		return
 	}
 	c.String(http.StatusOK, "")
@@ -2437,7 +2437,7 @@ func HtmxGetSessionFlow(c *gin.Context) {
 		}
 	}
 
-	c.HTML(http.StatusOK, "oneshot_session_flow.html", gin.H{
+	renderTemplate(c, "oneshot_session_flow.html", gin.H{
 		"Adventure": adv,
 		"TotalTime": totalTime,
 	})
