@@ -54,7 +54,7 @@
           <span class="text-muted small ms-2"><i class="fa-regular fa-clock"></i> {{.EstimatedMinutes}} min</span>
           {{if .LocationName}}<span class="badge bg-light text-dark ms-1"><i class="fa-solid fa-location-dot"></i> {{.LocationName}}</span>{{end}}
           {{if .EncounterName}}<span class="badge bg-light text-dark ms-1"><i class="fa-solid fa-crosshairs"></i> {{.EncounterName}}</span>{{end}}
-          <div class="small text-muted mt-1">{{.Description | truncate 150}}</div>
+          <div class="small text-muted mt-1">{{truncate .Description 150}}</div>
         </div>
       </li>
       {{end}}

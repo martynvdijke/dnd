@@ -13,7 +13,7 @@
       <span class="fw-bold">{{.NPCName}}</span>
       {{if .NPCRace}}<span class="badge badge-gold ms-1">{{.NPCRace}}</span>{{end}}
       {{if .NPCClass}}<span class="badge badge-muted ms-1">{{.NPCClass}}</span>{{end}}
-      <div class="small text-muted">{{if .Relationship}}R: {{.Relationship}}{{end}}{{if .Notes}} - {{.Notes | truncate 100}}{{end}}</div>
+      <div class="small text-muted">{{if .Relationship}}R: {{.Relationship}}{{end}}{{if .Notes}} - {{truncate .Notes 100}}{{end}}</div>
     </div>
     <div class="d-flex gap-1">
       <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/npcs/link/{{.ID}}" hx-target="#npcsSection" hx-swap="innerHTML" hx-confirm="Unlink this NPC?"><i class="fa-solid fa-unlink"></i></button>

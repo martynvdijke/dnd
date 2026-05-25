@@ -12,7 +12,7 @@
     <div>
       <span class="fw-bold">{{.LocationName}}</span>
       {{if .LocationType}}<span class="badge badge-gold ms-1">{{.LocationType}}</span>{{end}}
-      <div class="small text-muted">{{if .Description}}{{.Description | truncate 100}}{{end}}</div>
+      <div class="small text-muted">{{if .Description}}{{truncate .Description 100}}{{end}}</div>
     </div>
     <div class="d-flex gap-1">
       <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/locations/link/{{.ID}}" hx-target="#locationsSection" hx-swap="innerHTML" hx-confirm="Unlink this location?"><i class="fa-solid fa-unlink"></i></button>

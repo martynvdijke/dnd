@@ -19,7 +19,7 @@
             <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/notes/{{.ID}}" hx-target="#notesSection" hx-confirm="Delete this note?" hx-swap="innerHTML"><i class="fa-solid fa-trash"></i></button>
           </div>
         </div>
-        <div class="mt-1 small text-muted" style="white-space:pre-wrap">{{.Content | truncate 300}}</div>
+        <div class="mt-1 small text-muted" style="white-space:pre-wrap">{{truncate .Content 300}}</div>
       </div>
     </div>
     {{end}}

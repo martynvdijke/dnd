@@ -2014,9 +2014,59 @@ func HtmxListPregens(c *gin.Context) {
 }
 
 func HtmxGeneratePregen(c *gin.Context) {
-	GeneratePregen(c)
-	// After generating, redirect to the list
-	c.Request.Method = "GET"
+	userID, _ := c.Get("user_id")
+	name := c.Query("name")
+	genLevel, _ := strconv.Atoi(c.DefaultQuery("level", "3"))
+	if genLevel < 1 || genLevel > 20 {
+		genLevel = 3
+	}
+	genRace := c.Query("race")
+	genClass := c.Query("class")
+
+	races := []string{"dwarf", "elf", "halfling", "human", "dragonborn", "gnome", "half-elf", "half-orc", "tiefling"}
+	classes := []string{"barbarian", "fighter", "paladin", "cleric", "druid", "wizard", "sorcerer", "warlock", "bard", "rogue", "monk", "ranger", "artificer"}
+	names := []string{"Aldric", "Briar", "Cassian", "Dorn", "Elara", "Finn", "Grom", "Halia", "Ivy", "Jax", "Kira", "Lark", "Mira", "Nyx", "Orin", "Piper", "Quinn", "Rook", "Sage", "Talon", "Una", "Vex", "Wren", "Xara", "Zephyr"}
+
+	if genClass == "" {
+		genClass = classes[rand.Intn(len(classes))]
+	}
+	if genRace == "" {
+		genRace = races[rand.Intn(len(races))]
+	}
+	if name == "" {
+		name = names[rand.Intn(len(names))]
+	}
+
+	var str, dex, con, intel, wis, cha int
+	switch genClass {
+	case "barbarian", "fighter", "paladin":
+		str, dex, con, intel, wis, cha = 16, 12, 14, 8, 10, 10
+	case "cleric", "druid":
+		str, dex, con, intel, wis, cha = 12, 10, 14, 10, 16, 8
+	case "wizard":
+		str, dex, con, intel, wis, cha = 8, 12, 14, 16, 10, 10
+	case "sorcerer", "warlock", "bard":
+		str, dex, con, intel, wis, cha = 8, 12, 14, 10, 10, 16
+	case "rogue", "ranger", "monk":
+		str, dex, con, intel, wis, cha = 10, 16, 14, 10, 12, 8
+	case "artificer":
+		str, dex, con, intel, wis, cha = 8, 12, 14, 16, 10, 10
+	default:
+		str, dex, con, intel, wis, cha = 10, 10, 10, 10, 10, 10
+	}
+
+	hp := 8 + (con-10)/2 + (genLevel-1)*5
+	ac := 12 + (dex-10)/2
+
+	_, err := db.DB.Exec(`
+		INSERT INTO pregen_characters(user_id, name, race, class, level, str, dex, con, int, wis, cha, hp, ac, speed)
+		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,30)`,
+		userID, name, genRace, genClass, genLevel, str, dex, con, intel, wis, cha, hp, ac)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "insert error")
+		return
+	}
+
 	HtmxListPregens(c)
 }
 
@@ -2173,11 +2223,11 @@ func HtmxGetPrepDashboard(c *gin.Context) {
 	var sessionID *int64
 	var pacing *models.SessionPacing
 	var sid int64
-	err = db.DB.QueryRow("SELECT id, status FROM session_pacing WHERE adventure_id=? AND status IN ('running','paused') ORDER BY id DESC LIMIT 1", adventureID).Scan(&sid, &pacing.Status)
+	var pacingStatus string
+	err = db.DB.QueryRow("SELECT id, status FROM session_pacing WHERE adventure_id=? AND status IN ('running','paused') ORDER BY id DESC LIMIT 1", adventureID).Scan(&sid, &pacingStatus)
 	if err == nil {
 		sessionID = &sid
-		pacing = &models.SessionPacing{ID: sid, Status: "running"}
-		// Get elapsed from scene timings
+		pacing = &models.SessionPacing{ID: sid, Status: pacingStatus}
 		db.DB.QueryRow("SELECT COALESCE(SUM(elapsed_seconds),0) FROM scene_timings WHERE session_id=?", sid).Scan(&pacing.ElapsedSeconds)
 	}
 

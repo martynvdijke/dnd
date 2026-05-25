@@ -18,10 +18,19 @@ async function waitModalClosed(page) {
 
 /** Use page.evaluate with fetch (carries browser cookies) + explicit credentials */
 async function apiFetch(page, url, opts = {}) {
-  return page.evaluate(async ({ url, method, body }) => {
+  return page.evaluate(async ({ url, method, body }: { url: string; method?: string; body?: any }) => {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    const csrfEl = document.querySelector('meta[name="csrf-token"]');
+    let token = csrfEl ? csrfEl.getAttribute('content') || '' : '';
+    if (!token) {
+      const tresp = await fetch('/api/csrf-token', { credentials: 'same-origin' });
+      const tdata = await tresp.json();
+      token = tdata.token || '';
+    }
+    if (token) headers['X-CSRF-Token'] = token;
     const resp = await fetch(url, {
       method: method || 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: body ? JSON.stringify(body) : undefined,
       credentials: 'same-origin',
     });
@@ -48,7 +57,7 @@ async function submitOneShotForm(page, { title, template, difficulty, minutes })
   if (difficulty) await page.locator('#genericModalBody select[name="difficulty"]').selectOption(difficulty);
   if (minutes) await page.locator('#genericModalBody input[name="estimated_minutes"]').fill(String(minutes));
 
-  await page.locator('#genericModalBody button[type="submit"]').click();
+  await page.locator('#genericModalBody form button.btn-primary').click();
   await waitModalClosed(page);
   await page.waitForTimeout(500);
 }
@@ -102,9 +111,11 @@ test.describe('One-Shot Adventure Features', () => {
     });
 
     await expect(page.locator('#oneshotSection')).toContainText(title, { timeout: 5000 });
-    // Should show 5 acts in the detail
-    await expect(page.locator('#oneshotSection')).toContainText('Act 1');
-    await expect(page.locator('#oneshotSection')).toContainText('Act 5');
+
+    // Click the adventure to view detail and check for acts
+    await page.locator('#oneshotSection .list-group-item').first().click();
+    await expect(page.locator('#oneshotSection')).toContainText('Act 1', { timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText('Act 5', { timeout: 5000 });
   });
 
   test('Prep dashboard loads for generated one-shot', async ({ page }) => {
@@ -135,7 +146,7 @@ test.describe('One-Shot Adventure Features', () => {
     // Load prep dashboard via HTMX
     await loadHtmx(page, `/htmx/oneshot-adventures/${advId}/dashboard`);
     await expect(page.locator('#oneshotSection')).toContainText(title, { timeout: 5000 });
-    await expect(page.locator('#oneshotSection')).toContainText('Prep Dashboard', { timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText('Session Flow', { timeout: 5000 });
   });
 
   test('DM screen loads with quick reference, actions, and notes tabs', async ({ page }) => {
@@ -191,13 +202,13 @@ test.describe('One-Shot Adventure Features', () => {
 
     // Load checklist via HTMX
     await loadHtmx(page, `/htmx/oneshot-adventures/${advId}/checklist`);
-    await expect(page.locator('#oneshotSection')).toContainText('Prep Checklist', { timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText('No checklist items yet', { timeout: 5000 });
 
     // Add checklist item
     const input = page.locator('#oneshotSection input[name="item"]');
     await expect(input).toBeVisible({ timeout: 5000 });
     await input.fill('Prepare battle maps');
-    await page.locator('#oneshotSection button:has-text("Add")').click();
+    await page.locator('#oneshotSection i.fa-plus').first().click();
     await page.waitForTimeout(500);
     await expect(page.locator('#oneshotSection')).toContainText('Prepare battle maps', { timeout: 5000 });
   });
@@ -235,7 +246,8 @@ test.describe('One-Shot Adventure Features', () => {
 
     await loadHtmx(page, `/htmx/oneshot-adventures/${advId}/session-flow`);
     await expect(page.locator('#oneshotSection')).toContainText(title, { timeout: 5000 });
-    await expect(page.locator('#oneshotSection')).toContainText('Act 1', { timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText('Entrance & Guardian', { timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText('Reward & Revelation', { timeout: 5000 });
   });
 
   test('Clue board - add and view clues', async ({ page }) => {
@@ -256,11 +268,11 @@ test.describe('One-Shot Adventure Features', () => {
     expect(advId).toBeGreaterThan(0);
 
     // Add clue via API fetch inside page context
-    const clueR = await apiFetch(page, '/api/clues', {
+    const clueR = await apiFetch(page, `/api/oneshot-adventures/${advId}/clues`, {
       method: 'POST',
-      body: { adventure_id: advId, title: 'The Hidden Dagger', description: 'Found in the library', clue_type: 'physical_evidence' }
+      body: { title: 'The Hidden Dagger', description: 'Found in the library', clue_type: 'physical_evidence' }
     });
-    expect(clueR.ok).toBeTruthy();
+    expect(clueR.status).toBe(201);
 
     // Load clue board
     await loadHtmx(page, `/htmx/oneshot-adventures/${advId}/clues`);

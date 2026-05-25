@@ -12,7 +12,7 @@
       {{if .School}}<span class="badge badge-gold ms-1">{{.School}}</span>{{end}}
       {{if .CastingTime}}<span class="badge badge-muted ms-1">{{.CastingTime}}</span>{{end}}
       {{if .Duration}}<span class="badge badge-muted ms-1">{{.Duration}}</span>{{end}}
-      <p class="mb-0 small text-muted">{{.Description | truncate 150}}</p>
+      <p class="mb-0 small text-muted">{{truncate .Description 150}}</p>
     </div>
     <div class="d-flex gap-1">
       <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/spells/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Edit Spell';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-pen"></i></button>

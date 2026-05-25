@@ -15,7 +15,7 @@
       {{if .Template}}<span class="badge badge-gold ms-1">{{.Template}}</span>{{end}}
       <div class="small text-muted mt-1">
         <i class="fa-regular fa-clock me-1"></i>{{.EstimatedMinutes}} min
-        {{if .Premise}} &middot; {{.Premise | truncate 100}}{{end}}
+        {{if .Premise}} &middot; {{truncate .Premise 100}}{{end}}
       </div>
     </div>
     <div class="d-flex gap-1" onclick="event.stopPropagation()">

@@ -4,12 +4,12 @@
     <input type="checkbox" class="form-check-input me-2" 
       {{if .IsChecked}}checked{{end}}
       hx-post="/htmx/oneshot-adventures/{{$.AdventureID}}/checklist/{{.ID}}/toggle"
-      hx-target="#checklistContainer" hx-swap="innerHTML">
-    <span class="flex-grow-1 {{if .IsChecked}}text-muted text-decoration-line-through{{end}}">{{.Item}}</span>
+      hx-target="closest .prep-checklist" hx-swap="outerHTML">
+     <span class="flex-grow-1 {{if .IsChecked}}text-muted text-decoration-line-through{{end}}">{{.Item}}</span>
     <span class="badge bg-light text-dark me-1">{{.Category}}</span>
     <button class="btn btn-sm btn-outline-danger py-0 px-1" 
       hx-delete="/htmx/oneshot-adventures/{{$.AdventureID}}/checklist/{{.ID}}"
-      hx-target="#checklistContainer" hx-swap="innerHTML">
+      hx-target="closest .prep-checklist" hx-swap="outerHTML">
       <i class="fas fa-times"></i>
     </button>
   </div>
@@ -33,7 +33,7 @@
     <button class="btn btn-sm btn-primary" 
       hx-post="/htmx/oneshot-adventures/{{.AdventureID}}/checklist"
       hx-include="#newChecklistItem, #newChecklistCategory"
-      hx-target="#checklistContainer" hx-swap="innerHTML">
+      hx-target="closest .prep-checklist" hx-swap="outerHTML">
       <i class="fas fa-plus"></i>
     </button>
   </div>
