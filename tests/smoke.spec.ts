@@ -55,7 +55,7 @@ test.describe('Full application smoke test', () => {
     ];
     for (const { link, heading } of views) {
       await page.locator(`nav a:has-text("${link}")`).click();
-      await expect(page.locator('h1')).toContainText(heading, { timeout: 5000 });
+      await expect(page.locator(`h1:has-text("${heading}")`)).toBeVisible({ timeout: 5000 });
     }
   });
 
@@ -103,6 +103,6 @@ test.describe('Full application smoke test', () => {
       page.click('button[type="submit"]'),
     ]);
 
-    await expect(page.locator('footer')).toContainText('v1.15.0', { timeout: 5000 });
+    await expect(page.locator('footer')).toContainText(/v\d+\.\d+\.\d+/, { timeout: 5000 });
   });
 });

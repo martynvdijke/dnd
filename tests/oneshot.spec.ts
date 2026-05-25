@@ -46,6 +46,17 @@ async function loadHtmx(page, url) {
   }, url);
 }
 
+/** Click the One-Shots nav link, handling mobile hamburger menu */
+async function navigateToOneShots(page) {
+  const toggler = page.locator('.navbar-toggler');
+  if (await toggler.isVisible()) {
+    await toggler.click();
+    await page.waitForTimeout(300);
+  }
+  await page.locator('nav a:has-text("One-Shots")').click();
+  await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+}
+
 /** Fill and submit the one-shot form inside the modal */
 async function submitOneShotForm(page, { title, template, difficulty, minutes }) {
   await expect(page.locator('#genericModal')).toBeVisible({ timeout: 5000 });
@@ -75,16 +86,13 @@ test.describe('One-Shot Adventure Features', () => {
   });
 
   test('One-Shots nav item is visible and loads the list', async ({ page }) => {
-    await expect(page.locator('nav a:has-text("One-Shots")')).toBeVisible({ timeout: 5000 });
-    await page.click('nav a:has-text("One-Shots")');
-    await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+    await navigateToOneShots(page);
     const body = await page.locator('#oneshotSection').innerText();
     expect(body.length).toBeGreaterThan(0);
   });
 
   test('Create a one-shot adventure via UI form', async ({ page }) => {
-    await page.click('nav a:has-text("One-Shots")');
-    await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+    await navigateToOneShots(page);
 
     // Verify New button exists before clicking
     await expect(page.locator('#oneshotSection button:has-text("New")')).toBeVisible({ timeout: 5000 });
@@ -99,8 +107,7 @@ test.describe('One-Shot Adventure Features', () => {
   });
 
   test('Generate a five-room dungeon via UI form', async ({ page }) => {
-    await page.click('nav a:has-text("One-Shots")');
-    await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+    await navigateToOneShots(page);
 
     await expect(page.locator('#oneshotSection button:has-text("Generate")')).toBeVisible({ timeout: 5000 });
     await page.locator('#oneshotSection button:has-text("Generate")').click();
@@ -120,8 +127,7 @@ test.describe('One-Shot Adventure Features', () => {
 
   test('Prep dashboard loads for generated one-shot', async ({ page }) => {
     // Create via UI to ensure proper auth context
-    await page.click('nav a:has-text("One-Shots")');
-    await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+    await navigateToOneShots(page);
 
     const title = uniqueName();
     await page.locator('#oneshotSection button:has-text("Generate")').click();
@@ -150,8 +156,7 @@ test.describe('One-Shot Adventure Features', () => {
   });
 
   test('DM screen loads with quick reference, actions, and notes tabs', async ({ page }) => {
-    await page.click('nav a:has-text("One-Shots")');
-    await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+    await navigateToOneShots(page);
 
     const title = uniqueName();
     await page.locator('#oneshotSection button:has-text("Generate")').click();
@@ -178,8 +183,7 @@ test.describe('One-Shot Adventure Features', () => {
   });
 
   test('Prep checklist add and toggle via UI', async ({ page }) => {
-    await page.click('nav a:has-text("One-Shots")');
-    await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+    await navigateToOneShots(page);
 
     // Create an adventure
     const title = uniqueName();
@@ -215,8 +219,7 @@ test.describe('One-Shot Adventure Features', () => {
 
   test('Pregenerated characters list and generate', async ({ page }) => {
     // Navigate to one-shots first (to have oneshotSection available)
-    await page.click('nav a:has-text("One-Shots")');
-    await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+    await navigateToOneShots(page);
 
     // Load pregens list
     await loadHtmx(page, '/htmx/pregens');
@@ -228,8 +231,7 @@ test.describe('One-Shot Adventure Features', () => {
   });
 
   test('Session flow loads print-friendly view', async ({ page }) => {
-    await page.click('nav a:has-text("One-Shots")');
-    await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+    await navigateToOneShots(page);
 
     const title = uniqueName();
     await page.locator('#oneshotSection button:has-text("Generate")').click();
@@ -251,8 +253,7 @@ test.describe('One-Shot Adventure Features', () => {
   });
 
   test('Clue board - add and view clues', async ({ page }) => {
-    await page.click('nav a:has-text("One-Shots")');
-    await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+    await navigateToOneShots(page);
 
     const title = uniqueName();
     await page.locator('#oneshotSection button:has-text("Generate")').click();
@@ -280,8 +281,7 @@ test.describe('One-Shot Adventure Features', () => {
   });
 
   test('Pacing session can be started and viewed', async ({ page }) => {
-    await page.click('nav a:has-text("One-Shots")');
-    await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+    await navigateToOneShots(page);
 
     const title = uniqueName();
     await page.locator('#oneshotSection button:has-text("Generate")').click();
