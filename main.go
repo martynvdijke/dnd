@@ -21,7 +21,7 @@ import (
 //go:embed static/*.html static/*.css static/style.css static/js/*.js
 var staticFiles embed.FS
 
-const Version = "1.15.1"
+const Version = "1.15.2"
 
 func main() {
 	dbPath := os.Getenv("DB_PATH")

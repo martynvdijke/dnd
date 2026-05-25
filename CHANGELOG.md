@@ -1,3 +1,19 @@
+## [1.15.2](https://github.com/martynvdijke/dnd/compare/v1.15.1...v1.15.2) (2026-05-25)
+
+
+### Bug Fixes
+
+* add factionsView to showView, mobile nav handling, checklist timing ([9faf3c3](https://github.com/martynvdijke/dnd/commit/9faf3c3ee797b187e4c33669797aff5204130294))
+* clue type constraint (physical_evidence not valid) ([9fd39ee](https://github.com/martynvdijke/dnd/commit/9fd39eee8a8836cf68a12e6e9d5985c2e3bb5590))
+* **docker:** include vite.config.ts and use npm run build:ts to bundle app.js ([406755c](https://github.com/martynvdijke/dnd/commit/406755cd1ecbe594eeb47c47506ee5e1bb08f87e))
+* improved checklist test timing and htmx initialization ([38a5190](https://github.com/martynvdijke/dnd/commit/38a51900572230be2ecabfa2c6bf4d8f89d2a588))
+* invalid timezone UTC+1, use Europe/Amsterdam instead ([274aa2c](https://github.com/martynvdijke/dnd/commit/274aa2c20df3cdd3b9674feeb8eadf6cd69ecac0))
+* remove stalePr from renovate.json (no longer valid in Renovate v37) ([ffe6c91](https://github.com/martynvdijke/dnd/commit/ffe6c91dcdff1cf893ec9e00009ea32d729ffa52))
+* remove stalePrAge from renovate.json (removed in Renovate v37) ([4387c5b](https://github.com/martynvdijke/dnd/commit/4387c5b70166970785f932ffb0cb41bee8a61e30))
+* replace c.HTML() with renderTemplate() in oneshot handlers to fix nil pointer panic ([ac3b751](https://github.com/martynvdijke/dnd/commit/ac3b7516445134eb37d5b1e443022fe3d176132b))
+* resolve Playwright test failures (h1 strict mode, version regex, mobile nav) ([4296c96](https://github.com/martynvdijke/dnd/commit/4296c965f99da90c89723b11921fc3ad28f3376c))
+* template pipe bugs, pregen double-write, dashboard nil-ptr, checklist target, and test expectations ([6daf197](https://github.com/martynvdijke/dnd/commit/6daf197cae8040e6114877cf3fdcce5c59509954))
+
 ## [1.15.1](https://github.com/martynvdijke/dnd/compare/v1.15.0...v1.15.1) (2026-05-24)
 
 
