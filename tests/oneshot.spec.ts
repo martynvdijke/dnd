@@ -206,14 +206,17 @@ test.describe('One-Shot Adventure Features', () => {
 
     // Load checklist via HTMX
     await loadHtmx(page, `/htmx/oneshot-adventures/${advId}/checklist`);
+    await page.waitForTimeout(500);
     await expect(page.locator('#oneshotSection')).toContainText('No checklist items yet', { timeout: 5000 });
 
     // Add checklist item
     const input = page.locator('#oneshotSection input[name="item"]');
     await expect(input).toBeVisible({ timeout: 5000 });
     await input.fill('Prepare battle maps');
+    const respPromise = page.waitForResponse(resp => resp.url().includes('/oneshot-adventures/') && resp.url().includes('/checklist') && resp.request().method() === 'POST', { timeout: 10000 });
     await page.locator('#oneshotSection i.fa-plus').first().click();
-    await page.waitForTimeout(500);
+    await respPromise;
+    await page.waitForTimeout(300);
     await expect(page.locator('#oneshotSection')).toContainText('Prepare battle maps', { timeout: 5000 });
   });
 

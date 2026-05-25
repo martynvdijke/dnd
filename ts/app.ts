@@ -413,6 +413,7 @@ function showView(view: string) {
   document.getElementById('shopsView')!.style.display = view === 'shops' ? 'block' : 'none';
   document.getElementById('wikiView')!.style.display = view === 'wiki' ? 'block' : 'none';
   document.getElementById('oneshotView')!.style.display = view === 'oneshot' ? 'block' : 'none';
+  document.getElementById('factionsView')!.style.display = view === 'factions' ? 'block' : 'none';
 }
 (window as any).showView = showView;
 

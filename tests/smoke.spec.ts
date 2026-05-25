@@ -47,6 +47,15 @@ test.describe('Full application smoke test', () => {
       page.click('button[type="submit"]'),
     ]);
 
+    async function clickNav(page, text) {
+      const toggler = page.locator('.navbar-toggler');
+      if (await toggler.isVisible()) {
+        await toggler.click();
+        await page.waitForTimeout(300);
+      }
+      await page.locator(`nav a:has-text("${text}")`).click();
+    }
+
     const views = [
       { link: 'Compendium', heading: 'Compendium' },
       { link: 'Dice', heading: 'Dice Roller' },
@@ -54,7 +63,7 @@ test.describe('Full application smoke test', () => {
       { link: 'Factions', heading: 'Factions' },
     ];
     for (const { link, heading } of views) {
-      await page.locator(`nav a:has-text("${link}")`).click();
+      await clickNav(page, link);
       await expect(page.locator(`h1:has-text("${heading}")`)).toBeVisible({ timeout: 5000 });
     }
   });
@@ -91,6 +100,11 @@ test.describe('Full application smoke test', () => {
       page.click('button[type="submit"]'),
     ]);
 
+    const toggler = page.locator('.navbar-toggler');
+    if (await toggler.isVisible()) {
+      await toggler.click();
+      await page.waitForTimeout(300);
+    }
     await page.locator('a:has-text("Logout")').click();
     await expect(page).toHaveURL(/\/login/, { timeout: 5000 });
   });
