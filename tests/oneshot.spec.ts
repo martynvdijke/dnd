@@ -1,0 +1,299 @@
+import { test, expect } from '@playwright/test';
+
+const uniqueName = () => `OS-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+
+async function waitLoadingDone(page) {
+  await page.waitForFunction(() => {
+    const o = document.getElementById('loadingOverlay');
+    return o && o.classList.contains('d-none');
+  }, { timeout: 5000 }).catch(() => {});
+}
+
+async function waitModalClosed(page) {
+  await page.waitForFunction(() => {
+    const modal = document.getElementById('genericModal');
+    return !modal || !modal.classList.contains('show') || modal.classList.contains('d-none');
+  }, { timeout: 10000 }).catch(() => {});
+}
+
+/** Use page.evaluate with fetch (carries browser cookies) + explicit credentials */
+async function apiFetch(page, url, opts = {}) {
+  return page.evaluate(async ({ url, method, body }) => {
+    const resp = await fetch(url, {
+      method: method || 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+      credentials: 'same-origin',
+    });
+    return { ok: resp.ok, status: resp.status, body: await resp.json().catch(() => null) };
+  }, { url, method: opts.method || 'GET', body: opts.body || null });
+}
+
+/** Load HTMX content into oneshotSection */
+async function loadHtmx(page, url) {
+  await page.evaluate(async (u) => {
+    const resp = await fetch(u, { credentials: 'same-origin' });
+    document.getElementById('oneshotSection').innerHTML = await resp.text();
+  }, url);
+}
+
+/** Fill and submit the one-shot form inside the modal */
+async function submitOneShotForm(page, { title, template, difficulty, minutes }) {
+  await expect(page.locator('#genericModal')).toBeVisible({ timeout: 5000 });
+
+  // Wait for form to load in modal body
+  await page.waitForSelector('#genericModalBody input[name="title"]', { timeout: 5000 });
+  await page.locator('#genericModalBody input[name="title"]').fill(title);
+  if (template) await page.locator('#genericModalBody select[name="template"]').selectOption(template);
+  if (difficulty) await page.locator('#genericModalBody select[name="difficulty"]').selectOption(difficulty);
+  if (minutes) await page.locator('#genericModalBody input[name="estimated_minutes"]').fill(String(minutes));
+
+  await page.locator('#genericModalBody button[type="submit"]').click();
+  await waitModalClosed(page);
+  await page.waitForTimeout(500);
+}
+
+test.describe('One-Shot Adventure Features', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+    await page.fill('#username', 'admin');
+    await page.fill('#password', 'testpassword123');
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
+  });
+
+  test('One-Shots nav item is visible and loads the list', async ({ page }) => {
+    await expect(page.locator('nav a:has-text("One-Shots")')).toBeVisible({ timeout: 5000 });
+    await page.click('nav a:has-text("One-Shots")');
+    await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+    const body = await page.locator('#oneshotSection').innerText();
+    expect(body.length).toBeGreaterThan(0);
+  });
+
+  test('Create a one-shot adventure via UI form', async ({ page }) => {
+    await page.click('nav a:has-text("One-Shots")');
+    await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+
+    // Verify New button exists before clicking
+    await expect(page.locator('#oneshotSection button:has-text("New")')).toBeVisible({ timeout: 5000 });
+    await page.locator('#oneshotSection button:has-text("New")').click();
+
+    const title = uniqueName();
+    await submitOneShotForm(page, {
+      title, template: 'custom', difficulty: 'medium', minutes: 120
+    });
+
+    await expect(page.locator('#oneshotSection')).toContainText(title, { timeout: 5000 });
+  });
+
+  test('Generate a five-room dungeon via UI form', async ({ page }) => {
+    await page.click('nav a:has-text("One-Shots")');
+    await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+
+    await expect(page.locator('#oneshotSection button:has-text("Generate")')).toBeVisible({ timeout: 5000 });
+    await page.locator('#oneshotSection button:has-text("Generate")').click();
+
+    const title = uniqueName();
+    await submitOneShotForm(page, {
+      title, template: 'five_room_dungeon', difficulty: 'hard', minutes: 180
+    });
+
+    await expect(page.locator('#oneshotSection')).toContainText(title, { timeout: 5000 });
+    // Should show 5 acts in the detail
+    await expect(page.locator('#oneshotSection')).toContainText('Act 1');
+    await expect(page.locator('#oneshotSection')).toContainText('Act 5');
+  });
+
+  test('Prep dashboard loads for generated one-shot', async ({ page }) => {
+    // Create via UI to ensure proper auth context
+    await page.click('nav a:has-text("One-Shots")');
+    await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+
+    const title = uniqueName();
+    await page.locator('#oneshotSection button:has-text("Generate")').click();
+    await submitOneShotForm(page, {
+      title, template: 'five_room_dungeon', difficulty: 'easy', minutes: 60
+    });
+
+    // Get the adventure ID from the list item
+    const advId = await page.evaluate((t) => {
+      const items = document.querySelectorAll('#oneshotSection .list-group-item');
+      for (const item of items) {
+        if (item.textContent.includes(t)) {
+          const hxGet = item.getAttribute('hx-get') || '';
+          const m = hxGet.match(/\/oneshot-adventures\/(\d+)/);
+          return m ? parseInt(m[1]) : 0;
+        }
+      }
+      return 0;
+    }, title);
+    expect(advId).toBeGreaterThan(0);
+
+    // Load prep dashboard via HTMX
+    await loadHtmx(page, `/htmx/oneshot-adventures/${advId}/dashboard`);
+    await expect(page.locator('#oneshotSection')).toContainText(title, { timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText('Prep Dashboard', { timeout: 5000 });
+  });
+
+  test('DM screen loads with quick reference, actions, and notes tabs', async ({ page }) => {
+    await page.click('nav a:has-text("One-Shots")');
+    await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+
+    const title = uniqueName();
+    await page.locator('#oneshotSection button:has-text("Generate")').click();
+    await submitOneShotForm(page, {
+      title, template: 'five_room_dungeon', difficulty: 'easy', minutes: 60
+    });
+
+    const advId = await page.evaluate((t) => {
+      const items = document.querySelectorAll('#oneshotSection .list-group-item');
+      for (const item of items) {
+        if (item.textContent.includes(t)) {
+          const m = (item.getAttribute('hx-get') || '').match(/\/oneshot-adventures\/(\d+)/);
+          return m ? parseInt(m[1]) : 0;
+        }
+      }
+      return 0;
+    }, title);
+
+    await loadHtmx(page, `/htmx/oneshot-adventures/${advId}/dm-screen`);
+    await expect(page.locator('#oneshotSection')).toContainText('Quick Reference', { timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText('Quick Actions', { timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText('DM Notes', { timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText('Conditions', { timeout: 5000 });
+  });
+
+  test('Prep checklist add and toggle via UI', async ({ page }) => {
+    await page.click('nav a:has-text("One-Shots")');
+    await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+
+    // Create an adventure
+    const title = uniqueName();
+    await page.locator('#oneshotSection button:has-text("New")').click();
+    await submitOneShotForm(page, {
+      title, template: 'custom', difficulty: 'medium', minutes: 120
+    });
+
+    const advId = await page.evaluate((t) => {
+      const items = document.querySelectorAll('#oneshotSection .list-group-item');
+      for (const item of items) {
+        if (item.textContent.includes(t)) {
+          const m = (item.getAttribute('hx-get') || '').match(/\/oneshot-adventures\/(\d+)/);
+          return m ? parseInt(m[1]) : 0;
+        }
+      }
+      return 0;
+    }, title);
+    expect(advId).toBeGreaterThan(0);
+
+    // Load checklist via HTMX
+    await loadHtmx(page, `/htmx/oneshot-adventures/${advId}/checklist`);
+    await expect(page.locator('#oneshotSection')).toContainText('Prep Checklist', { timeout: 5000 });
+
+    // Add checklist item
+    const input = page.locator('#oneshotSection input[name="item"]');
+    await expect(input).toBeVisible({ timeout: 5000 });
+    await input.fill('Prepare battle maps');
+    await page.locator('#oneshotSection button:has-text("Add")').click();
+    await page.waitForTimeout(500);
+    await expect(page.locator('#oneshotSection')).toContainText('Prepare battle maps', { timeout: 5000 });
+  });
+
+  test('Pregenerated characters list and generate', async ({ page }) => {
+    // Navigate to one-shots first (to have oneshotSection available)
+    await page.click('nav a:has-text("One-Shots")');
+    await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+
+    // Load pregens list
+    await loadHtmx(page, '/htmx/pregens');
+    await expect(page.locator('#oneshotSection')).toContainText(/Pregen/i, { timeout: 5000 });
+
+    // Generate a character
+    await loadHtmx(page, '/htmx/pregens/generate?name=Sir+Test&class=fighter&race=human&level=3');
+    await expect(page.locator('#oneshotSection')).toContainText('Sir Test', { timeout: 5000 });
+  });
+
+  test('Session flow loads print-friendly view', async ({ page }) => {
+    await page.click('nav a:has-text("One-Shots")');
+    await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+
+    const title = uniqueName();
+    await page.locator('#oneshotSection button:has-text("Generate")').click();
+    await submitOneShotForm(page, {
+      title, template: 'five_room_dungeon', difficulty: 'medium', minutes: 120
+    });
+
+    const advId = await page.evaluate((t) => {
+      const items = document.querySelectorAll('#oneshotSection .list-group-item');
+      for (const item of items) { if (item.textContent.includes(t)) { const m = (item.getAttribute('hx-get') || '').match(/\/oneshot-adventures\/(\d+)/); return m ? parseInt(m[1]) : 0; } }
+      return 0;
+    }, title);
+    expect(advId).toBeGreaterThan(0);
+
+    await loadHtmx(page, `/htmx/oneshot-adventures/${advId}/session-flow`);
+    await expect(page.locator('#oneshotSection')).toContainText(title, { timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText('Act 1', { timeout: 5000 });
+  });
+
+  test('Clue board - add and view clues', async ({ page }) => {
+    await page.click('nav a:has-text("One-Shots")');
+    await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+
+    const title = uniqueName();
+    await page.locator('#oneshotSection button:has-text("Generate")').click();
+    await submitOneShotForm(page, {
+      title, template: 'five_room_dungeon', difficulty: 'easy', minutes: 60
+    });
+
+    const advId = await page.evaluate((t) => {
+      const items = document.querySelectorAll('#oneshotSection .list-group-item');
+      for (const item of items) { if (item.textContent.includes(t)) { const m = (item.getAttribute('hx-get') || '').match(/\/oneshot-adventures\/(\d+)/); return m ? parseInt(m[1]) : 0; } }
+      return 0;
+    }, title);
+    expect(advId).toBeGreaterThan(0);
+
+    // Add clue via API fetch inside page context
+    const clueR = await apiFetch(page, '/api/clues', {
+      method: 'POST',
+      body: { adventure_id: advId, title: 'The Hidden Dagger', description: 'Found in the library', clue_type: 'physical_evidence' }
+    });
+    expect(clueR.ok).toBeTruthy();
+
+    // Load clue board
+    await loadHtmx(page, `/htmx/oneshot-adventures/${advId}/clues`);
+    await expect(page.locator('#oneshotSection')).toContainText('The Hidden Dagger', { timeout: 5000 });
+  });
+
+  test('Pacing session can be started and viewed', async ({ page }) => {
+    await page.click('nav a:has-text("One-Shots")');
+    await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+
+    const title = uniqueName();
+    await page.locator('#oneshotSection button:has-text("Generate")').click();
+    await submitOneShotForm(page, {
+      title, template: 'five_room_dungeon', difficulty: 'easy', minutes: 60
+    });
+
+    const advId = await page.evaluate((t) => {
+      const items = document.querySelectorAll('#oneshotSection .list-group-item');
+      for (const item of items) { if (item.textContent.includes(t)) { const m = (item.getAttribute('hx-get') || '').match(/\/oneshot-adventures\/(\d+)/); return m ? parseInt(m[1]) : 0; } }
+      return 0;
+    }, title);
+    expect(advId).toBeGreaterThan(0);
+
+    // Start pacing session via API
+    const pacingR = await apiFetch(page, `/api/oneshot-adventures/${advId}/pacing/start`, { method: 'POST' });
+    expect(pacingR.ok).toBeTruthy();
+    const sessionId = pacingR.body.id;
+    expect(sessionId).toBeGreaterThan(0);
+
+    // Load pacing dashboard via HTMX
+    await loadHtmx(page, `/htmx/session-pacing/${sessionId}`);
+    await expect(page.locator('#oneshotSection')).toContainText('Session Dashboard', { timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText('Running', { timeout: 5000 });
+    await expect(page.locator('#oneshotSection button:has-text("Pause")')).toBeVisible({ timeout: 5000 });
+  });
+});

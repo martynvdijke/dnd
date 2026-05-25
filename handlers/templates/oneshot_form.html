@@ -1,15 +1,15 @@
-{{$generate := .Adventure.Title | eq ""}}
+{{$adv := .Adventure}}{{$generate := or (not $adv) (and $adv (not $adv.Title))}}
 <form>
-{{if .Adventure.ID}}<input type="hidden" name="id" value="{{.Adventure.ID}}">{{end}}
-<input type="hidden" name="campaign_id" value="{{if .Adventure.CampaignID}}{{.Adventure.CampaignID}}{{end}}">
-<div class="mb-3"><label class="form-label">Title</label><input class="form-control" name="title" value="{{.Adventure.Title}}" placeholder="One-Shot title" required></div>
-<div class="mb-3"><label class="form-label">Premise</label><textarea class="form-control" name="premise" rows="3" placeholder="Brief overview of the adventure...">{{.Adventure.Premise}}</textarea></div>
-<div class="mb-3"><label class="form-label">Hook</label><textarea class="form-control" name="hook" rows="2" placeholder="What draws the party in?">{{.Adventure.Hook}}</textarea></div>
+{{if and $adv $adv.ID}}<input type="hidden" name="id" value="{{$adv.ID}}">{{end}}
+<input type="hidden" name="campaign_id" value="{{if and $adv $adv.CampaignID}}{{$adv.CampaignID}}{{end}}">
+<div class="mb-3"><label class="form-label">Title</label><input class="form-control" name="title" value="{{if $adv}}{{$adv.Title}}{{end}}" placeholder="One-Shot title" required></div>
+<div class="mb-3"><label class="form-label">Premise</label><textarea class="form-control" name="premise" rows="3" placeholder="Brief overview of the adventure...">{{if $adv}}{{$adv.Premise}}{{end}}</textarea></div>
+<div class="mb-3"><label class="form-label">Hook</label><textarea class="form-control" name="hook" rows="2" placeholder="What draws the party in?">{{if $adv}}{{$adv.Hook}}{{end}}</textarea></div>
 <div class="row g-3 mb-3">
   <div class="col-4"><label class="form-label">Template</label>
     <select class="form-select" name="template">
       {{range .Templates}}
-      <option value="{{.}}" {{if eq $.Adventure.Template .}}selected{{end}}>{{. | title}}</option>
+      <option value="{{.}}" {{if and $adv (eq $adv.Template .)}}selected{{end}}>{{. | title}}</option>
       {{end}}
     </select>
     <div class="form-text small">"Five Room Dungeon" auto-generates a classic structure.</div>
@@ -17,16 +17,16 @@
   <div class="col-4"><label class="form-label">Difficulty</label>
     <select class="form-select" name="difficulty">
       {{range .Difficulties}}
-      <option value="{{.}}" {{if eq $.Adventure.Difficulty .}}selected{{end}}>{{. | title}}</option>
+      <option value="{{.}}" {{if and $adv (eq $adv.Difficulty .)}}selected{{end}}>{{. | title}}</option>
       {{end}}
     </select></div>
   <div class="col-4"><label class="form-label">Est. Minutes</label>
-    <input class="form-control" type="number" name="estimated_minutes" value="{{if .Adventure.EstimatedMinutes}}{{.Adventure.EstimatedMinutes}}{{else}}180{{end}}" min="15" step="15">
+    <input class="form-control" type="number" name="estimated_minutes" value="{{if and $adv $adv.EstimatedMinutes}}{{$adv.EstimatedMinutes}}{{else}}180{{end}}" min="15" step="15">
   </div>
 </div>
-<div class="mb-3"><label class="form-label">DM Notes</label><textarea class="form-control" name="notes" rows="2">{{.Adventure.Notes}}</textarea></div>
-{{if .Adventure.ID}}
-<button class="btn btn-primary w-100" hx-put="/htmx/oneshot-adventures/{{.Adventure.ID}}" hx-target="#oneshotSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Changes</button>
+<div class="mb-3"><label class="form-label">DM Notes</label><textarea class="form-control" name="notes" rows="2">{{if $adv}}{{$adv.Notes}}{{end}}</textarea></div>
+{{if and $adv $adv.ID}}
+<button class="btn btn-primary w-100" hx-put="/htmx/oneshot-adventures/{{$adv.ID}}" hx-target="#oneshotSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Changes</button>
 {{else if $generate}}
 <button class="btn btn-primary w-100" hx-post="/htmx/oneshot-adventures/generate" hx-target="#oneshotSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate Adventure</button>
 {{else}}

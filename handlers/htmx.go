@@ -1500,6 +1500,17 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 
 		// DM Screen / Quick Reference
 		{"GET", "/htmx/oneshot-adventures/:id/dm-screen", HtmxDmScreen},
+
+		// Clue Board (HTMX)
+		{"GET", "/htmx/oneshot-adventures/:id/clues", HtmxListClues},
+		{"GET", "/htmx/oneshot-adventures/:id/clues/new", HtmxNewClueForm},
+		{"POST", "/htmx/oneshot-adventures/:id/clues", HtmxCreateClue},
+		{"GET", "/htmx/clues/:id", HtmxGetClueDetail},
+		{"GET", "/htmx/clues/:id/edit", HtmxEditClueForm},
+		{"PUT", "/htmx/clues/:id", HtmxUpdateClue},
+		{"DELETE", "/htmx/clues/:id", HtmxDeleteClue},
+		{"POST", "/htmx/clues/:id/reveal", HtmxRevealClue},
+		{"POST", "/htmx/clues/:id/hide", HtmxHideClue},
 	}
 	for _, rt := range routes {
 		r.Handle(rt.method, rt.path, rt.handler)

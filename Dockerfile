@@ -2,9 +2,9 @@ FROM node:24-alpine AS ts-builder
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
-COPY tsconfig.json ./
+COPY tsconfig.json vite.config.ts ./
 COPY ts/ ts/
-RUN mkdir -p static/js && npx tsc
+RUN npm run build:ts
 
 FROM golang:1.26.3-alpine AS builder
 RUN apk add --no-cache gcc musl-dev sqlite-dev
