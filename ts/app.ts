@@ -387,9 +387,6 @@ async function init() {
       document.getElementById('adminNavItem')!.style.display = '';
       document.getElementById('combatNavItem')!.style.display = '';
     }
-    if (user.role === 'admin' || user.role === 'dm') {
-      document.getElementById('shopsNavItem')!.style.display = '';
-    }
     showView('characters');
     loadCharacters();
     connectWS();
