@@ -1469,8 +1469,40 @@ func init() {
 	npcDescIsAlive := npcFields[15].Descriptor()
 	// npc.DefaultIsAlive holds the default value on creation for the is_alive field.
 	npc.DefaultIsAlive = npcDescIsAlive.Default.(bool)
+	// npcDescIsFull is the schema descriptor for is_full field.
+	npcDescIsFull := npcFields[16].Descriptor()
+	// npc.DefaultIsFull holds the default value on creation for the is_full field.
+	npc.DefaultIsFull = npcDescIsFull.Default.(bool)
+	// npcDescAc is the schema descriptor for ac field.
+	npcDescAc := npcFields[17].Descriptor()
+	// npc.DefaultAc holds the default value on creation for the ac field.
+	npc.DefaultAc = npcDescAc.Default.(int)
+	// npcDescSpeed is the schema descriptor for speed field.
+	npcDescSpeed := npcFields[18].Descriptor()
+	// npc.DefaultSpeed holds the default value on creation for the speed field.
+	npc.DefaultSpeed = npcDescSpeed.Default.(int)
+	// npcDescSkills is the schema descriptor for skills field.
+	npcDescSkills := npcFields[19].Descriptor()
+	// npc.DefaultSkills holds the default value on creation for the skills field.
+	npc.DefaultSkills = npcDescSkills.Default.(string)
+	// npcDescSaves is the schema descriptor for saves field.
+	npcDescSaves := npcFields[20].Descriptor()
+	// npc.DefaultSaves holds the default value on creation for the saves field.
+	npc.DefaultSaves = npcDescSaves.Default.(string)
+	// npcDescFeatures is the schema descriptor for features field.
+	npcDescFeatures := npcFields[21].Descriptor()
+	// npc.DefaultFeatures holds the default value on creation for the features field.
+	npc.DefaultFeatures = npcDescFeatures.Default.(string)
+	// npcDescActions is the schema descriptor for actions field.
+	npcDescActions := npcFields[22].Descriptor()
+	// npc.DefaultActions holds the default value on creation for the actions field.
+	npc.DefaultActions = npcDescActions.Default.(string)
+	// npcDescBackstory is the schema descriptor for backstory field.
+	npcDescBackstory := npcFields[23].Descriptor()
+	// npc.DefaultBackstory holds the default value on creation for the backstory field.
+	npc.DefaultBackstory = npcDescBackstory.Default.(string)
 	// npcDescCreatedAt is the schema descriptor for created_at field.
-	npcDescCreatedAt := npcFields[16].Descriptor()
+	npcDescCreatedAt := npcFields[24].Descriptor()
 	// npc.DefaultCreatedAt holds the default value on creation for the created_at field.
 	npc.DefaultCreatedAt = npcDescCreatedAt.Default.(string)
 	questFields := schema.Quest{}.Fields()
@@ -1671,8 +1703,16 @@ func init() {
 	spell.DefaultNotes = spellDescNotes.Default.(string)
 	uploadFields := schema.Upload{}.Fields()
 	_ = uploadFields
+	// uploadDescOwnerType is the schema descriptor for owner_type field.
+	uploadDescOwnerType := uploadFields[6].Descriptor()
+	// upload.DefaultOwnerType holds the default value on creation for the owner_type field.
+	upload.DefaultOwnerType = uploadDescOwnerType.Default.(string)
+	// uploadDescOwnerID is the schema descriptor for owner_id field.
+	uploadDescOwnerID := uploadFields[7].Descriptor()
+	// upload.DefaultOwnerID holds the default value on creation for the owner_id field.
+	upload.DefaultOwnerID = uploadDescOwnerID.Default.(int64)
 	// uploadDescCreatedAt is the schema descriptor for created_at field.
-	uploadDescCreatedAt := uploadFields[6].Descriptor()
+	uploadDescCreatedAt := uploadFields[8].Descriptor()
 	// upload.DefaultCreatedAt holds the default value on creation for the created_at field.
 	upload.DefaultCreatedAt = uploadDescCreatedAt.Default.(string)
 	userFields := schema.User{}.Fields()

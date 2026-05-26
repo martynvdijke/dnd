@@ -37,6 +37,14 @@ func (NPC) Fields() []ent.Field {
 		field.Int("hp_max").Default(10),
 		field.Int("hp_current").Default(10),
 		field.Bool("is_alive").Default(true),
+		field.Bool("is_full").Default(false),
+		field.Int("ac").Default(10),
+		field.Int("speed").Default(30),
+		field.String("skills").Default(""),
+		field.String("saves").Default(""),
+		field.String("features").Default(""),
+		field.String("actions").Default(""),
+		field.String("backstory").Default(""),
 		field.String("created_at").Default(""),
 	}
 }

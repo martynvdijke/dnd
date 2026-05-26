@@ -11,5 +11,40 @@
   <div class="col-6"><label class="form-label">Race</label><input class="form-control" id="newNPCRace" name="race" placeholder="Elf, Dwarf, etc."></div>
 </div>
 <div class="mb-3"><label class="form-label">Class</label><input class="form-control" id="newNPCClass" name="class" placeholder="NPC class"></div>
-<div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="newNPCDesc" name="description" rows="3"></textarea></div>
+<div class="mb-3">
+  <label class="form-label">NPC Tier</label>
+  <select class="form-select" name="is_full" id="npcTier">
+    <option value="0">Simple (backstory only)</option>
+    <option value="1">Full (character sheet stats)</option>
+  </select>
+</div>
+<div id="npcFullFields" style="display:none">
+  <div class="row g-3 mb-3">
+    <div class="col-4"><label class="form-label">AC</label><input class="form-control" name="ac" type="number" value="10"></div>
+    <div class="col-4"><label class="form-label">Speed</label><input class="form-control" name="speed" placeholder="30 ft"></div>
+    <div class="col-4"><label class="form-label">HP</label><input class="form-control" name="hp" type="number" value="10"></div>
+  </div>
+  <div class="row g-3 mb-3">
+    <div class="col-2"><label class="form-label">STR</label><input class="form-control" name="str" type="number" value="10"></div>
+    <div class="col-2"><label class="form-label">DEX</label><input class="form-control" name="dex" type="number" value="10"></div>
+    <div class="col-2"><label class="form-label">CON</label><input class="form-control" name="con" type="number" value="10"></div>
+    <div class="col-2"><label class="form-label">INT</label><input class="form-control" name="int" type="number" value="10"></div>
+    <div class="col-2"><label class="form-label">WIS</label><input class="form-control" name="wis" type="number" value="10"></div>
+    <div class="col-2"><label class="form-label">CHA</label><input class="form-control" name="cha" type="number" value="10"></div>
+  </div>
+  <div class="mb-3"><label class="form-label">Saving Throws</label><input class="form-control" name="saves" placeholder="e.g. Str +3, Dex +5"></div>
+  <div class="mb-3"><label class="form-label">Skills</label><input class="form-control" name="skills" placeholder="e.g. Stealth +7, Perception +4"></div>
+  <div class="mb-3"><label class="form-label">Features / Traits</label><textarea class="form-control" name="features" rows="3" placeholder="Special abilities, traits..."></textarea></div>
+  <div class="mb-3"><label class="form-label">Actions</label><textarea class="form-control" name="actions" rows="3" placeholder="Attacks, spells, actions..."></textarea></div>
+</div>
+<div class="mb-3">
+  <label class="form-label">Description / Backstory</label>
+  <textarea class="form-control" id="newNPCDesc" name="description" rows="3"></textarea>
+</div>
 <button class="btn btn-primary w-100" hx-post="/htmx/npcs" hx-target="#npcsSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create</button></form>
+<script>
+document.getElementById('npcTier').addEventListener('change', function(){
+  var isFull = this.value === '1';
+  document.getElementById('npcFullFields').style.display = isFull ? 'block' : 'none';
+});
+</script>

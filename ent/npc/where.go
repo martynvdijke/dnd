@@ -129,6 +129,46 @@ func IsAlive(v bool) predicate.NPC {
 	return predicate.NPC(sql.FieldEQ(FieldIsAlive, v))
 }
 
+// IsFull applies equality check predicate on the "is_full" field. It's identical to IsFullEQ.
+func IsFull(v bool) predicate.NPC {
+	return predicate.NPC(sql.FieldEQ(FieldIsFull, v))
+}
+
+// Ac applies equality check predicate on the "ac" field. It's identical to AcEQ.
+func Ac(v int) predicate.NPC {
+	return predicate.NPC(sql.FieldEQ(FieldAc, v))
+}
+
+// Speed applies equality check predicate on the "speed" field. It's identical to SpeedEQ.
+func Speed(v int) predicate.NPC {
+	return predicate.NPC(sql.FieldEQ(FieldSpeed, v))
+}
+
+// Skills applies equality check predicate on the "skills" field. It's identical to SkillsEQ.
+func Skills(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldEQ(FieldSkills, v))
+}
+
+// Saves applies equality check predicate on the "saves" field. It's identical to SavesEQ.
+func Saves(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldEQ(FieldSaves, v))
+}
+
+// Features applies equality check predicate on the "features" field. It's identical to FeaturesEQ.
+func Features(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldEQ(FieldFeatures, v))
+}
+
+// Actions applies equality check predicate on the "actions" field. It's identical to ActionsEQ.
+func Actions(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldEQ(FieldActions, v))
+}
+
+// Backstory applies equality check predicate on the "backstory" field. It's identical to BackstoryEQ.
+func Backstory(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldEQ(FieldBackstory, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v string) predicate.NPC {
 	return predicate.NPC(sql.FieldEQ(FieldCreatedAt, v))
@@ -807,6 +847,421 @@ func IsAliveEQ(v bool) predicate.NPC {
 // IsAliveNEQ applies the NEQ predicate on the "is_alive" field.
 func IsAliveNEQ(v bool) predicate.NPC {
 	return predicate.NPC(sql.FieldNEQ(FieldIsAlive, v))
+}
+
+// IsFullEQ applies the EQ predicate on the "is_full" field.
+func IsFullEQ(v bool) predicate.NPC {
+	return predicate.NPC(sql.FieldEQ(FieldIsFull, v))
+}
+
+// IsFullNEQ applies the NEQ predicate on the "is_full" field.
+func IsFullNEQ(v bool) predicate.NPC {
+	return predicate.NPC(sql.FieldNEQ(FieldIsFull, v))
+}
+
+// AcEQ applies the EQ predicate on the "ac" field.
+func AcEQ(v int) predicate.NPC {
+	return predicate.NPC(sql.FieldEQ(FieldAc, v))
+}
+
+// AcNEQ applies the NEQ predicate on the "ac" field.
+func AcNEQ(v int) predicate.NPC {
+	return predicate.NPC(sql.FieldNEQ(FieldAc, v))
+}
+
+// AcIn applies the In predicate on the "ac" field.
+func AcIn(vs ...int) predicate.NPC {
+	return predicate.NPC(sql.FieldIn(FieldAc, vs...))
+}
+
+// AcNotIn applies the NotIn predicate on the "ac" field.
+func AcNotIn(vs ...int) predicate.NPC {
+	return predicate.NPC(sql.FieldNotIn(FieldAc, vs...))
+}
+
+// AcGT applies the GT predicate on the "ac" field.
+func AcGT(v int) predicate.NPC {
+	return predicate.NPC(sql.FieldGT(FieldAc, v))
+}
+
+// AcGTE applies the GTE predicate on the "ac" field.
+func AcGTE(v int) predicate.NPC {
+	return predicate.NPC(sql.FieldGTE(FieldAc, v))
+}
+
+// AcLT applies the LT predicate on the "ac" field.
+func AcLT(v int) predicate.NPC {
+	return predicate.NPC(sql.FieldLT(FieldAc, v))
+}
+
+// AcLTE applies the LTE predicate on the "ac" field.
+func AcLTE(v int) predicate.NPC {
+	return predicate.NPC(sql.FieldLTE(FieldAc, v))
+}
+
+// SpeedEQ applies the EQ predicate on the "speed" field.
+func SpeedEQ(v int) predicate.NPC {
+	return predicate.NPC(sql.FieldEQ(FieldSpeed, v))
+}
+
+// SpeedNEQ applies the NEQ predicate on the "speed" field.
+func SpeedNEQ(v int) predicate.NPC {
+	return predicate.NPC(sql.FieldNEQ(FieldSpeed, v))
+}
+
+// SpeedIn applies the In predicate on the "speed" field.
+func SpeedIn(vs ...int) predicate.NPC {
+	return predicate.NPC(sql.FieldIn(FieldSpeed, vs...))
+}
+
+// SpeedNotIn applies the NotIn predicate on the "speed" field.
+func SpeedNotIn(vs ...int) predicate.NPC {
+	return predicate.NPC(sql.FieldNotIn(FieldSpeed, vs...))
+}
+
+// SpeedGT applies the GT predicate on the "speed" field.
+func SpeedGT(v int) predicate.NPC {
+	return predicate.NPC(sql.FieldGT(FieldSpeed, v))
+}
+
+// SpeedGTE applies the GTE predicate on the "speed" field.
+func SpeedGTE(v int) predicate.NPC {
+	return predicate.NPC(sql.FieldGTE(FieldSpeed, v))
+}
+
+// SpeedLT applies the LT predicate on the "speed" field.
+func SpeedLT(v int) predicate.NPC {
+	return predicate.NPC(sql.FieldLT(FieldSpeed, v))
+}
+
+// SpeedLTE applies the LTE predicate on the "speed" field.
+func SpeedLTE(v int) predicate.NPC {
+	return predicate.NPC(sql.FieldLTE(FieldSpeed, v))
+}
+
+// SkillsEQ applies the EQ predicate on the "skills" field.
+func SkillsEQ(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldEQ(FieldSkills, v))
+}
+
+// SkillsNEQ applies the NEQ predicate on the "skills" field.
+func SkillsNEQ(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldNEQ(FieldSkills, v))
+}
+
+// SkillsIn applies the In predicate on the "skills" field.
+func SkillsIn(vs ...string) predicate.NPC {
+	return predicate.NPC(sql.FieldIn(FieldSkills, vs...))
+}
+
+// SkillsNotIn applies the NotIn predicate on the "skills" field.
+func SkillsNotIn(vs ...string) predicate.NPC {
+	return predicate.NPC(sql.FieldNotIn(FieldSkills, vs...))
+}
+
+// SkillsGT applies the GT predicate on the "skills" field.
+func SkillsGT(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldGT(FieldSkills, v))
+}
+
+// SkillsGTE applies the GTE predicate on the "skills" field.
+func SkillsGTE(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldGTE(FieldSkills, v))
+}
+
+// SkillsLT applies the LT predicate on the "skills" field.
+func SkillsLT(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldLT(FieldSkills, v))
+}
+
+// SkillsLTE applies the LTE predicate on the "skills" field.
+func SkillsLTE(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldLTE(FieldSkills, v))
+}
+
+// SkillsContains applies the Contains predicate on the "skills" field.
+func SkillsContains(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldContains(FieldSkills, v))
+}
+
+// SkillsHasPrefix applies the HasPrefix predicate on the "skills" field.
+func SkillsHasPrefix(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldHasPrefix(FieldSkills, v))
+}
+
+// SkillsHasSuffix applies the HasSuffix predicate on the "skills" field.
+func SkillsHasSuffix(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldHasSuffix(FieldSkills, v))
+}
+
+// SkillsEqualFold applies the EqualFold predicate on the "skills" field.
+func SkillsEqualFold(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldEqualFold(FieldSkills, v))
+}
+
+// SkillsContainsFold applies the ContainsFold predicate on the "skills" field.
+func SkillsContainsFold(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldContainsFold(FieldSkills, v))
+}
+
+// SavesEQ applies the EQ predicate on the "saves" field.
+func SavesEQ(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldEQ(FieldSaves, v))
+}
+
+// SavesNEQ applies the NEQ predicate on the "saves" field.
+func SavesNEQ(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldNEQ(FieldSaves, v))
+}
+
+// SavesIn applies the In predicate on the "saves" field.
+func SavesIn(vs ...string) predicate.NPC {
+	return predicate.NPC(sql.FieldIn(FieldSaves, vs...))
+}
+
+// SavesNotIn applies the NotIn predicate on the "saves" field.
+func SavesNotIn(vs ...string) predicate.NPC {
+	return predicate.NPC(sql.FieldNotIn(FieldSaves, vs...))
+}
+
+// SavesGT applies the GT predicate on the "saves" field.
+func SavesGT(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldGT(FieldSaves, v))
+}
+
+// SavesGTE applies the GTE predicate on the "saves" field.
+func SavesGTE(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldGTE(FieldSaves, v))
+}
+
+// SavesLT applies the LT predicate on the "saves" field.
+func SavesLT(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldLT(FieldSaves, v))
+}
+
+// SavesLTE applies the LTE predicate on the "saves" field.
+func SavesLTE(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldLTE(FieldSaves, v))
+}
+
+// SavesContains applies the Contains predicate on the "saves" field.
+func SavesContains(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldContains(FieldSaves, v))
+}
+
+// SavesHasPrefix applies the HasPrefix predicate on the "saves" field.
+func SavesHasPrefix(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldHasPrefix(FieldSaves, v))
+}
+
+// SavesHasSuffix applies the HasSuffix predicate on the "saves" field.
+func SavesHasSuffix(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldHasSuffix(FieldSaves, v))
+}
+
+// SavesEqualFold applies the EqualFold predicate on the "saves" field.
+func SavesEqualFold(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldEqualFold(FieldSaves, v))
+}
+
+// SavesContainsFold applies the ContainsFold predicate on the "saves" field.
+func SavesContainsFold(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldContainsFold(FieldSaves, v))
+}
+
+// FeaturesEQ applies the EQ predicate on the "features" field.
+func FeaturesEQ(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldEQ(FieldFeatures, v))
+}
+
+// FeaturesNEQ applies the NEQ predicate on the "features" field.
+func FeaturesNEQ(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldNEQ(FieldFeatures, v))
+}
+
+// FeaturesIn applies the In predicate on the "features" field.
+func FeaturesIn(vs ...string) predicate.NPC {
+	return predicate.NPC(sql.FieldIn(FieldFeatures, vs...))
+}
+
+// FeaturesNotIn applies the NotIn predicate on the "features" field.
+func FeaturesNotIn(vs ...string) predicate.NPC {
+	return predicate.NPC(sql.FieldNotIn(FieldFeatures, vs...))
+}
+
+// FeaturesGT applies the GT predicate on the "features" field.
+func FeaturesGT(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldGT(FieldFeatures, v))
+}
+
+// FeaturesGTE applies the GTE predicate on the "features" field.
+func FeaturesGTE(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldGTE(FieldFeatures, v))
+}
+
+// FeaturesLT applies the LT predicate on the "features" field.
+func FeaturesLT(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldLT(FieldFeatures, v))
+}
+
+// FeaturesLTE applies the LTE predicate on the "features" field.
+func FeaturesLTE(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldLTE(FieldFeatures, v))
+}
+
+// FeaturesContains applies the Contains predicate on the "features" field.
+func FeaturesContains(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldContains(FieldFeatures, v))
+}
+
+// FeaturesHasPrefix applies the HasPrefix predicate on the "features" field.
+func FeaturesHasPrefix(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldHasPrefix(FieldFeatures, v))
+}
+
+// FeaturesHasSuffix applies the HasSuffix predicate on the "features" field.
+func FeaturesHasSuffix(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldHasSuffix(FieldFeatures, v))
+}
+
+// FeaturesEqualFold applies the EqualFold predicate on the "features" field.
+func FeaturesEqualFold(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldEqualFold(FieldFeatures, v))
+}
+
+// FeaturesContainsFold applies the ContainsFold predicate on the "features" field.
+func FeaturesContainsFold(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldContainsFold(FieldFeatures, v))
+}
+
+// ActionsEQ applies the EQ predicate on the "actions" field.
+func ActionsEQ(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldEQ(FieldActions, v))
+}
+
+// ActionsNEQ applies the NEQ predicate on the "actions" field.
+func ActionsNEQ(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldNEQ(FieldActions, v))
+}
+
+// ActionsIn applies the In predicate on the "actions" field.
+func ActionsIn(vs ...string) predicate.NPC {
+	return predicate.NPC(sql.FieldIn(FieldActions, vs...))
+}
+
+// ActionsNotIn applies the NotIn predicate on the "actions" field.
+func ActionsNotIn(vs ...string) predicate.NPC {
+	return predicate.NPC(sql.FieldNotIn(FieldActions, vs...))
+}
+
+// ActionsGT applies the GT predicate on the "actions" field.
+func ActionsGT(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldGT(FieldActions, v))
+}
+
+// ActionsGTE applies the GTE predicate on the "actions" field.
+func ActionsGTE(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldGTE(FieldActions, v))
+}
+
+// ActionsLT applies the LT predicate on the "actions" field.
+func ActionsLT(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldLT(FieldActions, v))
+}
+
+// ActionsLTE applies the LTE predicate on the "actions" field.
+func ActionsLTE(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldLTE(FieldActions, v))
+}
+
+// ActionsContains applies the Contains predicate on the "actions" field.
+func ActionsContains(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldContains(FieldActions, v))
+}
+
+// ActionsHasPrefix applies the HasPrefix predicate on the "actions" field.
+func ActionsHasPrefix(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldHasPrefix(FieldActions, v))
+}
+
+// ActionsHasSuffix applies the HasSuffix predicate on the "actions" field.
+func ActionsHasSuffix(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldHasSuffix(FieldActions, v))
+}
+
+// ActionsEqualFold applies the EqualFold predicate on the "actions" field.
+func ActionsEqualFold(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldEqualFold(FieldActions, v))
+}
+
+// ActionsContainsFold applies the ContainsFold predicate on the "actions" field.
+func ActionsContainsFold(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldContainsFold(FieldActions, v))
+}
+
+// BackstoryEQ applies the EQ predicate on the "backstory" field.
+func BackstoryEQ(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldEQ(FieldBackstory, v))
+}
+
+// BackstoryNEQ applies the NEQ predicate on the "backstory" field.
+func BackstoryNEQ(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldNEQ(FieldBackstory, v))
+}
+
+// BackstoryIn applies the In predicate on the "backstory" field.
+func BackstoryIn(vs ...string) predicate.NPC {
+	return predicate.NPC(sql.FieldIn(FieldBackstory, vs...))
+}
+
+// BackstoryNotIn applies the NotIn predicate on the "backstory" field.
+func BackstoryNotIn(vs ...string) predicate.NPC {
+	return predicate.NPC(sql.FieldNotIn(FieldBackstory, vs...))
+}
+
+// BackstoryGT applies the GT predicate on the "backstory" field.
+func BackstoryGT(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldGT(FieldBackstory, v))
+}
+
+// BackstoryGTE applies the GTE predicate on the "backstory" field.
+func BackstoryGTE(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldGTE(FieldBackstory, v))
+}
+
+// BackstoryLT applies the LT predicate on the "backstory" field.
+func BackstoryLT(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldLT(FieldBackstory, v))
+}
+
+// BackstoryLTE applies the LTE predicate on the "backstory" field.
+func BackstoryLTE(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldLTE(FieldBackstory, v))
+}
+
+// BackstoryContains applies the Contains predicate on the "backstory" field.
+func BackstoryContains(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldContains(FieldBackstory, v))
+}
+
+// BackstoryHasPrefix applies the HasPrefix predicate on the "backstory" field.
+func BackstoryHasPrefix(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldHasPrefix(FieldBackstory, v))
+}
+
+// BackstoryHasSuffix applies the HasSuffix predicate on the "backstory" field.
+func BackstoryHasSuffix(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldHasSuffix(FieldBackstory, v))
+}
+
+// BackstoryEqualFold applies the EqualFold predicate on the "backstory" field.
+func BackstoryEqualFold(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldEqualFold(FieldBackstory, v))
+}
+
+// BackstoryContainsFold applies the ContainsFold predicate on the "backstory" field.
+func BackstoryContainsFold(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldContainsFold(FieldBackstory, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

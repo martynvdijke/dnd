@@ -78,6 +78,16 @@ func ThumbnailURL(v string) predicate.Upload {
 	return predicate.Upload(sql.FieldEQ(FieldThumbnailURL, v))
 }
 
+// OwnerType applies equality check predicate on the "owner_type" field. It's identical to OwnerTypeEQ.
+func OwnerType(v string) predicate.Upload {
+	return predicate.Upload(sql.FieldEQ(FieldOwnerType, v))
+}
+
+// OwnerID applies equality check predicate on the "owner_id" field. It's identical to OwnerIDEQ.
+func OwnerID(v int64) predicate.Upload {
+	return predicate.Upload(sql.FieldEQ(FieldOwnerID, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v string) predicate.Upload {
 	return predicate.Upload(sql.FieldEQ(FieldCreatedAt, v))
@@ -456,6 +466,111 @@ func ThumbnailURLEqualFold(v string) predicate.Upload {
 // ThumbnailURLContainsFold applies the ContainsFold predicate on the "thumbnail_url" field.
 func ThumbnailURLContainsFold(v string) predicate.Upload {
 	return predicate.Upload(sql.FieldContainsFold(FieldThumbnailURL, v))
+}
+
+// OwnerTypeEQ applies the EQ predicate on the "owner_type" field.
+func OwnerTypeEQ(v string) predicate.Upload {
+	return predicate.Upload(sql.FieldEQ(FieldOwnerType, v))
+}
+
+// OwnerTypeNEQ applies the NEQ predicate on the "owner_type" field.
+func OwnerTypeNEQ(v string) predicate.Upload {
+	return predicate.Upload(sql.FieldNEQ(FieldOwnerType, v))
+}
+
+// OwnerTypeIn applies the In predicate on the "owner_type" field.
+func OwnerTypeIn(vs ...string) predicate.Upload {
+	return predicate.Upload(sql.FieldIn(FieldOwnerType, vs...))
+}
+
+// OwnerTypeNotIn applies the NotIn predicate on the "owner_type" field.
+func OwnerTypeNotIn(vs ...string) predicate.Upload {
+	return predicate.Upload(sql.FieldNotIn(FieldOwnerType, vs...))
+}
+
+// OwnerTypeGT applies the GT predicate on the "owner_type" field.
+func OwnerTypeGT(v string) predicate.Upload {
+	return predicate.Upload(sql.FieldGT(FieldOwnerType, v))
+}
+
+// OwnerTypeGTE applies the GTE predicate on the "owner_type" field.
+func OwnerTypeGTE(v string) predicate.Upload {
+	return predicate.Upload(sql.FieldGTE(FieldOwnerType, v))
+}
+
+// OwnerTypeLT applies the LT predicate on the "owner_type" field.
+func OwnerTypeLT(v string) predicate.Upload {
+	return predicate.Upload(sql.FieldLT(FieldOwnerType, v))
+}
+
+// OwnerTypeLTE applies the LTE predicate on the "owner_type" field.
+func OwnerTypeLTE(v string) predicate.Upload {
+	return predicate.Upload(sql.FieldLTE(FieldOwnerType, v))
+}
+
+// OwnerTypeContains applies the Contains predicate on the "owner_type" field.
+func OwnerTypeContains(v string) predicate.Upload {
+	return predicate.Upload(sql.FieldContains(FieldOwnerType, v))
+}
+
+// OwnerTypeHasPrefix applies the HasPrefix predicate on the "owner_type" field.
+func OwnerTypeHasPrefix(v string) predicate.Upload {
+	return predicate.Upload(sql.FieldHasPrefix(FieldOwnerType, v))
+}
+
+// OwnerTypeHasSuffix applies the HasSuffix predicate on the "owner_type" field.
+func OwnerTypeHasSuffix(v string) predicate.Upload {
+	return predicate.Upload(sql.FieldHasSuffix(FieldOwnerType, v))
+}
+
+// OwnerTypeEqualFold applies the EqualFold predicate on the "owner_type" field.
+func OwnerTypeEqualFold(v string) predicate.Upload {
+	return predicate.Upload(sql.FieldEqualFold(FieldOwnerType, v))
+}
+
+// OwnerTypeContainsFold applies the ContainsFold predicate on the "owner_type" field.
+func OwnerTypeContainsFold(v string) predicate.Upload {
+	return predicate.Upload(sql.FieldContainsFold(FieldOwnerType, v))
+}
+
+// OwnerIDEQ applies the EQ predicate on the "owner_id" field.
+func OwnerIDEQ(v int64) predicate.Upload {
+	return predicate.Upload(sql.FieldEQ(FieldOwnerID, v))
+}
+
+// OwnerIDNEQ applies the NEQ predicate on the "owner_id" field.
+func OwnerIDNEQ(v int64) predicate.Upload {
+	return predicate.Upload(sql.FieldNEQ(FieldOwnerID, v))
+}
+
+// OwnerIDIn applies the In predicate on the "owner_id" field.
+func OwnerIDIn(vs ...int64) predicate.Upload {
+	return predicate.Upload(sql.FieldIn(FieldOwnerID, vs...))
+}
+
+// OwnerIDNotIn applies the NotIn predicate on the "owner_id" field.
+func OwnerIDNotIn(vs ...int64) predicate.Upload {
+	return predicate.Upload(sql.FieldNotIn(FieldOwnerID, vs...))
+}
+
+// OwnerIDGT applies the GT predicate on the "owner_id" field.
+func OwnerIDGT(v int64) predicate.Upload {
+	return predicate.Upload(sql.FieldGT(FieldOwnerID, v))
+}
+
+// OwnerIDGTE applies the GTE predicate on the "owner_id" field.
+func OwnerIDGTE(v int64) predicate.Upload {
+	return predicate.Upload(sql.FieldGTE(FieldOwnerID, v))
+}
+
+// OwnerIDLT applies the LT predicate on the "owner_id" field.
+func OwnerIDLT(v int64) predicate.Upload {
+	return predicate.Upload(sql.FieldLT(FieldOwnerID, v))
+}
+
+// OwnerIDLTE applies the LTE predicate on the "owner_id" field.
+func OwnerIDLTE(v int64) predicate.Upload {
+	return predicate.Upload(sql.FieldLTE(FieldOwnerID, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

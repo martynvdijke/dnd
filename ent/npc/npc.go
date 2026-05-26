@@ -42,6 +42,22 @@ const (
 	FieldHpCurrent = "hp_current"
 	// FieldIsAlive holds the string denoting the is_alive field in the database.
 	FieldIsAlive = "is_alive"
+	// FieldIsFull holds the string denoting the is_full field in the database.
+	FieldIsFull = "is_full"
+	// FieldAc holds the string denoting the ac field in the database.
+	FieldAc = "ac"
+	// FieldSpeed holds the string denoting the speed field in the database.
+	FieldSpeed = "speed"
+	// FieldSkills holds the string denoting the skills field in the database.
+	FieldSkills = "skills"
+	// FieldSaves holds the string denoting the saves field in the database.
+	FieldSaves = "saves"
+	// FieldFeatures holds the string denoting the features field in the database.
+	FieldFeatures = "features"
+	// FieldActions holds the string denoting the actions field in the database.
+	FieldActions = "actions"
+	// FieldBackstory holds the string denoting the backstory field in the database.
+	FieldBackstory = "backstory"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// EdgeUser holds the string denoting the user edge name in mutations.
@@ -84,6 +100,14 @@ var Columns = []string{
 	FieldHpMax,
 	FieldHpCurrent,
 	FieldIsAlive,
+	FieldIsFull,
+	FieldAc,
+	FieldSpeed,
+	FieldSkills,
+	FieldSaves,
+	FieldFeatures,
+	FieldActions,
+	FieldBackstory,
 	FieldCreatedAt,
 }
 
@@ -124,6 +148,22 @@ var (
 	DefaultHpCurrent int
 	// DefaultIsAlive holds the default value on creation for the "is_alive" field.
 	DefaultIsAlive bool
+	// DefaultIsFull holds the default value on creation for the "is_full" field.
+	DefaultIsFull bool
+	// DefaultAc holds the default value on creation for the "ac" field.
+	DefaultAc int
+	// DefaultSpeed holds the default value on creation for the "speed" field.
+	DefaultSpeed int
+	// DefaultSkills holds the default value on creation for the "skills" field.
+	DefaultSkills string
+	// DefaultSaves holds the default value on creation for the "saves" field.
+	DefaultSaves string
+	// DefaultFeatures holds the default value on creation for the "features" field.
+	DefaultFeatures string
+	// DefaultActions holds the default value on creation for the "actions" field.
+	DefaultActions string
+	// DefaultBackstory holds the default value on creation for the "backstory" field.
+	DefaultBackstory string
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt string
 )
@@ -209,6 +249,46 @@ func ByHpCurrent(opts ...sql.OrderTermOption) OrderOption {
 // ByIsAlive orders the results by the is_alive field.
 func ByIsAlive(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldIsAlive, opts...).ToFunc()
+}
+
+// ByIsFull orders the results by the is_full field.
+func ByIsFull(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsFull, opts...).ToFunc()
+}
+
+// ByAc orders the results by the ac field.
+func ByAc(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldAc, opts...).ToFunc()
+}
+
+// BySpeed orders the results by the speed field.
+func BySpeed(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSpeed, opts...).ToFunc()
+}
+
+// BySkills orders the results by the skills field.
+func BySkills(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSkills, opts...).ToFunc()
+}
+
+// BySaves orders the results by the saves field.
+func BySaves(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSaves, opts...).ToFunc()
+}
+
+// ByFeatures orders the results by the features field.
+func ByFeatures(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldFeatures, opts...).ToFunc()
+}
+
+// ByActions orders the results by the actions field.
+func ByActions(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldActions, opts...).ToFunc()
+}
+
+// ByBackstory orders the results by the backstory field.
+func ByBackstory(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldBackstory, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

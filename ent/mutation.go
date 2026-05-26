@@ -44903,6 +44903,16 @@ type NPCMutation struct {
 	hp_current            *int
 	addhp_current         *int
 	is_alive              *bool
+	is_full               *bool
+	ac                    *int
+	addac                 *int
+	speed                 *int
+	addspeed              *int
+	skills                *string
+	saves                 *string
+	features              *string
+	actions               *string
+	backstory             *string
 	created_at            *string
 	clearedFields         map[string]struct{}
 	user                  *int64
@@ -45719,6 +45729,334 @@ func (m *NPCMutation) ResetIsAlive() {
 	m.is_alive = nil
 }
 
+// SetIsFull sets the "is_full" field.
+func (m *NPCMutation) SetIsFull(b bool) {
+	m.is_full = &b
+}
+
+// IsFull returns the value of the "is_full" field in the mutation.
+func (m *NPCMutation) IsFull() (r bool, exists bool) {
+	v := m.is_full
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsFull returns the old "is_full" field's value of the NPC entity.
+// If the NPC object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NPCMutation) OldIsFull(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsFull is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsFull requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsFull: %w", err)
+	}
+	return oldValue.IsFull, nil
+}
+
+// ResetIsFull resets all changes to the "is_full" field.
+func (m *NPCMutation) ResetIsFull() {
+	m.is_full = nil
+}
+
+// SetAc sets the "ac" field.
+func (m *NPCMutation) SetAc(i int) {
+	m.ac = &i
+	m.addac = nil
+}
+
+// Ac returns the value of the "ac" field in the mutation.
+func (m *NPCMutation) Ac() (r int, exists bool) {
+	v := m.ac
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAc returns the old "ac" field's value of the NPC entity.
+// If the NPC object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NPCMutation) OldAc(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAc is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAc requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAc: %w", err)
+	}
+	return oldValue.Ac, nil
+}
+
+// AddAc adds i to the "ac" field.
+func (m *NPCMutation) AddAc(i int) {
+	if m.addac != nil {
+		*m.addac += i
+	} else {
+		m.addac = &i
+	}
+}
+
+// AddedAc returns the value that was added to the "ac" field in this mutation.
+func (m *NPCMutation) AddedAc() (r int, exists bool) {
+	v := m.addac
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAc resets all changes to the "ac" field.
+func (m *NPCMutation) ResetAc() {
+	m.ac = nil
+	m.addac = nil
+}
+
+// SetSpeed sets the "speed" field.
+func (m *NPCMutation) SetSpeed(i int) {
+	m.speed = &i
+	m.addspeed = nil
+}
+
+// Speed returns the value of the "speed" field in the mutation.
+func (m *NPCMutation) Speed() (r int, exists bool) {
+	v := m.speed
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSpeed returns the old "speed" field's value of the NPC entity.
+// If the NPC object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NPCMutation) OldSpeed(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSpeed is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSpeed requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSpeed: %w", err)
+	}
+	return oldValue.Speed, nil
+}
+
+// AddSpeed adds i to the "speed" field.
+func (m *NPCMutation) AddSpeed(i int) {
+	if m.addspeed != nil {
+		*m.addspeed += i
+	} else {
+		m.addspeed = &i
+	}
+}
+
+// AddedSpeed returns the value that was added to the "speed" field in this mutation.
+func (m *NPCMutation) AddedSpeed() (r int, exists bool) {
+	v := m.addspeed
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSpeed resets all changes to the "speed" field.
+func (m *NPCMutation) ResetSpeed() {
+	m.speed = nil
+	m.addspeed = nil
+}
+
+// SetSkills sets the "skills" field.
+func (m *NPCMutation) SetSkills(s string) {
+	m.skills = &s
+}
+
+// Skills returns the value of the "skills" field in the mutation.
+func (m *NPCMutation) Skills() (r string, exists bool) {
+	v := m.skills
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSkills returns the old "skills" field's value of the NPC entity.
+// If the NPC object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NPCMutation) OldSkills(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSkills is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSkills requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSkills: %w", err)
+	}
+	return oldValue.Skills, nil
+}
+
+// ResetSkills resets all changes to the "skills" field.
+func (m *NPCMutation) ResetSkills() {
+	m.skills = nil
+}
+
+// SetSaves sets the "saves" field.
+func (m *NPCMutation) SetSaves(s string) {
+	m.saves = &s
+}
+
+// Saves returns the value of the "saves" field in the mutation.
+func (m *NPCMutation) Saves() (r string, exists bool) {
+	v := m.saves
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSaves returns the old "saves" field's value of the NPC entity.
+// If the NPC object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NPCMutation) OldSaves(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSaves is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSaves requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSaves: %w", err)
+	}
+	return oldValue.Saves, nil
+}
+
+// ResetSaves resets all changes to the "saves" field.
+func (m *NPCMutation) ResetSaves() {
+	m.saves = nil
+}
+
+// SetFeatures sets the "features" field.
+func (m *NPCMutation) SetFeatures(s string) {
+	m.features = &s
+}
+
+// Features returns the value of the "features" field in the mutation.
+func (m *NPCMutation) Features() (r string, exists bool) {
+	v := m.features
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFeatures returns the old "features" field's value of the NPC entity.
+// If the NPC object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NPCMutation) OldFeatures(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFeatures is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFeatures requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFeatures: %w", err)
+	}
+	return oldValue.Features, nil
+}
+
+// ResetFeatures resets all changes to the "features" field.
+func (m *NPCMutation) ResetFeatures() {
+	m.features = nil
+}
+
+// SetActions sets the "actions" field.
+func (m *NPCMutation) SetActions(s string) {
+	m.actions = &s
+}
+
+// Actions returns the value of the "actions" field in the mutation.
+func (m *NPCMutation) Actions() (r string, exists bool) {
+	v := m.actions
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActions returns the old "actions" field's value of the NPC entity.
+// If the NPC object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NPCMutation) OldActions(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActions is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActions requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActions: %w", err)
+	}
+	return oldValue.Actions, nil
+}
+
+// ResetActions resets all changes to the "actions" field.
+func (m *NPCMutation) ResetActions() {
+	m.actions = nil
+}
+
+// SetBackstory sets the "backstory" field.
+func (m *NPCMutation) SetBackstory(s string) {
+	m.backstory = &s
+}
+
+// Backstory returns the value of the "backstory" field in the mutation.
+func (m *NPCMutation) Backstory() (r string, exists bool) {
+	v := m.backstory
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBackstory returns the old "backstory" field's value of the NPC entity.
+// If the NPC object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NPCMutation) OldBackstory(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBackstory is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBackstory requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBackstory: %w", err)
+	}
+	return oldValue.Backstory, nil
+}
+
+// ResetBackstory resets all changes to the "backstory" field.
+func (m *NPCMutation) ResetBackstory() {
+	m.backstory = nil
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *NPCMutation) SetCreatedAt(s string) {
 	m.created_at = &s
@@ -45870,7 +46208,7 @@ func (m *NPCMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *NPCMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 24)
 	if m.user != nil {
 		fields = append(fields, npc.FieldUserID)
 	}
@@ -45916,6 +46254,30 @@ func (m *NPCMutation) Fields() []string {
 	if m.is_alive != nil {
 		fields = append(fields, npc.FieldIsAlive)
 	}
+	if m.is_full != nil {
+		fields = append(fields, npc.FieldIsFull)
+	}
+	if m.ac != nil {
+		fields = append(fields, npc.FieldAc)
+	}
+	if m.speed != nil {
+		fields = append(fields, npc.FieldSpeed)
+	}
+	if m.skills != nil {
+		fields = append(fields, npc.FieldSkills)
+	}
+	if m.saves != nil {
+		fields = append(fields, npc.FieldSaves)
+	}
+	if m.features != nil {
+		fields = append(fields, npc.FieldFeatures)
+	}
+	if m.actions != nil {
+		fields = append(fields, npc.FieldActions)
+	}
+	if m.backstory != nil {
+		fields = append(fields, npc.FieldBackstory)
+	}
 	if m.created_at != nil {
 		fields = append(fields, npc.FieldCreatedAt)
 	}
@@ -45957,6 +46319,22 @@ func (m *NPCMutation) Field(name string) (ent.Value, bool) {
 		return m.HpCurrent()
 	case npc.FieldIsAlive:
 		return m.IsAlive()
+	case npc.FieldIsFull:
+		return m.IsFull()
+	case npc.FieldAc:
+		return m.Ac()
+	case npc.FieldSpeed:
+		return m.Speed()
+	case npc.FieldSkills:
+		return m.Skills()
+	case npc.FieldSaves:
+		return m.Saves()
+	case npc.FieldFeatures:
+		return m.Features()
+	case npc.FieldActions:
+		return m.Actions()
+	case npc.FieldBackstory:
+		return m.Backstory()
 	case npc.FieldCreatedAt:
 		return m.CreatedAt()
 	}
@@ -45998,6 +46376,22 @@ func (m *NPCMutation) OldField(ctx context.Context, name string) (ent.Value, err
 		return m.OldHpCurrent(ctx)
 	case npc.FieldIsAlive:
 		return m.OldIsAlive(ctx)
+	case npc.FieldIsFull:
+		return m.OldIsFull(ctx)
+	case npc.FieldAc:
+		return m.OldAc(ctx)
+	case npc.FieldSpeed:
+		return m.OldSpeed(ctx)
+	case npc.FieldSkills:
+		return m.OldSkills(ctx)
+	case npc.FieldSaves:
+		return m.OldSaves(ctx)
+	case npc.FieldFeatures:
+		return m.OldFeatures(ctx)
+	case npc.FieldActions:
+		return m.OldActions(ctx)
+	case npc.FieldBackstory:
+		return m.OldBackstory(ctx)
 	case npc.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	}
@@ -46114,6 +46508,62 @@ func (m *NPCMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetIsAlive(v)
 		return nil
+	case npc.FieldIsFull:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsFull(v)
+		return nil
+	case npc.FieldAc:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAc(v)
+		return nil
+	case npc.FieldSpeed:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSpeed(v)
+		return nil
+	case npc.FieldSkills:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSkills(v)
+		return nil
+	case npc.FieldSaves:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSaves(v)
+		return nil
+	case npc.FieldFeatures:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFeatures(v)
+		return nil
+	case npc.FieldActions:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActions(v)
+		return nil
+	case npc.FieldBackstory:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBackstory(v)
+		return nil
 	case npc.FieldCreatedAt:
 		v, ok := value.(string)
 		if !ok {
@@ -46153,6 +46603,12 @@ func (m *NPCMutation) AddedFields() []string {
 	if m.addhp_current != nil {
 		fields = append(fields, npc.FieldHpCurrent)
 	}
+	if m.addac != nil {
+		fields = append(fields, npc.FieldAc)
+	}
+	if m.addspeed != nil {
+		fields = append(fields, npc.FieldSpeed)
+	}
 	return fields
 }
 
@@ -46177,6 +46633,10 @@ func (m *NPCMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedHpMax()
 	case npc.FieldHpCurrent:
 		return m.AddedHpCurrent()
+	case npc.FieldAc:
+		return m.AddedAc()
+	case npc.FieldSpeed:
+		return m.AddedSpeed()
 	}
 	return nil, false
 }
@@ -46241,6 +46701,20 @@ func (m *NPCMutation) AddField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddHpCurrent(v)
+		return nil
+	case npc.FieldAc:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAc(v)
+		return nil
+	case npc.FieldSpeed:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSpeed(v)
 		return nil
 	}
 	return fmt.Errorf("unknown NPC numeric field %s", name)
@@ -46313,6 +46787,30 @@ func (m *NPCMutation) ResetField(name string) error {
 		return nil
 	case npc.FieldIsAlive:
 		m.ResetIsAlive()
+		return nil
+	case npc.FieldIsFull:
+		m.ResetIsFull()
+		return nil
+	case npc.FieldAc:
+		m.ResetAc()
+		return nil
+	case npc.FieldSpeed:
+		m.ResetSpeed()
+		return nil
+	case npc.FieldSkills:
+		m.ResetSkills()
+		return nil
+	case npc.FieldSaves:
+		m.ResetSaves()
+		return nil
+	case npc.FieldFeatures:
+		m.ResetFeatures()
+		return nil
+	case npc.FieldActions:
+		m.ResetActions()
+		return nil
+	case npc.FieldBackstory:
+		m.ResetBackstory()
 		return nil
 	case npc.FieldCreatedAt:
 		m.ResetCreatedAt()
@@ -53378,6 +53876,9 @@ type UploadMutation struct {
 	url           *string
 	resized_url   *string
 	thumbnail_url *string
+	owner_type    *string
+	owner_id      *int64
+	addowner_id   *int64
 	created_at    *string
 	clearedFields map[string]struct{}
 	done          bool
@@ -53734,6 +54235,98 @@ func (m *UploadMutation) ResetThumbnailURL() {
 	delete(m.clearedFields, upload.FieldThumbnailURL)
 }
 
+// SetOwnerType sets the "owner_type" field.
+func (m *UploadMutation) SetOwnerType(s string) {
+	m.owner_type = &s
+}
+
+// OwnerType returns the value of the "owner_type" field in the mutation.
+func (m *UploadMutation) OwnerType() (r string, exists bool) {
+	v := m.owner_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOwnerType returns the old "owner_type" field's value of the Upload entity.
+// If the Upload object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UploadMutation) OldOwnerType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOwnerType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOwnerType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOwnerType: %w", err)
+	}
+	return oldValue.OwnerType, nil
+}
+
+// ResetOwnerType resets all changes to the "owner_type" field.
+func (m *UploadMutation) ResetOwnerType() {
+	m.owner_type = nil
+}
+
+// SetOwnerID sets the "owner_id" field.
+func (m *UploadMutation) SetOwnerID(i int64) {
+	m.owner_id = &i
+	m.addowner_id = nil
+}
+
+// OwnerID returns the value of the "owner_id" field in the mutation.
+func (m *UploadMutation) OwnerID() (r int64, exists bool) {
+	v := m.owner_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOwnerID returns the old "owner_id" field's value of the Upload entity.
+// If the Upload object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UploadMutation) OldOwnerID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOwnerID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOwnerID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOwnerID: %w", err)
+	}
+	return oldValue.OwnerID, nil
+}
+
+// AddOwnerID adds i to the "owner_id" field.
+func (m *UploadMutation) AddOwnerID(i int64) {
+	if m.addowner_id != nil {
+		*m.addowner_id += i
+	} else {
+		m.addowner_id = &i
+	}
+}
+
+// AddedOwnerID returns the value that was added to the "owner_id" field in this mutation.
+func (m *UploadMutation) AddedOwnerID() (r int64, exists bool) {
+	v := m.addowner_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetOwnerID resets all changes to the "owner_id" field.
+func (m *UploadMutation) ResetOwnerID() {
+	m.owner_id = nil
+	m.addowner_id = nil
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *UploadMutation) SetCreatedAt(s string) {
 	m.created_at = &s
@@ -53804,7 +54397,7 @@ func (m *UploadMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UploadMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 8)
 	if m.hash != nil {
 		fields = append(fields, upload.FieldHash)
 	}
@@ -53819,6 +54412,12 @@ func (m *UploadMutation) Fields() []string {
 	}
 	if m.thumbnail_url != nil {
 		fields = append(fields, upload.FieldThumbnailURL)
+	}
+	if m.owner_type != nil {
+		fields = append(fields, upload.FieldOwnerType)
+	}
+	if m.owner_id != nil {
+		fields = append(fields, upload.FieldOwnerID)
 	}
 	if m.created_at != nil {
 		fields = append(fields, upload.FieldCreatedAt)
@@ -53841,6 +54440,10 @@ func (m *UploadMutation) Field(name string) (ent.Value, bool) {
 		return m.ResizedURL()
 	case upload.FieldThumbnailURL:
 		return m.ThumbnailURL()
+	case upload.FieldOwnerType:
+		return m.OwnerType()
+	case upload.FieldOwnerID:
+		return m.OwnerID()
 	case upload.FieldCreatedAt:
 		return m.CreatedAt()
 	}
@@ -53862,6 +54465,10 @@ func (m *UploadMutation) OldField(ctx context.Context, name string) (ent.Value, 
 		return m.OldResizedURL(ctx)
 	case upload.FieldThumbnailURL:
 		return m.OldThumbnailURL(ctx)
+	case upload.FieldOwnerType:
+		return m.OldOwnerType(ctx)
+	case upload.FieldOwnerID:
+		return m.OldOwnerID(ctx)
 	case upload.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	}
@@ -53908,6 +54515,20 @@ func (m *UploadMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetThumbnailURL(v)
 		return nil
+	case upload.FieldOwnerType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOwnerType(v)
+		return nil
+	case upload.FieldOwnerID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOwnerID(v)
+		return nil
 	case upload.FieldCreatedAt:
 		v, ok := value.(string)
 		if !ok {
@@ -53922,13 +54543,21 @@ func (m *UploadMutation) SetField(name string, value ent.Value) error {
 // AddedFields returns all numeric fields that were incremented/decremented during
 // this mutation.
 func (m *UploadMutation) AddedFields() []string {
-	return nil
+	var fields []string
+	if m.addowner_id != nil {
+		fields = append(fields, upload.FieldOwnerID)
+	}
+	return fields
 }
 
 // AddedField returns the numeric value that was incremented/decremented on a field
 // with the given name. The second boolean return value indicates that this field
 // was not set, or was not defined in the schema.
 func (m *UploadMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case upload.FieldOwnerID:
+		return m.AddedOwnerID()
+	}
 	return nil, false
 }
 
@@ -53937,6 +54566,13 @@ func (m *UploadMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *UploadMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case upload.FieldOwnerID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddOwnerID(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Upload numeric field %s", name)
 }
@@ -54011,6 +54647,12 @@ func (m *UploadMutation) ResetField(name string) error {
 		return nil
 	case upload.FieldThumbnailURL:
 		m.ResetThumbnailURL()
+		return nil
+	case upload.FieldOwnerType:
+		m.ResetOwnerType()
+		return nil
+	case upload.FieldOwnerID:
+		m.ResetOwnerID()
 		return nil
 	case upload.FieldCreatedAt:
 		m.ResetCreatedAt()

@@ -30,11 +30,24 @@
 {{end}}
 
 {{if .Adventure.Acts}}
+<div id="actTree" class="sortable-acts mb-3">
   {{range .Adventure.Acts}}
-  <div class="card mb-3">
-    <div class="card-header d-flex justify-content-between align-items-center py-2">
-      <span><strong>Act {{.Number}}: {{.Title}}</strong> <span class="text-muted small ms-2"><i class="fa-regular fa-clock"></i> {{.EstimatedMinutes}} min</span></span>
-      <div class="d-flex gap-1">
+  <div class="card mb-2 sortable-act" data-id="{{.ID}}">
+    <div class="card-header d-flex align-items-center py-2 gap-2">
+      <span class="sortable-handle" style="cursor:grab;color:var(--muted)" title="Drag to reorder">⋮⋮</span>
+      <div class="flex-grow-1 d-flex align-items-center flex-wrap gap-2">
+        <span class="fw-bold">Act {{.Number}}: {{.Title}}</span>
+        <span class="text-muted small d-inline-flex align-items-center gap-1">
+          <i class="fa-regular fa-clock"></i>
+          <input type="number" class="form-control form-control-sm inline-duration" 
+                 style="width:60px;padding:0.15rem 0.3rem;font-size:0.75rem"
+                 value="{{.EstimatedMinutes}}" min="1"
+                 hx-patch="/api/oneshot-acts/{{.ID}}/duration"
+                 hx-trigger="blur, keydown[key=='Enter']"
+                 name="estimated_minutes"> min
+        </span>
+      </div>
+      <div class="d-flex gap-1 flex-shrink-0">
         <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/oneshot-acts/{{.ID}}/new-scene-form" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='New Scene';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-plus"></i></button>
         <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/oneshot-acts/{{.ID}}" hx-target="#oneshotSection" hx-swap="innerHTML" hx-confirm="Delete this act and its scenes?" hx-trigger="click"><i class="fa-solid fa-trash"></i></button>
       </div>
@@ -45,23 +58,36 @@
     </div>
     {{end}}
     {{if .Scenes}}
-    <ul class="list-group list-group-flush">
+    <div class="sortable-scenes" data-act-id="{{.ID}}">
       {{range .Scenes}}
-      <li class="list-group-item py-2 px-3 d-flex justify-content-between align-items-start">
-        <div>
-          <span class="fw-bold">{{.Number}}. {{.Title}}</span>
-          <span class="badge {{if eq .SceneType "combat"}}bg-danger{{else if eq .SceneType "exploration"}}bg-info{{else if eq .SceneType "puzzle"}}bg-purple{{else if eq .SceneType "climax"}}bg-dark{{else}}bg-secondary{{end}} ms-1">{{.SceneType}}</span>
-          <span class="text-muted small ms-2"><i class="fa-regular fa-clock"></i> {{.EstimatedMinutes}} min</span>
-          {{if .LocationName}}<span class="badge bg-light text-dark ms-1"><i class="fa-solid fa-location-dot"></i> {{.LocationName}}</span>{{end}}
-          {{if .EncounterName}}<span class="badge bg-light text-dark ms-1"><i class="fa-solid fa-crosshairs"></i> {{.EncounterName}}</span>{{end}}
-          <div class="small text-muted mt-1">{{truncate .Description 150}}</div>
+      <div class="sortable-scene d-flex align-items-center py-2 px-3 gap-2 border-top" data-id="{{.ID}}">
+        <span class="sortable-handle" style="cursor:grab;color:var(--muted);font-size:0.8rem" title="Drag to reorder">⋮⋮</span>
+        <div class="flex-grow-1 d-flex align-items-center flex-wrap gap-2">
+          <span class="fw-bold" style="font-size:0.85rem">{{.Number}}. {{.Title}}</span>
+          <span class="badge {{if eq .SceneType "combat"}}bg-danger{{else if eq .SceneType "exploration"}}bg-info{{else if eq .SceneType "puzzle"}}bg-purple{{else if eq .SceneType "climax"}}bg-dark{{else}}bg-secondary{{end}}" style="font-size:0.7rem">{{.SceneType}}</span>
+          <span class="text-muted small d-inline-flex align-items-center gap-1">
+            <i class="fa-regular fa-clock"></i>
+            <input type="number" class="form-control form-control-sm inline-duration" 
+                   style="width:55px;padding:0.1rem 0.25rem;font-size:0.7rem"
+                   value="{{.EstimatedMinutes}}" min="1"
+                   hx-patch="/api/oneshot-scenes/{{.ID}}/duration"
+                   hx-trigger="blur, keydown[key=='Enter']"
+                   name="estimated_minutes"> min
+          </span>
+          {{if .LocationName}}<span class="badge bg-light text-dark" style="font-size:0.65rem"><i class="fa-solid fa-location-dot"></i> {{.LocationName}}</span>{{end}}
+          {{if .EncounterName}}<span class="badge bg-light text-dark" style="font-size:0.65rem"><i class="fa-solid fa-crosshairs"></i> {{.EncounterName}}</span>{{end}}
         </div>
-      </li>
+        <div class="d-flex gap-1 flex-shrink-0">
+          <button class="btn btn-sm btn-outline-info" style="font-size:0.7rem;padding:0.1rem 0.4rem" onclick="showActMonsters({{.ID}})" title="Monsters"><i class="fa-solid fa-dragon"></i></button>
+          <button class="btn btn-sm btn-outline-danger" style="font-size:0.7rem;padding:0.1rem 0.4rem" hx-delete="/htmx/oneshot-scenes/{{.ID}}" hx-target="#oneshotSection" hx-swap="innerHTML" hx-confirm="Delete this scene?" hx-trigger="click"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </div>
       {{end}}
-    </ul>
+    </div>
     {{end}}
   </div>
   {{end}}
+</div>
 {{else}}
 <div class="empty-state">
   <i class="fa-solid fa-layer-group fa-3x mb-2 d-block text-muted"></i>
@@ -70,8 +96,55 @@
 </div>
 {{end}}
 
-<div class="d-flex gap-2 mt-3">
+<div class="d-flex gap-2 mt-3 mb-4">
   <button class="btn btn-primary btn-sm" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}/new-act-form" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='New Act';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-plus me-1"></i>Add Act</button>
 </div>
 
-<script>(function(){var m=document.getElementById("genericModal");if(m&&m.classList.contains("show")){bootstrap.Modal.getInstance(m)?.hide()}})()</script>
+<hr class="my-4">
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header py-2"><strong><i class="fa-solid fa-backpack me-1"></i>Items</strong></div>
+      <div class="card-body" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}/items" hx-trigger="load" hx-swap="innerHTML">
+        <div class="text-muted small">✧ Loading items...</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header py-2"><strong><i class="fa-solid fa-store me-1"></i>Shops</strong></div>
+      <div class="card-body" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}/shops" hx-trigger="load" hx-swap="innerHTML">
+        <div class="text-muted small">✧ Loading shops...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header py-2"><strong><i class="fa-solid fa-dragon me-1"></i>Monsters</strong></div>
+      <div class="card-body" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}/monsters" hx-trigger="load" hx-swap="innerHTML">
+        <div class="text-muted small">✧ Loading monsters...</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header py-2"><strong><i class="fa-solid fa-users me-1"></i>Player Characters</strong></div>
+      <div class="card-body" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}/pcs" hx-trigger="load" hx-swap="innerHTML">
+        <div class="text-muted small">✧ Loading characters...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var m=document.getElementById("genericModal");
+  if(m&&m.classList.contains("show")){bootstrap.Modal.getInstance(m)?.hide()}
+  // Init SortableJS for acts and scenes after HTMX swap
+  setTimeout(function(){ if(typeof initOneShotTree === 'function') initOneShotTree({{.Adventure.ID}}); }, 50);
+})()
+</script>

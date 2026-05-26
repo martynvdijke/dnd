@@ -263,56 +263,6 @@ func main() {
 		auth.POST("/encounters/calculate-xp", handlers.CalculateEncounterXP)
 		auth.GET("/monster-xp", handlers.GetMonsterXP)
 
-		// One-Shot Adventures
-		auth.GET("/oneshot-adventures", handlers.ListOneShotAdventures)
-		auth.POST("/oneshot-adventures", handlers.CreateOneShotAdventure)
-		auth.GET("/oneshot-adventures/:id", handlers.GetOneShotAdventure)
-		auth.PUT("/oneshot-adventures/:id", handlers.UpdateOneShotAdventure)
-		auth.DELETE("/oneshot-adventures/:id", handlers.DeleteOneShotAdventure)
-		auth.POST("/oneshot-adventures/generate", handlers.GenerateOneShotFromTemplate)
-		auth.POST("/oneshot-adventures/:id/acts", handlers.CreateOneShotAct)
-		auth.GET("/oneshot-adventures/:id/npcs", handlers.GetOneShotNPCs)
-		auth.POST("/oneshot-adventures/:id/npcs", handlers.LinkOneShotNPC)
-		auth.DELETE("/oneshot-adventures/:id/npcs/:nid", handlers.UnlinkOneShotNPC)
-		auth.GET("/oneshot-adventures/:id/locations", handlers.GetOneShotLocations)
-		auth.POST("/oneshot-adventures/:id/locations", handlers.LinkOneShotLocation)
-		auth.DELETE("/oneshot-adventures/:id/locations/:lid", handlers.UnlinkOneShotLocation)
-		auth.GET("/oneshot-adventures/:id/encounters", handlers.GetOneShotEncounters)
-		auth.POST("/oneshot-adventures/:id/encounters", handlers.LinkOneShotEncounter)
-		auth.DELETE("/oneshot-adventures/:id/encounters/:eid", handlers.UnlinkOneShotEncounter)
-
-		// Acts & Scenes
-		auth.PUT("/oneshot-acts/:id", handlers.UpdateOneShotAct)
-		auth.DELETE("/oneshot-acts/:id", handlers.DeleteOneShotAct)
-		auth.POST("/oneshot-acts/:id/scenes", handlers.CreateOneShotScene)
-		auth.PUT("/oneshot-scenes/:id", handlers.UpdateOneShotScene)
-		auth.DELETE("/oneshot-scenes/:id", handlers.DeleteOneShotScene)
-
-		// Session Pacing
-		auth.POST("/oneshot-adventures/:id/pacing/start", handlers.StartPacingSession)
-		auth.GET("/oneshot-adventures/:id/pacing", handlers.GetPacingSession)
-		auth.GET("/session-pacing/:id", handlers.GetPacingSession)
-		auth.POST("/session-pacing/:id/pause", handlers.PausePacingSession)
-		auth.POST("/session-pacing/:id/resume", handlers.ResumePacingSession)
-		auth.POST("/session-pacing/:id/next-scene", handlers.AdvanceToNextScene)
-		auth.POST("/session-pacing/:id/complete", handlers.CompletePacingSession)
-		auth.POST("/session-pacing/:id/tick", handlers.UpdatePacingTimers)
-
-		// Clue/Mystery Tracker
-		auth.GET("/oneshot-adventures/:id/clues", handlers.ListClues)
-		auth.POST("/oneshot-adventures/:id/clues", handlers.CreateClue)
-		auth.GET("/clues/:id", handlers.GetClue)
-		auth.PUT("/clues/:id", handlers.UpdateClue)
-		auth.DELETE("/clues/:id", handlers.DeleteClue)
-		auth.POST("/clues/:id/reveal", handlers.RevealClue)
-		auth.POST("/clues/:id/hide", handlers.HideClue)
-		auth.POST("/clues/:id/dependencies", handlers.AddClueDependency)
-		auth.DELETE("/clues/:id/dependencies/:did", handlers.RemoveClueDependency)
-		auth.POST("/clues/:id/npcs", handlers.LinkClueNPC)
-		auth.DELETE("/clues/:id/npcs/:nid", handlers.UnlinkClueNPC)
-		auth.POST("/clues/:id/locations", handlers.LinkClueLocation)
-		auth.DELETE("/clues/:id/locations/:lid", handlers.UnlinkClueLocation)
-
 		// Pregenerated Characters
 		auth.GET("/pregens", handlers.ListPregens)
 		auth.POST("/pregens", handlers.CreatePregen)
@@ -321,25 +271,6 @@ func main() {
 		auth.GET("/pregens/:id", handlers.GetPregen)
 		auth.PUT("/pregens/:id", handlers.UpdatePregen)
 		auth.DELETE("/pregens/:id", handlers.DeletePregen)
-
-		// Prep Dashboard & Checklist
-		auth.GET("/oneshot-adventures/:id/checklist", handlers.ListPrepChecklist)
-		auth.POST("/oneshot-adventures/:id/checklist", handlers.CreatePrepChecklistItem)
-		auth.PUT("/prep-checklist/:cid", handlers.UpdatePrepChecklistItem)
-		auth.DELETE("/prep-checklist/:cid", handlers.DeletePrepChecklistItem)
-
-		// DM Screen / Quick Reference
-		auth.GET("/oneshot-adventures/:id/dm-screen", handlers.HtmxDmScreen)
-		auth.GET("/oneshot-adventures/:id/notes", handlers.ListDmNotes)
-		auth.POST("/oneshot-adventures/:id/notes", handlers.CreateDmNote)
-		auth.PUT("/dm-notes/:nid", handlers.UpdateDmNote)
-		auth.DELETE("/oneshot-adventures/:id/notes/:nid", handlers.DeleteDmNote)
-
-		// Calendar
-		auth.GET("/calendar", handlers.ListCalendarEvents)
-		auth.POST("/calendar", handlers.CreateCalendarEvent)
-		auth.PUT("/calendar/:id", handlers.UpdateCalendarEvent)
-		auth.DELETE("/calendar/:id", handlers.DeleteCalendarEvent)
 
 		// Timeline
 		auth.GET("/timeline", handlers.ListTimelineEvents)
@@ -485,6 +416,131 @@ func main() {
 		auth.POST("/campaigns/:id/recaps/generate", handlers.GenerateCampaignRecap)
 		auth.POST("/recaps/:id/mark-sent", handlers.MarkRecapAsSent)
 
+	}
+
+	// DM / One-Shot routes (DM or admin only)
+	dm := r.Group("/api")
+	dm.Use(middleware.AuthRequired(), middleware.DMRequired(), middleware.CSRFRequired())
+	{
+		// One-Shot Adventures
+		dm.GET("/oneshot-adventures", handlers.ListOneShotAdventures)
+		dm.POST("/oneshot-adventures", handlers.CreateOneShotAdventure)
+		dm.GET("/oneshot-adventures/:id", handlers.GetOneShotAdventure)
+		dm.PUT("/oneshot-adventures/:id", handlers.UpdateOneShotAdventure)
+		dm.DELETE("/oneshot-adventures/:id", handlers.DeleteOneShotAdventure)
+		dm.POST("/oneshot-adventures/generate", handlers.GenerateOneShotFromTemplate)
+		dm.POST("/oneshot-adventures/:id/acts", handlers.CreateOneShotAct)
+		dm.GET("/oneshot-adventures/:id/npcs", handlers.GetOneShotNPCs)
+		dm.POST("/oneshot-adventures/:id/npcs", handlers.LinkOneShotNPC)
+		dm.DELETE("/oneshot-adventures/:id/npcs/:nid", handlers.UnlinkOneShotNPC)
+		dm.GET("/oneshot-adventures/:id/locations", handlers.GetOneShotLocations)
+		dm.POST("/oneshot-adventures/:id/locations", handlers.LinkOneShotLocation)
+		dm.DELETE("/oneshot-adventures/:id/locations/:lid", handlers.UnlinkOneShotLocation)
+		dm.GET("/oneshot-adventures/:id/encounters", handlers.GetOneShotEncounters)
+		dm.POST("/oneshot-adventures/:id/encounters", handlers.LinkOneShotEncounter)
+		dm.DELETE("/oneshot-adventures/:id/encounters/:eid", handlers.UnlinkOneShotEncounter)
+
+		// Acts & Scenes
+		dm.PUT("/oneshot-acts/:id", handlers.UpdateOneShotAct)
+		dm.DELETE("/oneshot-acts/:id", handlers.DeleteOneShotAct)
+		dm.POST("/oneshot-acts/:id/scenes", handlers.CreateOneShotScene)
+		dm.PUT("/oneshot-scenes/:id", handlers.UpdateOneShotScene)
+		dm.DELETE("/oneshot-scenes/:id", handlers.DeleteOneShotScene)
+
+		// Session Pacing
+		dm.POST("/oneshot-adventures/:id/pacing/start", handlers.StartPacingSession)
+		dm.GET("/oneshot-adventures/:id/pacing", handlers.GetPacingSession)
+		dm.GET("/session-pacing/:id", handlers.GetPacingSession)
+		dm.POST("/session-pacing/:id/pause", handlers.PausePacingSession)
+		dm.POST("/session-pacing/:id/resume", handlers.ResumePacingSession)
+		dm.POST("/session-pacing/:id/next-scene", handlers.AdvanceToNextScene)
+		dm.POST("/session-pacing/:id/complete", handlers.CompletePacingSession)
+		dm.POST("/session-pacing/:id/tick", handlers.UpdatePacingTimers)
+
+		// Clue/Mystery Tracker
+		dm.GET("/oneshot-adventures/:id/clues", handlers.ListClues)
+		dm.POST("/oneshot-adventures/:id/clues", handlers.CreateClue)
+		dm.GET("/clues/:id", handlers.GetClue)
+		dm.PUT("/clues/:id", handlers.UpdateClue)
+		dm.DELETE("/clues/:id", handlers.DeleteClue)
+		dm.POST("/clues/:id/reveal", handlers.RevealClue)
+		dm.POST("/clues/:id/hide", handlers.HideClue)
+		dm.POST("/clues/:id/dependencies", handlers.AddClueDependency)
+		dm.DELETE("/clues/:id/dependencies/:did", handlers.RemoveClueDependency)
+		dm.POST("/clues/:id/npcs", handlers.LinkClueNPC)
+		dm.DELETE("/clues/:id/npcs/:nid", handlers.UnlinkClueNPC)
+		dm.POST("/clues/:id/locations", handlers.LinkClueLocation)
+		dm.DELETE("/clues/:id/locations/:lid", handlers.UnlinkClueLocation)
+
+		// Prep Dashboard & Checklist
+		dm.GET("/oneshot-adventures/:id/checklist", handlers.ListPrepChecklist)
+		dm.POST("/oneshot-adventures/:id/checklist", handlers.CreatePrepChecklistItem)
+		dm.PUT("/prep-checklist/:cid", handlers.UpdatePrepChecklistItem)
+		dm.DELETE("/prep-checklist/:cid", handlers.DeletePrepChecklistItem)
+
+		// DM Screen / Quick Reference
+		dm.GET("/oneshot-adventures/:id/dm-screen", handlers.HtmxDmScreen)
+		dm.GET("/oneshot-adventures/:id/notes", handlers.ListDmNotes)
+		dm.POST("/oneshot-adventures/:id/notes", handlers.CreateDmNote)
+		dm.PUT("/dm-notes/:nid", handlers.UpdateDmNote)
+		dm.DELETE("/oneshot-adventures/:id/notes/:nid", handlers.DeleteDmNote)
+
+		// Characters all (DM can see all user characters)
+		dm.GET("/characters/all", handlers.ListAllCharacters)
+
+		// Parties
+		dm.GET("/parties", handlers.ListParties)
+		dm.POST("/parties", handlers.CreateParty)
+		dm.GET("/parties/:id", handlers.GetParty)
+		dm.PUT("/parties/:id", handlers.UpdateParty)
+		dm.DELETE("/parties/:id", handlers.DeleteParty)
+		dm.GET("/parties/:id/factions", handlers.ListPartyFactions)
+		dm.POST("/parties/:id/factions", handlers.CreatePartyFaction)
+		dm.GET("/parties/:id/uploads", handlers.ListPartyUploads)
+
+		// One-Shot Items
+		dm.GET("/oneshot-adventures/:id/items", handlers.ListOneShotItems)
+		dm.POST("/oneshot-adventures/:id/items", handlers.CreateOneShotItem)
+		dm.PUT("/oneshot-items/:id", handlers.UpdateOneShotItem)
+		dm.DELETE("/oneshot-items/:id", handlers.DeleteOneShotItem)
+		dm.GET("/oneshot-items/:id/uploads", handlers.ListItemUploads)
+		dm.GET("/oneshot-items/:id/npcs", handlers.ListNPCsForItem)
+
+		// NPC-Item Links
+		dm.POST("/oneshot-adventures/:id/npc-item-links", handlers.CreateNPCItemLink)
+		dm.GET("/oneshot-adventures/:id/npcs/:nid/items", handlers.ListItemsForNPC)
+		dm.DELETE("/npc-item-links/:id", handlers.DeleteNPCItemLink)
+
+		// One-Shot Shops
+		dm.GET("/oneshot-adventures/:id/shops", handlers.ListOneShotShops)
+		dm.POST("/oneshot-adventures/:id/shops", handlers.CreateOneShotShop)
+		dm.POST("/oneshot-adventures/:id/shops/:shopId/items", handlers.CreateOneShotShopItem)
+		dm.DELETE("/oneshot-adventures/:id/shops/:shopId", handlers.DeleteOneShotShop)
+
+		// One-Shot Monsters
+		dm.GET("/oneshot-acts/:id/monsters", handlers.ListActMonsters)
+		dm.POST("/oneshot-acts/:id/monsters", handlers.CreateActMonster)
+		dm.PUT("/oneshot-monsters/:id", handlers.UpdateOneShotMonster)
+		dm.DELETE("/oneshot-monsters/:id", handlers.DeleteOneShotMonster)
+		dm.GET("/oneshot-scenes/:id/monsters", handlers.ListSceneMonsters)
+		dm.POST("/oneshot-scenes/:id/monsters", handlers.CreateSceneMonster)
+
+		// Monster Library
+		dm.GET("/monster-library", handlers.ListMonsterLibrary)
+		dm.POST("/monster-library", handlers.CreateMonsterLibraryEntry)
+		dm.PUT("/monster-library/:id", handlers.UpdateMonsterLibraryEntry)
+		dm.DELETE("/monster-library/:id", handlers.DeleteMonsterLibraryEntry)
+
+		// Linked Player Characters
+		dm.GET("/oneshot-adventures/:id/characters", handlers.ListLinkedCharacters)
+		dm.POST("/oneshot-adventures/:id/characters", handlers.LinkCharacterToOneShot)
+		dm.DELETE("/oneshot-adventures/:id/characters/:charId", handlers.UnlinkCharacterFromOneShot)
+
+		// Inline editing
+		dm.PATCH("/oneshot-acts/:id/duration", handlers.UpdateActDuration)
+		dm.PATCH("/oneshot-scenes/:id/duration", handlers.UpdateSceneDuration)
+		dm.PUT("/oneshot-adventures/:id/acts/reorder", handlers.ReorderActs)
+		dm.PUT("/oneshot-acts/:id/scenes/reorder", handlers.ReorderScenes)
 	}
 
 	// htmx endpoints (separate group, outside /api, with auth + CSRF)

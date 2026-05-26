@@ -47,6 +47,22 @@ type NPC struct {
 	HpCurrent int `json:"hp_current,omitempty"`
 	// IsAlive holds the value of the "is_alive" field.
 	IsAlive bool `json:"is_alive,omitempty"`
+	// IsFull holds the value of the "is_full" field.
+	IsFull bool `json:"is_full,omitempty"`
+	// Ac holds the value of the "ac" field.
+	Ac int `json:"ac,omitempty"`
+	// Speed holds the value of the "speed" field.
+	Speed int `json:"speed,omitempty"`
+	// Skills holds the value of the "skills" field.
+	Skills string `json:"skills,omitempty"`
+	// Saves holds the value of the "saves" field.
+	Saves string `json:"saves,omitempty"`
+	// Features holds the value of the "features" field.
+	Features string `json:"features,omitempty"`
+	// Actions holds the value of the "actions" field.
+	Actions string `json:"actions,omitempty"`
+	// Backstory holds the value of the "backstory" field.
+	Backstory string `json:"backstory,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt string `json:"created_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -91,11 +107,11 @@ func (*NPC) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case npc.FieldIsAlive:
+		case npc.FieldIsAlive, npc.FieldIsFull:
 			values[i] = new(sql.NullBool)
-		case npc.FieldID, npc.FieldUserID, npc.FieldStr, npc.FieldDex, npc.FieldCon, npc.FieldInt, npc.FieldWis, npc.FieldCha, npc.FieldHpMax, npc.FieldHpCurrent:
+		case npc.FieldID, npc.FieldUserID, npc.FieldStr, npc.FieldDex, npc.FieldCon, npc.FieldInt, npc.FieldWis, npc.FieldCha, npc.FieldHpMax, npc.FieldHpCurrent, npc.FieldAc, npc.FieldSpeed:
 			values[i] = new(sql.NullInt64)
-		case npc.FieldName, npc.FieldRace, npc.FieldClass, npc.FieldDescription, npc.FieldNotes, npc.FieldCreatedAt:
+		case npc.FieldName, npc.FieldRace, npc.FieldClass, npc.FieldDescription, npc.FieldNotes, npc.FieldSkills, npc.FieldSaves, npc.FieldFeatures, npc.FieldActions, npc.FieldBackstory, npc.FieldCreatedAt:
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -208,6 +224,54 @@ func (_m *NPC) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.IsAlive = value.Bool
 			}
+		case npc.FieldIsFull:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_full", values[i])
+			} else if value.Valid {
+				_m.IsFull = value.Bool
+			}
+		case npc.FieldAc:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field ac", values[i])
+			} else if value.Valid {
+				_m.Ac = int(value.Int64)
+			}
+		case npc.FieldSpeed:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field speed", values[i])
+			} else if value.Valid {
+				_m.Speed = int(value.Int64)
+			}
+		case npc.FieldSkills:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field skills", values[i])
+			} else if value.Valid {
+				_m.Skills = value.String
+			}
+		case npc.FieldSaves:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field saves", values[i])
+			} else if value.Valid {
+				_m.Saves = value.String
+			}
+		case npc.FieldFeatures:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field features", values[i])
+			} else if value.Valid {
+				_m.Features = value.String
+			}
+		case npc.FieldActions:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field actions", values[i])
+			} else if value.Valid {
+				_m.Actions = value.String
+			}
+		case npc.FieldBackstory:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field backstory", values[i])
+			} else if value.Valid {
+				_m.Backstory = value.String
+			}
 		case npc.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -304,6 +368,30 @@ func (_m *NPC) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("is_alive=")
 	builder.WriteString(fmt.Sprintf("%v", _m.IsAlive))
+	builder.WriteString(", ")
+	builder.WriteString("is_full=")
+	builder.WriteString(fmt.Sprintf("%v", _m.IsFull))
+	builder.WriteString(", ")
+	builder.WriteString("ac=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Ac))
+	builder.WriteString(", ")
+	builder.WriteString("speed=")
+	builder.WriteString(fmt.Sprintf("%v", _m.Speed))
+	builder.WriteString(", ")
+	builder.WriteString("skills=")
+	builder.WriteString(_m.Skills)
+	builder.WriteString(", ")
+	builder.WriteString("saves=")
+	builder.WriteString(_m.Saves)
+	builder.WriteString(", ")
+	builder.WriteString("features=")
+	builder.WriteString(_m.Features)
+	builder.WriteString(", ")
+	builder.WriteString("actions=")
+	builder.WriteString(_m.Actions)
+	builder.WriteString(", ")
+	builder.WriteString("backstory=")
+	builder.WriteString(_m.Backstory)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt)

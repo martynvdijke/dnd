@@ -117,6 +117,44 @@ func ListCharacters(c *gin.Context) {
 	c.JSON(http.StatusOK, chars)
 }
 
+func ListAllCharacters(c *gin.Context) {
+	role, _ := c.Get("role")
+	if role != "dm" && role != "admin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "dm or admin required"})
+		return
+	}
+
+	type CharSummary struct {
+		ID        int64  `json:"id"`
+		UserID    int64  `json:"user_id"`
+		Username  string `json:"username"`
+		Name      string `json:"name"`
+		Race      string `json:"race"`
+		Class     string `json:"class"`
+		Level     int    `json:"level"`
+		HPMax     int    `json:"hp_max"`
+		HPCurrent int    `json:"hp_current"`
+	}
+	chars := make([]CharSummary, 0)
+
+	rows, err := db.DB.Query(`
+		SELECT c.id, c.user_id, u.username, c.name, c.race, c.class, c.level, c.hp_max, c.hp_current
+		FROM characters c
+		JOIN users u ON c.user_id = u.id
+		ORDER BY c.updated_at DESC`)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var ch CharSummary
+		rows.Scan(&ch.ID, &ch.UserID, &ch.Username, &ch.Name, &ch.Race, &ch.Class, &ch.Level, &ch.HPMax, &ch.HPCurrent)
+		chars = append(chars, ch)
+	}
+	c.JSON(http.StatusOK, chars)
+}
+
 func GetCharacter(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	userID, _ := c.Get("user_id")

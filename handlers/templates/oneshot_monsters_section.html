@@ -1,0 +1,42 @@
+{{if .Monsters}}
+<div class="list-group list-group-flush">
+  {{range .Monsters}}
+  <div class="list-group-item py-2 px-0">
+    <div class="d-flex justify-content-between align-items-start">
+      <div>
+        <strong>{{.Name}}</strong>
+        <span class="badge bg-danger ms-1">CR {{.CR}}</span>
+        <span class="text-muted small ms-2">AC {{.AC}} · HP {{.HP}}</span>
+        <div class="small text-muted mt-1">
+          STR {{.Str}} DEX {{.Dex}} CON {{.Con}} INT {{.Int}} WIS {{.Wis}} CHA {{.Cha}}
+        </div>
+        {{if .IsFull}}
+        <div class="small mt-2">
+          {{if .Saves}}<div><strong>Saves:</strong> {{.Saves}}</div>{{end}}
+          {{if .Skills}}<div><strong>Skills:</strong> {{.Skills}}</div>{{end}}
+          {{if .Senses}}<div><strong>Senses:</strong> {{.Senses}}</div>{{end}}
+          {{if .Languages}}<div><strong>Languages:</strong> {{.Languages}}</div>{{end}}
+          {{if .DamageVulnerabilities}}<div><strong>Vulnerabilities:</strong> {{.DamageVulnerabilities}}</div>{{end}}
+          {{if .DamageResistances}}<div><strong>Resistances:</strong> {{.DamageResistances}}</div>{{end}}
+          {{if .DamageImmunities}}<div><strong>Immunities:</strong> {{.DamageImmunities}}</div>{{end}}
+          {{if .ConditionImmunities}}<div><strong>Condition Immunities:</strong> {{.ConditionImmunities}}</div>{{end}}
+          {{if .SpecialAbilities}}<div class="mt-1"><strong>Abilities:</strong> <span style="white-space:pre-line">{{.SpecialAbilities}}</span></div>{{end}}
+          {{if .Actions}}<div class="mt-1"><strong>Actions:</strong> <span style="white-space:pre-line">{{.Actions}}</span></div>{{end}}
+          {{if .LegendaryActions}}<div class="mt-1"><strong>Legendary:</strong> <span style="white-space:pre-line">{{.LegendaryActions}}</span></div>{{end}}
+        </div>
+        {{end}}
+      </div>
+      <div class="d-flex gap-1 flex-shrink-0">
+        <button class="btn btn-sm btn-outline-danger" onclick="deleteOneShotMonster({{.ID}})"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>
+  </div>
+  {{end}}
+</div>
+{{else}}
+<div class="text-muted small fst-italic">No monsters yet.</div>
+{{end}}
+<div class="mt-2 d-flex gap-1">
+  <button class="btn btn-sm btn-outline-primary" onclick="showAddMonsterForm({{.AdventureID}})"><i class="fa-solid fa-plus me-1"></i>Add Monster</button>
+  <button class="btn btn-sm btn-outline-info" onclick="showMonsterLibrary({{.AdventureID}})"><i class="fa-solid fa-book me-1"></i>From Library</button>
+</div>

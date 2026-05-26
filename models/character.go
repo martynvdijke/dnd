@@ -194,6 +194,14 @@ type NPC struct {
 	HPMax       int    `json:"hp_max"`
 	HPCurrent   int    `json:"hp_current"`
 	IsAlive     bool   `json:"is_alive"`
+	IsFull      bool   `json:"is_full"`
+	AC          int    `json:"ac"`
+	Speed       int    `json:"speed"`
+	Skills      string `json:"skills"`
+	Saves       string `json:"saves"`
+	Features    string `json:"features"`
+	Actions     string `json:"actions"`
+	Backstory   string `json:"backstory"`
 	CreatedAt   string `json:"created_at"`
 }
 
@@ -382,6 +390,7 @@ type Companion struct {
 type Faction struct {
 	ID           int64  `json:"id"`
 	CampaignID   *int64 `json:"campaign_id,omitempty"`
+	PartyID      *int64 `json:"party_id,omitempty"`
 	Name         string `json:"name"`
 	Description  string `json:"description"`
 	Type         string `json:"type"`

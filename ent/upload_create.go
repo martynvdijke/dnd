@@ -91,6 +91,34 @@ func (_c *UploadCreate) SetNillableThumbnailURL(v *string) *UploadCreate {
 	return _c
 }
 
+// SetOwnerType sets the "owner_type" field.
+func (_c *UploadCreate) SetOwnerType(v string) *UploadCreate {
+	_c.mutation.SetOwnerType(v)
+	return _c
+}
+
+// SetNillableOwnerType sets the "owner_type" field if the given value is not nil.
+func (_c *UploadCreate) SetNillableOwnerType(v *string) *UploadCreate {
+	if v != nil {
+		_c.SetOwnerType(*v)
+	}
+	return _c
+}
+
+// SetOwnerID sets the "owner_id" field.
+func (_c *UploadCreate) SetOwnerID(v int64) *UploadCreate {
+	_c.mutation.SetOwnerID(v)
+	return _c
+}
+
+// SetNillableOwnerID sets the "owner_id" field if the given value is not nil.
+func (_c *UploadCreate) SetNillableOwnerID(v *int64) *UploadCreate {
+	if v != nil {
+		_c.SetOwnerID(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *UploadCreate) SetCreatedAt(v string) *UploadCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -146,6 +174,14 @@ func (_c *UploadCreate) ExecX(ctx context.Context) {
 
 // defaults sets the default values of the builder before save.
 func (_c *UploadCreate) defaults() {
+	if _, ok := _c.mutation.OwnerType(); !ok {
+		v := upload.DefaultOwnerType
+		_c.mutation.SetOwnerType(v)
+	}
+	if _, ok := _c.mutation.OwnerID(); !ok {
+		v := upload.DefaultOwnerID
+		_c.mutation.SetOwnerID(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := upload.DefaultCreatedAt
 		_c.mutation.SetCreatedAt(v)
@@ -154,6 +190,12 @@ func (_c *UploadCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *UploadCreate) check() error {
+	if _, ok := _c.mutation.OwnerType(); !ok {
+		return &ValidationError{Name: "owner_type", err: errors.New(`ent: missing required field "Upload.owner_type"`)}
+	}
+	if _, ok := _c.mutation.OwnerID(); !ok {
+		return &ValidationError{Name: "owner_id", err: errors.New(`ent: missing required field "Upload.owner_id"`)}
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Upload.created_at"`)}
 	}
@@ -209,6 +251,14 @@ func (_c *UploadCreate) createSpec() (*Upload, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.ThumbnailURL(); ok {
 		_spec.SetField(upload.FieldThumbnailURL, field.TypeString, value)
 		_node.ThumbnailURL = value
+	}
+	if value, ok := _c.mutation.OwnerType(); ok {
+		_spec.SetField(upload.FieldOwnerType, field.TypeString, value)
+		_node.OwnerType = value
+	}
+	if value, ok := _c.mutation.OwnerID(); ok {
+		_spec.SetField(upload.FieldOwnerID, field.TypeInt64, value)
+		_node.OwnerID = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(upload.FieldCreatedAt, field.TypeString, value)
@@ -353,6 +403,36 @@ func (u *UploadUpsert) UpdateThumbnailURL() *UploadUpsert {
 // ClearThumbnailURL clears the value of the "thumbnail_url" field.
 func (u *UploadUpsert) ClearThumbnailURL() *UploadUpsert {
 	u.SetNull(upload.FieldThumbnailURL)
+	return u
+}
+
+// SetOwnerType sets the "owner_type" field.
+func (u *UploadUpsert) SetOwnerType(v string) *UploadUpsert {
+	u.Set(upload.FieldOwnerType, v)
+	return u
+}
+
+// UpdateOwnerType sets the "owner_type" field to the value that was provided on create.
+func (u *UploadUpsert) UpdateOwnerType() *UploadUpsert {
+	u.SetExcluded(upload.FieldOwnerType)
+	return u
+}
+
+// SetOwnerID sets the "owner_id" field.
+func (u *UploadUpsert) SetOwnerID(v int64) *UploadUpsert {
+	u.Set(upload.FieldOwnerID, v)
+	return u
+}
+
+// UpdateOwnerID sets the "owner_id" field to the value that was provided on create.
+func (u *UploadUpsert) UpdateOwnerID() *UploadUpsert {
+	u.SetExcluded(upload.FieldOwnerID)
+	return u
+}
+
+// AddOwnerID adds v to the "owner_id" field.
+func (u *UploadUpsert) AddOwnerID(v int64) *UploadUpsert {
+	u.Add(upload.FieldOwnerID, v)
 	return u
 }
 
@@ -518,6 +598,41 @@ func (u *UploadUpsertOne) UpdateThumbnailURL() *UploadUpsertOne {
 func (u *UploadUpsertOne) ClearThumbnailURL() *UploadUpsertOne {
 	return u.Update(func(s *UploadUpsert) {
 		s.ClearThumbnailURL()
+	})
+}
+
+// SetOwnerType sets the "owner_type" field.
+func (u *UploadUpsertOne) SetOwnerType(v string) *UploadUpsertOne {
+	return u.Update(func(s *UploadUpsert) {
+		s.SetOwnerType(v)
+	})
+}
+
+// UpdateOwnerType sets the "owner_type" field to the value that was provided on create.
+func (u *UploadUpsertOne) UpdateOwnerType() *UploadUpsertOne {
+	return u.Update(func(s *UploadUpsert) {
+		s.UpdateOwnerType()
+	})
+}
+
+// SetOwnerID sets the "owner_id" field.
+func (u *UploadUpsertOne) SetOwnerID(v int64) *UploadUpsertOne {
+	return u.Update(func(s *UploadUpsert) {
+		s.SetOwnerID(v)
+	})
+}
+
+// AddOwnerID adds v to the "owner_id" field.
+func (u *UploadUpsertOne) AddOwnerID(v int64) *UploadUpsertOne {
+	return u.Update(func(s *UploadUpsert) {
+		s.AddOwnerID(v)
+	})
+}
+
+// UpdateOwnerID sets the "owner_id" field to the value that was provided on create.
+func (u *UploadUpsertOne) UpdateOwnerID() *UploadUpsertOne {
+	return u.Update(func(s *UploadUpsert) {
+		s.UpdateOwnerID()
 	})
 }
 
@@ -851,6 +966,41 @@ func (u *UploadUpsertBulk) UpdateThumbnailURL() *UploadUpsertBulk {
 func (u *UploadUpsertBulk) ClearThumbnailURL() *UploadUpsertBulk {
 	return u.Update(func(s *UploadUpsert) {
 		s.ClearThumbnailURL()
+	})
+}
+
+// SetOwnerType sets the "owner_type" field.
+func (u *UploadUpsertBulk) SetOwnerType(v string) *UploadUpsertBulk {
+	return u.Update(func(s *UploadUpsert) {
+		s.SetOwnerType(v)
+	})
+}
+
+// UpdateOwnerType sets the "owner_type" field to the value that was provided on create.
+func (u *UploadUpsertBulk) UpdateOwnerType() *UploadUpsertBulk {
+	return u.Update(func(s *UploadUpsert) {
+		s.UpdateOwnerType()
+	})
+}
+
+// SetOwnerID sets the "owner_id" field.
+func (u *UploadUpsertBulk) SetOwnerID(v int64) *UploadUpsertBulk {
+	return u.Update(func(s *UploadUpsert) {
+		s.SetOwnerID(v)
+	})
+}
+
+// AddOwnerID adds v to the "owner_id" field.
+func (u *UploadUpsertBulk) AddOwnerID(v int64) *UploadUpsertBulk {
+	return u.Update(func(s *UploadUpsert) {
+		s.AddOwnerID(v)
+	})
+}
+
+// UpdateOwnerID sets the "owner_id" field to the value that was provided on create.
+func (u *UploadUpsertBulk) UpdateOwnerID() *UploadUpsertBulk {
+	return u.Update(func(s *UploadUpsert) {
+		s.UpdateOwnerID()
 	})
 }
 

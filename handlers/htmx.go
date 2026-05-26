@@ -1167,64 +1167,6 @@ func HtmxDeleteJournal(c *gin.Context) {
 	HtmxListJournal(c)
 }
 
-// ─── Calendar ───
-
-type htmxCalendarData struct {
-	Event  *models.CalendarEvent
-	Events []models.CalendarEvent
-}
-
-func HtmxListCalendar(c *gin.Context) {
-	rows, err := db.DB.Query("SELECT id, campaign_id, title, description, event_date, event_type, color, created_at FROM campaign_calendar_events ORDER BY event_date DESC")
-	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
-	}
-	defer rows.Close()
-	var events []models.CalendarEvent
-	for rows.Next() {
-		var e models.CalendarEvent
-		rows.Scan(&e.ID, &e.CampaignID, &e.Title, &e.Description, &e.EventDate, &e.EventType, &e.Color, &e.CreatedAt)
-		events = append(events, e)
-	}
-	renderTemplate(c, "calendar_list.html", htmxCalendarData{Events: events})
-}
-
-func HtmxNewCalendarForm(c *gin.Context) {
-	renderTemplate(c, "calendar_form.html", htmxCalendarData{})
-}
-
-func HtmxEditCalendarForm(c *gin.Context) {
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	var e models.CalendarEvent
-	err := db.DB.QueryRow("SELECT id, campaign_id, title, description, event_date, event_type, color, created_at FROM campaign_calendar_events WHERE id=?", id).Scan(
-		&e.ID, &e.CampaignID, &e.Title, &e.Description, &e.EventDate, &e.EventType, &e.Color, &e.CreatedAt)
-	if err != nil {
-		c.String(http.StatusNotFound, "not found")
-		return
-	}
-	renderTemplate(c, "calendar_form.html", htmxCalendarData{Event: &e})
-}
-
-func HtmxCreateCalendar(c *gin.Context) {
-	db.DB.Exec("INSERT INTO campaign_calendar_events(campaign_id,title,description,event_date,event_type) VALUES(?,?,?,?,?)",
-		getIntParam(c, "campaign_id", 1), c.PostForm("title"), c.PostForm("description"), c.PostForm("event_date"), c.PostForm("event_type"))
-	HtmxListCalendar(c)
-}
-
-func HtmxUpdateCalendar(c *gin.Context) {
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	db.DB.Exec("UPDATE campaign_calendar_events SET title=?, description=?, event_date=?, event_type=?, campaign_id=? WHERE id=?",
-		c.PostForm("title"), c.PostForm("description"), c.PostForm("event_date"), c.PostForm("event_type"), getIntParam(c, "campaign_id", 1), id)
-	HtmxListCalendar(c)
-}
-
-func HtmxDeleteCalendar(c *gin.Context) {
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	db.DB.Exec("DELETE FROM campaign_calendar_events WHERE id=?", id)
-	HtmxListCalendar(c)
-}
-
 // ─── Timeline ───
 
 type htmxTimelineData struct {
@@ -1444,14 +1386,6 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"PUT", "/htmx/journal/:id", HtmxUpdateJournal},
 		{"DELETE", "/htmx/journal/:id", HtmxDeleteJournal},
 
-		// Calendar
-		{"GET", "/htmx/calendar", HtmxListCalendar},
-		{"GET", "/htmx/calendar/new", HtmxNewCalendarForm},
-		{"GET", "/htmx/calendar/:id/edit", HtmxEditCalendarForm},
-		{"POST", "/htmx/calendar", HtmxCreateCalendar},
-		{"PUT", "/htmx/calendar/:id", HtmxUpdateCalendar},
-		{"DELETE", "/htmx/calendar/:id", HtmxDeleteCalendar},
-
 		// Timeline
 		{"GET", "/htmx/timeline", HtmxListTimeline},
 		{"GET", "/htmx/timeline/new", HtmxNewTimelineForm},
@@ -1499,6 +1433,10 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"DELETE", "/htmx/oneshot-adventures/:id/checklist/:cid", HtmxDeleteChecklistItem},
 
 		// DM Screen / Quick Reference
+		{"GET", "/htmx/oneshot-adventures/:id/items", HtmxOneShotItems},
+		{"GET", "/htmx/oneshot-adventures/:id/shops", HtmxOneShotShops},
+		{"GET", "/htmx/oneshot-adventures/:id/monsters", HtmxOneShotMonsters},
+		{"GET", "/htmx/oneshot-adventures/:id/pcs", HtmxOneShotPCs},
 		{"GET", "/htmx/oneshot-adventures/:id/dm-screen", HtmxDmScreen},
 
 		// Clue Board (HTMX)

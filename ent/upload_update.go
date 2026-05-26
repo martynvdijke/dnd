@@ -127,6 +127,41 @@ func (_u *UploadUpdate) ClearThumbnailURL() *UploadUpdate {
 	return _u
 }
 
+// SetOwnerType sets the "owner_type" field.
+func (_u *UploadUpdate) SetOwnerType(v string) *UploadUpdate {
+	_u.mutation.SetOwnerType(v)
+	return _u
+}
+
+// SetNillableOwnerType sets the "owner_type" field if the given value is not nil.
+func (_u *UploadUpdate) SetNillableOwnerType(v *string) *UploadUpdate {
+	if v != nil {
+		_u.SetOwnerType(*v)
+	}
+	return _u
+}
+
+// SetOwnerID sets the "owner_id" field.
+func (_u *UploadUpdate) SetOwnerID(v int64) *UploadUpdate {
+	_u.mutation.ResetOwnerID()
+	_u.mutation.SetOwnerID(v)
+	return _u
+}
+
+// SetNillableOwnerID sets the "owner_id" field if the given value is not nil.
+func (_u *UploadUpdate) SetNillableOwnerID(v *int64) *UploadUpdate {
+	if v != nil {
+		_u.SetOwnerID(*v)
+	}
+	return _u
+}
+
+// AddOwnerID adds value to the "owner_id" field.
+func (_u *UploadUpdate) AddOwnerID(v int64) *UploadUpdate {
+	_u.mutation.AddOwnerID(v)
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *UploadUpdate) SetCreatedAt(v string) *UploadUpdate {
 	_u.mutation.SetCreatedAt(v)
@@ -211,6 +246,15 @@ func (_u *UploadUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.ThumbnailURLCleared() {
 		_spec.ClearField(upload.FieldThumbnailURL, field.TypeString)
+	}
+	if value, ok := _u.mutation.OwnerType(); ok {
+		_spec.SetField(upload.FieldOwnerType, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.OwnerID(); ok {
+		_spec.SetField(upload.FieldOwnerID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedOwnerID(); ok {
+		_spec.AddField(upload.FieldOwnerID, field.TypeInt64, value)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(upload.FieldCreatedAt, field.TypeString, value)
@@ -335,6 +379,41 @@ func (_u *UploadUpdateOne) ClearThumbnailURL() *UploadUpdateOne {
 	return _u
 }
 
+// SetOwnerType sets the "owner_type" field.
+func (_u *UploadUpdateOne) SetOwnerType(v string) *UploadUpdateOne {
+	_u.mutation.SetOwnerType(v)
+	return _u
+}
+
+// SetNillableOwnerType sets the "owner_type" field if the given value is not nil.
+func (_u *UploadUpdateOne) SetNillableOwnerType(v *string) *UploadUpdateOne {
+	if v != nil {
+		_u.SetOwnerType(*v)
+	}
+	return _u
+}
+
+// SetOwnerID sets the "owner_id" field.
+func (_u *UploadUpdateOne) SetOwnerID(v int64) *UploadUpdateOne {
+	_u.mutation.ResetOwnerID()
+	_u.mutation.SetOwnerID(v)
+	return _u
+}
+
+// SetNillableOwnerID sets the "owner_id" field if the given value is not nil.
+func (_u *UploadUpdateOne) SetNillableOwnerID(v *int64) *UploadUpdateOne {
+	if v != nil {
+		_u.SetOwnerID(*v)
+	}
+	return _u
+}
+
+// AddOwnerID adds value to the "owner_id" field.
+func (_u *UploadUpdateOne) AddOwnerID(v int64) *UploadUpdateOne {
+	_u.mutation.AddOwnerID(v)
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *UploadUpdateOne) SetCreatedAt(v string) *UploadUpdateOne {
 	_u.mutation.SetCreatedAt(v)
@@ -449,6 +528,15 @@ func (_u *UploadUpdateOne) sqlSave(ctx context.Context) (_node *Upload, err erro
 	}
 	if _u.mutation.ThumbnailURLCleared() {
 		_spec.ClearField(upload.FieldThumbnailURL, field.TypeString)
+	}
+	if value, ok := _u.mutation.OwnerType(); ok {
+		_spec.SetField(upload.FieldOwnerType, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.OwnerID(); ok {
+		_spec.SetField(upload.FieldOwnerID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedOwnerID(); ok {
+		_spec.AddField(upload.FieldOwnerID, field.TypeInt64, value)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(upload.FieldCreatedAt, field.TypeString, value)

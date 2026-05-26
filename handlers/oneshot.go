@@ -2716,3 +2716,117 @@ func DeleteDmNote(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
 }
+
+// ─── One-Shot Items Section (HTMX) ───
+
+func HtmxOneShotItems(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	rows, err := db.DB.Query("SELECT id, adventure_id, name, description, category, quantity, weight, price_gp, is_magical, attunement, notes, created_at FROM oneshot_items WHERE adventure_id=? ORDER BY name", id)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "query error")
+		return
+	}
+	defer rows.Close()
+	out := make([]models.OneShotItem, 0)
+	for rows.Next() {
+		var it models.OneShotItem
+		rows.Scan(&it.ID, &it.AdventureID, &it.Name, &it.Description, &it.Category, &it.Quantity, &it.Weight, &it.PriceGP, &it.IsMagical, &it.Attunement, &it.Notes, &it.CreatedAt)
+		out = append(out, it)
+	}
+	renderTemplate(c, "oneshot_items_section.html", itemsSectionData{Items: out, AdventureID: id})
+}
+
+// ─── One-Shot Shops Section (HTMX) ───
+
+func HtmxOneShotShops(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	rows, err := db.DB.Query("SELECT id, name, description, type, markup FROM shops WHERE oneshot_adventure_id=? ORDER BY name", id)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "query error")
+		return
+	}
+	defer rows.Close()
+	type shopRow struct {
+		ID          int64
+		Name        string
+		Description string
+		Type        string
+		Markup      int
+	}
+	out := make([]shopRow, 0)
+	for rows.Next() {
+		var s shopRow
+		rows.Scan(&s.ID, &s.Name, &s.Description, &s.Type, &s.Markup)
+		out = append(out, s)
+	}
+	renderTemplate(c, "oneshot_shops_section.html", shopsSectionData{Shops: out, AdventureID: id})
+}
+
+// ─── One-Shot Monsters Section (HTMX) ───
+
+func HtmxOneShotMonsters(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	rows, err := db.DB.Query("SELECT id, adventure_id, COALESCE(act_id,0), COALESCE(scene_id,0), name, ac, hp, str, dex, con, int, wis, cha, cr, source, is_full, COALESCE(saves,''), COALESCE(skills,''), COALESCE(damage_vulnerabilities,''), COALESCE(damage_resistances,''), COALESCE(damage_immunities,''), COALESCE(condition_immunities,''), COALESCE(senses,''), COALESCE(languages,''), COALESCE(special_abilities,''), COALESCE(actions,''), COALESCE(legendary_actions,''), COALESCE(library_id,0), created_at FROM oneshot_monsters WHERE adventure_id=? ORDER BY name", id)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "query error")
+		return
+	}
+	defer rows.Close()
+	out := make([]models.OneShotMonster, 0)
+	for rows.Next() {
+		var m models.OneShotMonster
+		var actID, sceneID, libID int64
+		rows.Scan(&m.ID, &m.AdventureID, &actID, &sceneID, &m.Name, &m.AC, &m.HP, &m.Str, &m.Dex, &m.Con, &m.Int, &m.Wis, &m.Cha, &m.CR, &m.Source, &m.IsFull, &m.Saves, &m.Skills, &m.DamageVulnerabilities, &m.DamageResistances, &m.DamageImmunities, &m.ConditionImmunities, &m.Senses, &m.Languages, &m.SpecialAbilities, &m.Actions, &m.LegendaryActions, &libID, &m.CreatedAt)
+		if actID > 0 { m.ActID = &actID }
+		if sceneID > 0 { m.SceneID = &sceneID }
+		if libID > 0 { m.LibraryID = &libID }
+		out = append(out, m)
+	}
+	renderTemplate(c, "oneshot_monsters_section.html", monstersSectionData{Monsters: out, AdventureID: id})
+}
+
+// ─── One-Shot Player Characters Section (HTMX) ───
+
+func HtmxOneShotPCs(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	rows, err := db.DB.Query(`SELECT opc.id, opc.adventure_id, opc.character_id, opc.role, opc.notes,
+		COALESCE(ch.name,''), COALESCE(u.username,'')
+		FROM oneshot_player_characters opc
+		LEFT JOIN characters ch ON opc.character_id = ch.id
+		LEFT JOIN users u ON ch.user_id = u.id
+		WHERE opc.adventure_id=? ORDER BY ch.name`, id)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "query error")
+		return
+	}
+	defer rows.Close()
+	out := make([]models.OneShotPlayerCharacter, 0)
+	for rows.Next() {
+		var pc models.OneShotPlayerCharacter
+		rows.Scan(&pc.ID, &pc.AdventureID, &pc.CharacterID, &pc.Role, &pc.Notes, &pc.CharName, &pc.Username)
+		out = append(out, pc)
+	}
+	renderTemplate(c, "oneshot_pcs_section.html", pcsSectionData{PCs: out, AdventureID: id})
+}
+
+// ─── Data structs for section templates ───
+
+type itemsSectionData struct {
+	Items       []models.OneShotItem
+	AdventureID int64
+}
+
+type shopsSectionData struct {
+	Shops       interface{}
+	AdventureID int64
+}
+
+type monstersSectionData struct {
+	Monsters    []models.OneShotMonster
+	AdventureID int64
+}
+
+type pcsSectionData struct {
+	PCs         []models.OneShotPlayerCharacter
+	AdventureID int64
+}

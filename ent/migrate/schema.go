@@ -1454,6 +1454,14 @@ var (
 		{Name: "hp_max", Type: field.TypeInt, Default: 10},
 		{Name: "hp_current", Type: field.TypeInt, Default: 10},
 		{Name: "is_alive", Type: field.TypeBool, Default: true},
+		{Name: "is_full", Type: field.TypeBool, Default: false},
+		{Name: "ac", Type: field.TypeInt, Default: 10},
+		{Name: "speed", Type: field.TypeInt, Default: 30},
+		{Name: "skills", Type: field.TypeString, Default: ""},
+		{Name: "saves", Type: field.TypeString, Default: ""},
+		{Name: "features", Type: field.TypeString, Default: ""},
+		{Name: "actions", Type: field.TypeString, Default: ""},
+		{Name: "backstory", Type: field.TypeString, Default: ""},
 		{Name: "created_at", Type: field.TypeString, Default: ""},
 		{Name: "user_id", Type: field.TypeInt64},
 	}
@@ -1465,7 +1473,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "npcs_users_npcs",
-				Columns:    []*schema.Column{NpcsColumns[16]},
+				Columns:    []*schema.Column{NpcsColumns[24]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1474,7 +1482,7 @@ var (
 			{
 				Name:    "npc_user_id",
 				Unique:  false,
-				Columns: []*schema.Column{NpcsColumns[16]},
+				Columns: []*schema.Column{NpcsColumns[24]},
 			},
 		},
 	}
@@ -1761,6 +1769,8 @@ var (
 		{Name: "url", Type: field.TypeString, Nullable: true},
 		{Name: "resized_url", Type: field.TypeString, Nullable: true},
 		{Name: "thumbnail_url", Type: field.TypeString, Nullable: true},
+		{Name: "owner_type", Type: field.TypeString, Default: ""},
+		{Name: "owner_id", Type: field.TypeInt64, Default: 0},
 		{Name: "created_at", Type: field.TypeString, Default: ""},
 	}
 	// UploadsTable holds the schema information for the "uploads" table.

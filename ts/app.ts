@@ -386,6 +386,8 @@ async function init() {
     if (user.role === 'admin') {
       document.getElementById('adminNavItem')!.style.display = '';
       document.getElementById('combatNavItem')!.style.display = '';
+    }
+    if (user.role === 'admin' || user.role === 'dm') {
       document.getElementById('shopsNavItem')!.style.display = '';
     }
     showView('characters');
@@ -406,11 +408,9 @@ function showView(view: string) {
   document.getElementById('compendiumView')!.style.display = view === 'compendium' ? 'block' : 'none';
   document.getElementById('partyView')!.style.display = view === 'party' ? 'block' : 'none';
   document.getElementById('encounterView')!.style.display = view === 'encounter' ? 'block' : 'none';
-  document.getElementById('calendarView')!.style.display = view === 'calendar' ? 'block' : 'none';
   document.getElementById('timelineView')!.style.display = view === 'timeline' ? 'block' : 'none';
   document.getElementById('singleEncounterView')!.style.display = view === 'singleEncounter' ? 'block' : 'none';
   document.getElementById('combatTrackerView')!.style.display = view === 'combatTracker' ? 'block' : 'none';
-  document.getElementById('shopsView')!.style.display = view === 'shops' ? 'block' : 'none';
   document.getElementById('wikiView')!.style.display = view === 'wiki' ? 'block' : 'none';
   document.getElementById('oneshotView')!.style.display = view === 'oneshot' ? 'block' : 'none';
   document.getElementById('factionsView')!.style.display = view === 'factions' ? 'block' : 'none';
@@ -2507,58 +2507,99 @@ async function loadDiceHistory() {
     const isOwner = (campaignId: number) => { const c = getCampaign(campaignId); return c && c.user_id === currentUser?.id; };
     const isDm = (campaignId: number) => { const c = getCampaign(campaignId); return c && (c.my_role === 'dm' || c.user_id === currentUser?.id); };
 
-    el.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h2 mb-0"><i class="fa-solid fa-flag me-2"></i>Party View</h1>
+    let html = `<div class="d-flex justify-content-between align-items-center mb-3">
+      <h1 class="h2 mb-0"><i class="fa-solid fa-flag me-2"></i>Party View</h1>
+      <div class="d-flex gap-2">
         <button class="btn btn-gold btn-sm" onclick="showCreateCampaign()"><i class="fa-solid fa-plus me-1"></i>New Campaign</button>
+        ${currentUser?.role === 'dm' || currentUser?.role === 'admin' ? `<button class="btn btn-outline-primary btn-sm" onclick="showCreateParty()"><i class="fa-solid fa-flag me-1"></i>New Party</button>` : ''}
       </div>
-      ${groups.map((g:any) => {
-        const own = g.id ? isOwner(g.id) : false;
-        const dm = g.id ? isDm(g.id) : false;
-        const canOpen = (userId: number) => userId === currentUser?.id || currentUser?.role === 'admin' || dm;
-        const partyLabel = g.party_name ? esc(g.party_name) : esc(g.name || 'Unnamed Campaign');
-        const subLabel = g.party_name ? `<span class="small text-muted ms-2">Campaign: ${esc(g.name)}</span>` : '';
-        return `<div class="card mb-3">
-          <div class="card-header d-flex justify-content-between align-items-center">
-            <div>
-              <strong>${partyLabel}</strong>
-              ${subLabel}
-              ${g.owner_name ? `<span class="ms-2 small text-muted">DM: ${esc(g.owner_name)}</span>` : ''}
-            </div>
-            <div class="d-flex align-items-center gap-2">
-              <span class="badge badge-gold">${g.members.length} members</span>
-              ${g.id && (own || dm) ? `
-                <button class="btn btn-outline-primary btn-sm" onclick="showManageCampaign(${g.id},'${esc(g.name)}','${esc(g.party_name || '')}')" title="Manage"><i class="fa-solid fa-users-gear"></i></button>
-                <button class="btn btn-outline-info btn-sm" onclick="shareParty(${g.id})" title="Share Party"><i class="fa-solid fa-share-nodes"></i></button>
-              ` : ''}
-              ${g.id && own ? `<button class="btn btn-outline-danger btn-sm" onclick="deleteCampaign(${g.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>` : ''}
-              ${g.id && (own || dm) && currentUser?.role === 'admin' ? `<button class="btn btn-outline-gold btn-sm" onclick="sendCampaignHighlights(${g.id})" title="Email Highlights"><i class="fa-solid fa-envelope"></i></button>` : ''}
-            </div>
+    </div>`;
+
+    // DM/Admin: Party management section
+    if (currentUser?.role === 'dm' || currentUser?.role === 'admin') {
+      try {
+        const parties = await api('GET', '/api/parties');
+        if (parties.length) {
+          html += `<h5 class="mb-2"><i class="fa-solid fa-flag me-1"></i>Parties</h5>`;
+          for (const p of parties) {
+            const factions = await api('GET', `/api/parties/${p.id}/factions`).catch(() => []);
+            const uploads = await api('GET', `/api/parties/${p.id}/uploads`).catch(() => []);
+            const fileCount = uploads.length;
+            html += `<div class="card mb-3">
+              <div class="card-header d-flex justify-content-between align-items-center py-2">
+                <span><strong>${esc(p.name)}</strong> ${p.description ? `<span class="text-muted small ms-2">${esc(p.description)}</span>` : ''}</span>
+                <div class="d-flex gap-1">
+                  <span class="badge badge-gold">${factions.length} factions</span>
+                  ${fileCount ? `<span class="badge bg-info">${fileCount} files</span>` : ''}
+                  <button class="btn btn-sm btn-outline-primary" onclick="renameParty(${p.id},'${esc(p.name)}','${esc(p.description)}')"><i class="fa-solid fa-pen"></i></button>
+                  <button class="btn btn-sm btn-outline-danger" onclick="deleteParty(${p.id})"><i class="fa-solid fa-trash"></i></button>
+                </div>
+              </div>
+              ${factions.length ? `<div class="card-body py-2">
+                <div class="small"><strong>Factions:</strong></div>
+                <div class="d-flex flex-wrap gap-1 mt-1">${factions.map((f: any) =>
+                  `<span class="badge bg-light text-dark border">${esc(f.name)}${f.type ? ` <span class="text-muted">(${esc(f.type)})</span>` : ''}</span>`
+                ).join('')}</div>
+              </div>` : ''}
+              ${uploads.length ? `<div class="card-footer py-1">
+                <div class="small text-muted">${fileCount} file(s) uploaded</div>
+              </div>` : ''}
+            </div>`;
+          }
+        }
+      } catch {}
+    }
+
+    // Campaign-based party groups
+    html += groups.map((g:any) => {
+      const own = g.id ? isOwner(g.id) : false;
+      const dm = g.id ? isDm(g.id) : false;
+      const canOpen = (userId: number) => userId === currentUser?.id || currentUser?.role === 'admin' || dm;
+      const partyLabel = g.party_name ? esc(g.party_name) : esc(g.name || 'Unnamed Campaign');
+      const subLabel = g.party_name ? `<span class="small text-muted ms-2">Campaign: ${esc(g.name)}</span>` : '';
+      return `<div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <div>
+            <strong>${partyLabel}</strong>
+            ${subLabel}
+            ${g.owner_name ? `<span class="ms-2 small text-muted">DM: ${esc(g.owner_name)}</span>` : ''}
           </div>
-          <div class="card-body">
-            <div class="row g-3">
-              ${g.members.map((m:any) => {
-                const pct = m.hp_max > 0 ? Math.round((m.hp_current / m.hp_max) * 100) : 0;
-                const sc = m.status === 'down' ? 'var(--danger)' : m.status === 'injured' ? 'var(--gold)' : 'var(--success)';
-                return `<div class="col-md-6 col-lg-4">
-                  <div class="character-card" ${canOpen(m.user_id) ? `onclick="openChar(${m.id})"` : ''} style="${canOpen(m.user_id) ? '' : 'cursor:default;opacity:0.75'}">
-                    <div class="char-name">${esc(m.name)}</div>
-                    <div class="char-detail">${esc(m.race)} ${esc(m.class)} · Level ${m.level}</div>
-                    ${m.owner_name && m.owner_name !== currentUser?.username ? `<div class="small text-muted"><i class="fa-solid fa-user me-1"></i>${esc(m.owner_name)}</div>` : ''}
-                    <div class="d-flex gap-3 mt-1 small text-muted">
-                      <span>AC: ${m.ac}</span><span style="color:${sc}">${esc(m.status)}</span>
-                    </div>
-                    <div class="hp-bar position-relative mt-2" style="height:12px">
-                      <div class="hp-bar-fill" style="width:${pct}%;height:100%"></div>
-                      <div class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center text-white" style="font-size:0.65rem">${m.hp_current}/${m.hp_max}</div>
-                    </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge badge-gold">${g.members.length} members</span>
+            ${g.id && (own || dm) ? `
+              <button class="btn btn-outline-primary btn-sm" onclick="showManageCampaign(${g.id},'${esc(g.name)}','${esc(g.party_name || '')}')" title="Manage"><i class="fa-solid fa-users-gear"></i></button>
+              <button class="btn btn-outline-info btn-sm" onclick="shareParty(${g.id})" title="Share Party"><i class="fa-solid fa-share-nodes"></i></button>
+            ` : ''}
+            ${g.id && own ? `<button class="btn btn-outline-danger btn-sm" onclick="deleteCampaign(${g.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>` : ''}
+            ${g.id && (own || dm) && currentUser?.role === 'admin' ? `<button class="btn btn-outline-gold btn-sm" onclick="sendCampaignHighlights(${g.id})" title="Email Highlights"><i class="fa-solid fa-envelope"></i></button>` : ''}
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="row g-3">
+            ${g.members.map((m:any) => {
+              const pct = m.hp_max > 0 ? Math.round((m.hp_current / m.hp_max) * 100) : 0;
+              const sc = m.status === 'down' ? 'var(--danger)' : m.status === 'injured' ? 'var(--gold)' : 'var(--success)';
+              return `<div class="col-md-6 col-lg-4">
+                <div class="character-card" ${canOpen(m.user_id) ? `onclick="openChar(${m.id})"` : ''} style="${canOpen(m.user_id) ? '' : 'cursor:default;opacity:0.75'}">
+                  <div class="char-name">${esc(m.name)}</div>
+                  <div class="char-detail">${esc(m.race)} ${esc(m.class)} · Level ${m.level}</div>
+                  ${m.owner_name && m.owner_name !== currentUser?.username ? `<div class="small text-muted"><i class="fa-solid fa-user me-1"></i>${esc(m.owner_name)}</div>` : ''}
+                  <div class="d-flex gap-3 mt-1 small text-muted">
+                    <span>AC: ${m.ac}</span><span style="color:${sc}">${esc(m.status)}</span>
                   </div>
-                </div>`;
-              }).join('')}
-            </div>
+                  <div class="hp-bar position-relative mt-2" style="height:12px">
+                    <div class="hp-bar-fill" style="width:${pct}%;height:100%"></div>
+                    <div class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center text-white" style="font-size:0.65rem">${m.hp_current}/${m.hp_max}</div>
+                  </div>
+                </div>
+              </div>`;
+            }).join('')}
           </div>
-        </div>`;
-      }).join('') || '<div class="empty-state"><i class="fa-solid fa-flag fa-2x mb-2 d-block text-muted"></i>No characters yet. Create a campaign and add members to build your party!</div>'}`;
+        </div>
+      </div>`;
+    }).join('') || '<div class="empty-state"><i class="fa-solid fa-flag fa-2x mb-2 d-block text-muted"></i>No characters yet. Create a campaign and add members to build your party!</div>';
+
+    el.innerHTML = html;
   } catch (e:any) {
     el.innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Failed: ${esc(e.message)}</p></div>`;
   }
@@ -2707,6 +2748,57 @@ async function searchUsers(q: string) {
   } catch (e: any) {
     toast(e.message, true);
   }
+};
+
+// ─── Party Management ───
+
+(window as any).showCreateParty = function () {
+  showModal('Create Party', `
+    <div class="mb-3"><label class="form-label">Party Name</label><input class="form-control" id="newPartyNameInput"></div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="newPartyDesc" rows="2"></textarea></div>
+    <button class="btn btn-primary w-100" onclick="doCreateParty()">Create</button>
+  `);
+};
+
+(window as any).doCreateParty = async function () {
+  const name = (document.getElementById('newPartyNameInput') as HTMLInputElement).value;
+  if (!name) { toast('Party name required', true); return; }
+  const description = (document.getElementById('newPartyDesc') as HTMLTextAreaElement).value;
+  try {
+    await api('POST', '/api/parties', { name, description });
+    hideModal();
+    toast('Party created');
+    (window as any).showParty();
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).renameParty = function (id: number, name: string, description: string) {
+  showModal('Rename Party', `
+    <div class="mb-3"><label class="form-label">Party Name</label><input class="form-control" id="editPartyNameInput" value="${esc(name)}"></div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="editPartyDesc" rows="2">${esc(description)}</textarea></div>
+    <button class="btn btn-primary w-100" onclick="doRenameParty(${id})">Save</button>
+  `);
+};
+
+(window as any).doRenameParty = async function (id: number) {
+  const name = (document.getElementById('editPartyNameInput') as HTMLInputElement).value;
+  if (!name) { toast('Party name required', true); return; }
+  const description = (document.getElementById('editPartyDesc') as HTMLTextAreaElement).value;
+  try {
+    await api('PUT', `/api/parties/${id}`, { name, description });
+    hideModal();
+    toast('Party updated');
+    (window as any).showParty();
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).deleteParty = async function (id: number) {
+  if (!confirm('Delete this party?')) return;
+  try {
+    await api('DELETE', `/api/parties/${id}`);
+    toast('Party deleted');
+    (window as any).showParty();
+  } catch (e: any) { toast(e.message, true); }
 };
 
 // ─── Share & Email ───
@@ -3187,16 +3279,6 @@ async function loadCompendiumEquipment() {
 };
 
 // ─── Calendar ───
-
-(window as any).showCalendar = function () {
-  showView('calendar');
-  const el = document.getElementById('calendarContent')!;
-  el.setAttribute('hx-get', '/htmx/calendar');
-  el.setAttribute('hx-trigger', 'load');
-  el.setAttribute('hx-swap', 'innerHTML');
-  el.innerHTML = '<div class="ornament">✧ Loading calendar... ✧</div>';
-  htmx.process(el);
-};
 
 // ─── Timeline ───
 
@@ -4344,91 +4426,6 @@ let draggedCombatId: number | null = null;
 
 // ─── Shops ───
 
-(window as any).showShops = async function () {
-  showView('shops');
-  const el = document.getElementById('shopsContent')!;
-  el.innerHTML = '<div class="ornament">✧ Loading shops... ✧</div>';
-  try {
-    const [shops, chars] = await Promise.all([api('GET', '/api/shops'), api('GET', '/api/characters')]);
-    if (!shops.length) {
-      el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-store fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Shops Yet</p><p class="small text-muted">Ask your DM to set up shops for buying and selling.</p></div>';
-      return;
-    }
-    let html = `<div class="d-flex justify-content-between align-items-center mb-3">
-      <div><select class="form-select form-select-sm d-inline-block" id="shopSelect" style="width:auto" onchange="loadShopItems()">
-        ${shops.map((s: any) => `<option value="${s.id}">${esc(s.name)}</option>`).join('')}
-      </select></div>
-      <div><select class="form-select form-select-sm d-inline-block" id="shopCharSelect" style="width:auto">
-        ${chars.map((c: any) => `<option value="${c.id}">${esc(c.name)}</option>`).join('')}
-      </select></div>
-    </div>
-    <div id="shopItemsContainer"><p class="text-muted small">Select a shop to browse items.</p></div>
-    <div id="shopCharGold" class="small text-muted"></div>
-    <div id="shopTransactions" class="mt-3"></div>`;
-    el.innerHTML = html;
-    await (window as any).loadShopItems();
-  } catch (e: any) { el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(e.message)}</p></div>`; }
-};
-
-(window as any).loadShopItems = async function () {
-  const shopId = (document.getElementById('shopSelect') as HTMLSelectElement)?.value;
-  const charId = (document.getElementById('shopCharSelect') as HTMLSelectElement)?.value;
-  if (!shopId) return;
-  try {
-    const [items, chars] = await Promise.all([
-      api('GET', `/api/shops/${shopId}/items`),
-      api('GET', '/api/characters'),
-    ]);
-    const char = chars.find((c: any) => c.id === parseInt(charId));
-    const gold = char ? await api('GET', `/api/characters/${charId}`).then((ch: any) => ch.currency?.gp || 0).catch(() => 0) : 0;
-    document.getElementById('shopCharGold')!.textContent = `💰 ${gold} GP`;
-
-    if (!items.length) {
-      document.getElementById('shopItemsContainer')!.innerHTML = '<p class="text-muted small fst-italic">This shop has no items yet.</p>';
-      return;
-    }
-    let html = '<div class="row g-2">';
-    for (const it of items) {
-      const stockLabel = it.quantity_available >= 0 ? `${it.quantity_available} in stock` : 'unlimited';
-      html += `<div class="col-md-6"><div class="card">
-        <div class="card-body py-2 px-3">
-          <div class="d-flex justify-content-between">
-            <span class="fw-bold small">${esc(it.item_name)}</span>
-            <span class="fw-bold" style="color:var(--gold)">${it.price_gp} GP</span>
-          </div>
-          <div class="small text-muted">${esc(it.description)}</div>
-          <div class="d-flex justify-content-between align-items-center mt-1">
-            <span class="small text-muted">${stockLabel}${it.is_magical ? ' · ✨ Magic' : ''}</span>
-            <div class="d-flex gap-1">
-              <input type="number" class="form-control form-control-sm" id="buyQty-${it.id}" value="1" style="width:50px;font-size:0.7rem;height:24px">
-              <button class="btn btn-sm btn-gold py-0 px-1" style="font-size:0.65rem;height:24px" onclick="buyShopItem(${shopId},${it.id},${charId})">Buy</button>
-            </div>
-          </div>
-        </div>
-      </div></div>`;
-    }
-    html += '</div>';
-    document.getElementById('shopItemsContainer')!.innerHTML = html;
-
-    // Load transactions
-    const txns = await api('GET', `/api/shop-transactions?character_id=${charId}`);
-    if (txns.length) {
-      const tHtml = txns.map((t: any) => `<div class="small text-muted">${t.transaction_type === 'buy' ? '🛒' : '💰'} ${esc(t.item_name)} x${t.quantity} for ${t.price_gp} GP</div>`).join('');
-      document.getElementById('shopTransactions')!.innerHTML = `<h6 class="text-muted mt-3">Recent Transactions</h6>${tHtml}`;
-    }
-  } catch (e: any) { toast(e.message, true); }
-};
-
-(window as any).buyShopItem = async function (shopId: number, itemId: number, charId: number) {
-  const qtyInput = document.getElementById('buyQty-' + itemId) as HTMLInputElement;
-  const qty = parseInt(qtyInput?.value || '1');
-  try {
-    const result = await api('POST', `/api/shops/${shopId}/buy`, { item_id: itemId, character_id: charId, quantity: qty });
-    toast(`Bought ${result.quantity}x ${result.item} for ${result.price} GP`);
-    (window as any).loadShopItems();
-  } catch (e: any) { toast(e.message, true); }
-};
-
 // ─── Wiki ───
 
 (window as any).showWiki = async function (campaignId?: number) {
@@ -4641,6 +4638,546 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
     dialogEl.className = origClass;
     modalEl.removeEventListener('hidden.bs.modal', restore);
   }, { once: true });
+};
+
+// ─── One-Shot Tree UI (SortableJS Drag-Reorder) ───
+
+(window as any).initOneShotTree = function (adventureId: number) {
+  const actTree = document.getElementById('actTree');
+  if (!actTree) return;
+
+  // Sortable acts
+  const actsEl = actTree.querySelector('.sortable-acts') || actTree;
+  if (actsEl && !(actsEl as any)._sortableInitialized) {
+    (actsEl as any)._sortableInitialized = true;
+    new (window as any).Sortable(actsEl, {
+      handle: '.sortable-handle',
+      animation: 150,
+      draggable: '.sortable-act',
+      onEnd: async function () {
+        const order = Array.from(actsEl.querySelectorAll('.sortable-act')).map(el => parseInt(el.getAttribute('data-id') || '0'));
+        try {
+          await api('PUT', `/api/oneshot-adventures/${adventureId}/acts/reorder`, { order });
+        } catch (e: any) { toast(e.message, true); }
+      }
+    });
+  }
+
+  // Sortable scenes within each act
+  actTree.querySelectorAll('.sortable-scenes').forEach((scenesEl: any) => {
+    if (scenesEl._sortableInitialized) return;
+    scenesEl._sortableInitialized = true;
+    const actId = parseInt(scenesEl.getAttribute('data-act-id') || '0');
+    new (window as any).Sortable(scenesEl, {
+      handle: '.sortable-handle',
+      animation: 150,
+      draggable: '.sortable-scene',
+      onEnd: async function () {
+        const order = Array.from(scenesEl.querySelectorAll('.sortable-scene')).map((el: any) => parseInt(el.getAttribute('data-id') || '0'));
+        try {
+          await api('PUT', `/api/oneshot-acts/${actId}/scenes/reorder`, { order });
+        } catch (e: any) { toast(e.message, true); }
+      }
+    });
+  });
+};
+
+// ─── One-Shot Items ───
+
+(window as any).showOneShotItemForm = function (adventureId: number) {
+  showModal('Add Item', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="itemName"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Category</label><input class="form-control" id="itemCategory" placeholder="weapon, armor, potion..."></div>
+      <div class="col-3"><label class="form-label">Qty</label><input class="form-control" id="itemQty" type="number" value="1"></div>
+      <div class="col-3"><label class="form-label">Weight</label><input class="form-control" id="itemWeight" placeholder="lbs"></div>
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Price (GP)</label><input class="form-control" id="itemPrice" type="number" value="0"></div>
+      <div class="col-6"><label class="form-label d-flex gap-3">
+        <span><input type="checkbox" id="itemMagical"> Magical</span>
+        <span><input type="checkbox" id="itemAttune"> Attunement</span>
+      </label></div>
+    </div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="itemDesc" rows="2"></textarea></div>
+    <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="itemNotes" rows="2"></textarea></div>
+    <button class="btn btn-primary w-100" onclick="saveOneShotItem(${adventureId})">Create</button>
+  `);
+};
+
+(window as any).saveOneShotItem = async function (adventureId: number) {
+  const name = (document.getElementById('itemName') as HTMLInputElement).value;
+  if (!name) { toast('Name required', true); return; }
+  await api('POST', `/api/oneshot-adventures/${adventureId}/items`, {
+    name,
+    category: (document.getElementById('itemCategory') as HTMLInputElement).value,
+    quantity: parseInt((document.getElementById('itemQty') as HTMLInputElement).value) || 1,
+    weight: (document.getElementById('itemWeight') as HTMLInputElement).value,
+    price_gp: parseFloat((document.getElementById('itemPrice') as HTMLInputElement).value) || 0,
+    is_magical: (document.getElementById('itemMagical') as HTMLInputElement).checked,
+    attunement: (document.getElementById('itemAttune') as HTMLInputElement).checked,
+    description: (document.getElementById('itemDesc') as HTMLTextAreaElement).value,
+    notes: (document.getElementById('itemNotes') as HTMLTextAreaElement).value,
+  });
+  hideModal();
+  toast('Item created');
+  // Refresh items section via HTMX
+  const itemsCard = document.querySelector('[hx-get*="/items"]');
+  if (itemsCard) htmx.trigger(itemsCard, 'load');
+};
+
+(window as any).editOneShotItem = async function (itemId: number) {
+  // Get item data by listing from the adventure context
+  showModal('Edit Item', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="editItemName"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Category</label><input class="form-control" id="editItemCategory"></div>
+      <div class="col-3"><label class="form-label">Qty</label><input class="form-control" id="editItemQty" type="number" value="1"></div>
+      <div class="col-3"><label class="form-label">Weight</label><input class="form-control" id="editItemWeight"></div>
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Price (GP)</label><input class="form-control" id="editItemPrice" type="number" value="0"></div>
+      <div class="col-6"><label class="form-label d-flex gap-3">
+        <span><input type="checkbox" id="editItemMagical"> Magical</span>
+        <span><input type="checkbox" id="editItemAttune"> Attunement</span>
+      </label></div>
+    </div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="editItemDesc" rows="2"></textarea></div>
+    <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="editItemNotes" rows="2"></textarea></div>
+    <button class="btn btn-primary w-100" onclick="updateOneShotItem(${itemId})">Save</button>
+  `);
+};
+
+(window as any).updateOneShotItem = async function (itemId: number) {
+  const name = (document.getElementById('editItemName') as HTMLInputElement).value;
+  if (!name) { toast('Name required', true); return; }
+  await api('PUT', `/api/oneshot-items/${itemId}`, {
+    name,
+    category: (document.getElementById('editItemCategory') as HTMLInputElement).value,
+    quantity: parseInt((document.getElementById('editItemQty') as HTMLInputElement).value) || 1,
+    weight: (document.getElementById('editItemWeight') as HTMLInputElement).value,
+    price_gp: parseFloat((document.getElementById('editItemPrice') as HTMLInputElement).value) || 0,
+    is_magical: (document.getElementById('editItemMagical') as HTMLInputElement).checked,
+    attunement: (document.getElementById('editItemAttune') as HTMLInputElement).checked,
+    description: (document.getElementById('editItemDesc') as HTMLTextAreaElement).value,
+    notes: (document.getElementById('editItemNotes') as HTMLTextAreaElement).value,
+  });
+  hideModal();
+  toast('Item updated');
+  const itemsCard = document.querySelector('[hx-get*="/items"]');
+  if (itemsCard) htmx.trigger(itemsCard, 'load');
+};
+
+(window as any).deleteOneShotItem = async function (itemId: number) {
+  if (!confirm('Delete this item?')) return;
+  await api('DELETE', `/api/oneshot-items/${itemId}`);
+  toast('Item deleted');
+  const itemsCard = document.querySelector('[hx-get*="/items"]');
+  if (itemsCard) htmx.trigger(itemsCard, 'load');
+};
+
+// ─── One-Shot Shops ───
+
+(window as any).showOneShotShopForm = function (adventureId: number) {
+  showModal('Add Shop', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="shopName"></div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="shopDesc" rows="2"></textarea></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Sell Markup %</label><input class="form-control" id="shopMarkup" type="number" value="100"></div>
+      <div class="col-6"><label class="form-label">Buy Markup %</label><input class="form-control" id="shopBuyMarkup" type="number" value="50"></div>
+    </div>
+    <button class="btn btn-primary w-100" onclick="createOneShotShop(${adventureId})">Create</button>
+  `);
+};
+
+(window as any).createOneShotShop = async function (adventureId: number) {
+  const name = (document.getElementById('shopName') as HTMLInputElement).value;
+  if (!name) { toast('Name required', true); return; }
+  await api('POST', `/api/oneshot-adventures/${adventureId}/shops`, {
+    name,
+    description: (document.getElementById('shopDesc') as HTMLTextAreaElement).value,
+    markup_percent: parseFloat((document.getElementById('shopMarkup') as HTMLInputElement).value) || 100,
+    markup_buy_percent: parseFloat((document.getElementById('shopBuyMarkup') as HTMLInputElement).value) || 50,
+  });
+  hideModal();
+  toast('Shop created');
+  const shopsCard = document.querySelector('[hx-get*="/shops"]');
+  if (shopsCard) htmx.trigger(shopsCard, 'load');
+};
+
+(window as any).deleteOneShotShop = async function (shopId: number) {
+  if (!confirm('Delete this shop?')) return;
+  await api('DELETE', `/api/oneshot-adventures/0/shops/${shopId}`);
+  toast('Shop deleted');
+  const shopsCard = document.querySelector('[hx-get*="/shops"]');
+  if (shopsCard) htmx.trigger(shopsCard, 'load');
+};
+
+// ─── One-Shot Monsters ───
+
+(window as any).showAddMonsterForm = function (adventureId: number) {
+  showModal('Add Monster', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="monsterName"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-3"><label class="form-label">AC</label><input class="form-control" id="monsterAC" type="number" value="10"></div>
+      <div class="col-3"><label class="form-label">HP</label><input class="form-control" id="monsterHP" type="number" value="10"></div>
+      <div class="col-3"><label class="form-label">CR</label><input class="form-control" id="monsterCR" placeholder="1/2"></div>
+      <div class="col-3"><label class="form-label">Source</label><input class="form-control" id="monsterSource" value="custom"></div>
+    </div>
+    <div class="row g-3 mb-3">
+      ${['str','dex','con','int','wis','cha'].map(s => `<div class="col-2"><label class="form-label">${s.toUpperCase()}</label><input class="form-control" id="monster${s.toUpperCase()}" type="number" value="10"></div>`).join('')}
+    </div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="monsterDesc" rows="2"></textarea></div>
+    <div class="mb-3"><label class="form-label">Special Abilities</label><textarea class="form-control" id="monsterAbilities" rows="3"></textarea></div>
+    <div class="mb-3"><label class="form-label">Actions</label><textarea class="form-control" id="monsterActions" rows="3"></textarea></div>
+    <button class="btn btn-primary w-100" onclick="saveAdventureMonster(${adventureId})">Add Monster</button>
+  `);
+};
+
+(window as any).saveAdventureMonster = async function (adventureId: number) {
+  const name = (document.getElementById('monsterName') as HTMLInputElement).value;
+  if (!name) { toast('Name required', true); return; }
+  await api('POST', `/api/oneshot-acts/0/monsters`, {
+    name,
+    adventure_id: adventureId,
+    ac: parseInt((document.getElementById('monsterAC') as HTMLInputElement).value) || 10,
+    hp: parseInt((document.getElementById('monsterHP') as HTMLInputElement).value) || 10,
+    cr: (document.getElementById('monsterCR') as HTMLInputElement).value || '0',
+    source: (document.getElementById('monsterSource') as HTMLInputElement).value || 'custom',
+    str: parseInt((document.getElementById('monsterSTR') as HTMLInputElement).value) || 10,
+    dex: parseInt((document.getElementById('monsterDEX') as HTMLInputElement).value) || 10,
+    con: parseInt((document.getElementById('monsterCON') as HTMLInputElement).value) || 10,
+    int_: parseInt((document.getElementById('monsterINT') as HTMLInputElement).value) || 10,
+    wis: parseInt((document.getElementById('monsterWIS') as HTMLInputElement).value) || 10,
+    cha: parseInt((document.getElementById('monsterCHA') as HTMLInputElement).value) || 10,
+    special_abilities: (document.getElementById('monsterAbilities') as HTMLTextAreaElement).value,
+    actions: (document.getElementById('monsterActions') as HTMLTextAreaElement).value,
+    is_full: 1,
+  });
+  hideModal();
+  toast('Monster added');
+  const monstersCard = document.querySelector('[hx-get*="/monsters"]');
+  if (monstersCard) htmx.trigger(monstersCard, 'load');
+};
+
+(window as any).deleteOneShotMonster = async function (monsterId: number) {
+  if (!confirm('Delete this monster?')) return;
+  await api('DELETE', `/api/oneshot-monsters/${monsterId}`);
+  toast('Monster deleted');
+  const monstersCard = document.querySelector('[hx-get*="/monsters"]');
+  if (monstersCard) htmx.trigger(monstersCard, 'load');
+};
+
+// Monster Library
+(window as any).showMonsterLibrary = function (adventureId: number) {
+  showModal('Monster Library', `
+    <div class="mb-3 d-flex gap-2">
+      <button class="btn btn-outline-primary btn-sm" onclick="showAddLibraryMonster(${adventureId})"><i class="fa-solid fa-plus me-1"></i>New</button>
+      <input class="form-control form-control-sm" id="libSearch" placeholder="Search library..." oninput="filterLibraryMonsters()">
+    </div>
+    <div id="libraryList" class="list-group list-group-flush" style="max-height:50vh;overflow-y:auto">
+      <div class="text-muted small py-2">Loading library...</div>
+    </div>
+  `);
+  loadMonsterLibrary(adventureId);
+};
+
+async function loadMonsterLibrary(adventureId: number) {
+  const list = document.getElementById('libraryList');
+  if (!list) return;
+  try {
+    const monsters = await api('GET', '/api/monster-library');
+    if (!monsters.length) {
+      list.innerHTML = '<div class="text-muted small fst-italic py-2">No monsters in library yet.</div>';
+      return;
+    }
+    (window as any)._libraryMonsters = monsters;
+    renderLibraryMonsters(adventureId, monsters);
+  } catch {
+    list.innerHTML = '<div class="text-danger small py-2">Failed to load library.</div>';
+  }
+}
+
+function renderLibraryMonsters(adventureId: number, monsters: any[]) {
+  const list = document.getElementById('libraryList');
+  if (!list) return;
+  list.innerHTML = monsters.map((m: any) => `
+    <div class="list-group-item py-2 px-0 d-flex justify-content-between align-items-start library-monster-item" data-search="${esc(m.name).toLowerCase()}">
+      <div>
+        <strong>${esc(m.name)}</strong>
+        <span class="badge bg-danger ms-1">CR ${esc(m.cr)}</span>
+        <span class="text-muted small ms-2">AC ${m.ac} · HP ${m.hp}</span>
+      </div>
+      <div class="d-flex gap-1">
+        <button class="btn btn-sm btn-outline-primary" onclick="quickAddLibraryMonster(${adventureId}, ${m.id})" title="Quick Add"><i class="fa-solid fa-plus"></i></button>
+        <button class="btn btn-sm btn-outline-danger" onclick="deleteLibraryMonster(${m.id}, ${adventureId})"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>
+  `).join('');
+}
+
+(window as any).filterLibraryMonsters = function () {
+  const q = ((document.getElementById('libSearch') as HTMLInputElement).value || '').toLowerCase();
+  const monsters = (window as any)._libraryMonsters || [];
+  if (!q) { renderLibraryMonsters(0, monsters); return; }
+  const filtered = monsters.filter((m: any) => m.name.toLowerCase().includes(q));
+  const list = document.getElementById('libraryList');
+  if (!list) return;
+  list.innerHTML = filtered.map((m: any) => `
+    <div class="list-group-item py-2 px-0 d-flex justify-content-between align-items-start library-monster-item">
+      <div>
+        <strong>${esc(m.name)}</strong>
+        <span class="badge bg-danger ms-1">CR ${esc(m.cr)}</span>
+        <span class="text-muted small ms-2">AC ${m.ac} · HP ${m.hp}</span>
+      </div>
+      <div class="d-flex gap-1">
+        <button class="btn btn-sm btn-outline-primary" onclick="quickAddLibraryMonster(0, ${m.id})" title="Quick Add"><i class="fa-solid fa-plus"></i></button>
+        <button class="btn btn-sm btn-outline-danger" onclick="deleteLibraryMonster(${m.id}, 0)"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>
+  `).join('') || '<div class="text-muted small fst-italic py-2">No matches.</div>';
+};
+
+(window as any).showAddLibraryMonster = function (adventureId: number) {
+  showModal('Add to Library', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="libMonsterName"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-3"><label class="form-label">AC</label><input class="form-control" id="libMonsterAC" type="number" value="10"></div>
+      <div class="col-3"><label class="form-label">HP</label><input class="form-control" id="libMonsterHP" type="number" value="10"></div>
+      <div class="col-3"><label class="form-label">CR</label><input class="form-control" id="libMonsterCR" placeholder="1/2"></div>
+      <div class="col-3"><label class="form-label">Source</label><input class="form-control" id="libMonsterSource" value="custom"></div>
+    </div>
+    <div class="row g-3 mb-3">
+      ${['str','dex','con','int','wis','cha'].map(s => `<div class="col-2"><label class="form-label">${s.toUpperCase()}</label><input class="form-control" id="libMonster${s.toUpperCase()}" type="number" value="10"></div>`).join('')}
+    </div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="libMonsterDesc" rows="2"></textarea></div>
+    <div class="mb-3"><label class="form-label">Special Abilities</label><textarea class="form-control" id="libMonsterAbilities" rows="3"></textarea></div>
+    <div class="mb-3"><label class="form-label">Actions</label><textarea class="form-control" id="libMonsterActions" rows="3"></textarea></div>
+    <button class="btn btn-primary w-100" onclick="createLibraryMonster(${adventureId})">Create</button>
+  `);
+};
+
+(window as any).createLibraryMonster = async function (adventureId: number) {
+  const name = (document.getElementById('libMonsterName') as HTMLInputElement).value;
+  if (!name) { toast('Name required', true); return; }
+  await api('POST', '/api/monster-library', {
+    name,
+    ac: parseInt((document.getElementById('libMonsterAC') as HTMLInputElement).value) || 10,
+    hp: parseInt((document.getElementById('libMonsterHP') as HTMLInputElement).value) || 10,
+    cr: (document.getElementById('libMonsterCR') as HTMLInputElement).value || '0',
+    source: (document.getElementById('libMonsterSource') as HTMLInputElement).value || 'custom',
+    str: parseInt((document.getElementById('libMonsterSTR') as HTMLInputElement).value) || 10,
+    dex: parseInt((document.getElementById('libMonsterDEX') as HTMLInputElement).value) || 10,
+    con: parseInt((document.getElementById('libMonsterCON') as HTMLInputElement).value) || 10,
+    int_: parseInt((document.getElementById('libMonsterINT') as HTMLInputElement).value) || 10,
+    wis: parseInt((document.getElementById('libMonsterWIS') as HTMLInputElement).value) || 10,
+    cha: parseInt((document.getElementById('libMonsterCHA') as HTMLInputElement).value) || 10,
+    special_abilities: (document.getElementById('libMonsterAbilities') as HTMLTextAreaElement).value,
+    actions: (document.getElementById('libMonsterActions') as HTMLTextAreaElement).value,
+    description: (document.getElementById('libMonsterDesc') as HTMLTextAreaElement).value,
+    is_full: 1,
+  });
+  hideModal();
+  toast('Monster added to library');
+  if (adventureId) (window as any).showMonsterLibrary(adventureId);
+};
+
+(window as any).quickAddLibraryMonster = async function (adventureId: number, libraryId: number) {
+  try {
+    const libMonsters = (window as any)._libraryMonsters || [];
+    const m = libMonsters.find((x: any) => x.id === libraryId);
+    if (!m) { toast('Monster not found', true); return; }
+    await api('POST', `/api/oneshot-acts/0/monsters`, {
+      name: m.name, adventure_id: adventureId,
+      ac: m.ac, hp: m.hp, cr: m.cr, source: m.source,
+      str: m.str, dex: m.dex, con: m.con, int_: m.int, wis: m.wis, cha: m.cha,
+      special_abilities: m.special_abilities, actions: m.actions,
+      is_full: m.is_full ? 1 : 0, library_id: libraryId,
+    });
+    toast('Monster added');
+    hideModal();
+    const monstersCard = document.querySelector('[hx-get*="/monsters"]');
+    if (monstersCard) htmx.trigger(monstersCard, 'load');
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).deleteLibraryMonster = async function (libraryId: number, adventureId: number) {
+  if (!confirm('Delete from library?')) return;
+  await api('DELETE', `/api/monster-library/${libraryId}`);
+  toast('Library entry deleted');
+  if (adventureId) loadMonsterLibrary(adventureId);
+};
+
+// Act-level monster display
+(window as any).showActMonsters = async function (actId: number) {
+  try {
+    const monsters = await api('GET', `/api/oneshot-acts/${actId}/monsters`);
+    showModal('Act Monsters', `
+      <div class="mb-2"><button class="btn btn-sm btn-outline-primary" onclick="showAddActMonster(${actId})"><i class="fa-solid fa-plus me-1"></i>Add Monster</button></div>
+      ${monsters.length ? monsters.map((m: any) => `
+        <div class="inv-item">
+          <div><strong>${esc(m.name)}</strong> <span class="badge bg-danger">CR ${esc(m.cr)}</span> <span class="text-muted small">AC ${m.ac} · HP ${m.hp}</span></div>
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteOneShotMonster(${m.id})"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      `).join('') : '<div class="text-muted small fst-italic">No monsters in this act.</div>'}
+    `);
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).showAddActMonster = function (actId: number) {
+  // Reuse the same monster form but post to act endpoint
+  showModal('Add Monster to Act', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="actMonsterName"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-3"><label class="form-label">AC</label><input class="form-control" id="actMonsterAC" type="number" value="10"></div>
+      <div class="col-3"><label class="form-label">HP</label><input class="form-control" id="actMonsterHP" type="number" value="10"></div>
+      <div class="col-3"><label class="form-label">CR</label><input class="form-control" id="actMonsterCR" placeholder="1/2"></div>
+      <div class="col-3"><label class="form-label">Source</label><input class="form-control" id="actMonsterSource" value="custom"></div>
+    </div>
+    <div class="row g-3 mb-3">
+      ${['str','dex','con','int','wis','cha'].map(s => `<div class="col-2"><label class="form-label">${s.toUpperCase()}</label><input class="form-control" id="actMonster${s.toUpperCase()}" type="number" value="10"></div>`).join('')}
+    </div>
+    <button class="btn btn-primary w-100" onclick="saveActMonster(${actId})">Add</button>
+  `);
+};
+
+(window as any).saveActMonster = async function (actId: number) {
+  const name = (document.getElementById('actMonsterName') as HTMLInputElement).value;
+  if (!name) { toast('Name required', true); return; }
+  await api('POST', `/api/oneshot-acts/${actId}/monsters`, {
+    name,
+    ac: parseInt((document.getElementById('actMonsterAC') as HTMLInputElement).value) || 10,
+    hp: parseInt((document.getElementById('actMonsterHP') as HTMLInputElement).value) || 10,
+    cr: (document.getElementById('actMonsterCR') as HTMLInputElement).value || '0',
+    source: (document.getElementById('actMonsterSource') as HTMLInputElement).value || 'custom',
+    str: parseInt((document.getElementById('actMonsterSTR') as HTMLInputElement).value) || 10,
+    dex: parseInt((document.getElementById('actMonsterDEX') as HTMLInputElement).value) || 10,
+    con: parseInt((document.getElementById('actMonsterCON') as HTMLInputElement).value) || 10,
+    int_: parseInt((document.getElementById('actMonsterINT') as HTMLInputElement).value) || 10,
+    wis: parseInt((document.getElementById('actMonsterWIS') as HTMLInputElement).value) || 10,
+    cha: parseInt((document.getElementById('actMonsterCHA') as HTMLInputElement).value) || 10,
+    is_full: 1,
+  });
+  hideModal();
+  toast('Monster added');
+  const monstersCard = document.querySelector('[hx-get*="/monsters"]');
+  if (monstersCard) htmx.trigger(monstersCard, 'load');
+};
+
+// ─── One-Shot Linked Player Characters ───
+
+(window as any).showLinkPCForm = function (adventureId: number) {
+  showModal('Link Character', `
+    <p class="text-muted small mb-3">Search for a character to link to this one-shot.</p>
+    <div class="mb-3"><input class="form-control" id="pcSearchInput" placeholder="Search characters..." oninput="searchCharactersForLink(${adventureId})"></div>
+    <div id="pcLinkResults" class="mb-3" style="max-height:300px;overflow-y:auto"></div>
+  `);
+};
+
+(window as any).searchCharactersForLink = async function (adventureId: number) {
+  const q = (document.getElementById('pcSearchInput') as HTMLInputElement).value.trim();
+  const resultsEl = document.getElementById('pcLinkResults');
+  if (!resultsEl) return;
+  if (q.length < 1) { resultsEl.innerHTML = ''; return; }
+  try {
+    const chars = await api('GET', `/api/characters?q=${encodeURIComponent(q)}`);
+    resultsEl.innerHTML = chars.length ? chars.map((c: any) => `
+      <div class="list-group-item py-2 px-0 d-flex justify-content-between align-items-center">
+        <div>
+          <strong>${esc(c.name)}</strong>
+          <span class="text-muted small ms-2">${esc(c.race)} ${esc(c.class)} · Lvl ${c.level}</span>
+        </div>
+        <button class="btn btn-sm btn-outline-primary" onclick="linkPCToOneShot(${adventureId}, ${c.id})">Link</button>
+      </div>
+    `).join('') : '<div class="text-muted small">No characters found.</div>';
+  } catch { resultsEl.innerHTML = '<div class="text-danger small">Search failed.</div>'; }
+};
+
+(window as any).linkPCToOneShot = async function (adventureId: number, charId: number) {
+  await api('POST', `/api/oneshot-adventures/${adventureId}/characters`, { character_id: charId });
+  hideModal();
+  toast('Character linked');
+  const pcsCard = document.querySelector('[hx-get*="/pcs"]');
+  if (pcsCard) htmx.trigger(pcsCard, 'load');
+};
+
+(window as any).unlinkPCFromOneShot = async function (adventureId: number, charId: number) {
+  if (!confirm('Unlink this character?')) return;
+  await api('DELETE', `/api/oneshot-adventures/${adventureId}/characters/${charId}`);
+  toast('Character unlinked');
+  const pcsCard = document.querySelector('[hx-get*="/pcs"]');
+  if (pcsCard) htmx.trigger(pcsCard, 'load');
+};
+
+// ─── NPC↔Item Links ───
+
+(window as any).showLinkNPCToItem = function (adventureId: number, itemId: number) {
+  showModal('Link NPC to Item', `
+    <p class="text-muted small mb-3">Find an NPC in this adventure to link:</p>
+    <div class="mb-3"><input class="form-control" id="npcLinkSearch" placeholder="Search NPCs..." oninput="searchNPCsForLink(${adventureId}, ${itemId})"></div>
+    <div id="npcLinkResults" class="mb-3" style="max-height:300px;overflow-y:auto"></div>
+  `);
+  (window as any).searchNPCsForLink(adventureId, itemId);
+};
+
+(window as any).searchNPCsForLink = async function (adventureId: number, itemId: number) {
+  const q = (document.getElementById('npcLinkSearch') as HTMLInputElement)?.value?.trim() || '';
+  const resultsEl = document.getElementById('npcLinkResults');
+  if (!resultsEl) return;
+  try {
+    const npcs = await api('GET', `/api/oneshot-adventures/${adventureId}/npcs${q ? '?q=' + encodeURIComponent(q) : ''}`);
+    resultsEl.innerHTML = npcs.length ? npcs.map((n: any) => `
+      <div class="list-group-item py-2 px-0 d-flex justify-content-between align-items-center">
+        <div><strong>${esc(n.npc_name || n.name)}</strong></div>
+        <button class="btn btn-sm btn-outline-primary" onclick="linkNPCToItem(${adventureId}, ${n.npc_id || n.id}, ${itemId})">Link</button>
+      </div>
+    `).join('') : '<div class="text-muted small">No NPCs found in this adventure.</div>';
+  } catch { resultsEl.innerHTML = '<div class="text-danger small">Search failed.</div>'; }
+};
+
+(window as any).linkNPCToItem = async function (adventureId: number, npcId: number, itemId: number) {
+  await api('POST', `/api/oneshot-adventures/${adventureId}/npc-item-links`, { npc_id: npcId, item_id: itemId });
+  hideModal();
+  toast('NPC linked to item');
+  const itemsCard = document.querySelector('[hx-get*="/items"]');
+  if (itemsCard) htmx.trigger(itemsCard, 'load');
+};
+
+(window as any).unlinkNPCFromItem = async function (linkId: number) {
+  if (!confirm('Remove link?')) return;
+  await api('DELETE', `/api/npc-item-links/${linkId}`);
+  toast('Link removed');
+  const itemsCard = document.querySelector('[hx-get*="/items"]');
+  if (itemsCard) htmx.trigger(itemsCard, 'load');
+};
+
+// ─── Polymorphic File Uploads ───
+
+(window as any).showUploadModal = function (ownerType: string, ownerId: number) {
+  showModal('Upload File', `
+    <div class="mb-3">
+      <label class="form-label">Select file</label>
+      <input type="file" class="form-control" id="uploadFileInput">
+    </div>
+    <button class="btn btn-primary w-100" onclick="doUpload('${ownerType}', ${ownerId})"><i class="fa-solid fa-upload me-1"></i>Upload</button>
+  `);
+};
+
+(window as any).doUpload = async function (ownerType: string, ownerId: number) {
+  const input = document.getElementById('uploadFileInput') as HTMLInputElement;
+  if (!input?.files?.length) { toast('Select a file', true); return; }
+  const form = new FormData();
+  form.append('file', input.files[0]);
+  form.append('owner_type', ownerType);
+  form.append('owner_id', String(ownerId));
+  try {
+    const res = await fetch('/api/upload', { method: 'POST', body: form,
+      headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || csrfToken }
+    });
+    if (!res.ok) throw new Error((await res.json()).error || 'Upload failed');
+    hideModal();
+    toast('File uploaded');
+  } catch (e: any) { toast(e.message, true); }
 };
 
 // ─── Show combat nav for admin ───

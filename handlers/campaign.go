@@ -262,6 +262,14 @@ func ListNPCs(c *gin.Context) {
 			HPMax:       n.HpMax,
 			HPCurrent:   n.HpCurrent,
 			IsAlive:     n.IsAlive,
+			IsFull:      n.IsFull,
+			AC:          n.Ac,
+			Speed:       n.Speed,
+			Skills:      n.Skills,
+			Saves:       n.Saves,
+			Features:    n.Features,
+			Actions:     n.Actions,
+			Backstory:   n.Backstory,
 			CreatedAt:   n.CreatedAt,
 		})
 	}
@@ -275,7 +283,7 @@ func CreateNPC(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	result, err := db.Client.NPC.Create().
+	q := db.Client.NPC.Create().
 		SetUserID(userID.(int64)).
 		SetName(n.Name).
 		SetRace(n.Race).
@@ -291,7 +299,15 @@ func CreateNPC(c *gin.Context) {
 		SetHpMax(n.HPMax).
 		SetHpCurrent(n.HPCurrent).
 		SetIsAlive(n.IsAlive).
-		Save(c.Request.Context())
+		SetIsFull(n.IsFull).
+		SetAc(n.AC).
+		SetSpeed(n.Speed).
+		SetSkills(n.Skills).
+		SetSaves(n.Saves).
+		SetFeatures(n.Features).
+		SetActions(n.Actions).
+		SetBackstory(n.Backstory)
+	result, err := q.Save(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -322,7 +338,7 @@ func UpdateNPC(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	db.Client.NPC.UpdateOneID(id).
+	up := db.Client.NPC.UpdateOneID(id).
 		SetName(n.Name).
 		SetRace(n.Race).
 		SetClass(n.Class).
@@ -337,7 +353,15 @@ func UpdateNPC(c *gin.Context) {
 		SetHpMax(n.HPMax).
 		SetHpCurrent(n.HPCurrent).
 		SetIsAlive(n.IsAlive).
-		Save(c.Request.Context())
+		SetIsFull(n.IsFull).
+		SetAc(n.AC).
+		SetSpeed(n.Speed).
+		SetSkills(n.Skills).
+		SetSaves(n.Saves).
+		SetFeatures(n.Features).
+		SetActions(n.Actions).
+		SetBackstory(n.Backstory)
+	up.Save(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 

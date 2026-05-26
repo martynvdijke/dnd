@@ -17,6 +17,8 @@ func (Upload) Fields() []ent.Field {
 		field.String("url").Optional(),
 		field.String("resized_url").Optional(),
 		field.String("thumbnail_url").Optional(),
+		field.String("owner_type").Default(""),
+		field.Int64("owner_id").Default(0),
 		field.String("created_at").Default(""),
 	}
 }

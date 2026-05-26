@@ -1,0 +1,20 @@
+{{if .PCs}}
+<div class="list-group list-group-flush">
+  {{range .PCs}}
+  <div class="list-group-item py-2 px-0 d-flex justify-content-between align-items-start">
+    <div>
+      <strong>{{.CharName}}</strong>
+      <span class="text-muted small ms-2">by {{.Username}}</span>
+      {{if .Role}}<span class="badge badge-gold ms-1">{{.Role}}</span>{{end}}
+      {{if .Notes}}<div class="small text-muted">{{.Notes}}</div>{{end}}
+    </div>
+    <button class="btn btn-sm btn-outline-danger" onclick="unlinkPCFromOneShot({{.AdventureID}},{{.CharacterID}})"><i class="fa-solid fa-unlink"></i></button>
+  </div>
+  {{end}}
+</div>
+{{else}}
+<div class="text-muted small fst-italic">No linked player characters yet.</div>
+{{end}}
+<div class="mt-2">
+  <button class="btn btn-sm btn-outline-primary" onclick="showLinkPCForm({{.AdventureID}})"><i class="fa-solid fa-link me-1"></i>Link Character</button>
+</div>

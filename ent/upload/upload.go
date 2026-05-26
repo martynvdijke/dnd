@@ -21,6 +21,10 @@ const (
 	FieldResizedURL = "resized_url"
 	// FieldThumbnailURL holds the string denoting the thumbnail_url field in the database.
 	FieldThumbnailURL = "thumbnail_url"
+	// FieldOwnerType holds the string denoting the owner_type field in the database.
+	FieldOwnerType = "owner_type"
+	// FieldOwnerID holds the string denoting the owner_id field in the database.
+	FieldOwnerID = "owner_id"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// Table holds the table name of the upload in the database.
@@ -35,6 +39,8 @@ var Columns = []string{
 	FieldURL,
 	FieldResizedURL,
 	FieldThumbnailURL,
+	FieldOwnerType,
+	FieldOwnerID,
 	FieldCreatedAt,
 }
 
@@ -49,6 +55,10 @@ func ValidColumn(column string) bool {
 }
 
 var (
+	// DefaultOwnerType holds the default value on creation for the "owner_type" field.
+	DefaultOwnerType string
+	// DefaultOwnerID holds the default value on creation for the "owner_id" field.
+	DefaultOwnerID int64
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt string
 )
@@ -84,6 +94,16 @@ func ByResizedURL(opts ...sql.OrderTermOption) OrderOption {
 // ByThumbnailURL orders the results by the thumbnail_url field.
 func ByThumbnailURL(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldThumbnailURL, opts...).ToFunc()
+}
+
+// ByOwnerType orders the results by the owner_type field.
+func ByOwnerType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOwnerType, opts...).ToFunc()
+}
+
+// ByOwnerID orders the results by the owner_id field.
+func ByOwnerID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOwnerID, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

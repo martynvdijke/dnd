@@ -217,6 +217,118 @@ func (_c *NPCCreate) SetNillableIsAlive(v *bool) *NPCCreate {
 	return _c
 }
 
+// SetIsFull sets the "is_full" field.
+func (_c *NPCCreate) SetIsFull(v bool) *NPCCreate {
+	_c.mutation.SetIsFull(v)
+	return _c
+}
+
+// SetNillableIsFull sets the "is_full" field if the given value is not nil.
+func (_c *NPCCreate) SetNillableIsFull(v *bool) *NPCCreate {
+	if v != nil {
+		_c.SetIsFull(*v)
+	}
+	return _c
+}
+
+// SetAc sets the "ac" field.
+func (_c *NPCCreate) SetAc(v int) *NPCCreate {
+	_c.mutation.SetAc(v)
+	return _c
+}
+
+// SetNillableAc sets the "ac" field if the given value is not nil.
+func (_c *NPCCreate) SetNillableAc(v *int) *NPCCreate {
+	if v != nil {
+		_c.SetAc(*v)
+	}
+	return _c
+}
+
+// SetSpeed sets the "speed" field.
+func (_c *NPCCreate) SetSpeed(v int) *NPCCreate {
+	_c.mutation.SetSpeed(v)
+	return _c
+}
+
+// SetNillableSpeed sets the "speed" field if the given value is not nil.
+func (_c *NPCCreate) SetNillableSpeed(v *int) *NPCCreate {
+	if v != nil {
+		_c.SetSpeed(*v)
+	}
+	return _c
+}
+
+// SetSkills sets the "skills" field.
+func (_c *NPCCreate) SetSkills(v string) *NPCCreate {
+	_c.mutation.SetSkills(v)
+	return _c
+}
+
+// SetNillableSkills sets the "skills" field if the given value is not nil.
+func (_c *NPCCreate) SetNillableSkills(v *string) *NPCCreate {
+	if v != nil {
+		_c.SetSkills(*v)
+	}
+	return _c
+}
+
+// SetSaves sets the "saves" field.
+func (_c *NPCCreate) SetSaves(v string) *NPCCreate {
+	_c.mutation.SetSaves(v)
+	return _c
+}
+
+// SetNillableSaves sets the "saves" field if the given value is not nil.
+func (_c *NPCCreate) SetNillableSaves(v *string) *NPCCreate {
+	if v != nil {
+		_c.SetSaves(*v)
+	}
+	return _c
+}
+
+// SetFeatures sets the "features" field.
+func (_c *NPCCreate) SetFeatures(v string) *NPCCreate {
+	_c.mutation.SetFeatures(v)
+	return _c
+}
+
+// SetNillableFeatures sets the "features" field if the given value is not nil.
+func (_c *NPCCreate) SetNillableFeatures(v *string) *NPCCreate {
+	if v != nil {
+		_c.SetFeatures(*v)
+	}
+	return _c
+}
+
+// SetActions sets the "actions" field.
+func (_c *NPCCreate) SetActions(v string) *NPCCreate {
+	_c.mutation.SetActions(v)
+	return _c
+}
+
+// SetNillableActions sets the "actions" field if the given value is not nil.
+func (_c *NPCCreate) SetNillableActions(v *string) *NPCCreate {
+	if v != nil {
+		_c.SetActions(*v)
+	}
+	return _c
+}
+
+// SetBackstory sets the "backstory" field.
+func (_c *NPCCreate) SetBackstory(v string) *NPCCreate {
+	_c.mutation.SetBackstory(v)
+	return _c
+}
+
+// SetNillableBackstory sets the "backstory" field if the given value is not nil.
+func (_c *NPCCreate) SetNillableBackstory(v *string) *NPCCreate {
+	if v != nil {
+		_c.SetBackstory(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *NPCCreate) SetCreatedAt(v string) *NPCCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -344,6 +456,38 @@ func (_c *NPCCreate) defaults() {
 		v := npc.DefaultIsAlive
 		_c.mutation.SetIsAlive(v)
 	}
+	if _, ok := _c.mutation.IsFull(); !ok {
+		v := npc.DefaultIsFull
+		_c.mutation.SetIsFull(v)
+	}
+	if _, ok := _c.mutation.Ac(); !ok {
+		v := npc.DefaultAc
+		_c.mutation.SetAc(v)
+	}
+	if _, ok := _c.mutation.Speed(); !ok {
+		v := npc.DefaultSpeed
+		_c.mutation.SetSpeed(v)
+	}
+	if _, ok := _c.mutation.Skills(); !ok {
+		v := npc.DefaultSkills
+		_c.mutation.SetSkills(v)
+	}
+	if _, ok := _c.mutation.Saves(); !ok {
+		v := npc.DefaultSaves
+		_c.mutation.SetSaves(v)
+	}
+	if _, ok := _c.mutation.Features(); !ok {
+		v := npc.DefaultFeatures
+		_c.mutation.SetFeatures(v)
+	}
+	if _, ok := _c.mutation.Actions(); !ok {
+		v := npc.DefaultActions
+		_c.mutation.SetActions(v)
+	}
+	if _, ok := _c.mutation.Backstory(); !ok {
+		v := npc.DefaultBackstory
+		_c.mutation.SetBackstory(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := npc.DefaultCreatedAt
 		_c.mutation.SetCreatedAt(v)
@@ -396,6 +540,30 @@ func (_c *NPCCreate) check() error {
 	}
 	if _, ok := _c.mutation.IsAlive(); !ok {
 		return &ValidationError{Name: "is_alive", err: errors.New(`ent: missing required field "NPC.is_alive"`)}
+	}
+	if _, ok := _c.mutation.IsFull(); !ok {
+		return &ValidationError{Name: "is_full", err: errors.New(`ent: missing required field "NPC.is_full"`)}
+	}
+	if _, ok := _c.mutation.Ac(); !ok {
+		return &ValidationError{Name: "ac", err: errors.New(`ent: missing required field "NPC.ac"`)}
+	}
+	if _, ok := _c.mutation.Speed(); !ok {
+		return &ValidationError{Name: "speed", err: errors.New(`ent: missing required field "NPC.speed"`)}
+	}
+	if _, ok := _c.mutation.Skills(); !ok {
+		return &ValidationError{Name: "skills", err: errors.New(`ent: missing required field "NPC.skills"`)}
+	}
+	if _, ok := _c.mutation.Saves(); !ok {
+		return &ValidationError{Name: "saves", err: errors.New(`ent: missing required field "NPC.saves"`)}
+	}
+	if _, ok := _c.mutation.Features(); !ok {
+		return &ValidationError{Name: "features", err: errors.New(`ent: missing required field "NPC.features"`)}
+	}
+	if _, ok := _c.mutation.Actions(); !ok {
+		return &ValidationError{Name: "actions", err: errors.New(`ent: missing required field "NPC.actions"`)}
+	}
+	if _, ok := _c.mutation.Backstory(); !ok {
+		return &ValidationError{Name: "backstory", err: errors.New(`ent: missing required field "NPC.backstory"`)}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "NPC.created_at"`)}
@@ -491,6 +659,38 @@ func (_c *NPCCreate) createSpec() (*NPC, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.IsAlive(); ok {
 		_spec.SetField(npc.FieldIsAlive, field.TypeBool, value)
 		_node.IsAlive = value
+	}
+	if value, ok := _c.mutation.IsFull(); ok {
+		_spec.SetField(npc.FieldIsFull, field.TypeBool, value)
+		_node.IsFull = value
+	}
+	if value, ok := _c.mutation.Ac(); ok {
+		_spec.SetField(npc.FieldAc, field.TypeInt, value)
+		_node.Ac = value
+	}
+	if value, ok := _c.mutation.Speed(); ok {
+		_spec.SetField(npc.FieldSpeed, field.TypeInt, value)
+		_node.Speed = value
+	}
+	if value, ok := _c.mutation.Skills(); ok {
+		_spec.SetField(npc.FieldSkills, field.TypeString, value)
+		_node.Skills = value
+	}
+	if value, ok := _c.mutation.Saves(); ok {
+		_spec.SetField(npc.FieldSaves, field.TypeString, value)
+		_node.Saves = value
+	}
+	if value, ok := _c.mutation.Features(); ok {
+		_spec.SetField(npc.FieldFeatures, field.TypeString, value)
+		_node.Features = value
+	}
+	if value, ok := _c.mutation.Actions(); ok {
+		_spec.SetField(npc.FieldActions, field.TypeString, value)
+		_node.Actions = value
+	}
+	if value, ok := _c.mutation.Backstory(); ok {
+		_spec.SetField(npc.FieldBackstory, field.TypeString, value)
+		_node.Backstory = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(npc.FieldCreatedAt, field.TypeString, value)
@@ -806,6 +1006,114 @@ func (u *NPCUpsert) SetIsAlive(v bool) *NPCUpsert {
 // UpdateIsAlive sets the "is_alive" field to the value that was provided on create.
 func (u *NPCUpsert) UpdateIsAlive() *NPCUpsert {
 	u.SetExcluded(npc.FieldIsAlive)
+	return u
+}
+
+// SetIsFull sets the "is_full" field.
+func (u *NPCUpsert) SetIsFull(v bool) *NPCUpsert {
+	u.Set(npc.FieldIsFull, v)
+	return u
+}
+
+// UpdateIsFull sets the "is_full" field to the value that was provided on create.
+func (u *NPCUpsert) UpdateIsFull() *NPCUpsert {
+	u.SetExcluded(npc.FieldIsFull)
+	return u
+}
+
+// SetAc sets the "ac" field.
+func (u *NPCUpsert) SetAc(v int) *NPCUpsert {
+	u.Set(npc.FieldAc, v)
+	return u
+}
+
+// UpdateAc sets the "ac" field to the value that was provided on create.
+func (u *NPCUpsert) UpdateAc() *NPCUpsert {
+	u.SetExcluded(npc.FieldAc)
+	return u
+}
+
+// AddAc adds v to the "ac" field.
+func (u *NPCUpsert) AddAc(v int) *NPCUpsert {
+	u.Add(npc.FieldAc, v)
+	return u
+}
+
+// SetSpeed sets the "speed" field.
+func (u *NPCUpsert) SetSpeed(v int) *NPCUpsert {
+	u.Set(npc.FieldSpeed, v)
+	return u
+}
+
+// UpdateSpeed sets the "speed" field to the value that was provided on create.
+func (u *NPCUpsert) UpdateSpeed() *NPCUpsert {
+	u.SetExcluded(npc.FieldSpeed)
+	return u
+}
+
+// AddSpeed adds v to the "speed" field.
+func (u *NPCUpsert) AddSpeed(v int) *NPCUpsert {
+	u.Add(npc.FieldSpeed, v)
+	return u
+}
+
+// SetSkills sets the "skills" field.
+func (u *NPCUpsert) SetSkills(v string) *NPCUpsert {
+	u.Set(npc.FieldSkills, v)
+	return u
+}
+
+// UpdateSkills sets the "skills" field to the value that was provided on create.
+func (u *NPCUpsert) UpdateSkills() *NPCUpsert {
+	u.SetExcluded(npc.FieldSkills)
+	return u
+}
+
+// SetSaves sets the "saves" field.
+func (u *NPCUpsert) SetSaves(v string) *NPCUpsert {
+	u.Set(npc.FieldSaves, v)
+	return u
+}
+
+// UpdateSaves sets the "saves" field to the value that was provided on create.
+func (u *NPCUpsert) UpdateSaves() *NPCUpsert {
+	u.SetExcluded(npc.FieldSaves)
+	return u
+}
+
+// SetFeatures sets the "features" field.
+func (u *NPCUpsert) SetFeatures(v string) *NPCUpsert {
+	u.Set(npc.FieldFeatures, v)
+	return u
+}
+
+// UpdateFeatures sets the "features" field to the value that was provided on create.
+func (u *NPCUpsert) UpdateFeatures() *NPCUpsert {
+	u.SetExcluded(npc.FieldFeatures)
+	return u
+}
+
+// SetActions sets the "actions" field.
+func (u *NPCUpsert) SetActions(v string) *NPCUpsert {
+	u.Set(npc.FieldActions, v)
+	return u
+}
+
+// UpdateActions sets the "actions" field to the value that was provided on create.
+func (u *NPCUpsert) UpdateActions() *NPCUpsert {
+	u.SetExcluded(npc.FieldActions)
+	return u
+}
+
+// SetBackstory sets the "backstory" field.
+func (u *NPCUpsert) SetBackstory(v string) *NPCUpsert {
+	u.Set(npc.FieldBackstory, v)
+	return u
+}
+
+// UpdateBackstory sets the "backstory" field to the value that was provided on create.
+func (u *NPCUpsert) UpdateBackstory() *NPCUpsert {
+	u.SetExcluded(npc.FieldBackstory)
 	return u
 }
 
@@ -1132,6 +1440,132 @@ func (u *NPCUpsertOne) SetIsAlive(v bool) *NPCUpsertOne {
 func (u *NPCUpsertOne) UpdateIsAlive() *NPCUpsertOne {
 	return u.Update(func(s *NPCUpsert) {
 		s.UpdateIsAlive()
+	})
+}
+
+// SetIsFull sets the "is_full" field.
+func (u *NPCUpsertOne) SetIsFull(v bool) *NPCUpsertOne {
+	return u.Update(func(s *NPCUpsert) {
+		s.SetIsFull(v)
+	})
+}
+
+// UpdateIsFull sets the "is_full" field to the value that was provided on create.
+func (u *NPCUpsertOne) UpdateIsFull() *NPCUpsertOne {
+	return u.Update(func(s *NPCUpsert) {
+		s.UpdateIsFull()
+	})
+}
+
+// SetAc sets the "ac" field.
+func (u *NPCUpsertOne) SetAc(v int) *NPCUpsertOne {
+	return u.Update(func(s *NPCUpsert) {
+		s.SetAc(v)
+	})
+}
+
+// AddAc adds v to the "ac" field.
+func (u *NPCUpsertOne) AddAc(v int) *NPCUpsertOne {
+	return u.Update(func(s *NPCUpsert) {
+		s.AddAc(v)
+	})
+}
+
+// UpdateAc sets the "ac" field to the value that was provided on create.
+func (u *NPCUpsertOne) UpdateAc() *NPCUpsertOne {
+	return u.Update(func(s *NPCUpsert) {
+		s.UpdateAc()
+	})
+}
+
+// SetSpeed sets the "speed" field.
+func (u *NPCUpsertOne) SetSpeed(v int) *NPCUpsertOne {
+	return u.Update(func(s *NPCUpsert) {
+		s.SetSpeed(v)
+	})
+}
+
+// AddSpeed adds v to the "speed" field.
+func (u *NPCUpsertOne) AddSpeed(v int) *NPCUpsertOne {
+	return u.Update(func(s *NPCUpsert) {
+		s.AddSpeed(v)
+	})
+}
+
+// UpdateSpeed sets the "speed" field to the value that was provided on create.
+func (u *NPCUpsertOne) UpdateSpeed() *NPCUpsertOne {
+	return u.Update(func(s *NPCUpsert) {
+		s.UpdateSpeed()
+	})
+}
+
+// SetSkills sets the "skills" field.
+func (u *NPCUpsertOne) SetSkills(v string) *NPCUpsertOne {
+	return u.Update(func(s *NPCUpsert) {
+		s.SetSkills(v)
+	})
+}
+
+// UpdateSkills sets the "skills" field to the value that was provided on create.
+func (u *NPCUpsertOne) UpdateSkills() *NPCUpsertOne {
+	return u.Update(func(s *NPCUpsert) {
+		s.UpdateSkills()
+	})
+}
+
+// SetSaves sets the "saves" field.
+func (u *NPCUpsertOne) SetSaves(v string) *NPCUpsertOne {
+	return u.Update(func(s *NPCUpsert) {
+		s.SetSaves(v)
+	})
+}
+
+// UpdateSaves sets the "saves" field to the value that was provided on create.
+func (u *NPCUpsertOne) UpdateSaves() *NPCUpsertOne {
+	return u.Update(func(s *NPCUpsert) {
+		s.UpdateSaves()
+	})
+}
+
+// SetFeatures sets the "features" field.
+func (u *NPCUpsertOne) SetFeatures(v string) *NPCUpsertOne {
+	return u.Update(func(s *NPCUpsert) {
+		s.SetFeatures(v)
+	})
+}
+
+// UpdateFeatures sets the "features" field to the value that was provided on create.
+func (u *NPCUpsertOne) UpdateFeatures() *NPCUpsertOne {
+	return u.Update(func(s *NPCUpsert) {
+		s.UpdateFeatures()
+	})
+}
+
+// SetActions sets the "actions" field.
+func (u *NPCUpsertOne) SetActions(v string) *NPCUpsertOne {
+	return u.Update(func(s *NPCUpsert) {
+		s.SetActions(v)
+	})
+}
+
+// UpdateActions sets the "actions" field to the value that was provided on create.
+func (u *NPCUpsertOne) UpdateActions() *NPCUpsertOne {
+	return u.Update(func(s *NPCUpsert) {
+		s.UpdateActions()
+	})
+}
+
+// SetBackstory sets the "backstory" field.
+func (u *NPCUpsertOne) SetBackstory(v string) *NPCUpsertOne {
+	return u.Update(func(s *NPCUpsert) {
+		s.SetBackstory(v)
+	})
+}
+
+// UpdateBackstory sets the "backstory" field to the value that was provided on create.
+func (u *NPCUpsertOne) UpdateBackstory() *NPCUpsertOne {
+	return u.Update(func(s *NPCUpsert) {
+		s.UpdateBackstory()
 	})
 }
 
@@ -1626,6 +2060,132 @@ func (u *NPCUpsertBulk) SetIsAlive(v bool) *NPCUpsertBulk {
 func (u *NPCUpsertBulk) UpdateIsAlive() *NPCUpsertBulk {
 	return u.Update(func(s *NPCUpsert) {
 		s.UpdateIsAlive()
+	})
+}
+
+// SetIsFull sets the "is_full" field.
+func (u *NPCUpsertBulk) SetIsFull(v bool) *NPCUpsertBulk {
+	return u.Update(func(s *NPCUpsert) {
+		s.SetIsFull(v)
+	})
+}
+
+// UpdateIsFull sets the "is_full" field to the value that was provided on create.
+func (u *NPCUpsertBulk) UpdateIsFull() *NPCUpsertBulk {
+	return u.Update(func(s *NPCUpsert) {
+		s.UpdateIsFull()
+	})
+}
+
+// SetAc sets the "ac" field.
+func (u *NPCUpsertBulk) SetAc(v int) *NPCUpsertBulk {
+	return u.Update(func(s *NPCUpsert) {
+		s.SetAc(v)
+	})
+}
+
+// AddAc adds v to the "ac" field.
+func (u *NPCUpsertBulk) AddAc(v int) *NPCUpsertBulk {
+	return u.Update(func(s *NPCUpsert) {
+		s.AddAc(v)
+	})
+}
+
+// UpdateAc sets the "ac" field to the value that was provided on create.
+func (u *NPCUpsertBulk) UpdateAc() *NPCUpsertBulk {
+	return u.Update(func(s *NPCUpsert) {
+		s.UpdateAc()
+	})
+}
+
+// SetSpeed sets the "speed" field.
+func (u *NPCUpsertBulk) SetSpeed(v int) *NPCUpsertBulk {
+	return u.Update(func(s *NPCUpsert) {
+		s.SetSpeed(v)
+	})
+}
+
+// AddSpeed adds v to the "speed" field.
+func (u *NPCUpsertBulk) AddSpeed(v int) *NPCUpsertBulk {
+	return u.Update(func(s *NPCUpsert) {
+		s.AddSpeed(v)
+	})
+}
+
+// UpdateSpeed sets the "speed" field to the value that was provided on create.
+func (u *NPCUpsertBulk) UpdateSpeed() *NPCUpsertBulk {
+	return u.Update(func(s *NPCUpsert) {
+		s.UpdateSpeed()
+	})
+}
+
+// SetSkills sets the "skills" field.
+func (u *NPCUpsertBulk) SetSkills(v string) *NPCUpsertBulk {
+	return u.Update(func(s *NPCUpsert) {
+		s.SetSkills(v)
+	})
+}
+
+// UpdateSkills sets the "skills" field to the value that was provided on create.
+func (u *NPCUpsertBulk) UpdateSkills() *NPCUpsertBulk {
+	return u.Update(func(s *NPCUpsert) {
+		s.UpdateSkills()
+	})
+}
+
+// SetSaves sets the "saves" field.
+func (u *NPCUpsertBulk) SetSaves(v string) *NPCUpsertBulk {
+	return u.Update(func(s *NPCUpsert) {
+		s.SetSaves(v)
+	})
+}
+
+// UpdateSaves sets the "saves" field to the value that was provided on create.
+func (u *NPCUpsertBulk) UpdateSaves() *NPCUpsertBulk {
+	return u.Update(func(s *NPCUpsert) {
+		s.UpdateSaves()
+	})
+}
+
+// SetFeatures sets the "features" field.
+func (u *NPCUpsertBulk) SetFeatures(v string) *NPCUpsertBulk {
+	return u.Update(func(s *NPCUpsert) {
+		s.SetFeatures(v)
+	})
+}
+
+// UpdateFeatures sets the "features" field to the value that was provided on create.
+func (u *NPCUpsertBulk) UpdateFeatures() *NPCUpsertBulk {
+	return u.Update(func(s *NPCUpsert) {
+		s.UpdateFeatures()
+	})
+}
+
+// SetActions sets the "actions" field.
+func (u *NPCUpsertBulk) SetActions(v string) *NPCUpsertBulk {
+	return u.Update(func(s *NPCUpsert) {
+		s.SetActions(v)
+	})
+}
+
+// UpdateActions sets the "actions" field to the value that was provided on create.
+func (u *NPCUpsertBulk) UpdateActions() *NPCUpsertBulk {
+	return u.Update(func(s *NPCUpsert) {
+		s.UpdateActions()
+	})
+}
+
+// SetBackstory sets the "backstory" field.
+func (u *NPCUpsertBulk) SetBackstory(v string) *NPCUpsertBulk {
+	return u.Update(func(s *NPCUpsert) {
+		s.SetBackstory(v)
+	})
+}
+
+// UpdateBackstory sets the "backstory" field to the value that was provided on create.
+func (u *NPCUpsertBulk) UpdateBackstory() *NPCUpsertBulk {
+	return u.Update(func(s *NPCUpsert) {
+		s.UpdateBackstory()
 	})
 }
 

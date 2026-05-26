@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -64,6 +65,18 @@ func HandleUpload(c *gin.Context) {
 		return
 	}
 
+	ownerType := c.PostForm("owner_type")
+	ownerIDStr := c.PostForm("owner_id")
+	var ownerID int64
+	if ownerIDStr != "" {
+		ownerID, _ = strconv.ParseInt(ownerIDStr, 10, 64)
+	}
+	allowedOwnerTypes := map[string]bool{"party": true, "item": true, "oneshot": true, "character": true, "npc": true, "": true}
+	if !allowedOwnerTypes[ownerType] {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid owner_type"})
+		return
+	}
+
 	hash := sha256.Sum256(data)
 	hashStr := hex.EncodeToString(hash[:])
 
@@ -83,8 +96,8 @@ func HandleUpload(c *gin.Context) {
 	var thumbnailURL string
 
 	result, err := db.DB.Exec(
-		"INSERT OR IGNORE INTO uploads (hash, ext, url, resized_url, thumbnail_url) VALUES (?, ?, ?, ?, ?)",
-		hashStr, ext, url, url, thumbnailURL)
+		"INSERT OR IGNORE INTO uploads (hash, ext, url, resized_url, thumbnail_url, owner_type, owner_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		hashStr, ext, url, url, thumbnailURL, ownerType, ownerID)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
 		return
@@ -190,7 +203,18 @@ func saveImage(path string, img image.Image, format string) error {
 }
 
 func GetUploads(c *gin.Context) {
-	rows, err := db.DB.Query("SELECT id, hash, ext, url, resized_url, thumbnail_url, COALESCE(created_at, '') FROM uploads ORDER BY created_at DESC LIMIT 50")
+	ownerType := c.Query("owner_type")
+	ownerID := c.Query("owner_id")
+
+	query := "SELECT id, hash, ext, url, COALESCE(resized_url,''), COALESCE(thumbnail_url,''), owner_type, owner_id, COALESCE(created_at,'') FROM uploads"
+	args := []interface{}{}
+	if ownerType != "" && ownerID != "" {
+		query += " WHERE owner_type=? AND owner_id=?"
+		args = append(args, ownerType, ownerID)
+	}
+	query += " ORDER BY created_at DESC LIMIT 50"
+
+	rows, err := db.DB.Query(query, args...)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -200,7 +224,7 @@ func GetUploads(c *gin.Context) {
 	uploads := make([]models.Upload, 0)
 	for rows.Next() {
 		var u models.Upload
-		if err := rows.Scan(&u.ID, &u.Hash, &u.Ext, &u.URL, &u.ResizedURL, &u.ThumbnailURL, &u.CreatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Hash, &u.Ext, &u.URL, &u.ResizedURL, &u.ThumbnailURL, &u.OwnerType, &u.OwnerID, &u.CreatedAt); err != nil {
 			continue
 		}
 		uploads = append(uploads, u)

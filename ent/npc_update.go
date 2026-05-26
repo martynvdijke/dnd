@@ -295,6 +295,132 @@ func (_u *NPCUpdate) SetNillableIsAlive(v *bool) *NPCUpdate {
 	return _u
 }
 
+// SetIsFull sets the "is_full" field.
+func (_u *NPCUpdate) SetIsFull(v bool) *NPCUpdate {
+	_u.mutation.SetIsFull(v)
+	return _u
+}
+
+// SetNillableIsFull sets the "is_full" field if the given value is not nil.
+func (_u *NPCUpdate) SetNillableIsFull(v *bool) *NPCUpdate {
+	if v != nil {
+		_u.SetIsFull(*v)
+	}
+	return _u
+}
+
+// SetAc sets the "ac" field.
+func (_u *NPCUpdate) SetAc(v int) *NPCUpdate {
+	_u.mutation.ResetAc()
+	_u.mutation.SetAc(v)
+	return _u
+}
+
+// SetNillableAc sets the "ac" field if the given value is not nil.
+func (_u *NPCUpdate) SetNillableAc(v *int) *NPCUpdate {
+	if v != nil {
+		_u.SetAc(*v)
+	}
+	return _u
+}
+
+// AddAc adds value to the "ac" field.
+func (_u *NPCUpdate) AddAc(v int) *NPCUpdate {
+	_u.mutation.AddAc(v)
+	return _u
+}
+
+// SetSpeed sets the "speed" field.
+func (_u *NPCUpdate) SetSpeed(v int) *NPCUpdate {
+	_u.mutation.ResetSpeed()
+	_u.mutation.SetSpeed(v)
+	return _u
+}
+
+// SetNillableSpeed sets the "speed" field if the given value is not nil.
+func (_u *NPCUpdate) SetNillableSpeed(v *int) *NPCUpdate {
+	if v != nil {
+		_u.SetSpeed(*v)
+	}
+	return _u
+}
+
+// AddSpeed adds value to the "speed" field.
+func (_u *NPCUpdate) AddSpeed(v int) *NPCUpdate {
+	_u.mutation.AddSpeed(v)
+	return _u
+}
+
+// SetSkills sets the "skills" field.
+func (_u *NPCUpdate) SetSkills(v string) *NPCUpdate {
+	_u.mutation.SetSkills(v)
+	return _u
+}
+
+// SetNillableSkills sets the "skills" field if the given value is not nil.
+func (_u *NPCUpdate) SetNillableSkills(v *string) *NPCUpdate {
+	if v != nil {
+		_u.SetSkills(*v)
+	}
+	return _u
+}
+
+// SetSaves sets the "saves" field.
+func (_u *NPCUpdate) SetSaves(v string) *NPCUpdate {
+	_u.mutation.SetSaves(v)
+	return _u
+}
+
+// SetNillableSaves sets the "saves" field if the given value is not nil.
+func (_u *NPCUpdate) SetNillableSaves(v *string) *NPCUpdate {
+	if v != nil {
+		_u.SetSaves(*v)
+	}
+	return _u
+}
+
+// SetFeatures sets the "features" field.
+func (_u *NPCUpdate) SetFeatures(v string) *NPCUpdate {
+	_u.mutation.SetFeatures(v)
+	return _u
+}
+
+// SetNillableFeatures sets the "features" field if the given value is not nil.
+func (_u *NPCUpdate) SetNillableFeatures(v *string) *NPCUpdate {
+	if v != nil {
+		_u.SetFeatures(*v)
+	}
+	return _u
+}
+
+// SetActions sets the "actions" field.
+func (_u *NPCUpdate) SetActions(v string) *NPCUpdate {
+	_u.mutation.SetActions(v)
+	return _u
+}
+
+// SetNillableActions sets the "actions" field if the given value is not nil.
+func (_u *NPCUpdate) SetNillableActions(v *string) *NPCUpdate {
+	if v != nil {
+		_u.SetActions(*v)
+	}
+	return _u
+}
+
+// SetBackstory sets the "backstory" field.
+func (_u *NPCUpdate) SetBackstory(v string) *NPCUpdate {
+	_u.mutation.SetBackstory(v)
+	return _u
+}
+
+// SetNillableBackstory sets the "backstory" field if the given value is not nil.
+func (_u *NPCUpdate) SetNillableBackstory(v *string) *NPCUpdate {
+	if v != nil {
+		_u.SetBackstory(*v)
+	}
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *NPCUpdate) SetCreatedAt(v string) *NPCUpdate {
 	_u.mutation.SetCreatedAt(v)
@@ -473,6 +599,36 @@ func (_u *NPCUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.IsAlive(); ok {
 		_spec.SetField(npc.FieldIsAlive, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.IsFull(); ok {
+		_spec.SetField(npc.FieldIsFull, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.Ac(); ok {
+		_spec.SetField(npc.FieldAc, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedAc(); ok {
+		_spec.AddField(npc.FieldAc, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.Speed(); ok {
+		_spec.SetField(npc.FieldSpeed, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedSpeed(); ok {
+		_spec.AddField(npc.FieldSpeed, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.Skills(); ok {
+		_spec.SetField(npc.FieldSkills, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Saves(); ok {
+		_spec.SetField(npc.FieldSaves, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Features(); ok {
+		_spec.SetField(npc.FieldFeatures, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Actions(); ok {
+		_spec.SetField(npc.FieldActions, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Backstory(); ok {
+		_spec.SetField(npc.FieldBackstory, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(npc.FieldCreatedAt, field.TypeString, value)
@@ -837,6 +993,132 @@ func (_u *NPCUpdateOne) SetNillableIsAlive(v *bool) *NPCUpdateOne {
 	return _u
 }
 
+// SetIsFull sets the "is_full" field.
+func (_u *NPCUpdateOne) SetIsFull(v bool) *NPCUpdateOne {
+	_u.mutation.SetIsFull(v)
+	return _u
+}
+
+// SetNillableIsFull sets the "is_full" field if the given value is not nil.
+func (_u *NPCUpdateOne) SetNillableIsFull(v *bool) *NPCUpdateOne {
+	if v != nil {
+		_u.SetIsFull(*v)
+	}
+	return _u
+}
+
+// SetAc sets the "ac" field.
+func (_u *NPCUpdateOne) SetAc(v int) *NPCUpdateOne {
+	_u.mutation.ResetAc()
+	_u.mutation.SetAc(v)
+	return _u
+}
+
+// SetNillableAc sets the "ac" field if the given value is not nil.
+func (_u *NPCUpdateOne) SetNillableAc(v *int) *NPCUpdateOne {
+	if v != nil {
+		_u.SetAc(*v)
+	}
+	return _u
+}
+
+// AddAc adds value to the "ac" field.
+func (_u *NPCUpdateOne) AddAc(v int) *NPCUpdateOne {
+	_u.mutation.AddAc(v)
+	return _u
+}
+
+// SetSpeed sets the "speed" field.
+func (_u *NPCUpdateOne) SetSpeed(v int) *NPCUpdateOne {
+	_u.mutation.ResetSpeed()
+	_u.mutation.SetSpeed(v)
+	return _u
+}
+
+// SetNillableSpeed sets the "speed" field if the given value is not nil.
+func (_u *NPCUpdateOne) SetNillableSpeed(v *int) *NPCUpdateOne {
+	if v != nil {
+		_u.SetSpeed(*v)
+	}
+	return _u
+}
+
+// AddSpeed adds value to the "speed" field.
+func (_u *NPCUpdateOne) AddSpeed(v int) *NPCUpdateOne {
+	_u.mutation.AddSpeed(v)
+	return _u
+}
+
+// SetSkills sets the "skills" field.
+func (_u *NPCUpdateOne) SetSkills(v string) *NPCUpdateOne {
+	_u.mutation.SetSkills(v)
+	return _u
+}
+
+// SetNillableSkills sets the "skills" field if the given value is not nil.
+func (_u *NPCUpdateOne) SetNillableSkills(v *string) *NPCUpdateOne {
+	if v != nil {
+		_u.SetSkills(*v)
+	}
+	return _u
+}
+
+// SetSaves sets the "saves" field.
+func (_u *NPCUpdateOne) SetSaves(v string) *NPCUpdateOne {
+	_u.mutation.SetSaves(v)
+	return _u
+}
+
+// SetNillableSaves sets the "saves" field if the given value is not nil.
+func (_u *NPCUpdateOne) SetNillableSaves(v *string) *NPCUpdateOne {
+	if v != nil {
+		_u.SetSaves(*v)
+	}
+	return _u
+}
+
+// SetFeatures sets the "features" field.
+func (_u *NPCUpdateOne) SetFeatures(v string) *NPCUpdateOne {
+	_u.mutation.SetFeatures(v)
+	return _u
+}
+
+// SetNillableFeatures sets the "features" field if the given value is not nil.
+func (_u *NPCUpdateOne) SetNillableFeatures(v *string) *NPCUpdateOne {
+	if v != nil {
+		_u.SetFeatures(*v)
+	}
+	return _u
+}
+
+// SetActions sets the "actions" field.
+func (_u *NPCUpdateOne) SetActions(v string) *NPCUpdateOne {
+	_u.mutation.SetActions(v)
+	return _u
+}
+
+// SetNillableActions sets the "actions" field if the given value is not nil.
+func (_u *NPCUpdateOne) SetNillableActions(v *string) *NPCUpdateOne {
+	if v != nil {
+		_u.SetActions(*v)
+	}
+	return _u
+}
+
+// SetBackstory sets the "backstory" field.
+func (_u *NPCUpdateOne) SetBackstory(v string) *NPCUpdateOne {
+	_u.mutation.SetBackstory(v)
+	return _u
+}
+
+// SetNillableBackstory sets the "backstory" field if the given value is not nil.
+func (_u *NPCUpdateOne) SetNillableBackstory(v *string) *NPCUpdateOne {
+	if v != nil {
+		_u.SetBackstory(*v)
+	}
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *NPCUpdateOne) SetCreatedAt(v string) *NPCUpdateOne {
 	_u.mutation.SetCreatedAt(v)
@@ -1045,6 +1327,36 @@ func (_u *NPCUpdateOne) sqlSave(ctx context.Context) (_node *NPC, err error) {
 	}
 	if value, ok := _u.mutation.IsAlive(); ok {
 		_spec.SetField(npc.FieldIsAlive, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.IsFull(); ok {
+		_spec.SetField(npc.FieldIsFull, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.Ac(); ok {
+		_spec.SetField(npc.FieldAc, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedAc(); ok {
+		_spec.AddField(npc.FieldAc, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.Speed(); ok {
+		_spec.SetField(npc.FieldSpeed, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedSpeed(); ok {
+		_spec.AddField(npc.FieldSpeed, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.Skills(); ok {
+		_spec.SetField(npc.FieldSkills, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Saves(); ok {
+		_spec.SetField(npc.FieldSaves, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Features(); ok {
+		_spec.SetField(npc.FieldFeatures, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Actions(); ok {
+		_spec.SetField(npc.FieldActions, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.Backstory(); ok {
+		_spec.SetField(npc.FieldBackstory, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(npc.FieldCreatedAt, field.TypeString, value)

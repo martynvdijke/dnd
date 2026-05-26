@@ -26,6 +26,10 @@ type Upload struct {
 	ResizedURL string `json:"resized_url,omitempty"`
 	// ThumbnailURL holds the value of the "thumbnail_url" field.
 	ThumbnailURL string `json:"thumbnail_url,omitempty"`
+	// OwnerType holds the value of the "owner_type" field.
+	OwnerType string `json:"owner_type,omitempty"`
+	// OwnerID holds the value of the "owner_id" field.
+	OwnerID int64 `json:"owner_id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt    string `json:"created_at,omitempty"`
 	selectValues sql.SelectValues
@@ -36,9 +40,9 @@ func (*Upload) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case upload.FieldID:
+		case upload.FieldID, upload.FieldOwnerID:
 			values[i] = new(sql.NullInt64)
-		case upload.FieldHash, upload.FieldExt, upload.FieldURL, upload.FieldResizedURL, upload.FieldThumbnailURL, upload.FieldCreatedAt:
+		case upload.FieldHash, upload.FieldExt, upload.FieldURL, upload.FieldResizedURL, upload.FieldThumbnailURL, upload.FieldOwnerType, upload.FieldCreatedAt:
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -90,6 +94,18 @@ func (_m *Upload) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field thumbnail_url", values[i])
 			} else if value.Valid {
 				_m.ThumbnailURL = value.String
+			}
+		case upload.FieldOwnerType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field owner_type", values[i])
+			} else if value.Valid {
+				_m.OwnerType = value.String
+			}
+		case upload.FieldOwnerID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field owner_id", values[i])
+			} else if value.Valid {
+				_m.OwnerID = value.Int64
 			}
 		case upload.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -147,6 +163,12 @@ func (_m *Upload) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("thumbnail_url=")
 	builder.WriteString(_m.ThumbnailURL)
+	builder.WriteString(", ")
+	builder.WriteString("owner_type=")
+	builder.WriteString(_m.OwnerType)
+	builder.WriteString(", ")
+	builder.WriteString("owner_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.OwnerID))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt)
