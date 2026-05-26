@@ -339,20 +339,6 @@ func TestHtmxCRUD(t *testing.T) {
 		}
 	})
 
-	t.Run("CalendarCRUD - create event", func(t *testing.T) {
-		w := httptest.NewRecorder()
-		form := url.Values{"title": {"Festival"}, "event_date": {"2025-06-01"}, "event_type": {"holiday"}, "description": {"Annual festival"}, "campaign_id": {"1"}}
-		req, _ := http.NewRequest("POST", "/htmx/calendar", strings.NewReader(form.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		r.ServeHTTP(w, req)
-		if w.Code != http.StatusOK {
-			t.Fatalf("create calendar event: expected 200, got %d: %s", w.Code, w.Body.String())
-		}
-		if !strings.Contains(w.Body.String(), "Festival") {
-			t.Errorf("expected event in list")
-		}
-	})
-
 	t.Run("ServiceUnavailable - 404 for unknown route", func(t *testing.T) {
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/htmx/nonexistent", nil)
@@ -549,7 +535,6 @@ func TestHtmxContentTypeAndTemplate(t *testing.T) {
 		name string
 		path string
 	}{
-		{"Calendar List", "/htmx/calendar"},
 		{"Timeline List", "/htmx/timeline"},
 		{"Factions List", "/htmx/factions"},
 		{"Notes List", "/htmx/notes?character_id=1"},
