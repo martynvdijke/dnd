@@ -53,7 +53,12 @@ func CreateMonsterLibraryEntry(c *gin.Context) {
 		return
 	}
 	id, _ := result.LastInsertId()
-	c.JSON(http.StatusCreated, gin.H{"id": id})
+	db.DB.QueryRow("SELECT id, user_id, name, ac, hp, str, dex, con, int_, wis, cha, cr, source, is_full, saves, skills, damage_vulnerabilities, damage_resistances, damage_immunities, condition_immunities, senses, languages, special_abilities, actions, legendary_actions, description, created_at FROM monster_library WHERE id=?", id).Scan(
+		&m.ID, &m.UserID, &m.Name, &m.AC, &m.HP, &m.Str, &m.Dex, &m.Con, &m.Int, &m.Wis, &m.Cha, &m.CR, &m.Source, &isFull,
+		&m.Saves, &m.Skills, &m.DamageVulnerabilities, &m.DamageResistances, &m.DamageImmunities, &m.ConditionImmunities,
+		&m.Senses, &m.Languages, &m.SpecialAbilities, &m.Actions, &m.LegendaryActions, &m.Description, &m.CreatedAt)
+	m.IsFull = isFull == 1
+	c.JSON(http.StatusCreated, m)
 }
 
 func UpdateMonsterLibraryEntry(c *gin.Context) {
@@ -154,10 +159,14 @@ func CreateActMonster(c *gin.Context) {
 	}
 	isFull := 0
 	if req.IsFull { isFull = 1 }
+	adventureID := req.AdventureID
+	if adventureID == 0 {
+		db.DB.QueryRow("SELECT adventure_id FROM oneshot_acts WHERE id=?", actID).Scan(&adventureID)
+	}
 	result, err := db.DB.Exec(`INSERT INTO oneshot_monsters(adventure_id, act_id, name, ac, hp, str, dex, con, int_, wis, cha, cr, source, is_full,
 		saves, skills, damage_vulnerabilities, damage_resistances, damage_immunities, condition_immunities, senses, languages,
 		special_abilities, actions, legendary_actions, library_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-		req.AdventureID, actID, req.Name, req.AC, req.HP, req.Str, req.Dex, req.Con, req.Int, req.Wis, req.Cha, req.CR, req.Source, isFull,
+		adventureID, actID, req.Name, req.AC, req.HP, req.Str, req.Dex, req.Con, req.Int, req.Wis, req.Cha, req.CR, req.Source, isFull,
 		req.Saves, req.Skills, req.DamageVulnerabilities, req.DamageResistances, req.DamageImmunities, req.ConditionImmunities,
 		req.Senses, req.Languages, req.SpecialAbilities, req.Actions, req.LegendaryActions, req.LibraryID)
 	if err != nil {
@@ -165,7 +174,14 @@ func CreateActMonster(c *gin.Context) {
 		return
 	}
 	id, _ := result.LastInsertId()
-	c.JSON(http.StatusCreated, gin.H{"id": id})
+	var m models.OneShotMonster
+	rows := db.DB.QueryRow("SELECT "+monsterColumns+" FROM oneshot_monsters WHERE id=?", id)
+	m, err = scanMonster(rows)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, m)
 }
 
 func UpdateOneShotMonster(c *gin.Context) {

@@ -2740,23 +2740,23 @@ func HtmxOneShotItems(c *gin.Context) {
 
 func HtmxOneShotShops(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	rows, err := db.DB.Query("SELECT id, name, description, type, markup FROM shops WHERE oneshot_adventure_id=? ORDER BY name", id)
+	rows, err := db.DB.Query("SELECT id, name, description, markup_percent, markup_buy_percent FROM shops WHERE oneshot_adventure_id=? ORDER BY name", id)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "query error")
 		return
 	}
 	defer rows.Close()
 	type shopRow struct {
-		ID          int64
-		Name        string
-		Description string
-		Type        string
-		Markup      int
+		ID            int64
+		Name          string
+		Description   string
+		MarkupPercent float64
 	}
 	out := make([]shopRow, 0)
 	for rows.Next() {
 		var s shopRow
-		rows.Scan(&s.ID, &s.Name, &s.Description, &s.Type, &s.Markup)
+		var mbp float64
+		rows.Scan(&s.ID, &s.Name, &s.Description, &s.MarkupPercent, &mbp)
 		out = append(out, s)
 	}
 	renderTemplate(c, "oneshot_shops_section.html", shopsSectionData{Shops: out, AdventureID: id})

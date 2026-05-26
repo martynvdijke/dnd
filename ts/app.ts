@@ -387,6 +387,11 @@ async function init() {
       document.getElementById('adminNavItem')!.style.display = '';
       document.getElementById('combatNavItem')!.style.display = '';
     }
+    if (user.role === 'admin' || user.role === 'dm') {
+      document.getElementById('oneshotNavItem')!.style.display = '';
+      document.getElementById('factionsNavItem')!.style.display = '';
+      document.getElementById('shopsNavItem')!.style.display = '';
+    }
     showView('characters');
     loadCharacters();
     connectWS();
@@ -411,6 +416,7 @@ function showView(view: string) {
   document.getElementById('wikiView')!.style.display = view === 'wiki' ? 'block' : 'none';
   document.getElementById('oneshotView')!.style.display = view === 'oneshot' ? 'block' : 'none';
   document.getElementById('factionsView')!.style.display = view === 'factions' ? 'block' : 'none';
+  document.getElementById('shopsView')!.style.display = view === 'shops' ? 'block' : 'none';
 }
 (window as any).showView = showView;
 
@@ -3747,6 +3753,21 @@ async function renderNotes() {
   el.setAttribute('hx-swap', 'innerHTML');
   el.innerHTML = '<div class="ornament">✧ Loading factions... ✧</div>';
   htmx.process(el);
+};
+
+(window as any).showShops = async function () {
+  showView('shops');
+  const el = document.getElementById('shopsContent')!;
+  try {
+    const data = await api('GET', '/api/shops');
+    if (!data.length) {
+      el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-store fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Shops</p><p class="small text-muted">No shops have been created yet.</p></div>';
+      return;
+    }
+    el.innerHTML = '<div class="mb-3"><select class="form-select" id="shopSelect">' +
+      data.map((s: any) => `<option value="${s.id}">${esc(s.name)}</option>`).join('') +
+      '</select></div><div id="shopItems"></div>';
+  } catch (e: any) { toast(e.message, true); }
 };
 
 (window as any).showOneShots = function () {

@@ -52,7 +52,11 @@ func CreateOneShotItem(c *gin.Context) {
 		return
 	}
 	id, _ := result.LastInsertId()
-	c.JSON(http.StatusCreated, gin.H{"id": id})
+	db.DB.QueryRow("SELECT id, adventure_id, name, description, category, quantity, weight, price_gp, is_magical, attunement, notes, created_at FROM oneshot_items WHERE id=?", id).Scan(
+		&it.ID, &it.AdventureID, &it.Name, &it.Description, &it.Category, &it.Quantity, &it.Weight, &it.PriceGP, &isMag, &att, &it.Notes, &it.CreatedAt)
+	it.IsMagical = isMag == 1
+	it.Attunement = att == 1
+	c.JSON(http.StatusCreated, it)
 }
 
 func UpdateOneShotItem(c *gin.Context) {
