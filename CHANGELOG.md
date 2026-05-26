@@ -1,3 +1,12 @@
+## [1.15.3](https://github.com/martynvdijke/dnd/compare/v1.15.2...v1.15.3) (2026-05-26)
+
+
+### Bug Fixes
+
+* remove calendar test cases deleted in campaign cleanup ([d4c3bf3](https://github.com/martynvdijke/dnd/commit/d4c3bf3a6e2ef51d393bdc1124a180c36864009b))
+* remove orphan shopsNavItem reference that breaks login flow ([52ae0ec](https://github.com/martynvdijke/dnd/commit/52ae0ec9b7efd666451a5cc55b5b6a5f59e4bb59))
+* resolve 87 e2e test failures (nav links, API responses, HTMX query, test fixes) ([9440059](https://github.com/martynvdijke/dnd/commit/9440059bdcfd3b3bb1adf44bb20b73fd3f9aa3f5))
+
 ## [1.15.2](https://github.com/martynvdijke/dnd/compare/v1.15.1...v1.15.2) (2026-05-25)
 
 
