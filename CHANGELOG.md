@@ -1,3 +1,18 @@
+# [1.16.0](https://github.com/martynvdijke/dnd/compare/v1.15.3...v1.16.0) (2026-05-27)
+
+
+### Bug Fixes
+
+* strip RPG notation suffix from die label in extractDieLabel ([d48db1f](https://github.com/martynvdijke/dnd/commit/d48db1f8f6605d9b8d7374f4d13f8e95c2914f69))
+
+
+### Features
+
+* add migrations and tests for campaign completeness features ([265cecf](https://github.com/martynvdijke/dnd/commit/265cecfa40ea7e8f7ad92a7865044c843b1c690c))
+* add prek hooks, fix test reliability, containerized E2E ([fbba261](https://github.com/martynvdijke/dnd/commit/fbba26194190172c7e1c8f6bb943bf3448230b5a))
+* campaign completeness - dashboard, party inventory, session planner, difficulty calculator, treasure generator ([21aacc0](https://github.com/martynvdijke/dnd/commit/21aacc015229afb5a1612dd97ac75476c1da43a5))
+* rpg dice notation engine with 3d polyhedral dice ([f883e56](https://github.com/martynvdijke/dnd/commit/f883e568d668a30348a4bc26229f30d7f8bc8790))
+
 ## [1.15.3](https://github.com/martynvdijke/dnd/compare/v1.15.2...v1.15.3) (2026-05-26)
 
 
