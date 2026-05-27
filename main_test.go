@@ -6460,5 +6460,3 @@ func TestDmScreenData(t *testing.T) {
 
 	t.Log("DM screen data test passed")
 }
-
-

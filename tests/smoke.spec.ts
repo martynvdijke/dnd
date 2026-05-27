@@ -49,13 +49,21 @@ test.describe('Full application smoke test', () => {
 
     async function clickNav(page, text) {
       const toggler = page.locator('.navbar-toggler');
-      if (await toggler.isVisible()) {
-        await toggler.click();
-        await page.waitForTimeout(500);
+      const isMobile = await toggler.isVisible();
+      if (isMobile) {
+        const navOpen = await page.locator('#mainNav.show').count() > 0;
+        if (!navOpen) {
+          await toggler.click();
+          await page.locator('#mainNav').waitFor({ state: 'visible', timeout: 5000 });
+        }
       }
       const link = page.locator(`nav a:has-text("${text}")`);
-      await link.waitFor({ state: 'attached', timeout: 5000 }).catch(() => {});
-      await link.click({ force: true, timeout: 5000 });
+      await link.waitFor({ state: 'visible', timeout: 5000 });
+      if (isMobile) {
+        await link.click();
+      } else {
+        await link.click();
+      }
     }
 
     const views = [

@@ -1,13 +1,13 @@
 <div class="prep-checklist">
   {{range .Items}}
   <div class="d-flex align-items-center py-1 border-bottom border-light" id="checklist-{{.ID}}">
-    <input type="checkbox" class="form-check-input me-2" 
+    <input type="checkbox" class="form-check-input me-2"
       {{if .IsChecked}}checked{{end}}
       hx-post="/htmx/oneshot-adventures/{{$.AdventureID}}/checklist/{{.ID}}/toggle"
       hx-target="closest .prep-checklist" hx-swap="outerHTML">
      <span class="flex-grow-1 {{if .IsChecked}}text-muted text-decoration-line-through{{end}}">{{.Item}}</span>
     <span class="badge bg-light text-dark me-1">{{.Category}}</span>
-    <button class="btn btn-sm btn-outline-danger py-0 px-1" 
+    <button class="btn btn-sm btn-outline-danger py-0 px-1"
       hx-delete="/htmx/oneshot-adventures/{{$.AdventureID}}/checklist/{{.ID}}"
       hx-target="closest .prep-checklist" hx-swap="outerHTML">
       <i class="fas fa-times"></i>
@@ -30,7 +30,7 @@
       <option value="loot">Loot</option>
       <option value="handouts">Handouts</option>
     </select>
-    <button class="btn btn-sm btn-primary" 
+    <button class="btn btn-sm btn-primary"
       hx-post="/htmx/oneshot-adventures/{{.AdventureID}}/checklist"
       hx-include="#newChecklistItem, #newChecklistCategory"
       hx-target="closest .prep-checklist" hx-swap="outerHTML">

@@ -53111,7 +53111,7 @@ decimal.js/decimal.mjs:
 @dice-roller/rpg-dice-roller/lib/esm/bundle.js:
   (**
    * @dice-roller/rpg-dice-roller - An advanced JS based dice roller that can roll various types of dice and modifiers, along with mathematical equations.
-   * 
+   *
    * @version 5.5.1
    * @license MIT
    * @author GreenImp Media <info@greenimp.co.uk> (https://greenimp.co.uk)

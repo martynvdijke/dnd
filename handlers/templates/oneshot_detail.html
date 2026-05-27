@@ -39,7 +39,7 @@
         <span class="fw-bold">Act {{.Number}}: {{.Title}}</span>
         <span class="text-muted small d-inline-flex align-items-center gap-1">
           <i class="fa-regular fa-clock"></i>
-          <input type="number" class="form-control form-control-sm inline-duration" 
+          <input type="number" class="form-control form-control-sm inline-duration"
                  style="width:60px;padding:0.15rem 0.3rem;font-size:0.75rem"
                  value="{{.EstimatedMinutes}}" min="1"
                  hx-patch="/api/oneshot-acts/{{.ID}}/duration"
@@ -67,7 +67,7 @@
           <span class="badge {{if eq .SceneType "combat"}}bg-danger{{else if eq .SceneType "exploration"}}bg-info{{else if eq .SceneType "puzzle"}}bg-purple{{else if eq .SceneType "climax"}}bg-dark{{else}}bg-secondary{{end}}" style="font-size:0.7rem">{{.SceneType}}</span>
           <span class="text-muted small d-inline-flex align-items-center gap-1">
             <i class="fa-regular fa-clock"></i>
-            <input type="number" class="form-control form-control-sm inline-duration" 
+            <input type="number" class="form-control form-control-sm inline-duration"
                    style="width:55px;padding:0.1rem 0.25rem;font-size:0.7rem"
                    value="{{.EstimatedMinutes}}" min="1"
                    hx-patch="/api/oneshot-scenes/{{.ID}}/duration"

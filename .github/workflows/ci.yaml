@@ -48,7 +48,7 @@ jobs:
         run: npm run build:ts
 
       - name: Run Tests
-        run: 
+        run:
           go test -tags "fts5" -v ./...
 
       - name: Install Playwright Browsers

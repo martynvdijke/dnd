@@ -123,10 +123,16 @@ test.describe('One-Shot Adventure Features', () => {
     await expect(page.locator('#oneshotSection')).toContainText(title, { timeout: 10000 });
 
     // Click the adventure to view detail and check for acts
-    await page.locator('#oneshotSection .list-group-item').first().click();
-    await page.waitForTimeout(500);
-    await expect(page.locator('#oneshotSection')).toContainText('Act 1', { timeout: 10000 });
-    await expect(page.locator('#oneshotSection')).toContainText('Act 5', { timeout: 10000 });
+    const listItem = page.locator('#oneshotSection .list-group-item').first();
+    await listItem.waitFor({ state: 'visible', timeout: 5000 });
+    await listItem.click();
+
+    // Wait for HTMX detail view to load acts
+    await page.waitForFunction(() => {
+      const section = document.getElementById('oneshotSection');
+      return section && section.textContent.includes('Act 1');
+    }, { timeout: 15000 });
+    await expect(page.locator('#oneshotSection')).toContainText('Act 5', { timeout: 15000 });
   });
 
   test('Prep dashboard loads for generated one-shot', async ({ page }) => {

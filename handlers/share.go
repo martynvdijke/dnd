@@ -289,5 +289,3 @@ func DeleteShareLink(c *gin.Context) {
 	db.DB.Exec("DELETE FROM share_links WHERE token=?", token)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
-
-

@@ -1454,5 +1454,3 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		r.Handle(rt.method, rt.path, rt.handler)
 	}
 }
-
-

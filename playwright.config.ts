@@ -13,7 +13,7 @@ export default defineConfig({
   },
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:6270',
+    baseURL: process.env.BASE_URL || 'http://localhost:6270',
     trace: 'on-first-retry',
   },
   projects: [
