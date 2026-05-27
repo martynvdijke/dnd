@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
-	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
+	"villum/dice"
 	"villum/models"
 )
 
@@ -20,19 +21,29 @@ type DiceRequest struct {
 	Advantage   string `json:"advantage,omitempty"`
 }
 
-type DiceResult struct {
-	Expression string      `json:"expression"`
-	Total      int         `json:"total"`
-	Breakdown  []DieResult `json:"breakdown"`
-	Text       string      `json:"text"`
+// HandlerResult is the response format sent to the frontend.
+type HandlerResult struct {
+	Expression string              `json:"expression"`
+	Total      int                 `json:"total"`
+	Breakdown  []dice.BreakdownGroup `json:"breakdown"`
+	Text       string              `json:"text"`
 }
 
-type DieResult struct {
-	Die    string `json:"die"`
-	Rolls  []int  `json:"rolls"`
-	Total  int    `json:"total"`
-	Mod    int    `json:"mod"`
-	Signed string `json:"signed"`
+var (
+	dicePool *dice.Pool
+	diceOnce sync.Once
+)
+
+func getDicePool() *dice.Pool {
+	diceOnce.Do(func() {
+		var err error
+		dicePool, err = dice.NewPool(2)
+		if err != nil {
+			// Will be caught at handler time
+			panic(fmt.Sprintf("failed to init dice engine: %v", err))
+		}
+	})
+	return dicePool
 }
 
 func HandleRoll(c *gin.Context) {
@@ -47,98 +58,130 @@ func HandleRoll(c *gin.Context) {
 		return
 	}
 
+	// Map advantage/disadvantage to RPG notation
+	expression := req.Expression
 	adv := strings.ToLower(req.Advantage)
-	if adv == "advantage" || adv == "disadvantage" {
-		handleAdvantageRoll(c, req, adv)
+	if adv == "advantage" {
+		expression = mapToAdvantageNotation(expression)
+		if expression == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "advantage only supported for single die expressions"})
+			return
+		}
+	} else if adv == "disadvantage" {
+		expression = mapToDisadvantageNotation(expression)
+		if expression == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "disadvantage only supported for single die expressions"})
+			return
+		}
+	}
+
+	pool := getDicePool()
+	if pool == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "dice engine not available"})
 		return
 	}
 
-	result, err := rollDice(req.Expression)
+	rollResult, err := pool.Roll(expression)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Transform to handler result format
+	hr, ok := rollResultToHandler(req.Expression, rollResult)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse dice result"})
 		return
 	}
 
 	// Save to history
 	userID, _ := c.Get("user_id")
 	db.DB.Exec("INSERT INTO dice_rolls(user_id,character_id,expression,result,total) VALUES(?,?,?,?,?)",
-		userID, req.CharacterID, result.Expression, result.Text, result.Total)
+		userID, req.CharacterID, hr.Expression, hr.Text, hr.Total)
 
-	c.JSON(http.StatusOK, result)
+	c.JSON(http.StatusOK, hr)
 }
 
-func handleAdvantageRoll(c *gin.Context, req DiceRequest, adv string) {
-	expr := strings.ReplaceAll(req.Expression, " ", "")
-	expr = strings.ToLower(expr)
-
-	var diePart string
-	var modPart int
-	if idx := strings.IndexAny(expr, "+-"); idx >= 0 {
-		diePart = expr[:idx]
-		modPart, _ = strconv.Atoi(expr[idx:])
-	} else {
-		diePart = expr
+// mapToAdvantageNotation maps a simple expression like "1d20" to "2d20kh1" for advantage.
+// Returns empty string if not applicable.
+func mapToAdvantageNotation(expr string) string {
+	diePart, modPart, ok := splitDieAndMod(expr)
+	if !ok {
+		return ""
 	}
-
-	if !strings.Contains(diePart, "d") || strings.Count(diePart, "d") > 1 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "advantage/disadvantage only supported for single die expressions"})
-		return
+	if strings.HasPrefix(diePart, "-") {
+		return "" // negative dice not supported
 	}
+	diePart = strings.TrimPrefix(diePart, "+")
 
 	parts := strings.SplitN(diePart, "d", 2)
-	count, _ := strconv.Atoi(parts[0])
-	sides, _ := strconv.Atoi(parts[1])
-	if count != 1 || sides <= 0 || sides > 1000 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "advantage/disadvantage only supported for single die"})
-		return
+	if len(parts) != 2 {
+		return ""
+	}
+	count := parts[0]
+	if count == "" {
+		count = "1"
+	}
+	if count != "1" {
+		return "" // only single die advantage
 	}
 
-	roll1, _ := randInt(1, sides)
-	roll2, _ := randInt(1, sides)
+	notation := "2d" + parts[1] + "kh1"
+	if modPart != "" {
+		notation += modPart
+	}
+	return notation
+}
 
-	chosen := roll1
-	if adv == "advantage" && roll2 > chosen {
-		chosen = roll2
+// mapToDisadvantageNotation maps a simple expression like "1d20" to "2d20kl1" for disadvantage.
+func mapToDisadvantageNotation(expr string) string {
+	diePart, modPart, ok := splitDieAndMod(expr)
+	if !ok {
+		return ""
 	}
-	if adv == "disadvantage" && roll2 < chosen {
-		chosen = roll2
+	if strings.HasPrefix(diePart, "-") {
+		return ""
 	}
+	diePart = strings.TrimPrefix(diePart, "+")
 
-	total := chosen + modPart
-
-	breakdown := []DieResult{
-		{
-			Die:   diePart,
-			Rolls: []int{roll1, roll2},
-			Total: chosen,
-		},
+	parts := strings.SplitN(diePart, "d", 2)
+	if len(parts) != 2 {
+		return ""
 	}
-	if modPart != 0 {
-		signed := fmt.Sprintf("%+d", modPart)
-		breakdown = append(breakdown, DieResult{Die: signed, Total: modPart, Mod: modPart, Signed: signed})
+	count := parts[0]
+	if count == "" {
+		count = "1"
 	}
-
-	keepLabel := "higher"
-	if adv == "disadvantage" {
-		keepLabel = "lower"
-	}
-	text := fmt.Sprintf("%s (%s) = %d  (%s: [%d, %d], keeping %s)", expr, adv, total, diePart, roll1, roll2, keepLabel)
-	if modPart != 0 {
-		text += fmt.Sprintf(" %+d", modPart)
+	if count != "1" {
+		return ""
 	}
 
-	result := &DiceResult{
-		Expression: req.Expression,
-		Total:      total,
-		Breakdown:  breakdown,
-		Text:       text,
+	notation := "2d" + parts[1] + "kl1"
+	if modPart != "" {
+		notation += modPart
+	}
+	return notation
+}
+
+// splitDieAndMod splits an expression like "1d20+5" into die part "1d20" and mod part "+5".
+func splitDieAndMod(expr string) (diePart, modPart string, ok bool) {
+	expr = strings.ReplaceAll(expr, " ", "")
+	expr = strings.ToLower(expr)
+
+	if !strings.Contains(expr, "d") {
+		return "", "", false
 	}
 
-	userID, _ := c.Get("user_id")
-	db.DB.Exec("INSERT INTO dice_rolls(user_id,character_id,expression,result,total) VALUES(?,?,?,?,?)",
-		userID, req.CharacterID, result.Expression, result.Text, result.Total)
+	// Split on first sign after a die expression
+	for i := 0; i < len(expr); i++ {
+		if (expr[i] == '+' || expr[i] == '-') && i > 0 && expr[i-1] != 'd' && expr[i-1] != 'k' && expr[i-1] != 'r' && expr[i-1] != '!' {
+			diePart = expr[:i]
+			modPart = expr[i:]
+			return diePart, modPart, true
+		}
+	}
 
-	c.JSON(http.StatusOK, result)
+	return expr, "", true
 }
 
 func GetDiceRolls(c *gin.Context) {
@@ -167,118 +210,28 @@ func GetDiceRolls(c *gin.Context) {
 	c.JSON(http.StatusOK, rolls)
 }
 
-func rollDice(expr string) (*DiceResult, error) {
-	expr = strings.ReplaceAll(expr, " ", "")
-	expr = strings.ToLower(expr)
-
-	result := &DiceResult{
-		Expression: expr,
-	}
-
-	// Parse expression like "2d6+3", "1d20+5", "3d8+2d6+4"
+// rollResultToHandler transforms a dice engine RollResult to the HandlerResult format.
+func rollResultToHandler(originalExpression string, result *dice.RollResult) (*HandlerResult, bool) {
+	// Parse total from json.Number
 	total := 0
-	parts := splitExpression(expr)
-
-	for _, part := range parts {
-		if strings.Contains(part, "d") {
-			// Dice roll
-			parts := strings.SplitN(part, "d", 2)
-			count, _ := strconv.Atoi(parts[0])
-			sides, _ := strconv.Atoi(parts[1])
-
-			if count <= 0 || sides <= 0 {
-				return nil, fmt.Errorf("invalid dice: %s", part)
-			}
-			if count > 100 {
-				return nil, fmt.Errorf("too many dice (max 100)")
-			}
-			if sides > 1000 {
-				return nil, fmt.Errorf("too many sides (max 1000)")
-			}
-
-			dr := DieResult{Die: part}
-			rolls := make([]int, count)
-			sum := 0
-			for i := 0; i < count; i++ {
-				n, err := randInt(1, sides)
-				if err != nil {
-					return nil, err
-				}
-				rolls[i] = n
-				sum += n
-			}
-			dr.Rolls = rolls
-			dr.Total = sum
-			dr.Signed = fmt.Sprintf("+%d", sum)
-			result.Breakdown = append(result.Breakdown, dr)
-			total += sum
-		} else {
-			// Modifier
-			n, _ := strconv.Atoi(part)
-			dr := DieResult{Die: part, Total: n, Mod: n}
-			if n >= 0 {
-				dr.Signed = fmt.Sprintf("+%d", n)
-			} else {
-				dr.Signed = fmt.Sprintf("%d", n)
-			}
-			result.Breakdown = append(result.Breakdown, dr)
-			total += n
-		}
+	totalStr := string(result.Total)
+	if totalStr != "" {
+		fmt.Sscanf(totalStr, "%d", &total)
 	}
 
-	result.Total = total
+	// Use the dice package's transform
+	transformed := dice.ToHandlerResult(originalExpression, result)
 
-	// Build text
-	parts2 := []string{}
-	for _, dr := range result.Breakdown {
-		if strings.Contains(dr.Die, "d") {
-			rollStrs := []string{}
-			for _, r := range dr.Rolls {
-				rollStrs = append(rollStrs, strconv.Itoa(r))
-			}
-			parts2 = append(parts2, fmt.Sprintf("%s: [%s]", dr.Die, strings.Join(rollStrs, ", ")))
-		} else {
-			parts2 = append(parts2, fmt.Sprintf("%+d", dr.Mod))
-		}
-	}
-	result.Text = fmt.Sprintf("%s = %d  (%s)", expr, total, strings.Join(parts2, " "))
-
-	return result, nil
+	return &HandlerResult{
+		Expression: originalExpression,
+		Total:      transformed.Total,
+		Breakdown:  transformed.Breakdown,
+		Text:       transformed.Text,
+	}, true
 }
 
-func splitExpression(expr string) []string {
-	var parts []string
-	current := ""
-	sign := byte('+')
-
-	for i := 0; i < len(expr); i++ {
-		ch := expr[i]
-		if ch == '+' || ch == '-' {
-			if current != "" {
-				if sign == '-' {
-					parts = append(parts, "-"+current)
-				} else {
-					parts = append(parts, current)
-				}
-			}
-			current = ""
-			sign = ch
-		} else {
-			current += string(ch)
-		}
-	}
-
-	if current != "" {
-		if sign == '-' {
-			parts = append(parts, "-"+current)
-		} else {
-			parts = append(parts, current)
-		}
-	}
-
-	return parts
-}
-
+// randInt generates a random integer in [min, max] using crypto/rand.
+// Kept here for use by other handlers (campaign, check, combat, downtime).
 func randInt(min, max int) (int, error) {
 	n, err := rand.Int(rand.Reader, big.NewInt(int64(max-min+1)))
 	if err != nil {

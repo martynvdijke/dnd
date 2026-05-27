@@ -2123,7 +2123,23 @@ async function renderAnalytics() {
 
 // ─── 3D Dice ───
 
+// ─── Dice Constants ───
+
 const DICE_PRESETS = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100'];
+const DICE_NOTATION_PRESETS = [
+  { label: 'd20', expr: '1d20' },
+  { label: 'Advantage', expr: '2d20kh1', icon: 'fa-solid fa-angles-up' },
+  { label: 'Disadvantage', expr: '2d20kl1', icon: 'fa-solid fa-angles-down' },
+  { label: 'd6', expr: '1d6' },
+  { label: '2d6', expr: '2d6' },
+  { label: '3d6', expr: '3d6' },
+  { label: '4d6kh3', expr: '4d6kh3', sub: 'stats' },
+  { label: 'd8', expr: '1d8' },
+  { label: 'd10', expr: '1d10' },
+  { label: 'd12', expr: '1d12' },
+  { label: 'd100', expr: '1d100' },
+  { label: 'd4', expr: '1d4' },
+];
 
 // Pip positions for d6 faces (1-6)
 const D6_PIPS: Record<number, Array<{top: string; left: string}>> = {
@@ -2135,11 +2151,167 @@ const D6_PIPS: Record<number, Array<{top: string; left: string}>> = {
   6: [{top:'25%',left:'25%'},{top:'25%',left:'75%'},{top:'50%',left:'25%'},{top:'50%',left:'75%'},{top:'75%',left:'25%'},{top:'75%',left:'75%'}],
 };
 
-function setDiceExpr(die: string) {
+// ─── 3D Geometry Helpers ───
+
+/** Generate N evenly-distributed points on a sphere (Fibonacci sphere algorithm). */
+function fibonacciSphere(n: number, radius: number): Array<{x: number; y: number; z: number}> {
+  if (n <= 1) return [{ x: 0, y: 0, z: radius }];
+  const points: Array<{x: number; y: number; z: number}> = [];
+  const phi = Math.PI * (3 - Math.sqrt(5));
+  for (let i = 0; i < n; i++) {
+    const y = 1 - (i / (n - 1)) * 2;
+    const r = Math.sqrt(1 - y * y);
+    const theta = phi * i;
+    points.push({ x: r * Math.cos(theta) * radius, y: y * radius, z: r * Math.sin(theta) * radius });
+  }
+  return points;
+}
+
+/** Compute CSS rotation angles to make (nx, ny, nz) face the viewer (+Z). */
+function normalToRotation(nx: number, ny: number, nz: number): { rx: number; ry: number } {
+  // Angle around Y axis
+  const ry = Math.atan2(nx, nz) * (180 / Math.PI);
+  // Angle around X axis
+  const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+  const rx = Math.asin(-ny / len) * (180 / Math.PI);
+  return { rx, ry };
+}
+
+/** Get pre-calculated face transforms for a given die type. */
+function getFaceTransforms(sides: number): Array<{ rx: number; ry: number; rz: number }> {
+  const radius = 36; // half the die size
+  if (sides === 6) {
+    // Cube: 6 faces at cardinal positions
+    return [
+      { rx: 0,   ry: 0,   rz: 0 },   // front (face 1)
+      { rx: 0,   ry: 180, rz: 0 },   // back  (face 6, opposite to front)
+      { rx: 0,   ry: 90,  rz: 0 },   // right (face 3)
+      { rx: 0,   ry: -90, rz: 0 },   // left  (face 4)
+      { rx: -90, ry: 0,   rz: 0 },   // top   (face 2)
+      { rx: 90,  ry: 0,   rz: 0 },   // bottom (face 5)
+    ];
+  }
+
+  // For other polyhedra, distribute faces evenly on sphere
+  const points = fibonacciSphere(sides, radius);
+
+  // For tetrahedron (d4), d4 has special face-value mapping
+  if (sides === 4) {
+    // Use the 4 points of a tetrahedron for face positions
+    const t = Math.sqrt(1 / 3);
+    const tetraVerts = [
+      { x:  t * radius, y:  t * radius, z:  t * radius },
+      { x: -t * radius, y: -t * radius, z:  t * radius },
+      { x: -t * radius, y:  t * radius, z: -t * radius },
+      { x:  t * radius, y: -t * radius, z: -t * radius },
+    ];
+    return tetraVerts.map(p => {
+      const norm = normalToRotation(p.x, p.y, p.z);
+      return { rx: norm.rx, ry: norm.ry, rz: 0 };
+    });
+  }
+
+  return points.map(p => {
+    const norm = normalToRotation(p.x, p.y, p.z);
+    return { rx: norm.rx, ry: norm.ry, rz: 0 };
+  });
+}
+
+/** Compute die rotation string to show a specific face value. */
+function rotateDieToShow(sides: number, value: number): string {
+  const faceIdx = Math.max(0, Math.min(sides - 1, value - 1));
+  const transforms = FACE_TRANSFORMS[sides as keyof typeof FACE_TRANSFORMS]
+    || getFaceTransforms(sides);
+
+  if (faceIdx < transforms.length) {
+    const t = transforms[faceIdx];
+    return `rotateX(${-t.rx}deg) rotateY(${-t.ry}deg)`;
+  }
+  return '';
+}
+
+/** Compute the rolling animation class for a die type. */
+function rollingClass(sides: number): string {
+  if (sides === 4) return 'rolling-d4';
+  if (sides === 6) return 'rolling';
+  if (sides === 8) return 'rolling-d8';
+  if (sides === 10) return 'rolling-d10';
+  if (sides === 12) return 'rolling-d12';
+  if (sides === 20) return 'rolling-d20';
+  return 'rolling';
+}
+
+/** Face shape class for the polyhedron type. */
+function faceShapeClass(sides: number): string {
+  if (sides === 4 || sides === 8 || sides === 20) return 'tri-face';
+  if (sides === 10) return 'kite-face';
+  if (sides === 12) return 'pent-face';
+  return ''; // cube uses square faces (default)
+}
+
+// Cache pre-computed face transforms
+const FACE_TRANSFORMS: Record<number, Array<{ rx: number; ry: number; rz: number }>> = {};
+[4, 6, 8, 10, 12, 20].forEach(s => { FACE_TRANSFORMS[s] = getFaceTransforms(s); });
+
+// ─── Build 3D Die HTML ───
+
+function build3DDie(value: number, sides: number, dieLabel: string): string {
+  const maxSides = sides >= 100 ? 100 : sides;
+  const dieClass = 'd' + (maxSides >= 100 ? 100 : maxSides);
+  const transforms = FACE_TRANSFORMS[maxSides as keyof typeof FACE_TRANSFORMS]
+    || getFaceTransforms(maxSides);
+  const shapeCls = faceShapeClass(maxSides);
+  const dieRot = rotateDieToShow(maxSides, value);
+
+  const facesHtml = transforms.map((t, i) => {
+    const faceValue = i + 1; // face index → value
+    const displayVal = maxSides === 100
+      ? (faceValue === 10 ? '00' : String(faceValue * 10))
+      : String(faceValue);
+
+    // d6 uses pips instead of numerals
+    if (maxSides === 6 && faceValue >= 1 && faceValue <= 6) {
+      const pips = D6_PIPS[faceValue] || [];
+      const pipHtml = pips.map(p =>
+        `<span class="pip" style="top:${p.top};left:${p.left};transform:translate(-50%,-50%)"></span>`
+      ).join('');
+      return `<div class="dice-3d-face ${shapeCls}" style="transform:rotateX(${t.rx}deg) rotateY(${t.ry}deg) translateZ(36px)">${pipHtml}</div>`;
+    }
+
+    return `<div class="dice-3d-face ${shapeCls}" style="transform:rotateX(${t.rx}deg) rotateY(${t.ry}deg) translateZ(36px)">${displayVal}</div>`;
+  }).join('');
+
+  return `<div class="dice-3d-die ${dieClass}" data-sides="${maxSides}" data-value="${value}" style="transform:${dieRot}">${facesHtml}</div>`;
+}
+
+// ─── Die Value Helpers ───
+
+/** Extract the numeric value from a breakdown roll entry (DieRollDetail or plain number). */
+function rollValue(r: any): number {
+  return typeof r === 'number' ? r : (r.value ?? 0);
+}
+
+/** Check if a die roll detail should be displayed normally (useInTotal). */
+function rollUsed(r: any): boolean {
+  return typeof r === 'number' ? true : (r.useInTotal !== false);
+}
+
+/** Get modifier flags for a die roll (e.g., "dropped", "exploded"). */
+function rollFlags(r: any): string {
+  return typeof r === 'number' ? '' : (r.modifierFlags || '');
+}
+
+/** Parse sides from a die label like "d20" or "+3" (returns 0 for modifiers). */
+function parseSides(dieLabel: string): number {
+  const m = dieLabel.match(/^d(\d+)$/i);
+  return m ? parseInt(m[1]) : 0;
+}
+
+// ─── Dice Expression / Quick Roll ───
+
+function setDiceExpr(expr: string) {
   const input = document.getElementById('diceExpr') as HTMLInputElement;
-  const m = input.value.match(/^(\d*)d\d+/);
-  const count = m ? m[1] || '1' : '1';
-  input.value = count + die;
+  input.value = expr;
   doRoll();
 }
 (window as any).setDiceExpr = setDiceExpr;
@@ -2161,16 +2333,25 @@ async function rollWithAdvantage(isAdv: boolean) {
       const rolls = result.breakdown?.[0]?.rolls || [];
       const chosen = result.total;
       let badge = '';
-      if (rolls.some((r: number) => r === 20)) badge = '<span class="badge bg-success ms-2">Critical Hit!</span>';
-      else if (rolls.some((r: number) => r === 1)) badge = '<span class="badge bg-danger ms-2">Critical Fail!</span>';
+      // Check for 20/1 on d20 in the FIRST breakdown group's rolls
+      const d20Rolls = result.breakdown?.filter((b: any) => b.die === 'd20' && b.rolls) || [];
+      for (const bg of d20Rolls) {
+        for (const r of bg.rolls) {
+          const v = rollValue(r);
+          if (v === 20) badge = '<span class="badge bg-success ms-2">Critical Hit!</span>';
+          else if (v === 1) badge = '<span class="badge bg-danger ms-2">Critical Fail!</span>';
+        }
+      }
       resultDiv.style.display = 'block';
       resultDiv.innerHTML = `
         <div class="dice-result-box text-center">
           <div class="roll-expression">${esc(result.expression)} (${isAdv ? 'advantage' : 'disadvantage'})</div>
           <div class="d-flex justify-content-center gap-3 mb-2">
-            ${rolls.map((r: number, i: number) => {
-              const isChosen = (i === 0 && r === chosen) || (i === 1 && r === chosen);
-              return `<span class="die-face" style="${isChosen ? 'border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)' : 'opacity:0.5'}">${r}</span>`;
+            ${rolls.map((r: any, i: number) => {
+              const v = rollValue(r);
+              const used = rollUsed(r);
+              const style = used ? 'border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)' : 'opacity:0.4';
+              return `<span class="die-face${used ? '' : ' die-dropped'}" style="${style}">${v}</span>`;
             }).join('')}
           </div>
           <div class="roll-total-anim">${chosen}</div>
@@ -2185,6 +2366,8 @@ async function rollWithAdvantage(isAdv: boolean) {
 }
 (window as any).rollWithAdvantage = rollWithAdvantage;
 
+// ─── Render Dice Tab ───
+
 function renderDiceTab() {
   const targetId = currentView === 'dice' ? 'diceViewSection' : 'diceSection';
   const el = document.getElementById(targetId);
@@ -2195,15 +2378,15 @@ function renderDiceTab() {
       <div class="row justify-content-center mb-2">
         <div class="col-md-8">
           <label class="form-label">Expression</label>
-          <input class="form-control text-center" id="diceExpr" value="1d20" placeholder="e.g. 2d6+3" style="font-size:1.3rem;font-weight:700">
+          <input class="form-control text-center" id="diceExpr" value="1d20" placeholder="e.g. 2d6+3, 4d6kh3, 1d20!" style="font-size:1.3rem;font-weight:700">
         </div>
       </div>
       <div class="dice-quick-btns mb-3">
-        ${DICE_PRESETS.map(d => `<button class="btn btn-sm dice-btn" onclick="setDiceExpr('${d}')">${d}</button>`).join('')}
-      </div>
-      <div class="mb-3">
-        <button class="btn btn-outline-gold btn-sm me-1" onclick="rollWithAdvantage(true)" title="Roll with advantage"><i class="fa-solid fa-angles-up me-1"></i>Advantage</button>
-        <button class="btn btn-outline-gold btn-sm" onclick="rollWithAdvantage(false)" title="Roll with disadvantage"><i class="fa-solid fa-angles-down me-1"></i>Disadvantage</button>
+        ${DICE_NOTATION_PRESETS.map(p =>
+          `<button class="btn btn-sm dice-btn" onclick="setDiceExpr('${esc(p.expr)}')" title="${p.sub ? p.sub : p.expr}">
+            ${p.icon ? `<i class="${p.icon} me-1"></i>` : ''}${esc(p.label)}
+          </button>`
+        ).join('')}
       </div>
       <div id="dice3dContainer" class="dice-3d-container"></div>
       <div id="diceResult" class="mb-3" style="display:none"></div>
@@ -2218,60 +2401,45 @@ function renderDiceTab() {
 }
 (window as any).renderDiceTab = renderDiceTab;
 
-function rotateToFace(face: number, sides: number): string {
-  // Map result value to the correct 3D rotation so it lands face-up
-  if (sides === 6) {
-    // Standard d6 opposite faces sum to 7
-    const rotations: Record<number, string> = {
-      1: 'rotateX(0deg) rotateY(0deg)',
-      2: 'rotateX(-90deg) rotateY(0deg)',
-      3: 'rotateY(90deg) rotateX(0deg)',
-      4: 'rotateY(-90deg) rotateX(0deg)',
-      5: 'rotateX(90deg) rotateY(0deg)',
-      6: 'rotateX(180deg) rotateY(0deg)',
-    };
-    return rotations[face] || 'rotateX(0deg) rotateY(0deg)';
-  }
-  return '';
-}
-
-function build3DCube(value: number, sides: number, dieLabel: string): string {
-  if (sides === 6) {
-    const faceValues = [1, 2, 3, 4, 5, 6];
-    const faceNames = ['front', 'back', 'right', 'left', 'top', 'bottom'];
-    const faces = faceValues.map(v => {
-      const pips = D6_PIPS[v] || [];
-      const pipHtml = pips.map(p => `<span class="pip" style="top:${p.top};left:${p.left};transform:translate(-50%,-50%)"></span>`).join('');
-      return `<div class="dice-3d-face ${faceNames[faceValues.indexOf(v)]}">${pipHtml}</div>`;
-    }).join('');
-    return `<div class="dice-3d-cube d6" data-sides="6" data-value="${value}" style="transform:${rotateToFace(value, 6)}">${faces}</div>`;
-  }
-  // 2D fallback for other dice types
-  const cls = 'd' + sides;
-  return `<div class="dice-2d ${cls}">${value}</div>`;
-}
+// ─── Rolling Animation ───
 
 function animateDiceRoll(breakdown: any[]) {
   const container = document.getElementById('dice3dContainer');
   if (!container) return;
 
-  // Build dice with rolling animation
+  // Build dice placeholder with rolling animation
   container.innerHTML = breakdown.map((b: any) => {
     if (!b.rolls || b.rolls.length === 0) return '';
-    const sides = parseInt(b.die.replace('d', ''));
+    const sides = parseSides(b.die);
+    if (sides === 0) return ''; // skip modifiers
     const dieLabel = b.die;
-    return b.rolls.map((r: number) => {
-      const dieHtml = sides === 6
-        ? `<div class="dice-3d-cube d6 rolling" data-sides="6" data-value="${r}">${[1,2,3,4,5,6].map((v,i) => {
-            const pips = D6_PIPS[v] || [];
-            const pipHtml = pips.map(p => `<span class="pip" style="top:${p.top};left:${p.left};transform:translate(-50%,-50%)"></span>`).join('');
-            return `<div class="dice-3d-face ${['front','back','right','left','top','bottom'][i]}">${pipHtml}</div>`;
-          }).join('')}</div>`
-        : `<div class="dice-2d d${sides} rolling">?</div>`;
+    const rollCls = rollingClass(sides);
+    const transforms = FACE_TRANSFORMS[sides as keyof typeof FACE_TRANSFORMS]
+      || getFaceTransforms(sides);
+    const shapeCls = faceShapeClass(sides);
+
+    return b.rolls.map((r: any) => {
+      // Create a rolling die HTML placeholder (all faces, no rotation)
+      const facesHtml = transforms.map((t, i) => {
+        const displayVal = sides >= 100
+          ? (i + 1 === 10 ? '00' : String((i + 1) * 10))
+          : String(i + 1);
+        if (sides === 6) {
+          const pips = D6_PIPS[i + 1] || [];
+          const pipHtml = pips.map(p =>
+            `<span class="pip" style="top:${p.top};left:${p.left};transform:translate(-50%,-50%)"></span>`
+          ).join('');
+          return `<div class="dice-3d-face ${shapeCls}" style="transform:rotateX(${t.rx}deg) rotateY(${t.ry}deg) translateZ(36px)">${pipHtml}</div>`;
+        }
+        return `<div class="dice-3d-face ${shapeCls}" style="transform:rotateX(${t.rx}deg) rotateY(${t.ry}deg) translateZ(36px)">${displayVal}</div>`;
+      }).join('');
+      const dieHtml = `<div class="dice-3d-die ${b.die} ${rollCls}" data-sides="${sides}" data-value="0">${facesHtml}</div>`;
       return `<div class="dice-3d-wrapper"><span class="dice-3d-label">${dieLabel}</span>${dieHtml}</div>`;
     }).join('');
   }).join('');
 }
+
+// ─── Settle Dice (Final Result) ───
 
 function settleDice(breakdown: any[]) {
   const container = document.getElementById('dice3dContainer');
@@ -2280,16 +2448,19 @@ function settleDice(breakdown: any[]) {
   setTimeout(() => {
     container.innerHTML = breakdown.map((b: any) => {
       if (!b.rolls || b.rolls.length === 0) return '';
-      const sides = parseInt(b.die.replace('d', ''));
+      const sides = parseSides(b.die);
+      if (sides === 0) return ''; // skip modifiers
       const dieLabel = b.die;
-      return b.rolls.map((r: number) => {
-        const dieHtml = build3DCube(r, sides, dieLabel);
+
+      return b.rolls.map((r: any) => {
+        const v = rollValue(r);
+        const dieHtml = build3DDie(v, sides, dieLabel);
 
         // Check for crits on d20
         let extraClass = '';
         if (sides === 20) {
-          if (r === 20) extraClass = ' dice-crit-success';
-          else if (r === 1) extraClass = ' dice-crit-fail';
+          if (v === 20) extraClass = ' dice-crit-success';
+          else if (v === 1) extraClass = ' dice-crit-fail';
         }
 
         const wrapper = document.createElement('div');
@@ -2301,6 +2472,8 @@ function settleDice(breakdown: any[]) {
   }, 900);
 }
 
+// ─── Main Roll Handler ───
+
 async function doRoll() {
   const expr = (document.getElementById('diceExpr') as HTMLInputElement).value;
   if (!expr) return;
@@ -2310,16 +2483,24 @@ async function doRoll() {
   resultEl.style.display = 'none';
   const container = document.getElementById('dice3dContainer');
   if (container) {
-    const m = expr.match(/(\d*)d(\d+)/g);
+    // Parse basic die patterns to create placeholder dice
+    const m = expr.match(/(\d+)d(\d+)/gi);
     if (m) {
       const parts = m.map(s => {
-        const [, count, sides] = s.match(/(\d*)d(\d+)/)!;
-        return { die: s, count: parseInt(count || '1'), sides: parseInt(sides) };
+        const [, count, sides] = s.match(/(\d+)d(\d+)/i)!;
+        return { die: 'd' + sides, count: parseInt(count || '1'), sides: parseInt(sides) };
       });
       const breakdown = parts.flatMap(p =>
-        Array.from({ length: p.count }, () => ({ die: p.die, rolls: [0], total: 0 }))
+        Array.from({ length: p.count }, () => ({ die: p.die, rolls: [1], total: 0 }))
       );
       animateDiceRoll(breakdown);
+    } else {
+      // Fallback: try to extract any d-something
+      const m2 = expr.match(/d(\d+)/i);
+      if (m2) {
+        const sides = parseInt(m2[1]);
+        animateDiceRoll([{ die: 'd' + sides, rolls: [1], total: 0 }]);
+      }
     }
   }
 
@@ -2332,16 +2513,25 @@ async function doRoll() {
       settleDice(result.breakdown);
     }
 
+    // Build breakdown text (skipping modifier groups)
     let facesHtml = '';
     if (result.breakdown) {
       facesHtml = result.breakdown.map((b: any) => {
-        if (b.rolls) {
-          const dieLabel = b.die;
-          const rolls = b.rolls.map((r: number) => `<span class="die-face" data-value="${r}">${r}</span>`).join('');
-          return `<div class="die-group"><span class="die-label">${dieLabel}:</span> <span class="die-faces">${rolls}</span></div>`;
-        }
-        return '';
-      }).join('');
+        if (!b.rolls || b.rolls.length === 0) return ''; // skip modifier-only groups
+        const dieLabel = b.die;
+        const sides = parseSides(dieLabel);
+        if (sides === 0) return '';
+        const rolls = b.rolls.map((r: any) => {
+          const v = rollValue(r);
+          const used = rollUsed(r);
+          const flags = rollFlags(r);
+          // Kept/dropped indicator
+          const itemClass = used ? 'die-face die-kept' : 'die-face die-dropped';
+          const flagText = flags ? ` data-flags="${esc(flags)}"` : '';
+          return `<span class="${itemClass}"${flagText}>${v}${flags === 'dropped' ? '✕' : ''}</span>`;
+        }).join('');
+        return `<div class="die-group"><span class="die-label">${dieLabel}:</span> <span class="die-faces">${rolls}</span></div>`;
+      }).filter((h: string) => h).join('');
     }
 
     // Check for crits on d20
@@ -2350,8 +2540,9 @@ async function doRoll() {
       for (const b of result.breakdown) {
         if (b.die === 'd20' && b.rolls) {
           for (const r of b.rolls) {
-            if (r === 20) critBadge = '<span class="badge bg-success ms-2"><i class="fa-solid fa-bolt me-1"></i>Critical Hit!</span>';
-            else if (r === 1) critBadge = '<span class="badge bg-danger ms-2"><i class="fa-solid fa-skull me-1"></i>Critical Fail!</span>';
+            const v = rollValue(r);
+            if (v === 20) critBadge = '<span class="badge bg-success ms-2"><i class="fa-solid fa-bolt me-1"></i>Critical Hit!</span>';
+            else if (v === 1) critBadge = '<span class="badge bg-danger ms-2"><i class="fa-solid fa-skull me-1"></i>Critical Fail!</span>';
           }
         }
       }

@@ -11,6 +11,7 @@
     "dev:ts": "vite build --watch"
   },
   "dependencies": {
+    "@dice-roller/rpg-dice-roller": "^5.5.1",
     "@tiptap/core": "^3.0.0",
     "@tiptap/extension-placeholder": "^3.0.0",
     "@tiptap/pm": "^3.0.0",
