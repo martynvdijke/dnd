@@ -195,7 +195,7 @@ test.describe('Campaign Completeness', () => {
       }, hero.id);
       expect(false).toBe(true); // Should have thrown
     } catch (e: any) {
-      expect(e.message).toContain('400');
+      expect(e.message).toContain('exhaustion level must be 0-6');
     }
 
     // Reset to 0
@@ -217,8 +217,7 @@ test.describe('Campaign Completeness', () => {
 
     // Add spells to the character
     const spell1 = await page.evaluate(async (charId) => {
-      return (window as any).api('POST', '/api/spells', {
-        character_id: charId,
+      return (window as any).api('POST', `/api/characters/${charId}/spells`, {
         name: 'Magic Missile',
         level: 1,
         school: 'evocation',
@@ -228,8 +227,7 @@ test.describe('Campaign Completeness', () => {
     expect(spell1.id).toBeGreaterThan(0);
 
     const spell2 = await page.evaluate(async (charId) => {
-      return (window as any).api('POST', '/api/spells', {
-        character_id: charId,
+      return (window as any).api('POST', `/api/characters/${charId}/spells`, {
         name: 'Shield',
         level: 1,
         school: 'abjuration',

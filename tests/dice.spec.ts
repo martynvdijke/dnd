@@ -128,7 +128,7 @@ test.describe('Dice rolling', () => {
     await input.fill('not-a-dice-roll');
     await page.click('text=Roll the Bones');
     // Should show a toast error
-    const toast = page.locator('.toast, .toast-container, .alert-danger');
+    const toast = page.locator('.toast, .toast-container, .alert-danger').first();
     await expect(toast).toBeVisible({ timeout: 5000 });
   });
 
