@@ -51,9 +51,12 @@ test.describe('Full application smoke test', () => {
       const toggler = page.locator('.navbar-toggler');
       if (await toggler.isVisible()) {
         await toggler.click();
-        await page.waitForTimeout(300);
+        await page.waitForTimeout(500);
       }
-      await page.locator(`nav a:has-text("${text}")`).click();
+      // Ensure link is visible before clicking — scroll into view on mobile
+      const link = page.locator(`nav a:has-text("${text}")`);
+      await link.scrollIntoViewIfNeeded();
+      await link.click({ timeout: 5000 });
     }
 
     const views = [

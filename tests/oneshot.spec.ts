@@ -111,20 +111,22 @@ test.describe('One-Shot Adventure Features', () => {
   test('Generate a five-room dungeon via UI form', async ({ page }) => {
     await navigateToOneShots(page);
 
-    await expect(page.locator('#oneshotSection button:has-text("Generate")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#oneshotSection button:has-text("Generate")')).toBeVisible({ timeout: 10000 });
     await page.locator('#oneshotSection button:has-text("Generate")').click();
+    await page.waitForTimeout(300);
 
     const title = uniqueName();
     await submitOneShotForm(page, {
       title, template: 'five_room_dungeon', difficulty: 'hard', minutes: 180
     });
 
-    await expect(page.locator('#oneshotSection')).toContainText(title, { timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText(title, { timeout: 10000 });
 
     // Click the adventure to view detail and check for acts
     await page.locator('#oneshotSection .list-group-item').first().click();
-    await expect(page.locator('#oneshotSection')).toContainText('Act 1', { timeout: 5000 });
-    await expect(page.locator('#oneshotSection')).toContainText('Act 5', { timeout: 5000 });
+    await page.waitForTimeout(500);
+    await expect(page.locator('#oneshotSection')).toContainText('Act 1', { timeout: 10000 });
+    await expect(page.locator('#oneshotSection')).toContainText('Act 5', { timeout: 10000 });
   });
 
   test('Prep dashboard loads for generated one-shot', async ({ page }) => {

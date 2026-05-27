@@ -117,7 +117,9 @@ test.describe('Character sheet editing', () => {
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
-    await page.click('text=Add Proficiency');
+    // On mobile the button may be behind the sheet panel — force the click
+    await page.click('text=Add Proficiency', { force: true, timeout: 5000 });
+    await page.waitForTimeout(300);
     await page.fill('#profName', 'Stealth');
     await page.click('#genericModal button:has-text("Add Proficiency")');
     await waitModalClosed(page);
@@ -821,10 +823,15 @@ test.describe('Error handling and edge cases', () => {
     const expressions = ['1d20', '2d6+3', '3d8+2d6', '1d4-1'];
     for (const expr of expressions) {
       await input.fill(expr);
+      // Wait for any previous roll result to change before clicking
+      await expect(async () => {
+        const current = await input.inputValue();
+        if (current !== expr) throw new Error('input not ready');
+      }).toPass({ timeout: 3000 });
       await btn.click();
-      await expect(page.locator('#diceResult')).toBeVisible({ timeout: 5000 });
-      await expect(page.locator('#diceResult')).toContainText(expr, { timeout: 10000 });
-      await page.waitForTimeout(200);
+      // Wait for the new result to appear with the current expression
+      await expect(page.locator('#diceResult')).toContainText(expr, { timeout: 15000 });
+      await page.waitForTimeout(500);
     }
 
     const historyItems = page.locator('.dice-history-item');

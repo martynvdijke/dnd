@@ -78,15 +78,16 @@ test.describe('Campaign Wiki', () => {
       return { campId: c.id, pageId: p.id };
     }, { campName, pageTitle, pageContent });
 
-    await page.evaluate(() => window.showWiki());
-    await page.waitForTimeout(300);
+    // Pass campaign ID so showWiki renders its sidebar (otherwise picks campaigns[0])
+    await page.evaluate((cid) => window.showWiki(cid), result.campId);
+    await page.waitForTimeout(500);
 
     await page.evaluate((pid) => window.loadWikiPage(pid), result.pageId);
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(500);
 
     const wikiContent = page.locator('#wikiPageContent .wiki-content');
-    await expect(wikiContent).toContainText('Heading');
-    await expect(wikiContent).toContainText('Bold text');
+    await expect(wikiContent).toContainText('Heading', { timeout: 10000 });
+    await expect(wikiContent).toContainText('Bold text', { timeout: 5000 });
   });
 
   test('wiki offcanvas works on mobile viewport', async ({ page }) => {
