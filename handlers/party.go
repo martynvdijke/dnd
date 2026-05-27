@@ -171,7 +171,7 @@ func CreateCampaignPartyItem(c *gin.Context) {
 }
 
 func DeleteCampaignPartyItem(c *gin.Context) {
-	iid, _ := strconv.ParseInt(c.Param("iid"), 10, 64)
+	iid, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	db.DB.Exec("DELETE FROM party_items WHERE id=?", iid)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
@@ -220,7 +220,7 @@ func CreateSessionPlan(c *gin.Context) {
 }
 
 func UpdateSessionPlan(c *gin.Context) {
-	sid, _ := strconv.ParseInt(c.Param("sid"), 10, 64)
+	sid, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var sp models.SessionPlan
 	if err := c.ShouldBindJSON(&sp); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -239,7 +239,7 @@ func UpdateSessionPlan(c *gin.Context) {
 }
 
 func DeleteSessionPlan(c *gin.Context) {
-	sid, _ := strconv.ParseInt(c.Param("sid"), 10, 64)
+	sid, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	db.DB.Exec("DELETE FROM session_plans WHERE id=?", sid)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
