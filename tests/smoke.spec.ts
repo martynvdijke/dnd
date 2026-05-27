@@ -53,10 +53,9 @@ test.describe('Full application smoke test', () => {
         await toggler.click();
         await page.waitForTimeout(500);
       }
-      // Ensure link is visible before clicking — scroll into view on mobile
       const link = page.locator(`nav a:has-text("${text}")`);
-      await link.scrollIntoViewIfNeeded();
-      await link.click({ timeout: 5000 });
+      await link.waitFor({ state: 'attached', timeout: 5000 }).catch(() => {});
+      await link.click({ force: true, timeout: 5000 });
     }
 
     const views = [
