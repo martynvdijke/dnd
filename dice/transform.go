@@ -207,8 +207,15 @@ func extractDieLabel(expression string, rollCount int) string {
 				fmt.Sscanf(cStr, "%d", &count)
 			}
 			if count == 0 || count == rollCount || count == 1 {
-				suffix := part[strings.Index(part, "d"):]
-				return suffix
+				diePart := part[strings.Index(part, "d"):]
+				// Strip trailing RPG notation (e.g., "d6kh3" -> "d6", "d20!" -> "d20")
+				for i := 1; i < len(diePart); i++ {
+					if diePart[i] < '0' || diePart[i] > '9' {
+						diePart = diePart[:i]
+						break
+					}
+				}
+				return diePart
 			}
 		}
 	}
@@ -216,7 +223,15 @@ func extractDieLabel(expression string, rollCount int) string {
 	// Fallback: try to find any d-something
 	for _, part := range parts {
 		if idx := strings.Index(part, "d"); idx >= 0 {
-			return part[idx:]
+			diePart := part[idx:]
+			// Strip trailing RPG notation
+			for i := 1; i < len(diePart); i++ {
+				if diePart[i] < '0' || diePart[i] > '9' {
+					diePart = diePart[:i]
+					break
+				}
+			}
+			return diePart
 		}
 	}
 
