@@ -17,6 +17,8 @@ import (
 	"villum/ent/combatlogentry"
 	"villum/ent/encountertemplate"
 	"villum/ent/faction"
+	"villum/ent/partyitem"
+	"villum/ent/sessionplan"
 	"villum/ent/shop"
 	"villum/ent/user"
 
@@ -275,6 +277,36 @@ func (_c *CampaignCreate) AddCombatLogEntries(v ...*CombatLogEntry) *CampaignCre
 		ids[i] = v[i].ID
 	}
 	return _c.AddCombatLogEntryIDs(ids...)
+}
+
+// AddPartyItemIDs adds the "party_items" edge to the PartyItem entity by IDs.
+func (_c *CampaignCreate) AddPartyItemIDs(ids ...int64) *CampaignCreate {
+	_c.mutation.AddPartyItemIDs(ids...)
+	return _c
+}
+
+// AddPartyItems adds the "party_items" edges to the PartyItem entity.
+func (_c *CampaignCreate) AddPartyItems(v ...*PartyItem) *CampaignCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddPartyItemIDs(ids...)
+}
+
+// AddSessionPlanIDs adds the "session_plans" edge to the SessionPlan entity by IDs.
+func (_c *CampaignCreate) AddSessionPlanIDs(ids ...int64) *CampaignCreate {
+	_c.mutation.AddSessionPlanIDs(ids...)
+	return _c
+}
+
+// AddSessionPlans adds the "session_plans" edges to the SessionPlan entity.
+func (_c *CampaignCreate) AddSessionPlans(v ...*SessionPlan) *CampaignCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddSessionPlanIDs(ids...)
 }
 
 // Mutation returns the CampaignMutation object of the builder.
@@ -592,6 +624,38 @@ func (_c *CampaignCreate) createSpec() (*Campaign, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(combatlogentry.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.PartyItemsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.PartyItemsTable,
+			Columns: []string{campaign.PartyItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(partyitem.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.SessionPlansIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.SessionPlansTable,
+			Columns: []string{campaign.SessionPlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(sessionplan.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

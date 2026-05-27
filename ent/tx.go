@@ -100,12 +100,16 @@ type Tx struct {
 	Location *LocationClient
 	// NPC is the client for interacting with the NPC builders.
 	NPC *NPCClient
+	// PartyItem is the client for interacting with the PartyItem builders.
+	PartyItem *PartyItemClient
 	// Quest is the client for interacting with the Quest builders.
 	Quest *QuestClient
 	// RestLog is the client for interacting with the RestLog builders.
 	RestLog *RestLogClient
 	// Session is the client for interacting with the Session builders.
 	Session *SessionClient
+	// SessionPlan is the client for interacting with the SessionPlan builders.
+	SessionPlan *SessionPlanClient
 	// ShareLink is the client for interacting with the ShareLink builders.
 	ShareLink *ShareLinkClient
 	// Shop is the client for interacting with the Shop builders.
@@ -295,9 +299,11 @@ func (tx *Tx) init() {
 	tx.LevelUpPlan = NewLevelUpPlanClient(tx.config)
 	tx.Location = NewLocationClient(tx.config)
 	tx.NPC = NewNPCClient(tx.config)
+	tx.PartyItem = NewPartyItemClient(tx.config)
 	tx.Quest = NewQuestClient(tx.config)
 	tx.RestLog = NewRestLogClient(tx.config)
 	tx.Session = NewSessionClient(tx.config)
+	tx.SessionPlan = NewSessionPlanClient(tx.config)
 	tx.ShareLink = NewShareLinkClient(tx.config)
 	tx.Shop = NewShopClient(tx.config)
 	tx.ShopItem = NewShopItemClient(tx.config)

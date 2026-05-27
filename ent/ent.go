@@ -52,9 +52,11 @@ import (
 	"villum/ent/levelupplan"
 	"villum/ent/location"
 	"villum/ent/npc"
+	"villum/ent/partyitem"
 	"villum/ent/quest"
 	"villum/ent/restlog"
 	"villum/ent/session"
+	"villum/ent/sessionplan"
 	"villum/ent/sharelink"
 	"villum/ent/shop"
 	"villum/ent/shopitem"
@@ -170,9 +172,11 @@ func checkColumn(t, c string) error {
 			levelupplan.Table:           levelupplan.ValidColumn,
 			location.Table:              location.ValidColumn,
 			npc.Table:                   npc.ValidColumn,
+			partyitem.Table:             partyitem.ValidColumn,
 			quest.Table:                 quest.ValidColumn,
 			restlog.Table:               restlog.ValidColumn,
 			session.Table:               session.ValidColumn,
+			sessionplan.Table:           sessionplan.ValidColumn,
 			sharelink.Table:             sharelink.ValidColumn,
 			shop.Table:                  shop.ValidColumn,
 			shopitem.Table:              shopitem.ValidColumn,

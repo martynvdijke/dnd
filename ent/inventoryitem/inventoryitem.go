@@ -40,6 +40,8 @@ const (
 	FieldIsMagical = "is_magical"
 	// FieldAttunement holds the string denoting the attunement field in the database.
 	FieldAttunement = "attunement"
+	// FieldIsIdentified holds the string denoting the is_identified field in the database.
+	FieldIsIdentified = "is_identified"
 	// FieldNotes holds the string denoting the notes field in the database.
 	FieldNotes = "notes"
 	// EdgeCharacter holds the string denoting the character edge name in mutations.
@@ -72,6 +74,7 @@ var Columns = []string{
 	FieldIsEquipped,
 	FieldIsMagical,
 	FieldAttunement,
+	FieldIsIdentified,
 	FieldNotes,
 }
 
@@ -110,6 +113,8 @@ var (
 	DefaultIsMagical bool
 	// DefaultAttunement holds the default value on creation for the "attunement" field.
 	DefaultAttunement bool
+	// DefaultIsIdentified holds the default value on creation for the "is_identified" field.
+	DefaultIsIdentified bool
 	// DefaultNotes holds the default value on creation for the "notes" field.
 	DefaultNotes string
 )
@@ -190,6 +195,11 @@ func ByIsMagical(opts ...sql.OrderTermOption) OrderOption {
 // ByAttunement orders the results by the attunement field.
 func ByAttunement(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldAttunement, opts...).ToFunc()
+}
+
+// ByIsIdentified orders the results by the is_identified field.
+func ByIsIdentified(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsIdentified, opts...).ToFunc()
 }
 
 // ByNotes orders the results by the notes field.

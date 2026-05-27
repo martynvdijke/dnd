@@ -675,6 +675,36 @@ function renderStats() {
       <div class="col-6 col-md-3"><label class="form-label">XP</label><input type="number" class="form-control form-control-sm" value="${c.xp}" oninput="autoSaveField('xp',this);updateXPBar()"></div>
     </div>
     <div class="mt-2" id="xpBarContainer">${renderXPBar(c)}</div>
+    <!-- Passive Investigation & Insight -->
+    <div class="row g-2 mt-2">
+      <div class="col-4 col-md-2">
+        <div class="passive-score-box" title="10 + WIS modifier + proficiency if proficient">
+          <div class="score-value">${(c.wis_mod||0) + ((c.proficiencies||[]).some((p:any)=>p.name==='Insight')?c.proficiency_bonus:0) + 10}</div>
+          <div class="score-label">Passive Insight</div>
+          <div class="score-breakdown">10 + ${c.wis_mod||0} WIS${(c.proficiencies||[]).some((p:any)=>p.name==='Insight')?' + '+c.proficiency_bonus+' Prof':''}</div>
+        </div>
+      </div>
+      <div class="col-4 col-md-2">
+        <div class="passive-score-box" title="10 + INT modifier + proficiency if proficient">
+          <div class="score-value">${(c.int_mod||0) + ((c.proficiencies||[]).some((p:any)=>p.name==='Investigation')?c.proficiency_bonus:0) + 10}</div>
+          <div class="score-label">Passive Investigation</div>
+          <div class="score-breakdown">10 + ${c.int_mod||0} INT${(c.proficiencies||[]).some((p:any)=>p.name==='Investigation')?' + '+c.proficiency_bonus+' Prof':''}</div>
+        </div>
+      </div>
+      <div class="col-4 col-md-3">
+        <div class="exhaustion-display">
+          <span class="exhaustion-level ex-${c.exhaustion_level||0}">${c.exhaustion_level||0}</span>
+          <div>
+            <div class="exhaustion-label">Exhaustion</div>
+            <div class="exhaustion-effect">${['-','Disadvantage on ability checks','Speed halved','Disadvantage on attacks & saves','HP max halved','Speed reduced to 0','Death'][c.exhaustion_level||0]||''}</div>
+          </div>
+          <div class="ms-auto d-flex gap-1">
+            <button class="exhaustion-btn" onclick="adjustExhaustion(-1)" title="Reduce exhaustion">−</button>
+            <button class="exhaustion-btn" onclick="adjustExhaustion(1)" title="Increase exhaustion">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
     </div>
     <h5 class="mt-3">Skills <small class="text-muted fw-normal">(click to roll)</small></h5>
     <div id="skillsArea">${renderSkills(c)}</div>
@@ -734,6 +764,16 @@ function renderXPBar(c: any) {
 
 // ─── Combat ───
 
+// ─── Exhaustion ───
+
+(window as any).adjustExhaustion = async function (delta: number) {
+  if (!currentChar) return;
+  const newLevel = Math.max(0, Math.min(6, (currentChar.exhaustion_level || 0) + delta));
+  await api('PATCH', `/api/characters/${currentChar.id}/exhaustion`, { exhaustion_level: newLevel });
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderStats();
+};
+
 // ─── Currency ───
 
 async function updateCurrency() {
@@ -751,25 +791,94 @@ async function updateCurrency() {
 
 function renderInventory() {
   const inv = currentChar.inventory || [];
+  const c = currentChar;
   const categories: Record<string, any[]> = { weapon: [], armor: [], gear: [], potion: [], scroll: [], tool: [], wondrous: [], other: [] };
   inv.forEach((i:any) => { if (categories[i.category]) categories[i.category].push(i); else categories.other.push(i); });
   const total = inv.reduce((s:number,i:any)=>s+(i.weight||0)*(i.quantity||1),0);
 
+  // Encumbrance: STR x5 (light), x10 (encumbered), x15 (heavy)
+  const str = c.str || 10;
+  const lightMax = str * 5;
+  const encumberedMax = str * 10;
+  const heavyMax = str * 15;
+  const encPct = heavyMax > 0 ? Math.min(100, (total / heavyMax) * 100) : 0;
+  let encState = 'light';
+  let encLabel = 'Light Load';
+  if (total > heavyMax) { encState = 'over'; encLabel = 'Over Capacity'; }
+  else if (total > encumberedMax) { encState = 'heavy'; encLabel = 'Heavily Encumbered'; }
+  else if (total > lightMax) { encState = 'encumbered'; encLabel = 'Encumbered'; }
+
+  // Attunement count (equipped items with attunement flag)
+  const attuneItems = inv.filter((i:any) => i.equipped && i.attunement);
+  const attuneCount = attuneItems.length;
+  let attuneState = 'attune-ok';
+  if (attuneCount >= 3) attuneState = 'attune-full';
+  else if (attuneCount >= 2) attuneState = 'attune-warn';
+
+  // Equipped items grouped for loadout
+  const equipped = inv.filter((i:any) => i.equipped);
+  const loadoutGroups: Record<string, any[]> = { weapon: [], armor: [], shield: [], ring: [], wondrous: [], other: [] };
+  equipped.forEach((i:any) => {
+    if (i.category === 'weapon') loadoutGroups.weapon.push(i);
+    else if (i.category === 'armor' && i.ac_bonus > 0 && i.name.toLowerCase().includes('shield')) loadoutGroups.shield.push(i);
+    else if (i.category === 'armor') loadoutGroups.armor.push(i);
+    else if (i.category === 'wondrous') loadoutGroups.wondrous.push(i);
+    else loadoutGroups.other.push(i);
+  });
+
   document.getElementById('inventorySection')!.innerHTML = `
     <div class="d-flex justify-content-between align-items-center">
-      <h5>Inventory <span class="text-muted small">(Total: ${total} lbs)</span></h5>
-      <div><button class="btn btn-primary btn-sm" onclick="addInventory()"><i class="fa-solid fa-plus me-1"></i>Add Item</button></div>
+      <h5>Inventory <span class="text-muted small">(Total: ${total} / ${heavyMax} lbs)</span></h5>
+      <div class="d-flex gap-2 align-items-center">
+        <span class="attune-counter ${attuneState}" title="Attuned items">🔗 ${attuneCount}/3</span>
+        <button class="btn btn-primary btn-sm" onclick="addInventory()"><i class="fa-solid fa-plus me-1"></i>Add Item</button>
+      </div>
+    </div>
+    <div class="encumbrance-bar" title="${total} lbs / ${heavyMax} lbs max">
+      <div class="encumbrance-bar-fill enc-${encState}" style="width:${encPct}%"></div>
+    </div>
+    <div class="d-flex justify-content-between">
+      <span class="encumbrance-state enc-${encState}">${esc(encLabel)}</span>
+      <span class="text-muted small">${encLabel === 'Light Load' ? 'Speed normal' : encLabel === 'Encumbered' ? 'Speed -10' : encLabel === 'Heavily Encumbered' ? 'Speed -20, Disadvantage on checks' : 'Speed 0'}</span>
+    </div>
+    <!-- Loadout Panel -->
+    <div class="loadout-panel mt-2">
+      <div class="loadout-header" onclick="this.nextElementSibling.classList.toggle('d-none')">
+        <h6><i class="fa-solid fa-shield-halved me-1"></i>Loadout (${equipped.length} equipped)</h6>
+        <span class="text-muted small"><i class="fa-solid fa-chevron-down"></i></span>
+      </div>
+      <div class="loadout-body">
+        ${Object.entries(loadoutGroups).filter(([,items]) => items.length).map(([cat, items]) => `
+          <div class="loadout-category">
+            <div class="loadout-category-label">${capitalize(cat)}</div>
+            ${(items as any[]).map((i:any) => `
+              <div class="loadout-item">
+                <span class="item-name">${esc(i.name)}</span>
+                <span class="item-detail">${i.damage_dice ? esc(i.damage_dice) + (i.damage_type ? ' ' + esc(i.damage_type) : '') : i.ac_bonus > 0 ? 'AC +' + i.ac_bonus : ''}</span>
+              </div>
+            `).join('')}
+          </div>
+        `).join('') || '<div class="text-muted small fst-italic">No items equipped.</div>'}
+      </div>
     </div>
     <div class="mt-2" id="invList">
       ${Object.entries(categories).filter(([,items]) => items.length).map(([cat, items]) => `
         <h6 class="mt-3 text-muted">${capitalize(cat)}</h6>
         ${(items as any[]).map((i:any) => `
-          <div class="inv-item${i.equipped ? ' equipped' : ''}">
-            <div><span class="fw-bold">${esc(i.name)}</span> ${i.quantity > 1 ? `<span class="badge badge-muted">x${i.quantity}</span>` : ''}
+          <div class="inv-item${i.equipped ? ' equipped' : ''}${i.is_identified === false ? ' unidentified' : ''}">
+            <div>
+              <span class="fw-bold">${esc(i.name)}</span>
+              ${i.quantity > 1 ? `<span class="badge badge-muted">x${i.quantity}</span>` : ''}
               ${i.equipped ? '<span class="badge badge-gold">Equipped</span>' : ''}
-              ${i.damage_dice ? `<span class="badge badge-blood ms-1">${esc(i.damage_dice)} ${esc(i.damage_type)}</span>` : ''}
-              ${i.ac_bonus > 0 ? `<span class="badge badge-gold ms-1">AC+${i.ac_bonus}</span>` : ''}</div>
+              ${i.attunement ? '<span class="badge-attunement" title="Requires Attunement">Attune</span>' : ''}
+              ${i.is_identified === false ? '<span class="badge-unidentified">Unidentified</span>' : ''}
+              ${i.damage_dice && (i.is_identified !== false) ? `<span class="badge badge-blood ms-1">${esc(i.damage_dice)} ${esc(i.damage_type)}</span>` : ''}
+              ${i.ac_bonus > 0 && (i.is_identified !== false) ? `<span class="badge badge-gold ms-1">AC+${i.ac_bonus}</span>` : ''}
+              ${i.is_identified === false && i.damage_dice ? `<span class="badge badge-muted ms-1">???</span>` : ''}
+            </div>
             <div class="d-flex gap-1">
+              ${i.is_identified === false ? `<button class="btn-identify" onclick="toggleIdentify(${i.id})" title="Identify item">🔍 ID</button>` : ''}
+              ${i.magic && i.is_identified !== false ? `<button class="btn-identify" onclick="toggleIdentify(${i.id})" title="Mark unidentified">🔮</button>` : ''}
               <button class="btn btn-sm btn-outline-primary" onclick="editInventory(${i.id},'${esc(i.name)}',${i.quantity},'${esc(i.category)}',${i.weight},${i.equipped})" title="Edit"><i class="fa-solid fa-pen"></i></button>
               <button class="btn btn-sm btn-outline-secondary" onclick="toggleEquip(${i.id})" title="${i.equipped ? 'Unequip' : 'Equip'}"><i class="fa-solid fa-shield-halved"></i></button>
               <button class="btn btn-sm btn-outline-danger" onclick="deleteInventory(${i.id})" title="Remove"><i class="fa-solid fa-trash"></i></button>
@@ -778,6 +887,18 @@ function renderInventory() {
       `).join('') || '<div class="empty-state"><i class="fa-solid fa-backpack fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">Empty Pockets</p><p class="small text-muted">No items yet. Add gear to your inventory.</p></div>'}
     </div>`;
 }
+
+// ─── Identify Toggle ───
+
+(window as any).toggleIdentify = async function (id: number) {
+  const item = currentChar.inventory.find((i:any) => i.id === id);
+  if (!item) return;
+  const newVal = item.is_identified === false ? true : false;
+  await api('PUT', `/api/inventory/${id}`, { ...item, is_identified: newVal });
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderInventory();
+  toast(newVal ? 'Item identified' : 'Item marked unidentified');
+};
 
 (window as any).addInventory = function () {
   showModal('Add Item', `
@@ -880,8 +1001,11 @@ function renderSpells() {
       }).join('')}
     </div>
     <div class="d-flex justify-content-between align-items-center mt-3">
-      <h6>Known Spells</h6>
-      <button class="btn btn-primary btn-sm" onclick="addSpell()"><i class="fa-solid fa-plus me-1"></i>Add Spell</button>
+      <h6>Known Spells <span class="text-muted small fw-normal">${spells.filter((s:any)=>s.prepared).length}/${spells.filter((s:any)=>s.level>0 && spells.filter((ss:any)=>ss.level===s.level).length > 0).length + 3} prepared</span></h6>
+      <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-outline-gold" onclick="showPrepareSpells()"><i class="fa-solid fa-book-open me-1"></i>Prepare Spells</button>
+        <button class="btn btn-primary btn-sm" onclick="addSpell()"><i class="fa-solid fa-plus me-1"></i>Add Spell</button>
+      </div>
     </div>
     <div class="row g-2 mt-2">
       ${spells.map((s:any) => `
@@ -1022,6 +1146,58 @@ async function updateSpellSlot(level:number) {
   currentChar = await api('GET', `/api/characters/${currentChar.id}`);
   renderSpells();
   toast('Spell removed');
+};
+
+// ─── Spell Preparation Modal ───
+
+(window as any).showPrepareSpells = function () {
+  const spells = currentChar.spells || [];
+  const sc = currentChar.spellcasting || {};
+  const maxPrepared = currentChar.level > 0 ? (currentChar.class_mod || 0) + currentChar.level : 0; // WIS/INT/CHA mod + level
+  const currentPrepared = spells.filter((s:any) => s.prepared).length;
+
+  // Group by level
+  const byLevel: Record<number, any[]> = {};
+  spells.forEach((s:any) => {
+    const lv = s.level || 0;
+    if (!byLevel[lv]) byLevel[lv] = [];
+    byLevel[lv].push(s);
+  });
+
+  const bodyHtml = `
+    <div class="mb-2 d-flex justify-content-between">
+      <span class="fw-bold">Prepared: ${currentPrepared} / ${maxPrepared}</span>
+      <span class="text-muted small">Max = spellcasting mod + level</span>
+    </div>
+    <div class="spell-prep-list">
+      ${Object.keys(byLevel).sort((a,b)=>+a - +b).map(lv => `
+        <div class="spell-prep-group">
+          <h6>${lv === '0' ? 'Cantrips' : 'Level ' + lv}</h6>
+          ${byLevel[+lv].map((s:any) => `
+            <div class="spell-prep-item">
+              <input type="checkbox" class="form-check-input" id="prep-${s.id}" ${s.prepared ? 'checked' : ''}>
+              <label for="prep-${s.id}">${esc(s.name)} <span class="text-muted">(${esc(s.school)})</span></label>
+            </div>
+          `).join('')}
+        </div>
+      `).join('')}
+    </div>
+    <button class="btn btn-gold w-100 mt-3" onclick="saveSpellPrep()"><i class="fa-solid fa-book-open me-1"></i>Save Preparation</button>
+  `;
+  showModal('Prepare Spells', bodyHtml);
+};
+
+(window as any).saveSpellPrep = async function () {
+  const spellIds: number[] = [];
+  (currentChar.spells || []).forEach((s:any) => {
+    const cb = document.getElementById(`prep-${s.id}`) as HTMLInputElement;
+    if (cb && cb.checked) spellIds.push(s.id);
+  });
+  await api('PUT', `/api/characters/${currentChar.id}/spells/prepare`, { spell_ids: spellIds });
+  hideModal();
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderSpells();
+  toast('Spell preparation saved');
 };
 
 // ─── Features ───
@@ -2761,6 +2937,7 @@ async function loadDiceHistory() {
           <div class="d-flex align-items-center gap-2">
             <span class="badge badge-gold">${g.members.length} members</span>
             ${g.id && (own || dm) ? `
+              <button class="btn btn-outline-gold btn-sm" onclick="showCampaignDashboard(${g.id},'${esc(g.name)}')" title="Dashboard"><i class="fa-solid fa-chart-simple"></i></button>
               <button class="btn btn-outline-primary btn-sm" onclick="showManageCampaign(${g.id},'${esc(g.name)}','${esc(g.party_name || '')}')" title="Manage"><i class="fa-solid fa-users-gear"></i></button>
               <button class="btn btn-outline-info btn-sm" onclick="shareParty(${g.id})" title="Share Party"><i class="fa-solid fa-share-nodes"></i></button>
             ` : ''}
@@ -2790,6 +2967,16 @@ async function loadDiceHistory() {
             }).join('')}
           </div>
         </div>
+        ${g.id && (own || dm) ? `
+        <div class="card-footer py-2">
+          <div class="d-flex gap-2 flex-wrap">
+            <button class="btn btn-sm btn-outline-gold" onclick="showPartyInventory(${g.id})"><i class="fa-solid fa-box me-1"></i>Party Inventory</button>
+            <button class="btn btn-sm btn-outline-primary" onclick="showSessionPlanner(${g.id})"><i class="fa-solid fa-calendar me-1"></i>Session Planner</button>
+            <button class="btn btn-sm btn-outline-gold" onclick="showEncounterDifficulty()"><i class="fa-solid fa-crosshairs me-1"></i>Difficulty</button>
+            <button class="btn btn-sm btn-outline-gold" onclick="showTreasureGenerator()"><i class="fa-solid fa-coins me-1"></i>Treasure</button>
+          </div>
+        </div>
+        ` : ''}
       </div>`;
     }).join('') || '<div class="empty-state"><i class="fa-solid fa-flag fa-2x mb-2 d-block text-muted"></i>No characters yet. Create a campaign and add members to build your party!</div>';
 
@@ -5391,5 +5578,497 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
 
 // ─── Show combat nav for admin ───
 // (handled in init by checking role)
+
+// ═══════════════════════════════════════════
+// Campaign Completeness Enhancements
+// ═══════════════════════════════════════════
+
+// ─── Campaign Dashboard ───
+
+(window as any).showCampaignDashboard = async function (campaignId: number, campaignName: string) {
+  showModal(`${esc(campaignName)} Dashboard`, `<div id="campaignDashContent"><div class="ornament">✧ Loading dashboard... ✧</div></div>`);
+  try {
+    const d = await api('GET', `/api/campaigns/${campaignId}/dashboard`);
+    const hpPct = (h: number, m: number) => m > 0 ? Math.round((h / m) * 100) : 0;
+    const avatarLetter = (n: string) => (n || '?').charAt(0).toUpperCase();
+
+    const content = `
+      <div class="dash-grid">
+        <div class="dash-card">
+          <h6>Characters</h6>
+          ${(d.characters || []).map((ch: any) => `
+            <div class="dash-char-card" onclick="openChar(${ch.id})" style="cursor:pointer">
+              <div class="char-avatar">${avatarLetter(ch.name)}</div>
+              <div class="char-info">
+                <div class="char-name">${esc(ch.name)}</div>
+                <div class="char-detail">${esc(ch.race)} ${esc(ch.class)} · Lvl ${ch.level}</div>
+                <div class="dash-hp-bar"><div class="dash-hp-bar-fill${hpPct(ch.hp_current, ch.hp_max) < 30 ? ' low-hp' : ''}" style="width:${hpPct(ch.hp_current, ch.hp_max)}%"></div></div>
+              </div>
+              <span class="fw-bold" style="font-size:0.85rem">${ch.hp_current}/${ch.hp_max}</span>
+            </div>
+          `).join('') || '<div class="text-muted small">No characters yet.</div>'}
+        </div>
+        <div class="dash-card">
+          <h6>Overview</h6>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div><div class="dash-value">${d.active_quests}</div><div class="dash-label">Active Quests</div></div>
+            <div><div class="dash-value">${d.upcoming_sessions}</div><div class="dash-label">Upcoming Sessions</div></div>
+            <div><div class="dash-value">${d.active_conditions}</div><div class="dash-label">Conditions</div></div>
+            <div><div class="dash-value">${d.downtime_count}</div><div class="dash-label">Downtime Acts</div></div>
+            <div><div class="dash-value">${d.recent_journal}</div><div class="dash-label">Journal (7d)</div></div>
+            <div><div class="dash-value">${d.total_members}</div><div class="dash-label">Members</div></div>
+          </div>
+        </div>
+        <div class="dash-card">
+          <h6>Upcoming Events</h6>
+          ${(d.upcoming_events || []).map((ev: any) => `
+            <div class="dash-list-item">
+              <span>${esc(ev.title)}</span>
+              <span class="text-muted small">${ev.event_date || ''}</span>
+            </div>
+          `).join('') || '<div class="text-muted small">No upcoming events.</div>'}
+        </div>
+        <div class="dash-card">
+          <h6>Recent Timeline</h6>
+          ${(d.recent_timeline || []).map((tl: any) => `
+            <div class="dash-list-item">
+              <span>${esc(tl.title)}</span>
+              <span class="text-muted small">${tl.event_date || ''}</span>
+            </div>
+          `).join('') || '<div class="text-muted small">No timeline events.</div>'}
+        </div>
+        <div class="dash-card">
+          <h6>Recent Recaps</h6>
+          ${(d.recent_recaps || []).map((r: any) => `
+            <div class="dash-list-item">
+              <span>${esc(r.title)}</span>
+              <span class="text-muted small">${r.created_at || ''}</span>
+            </div>
+          `).join('') || '<div class="text-muted small">No recaps yet.</div>'}
+        </div>
+        <div class="dash-card">
+          <h6>Recent Combats</h6>
+          ${(d.recent_combats || []).map((cbt: any) => `
+            <div class="dash-list-item">
+              <span>${esc(cbt.name)}</span>
+              <span class="text-muted small">Round ${cbt.round}</span>
+            </div>
+          `).join('') || '<div class="text-muted small">No combats yet.</div>'}
+        </div>
+        <div class="dash-card">
+          <h6>Recent Dice Rolls</h6>
+          ${(d.recent_dice_rolls || []).map((dr: any) => `
+            <div class="dice-roll-mini">
+              <span class="roll-expr">${esc(dr.expression)}</span>
+              <span class="roll-total">${dr.total}</span>
+            </div>
+          `).join('') || '<div class="text-muted small">No dice rolls yet.</div>'}
+        </div>
+      </div>
+      <div class="text-center mt-3">
+        <button class="btn btn-sm btn-outline-secondary" onclick="hideModal()">Close</button>
+      </div>`;
+    document.getElementById('campaignDashContent')!.innerHTML = content;
+  } catch (e: any) {
+    document.getElementById('campaignDashContent')!.innerHTML = `<div class="empty-state"><p class="text-danger">${esc(e.message)}</p></div>`;
+  }
+};
+
+// ─── Party Inventory & Treasury ───
+
+(window as any).showPartyInventory = async function (campaignId: number) {
+  showModal('Party Inventory', `<div id="partyInvContent"><div class="ornament">✧ Loading... ✧</div></div>`);
+  try {
+    const items = await api('GET', `/api/campaigns/${campaignId}/party-items`);
+    const content = `
+      <button class="btn btn-gold btn-sm mb-2" onclick="addPartyItem(${campaignId})"><i class="fa-solid fa-plus me-1"></i>Add Item</button>
+      ${items.length ? items.map((i: any) => `
+        <div class="inv-item">
+          <div>
+            <strong>${esc(i.name)}</strong>
+            <span class="badge badge-muted ms-1">×${i.quantity}</span>
+            ${i.notes ? `<div class="small text-muted">${esc(i.notes)}</div>` : ''}
+          </div>
+          <button class="btn btn-sm btn-outline-danger" onclick="deletePartyItem(${campaignId}, ${i.id})"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      `).join('') : '<div class="text-muted small fst-italic">No party items yet. Add some loot!</div>'}
+      <div class="text-center mt-3">
+        <button class="btn btn-sm btn-outline-secondary" onclick="hideModal()">Close</button>
+      </div>`;
+    document.getElementById('partyInvContent')!.innerHTML = content;
+  } catch (e: any) {
+    document.getElementById('partyInvContent')!.innerHTML = `<p class="text-danger">${esc(e.message)}</p>`;
+  }
+};
+
+(window as any).addPartyItem = async function (campaignId: number) {
+  showModal('Add Party Item', `
+    <div class="mb-2"><label class="form-label">Item Name</label><input class="form-control" id="piName"></div>
+    <div class="mb-2"><label class="form-label">Quantity</label><input class="form-control" id="piQty" type="number" value="1"></div>
+    <div class="mb-2"><label class="form-label">Notes</label><textarea class="form-control" id="piNotes" rows="2"></textarea></div>
+    <button class="btn btn-primary w-100" onclick="savePartyItem(${campaignId})">Add</button>
+  `);
+};
+
+(window as any).savePartyItem = async function (campaignId: number) {
+  const name = (document.getElementById('piName') as HTMLInputElement).value.trim();
+  if (!name) { toast('Name required', true); return; }
+  await api('POST', `/api/campaigns/${campaignId}/party-items`, {
+    name,
+    quantity: parseInt((document.getElementById('piQty') as HTMLInputElement).value) || 1,
+    notes: (document.getElementById('piNotes') as HTMLTextAreaElement).value,
+  });
+  hideModal();
+  toast('Item added to party inventory');
+  (window as any).showPartyInventory(campaignId);
+};
+
+(window as any).deletePartyItem = async function (campaignId: number, itemId: number) {
+  if (!confirm('Remove this item?')) return;
+  await api('DELETE', `/api/party-items/${itemId}`);
+  toast('Item removed');
+  (window as any).showPartyInventory(campaignId);
+};
+
+// ─── Session Planner ───
+
+(window as any).showSessionPlanner = async function (campaignId: number) {
+  showModal('Session Planner', `<div id="sessionPlanContent"><div class="ornament">✧ Loading sessions... ✧</div></div>`);
+  try {
+    const plans = await api('GET', `/api/campaigns/${campaignId}/session-plans`);
+    const statusBadge = (s: string) => {
+      const cls = s === 'planned' ? 'status-badge-planned' : s === 'ready' ? 'status-badge-ready' : s === 'in-progress' ? 'status-badge-in-progress' : 'status-badge-completed';
+      return `<span class="${cls}">${esc(s)}</span>`;
+    };
+    const content = `
+      <button class="btn btn-gold btn-sm mb-2" onclick="showSessionPlanForm(${campaignId})"><i class="fa-solid fa-plus me-1"></i>New Session Plan</button>
+      ${plans.length ? plans.map((p: any) => `
+        <div class="session-plan-card">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="plan-title">${esc(p.title)}</div>
+              <div class="plan-meta">
+                ${p.session_date ? `<span><i class="fa-regular fa-calendar me-1"></i>${esc(p.session_date)}</span>` : ''}
+                ${p.expected_duration ? `<span class="ms-2"><i class="fa-regular fa-clock me-1"></i>${esc(p.expected_duration)}</span>` : ''}
+              </div>
+            </div>
+            <div class="d-flex gap-1 align-items-center">
+              ${statusBadge(p.status)}
+              <button class="btn btn-sm btn-outline-primary" onclick="showSessionPlanForm(${campaignId}, ${JSON.stringify(p).replace(/"/g, "'")})"><i class="fa-solid fa-pen"></i></button>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteSessionPlan(${p.id}, ${campaignId})"><i class="fa-solid fa-trash"></i></button>
+            </div>
+          </div>
+          ${p.dm_notes ? `<div class="small text-muted mt-1">${esc(p.dm_notes.substring(0, 200))}${p.dm_notes.length > 200 ? '...' : ''}</div>` : ''}
+        </div>
+      `).join('') : '<div class="text-muted small fst-italic">No session plans yet. Create one to get started!</div>'}
+      <div class="text-center mt-3">
+        <button class="btn btn-sm btn-outline-secondary" onclick="hideModal()">Close</button>
+      </div>`;
+    document.getElementById('sessionPlanContent')!.innerHTML = content;
+  } catch (e: any) {
+    document.getElementById('sessionPlanContent')!.innerHTML = `<p class="text-danger">${esc(e.message)}</p>`;
+  }
+};
+
+(window as any).showSessionPlanForm = function (campaignId: number, plan?: any) {
+  const isEdit = !!plan;
+  const title = isEdit ? 'Edit Session Plan' : 'New Session Plan';
+  showModal(title, `
+    <div class="mb-2"><label class="form-label">Title</label><input class="form-control" id="spTitle" value="${isEdit ? esc(plan.title) : ''}"></div>
+    <div class="row g-2 mb-2">
+      <div class="col-6"><label class="form-label">Session Date</label><input class="form-control" id="spDate" type="date" value="${isEdit && plan.session_date ? plan.session_date : ''}"></div>
+      <div class="col-6"><label class="form-label">Expected Duration</label><input class="form-control" id="spDuration" placeholder="e.g. 3 hours" value="${isEdit ? esc(plan.expected_duration || '') : ''}"></div>
+    </div>
+    <div class="mb-2"><label class="form-label">Status</label>
+      <select class="form-select" id="spStatus">
+        <option value="planned" ${isEdit && plan.status === 'planned' ? 'selected' : ''}>Planned</option>
+        <option value="ready" ${isEdit && plan.status === 'ready' ? 'selected' : ''}>Ready</option>
+        <option value="in-progress" ${isEdit && plan.status === 'in-progress' ? 'selected' : ''}>In Progress</option>
+        <option value="completed" ${isEdit && plan.status === 'completed' ? 'selected' : ''}>Completed</option>
+      </select>
+    </div>
+    <div class="mb-2"><label class="form-label">DM Notes</label><textarea class="form-control" id="spNotes" rows="3">${isEdit ? esc(plan.dm_notes || '') : ''}</textarea></div>
+    <div class="mb-2"><label class="form-label">Planned Encounters (one per line)</label><textarea class="form-control" id="spEncounters" rows="2" placeholder="Goblin ambush&#10;Bugbear leader">${isEdit && plan.planned_encounters ? (Array.isArray(plan.planned_encounters) ? plan.planned_encounters.join('\n') : plan.planned_encounters) : ''}</textarea></div>
+    <div class="mb-2"><label class="form-label">Player Goals (one per line)</label><textarea class="form-control" id="spGoals" rows="2" placeholder="Rescue the prisoners&#10;Find the hidden passage">${isEdit && plan.player_goals ? (Array.isArray(plan.player_goals) ? plan.player_goals.join('\n') : plan.player_goals) : ''}</textarea></div>
+    <button class="btn btn-primary w-100" onclick="saveSessionPlan(${campaignId}${isEdit ? `, ${plan.id}` : ''})"><i class="fa-solid fa-save me-1"></i>${isEdit ? 'Update' : 'Create'}</button>
+  `);
+};
+
+(window as any).saveSessionPlan = async function (campaignId: number, planId?: number) {
+  const title = (document.getElementById('spTitle') as HTMLInputElement).value.trim();
+  if (!title) { toast('Title required', true); return; }
+  const encounters = (document.getElementById('spEncounters') as HTMLTextAreaElement).value.split('\n').filter((l: string) => l.trim());
+  const goals = (document.getElementById('spGoals') as HTMLTextAreaElement).value.split('\n').filter((l: string) => l.trim());
+  const body = {
+    title,
+    session_date: (document.getElementById('spDate') as HTMLInputElement).value || '',
+    status: (document.getElementById('spStatus') as HTMLSelectElement).value,
+    dm_notes: (document.getElementById('spNotes') as HTMLTextAreaElement).value,
+    planned_encounters: JSON.stringify(encounters),
+    npc_ids: '[]',
+    player_goals: JSON.stringify(goals),
+    expected_duration: (document.getElementById('spDuration') as HTMLInputElement).value,
+  };
+  if (planId) {
+    await api('PUT', `/api/session-plans/${planId}`, body);
+  } else {
+    await api('POST', `/api/campaigns/${campaignId}/session-plans`, body);
+  }
+  hideModal();
+  toast(planId ? 'Session plan updated' : 'Session plan created');
+  (window as any).showSessionPlanner(campaignId);
+};
+
+(window as any).deleteSessionPlan = async function (planId: number, campaignId: number) {
+  if (!confirm('Delete this session plan?')) return;
+  await api('DELETE', `/api/session-plans/${planId}`);
+  toast('Session plan deleted');
+  (window as any).showSessionPlanner(campaignId);
+};
+
+// ─── Encounter Difficulty Calculator ───
+
+const CR_XP: Record<string, number> = {
+  '0': 10, '1/8': 25, '1/4': 50, '1/2': 100, '1': 200, '2': 450, '3': 700,
+  '4': 1100, '5': 1800, '6': 2300, '7': 2900, '8': 3900, '9': 5000, '10': 5900,
+  '11': 7200, '12': 8400, '13': 10000, '14': 11500, '15': 13000, '16': 15000,
+  '17': 18000, '18': 20000, '19': 22000, '20': 25000, '21': 33000, '22': 41000,
+  '23': 50000, '24': 62000, '25': 75000, '30': 155000,
+};
+
+(window as any).showEncounterDifficulty = function () {
+  showModal('Encounter Difficulty Calculator', `
+    <div class="diff-calc-section">
+      <h6>Party</h6>
+      <div class="row g-2 mb-2">
+        <div class="col-6"><label class="form-label"># Characters</label><input class="form-control" id="ecPartySize" type="number" value="4" min="1" max="10" oninput="calcEncounterDifficulty()"></div>
+        <div class="col-6"><label class="form-label">Average Level</label><input class="form-control" id="ecAvgLevel" type="number" value="5" min="1" max="20" oninput="calcEncounterDifficulty()"></div>
+      </div>
+      <h6 class="mt-2">Monsters</h6>
+      <div id="ecMonsterList"></div>
+      <button class="btn btn-sm btn-outline-primary mt-1" onclick="addMonsterRow()"><i class="fa-solid fa-plus me-1"></i>Add Monster</button>
+      <div id="ecResult" class="mt-3"></div>
+    </div>
+    <div class="text-center mt-2">
+      <button class="btn btn-sm btn-outline-secondary" onclick="hideModal()">Close</button>
+    </div>
+  `);
+  // Add first monster row
+  addMonsterRow();
+};
+
+(window as any).addMonsterRow = function () {
+  const list = document.getElementById('ecMonsterList');
+  if (!list) return;
+  const idx = list.children.length;
+  const crOptions = Object.keys(CR_XP).map(cr => `<option value="${cr}">${cr}</option>`).join('');
+  const row = document.createElement('div');
+  row.className = 'row g-2 mb-1 align-items-center';
+  row.innerHTML = `
+    <div class="col-4"><input class="form-control form-control-sm" id="ecMonsterName${idx}" placeholder="Name"></div>
+    <div class="col-3"><select class="form-select form-select-sm" id="ecMonsterCR${idx}" onchange="calcEncounterDifficulty()">${crOptions}</select></div>
+    <div class="col-2"><input class="form-control form-control-sm" id="ecMonsterQty${idx}" type="number" value="1" min="1" oninput="calcEncounterDifficulty()"></div>
+    <div class="col-3"><button class="btn btn-sm btn-outline-danger" onclick="this.closest('.row').remove();calcEncounterDifficulty()"><i class="fa-solid fa-xmark"></i></button></div>
+  `;
+  list.appendChild(row);
+  calcEncounterDifficulty();
+};
+
+(window as any).calcEncounterDifficulty = function () {
+  const partySize = parseInt((document.getElementById('ecPartySize') as HTMLInputElement)?.value) || 4;
+  const avgLevel = parseInt((document.getElementById('ecAvgLevel') as HTMLInputElement)?.value) || 5;
+  const resultEl = document.getElementById('ecResult');
+  if (!resultEl) return;
+
+  // Party XP thresholds (DMG)
+  const thresholds = {
+    easy: avgLevel * 25 * partySize,
+    medium: avgLevel * 50 * partySize,
+    hard: avgLevel * 75 * partySize,
+    deadly: avgLevel * 100 * partySize,
+  };
+
+  // Sum monster XP
+  const monsterList = document.getElementById('ecMonsterList');
+  if (!monsterList) return;
+  let totalXp = 0;
+  let monsterCount = 0;
+  const monsters: Array<{ name: string; cr: string; qty: number; xp: number }> = [];
+  for (let i = 0; i < monsterList.children.length; i++) {
+    const nameInput = document.getElementById(`ecMonsterName${i}`) as HTMLInputElement;
+    const crSelect = document.getElementById(`ecMonsterCR${i}`) as HTMLSelectElement;
+    const qtyInput = document.getElementById(`ecMonsterQty${i}`) as HTMLInputElement;
+    if (nameInput && crSelect && qtyInput) {
+      const cr = crSelect.value;
+      const qty = parseInt(qtyInput.value) || 1;
+      const xp = (CR_XP[cr] || 0) * qty;
+      totalXp += xp;
+      monsterCount += qty;
+      monsters.push({ name: nameInput.value || `CR ${cr}`, cr, qty, xp });
+    }
+  }
+
+  // Encounter multiplier
+  let multiplier = 1;
+  if (monsterCount >= 2) multiplier = 1.5;
+  if (monsterCount >= 3) multiplier = 2;
+  if (monsterCount >= 7) multiplier = 2.5;
+  if (monsterCount >= 11) multiplier = 3;
+  if (monsterCount >= 15) multiplier = 4;
+
+  const adjustedXp = Math.round(totalXp * multiplier);
+
+  // Determine difficulty
+  let difficulty = 'easy';
+  let badgeClass = 'diff-badge-easy';
+  let pct = (adjustedXp / thresholds.deadly) * 100;
+  if (adjustedXp >= thresholds.deadly) { difficulty = 'deadly'; badgeClass = 'diff-badge-deadly'; }
+  else if (adjustedXp >= thresholds.hard) { difficulty = 'hard'; badgeClass = 'diff-badge-hard'; }
+  else if (adjustedXp >= thresholds.medium) { difficulty = 'medium'; badgeClass = 'diff-badge-medium'; }
+  pct = Math.min(100, pct);
+
+  resultEl.innerHTML = `
+    <div class="diff-meter position-relative" style="height:20px">
+      <div class="diff-marker" style="left:${pct}%"></div>
+    </div>
+    <div class="d-flex justify-content-between small text-muted">
+      <span>Easy (${thresholds.easy})</span>
+      <span>Medium (${thresholds.medium})</span>
+      <span>Hard (${thresholds.hard})</span>
+      <span>Deadly (${thresholds.deadly})</span>
+    </div>
+    <div class="text-center mt-2">
+      <span class="${badgeClass}">${difficulty.toUpperCase()}</span>
+      <span class="ms-2 fw-bold">${adjustedXp.toLocaleString()} adjusted XP</span>
+    </div>
+    <div class="small text-muted mt-1">
+      Total XP: ${totalXp.toLocaleString()} × ${multiplier} modifier
+      ${monsterCount > 1 ? `(${monsterCount} monsters)` : ''}
+      &middot; Per character: ${Math.round(adjustedXp / partySize).toLocaleString()} XP
+    </div>
+    ${monsters.filter(m => m.name).length ? `<div class="mt-2 small">${monsters.filter(m => m.name).map(m => `<div>${esc(m.name)} ×${m.qty} (${m.xp.toLocaleString()} XP)</div>`).join('')}</div>` : ''}
+  `;
+};
+
+// ─── Treasure Generator ───
+
+const TREASURE_TABLES: Record<string, Array<{ dice: string; coin: string; multiplier: number }>> = {
+  easy: [
+    { dice: '2d6', coin: 'CP', multiplier: 10 },
+    { dice: '1d6', coin: 'SP', multiplier: 5 },
+  ],
+  medium: [
+    { dice: '4d6', coin: 'CP', multiplier: 10 },
+    { dice: '2d6', coin: 'SP', multiplier: 10 },
+    { dice: '1d4', coin: 'GP', multiplier: 10 },
+  ],
+  hard: [
+    { dice: '2d6', coin: 'CP', multiplier: 100 },
+    { dice: '4d6', coin: 'SP', multiplier: 50 },
+    { dice: '2d6', coin: 'GP', multiplier: 20 },
+    { dice: '1d4', coin: 'PP', multiplier: 10 },
+  ],
+  deadly: [
+    { dice: '4d6', coin: 'CP', multiplier: 100 },
+    { dice: '6d6', coin: 'SP', multiplier: 100 },
+    { dice: '4d6', coin: 'GP', multiplier: 100 },
+    { dice: '2d6', coin: 'PP', multiplier: 20 },
+  ],
+};
+
+const MAGIC_ITEMS: Record<string, string[]> = {
+  common: ['Potion of Healing', 'Spell Scroll (Cantrip)', 'Cloak of Billowing', 'Candle of the Deep', 'Bag of Tricks (Grey)'],
+  uncommon: ['Bag of Holding', 'Cloak of Protection', 'Boots of Striding', 'Wand of Magic Detection', 'Potion of Invisibility', '+1 Weapon'],
+  rare: ['Flame Tongue', 'Cloak of Displacement', 'Ring of Protection', 'Belt of Hill Giant Strength', 'Potion of Greater Healing'],
+  'very rare': ['Belt of Fire Giant Strength', 'Ring of Spell Turning', 'Cloak of Invisibility', 'Staff of the Magi', 'Potion of Supreme Healing'],
+};
+
+function rollDice(dice: string): number {
+  const m = dice.match(/^(\d+)d(\d+)$/);
+  if (!m) return 0;
+  const count = parseInt(m[1]);
+  const sides = parseInt(m[2]);
+  let total = 0;
+  for (let i = 0; i < count; i++) {
+    total += Math.floor(Math.random() * sides) + 1;
+  }
+  return total;
+}
+
+(window as any).showTreasureGenerator = function () {
+  showModal('Treasure Generator', `
+    <div class="diff-calc-section">
+      <div class="row g-2 mb-2">
+        <div class="col-6">
+          <label class="form-label">Party Level</label>
+          <select class="form-select" id="tgLevel">
+            ${Array.from({length: 20}, (_, i) => `<option value="${i+1}" ${i+1 === 5 ? 'selected' : ''}>Level ${i+1}</option>`).join('')}
+          </select>
+        </div>
+        <div class="col-6">
+          <label class="form-label">Difficulty</label>
+          <select class="form-select" id="tgDifficulty">
+            <option value="easy">Easy</option>
+            <option value="medium" selected>Medium</option>
+            <option value="hard">Hard</option>
+            <option value="deadly">Deadly</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-gold w-100" onclick="generateTreasure()"><i class="fa-solid fa-wand-sparkles me-1"></i>Generate Treasure</button>
+      <div id="tgResult"></div>
+    </div>
+    <div class="text-center mt-2">
+      <button class="btn btn-sm btn-outline-secondary" onclick="hideModal()">Close</button>
+    </div>
+  `);
+};
+
+(window as any).generateTreasure = function () {
+  const lvl = parseInt((document.getElementById('tgLevel') as HTMLSelectElement).value) || 5;
+  const diff = (document.getElementById('tgDifficulty') as HTMLSelectElement).value;
+  const resultEl = document.getElementById('tgResult');
+  if (!resultEl) return;
+
+  const table = TREASURE_TABLES[diff];
+  const lines: string[] = [];
+  let totalGp = 0;
+
+  for (const entry of table) {
+    const rolled = rollDice(entry.dice);
+    const amount = rolled * entry.multiplier;
+    const line = `${rolled} × ${entry.multiplier} = ${amount.toLocaleString()} ${entry.coin}`;
+    lines.push(line);
+
+    // Convert to GP estimate
+    const gpMultiplier: Record<string, number> = { CP: 0.01, SP: 0.1, EP: 0.5, GP: 1, PP: 10 };
+    totalGp += amount * (gpMultiplier[entry.coin] || 0);
+  }
+
+  // Magic item tier based on level
+  let magicTier = 'common';
+  if (lvl >= 5) magicTier = 'uncommon';
+  if (lvl >= 11) magicTier = 'rare';
+  if (lvl >= 17) magicTier = 'very rare';
+
+  const magicPool = MAGIC_ITEMS[magicTier] || [];
+  const magicItem = magicPool[Math.floor(Math.random() * magicPool.length)];
+
+  resultEl.innerHTML = `
+    <div class="treasure-result">
+      <div class="treasure-total">≈ ${totalGp.toLocaleString()} GP</div>
+      ${lines.map(l => `<div class="treasure-line">${l}</div>`).join('')}
+      <div class="treasure-line fw-bold mt-2">Magic Item: ${magicItem} (${magicTier})</div>
+    </div>
+    <button class="btn btn-sm btn-outline-primary mt-2 w-100" onclick="generateTreasure()"><i class="fa-solid fa-rotate me-1"></i>Generate Again</button>
+  `;
+};
+
+// ─── Add Dashboard button to campaign cards ───
+// (patched into showParty directly, but helper here for when called from manage modal)
+
+(window as any).openCampaignDashboard = function (campaignId: number, name: string) {
+  (window as any).showCampaignDashboard(campaignId, name);
+};
 
 init();

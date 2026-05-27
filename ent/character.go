@@ -91,6 +91,8 @@ type Character struct {
 	DeathSavesSuccesses int `json:"death_saves_successes,omitempty"`
 	// DeathSavesFailures holds the value of the "death_saves_failures" field.
 	DeathSavesFailures int `json:"death_saves_failures,omitempty"`
+	// ExhaustionLevel holds the value of the "exhaustion_level" field.
+	ExhaustionLevel int `json:"exhaustion_level,omitempty"`
 	// ConcentratingOn holds the value of the "concentrating_on" field.
 	ConcentratingOn string `json:"concentrating_on,omitempty"`
 	// CampaignID holds the value of the "campaign_id" field.
@@ -383,7 +385,7 @@ func (*Character) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case character.FieldID, character.FieldUserID, character.FieldLevel, character.FieldXp, character.FieldStr, character.FieldDex, character.FieldCon, character.FieldInt, character.FieldWis, character.FieldCha, character.FieldAc, character.FieldInitiative, character.FieldSpeed, character.FieldHpMax, character.FieldHpCurrent, character.FieldTempHp, character.FieldHitDiceCurrent, character.FieldProficiencyBonus, character.FieldInspiration, character.FieldPassivePerception, character.FieldHpAutoCalc, character.FieldDeathSavesSuccesses, character.FieldDeathSavesFailures, character.FieldCampaignID:
+		case character.FieldID, character.FieldUserID, character.FieldLevel, character.FieldXp, character.FieldStr, character.FieldDex, character.FieldCon, character.FieldInt, character.FieldWis, character.FieldCha, character.FieldAc, character.FieldInitiative, character.FieldSpeed, character.FieldHpMax, character.FieldHpCurrent, character.FieldTempHp, character.FieldHitDiceCurrent, character.FieldProficiencyBonus, character.FieldInspiration, character.FieldPassivePerception, character.FieldHpAutoCalc, character.FieldDeathSavesSuccesses, character.FieldDeathSavesFailures, character.FieldExhaustionLevel, character.FieldCampaignID:
 			values[i] = new(sql.NullInt64)
 		case character.FieldName, character.FieldRace, character.FieldClass, character.FieldSubclass, character.FieldBackground, character.FieldAlignment, character.FieldHitDice, character.FieldPersonalityTraits, character.FieldIdeals, character.FieldBonds, character.FieldFlaws, character.FieldAppearance, character.FieldBackstory, character.FieldPortraitURL, character.FieldDmNotes, character.FieldConcentratingOn, character.FieldCreatedAt, character.FieldUpdatedAt:
 			values[i] = new(sql.NullString)
@@ -629,6 +631,12 @@ func (_m *Character) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field death_saves_failures", values[i])
 			} else if value.Valid {
 				_m.DeathSavesFailures = int(value.Int64)
+			}
+		case character.FieldExhaustionLevel:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field exhaustion_level", values[i])
+			} else if value.Valid {
+				_m.ExhaustionLevel = int(value.Int64)
 			}
 		case character.FieldConcentratingOn:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -920,6 +928,9 @@ func (_m *Character) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("death_saves_failures=")
 	builder.WriteString(fmt.Sprintf("%v", _m.DeathSavesFailures))
+	builder.WriteString(", ")
+	builder.WriteString("exhaustion_level=")
+	builder.WriteString(fmt.Sprintf("%v", _m.ExhaustionLevel))
 	builder.WriteString(", ")
 	builder.WriteString("concentrating_on=")
 	builder.WriteString(_m.ConcentratingOn)

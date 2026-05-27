@@ -48,6 +48,10 @@ const (
 	EdgeFactions = "factions"
 	// EdgeCombatLogEntries holds the string denoting the combat_log_entries edge name in mutations.
 	EdgeCombatLogEntries = "combat_log_entries"
+	// EdgePartyItems holds the string denoting the party_items edge name in mutations.
+	EdgePartyItems = "party_items"
+	// EdgeSessionPlans holds the string denoting the session_plans edge name in mutations.
+	EdgeSessionPlans = "session_plans"
 	// Table holds the table name of the campaign in the database.
 	Table = "campaigns"
 	// UserTable is the table that holds the user relation/edge.
@@ -134,6 +138,20 @@ const (
 	CombatLogEntriesInverseTable = "combat_log_entries"
 	// CombatLogEntriesColumn is the table column denoting the combat_log_entries relation/edge.
 	CombatLogEntriesColumn = "campaign_id"
+	// PartyItemsTable is the table that holds the party_items relation/edge.
+	PartyItemsTable = "party_items"
+	// PartyItemsInverseTable is the table name for the PartyItem entity.
+	// It exists in this package in order to avoid circular dependency with the "partyitem" package.
+	PartyItemsInverseTable = "party_items"
+	// PartyItemsColumn is the table column denoting the party_items relation/edge.
+	PartyItemsColumn = "campaign_id"
+	// SessionPlansTable is the table that holds the session_plans relation/edge.
+	SessionPlansTable = "session_plans"
+	// SessionPlansInverseTable is the table name for the SessionPlan entity.
+	// It exists in this package in order to avoid circular dependency with the "sessionplan" package.
+	SessionPlansInverseTable = "session_plans"
+	// SessionPlansColumn is the table column denoting the session_plans relation/edge.
+	SessionPlansColumn = "campaign_id"
 )
 
 // Columns holds all SQL columns for campaign fields.
@@ -366,6 +384,34 @@ func ByCombatLogEntries(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption 
 		sqlgraph.OrderByNeighborTerms(s, newCombatLogEntriesStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
+
+// ByPartyItemsCount orders the results by party_items count.
+func ByPartyItemsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newPartyItemsStep(), opts...)
+	}
+}
+
+// ByPartyItems orders the results by party_items terms.
+func ByPartyItems(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPartyItemsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// BySessionPlansCount orders the results by session_plans count.
+func BySessionPlansCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newSessionPlansStep(), opts...)
+	}
+}
+
+// BySessionPlans orders the results by session_plans terms.
+func BySessionPlans(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newSessionPlansStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
 func newUserStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
@@ -448,5 +494,19 @@ func newCombatLogEntriesStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(CombatLogEntriesInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, CombatLogEntriesTable, CombatLogEntriesColumn),
+	)
+}
+func newPartyItemsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PartyItemsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, PartyItemsTable, PartyItemsColumn),
+	)
+}
+func newSessionPlansStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(SessionPlansInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, SessionPlansTable, SessionPlansColumn),
 	)
 }

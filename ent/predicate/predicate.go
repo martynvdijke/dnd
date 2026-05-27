@@ -138,6 +138,9 @@ type Location func(*sql.Selector)
 // NPC is the predicate function for npc builders.
 type NPC func(*sql.Selector)
 
+// PartyItem is the predicate function for partyitem builders.
+type PartyItem func(*sql.Selector)
+
 // Quest is the predicate function for quest builders.
 type Quest func(*sql.Selector)
 
@@ -146,6 +149,9 @@ type RestLog func(*sql.Selector)
 
 // Session is the predicate function for session builders.
 type Session func(*sql.Selector)
+
+// SessionPlan is the predicate function for sessionplan builders.
+type SessionPlan func(*sql.Selector)
 
 // ShareLink is the predicate function for sharelink builders.
 type ShareLink func(*sql.Selector)

@@ -339,6 +339,7 @@ var (
 		{Name: "hp_auto_calc", Type: field.TypeInt, Default: 0},
 		{Name: "death_saves_successes", Type: field.TypeInt, Default: 0},
 		{Name: "death_saves_failures", Type: field.TypeInt, Default: 0},
+		{Name: "exhaustion_level", Type: field.TypeInt, Default: 0},
 		{Name: "concentrating_on", Type: field.TypeString, Default: ""},
 		{Name: "campaign_id", Type: field.TypeInt64, Nullable: true},
 		{Name: "created_at", Type: field.TypeString, Default: ""},
@@ -353,7 +354,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "characters_users_characters",
-				Columns:    []*schema.Column{CharactersColumns[41]},
+				Columns:    []*schema.Column{CharactersColumns[42]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -362,7 +363,7 @@ var (
 			{
 				Name:    "character_user_id",
 				Unique:  false,
-				Columns: []*schema.Column{CharactersColumns[41]},
+				Columns: []*schema.Column{CharactersColumns[42]},
 			},
 		},
 	}
@@ -1308,6 +1309,7 @@ var (
 		{Name: "is_equipped", Type: field.TypeBool, Default: false},
 		{Name: "is_magical", Type: field.TypeBool, Default: false},
 		{Name: "attunement", Type: field.TypeBool, Default: false},
+		{Name: "is_identified", Type: field.TypeBool, Default: false},
 		{Name: "notes", Type: field.TypeString, Default: ""},
 		{Name: "character_id", Type: field.TypeInt64},
 	}
@@ -1319,7 +1321,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "inventory_characters_inventory",
-				Columns:    []*schema.Column{InventoryColumns[15]},
+				Columns:    []*schema.Column{InventoryColumns[16]},
 				RefColumns: []*schema.Column{CharactersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1328,7 +1330,7 @@ var (
 			{
 				Name:    "inventoryitem_character_id",
 				Unique:  false,
-				Columns: []*schema.Column{InventoryColumns[15]},
+				Columns: []*schema.Column{InventoryColumns[16]},
 			},
 		},
 	}
@@ -1486,6 +1488,36 @@ var (
 			},
 		},
 	}
+	// PartyItemsColumns holds the columns for the "party_items" table.
+	PartyItemsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "quantity", Type: field.TypeInt, Default: 1},
+		{Name: "notes", Type: field.TypeString, Default: ""},
+		{Name: "created_at", Type: field.TypeString, Default: ""},
+		{Name: "campaign_id", Type: field.TypeInt64, Nullable: true},
+	}
+	// PartyItemsTable holds the schema information for the "party_items" table.
+	PartyItemsTable = &schema.Table{
+		Name:       "party_items",
+		Columns:    PartyItemsColumns,
+		PrimaryKey: []*schema.Column{PartyItemsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "party_items_campaigns_party_items",
+				Columns:    []*schema.Column{PartyItemsColumns[5]},
+				RefColumns: []*schema.Column{CampaignsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "partyitem_campaign_id",
+				Unique:  false,
+				Columns: []*schema.Column{PartyItemsColumns[5]},
+			},
+		},
+	}
 	// QuestsColumns holds the columns for the "quests" table.
 	QuestsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -1575,6 +1607,42 @@ var (
 				Name:    "session_character_id",
 				Unique:  false,
 				Columns: []*schema.Column{SessionsColumns[8]},
+			},
+		},
+	}
+	// SessionPlansColumns holds the columns for the "session_plans" table.
+	SessionPlansColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "title", Type: field.TypeString},
+		{Name: "session_date", Type: field.TypeString, Default: ""},
+		{Name: "status", Type: field.TypeString, Default: "planned"},
+		{Name: "dm_notes", Type: field.TypeString, Default: ""},
+		{Name: "planned_encounters", Type: field.TypeString, Default: "[]"},
+		{Name: "npc_ids", Type: field.TypeString, Default: "[]"},
+		{Name: "player_goals", Type: field.TypeString, Default: "[]"},
+		{Name: "expected_duration", Type: field.TypeInt, Default: 0},
+		{Name: "created_at", Type: field.TypeString, Default: ""},
+		{Name: "updated_at", Type: field.TypeString, Default: ""},
+		{Name: "campaign_id", Type: field.TypeInt64, Nullable: true},
+	}
+	// SessionPlansTable holds the schema information for the "session_plans" table.
+	SessionPlansTable = &schema.Table{
+		Name:       "session_plans",
+		Columns:    SessionPlansColumns,
+		PrimaryKey: []*schema.Column{SessionPlansColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "session_plans_campaigns_session_plans",
+				Columns:    []*schema.Column{SessionPlansColumns[11]},
+				RefColumns: []*schema.Column{CampaignsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "sessionplan_campaign_id",
+				Unique:  false,
+				Columns: []*schema.Column{SessionPlansColumns[11]},
 			},
 		},
 	}
@@ -1848,9 +1916,11 @@ var (
 		LevelUpPlansTable,
 		LocationsTable,
 		NpcsTable,
+		PartyItemsTable,
 		QuestsTable,
 		RestLogTable,
 		SessionsTable,
+		SessionPlansTable,
 		ShareLinksTable,
 		ShopsTable,
 		ShopItemsTable,
@@ -1935,12 +2005,14 @@ func init() {
 	NpcsTable.Annotation = &entsql.Annotation{
 		Table: "npcs",
 	}
+	PartyItemsTable.ForeignKeys[0].RefTable = CampaignsTable
 	QuestsTable.ForeignKeys[0].RefTable = CharactersTable
 	RestLogTable.ForeignKeys[0].RefTable = CharactersTable
 	RestLogTable.Annotation = &entsql.Annotation{
 		Table: "rest_log",
 	}
 	SessionsTable.ForeignKeys[0].RefTable = CharactersTable
+	SessionPlansTable.ForeignKeys[0].RefTable = CampaignsTable
 	ShareLinksTable.ForeignKeys[0].RefTable = UsersTable
 	ShopsTable.ForeignKeys[0].RefTable = CampaignsTable
 	ShopsTable.ForeignKeys[1].RefTable = UsersTable

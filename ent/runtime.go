@@ -46,10 +46,12 @@ import (
 	"villum/ent/levelupplan"
 	"villum/ent/location"
 	"villum/ent/npc"
+	"villum/ent/partyitem"
 	"villum/ent/quest"
 	"villum/ent/restlog"
 	"villum/ent/schema"
 	"villum/ent/session"
+	"villum/ent/sessionplan"
 	"villum/ent/sharelink"
 	"villum/ent/shop"
 	"villum/ent/shopitem"
@@ -419,16 +421,20 @@ func init() {
 	characterDescDeathSavesFailures := characterFields[37].Descriptor()
 	// character.DefaultDeathSavesFailures holds the default value on creation for the death_saves_failures field.
 	character.DefaultDeathSavesFailures = characterDescDeathSavesFailures.Default.(int)
+	// characterDescExhaustionLevel is the schema descriptor for exhaustion_level field.
+	characterDescExhaustionLevel := characterFields[38].Descriptor()
+	// character.DefaultExhaustionLevel holds the default value on creation for the exhaustion_level field.
+	character.DefaultExhaustionLevel = characterDescExhaustionLevel.Default.(int)
 	// characterDescConcentratingOn is the schema descriptor for concentrating_on field.
-	characterDescConcentratingOn := characterFields[38].Descriptor()
+	characterDescConcentratingOn := characterFields[39].Descriptor()
 	// character.DefaultConcentratingOn holds the default value on creation for the concentrating_on field.
 	character.DefaultConcentratingOn = characterDescConcentratingOn.Default.(string)
 	// characterDescCreatedAt is the schema descriptor for created_at field.
-	characterDescCreatedAt := characterFields[40].Descriptor()
+	characterDescCreatedAt := characterFields[41].Descriptor()
 	// character.DefaultCreatedAt holds the default value on creation for the created_at field.
 	character.DefaultCreatedAt = characterDescCreatedAt.Default.(string)
 	// characterDescUpdatedAt is the schema descriptor for updated_at field.
-	characterDescUpdatedAt := characterFields[41].Descriptor()
+	characterDescUpdatedAt := characterFields[42].Descriptor()
 	// character.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	character.DefaultUpdatedAt = characterDescUpdatedAt.Default.(string)
 	characterclassFields := schema.CharacterClass{}.Fields()
@@ -1357,8 +1363,12 @@ func init() {
 	inventoryitemDescAttunement := inventoryitemFields[14].Descriptor()
 	// inventoryitem.DefaultAttunement holds the default value on creation for the attunement field.
 	inventoryitem.DefaultAttunement = inventoryitemDescAttunement.Default.(bool)
+	// inventoryitemDescIsIdentified is the schema descriptor for is_identified field.
+	inventoryitemDescIsIdentified := inventoryitemFields[15].Descriptor()
+	// inventoryitem.DefaultIsIdentified holds the default value on creation for the is_identified field.
+	inventoryitem.DefaultIsIdentified = inventoryitemDescIsIdentified.Default.(bool)
 	// inventoryitemDescNotes is the schema descriptor for notes field.
-	inventoryitemDescNotes := inventoryitemFields[15].Descriptor()
+	inventoryitemDescNotes := inventoryitemFields[16].Descriptor()
 	// inventoryitem.DefaultNotes holds the default value on creation for the notes field.
 	inventoryitem.DefaultNotes = inventoryitemDescNotes.Default.(string)
 	journalentryFields := schema.JournalEntry{}.Fields()
@@ -1505,6 +1515,20 @@ func init() {
 	npcDescCreatedAt := npcFields[24].Descriptor()
 	// npc.DefaultCreatedAt holds the default value on creation for the created_at field.
 	npc.DefaultCreatedAt = npcDescCreatedAt.Default.(string)
+	partyitemFields := schema.PartyItem{}.Fields()
+	_ = partyitemFields
+	// partyitemDescQuantity is the schema descriptor for quantity field.
+	partyitemDescQuantity := partyitemFields[3].Descriptor()
+	// partyitem.DefaultQuantity holds the default value on creation for the quantity field.
+	partyitem.DefaultQuantity = partyitemDescQuantity.Default.(int)
+	// partyitemDescNotes is the schema descriptor for notes field.
+	partyitemDescNotes := partyitemFields[4].Descriptor()
+	// partyitem.DefaultNotes holds the default value on creation for the notes field.
+	partyitem.DefaultNotes = partyitemDescNotes.Default.(string)
+	// partyitemDescCreatedAt is the schema descriptor for created_at field.
+	partyitemDescCreatedAt := partyitemFields[5].Descriptor()
+	// partyitem.DefaultCreatedAt holds the default value on creation for the created_at field.
+	partyitem.DefaultCreatedAt = partyitemDescCreatedAt.Default.(string)
 	questFields := schema.Quest{}.Fields()
 	_ = questFields
 	// questDescDescription is the schema descriptor for description field.
@@ -1587,6 +1611,44 @@ func init() {
 	sessionDescCreatedAt := sessionFields[8].Descriptor()
 	// session.DefaultCreatedAt holds the default value on creation for the created_at field.
 	session.DefaultCreatedAt = sessionDescCreatedAt.Default.(string)
+	sessionplanFields := schema.SessionPlan{}.Fields()
+	_ = sessionplanFields
+	// sessionplanDescSessionDate is the schema descriptor for session_date field.
+	sessionplanDescSessionDate := sessionplanFields[3].Descriptor()
+	// sessionplan.DefaultSessionDate holds the default value on creation for the session_date field.
+	sessionplan.DefaultSessionDate = sessionplanDescSessionDate.Default.(string)
+	// sessionplanDescStatus is the schema descriptor for status field.
+	sessionplanDescStatus := sessionplanFields[4].Descriptor()
+	// sessionplan.DefaultStatus holds the default value on creation for the status field.
+	sessionplan.DefaultStatus = sessionplanDescStatus.Default.(string)
+	// sessionplanDescDmNotes is the schema descriptor for dm_notes field.
+	sessionplanDescDmNotes := sessionplanFields[5].Descriptor()
+	// sessionplan.DefaultDmNotes holds the default value on creation for the dm_notes field.
+	sessionplan.DefaultDmNotes = sessionplanDescDmNotes.Default.(string)
+	// sessionplanDescPlannedEncounters is the schema descriptor for planned_encounters field.
+	sessionplanDescPlannedEncounters := sessionplanFields[6].Descriptor()
+	// sessionplan.DefaultPlannedEncounters holds the default value on creation for the planned_encounters field.
+	sessionplan.DefaultPlannedEncounters = sessionplanDescPlannedEncounters.Default.(string)
+	// sessionplanDescNpcIds is the schema descriptor for npc_ids field.
+	sessionplanDescNpcIds := sessionplanFields[7].Descriptor()
+	// sessionplan.DefaultNpcIds holds the default value on creation for the npc_ids field.
+	sessionplan.DefaultNpcIds = sessionplanDescNpcIds.Default.(string)
+	// sessionplanDescPlayerGoals is the schema descriptor for player_goals field.
+	sessionplanDescPlayerGoals := sessionplanFields[8].Descriptor()
+	// sessionplan.DefaultPlayerGoals holds the default value on creation for the player_goals field.
+	sessionplan.DefaultPlayerGoals = sessionplanDescPlayerGoals.Default.(string)
+	// sessionplanDescExpectedDuration is the schema descriptor for expected_duration field.
+	sessionplanDescExpectedDuration := sessionplanFields[9].Descriptor()
+	// sessionplan.DefaultExpectedDuration holds the default value on creation for the expected_duration field.
+	sessionplan.DefaultExpectedDuration = sessionplanDescExpectedDuration.Default.(int)
+	// sessionplanDescCreatedAt is the schema descriptor for created_at field.
+	sessionplanDescCreatedAt := sessionplanFields[10].Descriptor()
+	// sessionplan.DefaultCreatedAt holds the default value on creation for the created_at field.
+	sessionplan.DefaultCreatedAt = sessionplanDescCreatedAt.Default.(string)
+	// sessionplanDescUpdatedAt is the schema descriptor for updated_at field.
+	sessionplanDescUpdatedAt := sessionplanFields[11].Descriptor()
+	// sessionplan.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	sessionplan.DefaultUpdatedAt = sessionplanDescUpdatedAt.Default.(string)
 	sharelinkFields := schema.ShareLink{}.Fields()
 	_ = sharelinkFields
 	// sharelinkDescCreatedAt is the schema descriptor for created_at field.

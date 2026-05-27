@@ -202,6 +202,20 @@ func (_c *InventoryItemCreate) SetNillableAttunement(v *bool) *InventoryItemCrea
 	return _c
 }
 
+// SetIsIdentified sets the "is_identified" field.
+func (_c *InventoryItemCreate) SetIsIdentified(v bool) *InventoryItemCreate {
+	_c.mutation.SetIsIdentified(v)
+	return _c
+}
+
+// SetNillableIsIdentified sets the "is_identified" field if the given value is not nil.
+func (_c *InventoryItemCreate) SetNillableIsIdentified(v *bool) *InventoryItemCreate {
+	if v != nil {
+		_c.SetIsIdentified(*v)
+	}
+	return _c
+}
+
 // SetNotes sets the "notes" field.
 func (_c *InventoryItemCreate) SetNotes(v string) *InventoryItemCreate {
 	_c.mutation.SetNotes(v)
@@ -310,6 +324,10 @@ func (_c *InventoryItemCreate) defaults() {
 		v := inventoryitem.DefaultAttunement
 		_c.mutation.SetAttunement(v)
 	}
+	if _, ok := _c.mutation.IsIdentified(); !ok {
+		v := inventoryitem.DefaultIsIdentified
+		_c.mutation.SetIsIdentified(v)
+	}
 	if _, ok := _c.mutation.Notes(); !ok {
 		v := inventoryitem.DefaultNotes
 		_c.mutation.SetNotes(v)
@@ -359,6 +377,9 @@ func (_c *InventoryItemCreate) check() error {
 	}
 	if _, ok := _c.mutation.Attunement(); !ok {
 		return &ValidationError{Name: "attunement", err: errors.New(`ent: missing required field "InventoryItem.attunement"`)}
+	}
+	if _, ok := _c.mutation.IsIdentified(); !ok {
+		return &ValidationError{Name: "is_identified", err: errors.New(`ent: missing required field "InventoryItem.is_identified"`)}
 	}
 	if _, ok := _c.mutation.Notes(); !ok {
 		return &ValidationError{Name: "notes", err: errors.New(`ent: missing required field "InventoryItem.notes"`)}
@@ -450,6 +471,10 @@ func (_c *InventoryItemCreate) createSpec() (*InventoryItem, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.Attunement(); ok {
 		_spec.SetField(inventoryitem.FieldAttunement, field.TypeBool, value)
 		_node.Attunement = value
+	}
+	if value, ok := _c.mutation.IsIdentified(); ok {
+		_spec.SetField(inventoryitem.FieldIsIdentified, field.TypeBool, value)
+		_node.IsIdentified = value
 	}
 	if value, ok := _c.mutation.Notes(); ok {
 		_spec.SetField(inventoryitem.FieldNotes, field.TypeString, value)
@@ -707,6 +732,18 @@ func (u *InventoryItemUpsert) SetAttunement(v bool) *InventoryItemUpsert {
 // UpdateAttunement sets the "attunement" field to the value that was provided on create.
 func (u *InventoryItemUpsert) UpdateAttunement() *InventoryItemUpsert {
 	u.SetExcluded(inventoryitem.FieldAttunement)
+	return u
+}
+
+// SetIsIdentified sets the "is_identified" field.
+func (u *InventoryItemUpsert) SetIsIdentified(v bool) *InventoryItemUpsert {
+	u.Set(inventoryitem.FieldIsIdentified, v)
+	return u
+}
+
+// UpdateIsIdentified sets the "is_identified" field to the value that was provided on create.
+func (u *InventoryItemUpsert) UpdateIsIdentified() *InventoryItemUpsert {
+	u.SetExcluded(inventoryitem.FieldIsIdentified)
 	return u
 }
 
@@ -984,6 +1021,20 @@ func (u *InventoryItemUpsertOne) SetAttunement(v bool) *InventoryItemUpsertOne {
 func (u *InventoryItemUpsertOne) UpdateAttunement() *InventoryItemUpsertOne {
 	return u.Update(func(s *InventoryItemUpsert) {
 		s.UpdateAttunement()
+	})
+}
+
+// SetIsIdentified sets the "is_identified" field.
+func (u *InventoryItemUpsertOne) SetIsIdentified(v bool) *InventoryItemUpsertOne {
+	return u.Update(func(s *InventoryItemUpsert) {
+		s.SetIsIdentified(v)
+	})
+}
+
+// UpdateIsIdentified sets the "is_identified" field to the value that was provided on create.
+func (u *InventoryItemUpsertOne) UpdateIsIdentified() *InventoryItemUpsertOne {
+	return u.Update(func(s *InventoryItemUpsert) {
+		s.UpdateIsIdentified()
 	})
 }
 
@@ -1429,6 +1480,20 @@ func (u *InventoryItemUpsertBulk) SetAttunement(v bool) *InventoryItemUpsertBulk
 func (u *InventoryItemUpsertBulk) UpdateAttunement() *InventoryItemUpsertBulk {
 	return u.Update(func(s *InventoryItemUpsert) {
 		s.UpdateAttunement()
+	})
+}
+
+// SetIsIdentified sets the "is_identified" field.
+func (u *InventoryItemUpsertBulk) SetIsIdentified(v bool) *InventoryItemUpsertBulk {
+	return u.Update(func(s *InventoryItemUpsert) {
+		s.SetIsIdentified(v)
+	})
+}
+
+// UpdateIsIdentified sets the "is_identified" field to the value that was provided on create.
+func (u *InventoryItemUpsertBulk) UpdateIsIdentified() *InventoryItemUpsertBulk {
+	return u.Update(func(s *InventoryItemUpsert) {
+		s.UpdateIsIdentified()
 	})
 }
 

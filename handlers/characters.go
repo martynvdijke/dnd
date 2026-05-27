@@ -741,6 +741,7 @@ func entCharacterToModel(e *ent.Character) *models.Character {
 		DeathSavesSuccesses: e.DeathSavesSuccesses,
 		DeathSavesFailures:  e.DeathSavesFailures,
 		ConcentratingOn:     e.ConcentratingOn,
+		ExhaustionLevel:     e.ExhaustionLevel,
 	}
 	if e.CampaignID != 0 {
 		ch.CampaignID = &e.CampaignID
@@ -823,7 +824,7 @@ func loadInventory(ctx context.Context, characterID int64) []models.InventoryIte
 			ID: e.ID, CharacterID: e.CharacterID, Name: e.Name, Quantity: e.Quantity, Weight: e.Weight,
 			Category: e.Category, DamageDice: e.DamageDice, DamageType: e.DamageType, WeaponProperties: e.WeaponProperties,
 			ACBonus: e.AcBonus, ArmorType: e.ArmorType, Description: e.Description,
-			IsEquipped: e.IsEquipped, IsMagical: e.IsMagical, Attunement: e.Attunement, Notes: e.Notes,
+			IsEquipped: e.IsEquipped, IsMagical: e.IsMagical, Attunement: e.Attunement, IsIdentified: e.IsIdentified, Notes: e.Notes,
 		})
 	}
 	return out
@@ -1134,9 +1135,10 @@ func ImportCharacterJSON(c *gin.Context) {
 			SetArmorType(item.ArmorType).
 			SetDescription(item.Description).
 			SetIsEquipped(item.IsEquipped).
-			SetIsMagical(item.IsMagical).
-			SetAttunement(item.Attunement).
-			SetNotes(item.Notes).
+		SetIsMagical(item.IsMagical).
+		SetAttunement(item.Attunement).
+		SetIsIdentified(item.IsIdentified).
+		SetNotes(item.Notes).
 			Save(c.Request.Context())
 	}
 
@@ -1248,6 +1250,7 @@ func CreateInventory(c *gin.Context) {
 		SetIsEquipped(item.IsEquipped).
 		SetIsMagical(item.IsMagical).
 		SetAttunement(item.Attunement).
+		SetIsIdentified(item.IsIdentified).
 		SetNotes(item.Notes).
 		Save(c.Request.Context())
 	if err != nil {
@@ -1672,4 +1675,58 @@ func importCharacters(ctx context.Context, userID int64, chars []models.ImportCh
 		results = append(results, gin.H{"id": charID, "name": imp.Name, "status": "imported"})
 	}
 	return results
+}
+
+// ─── Exhaustion ───
+
+func UpdateExhaustion(c *gin.Context) {
+	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var req struct {
+		Level int `json:"level"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if req.Level < 0 || req.Level > 6 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "exhaustion level must be 0-6"})
+		return
+	}
+	_, err := db.Client.Character.UpdateOneID(charID).SetExhaustionLevel(req.Level).Save(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	SendCharacterUpdate(charID)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// ─── Spell Preparation ───
+
+func BatchPrepareSpells(c *gin.Context) {
+	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var req struct {
+		SpellIDs []int64 `json:"spell_ids"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	ctx := c.Request.Context()
+	// First, unprepare all spells for this character
+	_, err := db.Client.Spell.Update().Where(spell.CharacterID(charID)).SetPrepared(false).Save(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	// Then set prepared for the specified spell IDs
+	if len(req.SpellIDs) > 0 {
+		_, err = db.Client.Spell.Update().Where(spell.IDIn(req.SpellIDs...), spell.CharacterID(charID)).SetPrepared(true).Save(ctx)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+	SendCharacterUpdate(charID)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

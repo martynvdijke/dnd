@@ -1569,3 +1569,620 @@ kbd {
     min-height: 200px;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   Campaign Completeness Enhancements
+   ══════════════════════════════════════════════════════════════ */
+
+/* ─── Encumbrance Indicator ─── */
+
+.encumbrance-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--parchment-dark);
+  margin: 4px 0 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.encumbrance-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease, background 0.3s ease;
+}
+
+.encumbrance-bar-fill.enc-light   { background: var(--gold); }
+.encumbrance-bar-fill.enc-encumbered { background: #d4a017; }
+.encumbrance-bar-fill.enc-heavy   { background: #cc5500; }
+
+.encumbrance-state {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.encumbrance-state.enc-light   { color: var(--gold); }
+.encumbrance-state.enc-encumbered { color: #d4a017; }
+.encumbrance-state.enc-heavy   { color: #cc5500; }
+.encumbrance-state.enc-over    { color: #cc0000; }
+
+/* ─── Attunement Counter ─── */
+
+.attune-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--parchment-dark);
+  color: var(--ink);
+}
+
+.attune-counter.attune-ok    { border: 1px solid var(--gold); }
+.attune-counter.attune-warn  { border: 1px solid #d4a017; background: #fff3cd; color: #856404; }
+.attune-counter.attune-full  { border: 1px solid #cc0000; background: #f8d7da; color: #721c24; }
+
+[data-theme="dark"] .attune-counter.attune-warn { background: #3d2e00; color: #ffc107; }
+[data-theme="dark"] .attune-counter.attune-full { background: #3d0000; color: #ff6b6b; }
+
+.badge-attunement {
+  font-size: 0.7rem;
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 8px;
+  vertical-align: middle;
+}
+
+/* ─── Exhaustion Display ─── */
+
+.exhaustion-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  background: var(--parchment);
+  border: 1px solid var(--border);
+}
+
+.exhaustion-level {
+  font-size: 1.5rem;
+  font-weight: 800;
+  min-width: 32px;
+  text-align: center;
+}
+
+.exhaustion-level.ex-0 { color: var(--ink-muted); }
+.exhaustion-level.ex-1 { color: #d4a017; }
+.exhaustion-level.ex-2 { color: #cc5500; }
+.exhaustion-level.ex-3 { color: #cc3300; }
+.exhaustion-level.ex-4 { color: #cc0000; }
+.exhaustion-level.ex-5 { color: #8b0000; }
+.exhaustion-level.ex-6 { color: #000; }
+
+.exhaustion-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.exhaustion-effect {
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  font-style: italic;
+}
+
+.exhaustion-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--parchment-light);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  transition: background 0.15s;
+}
+
+.exhaustion-btn:hover { background: var(--parchment-dark); }
+.exhaustion-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ─── Passive Scores ─── */
+
+.passive-score-box {
+  text-align: center;
+  padding: 6px 4px;
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+  border: 1px solid var(--border-light);
+}
+
+.passive-score-box .score-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.passive-score-box .score-label {
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.passive-score-box .score-breakdown {
+  font-size: 0.65rem;
+  color: var(--ink-muted);
+}
+
+/* ─── Magic Item Identification ─── */
+
+.inv-item.unidentified {
+  opacity: 0.85;
+  border-left: 3px solid #6d28d9;
+}
+
+.inv-item .badge-unidentified {
+  background: #6d28d9;
+  color: #fff;
+  font-size: 0.65rem;
+  padding: 1px 6px;
+  border-radius: 8px;
+}
+
+.inv-item .btn-identify {
+  font-size: 0.7rem;
+  padding: 1px 6px;
+  border: 1px solid #6d28d9;
+  color: #6d28d9;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.inv-item .btn-identify:hover {
+  background: #6d28d9;
+  color: #fff;
+}
+
+/* ─── Loadout Panel ─── */
+
+.loadout-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--parchment);
+  margin-bottom: 12px;
+}
+
+.loadout-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.loadout-header h6 { margin: 0; font-size: 0.9rem; }
+
+.loadout-body {
+  padding: 8px 12px;
+}
+
+.loadout-category {
+  margin-bottom: 6px;
+}
+
+.loadout-category-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-muted);
+  font-weight: 600;
+}
+
+.loadout-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  font-size: 0.85rem;
+}
+
+.loadout-item .item-name { font-weight: 600; }
+.loadout-item .item-detail { font-size: 0.75rem; color: var(--ink-muted); }
+
+/* ─── Spell Prep Modal ─── */
+
+.spell-prep-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.spell-prep-group {
+  margin-bottom: 8px;
+}
+
+.spell-prep-group h6 {
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+}
+
+.spell-prep-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 0.85rem;
+}
+
+.spell-prep-item label {
+  cursor: pointer;
+  flex: 1;
+}
+
+/* ─── Party Inventory ─── */
+
+.party-inv-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-light);
+  font-size: 0.85rem;
+}
+
+.party-inv-item:last-child { border-bottom: none; }
+
+.party-inv-item .item-info { flex: 1; }
+.party-inv-item .item-name { font-weight: 600; }
+.party-inv-item .item-notes { font-size: 0.75rem; color: var(--ink-muted); font-style: italic; }
+
+/* ─── Treasury Display ─── */
+
+.treasury-display {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--parchment);
+  border: 1px solid var(--border);
+}
+
+.treasury-coin {
+  text-align: center;
+  min-width: 60px;
+}
+
+.treasury-coin .coin-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.treasury-coin .coin-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  letter-spacing: 0.05em;
+}
+
+.coin-gp .coin-value { color: #d4a017; }
+.coin-sp .coin-value { color: #888; }
+.coin-cp .coin-value { color: #8b4513; }
+.coin-pp .coin-value { color: #b0a0d0; }
+.coin-ep .coin-value { color: #a0b0c0; }
+
+/* ─── Faction Reputation Bars ─── */
+
+.rep-bar-container {
+  margin-bottom: 12px;
+}
+
+.rep-bar-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  margin-bottom: 2px;
+}
+
+.rep-bar-track {
+  height: 12px;
+  background: var(--parchment-dark);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+  cursor: help;
+}
+
+.rep-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+
+.rep-bar-fill.rep-hostile    { background: #cc0000; }
+.rep-bar-fill.rep-unfriendly { background: #cc5500; }
+.rep-bar-fill.rep-neutral    { background: var(--gold); }
+.rep-bar-fill.rep-friendly   { background: #2e8b57; }
+.rep-bar-fill.rep-allied     { background: #1a6bb0; }
+
+.rep-tier-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* ─── Encounter Difficulty Calculator ─── */
+
+.diff-calc-section {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--parchment);
+  margin-bottom: 16px;
+}
+
+.diff-meter {
+  height: 16px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #28a745 0%, #28a745 25%, #ffc107 25%, #ffc107 50%, #dc3545 50%, #dc3545 75%, #8b0000 75%, #8b0000 100%);
+  position: relative;
+  margin: 8px 0;
+  overflow: hidden;
+}
+
+.diff-meter-threshold {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border-right: 2px solid rgba(0,0,0,0.3);
+  z-index: 1;
+}
+
+.diff-marker {
+  position: absolute;
+  top: -4px;
+  width: 4px;
+  height: 24px;
+  background: var(--ink);
+  border-radius: 2px;
+  z-index: 2;
+  transition: left 0.3s ease;
+}
+
+.diff-badge-easy    { background: #28a745; color: #fff; padding: 2px 10px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
+.diff-badge-medium  { background: #ffc107; color: #333; padding: 2px 10px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
+.diff-badge-hard    { background: #dc3545; color: #fff; padding: 2px 10px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
+.diff-badge-deadly  { background: #8b0000; color: #fff; padding: 2px 10px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; }
+
+/* ─── Session Planner ─── */
+
+.session-plan-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  margin-bottom: 8px;
+  background: var(--parchment);
+}
+
+.session-plan-card .plan-title {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.session-plan-card .plan-meta {
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+}
+
+.status-badge-planned     { background: var(--parchment-dark); color: var(--ink-muted); font-size: 0.7rem; padding: 2px 8px; border-radius: 8px; }
+.status-badge-ready       { background: #d4edda; color: #155724; font-size: 0.7rem; padding: 2px 8px; border-radius: 8px; }
+.status-badge-in-progress { background: #fff3cd; color: #856404; font-size: 0.7rem; padding: 2px 8px; border-radius: 8px; }
+.status-badge-completed   { background: #cce5ff; color: #004085; font-size: 0.7rem; padding: 2px 8px; border-radius: 8px; }
+
+[data-theme="dark"] .status-badge-planned     { background: #333; color: #aaa; }
+[data-theme="dark"] .status-badge-ready       { background: #1a3d1a; color: #7ddf7d; }
+[data-theme="dark"] .status-badge-in-progress { background: #3d2e00; color: #ffc107; }
+[data-theme="dark"] .status-badge-completed   { background: #001a3d; color: #6db3ff; }
+
+/* ─── Treasure Generator ─── */
+
+.treasure-result {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--parchment);
+  margin-top: 12px;
+}
+
+.treasure-result .treasure-total {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--gold);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.treasure-line {
+  font-size: 0.85rem;
+  padding: 3px 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.treasure-line:last-child { border-bottom: none; }
+
+/* ─── Campaign Dashboard ─── */
+
+.dash-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--parchment);
+  padding: 16px;
+  height: 100%;
+}
+
+.dash-card h6 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 6px;
+}
+
+.dash-card .dash-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.dash-card .dash-label {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.dash-card .dash-list-item {
+  font-size: 0.82rem;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  justify-content: space-between;
+}
+
+.dash-card .dash-list-item:last-child { border-bottom: none; }
+
+.dash-char-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  margin-bottom: 6px;
+}
+
+.dash-char-card .char-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.dash-char-card .char-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-char-card .char-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.dash-char-card .char-detail {
+  font-size: 0.7rem;
+  color: var(--ink-muted);
+}
+
+.dash-hp-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--parchment-dark);
+  margin-top: 2px;
+}
+
+.dash-hp-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #28a745, #2e8b57);
+  transition: width 0.3s ease;
+}
+
+.dash-hp-bar-fill.low-hp { background: linear-gradient(90deg, #cc0000, #cc5500); }
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ─── Quick Stat Card ─── */
+
+.quick-stat-card {
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+  background: var(--parchment-light);
+  text-align: center;
+}
+
+.quick-stat-card .qs-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.quick-stat-card .qs-class {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.quick-stat-card .qs-hp {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* ─── Coin Split Button ─── */
+
+.btn-coin-split {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-coin-split:hover {
+  background: var(--gold);
+  color: #fff;
+}
+
+/* ─── Die roll mini list ─── */
+
+.dice-roll-mini {
+  font-size: 0.8rem;
+  padding: 3px 0;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.dice-roll-mini:last-child { border-bottom: none; }
+.dice-roll-mini .roll-expr { font-family: monospace; }
+.dice-roll-mini .roll-total { font-weight: 700; }

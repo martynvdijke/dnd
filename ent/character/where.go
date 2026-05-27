@@ -239,6 +239,11 @@ func DeathSavesFailures(v int) predicate.Character {
 	return predicate.Character(sql.FieldEQ(FieldDeathSavesFailures, v))
 }
 
+// ExhaustionLevel applies equality check predicate on the "exhaustion_level" field. It's identical to ExhaustionLevelEQ.
+func ExhaustionLevel(v int) predicate.Character {
+	return predicate.Character(sql.FieldEQ(FieldExhaustionLevel, v))
+}
+
 // ConcentratingOn applies equality check predicate on the "concentrating_on" field. It's identical to ConcentratingOnEQ.
 func ConcentratingOn(v string) predicate.Character {
 	return predicate.Character(sql.FieldEQ(FieldConcentratingOn, v))
@@ -2092,6 +2097,46 @@ func DeathSavesFailuresLT(v int) predicate.Character {
 // DeathSavesFailuresLTE applies the LTE predicate on the "death_saves_failures" field.
 func DeathSavesFailuresLTE(v int) predicate.Character {
 	return predicate.Character(sql.FieldLTE(FieldDeathSavesFailures, v))
+}
+
+// ExhaustionLevelEQ applies the EQ predicate on the "exhaustion_level" field.
+func ExhaustionLevelEQ(v int) predicate.Character {
+	return predicate.Character(sql.FieldEQ(FieldExhaustionLevel, v))
+}
+
+// ExhaustionLevelNEQ applies the NEQ predicate on the "exhaustion_level" field.
+func ExhaustionLevelNEQ(v int) predicate.Character {
+	return predicate.Character(sql.FieldNEQ(FieldExhaustionLevel, v))
+}
+
+// ExhaustionLevelIn applies the In predicate on the "exhaustion_level" field.
+func ExhaustionLevelIn(vs ...int) predicate.Character {
+	return predicate.Character(sql.FieldIn(FieldExhaustionLevel, vs...))
+}
+
+// ExhaustionLevelNotIn applies the NotIn predicate on the "exhaustion_level" field.
+func ExhaustionLevelNotIn(vs ...int) predicate.Character {
+	return predicate.Character(sql.FieldNotIn(FieldExhaustionLevel, vs...))
+}
+
+// ExhaustionLevelGT applies the GT predicate on the "exhaustion_level" field.
+func ExhaustionLevelGT(v int) predicate.Character {
+	return predicate.Character(sql.FieldGT(FieldExhaustionLevel, v))
+}
+
+// ExhaustionLevelGTE applies the GTE predicate on the "exhaustion_level" field.
+func ExhaustionLevelGTE(v int) predicate.Character {
+	return predicate.Character(sql.FieldGTE(FieldExhaustionLevel, v))
+}
+
+// ExhaustionLevelLT applies the LT predicate on the "exhaustion_level" field.
+func ExhaustionLevelLT(v int) predicate.Character {
+	return predicate.Character(sql.FieldLT(FieldExhaustionLevel, v))
+}
+
+// ExhaustionLevelLTE applies the LTE predicate on the "exhaustion_level" field.
+func ExhaustionLevelLTE(v int) predicate.Character {
+	return predicate.Character(sql.FieldLTE(FieldExhaustionLevel, v))
 }
 
 // ConcentratingOnEQ applies the EQ predicate on the "concentrating_on" field.

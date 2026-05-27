@@ -45,6 +45,8 @@ type InventoryItem struct {
 	IsMagical bool `json:"is_magical,omitempty"`
 	// Attunement holds the value of the "attunement" field.
 	Attunement bool `json:"attunement,omitempty"`
+	// IsIdentified holds the value of the "is_identified" field.
+	IsIdentified bool `json:"is_identified,omitempty"`
 	// Notes holds the value of the "notes" field.
 	Notes string `json:"notes,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -78,7 +80,7 @@ func (*InventoryItem) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case inventoryitem.FieldIsEquipped, inventoryitem.FieldIsMagical, inventoryitem.FieldAttunement:
+		case inventoryitem.FieldIsEquipped, inventoryitem.FieldIsMagical, inventoryitem.FieldAttunement, inventoryitem.FieldIsIdentified:
 			values[i] = new(sql.NullBool)
 		case inventoryitem.FieldWeight:
 			values[i] = new(sql.NullFloat64)
@@ -191,6 +193,12 @@ func (_m *InventoryItem) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Attunement = value.Bool
 			}
+		case inventoryitem.FieldIsIdentified:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_identified", values[i])
+			} else if value.Valid {
+				_m.IsIdentified = value.Bool
+			}
 		case inventoryitem.FieldNotes:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field notes", values[i])
@@ -279,6 +287,9 @@ func (_m *InventoryItem) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("attunement=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Attunement))
+	builder.WriteString(", ")
+	builder.WriteString("is_identified=")
+	builder.WriteString(fmt.Sprintf("%v", _m.IsIdentified))
 	builder.WriteString(", ")
 	builder.WriteString("notes=")
 	builder.WriteString(_m.Notes)

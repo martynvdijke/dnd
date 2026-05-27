@@ -55,9 +55,11 @@ import (
 	"villum/ent/levelupplan"
 	"villum/ent/location"
 	"villum/ent/npc"
+	"villum/ent/partyitem"
 	"villum/ent/quest"
 	"villum/ent/restlog"
 	"villum/ent/session"
+	"villum/ent/sessionplan"
 	"villum/ent/sharelink"
 	"villum/ent/shop"
 	"villum/ent/shopitem"
@@ -165,12 +167,16 @@ type Client struct {
 	Location *LocationClient
 	// NPC is the client for interacting with the NPC builders.
 	NPC *NPCClient
+	// PartyItem is the client for interacting with the PartyItem builders.
+	PartyItem *PartyItemClient
 	// Quest is the client for interacting with the Quest builders.
 	Quest *QuestClient
 	// RestLog is the client for interacting with the RestLog builders.
 	RestLog *RestLogClient
 	// Session is the client for interacting with the Session builders.
 	Session *SessionClient
+	// SessionPlan is the client for interacting with the SessionPlan builders.
+	SessionPlan *SessionPlanClient
 	// ShareLink is the client for interacting with the ShareLink builders.
 	ShareLink *ShareLinkClient
 	// Shop is the client for interacting with the Shop builders.
@@ -240,9 +246,11 @@ func (c *Client) init() {
 	c.LevelUpPlan = NewLevelUpPlanClient(c.config)
 	c.Location = NewLocationClient(c.config)
 	c.NPC = NewNPCClient(c.config)
+	c.PartyItem = NewPartyItemClient(c.config)
 	c.Quest = NewQuestClient(c.config)
 	c.RestLog = NewRestLogClient(c.config)
 	c.Session = NewSessionClient(c.config)
+	c.SessionPlan = NewSessionPlanClient(c.config)
 	c.ShareLink = NewShareLinkClient(c.config)
 	c.Shop = NewShopClient(c.config)
 	c.ShopItem = NewShopItemClient(c.config)
@@ -386,9 +394,11 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		LevelUpPlan:           NewLevelUpPlanClient(cfg),
 		Location:              NewLocationClient(cfg),
 		NPC:                   NewNPCClient(cfg),
+		PartyItem:             NewPartyItemClient(cfg),
 		Quest:                 NewQuestClient(cfg),
 		RestLog:               NewRestLogClient(cfg),
 		Session:               NewSessionClient(cfg),
+		SessionPlan:           NewSessionPlanClient(cfg),
 		ShareLink:             NewShareLinkClient(cfg),
 		Shop:                  NewShopClient(cfg),
 		ShopItem:              NewShopItemClient(cfg),
@@ -459,9 +469,11 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		LevelUpPlan:           NewLevelUpPlanClient(cfg),
 		Location:              NewLocationClient(cfg),
 		NPC:                   NewNPCClient(cfg),
+		PartyItem:             NewPartyItemClient(cfg),
 		Quest:                 NewQuestClient(cfg),
 		RestLog:               NewRestLogClient(cfg),
 		Session:               NewSessionClient(cfg),
+		SessionPlan:           NewSessionPlanClient(cfg),
 		ShareLink:             NewShareLinkClient(cfg),
 		Shop:                  NewShopClient(cfg),
 		ShopItem:              NewShopItemClient(cfg),
@@ -508,9 +520,9 @@ func (c *Client) Use(hooks ...Hook) {
 		c.CompendiumFeat, c.CompendiumRace, c.CompendiumSpell, c.CraftingRecipe,
 		c.DiceRoll, c.DowntimeActivity, c.EmailSetting, c.EncounterMonster,
 		c.EncounterTemplate, c.Faction, c.FactionReputation, c.InventoryItem,
-		c.JournalEntry, c.LevelUpPlan, c.Location, c.NPC, c.Quest, c.RestLog,
-		c.Session, c.ShareLink, c.Shop, c.ShopItem, c.ShopTransaction, c.Spell,
-		c.Upload, c.User,
+		c.JournalEntry, c.LevelUpPlan, c.Location, c.NPC, c.PartyItem, c.Quest,
+		c.RestLog, c.Session, c.SessionPlan, c.ShareLink, c.Shop, c.ShopItem,
+		c.ShopTransaction, c.Spell, c.Upload, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -530,9 +542,9 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.CompendiumFeat, c.CompendiumRace, c.CompendiumSpell, c.CraftingRecipe,
 		c.DiceRoll, c.DowntimeActivity, c.EmailSetting, c.EncounterMonster,
 		c.EncounterTemplate, c.Faction, c.FactionReputation, c.InventoryItem,
-		c.JournalEntry, c.LevelUpPlan, c.Location, c.NPC, c.Quest, c.RestLog,
-		c.Session, c.ShareLink, c.Shop, c.ShopItem, c.ShopTransaction, c.Spell,
-		c.Upload, c.User,
+		c.JournalEntry, c.LevelUpPlan, c.Location, c.NPC, c.PartyItem, c.Quest,
+		c.RestLog, c.Session, c.SessionPlan, c.ShareLink, c.Shop, c.ShopItem,
+		c.ShopTransaction, c.Spell, c.Upload, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -629,12 +641,16 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Location.mutate(ctx, m)
 	case *NPCMutation:
 		return c.NPC.mutate(ctx, m)
+	case *PartyItemMutation:
+		return c.PartyItem.mutate(ctx, m)
 	case *QuestMutation:
 		return c.Quest.mutate(ctx, m)
 	case *RestLogMutation:
 		return c.RestLog.mutate(ctx, m)
 	case *SessionMutation:
 		return c.Session.mutate(ctx, m)
+	case *SessionPlanMutation:
+		return c.SessionPlan.mutate(ctx, m)
 	case *ShareLinkMutation:
 		return c.ShareLink.mutate(ctx, m)
 	case *ShopMutation:
@@ -1080,6 +1096,38 @@ func (c *CampaignClient) QueryCombatLogEntries(_m *Campaign) *CombatLogEntryQuer
 			sqlgraph.From(campaign.Table, campaign.FieldID, id),
 			sqlgraph.To(combatlogentry.Table, combatlogentry.FieldID),
 			sqlgraph.Edge(sqlgraph.O2M, false, campaign.CombatLogEntriesTable, campaign.CombatLogEntriesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryPartyItems queries the party_items edge of a Campaign.
+func (c *CampaignClient) QueryPartyItems(_m *Campaign) *PartyItemQuery {
+	query := (&PartyItemClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(campaign.Table, campaign.FieldID, id),
+			sqlgraph.To(partyitem.Table, partyitem.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, campaign.PartyItemsTable, campaign.PartyItemsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QuerySessionPlans queries the session_plans edge of a Campaign.
+func (c *CampaignClient) QuerySessionPlans(_m *Campaign) *SessionPlanQuery {
+	query := (&SessionPlanClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(campaign.Table, campaign.FieldID, id),
+			sqlgraph.To(sessionplan.Table, sessionplan.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, campaign.SessionPlansTable, campaign.SessionPlansColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -7914,6 +7962,155 @@ func (c *NPCClient) mutate(ctx context.Context, m *NPCMutation) (Value, error) {
 	}
 }
 
+// PartyItemClient is a client for the PartyItem schema.
+type PartyItemClient struct {
+	config
+}
+
+// NewPartyItemClient returns a client for the PartyItem from the given config.
+func NewPartyItemClient(c config) *PartyItemClient {
+	return &PartyItemClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `partyitem.Hooks(f(g(h())))`.
+func (c *PartyItemClient) Use(hooks ...Hook) {
+	c.hooks.PartyItem = append(c.hooks.PartyItem, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `partyitem.Intercept(f(g(h())))`.
+func (c *PartyItemClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PartyItem = append(c.inters.PartyItem, interceptors...)
+}
+
+// Create returns a builder for creating a PartyItem entity.
+func (c *PartyItemClient) Create() *PartyItemCreate {
+	mutation := newPartyItemMutation(c.config, OpCreate)
+	return &PartyItemCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PartyItem entities.
+func (c *PartyItemClient) CreateBulk(builders ...*PartyItemCreate) *PartyItemCreateBulk {
+	return &PartyItemCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PartyItemClient) MapCreateBulk(slice any, setFunc func(*PartyItemCreate, int)) *PartyItemCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PartyItemCreateBulk{err: fmt.Errorf("calling to PartyItemClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PartyItemCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PartyItemCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PartyItem.
+func (c *PartyItemClient) Update() *PartyItemUpdate {
+	mutation := newPartyItemMutation(c.config, OpUpdate)
+	return &PartyItemUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PartyItemClient) UpdateOne(_m *PartyItem) *PartyItemUpdateOne {
+	mutation := newPartyItemMutation(c.config, OpUpdateOne, withPartyItem(_m))
+	return &PartyItemUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PartyItemClient) UpdateOneID(id int64) *PartyItemUpdateOne {
+	mutation := newPartyItemMutation(c.config, OpUpdateOne, withPartyItemID(id))
+	return &PartyItemUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PartyItem.
+func (c *PartyItemClient) Delete() *PartyItemDelete {
+	mutation := newPartyItemMutation(c.config, OpDelete)
+	return &PartyItemDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PartyItemClient) DeleteOne(_m *PartyItem) *PartyItemDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PartyItemClient) DeleteOneID(id int64) *PartyItemDeleteOne {
+	builder := c.Delete().Where(partyitem.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PartyItemDeleteOne{builder}
+}
+
+// Query returns a query builder for PartyItem.
+func (c *PartyItemClient) Query() *PartyItemQuery {
+	return &PartyItemQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePartyItem},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PartyItem entity by its id.
+func (c *PartyItemClient) Get(ctx context.Context, id int64) (*PartyItem, error) {
+	return c.Query().Where(partyitem.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PartyItemClient) GetX(ctx context.Context, id int64) *PartyItem {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCampaign queries the campaign edge of a PartyItem.
+func (c *PartyItemClient) QueryCampaign(_m *PartyItem) *CampaignQuery {
+	query := (&CampaignClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(partyitem.Table, partyitem.FieldID, id),
+			sqlgraph.To(campaign.Table, campaign.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, partyitem.CampaignTable, partyitem.CampaignColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *PartyItemClient) Hooks() []Hook {
+	return c.hooks.PartyItem
+}
+
+// Interceptors returns the client interceptors.
+func (c *PartyItemClient) Interceptors() []Interceptor {
+	return c.inters.PartyItem
+}
+
+func (c *PartyItemClient) mutate(ctx context.Context, m *PartyItemMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PartyItemCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PartyItemUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PartyItemUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PartyItemDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PartyItem mutation op: %q", m.Op())
+	}
+}
+
 // QuestClient is a client for the Quest schema.
 type QuestClient struct {
 	config
@@ -8358,6 +8555,155 @@ func (c *SessionClient) mutate(ctx context.Context, m *SessionMutation) (Value, 
 		return (&SessionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Session mutation op: %q", m.Op())
+	}
+}
+
+// SessionPlanClient is a client for the SessionPlan schema.
+type SessionPlanClient struct {
+	config
+}
+
+// NewSessionPlanClient returns a client for the SessionPlan from the given config.
+func NewSessionPlanClient(c config) *SessionPlanClient {
+	return &SessionPlanClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `sessionplan.Hooks(f(g(h())))`.
+func (c *SessionPlanClient) Use(hooks ...Hook) {
+	c.hooks.SessionPlan = append(c.hooks.SessionPlan, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `sessionplan.Intercept(f(g(h())))`.
+func (c *SessionPlanClient) Intercept(interceptors ...Interceptor) {
+	c.inters.SessionPlan = append(c.inters.SessionPlan, interceptors...)
+}
+
+// Create returns a builder for creating a SessionPlan entity.
+func (c *SessionPlanClient) Create() *SessionPlanCreate {
+	mutation := newSessionPlanMutation(c.config, OpCreate)
+	return &SessionPlanCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of SessionPlan entities.
+func (c *SessionPlanClient) CreateBulk(builders ...*SessionPlanCreate) *SessionPlanCreateBulk {
+	return &SessionPlanCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SessionPlanClient) MapCreateBulk(slice any, setFunc func(*SessionPlanCreate, int)) *SessionPlanCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SessionPlanCreateBulk{err: fmt.Errorf("calling to SessionPlanClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SessionPlanCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &SessionPlanCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for SessionPlan.
+func (c *SessionPlanClient) Update() *SessionPlanUpdate {
+	mutation := newSessionPlanMutation(c.config, OpUpdate)
+	return &SessionPlanUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SessionPlanClient) UpdateOne(_m *SessionPlan) *SessionPlanUpdateOne {
+	mutation := newSessionPlanMutation(c.config, OpUpdateOne, withSessionPlan(_m))
+	return &SessionPlanUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SessionPlanClient) UpdateOneID(id int64) *SessionPlanUpdateOne {
+	mutation := newSessionPlanMutation(c.config, OpUpdateOne, withSessionPlanID(id))
+	return &SessionPlanUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for SessionPlan.
+func (c *SessionPlanClient) Delete() *SessionPlanDelete {
+	mutation := newSessionPlanMutation(c.config, OpDelete)
+	return &SessionPlanDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SessionPlanClient) DeleteOne(_m *SessionPlan) *SessionPlanDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SessionPlanClient) DeleteOneID(id int64) *SessionPlanDeleteOne {
+	builder := c.Delete().Where(sessionplan.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SessionPlanDeleteOne{builder}
+}
+
+// Query returns a query builder for SessionPlan.
+func (c *SessionPlanClient) Query() *SessionPlanQuery {
+	return &SessionPlanQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSessionPlan},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a SessionPlan entity by its id.
+func (c *SessionPlanClient) Get(ctx context.Context, id int64) (*SessionPlan, error) {
+	return c.Query().Where(sessionplan.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SessionPlanClient) GetX(ctx context.Context, id int64) *SessionPlan {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCampaign queries the campaign edge of a SessionPlan.
+func (c *SessionPlanClient) QueryCampaign(_m *SessionPlan) *CampaignQuery {
+	query := (&CampaignClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(sessionplan.Table, sessionplan.FieldID, id),
+			sqlgraph.To(campaign.Table, campaign.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, sessionplan.CampaignTable, sessionplan.CampaignColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *SessionPlanClient) Hooks() []Hook {
+	return c.hooks.SessionPlan
+}
+
+// Interceptors returns the client interceptors.
+func (c *SessionPlanClient) Interceptors() []Interceptor {
+	return c.inters.SessionPlan
+}
+
+func (c *SessionPlanClient) mutate(ctx context.Context, m *SessionPlanMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SessionPlanCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SessionPlanUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SessionPlanUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SessionPlanDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown SessionPlan mutation op: %q", m.Op())
 	}
 }
 
@@ -9608,9 +9954,9 @@ type (
 		CompendiumBackground, CompendiumClass, CompendiumEquipment, CompendiumFeat,
 		CompendiumRace, CompendiumSpell, CraftingRecipe, DiceRoll, DowntimeActivity,
 		EmailSetting, EncounterMonster, EncounterTemplate, Faction, FactionReputation,
-		InventoryItem, JournalEntry, LevelUpPlan, Location, NPC, Quest, RestLog,
-		Session, ShareLink, Shop, ShopItem, ShopTransaction, Spell, Upload,
-		User []ent.Hook
+		InventoryItem, JournalEntry, LevelUpPlan, Location, NPC, PartyItem, Quest,
+		RestLog, Session, SessionPlan, ShareLink, Shop, ShopItem, ShopTransaction,
+		Spell, Upload, User []ent.Hook
 	}
 	inters struct {
 		BackupSetting, Campaign, CampaignCalendarEvent, CampaignMap, CampaignMapPin,
@@ -9622,8 +9968,8 @@ type (
 		CompendiumBackground, CompendiumClass, CompendiumEquipment, CompendiumFeat,
 		CompendiumRace, CompendiumSpell, CraftingRecipe, DiceRoll, DowntimeActivity,
 		EmailSetting, EncounterMonster, EncounterTemplate, Faction, FactionReputation,
-		InventoryItem, JournalEntry, LevelUpPlan, Location, NPC, Quest, RestLog,
-		Session, ShareLink, Shop, ShopItem, ShopTransaction, Spell, Upload,
-		User []ent.Interceptor
+		InventoryItem, JournalEntry, LevelUpPlan, Location, NPC, PartyItem, Quest,
+		RestLog, Session, SessionPlan, ShareLink, Shop, ShopItem, ShopTransaction,
+		Spell, Upload, User []ent.Interceptor
 	}
 )

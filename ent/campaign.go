@@ -61,9 +61,13 @@ type CampaignEdges struct {
 	Factions []*Faction `json:"factions,omitempty"`
 	// CombatLogEntries holds the value of the combat_log_entries edge.
 	CombatLogEntries []*CombatLogEntry `json:"combat_log_entries,omitempty"`
+	// PartyItems holds the value of the party_items edge.
+	PartyItems []*PartyItem `json:"party_items,omitempty"`
+	// SessionPlans holds the value of the session_plans edge.
+	SessionPlans []*SessionPlan `json:"session_plans,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [12]bool
+	loadedTypes [14]bool
 }
 
 // UserOrErr returns the User value or an error if the edge
@@ -174,6 +178,24 @@ func (e CampaignEdges) CombatLogEntriesOrErr() ([]*CombatLogEntry, error) {
 		return e.CombatLogEntries, nil
 	}
 	return nil, &NotLoadedError{edge: "combat_log_entries"}
+}
+
+// PartyItemsOrErr returns the PartyItems value or an error if the edge
+// was not loaded in eager-loading.
+func (e CampaignEdges) PartyItemsOrErr() ([]*PartyItem, error) {
+	if e.loadedTypes[12] {
+		return e.PartyItems, nil
+	}
+	return nil, &NotLoadedError{edge: "party_items"}
+}
+
+// SessionPlansOrErr returns the SessionPlans value or an error if the edge
+// was not loaded in eager-loading.
+func (e CampaignEdges) SessionPlansOrErr() ([]*SessionPlan, error) {
+	if e.loadedTypes[13] {
+		return e.SessionPlans, nil
+	}
+	return nil, &NotLoadedError{edge: "session_plans"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -313,6 +335,16 @@ func (_m *Campaign) QueryFactions() *FactionQuery {
 // QueryCombatLogEntries queries the "combat_log_entries" edge of the Campaign entity.
 func (_m *Campaign) QueryCombatLogEntries() *CombatLogEntryQuery {
 	return NewCampaignClient(_m.config).QueryCombatLogEntries(_m)
+}
+
+// QueryPartyItems queries the "party_items" edge of the Campaign entity.
+func (_m *Campaign) QueryPartyItems() *PartyItemQuery {
+	return NewCampaignClient(_m.config).QueryPartyItems(_m)
+}
+
+// QuerySessionPlans queries the "session_plans" edge of the Campaign entity.
+func (_m *Campaign) QuerySessionPlans() *SessionPlanQuery {
+	return NewCampaignClient(_m.config).QuerySessionPlans(_m)
 }
 
 // Update returns a builder for updating this Campaign.

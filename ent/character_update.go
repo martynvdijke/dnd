@@ -716,6 +716,27 @@ func (_u *CharacterUpdate) AddDeathSavesFailures(v int) *CharacterUpdate {
 	return _u
 }
 
+// SetExhaustionLevel sets the "exhaustion_level" field.
+func (_u *CharacterUpdate) SetExhaustionLevel(v int) *CharacterUpdate {
+	_u.mutation.ResetExhaustionLevel()
+	_u.mutation.SetExhaustionLevel(v)
+	return _u
+}
+
+// SetNillableExhaustionLevel sets the "exhaustion_level" field if the given value is not nil.
+func (_u *CharacterUpdate) SetNillableExhaustionLevel(v *int) *CharacterUpdate {
+	if v != nil {
+		_u.SetExhaustionLevel(*v)
+	}
+	return _u
+}
+
+// AddExhaustionLevel adds value to the "exhaustion_level" field.
+func (_u *CharacterUpdate) AddExhaustionLevel(v int) *CharacterUpdate {
+	_u.mutation.AddExhaustionLevel(v)
+	return _u
+}
+
 // SetConcentratingOn sets the "concentrating_on" field.
 func (_u *CharacterUpdate) SetConcentratingOn(v string) *CharacterUpdate {
 	_u.mutation.SetConcentratingOn(v)
@@ -1846,6 +1867,12 @@ func (_u *CharacterUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.AddedDeathSavesFailures(); ok {
 		_spec.AddField(character.FieldDeathSavesFailures, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.ExhaustionLevel(); ok {
+		_spec.SetField(character.FieldExhaustionLevel, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedExhaustionLevel(); ok {
+		_spec.AddField(character.FieldExhaustionLevel, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.ConcentratingOn(); ok {
 		_spec.SetField(character.FieldConcentratingOn, field.TypeString, value)
@@ -3614,6 +3641,27 @@ func (_u *CharacterUpdateOne) AddDeathSavesFailures(v int) *CharacterUpdateOne {
 	return _u
 }
 
+// SetExhaustionLevel sets the "exhaustion_level" field.
+func (_u *CharacterUpdateOne) SetExhaustionLevel(v int) *CharacterUpdateOne {
+	_u.mutation.ResetExhaustionLevel()
+	_u.mutation.SetExhaustionLevel(v)
+	return _u
+}
+
+// SetNillableExhaustionLevel sets the "exhaustion_level" field if the given value is not nil.
+func (_u *CharacterUpdateOne) SetNillableExhaustionLevel(v *int) *CharacterUpdateOne {
+	if v != nil {
+		_u.SetExhaustionLevel(*v)
+	}
+	return _u
+}
+
+// AddExhaustionLevel adds value to the "exhaustion_level" field.
+func (_u *CharacterUpdateOne) AddExhaustionLevel(v int) *CharacterUpdateOne {
+	_u.mutation.AddExhaustionLevel(v)
+	return _u
+}
+
 // SetConcentratingOn sets the "concentrating_on" field.
 func (_u *CharacterUpdateOne) SetConcentratingOn(v string) *CharacterUpdateOne {
 	_u.mutation.SetConcentratingOn(v)
@@ -4774,6 +4822,12 @@ func (_u *CharacterUpdateOne) sqlSave(ctx context.Context) (_node *Character, er
 	}
 	if value, ok := _u.mutation.AddedDeathSavesFailures(); ok {
 		_spec.AddField(character.FieldDeathSavesFailures, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.ExhaustionLevel(); ok {
+		_spec.SetField(character.FieldExhaustionLevel, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedExhaustionLevel(); ok {
+		_spec.AddField(character.FieldExhaustionLevel, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.ConcentratingOn(); ok {
 		_spec.SetField(character.FieldConcentratingOn, field.TypeString, value)

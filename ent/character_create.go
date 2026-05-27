@@ -555,6 +555,20 @@ func (_c *CharacterCreate) SetNillableDeathSavesFailures(v *int) *CharacterCreat
 	return _c
 }
 
+// SetExhaustionLevel sets the "exhaustion_level" field.
+func (_c *CharacterCreate) SetExhaustionLevel(v int) *CharacterCreate {
+	_c.mutation.SetExhaustionLevel(v)
+	return _c
+}
+
+// SetNillableExhaustionLevel sets the "exhaustion_level" field if the given value is not nil.
+func (_c *CharacterCreate) SetNillableExhaustionLevel(v *int) *CharacterCreate {
+	if v != nil {
+		_c.SetExhaustionLevel(*v)
+	}
+	return _c
+}
+
 // SetConcentratingOn sets the "concentrating_on" field.
 func (_c *CharacterCreate) SetConcentratingOn(v string) *CharacterCreate {
 	_c.mutation.SetConcentratingOn(v)
@@ -1146,6 +1160,10 @@ func (_c *CharacterCreate) defaults() {
 		v := character.DefaultDeathSavesFailures
 		_c.mutation.SetDeathSavesFailures(v)
 	}
+	if _, ok := _c.mutation.ExhaustionLevel(); !ok {
+		v := character.DefaultExhaustionLevel
+		_c.mutation.SetExhaustionLevel(v)
+	}
 	if _, ok := _c.mutation.ConcentratingOn(); !ok {
 		v := character.DefaultConcentratingOn
 		_c.mutation.SetConcentratingOn(v)
@@ -1272,6 +1290,9 @@ func (_c *CharacterCreate) check() error {
 	}
 	if _, ok := _c.mutation.DeathSavesFailures(); !ok {
 		return &ValidationError{Name: "death_saves_failures", err: errors.New(`ent: missing required field "Character.death_saves_failures"`)}
+	}
+	if _, ok := _c.mutation.ExhaustionLevel(); !ok {
+		return &ValidationError{Name: "exhaustion_level", err: errors.New(`ent: missing required field "Character.exhaustion_level"`)}
 	}
 	if _, ok := _c.mutation.ConcentratingOn(); !ok {
 		return &ValidationError{Name: "concentrating_on", err: errors.New(`ent: missing required field "Character.concentrating_on"`)}
@@ -1461,6 +1482,10 @@ func (_c *CharacterCreate) createSpec() (*Character, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.DeathSavesFailures(); ok {
 		_spec.SetField(character.FieldDeathSavesFailures, field.TypeInt, value)
 		_node.DeathSavesFailures = value
+	}
+	if value, ok := _c.mutation.ExhaustionLevel(); ok {
+		_spec.SetField(character.FieldExhaustionLevel, field.TypeInt, value)
+		_node.ExhaustionLevel = value
 	}
 	if value, ok := _c.mutation.ConcentratingOn(); ok {
 		_spec.SetField(character.FieldConcentratingOn, field.TypeString, value)
@@ -2485,6 +2510,24 @@ func (u *CharacterUpsert) AddDeathSavesFailures(v int) *CharacterUpsert {
 	return u
 }
 
+// SetExhaustionLevel sets the "exhaustion_level" field.
+func (u *CharacterUpsert) SetExhaustionLevel(v int) *CharacterUpsert {
+	u.Set(character.FieldExhaustionLevel, v)
+	return u
+}
+
+// UpdateExhaustionLevel sets the "exhaustion_level" field to the value that was provided on create.
+func (u *CharacterUpsert) UpdateExhaustionLevel() *CharacterUpsert {
+	u.SetExcluded(character.FieldExhaustionLevel)
+	return u
+}
+
+// AddExhaustionLevel adds v to the "exhaustion_level" field.
+func (u *CharacterUpsert) AddExhaustionLevel(v int) *CharacterUpsert {
+	u.Add(character.FieldExhaustionLevel, v)
+	return u
+}
+
 // SetConcentratingOn sets the "concentrating_on" field.
 func (u *CharacterUpsert) SetConcentratingOn(v string) *CharacterUpsert {
 	u.Set(character.FieldConcentratingOn, v)
@@ -3255,6 +3298,27 @@ func (u *CharacterUpsertOne) AddDeathSavesFailures(v int) *CharacterUpsertOne {
 func (u *CharacterUpsertOne) UpdateDeathSavesFailures() *CharacterUpsertOne {
 	return u.Update(func(s *CharacterUpsert) {
 		s.UpdateDeathSavesFailures()
+	})
+}
+
+// SetExhaustionLevel sets the "exhaustion_level" field.
+func (u *CharacterUpsertOne) SetExhaustionLevel(v int) *CharacterUpsertOne {
+	return u.Update(func(s *CharacterUpsert) {
+		s.SetExhaustionLevel(v)
+	})
+}
+
+// AddExhaustionLevel adds v to the "exhaustion_level" field.
+func (u *CharacterUpsertOne) AddExhaustionLevel(v int) *CharacterUpsertOne {
+	return u.Update(func(s *CharacterUpsert) {
+		s.AddExhaustionLevel(v)
+	})
+}
+
+// UpdateExhaustionLevel sets the "exhaustion_level" field to the value that was provided on create.
+func (u *CharacterUpsertOne) UpdateExhaustionLevel() *CharacterUpsertOne {
+	return u.Update(func(s *CharacterUpsert) {
+		s.UpdateExhaustionLevel()
 	})
 }
 
@@ -4204,6 +4268,27 @@ func (u *CharacterUpsertBulk) AddDeathSavesFailures(v int) *CharacterUpsertBulk 
 func (u *CharacterUpsertBulk) UpdateDeathSavesFailures() *CharacterUpsertBulk {
 	return u.Update(func(s *CharacterUpsert) {
 		s.UpdateDeathSavesFailures()
+	})
+}
+
+// SetExhaustionLevel sets the "exhaustion_level" field.
+func (u *CharacterUpsertBulk) SetExhaustionLevel(v int) *CharacterUpsertBulk {
+	return u.Update(func(s *CharacterUpsert) {
+		s.SetExhaustionLevel(v)
+	})
+}
+
+// AddExhaustionLevel adds v to the "exhaustion_level" field.
+func (u *CharacterUpsertBulk) AddExhaustionLevel(v int) *CharacterUpsertBulk {
+	return u.Update(func(s *CharacterUpsert) {
+		s.AddExhaustionLevel(v)
+	})
+}
+
+// UpdateExhaustionLevel sets the "exhaustion_level" field to the value that was provided on create.
+func (u *CharacterUpsertBulk) UpdateExhaustionLevel() *CharacterUpsertBulk {
+	return u.Update(func(s *CharacterUpsert) {
+		s.UpdateExhaustionLevel()
 	})
 }
 

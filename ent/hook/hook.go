@@ -536,6 +536,18 @@ func (f NPCFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.NPCMutation", m)
 }
 
+// The PartyItemFunc type is an adapter to allow the use of ordinary
+// function as PartyItem mutator.
+type PartyItemFunc func(context.Context, *ent.PartyItemMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PartyItemFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PartyItemMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PartyItemMutation", m)
+}
+
 // The QuestFunc type is an adapter to allow the use of ordinary
 // function as Quest mutator.
 type QuestFunc func(context.Context, *ent.QuestMutation) (ent.Value, error)
@@ -570,6 +582,18 @@ func (f SessionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, err
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SessionMutation", m)
+}
+
+// The SessionPlanFunc type is an adapter to allow the use of ordinary
+// function as SessionPlan mutator.
+type SessionPlanFunc func(context.Context, *ent.SessionPlanMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SessionPlanFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.SessionPlanMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SessionPlanMutation", m)
 }
 
 // The ShareLinkFunc type is an adapter to allow the use of ordinary

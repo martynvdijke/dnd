@@ -124,6 +124,11 @@ func Attunement(v bool) predicate.InventoryItem {
 	return predicate.InventoryItem(sql.FieldEQ(FieldAttunement, v))
 }
 
+// IsIdentified applies equality check predicate on the "is_identified" field. It's identical to IsIdentifiedEQ.
+func IsIdentified(v bool) predicate.InventoryItem {
+	return predicate.InventoryItem(sql.FieldEQ(FieldIsIdentified, v))
+}
+
 // Notes applies equality check predicate on the "notes" field. It's identical to NotesEQ.
 func Notes(v string) predicate.InventoryItem {
 	return predicate.InventoryItem(sql.FieldEQ(FieldNotes, v))
@@ -752,6 +757,16 @@ func AttunementEQ(v bool) predicate.InventoryItem {
 // AttunementNEQ applies the NEQ predicate on the "attunement" field.
 func AttunementNEQ(v bool) predicate.InventoryItem {
 	return predicate.InventoryItem(sql.FieldNEQ(FieldAttunement, v))
+}
+
+// IsIdentifiedEQ applies the EQ predicate on the "is_identified" field.
+func IsIdentifiedEQ(v bool) predicate.InventoryItem {
+	return predicate.InventoryItem(sql.FieldEQ(FieldIsIdentified, v))
+}
+
+// IsIdentifiedNEQ applies the NEQ predicate on the "is_identified" field.
+func IsIdentifiedNEQ(v bool) predicate.InventoryItem {
+	return predicate.InventoryItem(sql.FieldNEQ(FieldIsIdentified, v))
 }
 
 // NotesEQ applies the EQ predicate on the "notes" field.

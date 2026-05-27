@@ -51,6 +51,7 @@ func (Character) Fields() []ent.Field {
 		field.Int("hp_auto_calc").Default(0),
 		field.Int("death_saves_successes").Default(0),
 		field.Int("death_saves_failures").Default(0),
+		field.Int("exhaustion_level").Default(0),
 		field.String("concentrating_on").Default(""),
 		field.Int64("campaign_id").Optional(),
 		field.String("created_at").Default(""),

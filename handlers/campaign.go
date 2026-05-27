@@ -1638,6 +1638,11 @@ func DoRest(c *gin.Context) {
 			SetDeathSavesFailures(0).
 			SetConcentratingOn("").
 			Save(ctx)
+		// Reduce exhaustion by 1 on long rest
+		if char.ExhaustionLevel > 0 {
+			newExhaustion := char.ExhaustionLevel - 1
+			db.Client.Character.UpdateOneID(charID).SetExhaustionLevel(newExhaustion).Exec(ctx)
+		}
 		db.Client.CharacterSpellcasting.Update().
 			Where(characterspellcasting.CharacterID(charID)).
 			SetSlots1Used(0).

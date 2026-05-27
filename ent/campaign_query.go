@@ -18,7 +18,9 @@ import (
 	"villum/ent/combatlogentry"
 	"villum/ent/encountertemplate"
 	"villum/ent/faction"
+	"villum/ent/partyitem"
 	"villum/ent/predicate"
+	"villum/ent/sessionplan"
 	"villum/ent/shop"
 	"villum/ent/user"
 
@@ -47,6 +49,8 @@ type CampaignQuery struct {
 	withShops              *ShopQuery
 	withFactions           *FactionQuery
 	withCombatLogEntries   *CombatLogEntryQuery
+	withPartyItems         *PartyItemQuery
+	withSessionPlans       *SessionPlanQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -347,6 +351,50 @@ func (_q *CampaignQuery) QueryCombatLogEntries() *CombatLogEntryQuery {
 	return query
 }
 
+// QueryPartyItems chains the current query on the "party_items" edge.
+func (_q *CampaignQuery) QueryPartyItems() *PartyItemQuery {
+	query := (&PartyItemClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(campaign.Table, campaign.FieldID, selector),
+			sqlgraph.To(partyitem.Table, partyitem.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, campaign.PartyItemsTable, campaign.PartyItemsColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QuerySessionPlans chains the current query on the "session_plans" edge.
+func (_q *CampaignQuery) QuerySessionPlans() *SessionPlanQuery {
+	query := (&SessionPlanClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(campaign.Table, campaign.FieldID, selector),
+			sqlgraph.To(sessionplan.Table, sessionplan.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, campaign.SessionPlansTable, campaign.SessionPlansColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
 // First returns the first Campaign entity from the query.
 // Returns a *NotFoundError when no Campaign was found.
 func (_q *CampaignQuery) First(ctx context.Context) (*Campaign, error) {
@@ -551,6 +599,8 @@ func (_q *CampaignQuery) Clone() *CampaignQuery {
 		withShops:              _q.withShops.Clone(),
 		withFactions:           _q.withFactions.Clone(),
 		withCombatLogEntries:   _q.withCombatLogEntries.Clone(),
+		withPartyItems:         _q.withPartyItems.Clone(),
+		withSessionPlans:       _q.withSessionPlans.Clone(),
 		// clone intermediate query.
 		sql:  _q.sql.Clone(),
 		path: _q.path,
@@ -689,6 +739,28 @@ func (_q *CampaignQuery) WithCombatLogEntries(opts ...func(*CombatLogEntryQuery)
 	return _q
 }
 
+// WithPartyItems tells the query-builder to eager-load the nodes that are connected to
+// the "party_items" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CampaignQuery) WithPartyItems(opts ...func(*PartyItemQuery)) *CampaignQuery {
+	query := (&PartyItemClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withPartyItems = query
+	return _q
+}
+
+// WithSessionPlans tells the query-builder to eager-load the nodes that are connected to
+// the "session_plans" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CampaignQuery) WithSessionPlans(opts ...func(*SessionPlanQuery)) *CampaignQuery {
+	query := (&SessionPlanClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withSessionPlans = query
+	return _q
+}
+
 // GroupBy is used to group vertices by one or more fields/columns.
 // It is often used with aggregate functions, like: count, max, mean, min, sum.
 //
@@ -767,7 +839,7 @@ func (_q *CampaignQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cam
 	var (
 		nodes       = []*Campaign{}
 		_spec       = _q.querySpec()
-		loadedTypes = [12]bool{
+		loadedTypes = [14]bool{
 			_q.withUser != nil,
 			_q.withMembers != nil,
 			_q.withCalendarEvents != nil,
@@ -780,6 +852,8 @@ func (_q *CampaignQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cam
 			_q.withShops != nil,
 			_q.withFactions != nil,
 			_q.withCombatLogEntries != nil,
+			_q.withPartyItems != nil,
+			_q.withSessionPlans != nil,
 		}
 	)
 	_spec.ScanValues = func(columns []string) ([]any, error) {
@@ -886,6 +960,20 @@ func (_q *CampaignQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Cam
 		if err := _q.loadCombatLogEntries(ctx, query, nodes,
 			func(n *Campaign) { n.Edges.CombatLogEntries = []*CombatLogEntry{} },
 			func(n *Campaign, e *CombatLogEntry) { n.Edges.CombatLogEntries = append(n.Edges.CombatLogEntries, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withPartyItems; query != nil {
+		if err := _q.loadPartyItems(ctx, query, nodes,
+			func(n *Campaign) { n.Edges.PartyItems = []*PartyItem{} },
+			func(n *Campaign, e *PartyItem) { n.Edges.PartyItems = append(n.Edges.PartyItems, e) }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withSessionPlans; query != nil {
+		if err := _q.loadSessionPlans(ctx, query, nodes,
+			func(n *Campaign) { n.Edges.SessionPlans = []*SessionPlan{} },
+			func(n *Campaign, e *SessionPlan) { n.Edges.SessionPlans = append(n.Edges.SessionPlans, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -1236,6 +1324,66 @@ func (_q *CampaignQuery) loadCombatLogEntries(ctx context.Context, query *Combat
 	}
 	query.Where(predicate.CombatLogEntry(func(s *sql.Selector) {
 		s.Where(sql.InValues(s.C(campaign.CombatLogEntriesColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CampaignID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "campaign_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *CampaignQuery) loadPartyItems(ctx context.Context, query *PartyItemQuery, nodes []*Campaign, init func(*Campaign), assign func(*Campaign, *PartyItem)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*Campaign)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(partyitem.FieldCampaignID)
+	}
+	query.Where(predicate.PartyItem(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(campaign.PartyItemsColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CampaignID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "campaign_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
+	}
+	return nil
+}
+func (_q *CampaignQuery) loadSessionPlans(ctx context.Context, query *SessionPlanQuery, nodes []*Campaign, init func(*Campaign), assign func(*Campaign, *SessionPlan)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*Campaign)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(sessionplan.FieldCampaignID)
+	}
+	query.Where(predicate.SessionPlan(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(campaign.SessionPlansColumn), fks...))
 	}))
 	neighbors, err := query.All(ctx)
 	if err != nil {

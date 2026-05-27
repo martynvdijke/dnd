@@ -705,6 +705,52 @@ func HasCombatLogEntriesWith(preds ...predicate.CombatLogEntry) predicate.Campai
 	})
 }
 
+// HasPartyItems applies the HasEdge predicate on the "party_items" edge.
+func HasPartyItems() predicate.Campaign {
+	return predicate.Campaign(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, PartyItemsTable, PartyItemsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPartyItemsWith applies the HasEdge predicate on the "party_items" edge with a given conditions (other predicates).
+func HasPartyItemsWith(preds ...predicate.PartyItem) predicate.Campaign {
+	return predicate.Campaign(func(s *sql.Selector) {
+		step := newPartyItemsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasSessionPlans applies the HasEdge predicate on the "session_plans" edge.
+func HasSessionPlans() predicate.Campaign {
+	return predicate.Campaign(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, SessionPlansTable, SessionPlansColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasSessionPlansWith applies the HasEdge predicate on the "session_plans" edge with a given conditions (other predicates).
+func HasSessionPlansWith(preds ...predicate.SessionPlan) predicate.Campaign {
+	return predicate.Campaign(func(s *sql.Selector) {
+		step := newSessionPlansStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // And groups predicates with the AND operator between them.
 func And(predicates ...predicate.Campaign) predicate.Campaign {
 	return predicate.Campaign(sql.AndPredicates(predicates...))

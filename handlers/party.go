@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -129,4 +130,116 @@ func ListPartyUploads(c *gin.Context) {
 		uploads = append(uploads, u)
 	}
 	c.JSON(http.StatusOK, uploads)
+}
+
+// ─── Campaign Party Items (shared loot) ───
+
+func ListCampaignPartyItems(c *gin.Context) {
+	campaignID := c.Param("id")
+	rows, err := db.DB.Query("SELECT id, campaign_id, name, quantity, COALESCE(notes,''), COALESCE(created_at,'') FROM party_items WHERE campaign_id=? ORDER BY name", campaignID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	out := make([]models.PartyItem, 0)
+	for rows.Next() {
+		var p models.PartyItem
+		var campaignID sql.NullInt64
+		rows.Scan(&p.ID, &campaignID, &p.Name, &p.Quantity, &p.Notes, &p.CreatedAt)
+		if campaignID.Valid { p.CampaignID = &campaignID.Int64 }
+		out = append(out, p)
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+func CreateCampaignPartyItem(c *gin.Context) {
+	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var p models.PartyItem
+	if err := c.ShouldBindJSON(&p); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	result, err := db.DB.Exec("INSERT INTO party_items(campaign_id, name, quantity, notes) VALUES(?,?,?,?)",
+		campaignID, p.Name, p.Quantity, p.Notes)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+func DeleteCampaignPartyItem(c *gin.Context) {
+	iid, _ := strconv.ParseInt(c.Param("iid"), 10, 64)
+	db.DB.Exec("DELETE FROM party_items WHERE id=?", iid)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// ─── Session Plans ───
+
+func ListSessionPlans(c *gin.Context) {
+	campaignID := c.Param("id")
+	rows, err := db.DB.Query("SELECT id, campaign_id, title, COALESCE(session_date,''), status, COALESCE(dm_notes,''), COALESCE(planned_encounters,'[]'), COALESCE(npc_ids,'[]'), COALESCE(player_goals,'[]'), expected_duration, COALESCE(created_at,''), COALESCE(updated_at,'') FROM session_plans WHERE campaign_id=? ORDER BY session_date DESC", campaignID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	out := make([]models.SessionPlan, 0)
+	for rows.Next() {
+		var sp models.SessionPlan
+		var campaignID sql.NullInt64
+		rows.Scan(&sp.ID, &campaignID, &sp.Title, &sp.SessionDate, &sp.Status, &sp.DMNotes,
+			&sp.PlannedEncounters, &sp.NpcIDs, &sp.PlayerGoals, &sp.ExpectedDuration,
+			&sp.CreatedAt, &sp.UpdatedAt)
+		if campaignID.Valid { sp.CampaignID = &campaignID.Int64 }
+		out = append(out, sp)
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+func CreateSessionPlan(c *gin.Context) {
+	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var sp models.SessionPlan
+	if err := c.ShouldBindJSON(&sp); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	now := time.Now().Format("2006-01-02 15:04:05")
+	result, err := db.DB.Exec(`INSERT INTO session_plans(campaign_id, title, session_date, status, dm_notes, planned_encounters, npc_ids, player_goals, expected_duration, created_at, updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
+		campaignID, sp.Title, sp.SessionDate, sp.Status, sp.DMNotes,
+		sp.PlannedEncounters, sp.NpcIDs, sp.PlayerGoals, sp.ExpectedDuration,
+		now, now)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+func UpdateSessionPlan(c *gin.Context) {
+	sid, _ := strconv.ParseInt(c.Param("sid"), 10, 64)
+	var sp models.SessionPlan
+	if err := c.ShouldBindJSON(&sp); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	now := time.Now().Format("2006-01-02 15:04:05")
+	_, err := db.DB.Exec(`UPDATE session_plans SET title=?, session_date=?, status=?, dm_notes=?, planned_encounters=?, npc_ids=?, player_goals=?, expected_duration=?, updated_at=? WHERE id=?`,
+		sp.Title, sp.SessionDate, sp.Status, sp.DMNotes,
+		sp.PlannedEncounters, sp.NpcIDs, sp.PlayerGoals, sp.ExpectedDuration,
+		now, sid)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func DeleteSessionPlan(c *gin.Context) {
+	sid, _ := strconv.ParseInt(c.Param("sid"), 10, 64)
+	db.DB.Exec("DELETE FROM session_plans WHERE id=?", sid)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

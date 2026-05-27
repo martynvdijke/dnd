@@ -36,5 +36,7 @@ func (Campaign) Edges() []ent.Edge {
 		edge.To("shops", Shop.Type),
 		edge.To("factions", Faction.Type),
 		edge.To("combat_log_entries", CombatLogEntry.Type),
+		edge.To("party_items", PartyItem.Type),
+		edge.To("session_plans", SessionPlan.Type),
 	}
 }

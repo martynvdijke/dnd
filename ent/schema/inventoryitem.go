@@ -36,6 +36,7 @@ func (InventoryItem) Fields() []ent.Field {
 		field.Bool("is_equipped").Default(false),
 		field.Bool("is_magical").Default(false),
 		field.Bool("attunement").Default(false),
+		field.Bool("is_identified").Default(false),
 		field.String("notes").Default(""),
 	}
 }

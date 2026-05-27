@@ -51,6 +51,7 @@ type Character struct {
 	DeathSavesSuccesses int    `json:"death_saves_successes"`
 	DeathSavesFailures  int    `json:"death_saves_failures"`
 	ConcentratingOn     string `json:"concentrating_on"`
+	ExhaustionLevel     int    `json:"exhaustion_level"`
 
 	Proficiencies []Proficiency   `json:"proficiencies,omitempty"`
 	Features      []Feature       `json:"features,omitempty"`
@@ -144,6 +145,7 @@ type InventoryItem struct {
 	IsEquipped       bool    `json:"is_equipped"`
 	IsMagical        bool    `json:"is_magical"`
 	Attunement       bool    `json:"attunement"`
+	IsIdentified     bool    `json:"is_identified"`
 	Notes            string  `json:"notes"`
 }
 
@@ -413,6 +415,35 @@ type CharacterNote struct {
 	Content     string `json:"content"`
 	Visibility  string `json:"visibility"`
 	Category    string `json:"category"`
+}
+
+type PartyItem struct {
+	ID         int64  `json:"id"`
+	CampaignID *int64 `json:"campaign_id,omitempty"`
+	Name       string `json:"name"`
+	Quantity   int    `json:"quantity"`
+	Notes      string `json:"notes"`
+	CreatedAt  string `json:"created_at"`
+}
+
+type SessionPlan struct {
+	ID                 int64   `json:"id"`
+	CampaignID         *int64  `json:"campaign_id,omitempty"`
+	Title              string  `json:"title"`
+	SessionDate        string  `json:"session_date"`
+	Status             string  `json:"status"`
+	DMNotes            string  `json:"dm_notes"`
+	PlannedEncounters  string  `json:"planned_encounters"`
+	NpcIDs             string  `json:"npc_ids"`
+	PlayerGoals        string  `json:"player_goals"`
+	ExpectedDuration   int     `json:"expected_duration"`
+	CreatedAt          string  `json:"created_at"`
+	UpdatedAt          string  `json:"updated_at"`
+}
+
+type ExhaustionEffect struct {
+	Level int    `json:"level"`
+	Effect string `json:"effect"`
 }
 
 type TimelineEvent struct {

@@ -212,9 +212,26 @@ func main() {
 		auth.PUT("/campaigns/:id/members/:userId", handlers.SetCampaignMemberRole)
 		auth.DELETE("/campaigns/:id/members/:userId", handlers.RemoveCampaignMember)
 
+		// Party Inventory (campaign shared items)
+		auth.GET("/campaigns/:id/party-items", handlers.ListCampaignPartyItems)
+		auth.POST("/campaigns/:id/party-items", handlers.CreateCampaignPartyItem)
+		auth.DELETE("/party-items/:id", handlers.DeleteCampaignPartyItem)
+
+		// Session Plans
+		auth.GET("/campaigns/:id/session-plans", handlers.ListSessionPlans)
+		auth.POST("/campaigns/:id/session-plans", handlers.CreateSessionPlan)
+		auth.PUT("/session-plans/:id", handlers.UpdateSessionPlan)
+		auth.DELETE("/session-plans/:id", handlers.DeleteSessionPlan)
+
 		// Rest & Level Up
 		auth.POST("/characters/:id/rest", handlers.DoRest)
 		auth.POST("/characters/:id/levelup", handlers.LevelUp)
+
+		// Exhaustion
+		auth.PATCH("/characters/:id/exhaustion", handlers.UpdateExhaustion)
+
+		// Batch Spell Prep
+		auth.PUT("/characters/:id/spells/prepare", handlers.BatchPrepareSpells)
 
 		// Party view
 		auth.GET("/party", handlers.GetPartyView)

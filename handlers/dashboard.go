@@ -23,6 +23,30 @@ type CampaignDashboard struct {
 	RecentTimeline   []TimelineEventSummary  `json:"recent_timeline"`
 	CharacterSummary []CharacterDashSummary  `json:"characters"`
 	DowntimeCount    int                     `json:"downtime_count"`
+	RecentRecaps     []RecapSummary          `json:"recent_recaps"`
+	RecentCombats    []CombatSummary         `json:"recent_combats"`
+	RecentDiceRolls  []DiceRollSummary       `json:"recent_dice_rolls"`
+}
+
+type RecapSummary struct {
+	ID              int64  `json:"id"`
+	Title           string `json:"title"`
+	SessionStartDate string `json:"session_start_date"`
+	CreatedAt       string `json:"created_at"`
+}
+
+type CombatSummary struct {
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	Round     int    `json:"round"`
+	CreatedAt string `json:"created_at"`
+}
+
+type DiceRollSummary struct {
+	ID         int64  `json:"id"`
+	Expression string `json:"expression"`
+	Total      int    `json:"total"`
+	CreatedAt  string `json:"created_at"`
 }
 
 type CalendarEventSummary struct {
@@ -110,6 +134,45 @@ func GetCampaignDashboard(c *gin.Context) {
 
 	// Active downtime activities
 	db.DB.QueryRow("SELECT COUNT(*) FROM downtime_activities da JOIN characters c ON da.character_id=c.id WHERE c.campaign_id=? AND da.status='in-progress'", campaignID).Scan(&dash.DowntimeCount)
+
+	// Recent recaps
+	recapRows, _ := db.DB.Query("SELECT id, title, COALESCE(session_start_date,''), created_at FROM campaign_recaps WHERE campaign_id=? ORDER BY created_at DESC LIMIT 3", campaignID)
+	if recapRows != nil {
+		for recapRows.Next() {
+			var r RecapSummary
+			recapRows.Scan(&r.ID, &r.Title, &r.SessionStartDate, &r.CreatedAt)
+			dash.RecentRecaps = append(dash.RecentRecaps, r)
+		}
+		recapRows.Close()
+	}
+
+	// Recent combat encounters
+	combatRows, _ := db.DB.Query("SELECT id, name, round, created_at FROM combat_entries WHERE campaign_id=? ORDER BY created_at DESC LIMIT 3", campaignID)
+	if combatRows != nil {
+		for combatRows.Next() {
+			var cs CombatSummary
+			combatRows.Scan(&cs.ID, &cs.Name, &cs.Round, &cs.CreatedAt)
+			dash.RecentCombats = append(dash.RecentCombats, cs)
+		}
+		combatRows.Close()
+	}
+
+	// Recent dice rolls (latest 5 across all characters in campaign)
+	rollRows, _ := db.DB.Query(`
+		SELECT dr.id, dr.expression, dr.total, dr.created_at
+		FROM dice_rolls dr
+		JOIN characters c ON dr.character_id = c.id
+		WHERE c.campaign_id=?
+		ORDER BY dr.created_at DESC LIMIT 5
+	`, campaignID)
+	if rollRows != nil {
+		for rollRows.Next() {
+			var dr DiceRollSummary
+			rollRows.Scan(&dr.ID, &dr.Expression, &dr.Total, &dr.CreatedAt)
+			dash.RecentDiceRolls = append(dash.RecentDiceRolls, dr)
+		}
+		rollRows.Close()
+	}
 
 	c.JSON(http.StatusOK, dash)
 }

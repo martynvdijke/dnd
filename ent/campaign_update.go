@@ -17,7 +17,9 @@ import (
 	"villum/ent/combatlogentry"
 	"villum/ent/encountertemplate"
 	"villum/ent/faction"
+	"villum/ent/partyitem"
 	"villum/ent/predicate"
+	"villum/ent/sessionplan"
 	"villum/ent/shop"
 	"villum/ent/user"
 
@@ -293,6 +295,36 @@ func (_u *CampaignUpdate) AddCombatLogEntries(v ...*CombatLogEntry) *CampaignUpd
 	return _u.AddCombatLogEntryIDs(ids...)
 }
 
+// AddPartyItemIDs adds the "party_items" edge to the PartyItem entity by IDs.
+func (_u *CampaignUpdate) AddPartyItemIDs(ids ...int64) *CampaignUpdate {
+	_u.mutation.AddPartyItemIDs(ids...)
+	return _u
+}
+
+// AddPartyItems adds the "party_items" edges to the PartyItem entity.
+func (_u *CampaignUpdate) AddPartyItems(v ...*PartyItem) *CampaignUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddPartyItemIDs(ids...)
+}
+
+// AddSessionPlanIDs adds the "session_plans" edge to the SessionPlan entity by IDs.
+func (_u *CampaignUpdate) AddSessionPlanIDs(ids ...int64) *CampaignUpdate {
+	_u.mutation.AddSessionPlanIDs(ids...)
+	return _u
+}
+
+// AddSessionPlans adds the "session_plans" edges to the SessionPlan entity.
+func (_u *CampaignUpdate) AddSessionPlans(v ...*SessionPlan) *CampaignUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSessionPlanIDs(ids...)
+}
+
 // Mutation returns the CampaignMutation object of the builder.
 func (_u *CampaignUpdate) Mutation() *CampaignMutation {
 	return _u.mutation
@@ -533,6 +565,48 @@ func (_u *CampaignUpdate) RemoveCombatLogEntries(v ...*CombatLogEntry) *Campaign
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveCombatLogEntryIDs(ids...)
+}
+
+// ClearPartyItems clears all "party_items" edges to the PartyItem entity.
+func (_u *CampaignUpdate) ClearPartyItems() *CampaignUpdate {
+	_u.mutation.ClearPartyItems()
+	return _u
+}
+
+// RemovePartyItemIDs removes the "party_items" edge to PartyItem entities by IDs.
+func (_u *CampaignUpdate) RemovePartyItemIDs(ids ...int64) *CampaignUpdate {
+	_u.mutation.RemovePartyItemIDs(ids...)
+	return _u
+}
+
+// RemovePartyItems removes "party_items" edges to PartyItem entities.
+func (_u *CampaignUpdate) RemovePartyItems(v ...*PartyItem) *CampaignUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemovePartyItemIDs(ids...)
+}
+
+// ClearSessionPlans clears all "session_plans" edges to the SessionPlan entity.
+func (_u *CampaignUpdate) ClearSessionPlans() *CampaignUpdate {
+	_u.mutation.ClearSessionPlans()
+	return _u
+}
+
+// RemoveSessionPlanIDs removes the "session_plans" edge to SessionPlan entities by IDs.
+func (_u *CampaignUpdate) RemoveSessionPlanIDs(ids ...int64) *CampaignUpdate {
+	_u.mutation.RemoveSessionPlanIDs(ids...)
+	return _u
+}
+
+// RemoveSessionPlans removes "session_plans" edges to SessionPlan entities.
+func (_u *CampaignUpdate) RemoveSessionPlans(v ...*SessionPlan) *CampaignUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSessionPlanIDs(ids...)
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -1121,6 +1195,96 @@ func (_u *CampaignUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 		}
 		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
+	if _u.mutation.PartyItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.PartyItemsTable,
+			Columns: []string{campaign.PartyItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(partyitem.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedPartyItemsIDs(); len(nodes) > 0 && !_u.mutation.PartyItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.PartyItemsTable,
+			Columns: []string{campaign.PartyItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(partyitem.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PartyItemsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.PartyItemsTable,
+			Columns: []string{campaign.PartyItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(partyitem.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SessionPlansCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.SessionPlansTable,
+			Columns: []string{campaign.SessionPlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(sessionplan.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSessionPlansIDs(); len(nodes) > 0 && !_u.mutation.SessionPlansCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.SessionPlansTable,
+			Columns: []string{campaign.SessionPlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(sessionplan.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SessionPlansIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.SessionPlansTable,
+			Columns: []string{campaign.SessionPlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(sessionplan.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
 			err = &NotFoundError{campaign.Label}
@@ -1395,6 +1559,36 @@ func (_u *CampaignUpdateOne) AddCombatLogEntries(v ...*CombatLogEntry) *Campaign
 	return _u.AddCombatLogEntryIDs(ids...)
 }
 
+// AddPartyItemIDs adds the "party_items" edge to the PartyItem entity by IDs.
+func (_u *CampaignUpdateOne) AddPartyItemIDs(ids ...int64) *CampaignUpdateOne {
+	_u.mutation.AddPartyItemIDs(ids...)
+	return _u
+}
+
+// AddPartyItems adds the "party_items" edges to the PartyItem entity.
+func (_u *CampaignUpdateOne) AddPartyItems(v ...*PartyItem) *CampaignUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddPartyItemIDs(ids...)
+}
+
+// AddSessionPlanIDs adds the "session_plans" edge to the SessionPlan entity by IDs.
+func (_u *CampaignUpdateOne) AddSessionPlanIDs(ids ...int64) *CampaignUpdateOne {
+	_u.mutation.AddSessionPlanIDs(ids...)
+	return _u
+}
+
+// AddSessionPlans adds the "session_plans" edges to the SessionPlan entity.
+func (_u *CampaignUpdateOne) AddSessionPlans(v ...*SessionPlan) *CampaignUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddSessionPlanIDs(ids...)
+}
+
 // Mutation returns the CampaignMutation object of the builder.
 func (_u *CampaignUpdateOne) Mutation() *CampaignMutation {
 	return _u.mutation
@@ -1635,6 +1829,48 @@ func (_u *CampaignUpdateOne) RemoveCombatLogEntries(v ...*CombatLogEntry) *Campa
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveCombatLogEntryIDs(ids...)
+}
+
+// ClearPartyItems clears all "party_items" edges to the PartyItem entity.
+func (_u *CampaignUpdateOne) ClearPartyItems() *CampaignUpdateOne {
+	_u.mutation.ClearPartyItems()
+	return _u
+}
+
+// RemovePartyItemIDs removes the "party_items" edge to PartyItem entities by IDs.
+func (_u *CampaignUpdateOne) RemovePartyItemIDs(ids ...int64) *CampaignUpdateOne {
+	_u.mutation.RemovePartyItemIDs(ids...)
+	return _u
+}
+
+// RemovePartyItems removes "party_items" edges to PartyItem entities.
+func (_u *CampaignUpdateOne) RemovePartyItems(v ...*PartyItem) *CampaignUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemovePartyItemIDs(ids...)
+}
+
+// ClearSessionPlans clears all "session_plans" edges to the SessionPlan entity.
+func (_u *CampaignUpdateOne) ClearSessionPlans() *CampaignUpdateOne {
+	_u.mutation.ClearSessionPlans()
+	return _u
+}
+
+// RemoveSessionPlanIDs removes the "session_plans" edge to SessionPlan entities by IDs.
+func (_u *CampaignUpdateOne) RemoveSessionPlanIDs(ids ...int64) *CampaignUpdateOne {
+	_u.mutation.RemoveSessionPlanIDs(ids...)
+	return _u
+}
+
+// RemoveSessionPlans removes "session_plans" edges to SessionPlan entities.
+func (_u *CampaignUpdateOne) RemoveSessionPlans(v ...*SessionPlan) *CampaignUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveSessionPlanIDs(ids...)
 }
 
 // Where appends a list predicates to the CampaignUpdate builder.
@@ -2246,6 +2482,96 @@ func (_u *CampaignUpdateOne) sqlSave(ctx context.Context) (_node *Campaign, err 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(combatlogentry.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.PartyItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.PartyItemsTable,
+			Columns: []string{campaign.PartyItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(partyitem.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedPartyItemsIDs(); len(nodes) > 0 && !_u.mutation.PartyItemsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.PartyItemsTable,
+			Columns: []string{campaign.PartyItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(partyitem.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PartyItemsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.PartyItemsTable,
+			Columns: []string{campaign.PartyItemsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(partyitem.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.SessionPlansCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.SessionPlansTable,
+			Columns: []string{campaign.SessionPlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(sessionplan.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedSessionPlansIDs(); len(nodes) > 0 && !_u.mutation.SessionPlansCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.SessionPlansTable,
+			Columns: []string{campaign.SessionPlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(sessionplan.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.SessionPlansIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.SessionPlansTable,
+			Columns: []string{campaign.SessionPlansColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(sessionplan.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

@@ -245,6 +245,20 @@ func (_u *InventoryItemUpdate) SetNillableAttunement(v *bool) *InventoryItemUpda
 	return _u
 }
 
+// SetIsIdentified sets the "is_identified" field.
+func (_u *InventoryItemUpdate) SetIsIdentified(v bool) *InventoryItemUpdate {
+	_u.mutation.SetIsIdentified(v)
+	return _u
+}
+
+// SetNillableIsIdentified sets the "is_identified" field if the given value is not nil.
+func (_u *InventoryItemUpdate) SetNillableIsIdentified(v *bool) *InventoryItemUpdate {
+	if v != nil {
+		_u.SetIsIdentified(*v)
+	}
+	return _u
+}
+
 // SetNotes sets the "notes" field.
 func (_u *InventoryItemUpdate) SetNotes(v string) *InventoryItemUpdate {
 	_u.mutation.SetNotes(v)
@@ -369,6 +383,9 @@ func (_u *InventoryItemUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	}
 	if value, ok := _u.mutation.Attunement(); ok {
 		_spec.SetField(inventoryitem.FieldAttunement, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.IsIdentified(); ok {
+		_spec.SetField(inventoryitem.FieldIsIdentified, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(inventoryitem.FieldNotes, field.TypeString, value)
@@ -639,6 +656,20 @@ func (_u *InventoryItemUpdateOne) SetNillableAttunement(v *bool) *InventoryItemU
 	return _u
 }
 
+// SetIsIdentified sets the "is_identified" field.
+func (_u *InventoryItemUpdateOne) SetIsIdentified(v bool) *InventoryItemUpdateOne {
+	_u.mutation.SetIsIdentified(v)
+	return _u
+}
+
+// SetNillableIsIdentified sets the "is_identified" field if the given value is not nil.
+func (_u *InventoryItemUpdateOne) SetNillableIsIdentified(v *bool) *InventoryItemUpdateOne {
+	if v != nil {
+		_u.SetIsIdentified(*v)
+	}
+	return _u
+}
+
 // SetNotes sets the "notes" field.
 func (_u *InventoryItemUpdateOne) SetNotes(v string) *InventoryItemUpdateOne {
 	_u.mutation.SetNotes(v)
@@ -793,6 +824,9 @@ func (_u *InventoryItemUpdateOne) sqlSave(ctx context.Context) (_node *Inventory
 	}
 	if value, ok := _u.mutation.Attunement(); ok {
 		_spec.SetField(inventoryitem.FieldAttunement, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.IsIdentified(); ok {
+		_spec.SetField(inventoryitem.FieldIsIdentified, field.TypeBool, value)
 	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(inventoryitem.FieldNotes, field.TypeString, value)

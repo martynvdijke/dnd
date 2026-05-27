@@ -86,6 +86,8 @@ const (
 	FieldDeathSavesSuccesses = "death_saves_successes"
 	// FieldDeathSavesFailures holds the string denoting the death_saves_failures field in the database.
 	FieldDeathSavesFailures = "death_saves_failures"
+	// FieldExhaustionLevel holds the string denoting the exhaustion_level field in the database.
+	FieldExhaustionLevel = "exhaustion_level"
 	// FieldConcentratingOn holds the string denoting the concentrating_on field in the database.
 	FieldConcentratingOn = "concentrating_on"
 	// FieldCampaignID holds the string denoting the campaign_id field in the database.
@@ -354,6 +356,7 @@ var Columns = []string{
 	FieldHpAutoCalc,
 	FieldDeathSavesSuccesses,
 	FieldDeathSavesFailures,
+	FieldExhaustionLevel,
 	FieldConcentratingOn,
 	FieldCampaignID,
 	FieldCreatedAt,
@@ -443,6 +446,8 @@ var (
 	DefaultDeathSavesSuccesses int
 	// DefaultDeathSavesFailures holds the default value on creation for the "death_saves_failures" field.
 	DefaultDeathSavesFailures int
+	// DefaultExhaustionLevel holds the default value on creation for the "exhaustion_level" field.
+	DefaultExhaustionLevel int
 	// DefaultConcentratingOn holds the default value on creation for the "concentrating_on" field.
 	DefaultConcentratingOn string
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
@@ -642,6 +647,11 @@ func ByDeathSavesSuccesses(opts ...sql.OrderTermOption) OrderOption {
 // ByDeathSavesFailures orders the results by the death_saves_failures field.
 func ByDeathSavesFailures(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDeathSavesFailures, opts...).ToFunc()
+}
+
+// ByExhaustionLevel orders the results by the exhaustion_level field.
+func ByExhaustionLevel(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldExhaustionLevel, opts...).ToFunc()
 }
 
 // ByConcentratingOn orders the results by the concentrating_on field.
