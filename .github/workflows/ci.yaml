@@ -3,11 +3,9 @@ name: CI checks
 on:
   workflow_call:
   push:
-    branches-ignore:
-      - 'main'
+    branches: [main]
   pull_request:
-    branches:
-      - "**"
+    branches: ["**"]
 
 jobs:
   ci:
@@ -46,6 +44,9 @@ jobs:
 
       - name: Build TypeScript
         run: npm run build:ts
+
+      - name: Vet
+        run: go vet -tags fts5 ./...
 
       - name: Run Tests
         run:
