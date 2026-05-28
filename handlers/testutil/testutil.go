@@ -24,6 +24,7 @@ func NewDB(t *testing.T) {
 	if err := db.Init(path); err != nil {
 		t.Fatalf("db init: %v", err)
 	}
+	db.Seed()
 	gin.SetMode(gin.TestMode)
 }
 
@@ -145,6 +146,13 @@ func SeedCampaign(t *testing.T, id int64, name, partyName string, userID int64) 
 	)
 	if err != nil {
 		t.Fatalf("seed campaign: %v", err)
+	}
+	_, err = db.DB.Exec(
+		"INSERT OR IGNORE INTO campaign_members(campaign_id, user_id, role) VALUES(?, ?, ?)",
+		id, userID, "dm",
+	)
+	if err != nil {
+		t.Fatalf("seed campaign member: %v", err)
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -31,6 +32,10 @@ func CreateCombatEntry(c *gin.Context) {
 	var e CombatEntry
 	if err := c.ShouldBindJSON(&e); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if strings.TrimSpace(e.Name) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
 		return
 	}
 	result, err := db.DB.Exec(`INSERT INTO combat_entries(character_id,campaign_id,name,type,initiative_roll,initiative_mod,hp_max,hp_current,ac,turn_order,condition_ids,notes,is_active) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,1)`,
@@ -148,20 +153,24 @@ func NextTurn(c *gin.Context) {
 
 func GetCurrentTurn(c *gin.Context) {
 	campaignID := c.Query("campaign_id")
-	if campaignID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "campaign_id required"})
-		return
-	}
 	var entry CombatEntry
 	var isActive int
-	err := db.DB.QueryRow("SELECT id,character_id,campaign_id,name,type,initiative_roll,initiative_mod,hp_max,hp_current,ac,is_active,turn_order,condition_ids,notes FROM combat_entries WHERE campaign_id=? AND is_active=1 ORDER BY turn_order DESC LIMIT 1", campaignID).
-		Scan(&entry.ID, &entry.CharacterID, &entry.CampaignID, &entry.Name, &entry.Type,
-			&entry.InitiativeRoll, &entry.InitiativeMod, &entry.HPMax, &entry.HPCurrent, &entry.AC,
-			&isActive, &entry.TurnOrder, &entry.ConditionIDs, &entry.Notes)
-	entry.IsActive = isActive == 1
+	var err error
+	if campaignID != "" {
+		err = db.DB.QueryRow("SELECT id,character_id,campaign_id,name,type,initiative_roll,initiative_mod,hp_max,hp_current,ac,is_active,turn_order,condition_ids,notes FROM combat_entries WHERE campaign_id=? AND is_active=1 ORDER BY turn_order DESC LIMIT 1", campaignID).
+			Scan(&entry.ID, &entry.CharacterID, &entry.CampaignID, &entry.Name, &entry.Type,
+				&entry.InitiativeRoll, &entry.InitiativeMod, &entry.HPMax, &entry.HPCurrent, &entry.AC,
+				&isActive, &entry.TurnOrder, &entry.ConditionIDs, &entry.Notes)
+	} else {
+		err = db.DB.QueryRow("SELECT id,character_id,campaign_id,name,type,initiative_roll,initiative_mod,hp_max,hp_current,ac,is_active,turn_order,condition_ids,notes FROM combat_entries WHERE is_active=1 ORDER BY turn_order DESC LIMIT 1").
+			Scan(&entry.ID, &entry.CharacterID, &entry.CampaignID, &entry.Name, &entry.Type,
+				&entry.InitiativeRoll, &entry.InitiativeMod, &entry.HPMax, &entry.HPCurrent, &entry.AC,
+				&isActive, &entry.TurnOrder, &entry.ConditionIDs, &entry.Notes)
+	}
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"current": nil})
 		return
 	}
+	entry.IsActive = isActive == 1
 	c.JSON(http.StatusOK, gin.H{"current": entry})
 }

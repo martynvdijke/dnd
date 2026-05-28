@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"entgo.io/ent/dialect/sql"
@@ -1349,6 +1350,10 @@ func CreateCampaign(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	if strings.TrimSpace(ca.Name) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
+		return
+	}
 	result, err := db.Client.Campaign.Create().
 		SetUserID(userID.(int64)).
 		SetName(ca.Name).
@@ -1366,7 +1371,7 @@ func CreateCampaign(c *gin.Context) {
 		SetRole("dm").
 		OnConflict(sql.ResolveWithIgnore()).
 		Exec(c.Request.Context())
-	c.JSON(http.StatusCreated, gin.H{"id": result.ID, "name": ca.Name})
+	c.JSON(http.StatusCreated, gin.H{"id": result.ID, "name": ca.Name, "party_name": ca.PartyName})
 }
 
 func UpdateCampaign(c *gin.Context) {

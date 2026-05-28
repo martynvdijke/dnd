@@ -11,6 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+      - run: npm ci
+      - run: npm run build:ts
       - uses: j178/prek-action@v2
 
   test-go:
@@ -20,6 +25,11 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
+      - uses: actions/setup-node@v6
+        with:
+          node-version: lts/*
+      - run: npm ci
+      - run: npm run build:ts
       - run: go mod download
       - run: go vet -tags fts5 ./...
       - run: go test -tags fts5 -v ./...

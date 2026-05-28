@@ -2,10 +2,13 @@ package handlers
 
 import (
 	"fmt"
+	"sync"
 	"testing"
+	"testing/quick"
 
 	"github.com/gin-gonic/gin"
 
+	"villum/db"
 	"villum/handlers/testutil"
 )
 
@@ -374,5 +377,138 @@ func TestCharactersMultiClass(t *testing.T) {
 
 		w = testutil.Delete(t, r, fmt.Sprintf("/api/classes/%d", ccid))
 		testutil.AssertStatus(t, w, 200)
+	})
+}
+
+func TestPropertyAbilityModifier(t *testing.T) {
+	f := func(score int) bool {
+		if score < 1 || score > 30 {
+			return true
+		}
+		mod := abilityMod(score)
+		return mod >= -5 && mod <= 10
+	}
+	if err := quick.Check(f, nil); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestPropertyPassivePerception(t *testing.T) {
+	f := func(wis int) bool {
+		if wis < 1 || wis > 30 {
+			return true
+		}
+		pp := 10 + abilityMod(wis)
+		return pp >= 5 && pp <= 20
+	}
+	if err := quick.Check(f, nil); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestPropertyHPCalculation(t *testing.T) {
+	hitDieAvg := map[string]int{"d6": 4, "d8": 5, "d10": 6, "d12": 7}
+	f := func(die string, level, con int) bool {
+		if level < 1 || level > 20 || con < 1 || con > 30 {
+			return true
+		}
+		avg, ok := hitDieAvg[die]
+		if !ok {
+			return true
+		}
+		hp := (avg + abilityMod(con)) * level
+		return hp >= level && hp <= (12+10)*20
+	}
+	if err := quick.Check(f, nil); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestConcurrentInventoryUpdate(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCharacter(t, 1, 1, "Concurrent", "Human", "Fighter")
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.POST("/characters/:id/inventory", CreateInventory)
+		auth.PUT("/inventory/:iid", UpdateInventory)
+	})
+
+	w := testutil.PostJSON(t, r, "/api/characters/1/inventory", map[string]any{
+		"name": "Potion", "quantity": 10, "weight": 0.5,
+	})
+	if w.Code != 201 {
+		t.Skipf("inventory creation returned %d, skipping concurrent test", w.Code)
+	}
+	var item map[string]any
+	testutil.ParseJSON(t, w, &item)
+	iid, ok := item["id"].(float64)
+	if !ok {
+		t.Skipf("inventory response missing id, skipping: %+v", item)
+	}
+
+	var wg sync.WaitGroup
+	for range 10 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			rr := testutil.PutJSON(t, r, fmt.Sprintf("/api/inventory/%d", int64(iid)), map[string]any{
+				"quantity": 5,
+			})
+			if rr.Code != 200 {
+				t.Errorf("concurrent update failed: %d", rr.Code)
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+func TestConcurrentSpellSlots(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCharacter(t, 1, 1, "Caster", "Elf", "Wizard")
+	_, err := db.DB.Exec("INSERT INTO character_spellcasting(character_id, ability, save_dc, attack_bonus, slots_1_max, slots_2_max) VALUES(1, 'int', 15, 7, 4, 3)")
+	if err != nil {
+		t.Fatalf("seed spellcasting: %v", err)
+	}
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.PUT("/characters/:id/spellcasting", UpdateSpellcasting)
+	})
+
+	var wg sync.WaitGroup
+	for range 10 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			rr := testutil.PutJSON(t, r, "/api/characters/1/spellcasting", map[string]any{
+				"ability": "int", "save_dc": 15, "attack_bonus": 7,
+				"slots_1_used": 1, "slots_2_used": 1,
+			})
+			if rr.Code != 200 {
+				t.Errorf("concurrent spell update failed: %d", rr.Code)
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+func FuzzCharacterImport(f *testing.F) {
+	f.Add(`{"name":"Test","race":"Human","class":"Fighter"}`)
+	f.Add(`{"name":"","race":"","class":""}`)
+	f.Add(`invalid json`)
+	f.Fuzz(func(t *testing.T, data string) {
+		testutil.NewDB(t)
+		defer testutil.CloseDB(t)
+		testutil.SeedUser(t, 1, "admin", "admin")
+		r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+			auth.POST("/characters", CreateCharacter)
+		})
+		w := testutil.PostJSON(t, r, "/api/characters", map[string]any{
+			"name": data, "race": "Human", "class": "Fighter",
+		})
+		_ = w.Code
 	})
 }

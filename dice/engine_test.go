@@ -1,7 +1,9 @@
 package dice
 
 import (
+	"fmt"
 	"testing"
+	"testing/quick"
 )
 
 func TestPoolBasic(t *testing.T) {
@@ -151,4 +153,46 @@ func TestBasicD20(t *testing.T) {
 	}
 	// Total should be 1-20
 	t.Logf("d20 roll: notation=%s total=%s output=%s", result.Notation, result.Total, result.Output)
+}
+
+func TestPropertyDiceRollBounds(t *testing.T) {
+	p, err := NewPool(2)
+	if err != nil {
+		t.Fatalf("NewPool failed: %v", err)
+	}
+
+	f := func(n, sides int) bool {
+		if n < 1 || n > 10 || sides < 2 || sides > 100 {
+			return true
+		}
+		expr := fmt.Sprintf("%dd%d", n, sides)
+		result, err := p.Roll(expr)
+		if err != nil {
+			return false
+		}
+		total, _ := result.Total.Int64()
+		return total >= int64(n) && total <= int64(n*sides)
+	}
+	if err := quick.Check(f, nil); err != nil {
+		t.Error(err)
+	}
+}
+
+func FuzzDiceExpression(f *testing.F) {
+	f.Add("2d6+3")
+	f.Add("1d20")
+	f.Add("invalid!!")
+	f.Add("")
+	f.Add("3d6kh2")
+	f.Add("1d20r=1")
+	f.Fuzz(func(t *testing.T, expr string) {
+		p, err := NewPool(1)
+		if err != nil {
+			t.Skipf("pool init: %v", err)
+		}
+		result, err := p.Roll(expr)
+		if err == nil && result.Error != "" {
+			_ = result.Error
+		}
+	})
 }

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -154,4 +155,42 @@ func TestCombatNextTurn(t *testing.T) {
 			testutil.AssertStatus(t, w, 200)
 		}
 	})
+}
+
+func TestCombatConcurrentSafety(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.GET("/combat", ListCombatEntries)
+		auth.POST("/combat", CreateCombatEntry)
+		auth.POST("/combat/initiative", RollInitiative)
+		auth.POST("/combat/next-turn", NextTurn)
+	})
+
+	for i := range 3 {
+		testutil.PostJSON(t, r, fmt.Sprintf("/api/combat"), map[string]any{
+			"name": fmt.Sprintf("Fighter%d", i), "type": "character",
+			"initiative_roll": 20 - i, "hp_max": 30, "hp_current": 30, "ac": 16,
+		})
+	}
+	testutil.PostJSON(t, r, "/api/combat/initiative", nil)
+
+	var wg sync.WaitGroup
+	for range 5 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			rr := testutil.PostJSON(t, r, "/api/combat/next-turn", nil)
+			if rr.Code != 200 {
+				t.Errorf("concurrent next-turn failed: %d", rr.Code)
+			}
+			rr = testutil.Get(t, r, "/api/combat")
+			if rr.Code != 200 {
+				t.Errorf("concurrent list failed: %d", rr.Code)
+			}
+		}()
+	}
+	wg.Wait()
 }

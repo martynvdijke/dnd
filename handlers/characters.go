@@ -201,10 +201,18 @@ func CreateCharacter(c *gin.Context) {
 		return
 	}
 
-	// Set defaults
-	if ch.Name == "" {
-		ch.Name = "Unnamed Character"
+	if strings.TrimSpace(ch.Name) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
+		return
 	}
+	for _, score := range []int{ch.Str, ch.Dex, ch.Con, ch.Int, ch.Wis, ch.Cha} {
+		if score < 0 || score > 30 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "ability scores must be between 0 and 30"})
+			return
+		}
+	}
+
+	// Set defaults
 	if ch.Level < 1 {
 		ch.Level = 1
 	}
@@ -326,6 +334,14 @@ func UpdateCharacter(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	if strings.TrimSpace(ch.Name) == "" || strings.TrimSpace(ch.Race) == "" || strings.TrimSpace(ch.Class) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name, race, and class are required"})
+		return
+	}
+	if ch.DeathSavesSuccesses < 0 || ch.DeathSavesSuccesses > 3 || ch.DeathSavesFailures < 0 || ch.DeathSavesFailures > 3 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "death saves must be between 0 and 3"})
+		return
+	}
 
 	upd := db.Client.Character.UpdateOneID(id).
 		SetName(ch.Name).
@@ -398,7 +414,12 @@ func UpdateCharacter(c *gin.Context) {
 	SendCharacterUpdate(id)
 	SendPartyUpdate()
 
-	c.JSON(http.StatusOK, gin.H{"ok": true})
+	updated, err := db.Client.Character.Get(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+		return
+	}
+	c.JSON(http.StatusOK, entCharacterToModel(updated))
 }
 
 func DeleteCharacter(c *gin.Context) {
@@ -1157,6 +1178,10 @@ func UpdateCurrency(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	if cur.CP < 0 || cur.SP < 0 || cur.EP < 0 || cur.GP < 0 || cur.PP < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "currency values cannot be negative"})
+		return
+	}
 	db.Client.CharacterCurrency.Update().
 		Where(charactercurrency.CharacterID(id)).
 		SetCp(cur.CP).
@@ -1233,6 +1258,10 @@ func CreateInventory(c *gin.Context) {
 	var item models.InventoryItem
 	if err := c.ShouldBindJSON(&item); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if strings.TrimSpace(item.Name) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
 		return
 	}
 	result, err := db.Client.InventoryItem.Create().
@@ -1316,6 +1345,10 @@ func CreateSpell(c *gin.Context) {
 	var sp models.Spell
 	if err := c.ShouldBindJSON(&sp); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if sp.Level < 0 || sp.Level > 9 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "spell level must be between 0 and 9"})
 		return
 	}
 	result, err := db.Client.Spell.Create().
@@ -1407,7 +1440,7 @@ func CreateFeature(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"id": result.ID})
+	c.JSON(http.StatusCreated, gin.H{"id": result.ID, "name": f.Name})
 }
 
 func UpdateFeature(c *gin.Context) {

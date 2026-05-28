@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -138,5 +140,27 @@ func TestCompendiumFilters(t *testing.T) {
 	t.Run("filter equipment by category returns 200", func(t *testing.T) {
 		w := testutil.Get(t, r, "/api/compendium/equipment?category=Weapon")
 		testutil.AssertStatus(t, w, 200)
+	})
+}
+
+func FuzzCompendiumSearch(f *testing.F) {
+	f.Add("fire")
+	f.Add("heal")
+	f.Add("")
+	f.Add("a")
+	f.Add("' OR '1'='1")
+	f.Fuzz(func(t *testing.T, q string) {
+		testutil.NewDB(t)
+		defer testutil.CloseDB(t)
+		testutil.SeedUser(t, 1, "admin", "admin")
+		r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+			auth.GET("/compendium/search", SearchCompendium)
+		})
+		req := httptest.NewRequest("GET", "/api/compendium/search", nil)
+		urlQ := url.QueryEscape(q)
+		req.URL.RawQuery = "q=" + urlQ
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+		_ = w.Code
 	})
 }
