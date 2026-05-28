@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="/static/style.css">
 
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✧</text></svg>">
+  <link rel="manifest" href="/static/manifest.json">
   <meta name="csrf-token" content="">
   <script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
@@ -49,6 +50,38 @@
     <button class="btn btn-outline-gold btn-sm me-2" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode"><i class="fa-solid fa-moon" aria-hidden="true" id="themeIcon"></i></button>
   </div>
 </nav>
+
+<div class="session-mode-topbar" id="sessionModeTopbar">
+  <span class="sm-campaign"><i class="fa-solid fa-swords me-2" aria-hidden="true"></i>Session Mode</span>
+  <button class="session-mode-toggle-btn" id="sessionModeExitBtn" onclick="deactivateSessionMode()"><i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Exit</button>
+</div>
+
+<div class="app-sidebar" id="appSidebar">
+  <div class="sidebar-header">
+    <span class="sidebar-brand">✧ villum</span>
+    <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Collapse sidebar"><i class="fa-solid fa-bars" aria-hidden="true"></i></button>
+  </div>
+  <div class="sidebar-section">
+    <ul class="sidebar-nav">
+      <li><button class="sidebar-nav-item active" data-nav="characters" onclick="showView('characters');loadCharacters()"><i class="fa-solid fa-users" aria-hidden="true"></i><span class="sidebar-label">Characters</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="party" onclick="showParty()"><i class="fa-solid fa-flag" aria-hidden="true"></i><span class="sidebar-label">Party View</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="compendium" onclick="showCompendium()"><i class="fa-solid fa-book" aria-hidden="true"></i><span class="sidebar-label">Compendium</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="dice" onclick="showView('dice');renderDiceTab()"><i class="fa-solid fa-dice" aria-hidden="true"></i><span class="sidebar-label">Dice</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="encounters" onclick="showEncounterBuilder()"><i class="fa-solid fa-crosshairs" aria-hidden="true"></i><span class="sidebar-label">Encounters</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="oneshots" id="sidebarOneshotNav" style="display:none" onclick="showOneShots()"><i class="fa-solid fa-scroll" aria-hidden="true"></i><span class="sidebar-label">One-Shots</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="combat" id="sidebarCombatNav" style="display:none" onclick="showCombatTracker()"><i class="fa-solid fa-swords" aria-hidden="true"></i><span class="sidebar-label">Combat</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="timeline" onclick="showTimeline()"><i class="fa-solid fa-timeline" aria-hidden="true"></i><span class="sidebar-label">Timeline</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="factions" id="sidebarFactionsNav" style="display:none" onclick="showFactions()"><i class="fa-solid fa-flag" aria-hidden="true"></i><span class="sidebar-label">Factions</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="shops" id="sidebarShopsNav" style="display:none" onclick="showShops()"><i class="fa-solid fa-store" aria-hidden="true"></i><span class="sidebar-label">Shops</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="admin" id="sidebarAdminNav" style="display:none" onclick="window.location.href='/admin'"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i><span class="sidebar-label">Admin</span></button></li>
+    </ul>
+  </div>
+  <div class="sidebar-section" style="margin-top:auto;border-top:1px solid var(--border-light);padding-top:0.5rem">
+    <div class="sidebar-nav-item" style="cursor:default;font-size:0.75rem;color:var(--ink-muted);font-family:var(--font-body)">
+      <span class="sidebar-label" id="sidebarUserLabel"></span>
+    </div>
+  </div>
+</div>
 
 <div class="container mt-4">
 
@@ -177,6 +210,29 @@
 
 </div>
 
+  <div class="bottom-tab-bar" id="bottomTabBar">
+    <button class="bottom-tab-item active" data-nav="characters" onclick="showView('characters');loadCharacters()">
+      <i class="fa-solid fa-users" aria-hidden="true"></i>
+      <span>Characters</span>
+    </button>
+    <button class="bottom-tab-item" data-nav="party" onclick="showParty()">
+      <i class="fa-solid fa-flag" aria-hidden="true"></i>
+      <span>Party</span>
+    </button>
+    <button class="bottom-tab-item" data-nav="dice" onclick="showView('dice');renderDiceTab()">
+      <i class="fa-solid fa-dice" aria-hidden="true"></i>
+      <span>Dice</span>
+    </button>
+    <button class="bottom-tab-item" data-nav="compendium" onclick="showCompendium()">
+      <i class="fa-solid fa-book" aria-hidden="true"></i>
+      <span>Compendium</span>
+    </button>
+    <button class="bottom-tab-item" data-nav="more" id="moreTabBtn" onclick="showMoreNav()">
+      <i class="fa-solid fa-ellipsis" aria-hidden="true"></i>
+      <span>More</span>
+    </button>
+  </div>
+
   <footer class="text-center text-muted py-3 border-top mt-4" style="font-size:0.8rem">
     <i class="fa-solid fa-code-branch me-1" aria-hidden="true"></i>v{{VERSION}} &mdash; <a href="https://github.com/martynvdijke/dnd" target="_blank" rel="noopener" class="text-muted text-decoration-none"><i class="fa-brands fa-github me-1"></i> Source</a>
   </footer>
@@ -208,7 +264,8 @@
   </div>
 </div>
 
-<script>if('serviceWorker' in navigator)navigator.serviceWorker.getRegistrations().then(r=>r.forEach(r=>r.unregister()));</script>
+<script src="/static/js/pwa.js"></script>
+<script>document.getElementById('sidebarUserLabel').textContent = document.getElementById('userName')?.textContent || '';</script>
 <script src="/static/js/app.js"></script>
 </body>
 </html>

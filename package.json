@@ -6,7 +6,7 @@
   "scripts": {
     "test": "go test -tags fts5 ./...",
     "test:e2e": "npx playwright test",
-    "build:ts": "vite build && npx tsc",
+    "build:ts": "vite build && ENTRY=pwa vite build && npx tsc",
     "watch:ts": "vite build --watch",
     "dev:ts": "vite build --watch"
   },

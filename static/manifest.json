@@ -1,0 +1,21 @@
+{
+  "name": "Villum — D&D Character Folio",
+  "short_name": "Villum",
+  "description": "Character and campaign management for D&D 5e",
+  "start_url": "/app",
+  "display": "standalone",
+  "background_color": "#1a0f0a",
+  "theme_color": "#8b0000",
+  "icons": [
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

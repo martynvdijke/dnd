@@ -1,4 +1,6 @@
 node_modules/
+.opencode/
+openspec/
 villum-server
 vellum-server
 villum

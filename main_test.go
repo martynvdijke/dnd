@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -398,6 +399,57 @@ func buildRouter() *gin.Engine {
 		admin.PUT("/compendium/:type/:id", handlers.AdminUpdateCompendiumEntry)
 		admin.DELETE("/compendium/:type/:id", handlers.AdminDeleteCompendiumEntry)
 	}
+
+	// Static file serving for non-API routes
+	staticFS, _ := fs.Sub(staticFiles, "static")
+	r.GET("/static/*filepath", func(c *gin.Context) {
+		filepath := c.Param("filepath")
+		if filepath == "" || filepath == "/" {
+			c.String(http.StatusNotFound, "not found")
+			return
+		}
+		data, err := fs.ReadFile(staticFS, filepath[1:])
+		if err != nil {
+			c.String(http.StatusNotFound, "not found")
+			return
+		}
+		ct := "application/octet-stream"
+		if strings.HasSuffix(filepath, ".js") {
+			ct = "application/javascript"
+		} else if strings.HasSuffix(filepath, ".css") {
+			ct = "text/css"
+		} else if strings.HasSuffix(filepath, ".json") {
+			ct = "application/json"
+		} else if strings.HasSuffix(filepath, ".html") {
+			ct = "text/html"
+		} else if strings.HasSuffix(filepath, ".svg") {
+			ct = "image/svg+xml"
+		}
+		c.Data(http.StatusOK, ct, data)
+	})
+
+	// Serve HTML pages with version substitution
+	serveHTML := func(path, fileName string) {
+		r.GET(path, func(c *gin.Context) {
+			data, err := fs.ReadFile(staticFS, fileName)
+			if err != nil {
+				c.String(http.StatusNotFound, "not found")
+				return
+			}
+			content := strings.ReplaceAll(string(data), "{{VERSION}}", Version)
+			c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(content))
+		})
+	}
+	serveHTML("/", "app.html")
+	serveHTML("/login", "login.html")
+	serveHTML("/setup", "setup.html")
+	serveHTML("/admin", "admin.html")
+
+	// Redirect /app to / for backward compatibility
+	r.GET("/app", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/")
+	})
+
 	return r
 }
 
@@ -2095,6 +2147,110 @@ func TestQuestStatusTransitions(t *testing.T) {
 			}
 		})
 	}
+}
+
+// ─── PWA / Static File Tests ───
+
+func TestStaticFileServing(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// Verify manifest.json is served
+	resp := tc.get("/static/manifest.json", nil)
+	if resp.Code != 200 {
+		t.Fatalf("manifest.json serving failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	ct := resp.Header().Get("Content-Type")
+	if !strings.Contains(ct, "json") && !strings.Contains(ct, "octet-stream") {
+		t.Logf("manifest.json content-type: %s", ct)
+	}
+	var manifest map[string]any
+	readJSON(resp, &manifest)
+	if manifest["name"] == "" || manifest["start_url"] == "" {
+		t.Fatal("manifest missing required fields (name, start_url)")
+	}
+	if manifest["display"] != "standalone" {
+		t.Fatalf("expected display 'standalone', got %v", manifest["display"])
+	}
+	t.Logf("Manifest: name=%s, start_url=%s", manifest["name"], manifest["start_url"])
+
+	// Verify sw.js is served
+	resp = tc.get("/static/sw.js", nil)
+	if resp.Code != 200 {
+		t.Fatalf("sw.js serving failed: %d", resp.Code)
+	}
+	body := resp.Body.String()
+	if !strings.Contains(body, "self.addEventListener") {
+		t.Fatal("sw.js missing service worker event listeners")
+	}
+	if !strings.Contains(body, "install") {
+		t.Fatal("sw.js missing install event handler")
+	}
+	if !strings.Contains(body, "fetch") {
+		t.Fatal("sw.js missing fetch event handler")
+	}
+	t.Logf("sw.js served successfully (%d bytes)", len(body))
+}
+
+// ─── HTML Structure Tests ───
+
+func TestMainHTMLNewNavigation(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	resp := tc.get("/", nil)
+	if resp.Code != 200 {
+		t.Fatalf("main page failed: %d", resp.Code)
+	}
+	body := resp.Body.String()
+
+	// Verify new navigation elements
+	if !strings.Contains(body, "bottom-tab-bar") {
+		t.Fatal("expected bottom-tab-bar in main page HTML")
+	}
+	if !strings.Contains(body, "app-sidebar") {
+		t.Fatal("expected app-sidebar in main page HTML")
+	}
+	if !strings.Contains(body, "session-mode-topbar") {
+		t.Fatal("expected session-mode-topbar in main page HTML")
+	}
+
+	// Verify bottom tab items
+	if !strings.Contains(body, "data-nav=\"characters\"") {
+		t.Fatal("expected characters bottom tab")
+	}
+	if !strings.Contains(body, "data-nav=\"party\"") {
+		t.Fatal("expected party bottom tab")
+	}
+	if !strings.Contains(body, "data-nav=\"dice\"") {
+		t.Fatal("expected dice bottom tab")
+	}
+	if !strings.Contains(body, "data-nav=\"compendium\"") {
+		t.Fatal("expected compendium bottom tab")
+	}
+	if !strings.Contains(body, "data-nav=\"more\"") {
+		t.Fatal("expected more bottom tab")
+	}
+
+	// Verify sidebar nav items
+	if !strings.Contains(body, "data-nav=\"encounters\"") {
+		t.Fatal("expected encounters in sidebar")
+	}
+	if !strings.Contains(body, "data-nav=\"timeline\"") {
+		t.Fatal("expected timeline in sidebar")
+	}
+
+	// Verify manifest link
+	if !strings.Contains(body, "/static/manifest.json") {
+		t.Fatal("expected manifest link in HTML head")
+	}
+
+	// Verify PWA script
+	if !strings.Contains(body, "pwa.js") {
+		t.Fatal("expected pwa.js script reference")
+	}
+
+	t.Logf("Main page HTML contains all new navigation elements")
 }
 
 func TestStartCleanupTask(t *testing.T) {

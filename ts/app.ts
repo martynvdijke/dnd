@@ -7,12 +7,14 @@ import * as bootstrap from 'bootstrap';
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
+import { showView, setCurrentView, getCurrentView } from './navigation';
+import { toggleFabMenu, updateFabForView } from './fab';
 
 declare const htmx: any;
 
 let csrfToken = '';
 let currentUser: { id: number; username: string; role: string } | null = null;
-let currentView = 'characters';
+let currentView = getCurrentView();
 let currentChar: any = null;
 let currentTab = 'stats';
 let allLocations: any[] = [];
@@ -31,12 +33,7 @@ function capitalize(s: string): string {
 }
 
 // ─── FAB ───
-
-function toggleFabMenu() {
-  const menu = document.getElementById('fabMenu');
-  if (menu) menu.classList.toggle('open');
-}
-(window as any).toggleFabMenu = toggleFabMenu;
+// (moved to ts/fab.ts)
 
 // ─── Sort ───
 
@@ -402,22 +399,6 @@ async function init() {
   }
 }
 
-function showView(view: string) {
-  currentView = view;
-  document.getElementById('charactersView')!.style.display = view === 'characters' || view === 'sheet' ? 'block' : 'none';
-  document.getElementById('sheetView')!.style.display = view === 'sheet' ? 'block' : 'none';
-  document.getElementById('diceView')!.style.display = view === 'dice' ? 'block' : 'none';
-  document.getElementById('compendiumView')!.style.display = view === 'compendium' ? 'block' : 'none';
-  document.getElementById('partyView')!.style.display = view === 'party' ? 'block' : 'none';
-  document.getElementById('encounterView')!.style.display = view === 'encounter' ? 'block' : 'none';
-  document.getElementById('timelineView')!.style.display = view === 'timeline' ? 'block' : 'none';
-  document.getElementById('singleEncounterView')!.style.display = view === 'singleEncounter' ? 'block' : 'none';
-  document.getElementById('combatTrackerView')!.style.display = view === 'combatTracker' ? 'block' : 'none';
-  document.getElementById('wikiView')!.style.display = view === 'wiki' ? 'block' : 'none';
-  document.getElementById('oneshotView')!.style.display = view === 'oneshot' ? 'block' : 'none';
-  document.getElementById('factionsView')!.style.display = view === 'factions' ? 'block' : 'none';
-  document.getElementById('shopsView')!.style.display = view === 'shops' ? 'block' : 'none';
-}
 (window as any).showView = showView;
 
 // ─── Character List ───

@@ -2186,3 +2186,657 @@ kbd {
 .dice-roll-mini:last-child { border-bottom: none; }
 .dice-roll-mini .roll-expr { font-family: monospace; }
 .dice-roll-mini .roll-total { font-weight: 700; }
+
+/* ─── Bottom Tab Bar (Mobile) ─── */
+
+.bottom-tab-bar {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9990;
+  background: var(--parchment-dark);
+  border-top: 2px solid var(--primary);
+  padding: 0.25rem 0;
+  padding-bottom: calc(0.25rem + env(safe-area-inset-bottom, 0px));
+  justify-content: space-around;
+  align-items: center;
+}
+
+[data-theme="dark"] .bottom-tab-bar {
+  background: rgba(26,15,10,.98);
+}
+
+.bottom-tab-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 12px;
+  border: none;
+  background: none;
+  color: var(--ink-muted);
+  font-family: var(--font-display);
+  font-size: 0.65rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bottom-tab-item i {
+  font-size: 1.1rem;
+}
+
+.bottom-tab-item.active {
+  color: var(--primary);
+}
+
+.bottom-tab-item:hover {
+  color: var(--ink);
+}
+
+/* ─── Sidebar (Desktop) ─── */
+
+.app-sidebar {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 220px;
+  z-index: 9980;
+  background: var(--parchment-dark);
+  border-right: 2px solid var(--primary);
+  overflow-y: auto;
+  padding-top: 1rem;
+  transition: width .3s, transform .3s;
+}
+
+[data-theme="dark"] .app-sidebar {
+  background: rgba(26,15,10,.98);
+}
+
+.app-sidebar.collapsed {
+  width: 60px;
+}
+
+.app-sidebar.collapsed .sidebar-label {
+  display: none;
+}
+
+.sidebar-header {
+  padding: 0 1rem 1rem;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-brand {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.sidebar-toggle {
+  background: none;
+  border: none;
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: 4px;
+  font-size: 1rem;
+}
+
+.sidebar-nav {
+  list-style: none;
+  padding: 0.5rem 0;
+  margin: 0;
+}
+
+.sidebar-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.5rem 1rem;
+  color: var(--ink-light);
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.sidebar-nav-item i {
+  width: 20px;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.sidebar-nav-item:hover {
+  background: rgba(139,0,0,.08);
+  color: var(--primary);
+}
+
+.sidebar-nav-item.active {
+  color: var(--primary);
+  background: rgba(139,0,0,.06);
+  border-right: 3px solid var(--primary);
+}
+
+.sidebar-section {
+  border-bottom: 1px solid var(--border-light);
+}
+
+.sidebar-section-title {
+  padding: 0.5rem 1rem;
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar-section-title:hover {
+  color: var(--ink);
+}
+
+/* ─── Session Mode ─── */
+
+body.session-mode .app-sidebar,
+body.session-mode .bottom-tab-bar {
+  display: none !important;
+}
+
+body.session-mode .navbar {
+  display: none !important;
+}
+
+body.session-mode .footer {
+  display: none !important;
+}
+
+.session-mode-topbar {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9995;
+  background: var(--primary-dark);
+  color: #fff;
+  padding: 0.5rem 1rem;
+  padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+}
+
+body.session-mode .session-mode-topbar {
+  display: flex;
+}
+
+body.session-mode {
+  padding-top: 44px;
+  padding-bottom: 0 !important;
+}
+
+body.session-mode .container {
+  max-width: 100% !important;
+  padding-left: 0.5rem !important;
+  padding-right: 0.5rem !important;
+}
+
+.session-mode-topbar .sm-campaign {
+  font-weight: 700;
+}
+
+.session-mode-toggle-btn {
+  background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.3);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-family: var(--font-display);
+}
+
+.session-mode-toggle-btn:hover {
+  background: rgba(255,255,255,.25);
+}
+
+.session-mode .sheet-section:not(.combat-section) {
+  display: none !important;
+}
+
+.session-mode .quick-actions-bar {
+  display: none !important;
+}
+
+.session-mode .session-actions {
+  display: flex !important;
+}
+
+.session-actions {
+  display: none !important;
+}
+
+/* Session mode overrides for large touch targets */
+body.session-mode button,
+body.session-mode .btn {
+  min-height: 48px !important;
+  font-size: 1rem !important;
+}
+
+body.session-mode input,
+body.session-mode .form-control {
+  font-size: 18px !important;
+  min-height: 44px !important;
+}
+
+body.session-mode .combat-stat .stat-value {
+  font-size: 1.8rem !important;
+}
+
+body.session-mode .hp-bar {
+  height: 32px !important;
+  border-radius: 8px !important;
+}
+
+body.session-mode .hp-bar-fill {
+  border-radius: 8px !important;
+}
+
+body.session-mode .hp-bar .text-white {
+  font-size: 1.1rem !important;
+}
+
+/* ─── Bottom Sheet ─── */
+
+.bottom-sheet {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+}
+
+.bottom-sheet.open {
+  display: block;
+}
+
+.bottom-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  animation: fadeIn .2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.bottom-sheet-panel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 85vh;
+  background: var(--parchment-light);
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -4px 24px rgba(0,0,0,.15);
+  transform: translateY(100%);
+  transition: transform .3s ease-out;
+  overflow-y: auto;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+[data-theme="dark"] .bottom-sheet-panel {
+  background: var(--parchment-dark);
+}
+
+.bottom-sheet.open .bottom-sheet-panel {
+  transform: translateY(0);
+}
+
+.bottom-sheet-handle {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0 4px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.bottom-sheet-handle-bar {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+.bottom-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem 0.5rem;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.bottom-sheet-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  margin: 0;
+}
+
+.bottom-sheet-body {
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+/* ─── Character Sheet Accordion ─── */
+
+.sheet-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sheet-section {
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color .2s;
+}
+
+.sheet-section:hover {
+  border-color: var(--border);
+}
+
+.sheet-section summary {
+  padding: 0.6rem 1rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--parchment);
+  list-style: none;
+  user-select: none;
+}
+
+[data-theme="dark"] .sheet-section summary {
+  background: var(--parchment-dark);
+}
+
+.sheet-section summary::-webkit-details-marker {
+  display: none;
+}
+
+.sheet-section summary::after {
+  content: '▶';
+  font-size: 0.7rem;
+  color: var(--gold);
+  transition: transform .2s;
+  margin-left: 8px;
+}
+
+.sheet-section[open] summary::after {
+  transform: rotate(90deg);
+}
+
+.section-summary-count {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--ink-muted);
+  margin-left: auto;
+  margin-right: 12px;
+  font-family: var(--font-body);
+}
+
+.sheet-section .section-content {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--border-light);
+}
+
+/* ─── Quick Action Bar ─── */
+
+.quick-actions-bar {
+  display: flex;
+  gap: 6px;
+  padding: 0.5rem 0;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--parchment-light);
+  padding: 0.5rem;
+  border-radius: var(--radius);
+  margin-bottom: 0.5rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+
+[data-theme="dark"] .quick-actions-bar {
+  background: var(--parchment-dark);
+}
+
+.session-actions .input-group {
+  max-width: 160px;
+}
+
+/* ─── Pull to Refresh ─── */
+
+.pull-to-refresh {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  transition: opacity .2s;
+}
+
+/* ─── Combat Card (Mobile) ─── */
+
+.combat-cards {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.combat-card {
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  background: var(--parchment);
+  transition: all .15s;
+}
+
+[data-theme="dark"] .combat-card {
+  background: var(--parchment-dark);
+}
+
+.combat-card.active-turn {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(184,150,62,.3);
+}
+
+.combat-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.combat-card-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.combat-card-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+  margin-bottom: 6px;
+}
+
+.combat-card-actions {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.combat-card-actions .btn {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  min-height: auto;
+}
+
+/* ─── Responsive: Mobile First ─── */
+
+@media (max-width: 768px) {
+  .bottom-tab-bar {
+    display: flex;
+  }
+
+  .app-sidebar {
+    display: none !important;
+  }
+
+  body {
+    padding-bottom: 56px;
+  }
+
+  .navbar {
+    display: none !important;
+  }
+
+  .container {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+  }
+
+  .combat-cards {
+    display: flex;
+  }
+
+  .combat-tracker-table {
+    display: none;
+  }
+
+  .character-grid .col-md-6 {
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  .fab {
+    bottom: 4rem;
+    left: 1rem;
+    width: 44px;
+    height: 44px;
+    font-size: 1rem;
+  }
+
+  .fab-menu {
+    bottom: 6rem;
+    left: 1rem;
+  }
+
+  .fab-menu-item {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+  }
+
+  .toast-custom {
+    bottom: 4.5rem !important;
+    right: 0.5rem !important;
+    left: 0.5rem !important;
+    max-width: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .app-sidebar {
+    display: block;
+  }
+
+  .bottom-tab-bar {
+    display: none !important;
+  }
+
+  body {
+    padding-left: 220px;
+  }
+
+  .app-sidebar.collapsed ~ body,
+  body.sidebar-collapsed {
+    padding-left: 60px;
+  }
+}
+
+/* ─── Desktop sidebar expanded content area ─── */
+body.sidebar-expanded .container {
+  max-width: calc(100% - 220px);
+}
+
+body.sidebar-collapsed .container {
+  max-width: calc(100% - 60px);
+}
+
+/* ─── PWA standalone mode ─── */
+
+@media (display-mode: standalone) {
+  body {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .navbar {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/* ─── Session mode dark theme variant ─── */
+
+[data-theme="dark"] body.session-mode {
+  background: #0a0503 !important;
+}
+
+[data-theme="dark"] body.session-mode .session-mode-topbar {
+  background: #000;
+}
+
+[data-theme="light"] body.session-mode .session-mode-topbar {
+  background: var(--primary-dark);
+}
+
+[data-theme="light"] body.session-mode {
+  background: var(--parchment) !important;
+}
+
+/* ─── Print: hide new UI elements ─── */
+
+@media print {
+  .bottom-tab-bar,
+  .app-sidebar,
+  .bottom-sheet,
+  .session-mode-topbar,
+  .quick-actions-bar {
+    display: none !important;
+  }
+}
