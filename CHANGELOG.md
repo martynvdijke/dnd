@@ -1,3 +1,37 @@
+# [2.0.0](https://github.com/martynvdijke/dnd/compare/v1.16.0...v2.0.0) (2026-05-28)
+
+
+### Bug Fixes
+
+* add input validation and fix CI failures ([95bf1cd](https://github.com/martynvdijke/dnd/commit/95bf1cd0f4996c1e85171f07e59419cb9afd56a2))
+* align ci.yaml with ci.yml - only test chromium in Release workflow ([624c116](https://github.com/martynvdijke/dnd/commit/624c116a00a9cd1bc3c39c64b18f955a4b44013e))
+* **ci:** build frontend JS in test-e2e job ([31ad3da](https://github.com/martynvdijke/dnd/commit/31ad3da0967f56ddc9ec3411c4f04a22615ef026))
+
+
+### Features
+
+* add 13 isolated handler test files with testutil package for shift-left testing ([687492b](https://github.com/martynvdijke/dnd/commit/687492bc2a276e424313f6d23c93cd843b74cd47))
+* player UX overhaul with responsive navigation, session mode, and PWA support ([092f388](https://github.com/martynvdijke/dnd/commit/092f3881aa1907acb407ea93f82acbb9eb9ceecc))
+
+
+### BREAKING CHANGES
+
+* Complete UI restructuring with mobile-first navigation (bottom tab bar + sidebar), session mode for live-play, bottom sheet component, context-aware FAB, PWA support with service worker and manifest, and touch gesture handling. The old top navbar is replaced with a responsive dual-navigation system.
+
+Changes include:
+- Bottom tab bar (Characters, Party, Dice, Compendium, More) on mobile
+- Collapsible sidebar on desktop
+- Session mode with sessionStorage persistence
+- Bottom sheet component for mobile overlays
+- Context-aware FAB with per-view actions
+- PWA support (manifest.json, service worker)
+- Touch gestures (pull-to-refresh, swipe-to-dismiss)
+- Responsive CSS with mobile-first breakpoints
+- Vite multi-entry build configuration
+- Comprehensive Go API tests for static files and HTML structure
+- Playwright E2E tests for navigation, PWA, and session mode
+- Gitignore openspec/ and .opencode/ directories
+
 # [1.16.0](https://github.com/martynvdijke/dnd/compare/v1.15.3...v1.16.0) (2026-05-27)
 
 
