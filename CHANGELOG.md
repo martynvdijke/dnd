@@ -1,3 +1,10 @@
+## [2.0.3](https://github.com/martynvdijke/dnd/compare/v2.0.2...v2.0.3) (2026-05-28)
+
+
+### Bug Fixes
+
+* **deps:** update all non-major dependencies ([ab35c98](https://github.com/martynvdijke/dnd/commit/ab35c987084372966685068a3d28526c298c01ac))
+
 ## [2.0.2](https://github.com/martynvdijke/dnd/compare/v2.0.1...v2.0.2) (2026-05-28)
 
 ## [2.0.1](https://github.com/martynvdijke/dnd/compare/v2.0.0...v2.0.1) (2026-05-28)
