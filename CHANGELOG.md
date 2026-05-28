@@ -1,3 +1,10 @@
+## [2.0.1](https://github.com/martynvdijke/dnd/compare/v2.0.0...v2.0.1) (2026-05-28)
+
+
+### Reverts
+
+* Revert "fix: align ci.yaml with ci.yml - only test chromium in Release workflow" ([e3086d4](https://github.com/martynvdijke/dnd/commit/e3086d4be292bf3a5eaecb17f0701d01f8186aaf))
+
 # [2.0.0](https://github.com/martynvdijke/dnd/compare/v1.16.0...v2.0.0) (2026-05-28)
 
 
