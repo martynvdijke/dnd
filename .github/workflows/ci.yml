@@ -47,7 +47,7 @@ jobs:
           node-version: lts/*
       - run: go mod download
       - run: npm ci
-      - run: npx tsc
+      - run: npm run build:ts
       - run: npx playwright install --with-deps chromium
       - run: npx playwright test --project=chromium
         env:
