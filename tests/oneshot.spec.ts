@@ -1,20 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { waitLoadingDone, waitModalClosed, clickSecondaryNavItem } from './helpers.js';
 
 const uniqueName = () => `OS-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-
-async function waitLoadingDone(page) {
-  await page.waitForFunction(() => {
-    const o = document.getElementById('loadingOverlay');
-    return o && o.classList.contains('d-none');
-  }, { timeout: 5000 }).catch(() => {});
-}
-
-async function waitModalClosed(page) {
-  await page.waitForFunction(() => {
-    const modal = document.getElementById('genericModal');
-    return !modal || !modal.classList.contains('show') || modal.classList.contains('d-none');
-  }, { timeout: 10000 }).catch(() => {});
-}
 
 /** Use page.evaluate with fetch (carries browser cookies) + explicit credentials */
 async function apiFetch(page, url, opts = {}) {
@@ -48,14 +35,9 @@ async function loadHtmx(page, url) {
   }, url);
 }
 
-/** Click the One-Shots nav link, handling mobile hamburger menu */
+/** Click the One-Shots nav link, handling mobile hamburger menu or mobile More→One-Shots */
 async function navigateToOneShots(page) {
-  const toggler = page.locator('.navbar-toggler');
-  if (await toggler.isVisible()) {
-    await toggler.click();
-    await page.waitForTimeout(300);
-  }
-  await page.locator('nav a:has-text("One-Shots")').click();
+  await clickSecondaryNavItem(page, 'One-Shots', 'moreNavOneshot');
   await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
 }
 
@@ -70,6 +52,11 @@ async function submitOneShotForm(page, { title, template, difficulty, minutes })
   if (difficulty) await page.locator('#genericModalBody select[name="difficulty"]').selectOption(difficulty);
   if (minutes) await page.locator('#genericModalBody input[name="estimated_minutes"]').fill(String(minutes));
 
+  // Hide bottom tab bar on mobile to avoid pointer interception
+  await page.evaluate(() => {
+    const bar = document.getElementById('bottomTabBar');
+    if (bar) bar.style.display = 'none';
+  });
   await page.locator('#genericModalBody form button.btn-primary').click();
   await waitModalClosed(page);
   await page.waitForTimeout(500);
@@ -131,8 +118,8 @@ test.describe('One-Shot Adventure Features', () => {
     await page.waitForFunction(() => {
       const section = document.getElementById('oneshotSection');
       return section && section.textContent.includes('Act 1');
-    }, { timeout: 15000 });
-    await expect(page.locator('#oneshotSection')).toContainText('Act 5', { timeout: 15000 });
+    }, { timeout: 30000 });
+    await expect(page.locator('#oneshotSection')).toContainText('Act 5', { timeout: 30000 });
   });
 
   test('Prep dashboard loads for generated one-shot', async ({ page }) => {

@@ -1,21 +1,7 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+import { ensureNavOpen, waitLoadingDone, isMobile } from './helpers.js';
 
-async function ensureNavOpen(page) {
-  const toggler = page.locator('.navbar-toggler');
-  if (await toggler.isVisible()) {
-    await toggler.click();
-    await page.waitForTimeout(300);
-  }
-}
-
-async function waitLoadingDone(page) {
-  await page.waitForFunction(() => {
-    const o = document.getElementById('loadingOverlay');
-    return o && o.classList.contains('d-none');
-  }, { timeout: 5000 }).catch(() => {});
-}
-
-async function goToAdmin(page) {
+async function goToAdmin(page: Page) {
   await page.waitForTimeout(300);
   await page.goto('/admin', { waitUntil: 'domcontentloaded', timeout: 10000 });
 }
@@ -33,8 +19,13 @@ test.describe('Admin panel', () => {
   });
 
   test('admin link is visible for admin users', async ({ page }) => {
-    await ensureNavOpen(page);
-    await expect(page.locator('#adminNavItem')).toBeVisible();
+    if (await isMobile(page)) {
+      await page.goto('/admin', { waitUntil: 'domcontentloaded', timeout: 10000 });
+      await expect(page.locator('#adminUsers .card-header')).toContainText('Users');
+    } else {
+      await ensureNavOpen(page);
+      await expect(page.locator('#adminNavItem')).toBeVisible();
+    }
   });
 
   test('admin panel loads user list', async ({ page }) => {

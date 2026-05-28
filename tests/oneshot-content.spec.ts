@@ -1,13 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { waitLoadingDone, clickSecondaryNavItem } from './helpers.js';
 
 const uniqueName = () => `OSC-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-
-async function waitLoadingDone(page) {
-  await page.waitForFunction(() => {
-    const o = document.getElementById('loadingOverlay');
-    return o && o.classList.contains('d-none');
-  }, { timeout: 5000 }).catch(() => {});
-}
 
 /** Load HTMX content into oneshotSection */
 async function loadHtmx(page, url) {
@@ -21,12 +15,7 @@ async function loadHtmx(page, url) {
 
 /** Click the One-Shots nav link, handling mobile hamburger menu */
 async function navigateToOneShots(page) {
-  const toggler = page.locator('.navbar-toggler');
-  if (await toggler.isVisible()) {
-    await toggler.click();
-    await page.waitForTimeout(300);
-  }
-  await page.locator('nav a:has-text("One-Shots")').click();
+  await clickSecondaryNavItem(page, 'One-Shots', 'moreNavOneshot');
   await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
 }
 

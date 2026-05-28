@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { clickBottomTabForce } from './helpers.js';
 
 async function waitLoadingDone(page: import('@playwright/test').Page) {
   await page.waitForFunction(() => {
@@ -34,16 +35,16 @@ test.describe('Navigation: Bottom Tab Bar & Sidebar', () => {
   test('bottom tabs change views', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
 
-    await page.locator('.bottom-tab-item[data-nav="dice"]').click();
+    await clickBottomTabForce(page, 'dice');
     await expect(page.locator('#diceView')).toBeVisible({ timeout: 5000 });
 
-    await page.locator('.bottom-tab-item[data-nav="party"]').click();
-    await expect(page.locator('#partyView')).toBeVisible({ timeout: 5000 });
-
-    await page.locator('.bottom-tab-item[data-nav="characters"]').click();
+    await clickBottomTabForce(page, 'characters');
     await expect(page.locator('#charactersView')).toBeVisible({ timeout: 5000 });
 
-    await page.locator('.bottom-tab-item[data-nav="compendium"]').click();
+    await clickBottomTabForce(page, 'party');
+    await expect(page.locator('#partyView')).toBeVisible({ timeout: 5000 });
+
+    await clickBottomTabForce(page, 'compendium');
     await expect(page.locator('#compendiumView')).toBeVisible({ timeout: 5000 });
   });
 

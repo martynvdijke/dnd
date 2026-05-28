@@ -1,19 +1,5 @@
 import { test, expect } from '@playwright/test';
-
-async function ensureNavOpen(page) {
-  const toggler = page.locator('.navbar-toggler');
-  if (await toggler.isVisible()) {
-    await toggler.click();
-    await page.waitForTimeout(300);
-  }
-}
-
-async function waitLoadingDone(page) {
-  await page.waitForFunction(() => {
-    const o = document.getElementById('loadingOverlay');
-    return o && o.classList.contains('d-none');
-  }, { timeout: 5000 }).catch(() => {});
-}
+import { ensureNavOpen, waitLoadingDone, clickNavItem } from './helpers.js';
 
 test.describe('Dice rolling', () => {
   test.beforeEach(async ({ page }) => {
@@ -28,8 +14,7 @@ test.describe('Dice rolling', () => {
   });
 
   test('dice roller works', async ({ page }) => {
-    await ensureNavOpen(page);
-    await page.click('a:has-text("Dice")');
+    await clickNavItem(page, 'Dice', 'dice');
     await expect(page.locator('#diceView h1')).toContainText('Dice Roller');
     await expect(page.locator('#diceExpr')).toBeVisible();
 
@@ -43,8 +28,7 @@ test.describe('Dice rolling', () => {
   });
 
   test('saves dice roll history', async ({ page }) => {
-    await ensureNavOpen(page);
-    await page.click('a:has-text("Dice")');
+    await clickNavItem(page, 'Dice', 'dice');
     const input = page.locator('#diceExpr');
     await input.fill('1d20');
     await page.click('text=Roll the Bones');
@@ -55,8 +39,7 @@ test.describe('Dice rolling', () => {
   });
 
   test('rpg notation: keep highest 3 of 4d6', async ({ page }) => {
-    await ensureNavOpen(page);
-    await page.click('a:has-text("Dice")');
+    await clickNavItem(page, 'Dice', 'dice');
     const input = page.locator('#diceExpr');
     await input.fill('4d6kh3');
     await page.click('text=Roll the Bones');
@@ -69,8 +52,7 @@ test.describe('Dice rolling', () => {
   });
 
   test('rpg notation: exploding dice', async ({ page }) => {
-    await ensureNavOpen(page);
-    await page.click('a:has-text("Dice")');
+    await clickNavItem(page, 'Dice', 'dice');
     const input = page.locator('#diceExpr');
     await input.fill('1d6!');
     await page.click('text=Roll the Bones');
@@ -80,8 +62,7 @@ test.describe('Dice rolling', () => {
   });
 
   test('rpg notation: percentile d100', async ({ page }) => {
-    await ensureNavOpen(page);
-    await page.click('a:has-text("Dice")');
+    await clickNavItem(page, 'Dice', 'dice');
     const input = page.locator('#diceExpr');
     await input.fill('1d100');
     await page.click('text=Roll the Bones');
@@ -94,8 +75,7 @@ test.describe('Dice rolling', () => {
   });
 
   test('3D dice renders for all standard polyhedral types', async ({ page }) => {
-    await ensureNavOpen(page);
-    await page.click('a:has-text("Dice")');
+    await clickNavItem(page, 'Dice', 'dice');
     for (const die of ['d4', 'd6', 'd8', 'd10', 'd12', 'd20']) {
       const input = page.locator('#diceExpr');
       await input.fill('1' + die);
@@ -110,8 +90,7 @@ test.describe('Dice rolling', () => {
   });
 
   test('advantage quick-preset works', async ({ page }) => {
-    await ensureNavOpen(page);
-    await page.click('a:has-text("Dice")');
+    await clickNavItem(page, 'Dice', 'dice');
     const input = page.locator('#diceExpr');
     await input.fill('1d20');
     // Click the "Advantage" preset button
@@ -122,8 +101,7 @@ test.describe('Dice rolling', () => {
   });
 
   test('invalid expression shows error', async ({ page }) => {
-    await ensureNavOpen(page);
-    await page.click('a:has-text("Dice")');
+    await clickNavItem(page, 'Dice', 'dice');
     const input = page.locator('#diceExpr');
     await input.fill('not-a-dice-roll');
     await page.click('text=Roll the Bones');
@@ -133,8 +111,7 @@ test.describe('Dice rolling', () => {
   });
 
   test('placeholder text indicates RPG notation', async ({ page }) => {
-    await ensureNavOpen(page);
-    await page.click('a:has-text("Dice")');
+    await clickNavItem(page, 'Dice', 'dice');
     const input = page.locator('#diceExpr');
     await expect(input).toHaveAttribute('placeholder', /4d6kh3|rpg|notation|kh|!/i);
   });

@@ -1,18 +1,19 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+import { ensureNavOpen, waitModalClosed, isMobile } from './helpers.js';
 
-async function ensureNavOpen(page) {
-  const toggler = page.locator('.navbar-toggler');
-  if (await toggler.isVisible()) {
-    await toggler.click();
+async function openCombat(page: Page) {
+  if (await isMobile(page)) {
+    await page.click('#moreTabBtn');
     await page.waitForTimeout(300);
+    await page.evaluate(() => {
+      const btn = document.getElementById('moreNavCombat');
+      if (btn) btn.click();
+    });
+  } else {
+    await ensureNavOpen(page);
+    await page.click('#combatNavItem a');
   }
-}
-
-async function waitModalClosed(page) {
-  await page.waitForFunction(() => {
-    const modal = document.getElementById('genericModal');
-    return !modal || !modal.classList.contains('show');
-  }, { timeout: 10000 }).catch(() => {});
+  await page.waitForTimeout(500);
 }
 
 test.describe.serial('Combat Tracker', () => {
@@ -32,22 +33,18 @@ test.describe.serial('Combat Tracker', () => {
   });
 
   test('combat nav item visible for admin', async ({ page }) => {
-    await ensureNavOpen(page);
-    await expect(page.locator('#combatNavItem')).toBeVisible();
+    await openCombat(page);
+    await expect(page.locator('#combatTrackerView')).toBeVisible();
   });
 
   test('opens combat tracker view', async ({ page }) => {
-    await ensureNavOpen(page);
-    await page.click('#combatNavItem a');
-    await page.waitForTimeout(500);
+    await openCombat(page);
     await expect(page.locator('#combatTrackerView')).toBeVisible();
     await expect(page.locator('#combatTrackerContent')).toBeVisible();
   });
 
   test('adds a combatant and shows in tracker', async ({ page }) => {
-    await ensureNavOpen(page);
-    await page.click('#combatNavItem a');
-    await page.waitForTimeout(500);
+    await openCombat(page);
 
     const uniqueEnemy = `Goblin-${Date.now()}`;
     // Hide FAB on mobile to avoid interception
@@ -67,9 +64,7 @@ test.describe.serial('Combat Tracker', () => {
   });
 
   test('rolls initiative for combatants', async ({ page }) => {
-    await ensureNavOpen(page);
-    await page.click('#combatNavItem a');
-    await page.waitForTimeout(500);
+    await openCombat(page);
 
     const uniqueEnemy = `Goblin-${Date.now()}`;
     await page.evaluate(() => {
@@ -93,9 +88,7 @@ test.describe.serial('Combat Tracker', () => {
   });
 
   test('applies damage to combatant', async ({ page }) => {
-    await ensureNavOpen(page);
-    await page.click('#combatNavItem a');
-    await page.waitForTimeout(500);
+    await openCombat(page);
 
     const uniqueEnemy = `Goblin-${Date.now()}`;
     await page.evaluate(() => {

@@ -1,28 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { ensureNavOpen, waitLoadingDone, waitModalClosed, clickNavItem } from './helpers.js';
 
 const uniqueName = () => `FT-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-
-async function ensureNavOpen(page) {
-  const toggler = page.locator('.navbar-toggler');
-  if (await toggler.isVisible()) {
-    await toggler.click();
-    await page.waitForTimeout(300);
-  }
-}
-
-async function waitLoadingDone(page) {
-  await page.waitForFunction(() => {
-    const o = document.getElementById('loadingOverlay');
-    return o && o.classList.contains('d-none');
-  }, { timeout: 5000 }).catch(() => {});
-}
-
-async function waitModalClosed(page) {
-  await page.waitForFunction(() => {
-    const modal = document.getElementById('genericModal');
-    return !modal || !modal.classList.contains('show');
-  }, { timeout: 10000 }).catch(() => {});
-}
 
 test.describe('Full feature coverage', () => {
   test.beforeEach(async ({ page }) => {
@@ -127,8 +106,7 @@ test.describe('Full feature coverage', () => {
     await page.click('text=Create');
     await waitModalClosed(page);
 
-    await ensureNavOpen(page);
-    await page.click('a:has-text("Characters")');
+    await clickNavItem(page, 'Characters', 'characters');
     await expect(page.locator('.character-card').filter({ hasText: name })).toBeVisible();
   });
 

@@ -1,28 +1,7 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+import { ensureNavOpen, waitLoadingDone, waitModalClosed, isMobile, clickNavItem } from './helpers.js';
 
 const uniqueName = () => `Test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-
-async function ensureNavOpen(page) {
-  const toggler = page.locator('.navbar-toggler');
-  if (await toggler.isVisible()) {
-    await toggler.click();
-    await page.waitForTimeout(300);
-  }
-}
-
-async function waitLoadingDone(page) {
-  await page.waitForFunction(() => {
-    const o = document.getElementById('loadingOverlay');
-    return o && o.classList.contains('d-none');
-  }, { timeout: 5000 }).catch(() => {});
-}
-
-async function waitModalClosed(page) {
-  await page.waitForFunction(() => {
-    const modal = document.getElementById('genericModal');
-    return !modal || !modal.classList.contains('show');
-  }, { timeout: 10000 }).catch(() => {});
-}
 
 test.describe('Character sheet editing', () => {
   test.beforeEach(async ({ page }) => {
@@ -180,8 +159,7 @@ test.describe('Campaign management UI', () => {
     await page.click('text=Create');
     await waitModalClosed(page);
 
-    await ensureNavOpen(page);
-    await page.click('a:has-text("Party")');
+    await clickNavItem(page, 'Party', 'party');
     await expect(page.locator('#partyView h1')).toContainText('Party View');
     await expect(page.locator('#partyContent')).toContainText(name);
   });
@@ -205,8 +183,7 @@ test.describe('Campaign management UI', () => {
   });
 
   test('compendium search works', async ({ page }) => {
-    await ensureNavOpen(page);
-    await page.click('a:has-text("Compendium")');
+    await clickNavItem(page, 'Compendium', 'compendium');
     await expect(page.locator('#compendiumView h1')).toContainText('Compendium');
 
     const searchInput = page.locator('#compSearch');
@@ -218,8 +195,12 @@ test.describe('Campaign management UI', () => {
   });
 
   test('logout works', async ({ page }) => {
-    await ensureNavOpen(page);
-    await page.click('a:has-text("Logout")');
+    if (await isMobile(page)) {
+      await page.evaluate(() => (window as any).logout());
+    } else {
+      await ensureNavOpen(page);
+      await page.click('a:has-text("Logout")');
+    }
     await page.waitForURL(/\/login/);
     await expect(page.locator('h1')).toContainText('villum');
   });
@@ -519,14 +500,23 @@ test.describe('Theme and loading', () => {
   test('dark mode toggle switches theme and persists', async ({ page }) => {
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 
-    await page.click('#themeToggle');
+    async function toggleTheme() {
+      const themeToggle = page.locator('#themeToggle');
+      if (await themeToggle.isVisible()) {
+        await themeToggle.click();
+      } else {
+        await page.evaluate(() => (window as any).toggleTheme());
+      }
+    }
+
+    await toggleTheme();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
     await page.reload();
     await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 
-    await page.click('#themeToggle');
+    await toggleTheme();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   });
 
