@@ -52,15 +52,13 @@ jobs:
           go test -tags "fts5" -v ./...
 
       - name: Install Playwright Browsers
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium firefox
 
       - name: Build server binary
         run: CGO_ENABLED=1 go build -tags fts5 -o villum-server .
 
       - name: Run Playwright tests
-        run: npx playwright test --project=chromium
-        env:
-          CI: true
+        run: npm run test:e2e
 
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
