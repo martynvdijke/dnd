@@ -44,8 +44,9 @@ test.describe('Responsive design', () => {
 
   test('tablet layout works at 768x1024', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
-    await expect(page.locator('.navbar')).toBeVisible();
-    await expect(page.locator('.container').first()).toBeVisible();
+    await waitLoadingDone(page);
+    await expect(page.locator('.bottom-tab-bar')).toBeVisible();
+    await expect(page.locator('#charGrid')).toBeVisible();
   });
 
   test('mobile layout works at 390x844 (iPhone 14)', async ({ page }) => {
@@ -86,8 +87,7 @@ test.describe('Responsive design', () => {
 
   test('dice roller is usable on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await ensureNavOpen(page);
-    await page.click('a:has-text("Dice")');
+    await page.click('#bottomTabBar button[data-nav="dice"]');
     await expect(page.locator('#diceExpr')).toBeVisible({ timeout: 5000 });
 
     await page.fill('#diceExpr', '1d20+5');

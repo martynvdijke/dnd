@@ -14,7 +14,6 @@ declare const htmx: any;
 
 let csrfToken = '';
 let currentUser: { id: number; username: string; role: string } | null = null;
-let currentView = getCurrentView();
 let currentChar: any = null;
 let currentTab = 'stats';
 let allLocations: any[] = [];
@@ -76,12 +75,12 @@ function initShortcuts() {
       return;
     }
 
-    if (e.key === 'n' && currentView === 'characters') {
+    if (e.key === 'n' && getCurrentView() === 'characters') {
       (window as any).newChar();
       return;
     }
 
-    if (e.key === 'd' && currentView !== 'sheet') {
+    if (e.key === 'd' && getCurrentView() !== 'sheet') {
       showView('dice');
       renderDiceTab();
       setTimeout(() => {
@@ -101,14 +100,14 @@ function initShortcuts() {
       return;
     }
 
-    if (e.key === '/' && currentView === 'characters') {
+    if (e.key === '/' && getCurrentView() === 'characters') {
       e.preventDefault();
       const search = document.querySelector<HTMLInputElement>('#charSearch');
       if (search) search.focus();
       return;
     }
 
-    if (currentView === 'sheet') {
+    if (getCurrentView() === 'sheet') {
       const num = parseInt(e.key);
       if (num >= 1 && num <= 9) {
         const idx = num - 1;
@@ -349,10 +348,10 @@ function connectWS() {
   ws.onmessage = (ev) => {
     try {
       const msg = JSON.parse(ev.data);
-      if (msg.type === 'character_update' && currentView === 'sheet' && currentChar && msg.payload.character_id === currentChar.id) {
+      if (msg.type === 'character_update' && getCurrentView() === 'sheet' && currentChar && msg.payload.character_id === currentChar.id) {
         openChar(currentChar.id);
       }
-      if (msg.type === 'party_update' && currentView === 'party') {
+      if (msg.type === 'party_update' && getCurrentView() === 'party') {
         (window as any).showParty();
       }
     } catch {}
@@ -2526,7 +2525,7 @@ async function rollWithAdvantage(isAdv: boolean) {
 // ─── Render Dice Tab ───
 
 function renderDiceTab() {
-  const targetId = currentView === 'dice' ? 'diceViewSection' : 'diceSection';
+  const targetId = getCurrentView() === 'dice' ? 'diceViewSection' : 'diceSection';
   const el = document.getElementById(targetId);
   if (!el) return;
   el.innerHTML = `
