@@ -69,15 +69,17 @@ export function toggleSidebar(): void {
 (window as any).toggleSidebar = toggleSidebar;
 
 export function showMoreNav(): void {
+  // Mirror visibility from corresponding top nav items (set by init based on role)
+  const show = (id: string) => document.getElementById(id)?.style.display !== 'none' ? '' : 'display:none';
   const content = `
     <div class="d-flex flex-column gap-1">
       <button class="btn btn-outline-primary w-100 text-start" onclick="showEncounterBuilder();closeBottomSheet()"><i class="fa-solid fa-crosshairs me-2" aria-hidden="true"></i>Encounters</button>
-      <button class="btn btn-outline-primary w-100 text-start" id="moreNavCombat" onclick="showCombatTracker();closeBottomSheet()" style="display:none"><i class="fa-solid fa-swords me-2" aria-hidden="true"></i>Combat</button>
+      <button class="btn btn-outline-primary w-100 text-start" onclick="showCombatTracker();closeBottomSheet()" style="${show('combatNavItem')}"><i class="fa-solid fa-swords me-2" aria-hidden="true"></i>Combat</button>
       <button class="btn btn-outline-primary w-100 text-start" onclick="showTimeline();closeBottomSheet()"><i class="fa-solid fa-timeline me-2" aria-hidden="true"></i>Timeline</button>
-      <button class="btn btn-outline-primary w-100 text-start" id="moreNavOneshot" onclick="showOneShots();closeBottomSheet()" style="display:none"><i class="fa-solid fa-scroll me-2" aria-hidden="true"></i>One-Shots</button>
-      <button class="btn btn-outline-primary w-100 text-start" id="moreNavFactions" onclick="showFactions();closeBottomSheet()" style="display:none"><i class="fa-solid fa-flag me-2" aria-hidden="true"></i>Factions</button>
-      <button class="btn btn-outline-primary w-100 text-start" id="moreNavShops" onclick="showShops();closeBottomSheet()" style="display:none"><i class="fa-solid fa-store me-2" aria-hidden="true"></i>Shops</button>
-      <button class="btn btn-outline-primary w-100 text-start" onclick="window.location.href='/admin'" id="moreNavAdmin" style="display:none"><i class="fa-solid fa-shield-halved me-2" aria-hidden="true"></i>Admin</button>
+      <button class="btn btn-outline-primary w-100 text-start" onclick="showOneShots();closeBottomSheet()" style="${show('oneshotNavItem')}"><i class="fa-solid fa-scroll me-2" aria-hidden="true"></i>One-Shots</button>
+      <button class="btn btn-outline-primary w-100 text-start" onclick="showFactions();closeBottomSheet()" style="${show('factionsNavItem')}"><i class="fa-solid fa-flag me-2" aria-hidden="true"></i>Factions</button>
+      <button class="btn btn-outline-primary w-100 text-start" onclick="showShops();closeBottomSheet()" style="${show('shopsNavItem')}"><i class="fa-solid fa-store me-2" aria-hidden="true"></i>Shops</button>
+      <button class="btn btn-outline-primary w-100 text-start" onclick="window.location.href='/admin'" style="${show('adminNavItem')}"><i class="fa-solid fa-shield-halved me-2" aria-hidden="true"></i>Admin</button>
     </div>
   `;
   openBottomSheet({ id: 'more-nav', title: 'More', content });

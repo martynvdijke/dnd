@@ -379,14 +379,22 @@ async function init() {
       e.detail.headers['X-CSRF-Token'] = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || csrfToken;
     });
     document.getElementById('userName')!.textContent = user.username;
+
+    // Top navbar visibility
+    const show = (id: string) => { const el = document.getElementById(id); if (el) el.style.display = ''; };
     if (user.role === 'admin') {
-      document.getElementById('adminNavItem')!.style.display = '';
-      document.getElementById('combatNavItem')!.style.display = '';
+      show('adminNavItem');
+      show('sidebarAdminNav');
     }
     if (user.role === 'admin' || user.role === 'dm') {
-      document.getElementById('oneshotNavItem')!.style.display = '';
-      document.getElementById('factionsNavItem')!.style.display = '';
-      document.getElementById('shopsNavItem')!.style.display = '';
+      show('combatNavItem');
+      show('sidebarCombatNav');
+      show('oneshotNavItem');
+      show('sidebarOneshotNav');
+      show('factionsNavItem');
+      show('sidebarFactionsNav');
+      show('shopsNavItem');
+      show('sidebarShopsNav');
     }
     showView('characters');
     loadCharacters();
