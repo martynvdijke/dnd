@@ -1,5 +1,6 @@
 import type { ViewState } from './types';
 import { openBottomSheet } from './bottom-sheet';
+import { updateFabForView } from './fab';
 
 export interface ViewItem {
   id: ViewState;
@@ -43,6 +44,7 @@ export function showView(view: ViewState): void {
     }
   });
   updateActiveTab(view);
+  updateFabForView(view);
 }
 
 export function updateActiveTab(view: ViewState): void {

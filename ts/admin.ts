@@ -97,7 +97,7 @@ async function loadUsers() {
     <div class="mb-3"><label class="form-label">Email</label><input class="form-control" type="email" id="addEmail"></div>
     <div class="mb-3">
       <label class="form-label">Role</label>
-      <select class="form-select" id="addRole"><option value="user">User</option><option value="admin">Admin</option></select>
+      <select class="form-select" id="addRole"><option value="user">User</option><option value="dm">DM</option><option value="admin">Admin</option></select>
     </div>
     <button class="btn btn-primary w-100" onclick="saveNewUser()">Create</button>
   `);
@@ -127,7 +127,7 @@ async function loadUsers() {
     <div class="mb-3"><label class="form-label">Email</label><input class="form-control" type="email" id="editEmail" value="${esc(email)}"></div>
     <div class="mb-3">
       <label class="form-label">Role</label>
-      <select class="form-select" id="editRole"><option value="user" ${role === 'user' ? 'selected' : ''}>User</option><option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option></select>
+      <select class="form-select" id="editRole"><option value="user" ${role === 'user' ? 'selected' : ''}>User</option><option value="dm" ${role === 'dm' ? 'selected' : ''}>DM</option><option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option></select>
     </div>
     <button class="btn btn-primary w-100" onclick="saveEditUser(${id})">Save</button>
   `);
