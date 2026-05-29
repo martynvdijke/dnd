@@ -1,3 +1,10 @@
+## [2.0.5](https://github.com/martynvdijke/dnd/compare/v2.0.4...v2.0.5) (2026-05-29)
+
+
+### Bug Fixes
+
+* give DMs combat nav access and fix sidebar/nav visibility ([6e0180a](https://github.com/martynvdijke/dnd/commit/6e0180ae1a2f176cecfe20d91a5d127576847b1f))
+
 ## [2.0.4](https://github.com/martynvdijke/dnd/compare/v2.0.3...v2.0.4) (2026-05-29)
 
 
