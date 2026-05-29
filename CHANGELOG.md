@@ -1,3 +1,10 @@
+## [2.0.4](https://github.com/martynvdijke/dnd/compare/v2.0.3...v2.0.4) (2026-05-29)
+
+
+### Bug Fixes
+
+* FAB button tree-shaking and DM role in admin panel ([0c425fc](https://github.com/martynvdijke/dnd/commit/0c425fcd7fab90b10182bc8d5d7c2d9296d455b4))
+
 ## [2.0.3](https://github.com/martynvdijke/dnd/compare/v2.0.2...v2.0.3) (2026-05-28)
 
 
