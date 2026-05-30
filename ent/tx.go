@@ -100,6 +100,8 @@ type Tx struct {
 	Location *LocationClient
 	// NPC is the client for interacting with the NPC builders.
 	NPC *NPCClient
+	// OneShotActNPC is the client for interacting with the OneShotActNPC builders.
+	OneShotActNPC *OneShotActNPCClient
 	// PartyItem is the client for interacting with the PartyItem builders.
 	PartyItem *PartyItemClient
 	// Quest is the client for interacting with the Quest builders.
@@ -299,6 +301,7 @@ func (tx *Tx) init() {
 	tx.LevelUpPlan = NewLevelUpPlanClient(tx.config)
 	tx.Location = NewLocationClient(tx.config)
 	tx.NPC = NewNPCClient(tx.config)
+	tx.OneShotActNPC = NewOneShotActNPCClient(tx.config)
 	tx.PartyItem = NewPartyItemClient(tx.config)
 	tx.Quest = NewQuestClient(tx.config)
 	tx.RestLog = NewRestLogClient(tx.config)

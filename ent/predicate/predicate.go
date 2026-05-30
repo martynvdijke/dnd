@@ -138,6 +138,9 @@ type Location func(*sql.Selector)
 // NPC is the predicate function for npc builders.
 type NPC func(*sql.Selector)
 
+// OneShotActNPC is the predicate function for oneshotactnpc builders.
+type OneShotActNPC func(*sql.Selector)
+
 // PartyItem is the predicate function for partyitem builders.
 type PartyItem func(*sql.Selector)
 

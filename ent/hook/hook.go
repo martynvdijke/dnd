@@ -536,6 +536,18 @@ func (f NPCFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.NPCMutation", m)
 }
 
+// The OneShotActNPCFunc type is an adapter to allow the use of ordinary
+// function as OneShotActNPC mutator.
+type OneShotActNPCFunc func(context.Context, *ent.OneShotActNPCMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OneShotActNPCFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OneShotActNPCMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OneShotActNPCMutation", m)
+}
+
 // The PartyItemFunc type is an adapter to allow the use of ordinary
 // function as PartyItem mutator.
 type PartyItemFunc func(context.Context, *ent.PartyItemMutation) (ent.Value, error)

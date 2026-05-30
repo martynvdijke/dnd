@@ -11,6 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
+	"villum/ent"
+	"villum/ent/oneshotactnpc"
 	"villum/models"
 )
 
@@ -80,13 +82,13 @@ func GetOneShotAdventure(c *gin.Context) {
 	}
 
 	// Load acts with scenes
-	actRows, err := db.DB.Query("SELECT id, adventure_id, number, title, description, estimated_minutes FROM oneshot_acts WHERE adventure_id=? ORDER BY number", id)
+	actRows, err := db.DB.Query("SELECT id, adventure_id, number, title, description, estimated_minutes, notes FROM oneshot_acts WHERE adventure_id=? ORDER BY number", id)
 	if err == nil {
 		defer actRows.Close()
 		a.Acts = make([]models.OneShotAct, 0)
 		for actRows.Next() {
 			var act models.OneShotAct
-			actRows.Scan(&act.ID, &act.AdventureID, &act.Number, &act.Title, &act.Description, &act.EstimatedMinutes)
+			actRows.Scan(&act.ID, &act.AdventureID, &act.Number, &act.Title, &act.Description, &act.EstimatedMinutes, &act.Notes)
 			// Load scenes for this act
 			sceneRows, err := db.DB.Query("SELECT s.id, s.act_id, s.number, s.title, s.description, s.scene_type, s.location_id, s.encounter_id, s.estimated_minutes, s.notes, COALESCE(l.name,''), COALESCE(e.name,'') FROM oneshot_scenes s LEFT JOIN locations l ON s.location_id=l.id LEFT JOIN encounter_templates e ON s.encounter_id=e.id WHERE s.act_id=? ORDER BY s.number", act.ID)
 			if err == nil {
@@ -97,6 +99,30 @@ func GetOneShotAdventure(c *gin.Context) {
 					act.Scenes = append(act.Scenes, sc)
 				}
 				sceneRows.Close()
+			}
+			// Load act NPCs
+			npcRows, err := db.DB.Query("SELECT id, act_id, npc_id, name, role, notes, is_inline, created_at FROM oneshot_act_npcs WHERE act_id=? ORDER BY name", act.ID)
+			if err == nil {
+				act.ActNPCs = make([]models.OneShotActNPC, 0)
+				for npcRows.Next() {
+					var npc models.OneShotActNPC
+					var isInline int
+					npcRows.Scan(&npc.ID, &npc.ActID, &npc.NPCID, &npc.Name, &npc.Role, &npc.Notes, &isInline, &npc.CreatedAt)
+					npc.IsInline = isInline == 1
+					act.ActNPCs = append(act.ActNPCs, npc)
+				}
+				npcRows.Close()
+			}
+			// Load act DM notes
+			noteRows, err := db.DB.Query("SELECT id, adventure_id, user_id, title, content, created_at, updated_at FROM dm_notes WHERE act_id=? ORDER BY updated_at DESC", act.ID)
+			if err == nil {
+				act.ActNotes = make([]models.DmNote, 0)
+				for noteRows.Next() {
+					var n models.DmNote
+					noteRows.Scan(&n.ID, &n.AdventureID, &n.UserID, &n.Title, &n.Content, &n.CreatedAt, &n.UpdatedAt)
+					act.ActNotes = append(act.ActNotes, n)
+				}
+				noteRows.Close()
 			}
 			a.Acts = append(a.Acts, act)
 		}
@@ -173,8 +199,8 @@ func CreateOneShotAct(c *gin.Context) {
 	if act.Number == 0 {
 		db.DB.QueryRow("SELECT COALESCE(MAX(number),0)+1 FROM oneshot_acts WHERE adventure_id=?", adventureID).Scan(&act.Number)
 	}
-	result, err := db.DB.Exec("INSERT INTO oneshot_acts(adventure_id, number, title, description, estimated_minutes) VALUES(?,?,?,?,?)",
-		adventureID, act.Number, act.Title, act.Description, act.EstimatedMinutes)
+	result, err := db.DB.Exec("INSERT INTO oneshot_acts(adventure_id, number, title, description, estimated_minutes, notes) VALUES(?,?,?,?,?,?)",
+		adventureID, act.Number, act.Title, act.Description, act.EstimatedMinutes, act.Notes)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -190,8 +216,8 @@ func UpdateOneShotAct(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	db.DB.Exec("UPDATE oneshot_acts SET number=?, title=?, description=?, estimated_minutes=? WHERE id=?",
-		act.Number, act.Title, act.Description, act.EstimatedMinutes, id)
+	db.DB.Exec("UPDATE oneshot_acts SET number=?, title=?, description=?, estimated_minutes=?, notes=? WHERE id=?",
+		act.Number, act.Title, act.Description, act.EstimatedMinutes, act.Notes, id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -695,12 +721,12 @@ func HtmxGetOneShotDetail(c *gin.Context) {
 	}
 
 	// Load acts with scenes
-	actRows, _ := db.DB.Query("SELECT id, adventure_id, number, title, description, estimated_minutes FROM oneshot_acts WHERE adventure_id=? ORDER BY number", id)
+	actRows, _ := db.DB.Query("SELECT id, adventure_id, number, title, description, estimated_minutes, notes FROM oneshot_acts WHERE adventure_id=? ORDER BY number", id)
 	if actRows != nil {
 		defer actRows.Close()
 		for actRows.Next() {
 			var act models.OneShotAct
-			actRows.Scan(&act.ID, &act.AdventureID, &act.Number, &act.Title, &act.Description, &act.EstimatedMinutes)
+			actRows.Scan(&act.ID, &act.AdventureID, &act.Number, &act.Title, &act.Description, &act.EstimatedMinutes, &act.Notes)
 			sceneRows, _ := db.DB.Query("SELECT s.id, s.act_id, s.number, s.title, s.description, s.scene_type, s.location_id, s.encounter_id, s.estimated_minutes, s.notes, COALESCE(l.name,''), COALESCE(e.name,'') FROM oneshot_scenes s LEFT JOIN locations l ON s.location_id=l.id LEFT JOIN encounter_templates e ON s.encounter_id=e.id WHERE s.act_id=? ORDER BY s.number", act.ID)
 			if sceneRows != nil {
 				for sceneRows.Next() {
@@ -709,6 +735,28 @@ func HtmxGetOneShotDetail(c *gin.Context) {
 					act.Scenes = append(act.Scenes, sc)
 				}
 				sceneRows.Close()
+			}
+			// Load act NPCs
+			npcRows, _ := db.DB.Query("SELECT id, act_id, npc_id, name, role, notes, is_inline, created_at FROM oneshot_act_npcs WHERE act_id=? ORDER BY name", act.ID)
+			if npcRows != nil {
+				for npcRows.Next() {
+					var npc models.OneShotActNPC
+					var isInline int
+					npcRows.Scan(&npc.ID, &npc.ActID, &npc.NPCID, &npc.Name, &npc.Role, &npc.Notes, &isInline, &npc.CreatedAt)
+					npc.IsInline = isInline == 1
+					act.ActNPCs = append(act.ActNPCs, npc)
+				}
+				npcRows.Close()
+			}
+			// Load act DM notes
+			noteRows, _ := db.DB.Query("SELECT id, adventure_id, user_id, title, content, created_at, updated_at FROM dm_notes WHERE act_id=? ORDER BY updated_at DESC", act.ID)
+			if noteRows != nil {
+				for noteRows.Next() {
+					var n models.DmNote
+					noteRows.Scan(&n.ID, &n.AdventureID, &n.UserID, &n.Title, &n.Content, &n.CreatedAt, &n.UpdatedAt)
+					act.ActNotes = append(act.ActNotes, n)
+				}
+				noteRows.Close()
 			}
 			a.Acts = append(a.Acts, act)
 		}
@@ -805,9 +853,10 @@ func HtmxCreateAct(c *gin.Context) {
 	}
 
 	var number int
+	notes := c.PostForm("notes")
 	db.DB.QueryRow("SELECT COALESCE(MAX(number),0)+1 FROM oneshot_acts WHERE adventure_id=?", adventureID).Scan(&number)
-	db.DB.Exec("INSERT INTO oneshot_acts(adventure_id, number, title, description, estimated_minutes) VALUES(?,?,?,?,?)",
-		adventureID, number, title, description, minutes)
+	db.DB.Exec("INSERT INTO oneshot_acts(adventure_id, number, title, description, estimated_minutes, notes) VALUES(?,?,?,?,?,?)",
+		adventureID, number, title, description, minutes, notes)
 
 	HtmxGetOneShotDetail(c)
 }
@@ -818,12 +867,13 @@ func HtmxUpdateAct(c *gin.Context) {
 	description := c.PostForm("description")
 	minutes, _ := strconv.Atoi(c.PostForm("estimated_minutes"))
 	number, _ := strconv.Atoi(c.PostForm("number"))
+	notes := c.PostForm("notes")
 
 	if number <= 0 {
 		db.DB.QueryRow("SELECT number FROM oneshot_acts WHERE id=?", id).Scan(&number)
 	}
-	db.DB.Exec("UPDATE oneshot_acts SET number=?, title=?, description=?, estimated_minutes=? WHERE id=?",
-		number, title, description, minutes, id)
+	db.DB.Exec("UPDATE oneshot_acts SET number=?, title=?, description=?, estimated_minutes=?, notes=? WHERE id=?",
+		number, title, description, minutes, notes, id)
 
 	// Get adventure_id for redirect
 	var adventureID int64
@@ -906,12 +956,12 @@ func ReRenderOneShotDetail(c *gin.Context, adventureID int64) {
 	db.DB.QueryRow("SELECT id, user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes, created_at, updated_at FROM oneshot_adventures WHERE id=? AND user_id=?", adventureID, userID).
 		Scan(&a.ID, &a.UserID, &a.CampaignID, &a.Title, &a.Premise, &a.Hook, &a.Template, &a.EstimatedMinutes, &a.Difficulty, &a.Notes, &a.CreatedAt, &a.UpdatedAt)
 
-	actRows, _ := db.DB.Query("SELECT id, adventure_id, number, title, description, estimated_minutes FROM oneshot_acts WHERE adventure_id=? ORDER BY number", adventureID)
+	actRows, _ := db.DB.Query("SELECT id, adventure_id, number, title, description, estimated_minutes, notes FROM oneshot_acts WHERE adventure_id=? ORDER BY number", adventureID)
 	if actRows != nil {
 		defer actRows.Close()
 		for actRows.Next() {
 			var act models.OneShotAct
-			actRows.Scan(&act.ID, &act.AdventureID, &act.Number, &act.Title, &act.Description, &act.EstimatedMinutes)
+			actRows.Scan(&act.ID, &act.AdventureID, &act.Number, &act.Title, &act.Description, &act.EstimatedMinutes, &act.Notes)
 			sceneRows, _ := db.DB.Query("SELECT s.id, s.act_id, s.number, s.title, s.description, s.scene_type, s.location_id, s.encounter_id, s.estimated_minutes, s.notes, COALESCE(l.name,''), COALESCE(e.name,'') FROM oneshot_scenes s LEFT JOIN locations l ON s.location_id=l.id LEFT JOIN encounter_templates e ON s.encounter_id=e.id WHERE s.act_id=? ORDER BY s.number", act.ID)
 			if sceneRows != nil {
 				for sceneRows.Next() {
@@ -920,6 +970,28 @@ func ReRenderOneShotDetail(c *gin.Context, adventureID int64) {
 					act.Scenes = append(act.Scenes, sc)
 				}
 				sceneRows.Close()
+			}
+			// Load act NPCs
+			npcRows, _ := db.DB.Query("SELECT id, act_id, npc_id, name, role, notes, is_inline, created_at FROM oneshot_act_npcs WHERE act_id=? ORDER BY name", act.ID)
+			if npcRows != nil {
+				for npcRows.Next() {
+					var npc models.OneShotActNPC
+					var isInline int
+					npcRows.Scan(&npc.ID, &npc.ActID, &npc.NPCID, &npc.Name, &npc.Role, &npc.Notes, &isInline, &npc.CreatedAt)
+					npc.IsInline = isInline == 1
+					act.ActNPCs = append(act.ActNPCs, npc)
+				}
+				npcRows.Close()
+			}
+			// Load act DM notes
+			noteRows, _ := db.DB.Query("SELECT id, adventure_id, user_id, title, content, created_at, updated_at FROM dm_notes WHERE act_id=? ORDER BY updated_at DESC", act.ID)
+			if noteRows != nil {
+				for noteRows.Next() {
+					var n models.DmNote
+					noteRows.Scan(&n.ID, &n.AdventureID, &n.UserID, &n.Title, &n.Content, &n.CreatedAt, &n.UpdatedAt)
+					act.ActNotes = append(act.ActNotes, n)
+				}
+				noteRows.Close()
 			}
 			a.Acts = append(a.Acts, act)
 		}
@@ -2669,13 +2741,14 @@ func CreateDmNote(c *gin.Context) {
 	var input struct {
 		Title   string `json:"title"`
 		Content string `json:"content"`
+		ActID   *int64 `json:"act_id,omitempty"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	result, err := db.DB.Exec("INSERT INTO dm_notes(adventure_id, user_id, title, content) VALUES(?,?,?,?)", adventureID, userID, input.Title, input.Content)
+	result, err := db.DB.Exec("INSERT INTO dm_notes(adventure_id, user_id, title, content, act_id) VALUES(?,?,?,?,?)", adventureID, userID, input.Title, input.Content, input.ActID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -2829,4 +2902,217 @@ type monstersSectionData struct {
 type pcsSectionData struct {
 	PCs         []models.OneShotPlayerCharacter
 	AdventureID int64
+}
+
+// ─── Act NPC CRUD (ent-backed) ───
+
+func ListActNPCs(c *gin.Context) {
+	actID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid act id"})
+		return
+	}
+	npcs, err := db.Client.OneShotActNPC.Query().Where(oneshotactnpc.ActIDEQ(actID)).Order(ent.Asc(oneshotactnpc.FieldName)).All(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	out := make([]models.OneShotActNPC, len(npcs))
+	for i, n := range npcs {
+		out[i] = models.OneShotActNPC{
+			ID:        n.ID,
+			ActID:     n.ActID,
+			NPCID:     nil,
+			Name:      n.Name,
+			Role:      n.Role,
+			Notes:     n.Notes,
+			IsInline:  n.IsInline,
+			CreatedAt: n.CreatedAt,
+		}
+		if n.NpcID != 0 {
+			v := n.NpcID
+			out[i].NPCID = &v
+		}
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+func CreateActNPC(c *gin.Context) {
+	actID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid act id"})
+		return
+	}
+	var input struct {
+		NpcID  *int64 `json:"npc_id,omitempty"`
+		Name   string `json:"name"`
+		Role   string `json:"role"`
+		Notes  string `json:"notes"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	q := db.Client.OneShotActNPC.Create().SetActID(actID).SetName(input.Name).SetRole(input.Role).SetNotes(input.Notes)
+	if input.NpcID != nil {
+		q.SetNpcID(*input.NpcID).SetIsInline(false)
+	} else {
+		q.SetIsInline(true)
+	}
+	n, err := q.Save(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	out := models.OneShotActNPC{
+		ID:        n.ID,
+		ActID:     n.ActID,
+		Name:      n.Name,
+		Role:      n.Role,
+		Notes:     n.Notes,
+		IsInline:  n.IsInline,
+		CreatedAt: n.CreatedAt,
+	}
+	if n.NpcID != 0 {
+		v := n.NpcID
+		out.NPCID = &v
+	}
+	c.JSON(http.StatusCreated, out)
+}
+
+func DeleteActNPC(c *gin.Context) {
+	actID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid act id"})
+		return
+	}
+	npcID, err := strconv.ParseInt(c.Param("nid"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid npc id"})
+		return
+	}
+	err = db.Client.OneShotActNPC.DeleteOneID(npcID).Exec(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "act_id": actID})
+}
+
+// ─── Act Notes (raw SQL) ───
+
+func ListActNotes(c *gin.Context) {
+	actID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid act id"})
+		return
+	}
+	rows, err := db.DB.Query("SELECT id, adventure_id, user_id, title, content, created_at, updated_at FROM dm_notes WHERE act_id=? ORDER BY updated_at DESC", actID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	out := make([]models.DmNote, 0)
+	for rows.Next() {
+		var n models.DmNote
+		rows.Scan(&n.ID, &n.AdventureID, &n.UserID, &n.Title, &n.Content, &n.CreatedAt, &n.UpdatedAt)
+		out = append(out, n)
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+func CreateActNote(c *gin.Context) {
+	actID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid act id"})
+		return
+	}
+	var input struct {
+		Title   string `json:"title"`
+		Content string `json:"content"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userID, _ := c.Get("user_id")
+	var adventureID int64
+	err = db.DB.QueryRow("SELECT adventure_id FROM oneshot_acts WHERE id=?", actID).Scan(&adventureID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "act not found"})
+		return
+	}
+	result, err := db.DB.Exec("INSERT INTO dm_notes(adventure_id, user_id, title, content, act_id) VALUES(?,?,?,?,?)", adventureID, userID, input.Title, input.Content, actID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+// ─── HTMX Act Details ───
+
+type actDetailsData struct {
+	Act     models.OneShotAct
+	NPCs    []models.OneShotActNPC
+	Notes   []models.DmNote
+}
+
+func HtmxActDetails(c *gin.Context) {
+	actID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid act id")
+		return
+	}
+
+	var act models.OneShotAct
+	err = db.DB.QueryRow("SELECT id, adventure_id, number, title, description, estimated_minutes, notes FROM oneshot_acts WHERE id=?", actID).
+		Scan(&act.ID, &act.AdventureID, &act.Number, &act.Title, &act.Description, &act.EstimatedMinutes, &act.Notes)
+	if err != nil {
+		c.String(http.StatusNotFound, "act not found")
+		return
+	}
+
+	// Load act NPCs via ent
+	npcs, err := db.Client.OneShotActNPC.Query().Where(oneshotactnpc.ActIDEQ(actID)).Order(ent.Asc(oneshotactnpc.FieldName)).All(c.Request.Context())
+	npcOut := make([]models.OneShotActNPC, 0)
+	if err == nil {
+		for _, n := range npcs {
+			m := models.OneShotActNPC{
+				ID:        n.ID,
+				ActID:     n.ActID,
+				Name:      n.Name,
+				Role:      n.Role,
+				Notes:     n.Notes,
+				IsInline:  n.IsInline,
+				CreatedAt: n.CreatedAt,
+			}
+			if n.NpcID != 0 {
+				v := n.NpcID
+				m.NPCID = &v
+			}
+			npcOut = append(npcOut, m)
+		}
+	}
+
+	// Load act notes via raw SQL
+	noteRows, err := db.DB.Query("SELECT id, adventure_id, user_id, title, content, created_at, updated_at FROM dm_notes WHERE act_id=? ORDER BY updated_at DESC", actID)
+	noteOut := make([]models.DmNote, 0)
+	if err == nil {
+		defer noteRows.Close()
+		for noteRows.Next() {
+			var n models.DmNote
+			noteRows.Scan(&n.ID, &n.AdventureID, &n.UserID, &n.Title, &n.Content, &n.CreatedAt, &n.UpdatedAt)
+			noteOut = append(noteOut, n)
+		}
+	}
+
+	renderTemplate(c, "oneshot_act_details.html", actDetailsData{
+		Act:   act,
+		NPCs:  npcOut,
+		Notes: noteOut,
+	})
 }

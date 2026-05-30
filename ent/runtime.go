@@ -46,6 +46,7 @@ import (
 	"villum/ent/levelupplan"
 	"villum/ent/location"
 	"villum/ent/npc"
+	"villum/ent/oneshotactnpc"
 	"villum/ent/partyitem"
 	"villum/ent/quest"
 	"villum/ent/restlog"
@@ -1515,6 +1516,28 @@ func init() {
 	npcDescCreatedAt := npcFields[24].Descriptor()
 	// npc.DefaultCreatedAt holds the default value on creation for the created_at field.
 	npc.DefaultCreatedAt = npcDescCreatedAt.Default.(string)
+	oneshotactnpcFields := schema.OneShotActNPC{}.Fields()
+	_ = oneshotactnpcFields
+	// oneshotactnpcDescName is the schema descriptor for name field.
+	oneshotactnpcDescName := oneshotactnpcFields[3].Descriptor()
+	// oneshotactnpc.DefaultName holds the default value on creation for the name field.
+	oneshotactnpc.DefaultName = oneshotactnpcDescName.Default.(string)
+	// oneshotactnpcDescRole is the schema descriptor for role field.
+	oneshotactnpcDescRole := oneshotactnpcFields[4].Descriptor()
+	// oneshotactnpc.DefaultRole holds the default value on creation for the role field.
+	oneshotactnpc.DefaultRole = oneshotactnpcDescRole.Default.(string)
+	// oneshotactnpcDescNotes is the schema descriptor for notes field.
+	oneshotactnpcDescNotes := oneshotactnpcFields[5].Descriptor()
+	// oneshotactnpc.DefaultNotes holds the default value on creation for the notes field.
+	oneshotactnpc.DefaultNotes = oneshotactnpcDescNotes.Default.(string)
+	// oneshotactnpcDescIsInline is the schema descriptor for is_inline field.
+	oneshotactnpcDescIsInline := oneshotactnpcFields[6].Descriptor()
+	// oneshotactnpc.DefaultIsInline holds the default value on creation for the is_inline field.
+	oneshotactnpc.DefaultIsInline = oneshotactnpcDescIsInline.Default.(bool)
+	// oneshotactnpcDescCreatedAt is the schema descriptor for created_at field.
+	oneshotactnpcDescCreatedAt := oneshotactnpcFields[7].Descriptor()
+	// oneshotactnpc.DefaultCreatedAt holds the default value on creation for the created_at field.
+	oneshotactnpc.DefaultCreatedAt = oneshotactnpcDescCreatedAt.Default.(string)
 	partyitemFields := schema.PartyItem{}.Fields()
 	_ = partyitemFields
 	// partyitemDescQuantity is the schema descriptor for quantity field.

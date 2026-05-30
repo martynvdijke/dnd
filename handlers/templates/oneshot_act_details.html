@@ -1,0 +1,60 @@
+<div class="act-details mt-2 p-2 bg-dark-subtle rounded" id="actDetails{{.Act.ID}}">
+  <div class="mb-3">
+    <label class="form-label small fw-bold">Notes</label>
+    <textarea class="form-control form-control-sm" name="notes" rows="2"
+      hx-put="/htmx/oneshot-acts/{{.Act.ID}}"
+      hx-target="#oneshotSection" hx-swap="innerHTML"
+      hx-trigger="blur, change delay:1000ms"
+      hx-include="closest div">{{.Act.Notes}}</textarea>
+  </div>
+
+  <hr class="my-2">
+
+  <div class="mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-1">
+      <span class="small fw-bold">NPCs</span>
+      <button class="btn btn-sm btn-outline-primary" onclick="showAddActNpcForm({{.Act.ID}})"><i class="fa-solid fa-plus"></i></button>
+    </div>
+    <div id="actNpcList{{.Act.ID}}">
+      {{if .NPCs}}
+      <div class="list-group list-group-flush small">
+        {{range .NPCs}}
+        <div class="list-group-item py-1 px-2 d-flex justify-content-between align-items-center">
+          <div>
+            <span>{{.Name}}</span>
+            {{if .Role}}<span class="badge bg-secondary ms-1">{{.Role}}</span>{{end}}
+            {{if .IsInline}}<i class="fa-solid fa-pen-fine text-muted ms-1" title="Inline NPC"></i>{{end}}
+          </div>
+          <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteActNpc({{.ID}}, {{$.Act.ID}})"><i class="fa-solid fa-trash"></i></button>
+        </div>
+        {{end}}
+      </div>
+      {{else}}
+      <div class="text-muted fst-italic small">No NPCs assigned.</div>
+      {{end}}
+    </div>
+  </div>
+
+  <hr class="my-2">
+
+  <div class="mb-2">
+    <div class="d-flex justify-content-between align-items-center mb-1">
+      <span class="small fw-bold">DM Notes</span>
+      <button class="btn btn-sm btn-outline-primary" onclick="showAddActNoteForm({{.Act.ID}})"><i class="fa-solid fa-plus"></i></button>
+    </div>
+    <div id="actNoteList{{.Act.ID}}">
+      {{if .Notes}}
+      <div class="list-group list-group-flush small">
+        {{range .Notes}}
+        <div class="list-group-item py-1 px-2">
+          <div class="fw-semibold">{{.Title}}</div>
+          <div class="text-muted" style="white-space:pre-wrap">{{.Content}}</div>
+        </div>
+        {{end}}
+      </div>
+      {{else}}
+      <div class="text-muted fst-italic small">No DM notes.</div>
+      {{end}}
+    </div>
+  </div>
+</div>

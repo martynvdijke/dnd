@@ -464,6 +464,18 @@ func main() {
 		dm.PUT("/oneshot-scenes/:id", handlers.UpdateOneShotScene)
 		dm.DELETE("/oneshot-scenes/:id", handlers.DeleteOneShotScene)
 
+		// Act-level NPCs
+		dm.GET("/oneshot-acts/:id/npcs", handlers.ListActNPCs)
+		dm.POST("/oneshot-acts/:id/npcs", handlers.CreateActNPC)
+		dm.DELETE("/oneshot-acts/:id/npcs/:nid", handlers.DeleteActNPC)
+
+		// Act-level Notes
+		dm.GET("/oneshot-acts/:id/notes", handlers.ListActNotes)
+		dm.POST("/oneshot-acts/:id/notes", handlers.CreateActNote)
+
+		// Act-level Details (HTMX)
+		dm.GET("/htmx/oneshot-acts/:id/details", handlers.HtmxActDetails)
+
 		// Session Pacing
 		dm.POST("/oneshot-adventures/:id/pacing/start", handlers.StartPacingSession)
 		dm.GET("/oneshot-adventures/:id/pacing", handlers.GetPacingSession)

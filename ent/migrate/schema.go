@@ -1488,6 +1488,35 @@ var (
 			},
 		},
 	}
+	// OneshotActNpcsColumns holds the columns for the "oneshot_act_npcs" table.
+	OneshotActNpcsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "act_id", Type: field.TypeInt64},
+		{Name: "npc_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "name", Type: field.TypeString, Default: ""},
+		{Name: "role", Type: field.TypeString, Default: ""},
+		{Name: "notes", Type: field.TypeString, Default: ""},
+		{Name: "is_inline", Type: field.TypeBool, Default: true},
+		{Name: "created_at", Type: field.TypeString, Default: ""},
+	}
+	// OneshotActNpcsTable holds the schema information for the "oneshot_act_npcs" table.
+	OneshotActNpcsTable = &schema.Table{
+		Name:       "oneshot_act_npcs",
+		Columns:    OneshotActNpcsColumns,
+		PrimaryKey: []*schema.Column{OneshotActNpcsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "oneshotactnpc_act_id",
+				Unique:  false,
+				Columns: []*schema.Column{OneshotActNpcsColumns[1]},
+			},
+			{
+				Name:    "oneshotactnpc_npc_id",
+				Unique:  false,
+				Columns: []*schema.Column{OneshotActNpcsColumns[2]},
+			},
+		},
+	}
 	// PartyItemsColumns holds the columns for the "party_items" table.
 	PartyItemsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -1916,6 +1945,7 @@ var (
 		LevelUpPlansTable,
 		LocationsTable,
 		NpcsTable,
+		OneshotActNpcsTable,
 		PartyItemsTable,
 		QuestsTable,
 		RestLogTable,
@@ -2004,6 +2034,9 @@ func init() {
 	NpcsTable.ForeignKeys[0].RefTable = UsersTable
 	NpcsTable.Annotation = &entsql.Annotation{
 		Table: "npcs",
+	}
+	OneshotActNpcsTable.Annotation = &entsql.Annotation{
+		Table: "oneshot_act_npcs",
 	}
 	PartyItemsTable.ForeignKeys[0].RefTable = CampaignsTable
 	QuestsTable.ForeignKeys[0].RefTable = CharactersTable

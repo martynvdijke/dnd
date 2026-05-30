@@ -55,6 +55,7 @@ import (
 	"villum/ent/levelupplan"
 	"villum/ent/location"
 	"villum/ent/npc"
+	"villum/ent/oneshotactnpc"
 	"villum/ent/partyitem"
 	"villum/ent/quest"
 	"villum/ent/restlog"
@@ -167,6 +168,8 @@ type Client struct {
 	Location *LocationClient
 	// NPC is the client for interacting with the NPC builders.
 	NPC *NPCClient
+	// OneShotActNPC is the client for interacting with the OneShotActNPC builders.
+	OneShotActNPC *OneShotActNPCClient
 	// PartyItem is the client for interacting with the PartyItem builders.
 	PartyItem *PartyItemClient
 	// Quest is the client for interacting with the Quest builders.
@@ -246,6 +249,7 @@ func (c *Client) init() {
 	c.LevelUpPlan = NewLevelUpPlanClient(c.config)
 	c.Location = NewLocationClient(c.config)
 	c.NPC = NewNPCClient(c.config)
+	c.OneShotActNPC = NewOneShotActNPCClient(c.config)
 	c.PartyItem = NewPartyItemClient(c.config)
 	c.Quest = NewQuestClient(c.config)
 	c.RestLog = NewRestLogClient(c.config)
@@ -394,6 +398,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		LevelUpPlan:           NewLevelUpPlanClient(cfg),
 		Location:              NewLocationClient(cfg),
 		NPC:                   NewNPCClient(cfg),
+		OneShotActNPC:         NewOneShotActNPCClient(cfg),
 		PartyItem:             NewPartyItemClient(cfg),
 		Quest:                 NewQuestClient(cfg),
 		RestLog:               NewRestLogClient(cfg),
@@ -469,6 +474,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		LevelUpPlan:           NewLevelUpPlanClient(cfg),
 		Location:              NewLocationClient(cfg),
 		NPC:                   NewNPCClient(cfg),
+		OneShotActNPC:         NewOneShotActNPCClient(cfg),
 		PartyItem:             NewPartyItemClient(cfg),
 		Quest:                 NewQuestClient(cfg),
 		RestLog:               NewRestLogClient(cfg),
@@ -520,8 +526,8 @@ func (c *Client) Use(hooks ...Hook) {
 		c.CompendiumFeat, c.CompendiumRace, c.CompendiumSpell, c.CraftingRecipe,
 		c.DiceRoll, c.DowntimeActivity, c.EmailSetting, c.EncounterMonster,
 		c.EncounterTemplate, c.Faction, c.FactionReputation, c.InventoryItem,
-		c.JournalEntry, c.LevelUpPlan, c.Location, c.NPC, c.PartyItem, c.Quest,
-		c.RestLog, c.Session, c.SessionPlan, c.ShareLink, c.Shop, c.ShopItem,
+		c.JournalEntry, c.LevelUpPlan, c.Location, c.NPC, c.OneShotActNPC, c.PartyItem,
+		c.Quest, c.RestLog, c.Session, c.SessionPlan, c.ShareLink, c.Shop, c.ShopItem,
 		c.ShopTransaction, c.Spell, c.Upload, c.User,
 	} {
 		n.Use(hooks...)
@@ -542,8 +548,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.CompendiumFeat, c.CompendiumRace, c.CompendiumSpell, c.CraftingRecipe,
 		c.DiceRoll, c.DowntimeActivity, c.EmailSetting, c.EncounterMonster,
 		c.EncounterTemplate, c.Faction, c.FactionReputation, c.InventoryItem,
-		c.JournalEntry, c.LevelUpPlan, c.Location, c.NPC, c.PartyItem, c.Quest,
-		c.RestLog, c.Session, c.SessionPlan, c.ShareLink, c.Shop, c.ShopItem,
+		c.JournalEntry, c.LevelUpPlan, c.Location, c.NPC, c.OneShotActNPC, c.PartyItem,
+		c.Quest, c.RestLog, c.Session, c.SessionPlan, c.ShareLink, c.Shop, c.ShopItem,
 		c.ShopTransaction, c.Spell, c.Upload, c.User,
 	} {
 		n.Intercept(interceptors...)
@@ -641,6 +647,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Location.mutate(ctx, m)
 	case *NPCMutation:
 		return c.NPC.mutate(ctx, m)
+	case *OneShotActNPCMutation:
+		return c.OneShotActNPC.mutate(ctx, m)
 	case *PartyItemMutation:
 		return c.PartyItem.mutate(ctx, m)
 	case *QuestMutation:
@@ -7962,6 +7970,139 @@ func (c *NPCClient) mutate(ctx context.Context, m *NPCMutation) (Value, error) {
 	}
 }
 
+// OneShotActNPCClient is a client for the OneShotActNPC schema.
+type OneShotActNPCClient struct {
+	config
+}
+
+// NewOneShotActNPCClient returns a client for the OneShotActNPC from the given config.
+func NewOneShotActNPCClient(c config) *OneShotActNPCClient {
+	return &OneShotActNPCClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `oneshotactnpc.Hooks(f(g(h())))`.
+func (c *OneShotActNPCClient) Use(hooks ...Hook) {
+	c.hooks.OneShotActNPC = append(c.hooks.OneShotActNPC, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `oneshotactnpc.Intercept(f(g(h())))`.
+func (c *OneShotActNPCClient) Intercept(interceptors ...Interceptor) {
+	c.inters.OneShotActNPC = append(c.inters.OneShotActNPC, interceptors...)
+}
+
+// Create returns a builder for creating a OneShotActNPC entity.
+func (c *OneShotActNPCClient) Create() *OneShotActNPCCreate {
+	mutation := newOneShotActNPCMutation(c.config, OpCreate)
+	return &OneShotActNPCCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of OneShotActNPC entities.
+func (c *OneShotActNPCClient) CreateBulk(builders ...*OneShotActNPCCreate) *OneShotActNPCCreateBulk {
+	return &OneShotActNPCCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OneShotActNPCClient) MapCreateBulk(slice any, setFunc func(*OneShotActNPCCreate, int)) *OneShotActNPCCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OneShotActNPCCreateBulk{err: fmt.Errorf("calling to OneShotActNPCClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OneShotActNPCCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OneShotActNPCCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for OneShotActNPC.
+func (c *OneShotActNPCClient) Update() *OneShotActNPCUpdate {
+	mutation := newOneShotActNPCMutation(c.config, OpUpdate)
+	return &OneShotActNPCUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OneShotActNPCClient) UpdateOne(_m *OneShotActNPC) *OneShotActNPCUpdateOne {
+	mutation := newOneShotActNPCMutation(c.config, OpUpdateOne, withOneShotActNPC(_m))
+	return &OneShotActNPCUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OneShotActNPCClient) UpdateOneID(id int64) *OneShotActNPCUpdateOne {
+	mutation := newOneShotActNPCMutation(c.config, OpUpdateOne, withOneShotActNPCID(id))
+	return &OneShotActNPCUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for OneShotActNPC.
+func (c *OneShotActNPCClient) Delete() *OneShotActNPCDelete {
+	mutation := newOneShotActNPCMutation(c.config, OpDelete)
+	return &OneShotActNPCDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OneShotActNPCClient) DeleteOne(_m *OneShotActNPC) *OneShotActNPCDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OneShotActNPCClient) DeleteOneID(id int64) *OneShotActNPCDeleteOne {
+	builder := c.Delete().Where(oneshotactnpc.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OneShotActNPCDeleteOne{builder}
+}
+
+// Query returns a query builder for OneShotActNPC.
+func (c *OneShotActNPCClient) Query() *OneShotActNPCQuery {
+	return &OneShotActNPCQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOneShotActNPC},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a OneShotActNPC entity by its id.
+func (c *OneShotActNPCClient) Get(ctx context.Context, id int64) (*OneShotActNPC, error) {
+	return c.Query().Where(oneshotactnpc.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OneShotActNPCClient) GetX(ctx context.Context, id int64) *OneShotActNPC {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *OneShotActNPCClient) Hooks() []Hook {
+	return c.hooks.OneShotActNPC
+}
+
+// Interceptors returns the client interceptors.
+func (c *OneShotActNPCClient) Interceptors() []Interceptor {
+	return c.inters.OneShotActNPC
+}
+
+func (c *OneShotActNPCClient) mutate(ctx context.Context, m *OneShotActNPCMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OneShotActNPCCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OneShotActNPCUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OneShotActNPCUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OneShotActNPCDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown OneShotActNPC mutation op: %q", m.Op())
+	}
+}
+
 // PartyItemClient is a client for the PartyItem schema.
 type PartyItemClient struct {
 	config
@@ -9954,9 +10095,9 @@ type (
 		CompendiumBackground, CompendiumClass, CompendiumEquipment, CompendiumFeat,
 		CompendiumRace, CompendiumSpell, CraftingRecipe, DiceRoll, DowntimeActivity,
 		EmailSetting, EncounterMonster, EncounterTemplate, Faction, FactionReputation,
-		InventoryItem, JournalEntry, LevelUpPlan, Location, NPC, PartyItem, Quest,
-		RestLog, Session, SessionPlan, ShareLink, Shop, ShopItem, ShopTransaction,
-		Spell, Upload, User []ent.Hook
+		InventoryItem, JournalEntry, LevelUpPlan, Location, NPC, OneShotActNPC,
+		PartyItem, Quest, RestLog, Session, SessionPlan, ShareLink, Shop, ShopItem,
+		ShopTransaction, Spell, Upload, User []ent.Hook
 	}
 	inters struct {
 		BackupSetting, Campaign, CampaignCalendarEvent, CampaignMap, CampaignMapPin,
@@ -9968,8 +10109,8 @@ type (
 		CompendiumBackground, CompendiumClass, CompendiumEquipment, CompendiumFeat,
 		CompendiumRace, CompendiumSpell, CraftingRecipe, DiceRoll, DowntimeActivity,
 		EmailSetting, EncounterMonster, EncounterTemplate, Faction, FactionReputation,
-		InventoryItem, JournalEntry, LevelUpPlan, Location, NPC, PartyItem, Quest,
-		RestLog, Session, SessionPlan, ShareLink, Shop, ShopItem, ShopTransaction,
-		Spell, Upload, User []ent.Interceptor
+		InventoryItem, JournalEntry, LevelUpPlan, Location, NPC, OneShotActNPC,
+		PartyItem, Quest, RestLog, Session, SessionPlan, ShareLink, Shop, ShopItem,
+		ShopTransaction, Spell, Upload, User []ent.Interceptor
 	}
 )

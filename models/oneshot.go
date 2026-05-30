@@ -27,8 +27,22 @@ type OneShotAct struct {
 	Title            string `json:"title"`
 	Description      string `json:"description"`
 	EstimatedMinutes int    `json:"estimated_minutes"`
+	Notes            string `json:"notes"`
 	// Loaded relations
-	Scenes []OneShotScene `json:"scenes,omitempty"`
+	Scenes   []OneShotScene  `json:"scenes,omitempty"`
+	ActNPCs  []OneShotActNPC `json:"act_npcs,omitempty"`
+	ActNotes []DmNote        `json:"act_notes,omitempty"`
+}
+
+type OneShotActNPC struct {
+	ID        int64  `json:"id"`
+	ActID     int64  `json:"act_id"`
+	NPCID     *int64 `json:"npc_id,omitempty"`
+	Name      string `json:"name"`
+	Role      string `json:"role"`
+	Notes     string `json:"notes"`
+	IsInline  bool   `json:"is_inline"`
+	CreatedAt string `json:"created_at"`
 }
 
 type OneShotScene struct {

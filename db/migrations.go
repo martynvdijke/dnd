@@ -1320,6 +1320,25 @@ CREATE TABLE IF NOT EXISTS session_plans (
 
 CREATE INDEX IF NOT EXISTS idx_party_items_campaign ON party_items(campaign_id);
 CREATE INDEX IF NOT EXISTS idx_session_plans_campaign ON session_plans(campaign_id);
+	`,
+	},
+	{
+		version: 28,
+		sql: `
+-- Act-level planning: notes, NPCs, and DM notes per act
+CREATE TABLE IF NOT EXISTS oneshot_act_npcs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    act_id INTEGER NOT NULL REFERENCES oneshot_acts(id) ON DELETE CASCADE,
+    npc_id INTEGER REFERENCES npcs(id) ON DELETE SET NULL,
+    name TEXT NOT NULL DEFAULT '',
+    role TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    is_inline INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_oneshot_act_npcs_act ON oneshot_act_npcs(act_id);
+CREATE INDEX IF NOT EXISTS idx_oneshot_act_npcs_npc ON oneshot_act_npcs(npc_id);
 `,
 	},
 }
@@ -1383,6 +1402,8 @@ func Migrate() error {
 		// Campaign completeness columns
 		"ALTER TABLE characters ADD COLUMN exhaustion_level INTEGER NOT NULL DEFAULT 0",
 		"ALTER TABLE inventory ADD COLUMN is_identified INTEGER NOT NULL DEFAULT 1",
+		"ALTER TABLE oneshot_acts ADD COLUMN notes TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE dm_notes ADD COLUMN act_id INTEGER REFERENCES oneshot_acts(id) ON DELETE CASCADE",
 	}
 	for _, stmt := range alterStatements {
 		if _, err := DB.Exec(stmt); err != nil {
