@@ -1,3 +1,10 @@
+# [2.1.0](https://github.com/martynvdijke/dnd/compare/v2.0.5...v2.1.0) (2026-05-30)
+
+
+### Features
+
+* add act-level planning with ent-backed NPCs, notes, and HTMX details ([50e9a4c](https://github.com/martynvdijke/dnd/commit/50e9a4c622bdebf3f97a04e805466e47d7a591b7))
+
 ## [2.0.5](https://github.com/martynvdijke/dnd/compare/v2.0.4...v2.0.5) (2026-05-29)
 
 
