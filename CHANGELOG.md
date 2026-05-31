@@ -1,3 +1,15 @@
+# [2.2.0](https://github.com/martynvdijke/dnd/compare/v2.1.1...v2.2.0) (2026-05-31)
+
+
+### Bug Fixes
+
+* sort scenes by sort_order in eager load to fix reorder test ([57459d0](https://github.com/martynvdijke/dnd/commit/57459d001789c636a8963f2aebf382569d8384cd))
+
+
+### Features
+
+* nested sub-acts, scene sort_order, act-level shops/items/encounters ([065ab33](https://github.com/martynvdijke/dnd/commit/065ab33d4b0a04469ab08e91aae79fca13a01287))
+
 ## [2.1.1](https://github.com/martynvdijke/dnd/compare/v2.1.0...v2.1.1) (2026-05-31)
 
 # [2.1.0](https://github.com/martynvdijke/dnd/compare/v2.0.5...v2.1.0) (2026-05-30)
