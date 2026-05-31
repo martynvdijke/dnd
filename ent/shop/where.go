@@ -64,6 +64,16 @@ func CampaignID(v int64) predicate.Shop {
 	return predicate.Shop(sql.FieldEQ(FieldCampaignID, v))
 }
 
+// OneshotAdventureID applies equality check predicate on the "oneshot_adventure_id" field. It's identical to OneshotAdventureIDEQ.
+func OneshotAdventureID(v int64) predicate.Shop {
+	return predicate.Shop(sql.FieldEQ(FieldOneshotAdventureID, v))
+}
+
+// ActID applies equality check predicate on the "act_id" field. It's identical to ActIDEQ.
+func ActID(v int64) predicate.Shop {
+	return predicate.Shop(sql.FieldEQ(FieldActID, v))
+}
+
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
 func Name(v string) predicate.Shop {
 	return predicate.Shop(sql.FieldEQ(FieldName, v))
@@ -137,6 +147,106 @@ func CampaignIDIsNil() predicate.Shop {
 // CampaignIDNotNil applies the NotNil predicate on the "campaign_id" field.
 func CampaignIDNotNil() predicate.Shop {
 	return predicate.Shop(sql.FieldNotNull(FieldCampaignID))
+}
+
+// OneshotAdventureIDEQ applies the EQ predicate on the "oneshot_adventure_id" field.
+func OneshotAdventureIDEQ(v int64) predicate.Shop {
+	return predicate.Shop(sql.FieldEQ(FieldOneshotAdventureID, v))
+}
+
+// OneshotAdventureIDNEQ applies the NEQ predicate on the "oneshot_adventure_id" field.
+func OneshotAdventureIDNEQ(v int64) predicate.Shop {
+	return predicate.Shop(sql.FieldNEQ(FieldOneshotAdventureID, v))
+}
+
+// OneshotAdventureIDIn applies the In predicate on the "oneshot_adventure_id" field.
+func OneshotAdventureIDIn(vs ...int64) predicate.Shop {
+	return predicate.Shop(sql.FieldIn(FieldOneshotAdventureID, vs...))
+}
+
+// OneshotAdventureIDNotIn applies the NotIn predicate on the "oneshot_adventure_id" field.
+func OneshotAdventureIDNotIn(vs ...int64) predicate.Shop {
+	return predicate.Shop(sql.FieldNotIn(FieldOneshotAdventureID, vs...))
+}
+
+// OneshotAdventureIDGT applies the GT predicate on the "oneshot_adventure_id" field.
+func OneshotAdventureIDGT(v int64) predicate.Shop {
+	return predicate.Shop(sql.FieldGT(FieldOneshotAdventureID, v))
+}
+
+// OneshotAdventureIDGTE applies the GTE predicate on the "oneshot_adventure_id" field.
+func OneshotAdventureIDGTE(v int64) predicate.Shop {
+	return predicate.Shop(sql.FieldGTE(FieldOneshotAdventureID, v))
+}
+
+// OneshotAdventureIDLT applies the LT predicate on the "oneshot_adventure_id" field.
+func OneshotAdventureIDLT(v int64) predicate.Shop {
+	return predicate.Shop(sql.FieldLT(FieldOneshotAdventureID, v))
+}
+
+// OneshotAdventureIDLTE applies the LTE predicate on the "oneshot_adventure_id" field.
+func OneshotAdventureIDLTE(v int64) predicate.Shop {
+	return predicate.Shop(sql.FieldLTE(FieldOneshotAdventureID, v))
+}
+
+// OneshotAdventureIDIsNil applies the IsNil predicate on the "oneshot_adventure_id" field.
+func OneshotAdventureIDIsNil() predicate.Shop {
+	return predicate.Shop(sql.FieldIsNull(FieldOneshotAdventureID))
+}
+
+// OneshotAdventureIDNotNil applies the NotNil predicate on the "oneshot_adventure_id" field.
+func OneshotAdventureIDNotNil() predicate.Shop {
+	return predicate.Shop(sql.FieldNotNull(FieldOneshotAdventureID))
+}
+
+// ActIDEQ applies the EQ predicate on the "act_id" field.
+func ActIDEQ(v int64) predicate.Shop {
+	return predicate.Shop(sql.FieldEQ(FieldActID, v))
+}
+
+// ActIDNEQ applies the NEQ predicate on the "act_id" field.
+func ActIDNEQ(v int64) predicate.Shop {
+	return predicate.Shop(sql.FieldNEQ(FieldActID, v))
+}
+
+// ActIDIn applies the In predicate on the "act_id" field.
+func ActIDIn(vs ...int64) predicate.Shop {
+	return predicate.Shop(sql.FieldIn(FieldActID, vs...))
+}
+
+// ActIDNotIn applies the NotIn predicate on the "act_id" field.
+func ActIDNotIn(vs ...int64) predicate.Shop {
+	return predicate.Shop(sql.FieldNotIn(FieldActID, vs...))
+}
+
+// ActIDGT applies the GT predicate on the "act_id" field.
+func ActIDGT(v int64) predicate.Shop {
+	return predicate.Shop(sql.FieldGT(FieldActID, v))
+}
+
+// ActIDGTE applies the GTE predicate on the "act_id" field.
+func ActIDGTE(v int64) predicate.Shop {
+	return predicate.Shop(sql.FieldGTE(FieldActID, v))
+}
+
+// ActIDLT applies the LT predicate on the "act_id" field.
+func ActIDLT(v int64) predicate.Shop {
+	return predicate.Shop(sql.FieldLT(FieldActID, v))
+}
+
+// ActIDLTE applies the LTE predicate on the "act_id" field.
+func ActIDLTE(v int64) predicate.Shop {
+	return predicate.Shop(sql.FieldLTE(FieldActID, v))
+}
+
+// ActIDIsNil applies the IsNil predicate on the "act_id" field.
+func ActIDIsNil() predicate.Shop {
+	return predicate.Shop(sql.FieldIsNull(FieldActID))
+}
+
+// ActIDNotNil applies the NotNil predicate on the "act_id" field.
+func ActIDNotNil() predicate.Shop {
+	return predicate.Shop(sql.FieldNotNull(FieldActID))
 }
 
 // NameEQ applies the EQ predicate on the "name" field.

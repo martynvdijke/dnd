@@ -64,7 +64,7 @@ func ReorderActs(c *gin.Context) {
 		return
 	}
 	for i, actID := range req.Order {
-		_, err := tx.Exec("UPDATE oneshot_acts SET number=? WHERE id=? AND adventure_id=?", i+1, actID, adventureID)
+		_, err := tx.Exec("UPDATE oneshot_acts SET sort_order=? WHERE id=? AND adventure_id=?", i+1, actID, adventureID)
 		if err != nil {
 			tx.Rollback()
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -88,7 +88,7 @@ func ReorderScenes(c *gin.Context) {
 		return
 	}
 	for i, sceneID := range req.Order {
-		_, err := tx.Exec("UPDATE oneshot_scenes SET number=? WHERE id=? AND act_id=?", i+1, sceneID, actID)
+		_, err := tx.Exec("UPDATE oneshot_scenes SET sort_order=? WHERE id=? AND act_id=?", i+1, sceneID, actID)
 		if err != nil {
 			tx.Rollback()
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

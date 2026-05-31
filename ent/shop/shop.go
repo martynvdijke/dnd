@@ -16,6 +16,10 @@ const (
 	FieldUserID = "user_id"
 	// FieldCampaignID holds the string denoting the campaign_id field in the database.
 	FieldCampaignID = "campaign_id"
+	// FieldOneshotAdventureID holds the string denoting the oneshot_adventure_id field in the database.
+	FieldOneshotAdventureID = "oneshot_adventure_id"
+	// FieldActID holds the string denoting the act_id field in the database.
+	FieldActID = "act_id"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
 	// FieldDescription holds the string denoting the description field in the database.
@@ -71,6 +75,8 @@ var Columns = []string{
 	FieldID,
 	FieldUserID,
 	FieldCampaignID,
+	FieldOneshotAdventureID,
+	FieldActID,
 	FieldName,
 	FieldDescription,
 	FieldMarkupPercent,
@@ -115,6 +121,16 @@ func ByUserID(opts ...sql.OrderTermOption) OrderOption {
 // ByCampaignID orders the results by the campaign_id field.
 func ByCampaignID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCampaignID, opts...).ToFunc()
+}
+
+// ByOneshotAdventureID orders the results by the oneshot_adventure_id field.
+func ByOneshotAdventureID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOneshotAdventureID, opts...).ToFunc()
+}
+
+// ByActID orders the results by the act_id field.
+func ByActID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldActID, opts...).ToFunc()
 }
 
 // ByName orders the results by the name field.

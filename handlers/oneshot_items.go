@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"net/http"
 	"strconv"
 
@@ -45,15 +46,17 @@ func CreateOneShotItem(c *gin.Context) {
 	if it.Attunement {
 		att = 1
 	}
-	result, err := db.DB.Exec("INSERT INTO oneshot_items(adventure_id, name, description, category, quantity, weight, price_gp, is_magical, attunement, notes) VALUES(?,?,?,?,?,?,?,?,?,?)",
-		adventureID, it.Name, it.Description, it.Category, it.Quantity, it.Weight, it.PriceGP, isMag, att, it.Notes)
+	result, err := db.DB.Exec("INSERT INTO oneshot_items(adventure_id, act_id, name, description, category, quantity, weight, price_gp, is_magical, attunement, notes) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+		adventureID, it.ActID, it.Name, it.Description, it.Category, it.Quantity, it.Weight, it.PriceGP, isMag, att, it.Notes)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	id, _ := result.LastInsertId()
-	db.DB.QueryRow("SELECT id, adventure_id, name, description, category, quantity, weight, price_gp, is_magical, attunement, notes, created_at FROM oneshot_items WHERE id=?", id).Scan(
-		&it.ID, &it.AdventureID, &it.Name, &it.Description, &it.Category, &it.Quantity, &it.Weight, &it.PriceGP, &isMag, &att, &it.Notes, &it.CreatedAt)
+	var aID sql.NullInt64
+	db.DB.QueryRow("SELECT id, adventure_id, act_id, name, description, category, quantity, weight, price_gp, is_magical, attunement, notes, created_at FROM oneshot_items WHERE id=?", id).Scan(
+		&it.ID, &it.AdventureID, &aID, &it.Name, &it.Description, &it.Category, &it.Quantity, &it.Weight, &it.PriceGP, &isMag, &att, &it.Notes, &it.CreatedAt)
+	if aID.Valid { it.ActID = &aID.Int64 }
 	it.IsMagical = isMag == 1
 	it.Attunement = att == 1
 	c.JSON(http.StatusCreated, it)

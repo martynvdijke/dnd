@@ -138,8 +138,23 @@ type Location func(*sql.Selector)
 // NPC is the predicate function for npc builders.
 type NPC func(*sql.Selector)
 
+// OneShotAct is the predicate function for oneshotact builders.
+type OneShotAct func(*sql.Selector)
+
 // OneShotActNPC is the predicate function for oneshotactnpc builders.
 type OneShotActNPC func(*sql.Selector)
+
+// OneShotAdventure is the predicate function for oneshotadventure builders.
+type OneShotAdventure func(*sql.Selector)
+
+// OneShotAdventureEncounter is the predicate function for oneshotadventureencounter builders.
+type OneShotAdventureEncounter func(*sql.Selector)
+
+// OneShotItem is the predicate function for oneshotitem builders.
+type OneShotItem func(*sql.Selector)
+
+// OneShotScene is the predicate function for oneshotscene builders.
+type OneShotScene func(*sql.Selector)
 
 // PartyItem is the predicate function for partyitem builders.
 type PartyItem func(*sql.Selector)

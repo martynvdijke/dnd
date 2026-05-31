@@ -46,7 +46,11 @@ import (
 	"villum/ent/levelupplan"
 	"villum/ent/location"
 	"villum/ent/npc"
+	"villum/ent/oneshotact"
 	"villum/ent/oneshotactnpc"
+	"villum/ent/oneshotadventure"
+	"villum/ent/oneshotitem"
+	"villum/ent/oneshotscene"
 	"villum/ent/partyitem"
 	"villum/ent/quest"
 	"villum/ent/restlog"
@@ -1516,6 +1520,32 @@ func init() {
 	npcDescCreatedAt := npcFields[24].Descriptor()
 	// npc.DefaultCreatedAt holds the default value on creation for the created_at field.
 	npc.DefaultCreatedAt = npcDescCreatedAt.Default.(string)
+	oneshotactFields := schema.OneShotAct{}.Fields()
+	_ = oneshotactFields
+	// oneshotactDescNumber is the schema descriptor for number field.
+	oneshotactDescNumber := oneshotactFields[3].Descriptor()
+	// oneshotact.DefaultNumber holds the default value on creation for the number field.
+	oneshotact.DefaultNumber = oneshotactDescNumber.Default.(int)
+	// oneshotactDescSortOrder is the schema descriptor for sort_order field.
+	oneshotactDescSortOrder := oneshotactFields[4].Descriptor()
+	// oneshotact.DefaultSortOrder holds the default value on creation for the sort_order field.
+	oneshotact.DefaultSortOrder = oneshotactDescSortOrder.Default.(int)
+	// oneshotactDescTitle is the schema descriptor for title field.
+	oneshotactDescTitle := oneshotactFields[5].Descriptor()
+	// oneshotact.DefaultTitle holds the default value on creation for the title field.
+	oneshotact.DefaultTitle = oneshotactDescTitle.Default.(string)
+	// oneshotactDescDescription is the schema descriptor for description field.
+	oneshotactDescDescription := oneshotactFields[6].Descriptor()
+	// oneshotact.DefaultDescription holds the default value on creation for the description field.
+	oneshotact.DefaultDescription = oneshotactDescDescription.Default.(string)
+	// oneshotactDescEstimatedMinutes is the schema descriptor for estimated_minutes field.
+	oneshotactDescEstimatedMinutes := oneshotactFields[7].Descriptor()
+	// oneshotact.DefaultEstimatedMinutes holds the default value on creation for the estimated_minutes field.
+	oneshotact.DefaultEstimatedMinutes = oneshotactDescEstimatedMinutes.Default.(int)
+	// oneshotactDescNotes is the schema descriptor for notes field.
+	oneshotactDescNotes := oneshotactFields[8].Descriptor()
+	// oneshotact.DefaultNotes holds the default value on creation for the notes field.
+	oneshotact.DefaultNotes = oneshotactDescNotes.Default.(string)
 	oneshotactnpcFields := schema.OneShotActNPC{}.Fields()
 	_ = oneshotactnpcFields
 	// oneshotactnpcDescName is the schema descriptor for name field.
@@ -1538,6 +1568,116 @@ func init() {
 	oneshotactnpcDescCreatedAt := oneshotactnpcFields[7].Descriptor()
 	// oneshotactnpc.DefaultCreatedAt holds the default value on creation for the created_at field.
 	oneshotactnpc.DefaultCreatedAt = oneshotactnpcDescCreatedAt.Default.(string)
+	oneshotadventureFields := schema.OneShotAdventure{}.Fields()
+	_ = oneshotadventureFields
+	// oneshotadventureDescTitle is the schema descriptor for title field.
+	oneshotadventureDescTitle := oneshotadventureFields[3].Descriptor()
+	// oneshotadventure.DefaultTitle holds the default value on creation for the title field.
+	oneshotadventure.DefaultTitle = oneshotadventureDescTitle.Default.(string)
+	// oneshotadventureDescPremise is the schema descriptor for premise field.
+	oneshotadventureDescPremise := oneshotadventureFields[4].Descriptor()
+	// oneshotadventure.DefaultPremise holds the default value on creation for the premise field.
+	oneshotadventure.DefaultPremise = oneshotadventureDescPremise.Default.(string)
+	// oneshotadventureDescHook is the schema descriptor for hook field.
+	oneshotadventureDescHook := oneshotadventureFields[5].Descriptor()
+	// oneshotadventure.DefaultHook holds the default value on creation for the hook field.
+	oneshotadventure.DefaultHook = oneshotadventureDescHook.Default.(string)
+	// oneshotadventureDescTemplate is the schema descriptor for template field.
+	oneshotadventureDescTemplate := oneshotadventureFields[6].Descriptor()
+	// oneshotadventure.DefaultTemplate holds the default value on creation for the template field.
+	oneshotadventure.DefaultTemplate = oneshotadventureDescTemplate.Default.(string)
+	// oneshotadventureDescEstimatedMinutes is the schema descriptor for estimated_minutes field.
+	oneshotadventureDescEstimatedMinutes := oneshotadventureFields[7].Descriptor()
+	// oneshotadventure.DefaultEstimatedMinutes holds the default value on creation for the estimated_minutes field.
+	oneshotadventure.DefaultEstimatedMinutes = oneshotadventureDescEstimatedMinutes.Default.(int)
+	// oneshotadventureDescDifficulty is the schema descriptor for difficulty field.
+	oneshotadventureDescDifficulty := oneshotadventureFields[8].Descriptor()
+	// oneshotadventure.DefaultDifficulty holds the default value on creation for the difficulty field.
+	oneshotadventure.DefaultDifficulty = oneshotadventureDescDifficulty.Default.(string)
+	// oneshotadventureDescNotes is the schema descriptor for notes field.
+	oneshotadventureDescNotes := oneshotadventureFields[9].Descriptor()
+	// oneshotadventure.DefaultNotes holds the default value on creation for the notes field.
+	oneshotadventure.DefaultNotes = oneshotadventureDescNotes.Default.(string)
+	// oneshotadventureDescCreatedAt is the schema descriptor for created_at field.
+	oneshotadventureDescCreatedAt := oneshotadventureFields[10].Descriptor()
+	// oneshotadventure.DefaultCreatedAt holds the default value on creation for the created_at field.
+	oneshotadventure.DefaultCreatedAt = oneshotadventureDescCreatedAt.Default.(string)
+	// oneshotadventureDescUpdatedAt is the schema descriptor for updated_at field.
+	oneshotadventureDescUpdatedAt := oneshotadventureFields[11].Descriptor()
+	// oneshotadventure.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	oneshotadventure.DefaultUpdatedAt = oneshotadventureDescUpdatedAt.Default.(string)
+	oneshotitemFields := schema.OneShotItem{}.Fields()
+	_ = oneshotitemFields
+	// oneshotitemDescName is the schema descriptor for name field.
+	oneshotitemDescName := oneshotitemFields[3].Descriptor()
+	// oneshotitem.DefaultName holds the default value on creation for the name field.
+	oneshotitem.DefaultName = oneshotitemDescName.Default.(string)
+	// oneshotitemDescDescription is the schema descriptor for description field.
+	oneshotitemDescDescription := oneshotitemFields[4].Descriptor()
+	// oneshotitem.DefaultDescription holds the default value on creation for the description field.
+	oneshotitem.DefaultDescription = oneshotitemDescDescription.Default.(string)
+	// oneshotitemDescCategory is the schema descriptor for category field.
+	oneshotitemDescCategory := oneshotitemFields[5].Descriptor()
+	// oneshotitem.DefaultCategory holds the default value on creation for the category field.
+	oneshotitem.DefaultCategory = oneshotitemDescCategory.Default.(string)
+	// oneshotitemDescQuantity is the schema descriptor for quantity field.
+	oneshotitemDescQuantity := oneshotitemFields[6].Descriptor()
+	// oneshotitem.DefaultQuantity holds the default value on creation for the quantity field.
+	oneshotitem.DefaultQuantity = oneshotitemDescQuantity.Default.(int)
+	// oneshotitemDescWeight is the schema descriptor for weight field.
+	oneshotitemDescWeight := oneshotitemFields[7].Descriptor()
+	// oneshotitem.DefaultWeight holds the default value on creation for the weight field.
+	oneshotitem.DefaultWeight = oneshotitemDescWeight.Default.(float64)
+	// oneshotitemDescPriceGp is the schema descriptor for price_gp field.
+	oneshotitemDescPriceGp := oneshotitemFields[8].Descriptor()
+	// oneshotitem.DefaultPriceGp holds the default value on creation for the price_gp field.
+	oneshotitem.DefaultPriceGp = oneshotitemDescPriceGp.Default.(float64)
+	// oneshotitemDescIsMagical is the schema descriptor for is_magical field.
+	oneshotitemDescIsMagical := oneshotitemFields[9].Descriptor()
+	// oneshotitem.DefaultIsMagical holds the default value on creation for the is_magical field.
+	oneshotitem.DefaultIsMagical = oneshotitemDescIsMagical.Default.(bool)
+	// oneshotitemDescAttunement is the schema descriptor for attunement field.
+	oneshotitemDescAttunement := oneshotitemFields[10].Descriptor()
+	// oneshotitem.DefaultAttunement holds the default value on creation for the attunement field.
+	oneshotitem.DefaultAttunement = oneshotitemDescAttunement.Default.(bool)
+	// oneshotitemDescNotes is the schema descriptor for notes field.
+	oneshotitemDescNotes := oneshotitemFields[11].Descriptor()
+	// oneshotitem.DefaultNotes holds the default value on creation for the notes field.
+	oneshotitem.DefaultNotes = oneshotitemDescNotes.Default.(string)
+	// oneshotitemDescCreatedAt is the schema descriptor for created_at field.
+	oneshotitemDescCreatedAt := oneshotitemFields[12].Descriptor()
+	// oneshotitem.DefaultCreatedAt holds the default value on creation for the created_at field.
+	oneshotitem.DefaultCreatedAt = oneshotitemDescCreatedAt.Default.(string)
+	oneshotsceneFields := schema.OneShotScene{}.Fields()
+	_ = oneshotsceneFields
+	// oneshotsceneDescNumber is the schema descriptor for number field.
+	oneshotsceneDescNumber := oneshotsceneFields[2].Descriptor()
+	// oneshotscene.DefaultNumber holds the default value on creation for the number field.
+	oneshotscene.DefaultNumber = oneshotsceneDescNumber.Default.(int)
+	// oneshotsceneDescSortOrder is the schema descriptor for sort_order field.
+	oneshotsceneDescSortOrder := oneshotsceneFields[3].Descriptor()
+	// oneshotscene.DefaultSortOrder holds the default value on creation for the sort_order field.
+	oneshotscene.DefaultSortOrder = oneshotsceneDescSortOrder.Default.(int)
+	// oneshotsceneDescTitle is the schema descriptor for title field.
+	oneshotsceneDescTitle := oneshotsceneFields[4].Descriptor()
+	// oneshotscene.DefaultTitle holds the default value on creation for the title field.
+	oneshotscene.DefaultTitle = oneshotsceneDescTitle.Default.(string)
+	// oneshotsceneDescDescription is the schema descriptor for description field.
+	oneshotsceneDescDescription := oneshotsceneFields[5].Descriptor()
+	// oneshotscene.DefaultDescription holds the default value on creation for the description field.
+	oneshotscene.DefaultDescription = oneshotsceneDescDescription.Default.(string)
+	// oneshotsceneDescSceneType is the schema descriptor for scene_type field.
+	oneshotsceneDescSceneType := oneshotsceneFields[6].Descriptor()
+	// oneshotscene.DefaultSceneType holds the default value on creation for the scene_type field.
+	oneshotscene.DefaultSceneType = oneshotsceneDescSceneType.Default.(string)
+	// oneshotsceneDescEstimatedMinutes is the schema descriptor for estimated_minutes field.
+	oneshotsceneDescEstimatedMinutes := oneshotsceneFields[9].Descriptor()
+	// oneshotscene.DefaultEstimatedMinutes holds the default value on creation for the estimated_minutes field.
+	oneshotscene.DefaultEstimatedMinutes = oneshotsceneDescEstimatedMinutes.Default.(int)
+	// oneshotsceneDescNotes is the schema descriptor for notes field.
+	oneshotsceneDescNotes := oneshotsceneFields[10].Descriptor()
+	// oneshotscene.DefaultNotes holds the default value on creation for the notes field.
+	oneshotscene.DefaultNotes = oneshotsceneDescNotes.Default.(string)
 	partyitemFields := schema.PartyItem{}.Fields()
 	_ = partyitemFields
 	// partyitemDescQuantity is the schema descriptor for quantity field.
@@ -1681,19 +1821,19 @@ func init() {
 	shopFields := schema.Shop{}.Fields()
 	_ = shopFields
 	// shopDescDescription is the schema descriptor for description field.
-	shopDescDescription := shopFields[4].Descriptor()
+	shopDescDescription := shopFields[6].Descriptor()
 	// shop.DefaultDescription holds the default value on creation for the description field.
 	shop.DefaultDescription = shopDescDescription.Default.(string)
 	// shopDescMarkupPercent is the schema descriptor for markup_percent field.
-	shopDescMarkupPercent := shopFields[5].Descriptor()
+	shopDescMarkupPercent := shopFields[7].Descriptor()
 	// shop.DefaultMarkupPercent holds the default value on creation for the markup_percent field.
 	shop.DefaultMarkupPercent = shopDescMarkupPercent.Default.(float64)
 	// shopDescMarkupBuyPercent is the schema descriptor for markup_buy_percent field.
-	shopDescMarkupBuyPercent := shopFields[6].Descriptor()
+	shopDescMarkupBuyPercent := shopFields[8].Descriptor()
 	// shop.DefaultMarkupBuyPercent holds the default value on creation for the markup_buy_percent field.
 	shop.DefaultMarkupBuyPercent = shopDescMarkupBuyPercent.Default.(float64)
 	// shopDescCreatedAt is the schema descriptor for created_at field.
-	shopDescCreatedAt := shopFields[7].Descriptor()
+	shopDescCreatedAt := shopFields[9].Descriptor()
 	// shop.DefaultCreatedAt holds the default value on creation for the created_at field.
 	shop.DefaultCreatedAt = shopDescCreatedAt.Default.(string)
 	shopitemFields := schema.ShopItem{}.Fields()

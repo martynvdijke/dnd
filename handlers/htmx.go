@@ -1415,6 +1415,10 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"DELETE", "/htmx/oneshot-acts/:id", HtmxDeleteAct},
 		{"POST", "/htmx/oneshot-acts/:id/scenes", HtmxCreateScene},
 		{"DELETE", "/htmx/oneshot-scenes/:id", HtmxDeleteScene},
+		{"GET", "/htmx/oneshot-adventures/:id/new-act-form", HtmxNewActForm},
+		{"GET", "/htmx/oneshot-acts/:id/new-scene-form", HtmxSceneForm},
+		{"PUT", "/htmx/oneshot-acts/:id", HtmxUpdateAct},
+		{"PUT", "/htmx/oneshot-scenes/:id", HtmxUpdateScene},
 
 		// Session Pacing
 		{"GET", "/htmx/session-pacing/:id", HtmxGetPacingDashboard},

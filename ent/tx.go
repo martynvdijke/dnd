@@ -100,8 +100,18 @@ type Tx struct {
 	Location *LocationClient
 	// NPC is the client for interacting with the NPC builders.
 	NPC *NPCClient
+	// OneShotAct is the client for interacting with the OneShotAct builders.
+	OneShotAct *OneShotActClient
 	// OneShotActNPC is the client for interacting with the OneShotActNPC builders.
 	OneShotActNPC *OneShotActNPCClient
+	// OneShotAdventure is the client for interacting with the OneShotAdventure builders.
+	OneShotAdventure *OneShotAdventureClient
+	// OneShotAdventureEncounter is the client for interacting with the OneShotAdventureEncounter builders.
+	OneShotAdventureEncounter *OneShotAdventureEncounterClient
+	// OneShotItem is the client for interacting with the OneShotItem builders.
+	OneShotItem *OneShotItemClient
+	// OneShotScene is the client for interacting with the OneShotScene builders.
+	OneShotScene *OneShotSceneClient
 	// PartyItem is the client for interacting with the PartyItem builders.
 	PartyItem *PartyItemClient
 	// Quest is the client for interacting with the Quest builders.
@@ -301,7 +311,12 @@ func (tx *Tx) init() {
 	tx.LevelUpPlan = NewLevelUpPlanClient(tx.config)
 	tx.Location = NewLocationClient(tx.config)
 	tx.NPC = NewNPCClient(tx.config)
+	tx.OneShotAct = NewOneShotActClient(tx.config)
 	tx.OneShotActNPC = NewOneShotActNPCClient(tx.config)
+	tx.OneShotAdventure = NewOneShotAdventureClient(tx.config)
+	tx.OneShotAdventureEncounter = NewOneShotAdventureEncounterClient(tx.config)
+	tx.OneShotItem = NewOneShotItemClient(tx.config)
+	tx.OneShotScene = NewOneShotSceneClient(tx.config)
 	tx.PartyItem = NewPartyItemClient(tx.config)
 	tx.Quest = NewQuestClient(tx.config)
 	tx.RestLog = NewRestLogClient(tx.config)

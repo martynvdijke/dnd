@@ -1488,6 +1488,50 @@ var (
 			},
 		},
 	}
+	// OneshotActsColumns holds the columns for the "oneshot_acts" table.
+	OneshotActsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "number", Type: field.TypeInt, Default: 1},
+		{Name: "sort_order", Type: field.TypeInt, Default: 0},
+		{Name: "title", Type: field.TypeString, Default: ""},
+		{Name: "description", Type: field.TypeString, Default: ""},
+		{Name: "estimated_minutes", Type: field.TypeInt, Default: 30},
+		{Name: "notes", Type: field.TypeString, Default: ""},
+		{Name: "parent_act_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "adventure_id", Type: field.TypeInt64},
+	}
+	// OneshotActsTable holds the schema information for the "oneshot_acts" table.
+	OneshotActsTable = &schema.Table{
+		Name:       "oneshot_acts",
+		Columns:    OneshotActsColumns,
+		PrimaryKey: []*schema.Column{OneshotActsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "oneshot_acts_oneshot_acts_children",
+				Columns:    []*schema.Column{OneshotActsColumns[7]},
+				RefColumns: []*schema.Column{OneshotActsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "oneshot_acts_oneshot_adventures_acts",
+				Columns:    []*schema.Column{OneshotActsColumns[8]},
+				RefColumns: []*schema.Column{OneshotAdventuresColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "oneshotact_adventure_id",
+				Unique:  false,
+				Columns: []*schema.Column{OneshotActsColumns[8]},
+			},
+			{
+				Name:    "oneshotact_parent_act_id",
+				Unique:  false,
+				Columns: []*schema.Column{OneshotActsColumns[7]},
+			},
+		},
+	}
 	// OneshotActNpcsColumns holds the columns for the "oneshot_act_npcs" table.
 	OneshotActNpcsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -1514,6 +1558,137 @@ var (
 				Name:    "oneshotactnpc_npc_id",
 				Unique:  false,
 				Columns: []*schema.Column{OneshotActNpcsColumns[2]},
+			},
+		},
+	}
+	// OneshotAdventuresColumns holds the columns for the "oneshot_adventures" table.
+	OneshotAdventuresColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "user_id", Type: field.TypeInt64},
+		{Name: "campaign_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "title", Type: field.TypeString, Default: ""},
+		{Name: "premise", Type: field.TypeString, Default: ""},
+		{Name: "hook", Type: field.TypeString, Default: ""},
+		{Name: "template", Type: field.TypeString, Default: "custom"},
+		{Name: "estimated_minutes", Type: field.TypeInt, Default: 180},
+		{Name: "difficulty", Type: field.TypeString, Default: "medium"},
+		{Name: "notes", Type: field.TypeString, Default: ""},
+		{Name: "created_at", Type: field.TypeString, Default: ""},
+		{Name: "updated_at", Type: field.TypeString, Default: ""},
+	}
+	// OneshotAdventuresTable holds the schema information for the "oneshot_adventures" table.
+	OneshotAdventuresTable = &schema.Table{
+		Name:       "oneshot_adventures",
+		Columns:    OneshotAdventuresColumns,
+		PrimaryKey: []*schema.Column{OneshotAdventuresColumns[0]},
+	}
+	// OneshotAdventureEncountersColumns holds the columns for the "oneshot_adventure_encounters" table.
+	OneshotAdventureEncountersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "adventure_id", Type: field.TypeInt64},
+		{Name: "encounter_id", Type: field.TypeInt64},
+		{Name: "act_id", Type: field.TypeInt64, Nullable: true},
+	}
+	// OneshotAdventureEncountersTable holds the schema information for the "oneshot_adventure_encounters" table.
+	OneshotAdventureEncountersTable = &schema.Table{
+		Name:       "oneshot_adventure_encounters",
+		Columns:    OneshotAdventureEncountersColumns,
+		PrimaryKey: []*schema.Column{OneshotAdventureEncountersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "oneshot_adventure_encounters_oneshot_acts_encounters",
+				Columns:    []*schema.Column{OneshotAdventureEncountersColumns[3]},
+				RefColumns: []*schema.Column{OneshotActsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "oneshotadventureencounter_adventure_id",
+				Unique:  false,
+				Columns: []*schema.Column{OneshotAdventureEncountersColumns[1]},
+			},
+			{
+				Name:    "oneshotadventureencounter_act_id",
+				Unique:  false,
+				Columns: []*schema.Column{OneshotAdventureEncountersColumns[3]},
+			},
+		},
+	}
+	// OneshotItemsColumns holds the columns for the "oneshot_items" table.
+	OneshotItemsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "adventure_id", Type: field.TypeInt64},
+		{Name: "name", Type: field.TypeString, Default: ""},
+		{Name: "description", Type: field.TypeString, Default: ""},
+		{Name: "category", Type: field.TypeString, Default: "gear"},
+		{Name: "quantity", Type: field.TypeInt, Default: 1},
+		{Name: "weight", Type: field.TypeFloat64, Default: 0},
+		{Name: "price_gp", Type: field.TypeFloat64, Default: 0},
+		{Name: "is_magical", Type: field.TypeBool, Default: false},
+		{Name: "attunement", Type: field.TypeBool, Default: false},
+		{Name: "notes", Type: field.TypeString, Default: ""},
+		{Name: "created_at", Type: field.TypeString, Default: ""},
+		{Name: "act_id", Type: field.TypeInt64, Nullable: true},
+	}
+	// OneshotItemsTable holds the schema information for the "oneshot_items" table.
+	OneshotItemsTable = &schema.Table{
+		Name:       "oneshot_items",
+		Columns:    OneshotItemsColumns,
+		PrimaryKey: []*schema.Column{OneshotItemsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "oneshot_items_oneshot_acts_items",
+				Columns:    []*schema.Column{OneshotItemsColumns[12]},
+				RefColumns: []*schema.Column{OneshotActsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "oneshotitem_adventure_id",
+				Unique:  false,
+				Columns: []*schema.Column{OneshotItemsColumns[1]},
+			},
+			{
+				Name:    "oneshotitem_act_id",
+				Unique:  false,
+				Columns: []*schema.Column{OneshotItemsColumns[12]},
+			},
+		},
+	}
+	// OneshotScenesColumns holds the columns for the "oneshot_scenes" table.
+	OneshotScenesColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "number", Type: field.TypeInt, Default: 1},
+		{Name: "sort_order", Type: field.TypeInt, Default: 0},
+		{Name: "title", Type: field.TypeString, Default: ""},
+		{Name: "description", Type: field.TypeString, Default: ""},
+		{Name: "scene_type", Type: field.TypeString, Default: "roleplay"},
+		{Name: "location_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "encounter_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "estimated_minutes", Type: field.TypeInt, Default: 15},
+		{Name: "notes", Type: field.TypeString, Default: ""},
+		{Name: "act_id", Type: field.TypeInt64},
+	}
+	// OneshotScenesTable holds the schema information for the "oneshot_scenes" table.
+	OneshotScenesTable = &schema.Table{
+		Name:       "oneshot_scenes",
+		Columns:    OneshotScenesColumns,
+		PrimaryKey: []*schema.Column{OneshotScenesColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "oneshot_scenes_oneshot_acts_scenes",
+				Columns:    []*schema.Column{OneshotScenesColumns[10]},
+				RefColumns: []*schema.Column{OneshotActsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "oneshotscene_act_id",
+				Unique:  false,
+				Columns: []*schema.Column{OneshotScenesColumns[10]},
 			},
 		},
 	}
@@ -1714,6 +1889,8 @@ var (
 	// ShopsColumns holds the columns for the "shops" table.
 	ShopsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "oneshot_adventure_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "act_id", Type: field.TypeInt64, Nullable: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Default: ""},
 		{Name: "markup_percent", Type: field.TypeFloat64, Default: 100},
@@ -1730,13 +1907,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "shops_campaigns_shops",
-				Columns:    []*schema.Column{ShopsColumns[6]},
+				Columns:    []*schema.Column{ShopsColumns[8]},
 				RefColumns: []*schema.Column{CampaignsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
 			{
 				Symbol:     "shops_users_shops",
-				Columns:    []*schema.Column{ShopsColumns[7]},
+				Columns:    []*schema.Column{ShopsColumns[9]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1745,7 +1922,17 @@ var (
 			{
 				Name:    "shop_campaign_id",
 				Unique:  false,
-				Columns: []*schema.Column{ShopsColumns[6]},
+				Columns: []*schema.Column{ShopsColumns[8]},
+			},
+			{
+				Name:    "shop_oneshot_adventure_id",
+				Unique:  false,
+				Columns: []*schema.Column{ShopsColumns[1]},
+			},
+			{
+				Name:    "shop_act_id",
+				Unique:  false,
+				Columns: []*schema.Column{ShopsColumns[2]},
 			},
 		},
 	}
@@ -1945,7 +2132,12 @@ var (
 		LevelUpPlansTable,
 		LocationsTable,
 		NpcsTable,
+		OneshotActsTable,
 		OneshotActNpcsTable,
+		OneshotAdventuresTable,
+		OneshotAdventureEncountersTable,
+		OneshotItemsTable,
+		OneshotScenesTable,
 		PartyItemsTable,
 		QuestsTable,
 		RestLogTable,
@@ -2035,8 +2227,28 @@ func init() {
 	NpcsTable.Annotation = &entsql.Annotation{
 		Table: "npcs",
 	}
+	OneshotActsTable.ForeignKeys[0].RefTable = OneshotActsTable
+	OneshotActsTable.ForeignKeys[1].RefTable = OneshotAdventuresTable
+	OneshotActsTable.Annotation = &entsql.Annotation{
+		Table: "oneshot_acts",
+	}
 	OneshotActNpcsTable.Annotation = &entsql.Annotation{
 		Table: "oneshot_act_npcs",
+	}
+	OneshotAdventuresTable.Annotation = &entsql.Annotation{
+		Table: "oneshot_adventures",
+	}
+	OneshotAdventureEncountersTable.ForeignKeys[0].RefTable = OneshotActsTable
+	OneshotAdventureEncountersTable.Annotation = &entsql.Annotation{
+		Table: "oneshot_adventure_encounters",
+	}
+	OneshotItemsTable.ForeignKeys[0].RefTable = OneshotActsTable
+	OneshotItemsTable.Annotation = &entsql.Annotation{
+		Table: "oneshot_items",
+	}
+	OneshotScenesTable.ForeignKeys[0].RefTable = OneshotActsTable
+	OneshotScenesTable.Annotation = &entsql.Annotation{
+		Table: "oneshot_scenes",
 	}
 	PartyItemsTable.ForeignKeys[0].RefTable = CampaignsTable
 	QuestsTable.ForeignKeys[0].RefTable = CharactersTable

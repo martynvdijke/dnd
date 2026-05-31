@@ -536,6 +536,18 @@ func (f NPCFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.NPCMutation", m)
 }
 
+// The OneShotActFunc type is an adapter to allow the use of ordinary
+// function as OneShotAct mutator.
+type OneShotActFunc func(context.Context, *ent.OneShotActMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OneShotActFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OneShotActMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OneShotActMutation", m)
+}
+
 // The OneShotActNPCFunc type is an adapter to allow the use of ordinary
 // function as OneShotActNPC mutator.
 type OneShotActNPCFunc func(context.Context, *ent.OneShotActNPCMutation) (ent.Value, error)
@@ -546,6 +558,54 @@ func (f OneShotActNPCFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Valu
 		return f(ctx, mv)
 	}
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OneShotActNPCMutation", m)
+}
+
+// The OneShotAdventureFunc type is an adapter to allow the use of ordinary
+// function as OneShotAdventure mutator.
+type OneShotAdventureFunc func(context.Context, *ent.OneShotAdventureMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OneShotAdventureFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OneShotAdventureMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OneShotAdventureMutation", m)
+}
+
+// The OneShotAdventureEncounterFunc type is an adapter to allow the use of ordinary
+// function as OneShotAdventureEncounter mutator.
+type OneShotAdventureEncounterFunc func(context.Context, *ent.OneShotAdventureEncounterMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OneShotAdventureEncounterFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OneShotAdventureEncounterMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OneShotAdventureEncounterMutation", m)
+}
+
+// The OneShotItemFunc type is an adapter to allow the use of ordinary
+// function as OneShotItem mutator.
+type OneShotItemFunc func(context.Context, *ent.OneShotItemMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OneShotItemFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OneShotItemMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OneShotItemMutation", m)
+}
+
+// The OneShotSceneFunc type is an adapter to allow the use of ordinary
+// function as OneShotScene mutator.
+type OneShotSceneFunc func(context.Context, *ent.OneShotSceneMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OneShotSceneFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OneShotSceneMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OneShotSceneMutation", m)
 }
 
 // The PartyItemFunc type is an adapter to allow the use of ordinary

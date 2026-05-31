@@ -55,7 +55,12 @@ import (
 	"villum/ent/levelupplan"
 	"villum/ent/location"
 	"villum/ent/npc"
+	"villum/ent/oneshotact"
 	"villum/ent/oneshotactnpc"
+	"villum/ent/oneshotadventure"
+	"villum/ent/oneshotadventureencounter"
+	"villum/ent/oneshotitem"
+	"villum/ent/oneshotscene"
 	"villum/ent/partyitem"
 	"villum/ent/quest"
 	"villum/ent/restlog"
@@ -168,8 +173,18 @@ type Client struct {
 	Location *LocationClient
 	// NPC is the client for interacting with the NPC builders.
 	NPC *NPCClient
+	// OneShotAct is the client for interacting with the OneShotAct builders.
+	OneShotAct *OneShotActClient
 	// OneShotActNPC is the client for interacting with the OneShotActNPC builders.
 	OneShotActNPC *OneShotActNPCClient
+	// OneShotAdventure is the client for interacting with the OneShotAdventure builders.
+	OneShotAdventure *OneShotAdventureClient
+	// OneShotAdventureEncounter is the client for interacting with the OneShotAdventureEncounter builders.
+	OneShotAdventureEncounter *OneShotAdventureEncounterClient
+	// OneShotItem is the client for interacting with the OneShotItem builders.
+	OneShotItem *OneShotItemClient
+	// OneShotScene is the client for interacting with the OneShotScene builders.
+	OneShotScene *OneShotSceneClient
 	// PartyItem is the client for interacting with the PartyItem builders.
 	PartyItem *PartyItemClient
 	// Quest is the client for interacting with the Quest builders.
@@ -249,7 +264,12 @@ func (c *Client) init() {
 	c.LevelUpPlan = NewLevelUpPlanClient(c.config)
 	c.Location = NewLocationClient(c.config)
 	c.NPC = NewNPCClient(c.config)
+	c.OneShotAct = NewOneShotActClient(c.config)
 	c.OneShotActNPC = NewOneShotActNPCClient(c.config)
+	c.OneShotAdventure = NewOneShotAdventureClient(c.config)
+	c.OneShotAdventureEncounter = NewOneShotAdventureEncounterClient(c.config)
+	c.OneShotItem = NewOneShotItemClient(c.config)
+	c.OneShotScene = NewOneShotSceneClient(c.config)
 	c.PartyItem = NewPartyItemClient(c.config)
 	c.Quest = NewQuestClient(c.config)
 	c.RestLog = NewRestLogClient(c.config)
@@ -352,65 +372,70 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	cfg := c.config
 	cfg.driver = tx
 	return &Tx{
-		ctx:                   ctx,
-		config:                cfg,
-		BackupSetting:         NewBackupSettingClient(cfg),
-		Campaign:              NewCampaignClient(cfg),
-		CampaignCalendarEvent: NewCampaignCalendarEventClient(cfg),
-		CampaignMap:           NewCampaignMapClient(cfg),
-		CampaignMapPin:        NewCampaignMapPinClient(cfg),
-		CampaignMember:        NewCampaignMemberClient(cfg),
-		CampaignRecap:         NewCampaignRecapClient(cfg),
-		CampaignTimelineEvent: NewCampaignTimelineEventClient(cfg),
-		CampaignWikiPage:      NewCampaignWikiPageClient(cfg),
-		Character:             NewCharacterClient(cfg),
-		CharacterClass:        NewCharacterClassClient(cfg),
-		CharacterCondition:    NewCharacterConditionClient(cfg),
-		CharacterCrafting:     NewCharacterCraftingClient(cfg),
-		CharacterCurrency:     NewCharacterCurrencyClient(cfg),
-		CharacterFeat:         NewCharacterFeatClient(cfg),
-		CharacterFeature:      NewCharacterFeatureClient(cfg),
-		CharacterLocation:     NewCharacterLocationClient(cfg),
-		CharacterNPC:          NewCharacterNPCClient(cfg),
-		CharacterNote:         NewCharacterNoteClient(cfg),
-		CharacterProficiency:  NewCharacterProficiencyClient(cfg),
-		CharacterResource:     NewCharacterResourceClient(cfg),
-		CharacterSpellcasting: NewCharacterSpellcastingClient(cfg),
-		CombatEntry:           NewCombatEntryClient(cfg),
-		CombatLogEntry:        NewCombatLogEntryClient(cfg),
-		Companion:             NewCompanionClient(cfg),
-		CompendiumBackground:  NewCompendiumBackgroundClient(cfg),
-		CompendiumClass:       NewCompendiumClassClient(cfg),
-		CompendiumEquipment:   NewCompendiumEquipmentClient(cfg),
-		CompendiumFeat:        NewCompendiumFeatClient(cfg),
-		CompendiumRace:        NewCompendiumRaceClient(cfg),
-		CompendiumSpell:       NewCompendiumSpellClient(cfg),
-		CraftingRecipe:        NewCraftingRecipeClient(cfg),
-		DiceRoll:              NewDiceRollClient(cfg),
-		DowntimeActivity:      NewDowntimeActivityClient(cfg),
-		EmailSetting:          NewEmailSettingClient(cfg),
-		EncounterMonster:      NewEncounterMonsterClient(cfg),
-		EncounterTemplate:     NewEncounterTemplateClient(cfg),
-		Faction:               NewFactionClient(cfg),
-		FactionReputation:     NewFactionReputationClient(cfg),
-		InventoryItem:         NewInventoryItemClient(cfg),
-		JournalEntry:          NewJournalEntryClient(cfg),
-		LevelUpPlan:           NewLevelUpPlanClient(cfg),
-		Location:              NewLocationClient(cfg),
-		NPC:                   NewNPCClient(cfg),
-		OneShotActNPC:         NewOneShotActNPCClient(cfg),
-		PartyItem:             NewPartyItemClient(cfg),
-		Quest:                 NewQuestClient(cfg),
-		RestLog:               NewRestLogClient(cfg),
-		Session:               NewSessionClient(cfg),
-		SessionPlan:           NewSessionPlanClient(cfg),
-		ShareLink:             NewShareLinkClient(cfg),
-		Shop:                  NewShopClient(cfg),
-		ShopItem:              NewShopItemClient(cfg),
-		ShopTransaction:       NewShopTransactionClient(cfg),
-		Spell:                 NewSpellClient(cfg),
-		Upload:                NewUploadClient(cfg),
-		User:                  NewUserClient(cfg),
+		ctx:                       ctx,
+		config:                    cfg,
+		BackupSetting:             NewBackupSettingClient(cfg),
+		Campaign:                  NewCampaignClient(cfg),
+		CampaignCalendarEvent:     NewCampaignCalendarEventClient(cfg),
+		CampaignMap:               NewCampaignMapClient(cfg),
+		CampaignMapPin:            NewCampaignMapPinClient(cfg),
+		CampaignMember:            NewCampaignMemberClient(cfg),
+		CampaignRecap:             NewCampaignRecapClient(cfg),
+		CampaignTimelineEvent:     NewCampaignTimelineEventClient(cfg),
+		CampaignWikiPage:          NewCampaignWikiPageClient(cfg),
+		Character:                 NewCharacterClient(cfg),
+		CharacterClass:            NewCharacterClassClient(cfg),
+		CharacterCondition:        NewCharacterConditionClient(cfg),
+		CharacterCrafting:         NewCharacterCraftingClient(cfg),
+		CharacterCurrency:         NewCharacterCurrencyClient(cfg),
+		CharacterFeat:             NewCharacterFeatClient(cfg),
+		CharacterFeature:          NewCharacterFeatureClient(cfg),
+		CharacterLocation:         NewCharacterLocationClient(cfg),
+		CharacterNPC:              NewCharacterNPCClient(cfg),
+		CharacterNote:             NewCharacterNoteClient(cfg),
+		CharacterProficiency:      NewCharacterProficiencyClient(cfg),
+		CharacterResource:         NewCharacterResourceClient(cfg),
+		CharacterSpellcasting:     NewCharacterSpellcastingClient(cfg),
+		CombatEntry:               NewCombatEntryClient(cfg),
+		CombatLogEntry:            NewCombatLogEntryClient(cfg),
+		Companion:                 NewCompanionClient(cfg),
+		CompendiumBackground:      NewCompendiumBackgroundClient(cfg),
+		CompendiumClass:           NewCompendiumClassClient(cfg),
+		CompendiumEquipment:       NewCompendiumEquipmentClient(cfg),
+		CompendiumFeat:            NewCompendiumFeatClient(cfg),
+		CompendiumRace:            NewCompendiumRaceClient(cfg),
+		CompendiumSpell:           NewCompendiumSpellClient(cfg),
+		CraftingRecipe:            NewCraftingRecipeClient(cfg),
+		DiceRoll:                  NewDiceRollClient(cfg),
+		DowntimeActivity:          NewDowntimeActivityClient(cfg),
+		EmailSetting:              NewEmailSettingClient(cfg),
+		EncounterMonster:          NewEncounterMonsterClient(cfg),
+		EncounterTemplate:         NewEncounterTemplateClient(cfg),
+		Faction:                   NewFactionClient(cfg),
+		FactionReputation:         NewFactionReputationClient(cfg),
+		InventoryItem:             NewInventoryItemClient(cfg),
+		JournalEntry:              NewJournalEntryClient(cfg),
+		LevelUpPlan:               NewLevelUpPlanClient(cfg),
+		Location:                  NewLocationClient(cfg),
+		NPC:                       NewNPCClient(cfg),
+		OneShotAct:                NewOneShotActClient(cfg),
+		OneShotActNPC:             NewOneShotActNPCClient(cfg),
+		OneShotAdventure:          NewOneShotAdventureClient(cfg),
+		OneShotAdventureEncounter: NewOneShotAdventureEncounterClient(cfg),
+		OneShotItem:               NewOneShotItemClient(cfg),
+		OneShotScene:              NewOneShotSceneClient(cfg),
+		PartyItem:                 NewPartyItemClient(cfg),
+		Quest:                     NewQuestClient(cfg),
+		RestLog:                   NewRestLogClient(cfg),
+		Session:                   NewSessionClient(cfg),
+		SessionPlan:               NewSessionPlanClient(cfg),
+		ShareLink:                 NewShareLinkClient(cfg),
+		Shop:                      NewShopClient(cfg),
+		ShopItem:                  NewShopItemClient(cfg),
+		ShopTransaction:           NewShopTransactionClient(cfg),
+		Spell:                     NewSpellClient(cfg),
+		Upload:                    NewUploadClient(cfg),
+		User:                      NewUserClient(cfg),
 	}, nil
 }
 
@@ -428,65 +453,70 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	cfg := c.config
 	cfg.driver = &txDriver{tx: tx, drv: c.driver}
 	return &Tx{
-		ctx:                   ctx,
-		config:                cfg,
-		BackupSetting:         NewBackupSettingClient(cfg),
-		Campaign:              NewCampaignClient(cfg),
-		CampaignCalendarEvent: NewCampaignCalendarEventClient(cfg),
-		CampaignMap:           NewCampaignMapClient(cfg),
-		CampaignMapPin:        NewCampaignMapPinClient(cfg),
-		CampaignMember:        NewCampaignMemberClient(cfg),
-		CampaignRecap:         NewCampaignRecapClient(cfg),
-		CampaignTimelineEvent: NewCampaignTimelineEventClient(cfg),
-		CampaignWikiPage:      NewCampaignWikiPageClient(cfg),
-		Character:             NewCharacterClient(cfg),
-		CharacterClass:        NewCharacterClassClient(cfg),
-		CharacterCondition:    NewCharacterConditionClient(cfg),
-		CharacterCrafting:     NewCharacterCraftingClient(cfg),
-		CharacterCurrency:     NewCharacterCurrencyClient(cfg),
-		CharacterFeat:         NewCharacterFeatClient(cfg),
-		CharacterFeature:      NewCharacterFeatureClient(cfg),
-		CharacterLocation:     NewCharacterLocationClient(cfg),
-		CharacterNPC:          NewCharacterNPCClient(cfg),
-		CharacterNote:         NewCharacterNoteClient(cfg),
-		CharacterProficiency:  NewCharacterProficiencyClient(cfg),
-		CharacterResource:     NewCharacterResourceClient(cfg),
-		CharacterSpellcasting: NewCharacterSpellcastingClient(cfg),
-		CombatEntry:           NewCombatEntryClient(cfg),
-		CombatLogEntry:        NewCombatLogEntryClient(cfg),
-		Companion:             NewCompanionClient(cfg),
-		CompendiumBackground:  NewCompendiumBackgroundClient(cfg),
-		CompendiumClass:       NewCompendiumClassClient(cfg),
-		CompendiumEquipment:   NewCompendiumEquipmentClient(cfg),
-		CompendiumFeat:        NewCompendiumFeatClient(cfg),
-		CompendiumRace:        NewCompendiumRaceClient(cfg),
-		CompendiumSpell:       NewCompendiumSpellClient(cfg),
-		CraftingRecipe:        NewCraftingRecipeClient(cfg),
-		DiceRoll:              NewDiceRollClient(cfg),
-		DowntimeActivity:      NewDowntimeActivityClient(cfg),
-		EmailSetting:          NewEmailSettingClient(cfg),
-		EncounterMonster:      NewEncounterMonsterClient(cfg),
-		EncounterTemplate:     NewEncounterTemplateClient(cfg),
-		Faction:               NewFactionClient(cfg),
-		FactionReputation:     NewFactionReputationClient(cfg),
-		InventoryItem:         NewInventoryItemClient(cfg),
-		JournalEntry:          NewJournalEntryClient(cfg),
-		LevelUpPlan:           NewLevelUpPlanClient(cfg),
-		Location:              NewLocationClient(cfg),
-		NPC:                   NewNPCClient(cfg),
-		OneShotActNPC:         NewOneShotActNPCClient(cfg),
-		PartyItem:             NewPartyItemClient(cfg),
-		Quest:                 NewQuestClient(cfg),
-		RestLog:               NewRestLogClient(cfg),
-		Session:               NewSessionClient(cfg),
-		SessionPlan:           NewSessionPlanClient(cfg),
-		ShareLink:             NewShareLinkClient(cfg),
-		Shop:                  NewShopClient(cfg),
-		ShopItem:              NewShopItemClient(cfg),
-		ShopTransaction:       NewShopTransactionClient(cfg),
-		Spell:                 NewSpellClient(cfg),
-		Upload:                NewUploadClient(cfg),
-		User:                  NewUserClient(cfg),
+		ctx:                       ctx,
+		config:                    cfg,
+		BackupSetting:             NewBackupSettingClient(cfg),
+		Campaign:                  NewCampaignClient(cfg),
+		CampaignCalendarEvent:     NewCampaignCalendarEventClient(cfg),
+		CampaignMap:               NewCampaignMapClient(cfg),
+		CampaignMapPin:            NewCampaignMapPinClient(cfg),
+		CampaignMember:            NewCampaignMemberClient(cfg),
+		CampaignRecap:             NewCampaignRecapClient(cfg),
+		CampaignTimelineEvent:     NewCampaignTimelineEventClient(cfg),
+		CampaignWikiPage:          NewCampaignWikiPageClient(cfg),
+		Character:                 NewCharacterClient(cfg),
+		CharacterClass:            NewCharacterClassClient(cfg),
+		CharacterCondition:        NewCharacterConditionClient(cfg),
+		CharacterCrafting:         NewCharacterCraftingClient(cfg),
+		CharacterCurrency:         NewCharacterCurrencyClient(cfg),
+		CharacterFeat:             NewCharacterFeatClient(cfg),
+		CharacterFeature:          NewCharacterFeatureClient(cfg),
+		CharacterLocation:         NewCharacterLocationClient(cfg),
+		CharacterNPC:              NewCharacterNPCClient(cfg),
+		CharacterNote:             NewCharacterNoteClient(cfg),
+		CharacterProficiency:      NewCharacterProficiencyClient(cfg),
+		CharacterResource:         NewCharacterResourceClient(cfg),
+		CharacterSpellcasting:     NewCharacterSpellcastingClient(cfg),
+		CombatEntry:               NewCombatEntryClient(cfg),
+		CombatLogEntry:            NewCombatLogEntryClient(cfg),
+		Companion:                 NewCompanionClient(cfg),
+		CompendiumBackground:      NewCompendiumBackgroundClient(cfg),
+		CompendiumClass:           NewCompendiumClassClient(cfg),
+		CompendiumEquipment:       NewCompendiumEquipmentClient(cfg),
+		CompendiumFeat:            NewCompendiumFeatClient(cfg),
+		CompendiumRace:            NewCompendiumRaceClient(cfg),
+		CompendiumSpell:           NewCompendiumSpellClient(cfg),
+		CraftingRecipe:            NewCraftingRecipeClient(cfg),
+		DiceRoll:                  NewDiceRollClient(cfg),
+		DowntimeActivity:          NewDowntimeActivityClient(cfg),
+		EmailSetting:              NewEmailSettingClient(cfg),
+		EncounterMonster:          NewEncounterMonsterClient(cfg),
+		EncounterTemplate:         NewEncounterTemplateClient(cfg),
+		Faction:                   NewFactionClient(cfg),
+		FactionReputation:         NewFactionReputationClient(cfg),
+		InventoryItem:             NewInventoryItemClient(cfg),
+		JournalEntry:              NewJournalEntryClient(cfg),
+		LevelUpPlan:               NewLevelUpPlanClient(cfg),
+		Location:                  NewLocationClient(cfg),
+		NPC:                       NewNPCClient(cfg),
+		OneShotAct:                NewOneShotActClient(cfg),
+		OneShotActNPC:             NewOneShotActNPCClient(cfg),
+		OneShotAdventure:          NewOneShotAdventureClient(cfg),
+		OneShotAdventureEncounter: NewOneShotAdventureEncounterClient(cfg),
+		OneShotItem:               NewOneShotItemClient(cfg),
+		OneShotScene:              NewOneShotSceneClient(cfg),
+		PartyItem:                 NewPartyItemClient(cfg),
+		Quest:                     NewQuestClient(cfg),
+		RestLog:                   NewRestLogClient(cfg),
+		Session:                   NewSessionClient(cfg),
+		SessionPlan:               NewSessionPlanClient(cfg),
+		ShareLink:                 NewShareLinkClient(cfg),
+		Shop:                      NewShopClient(cfg),
+		ShopItem:                  NewShopItemClient(cfg),
+		ShopTransaction:           NewShopTransactionClient(cfg),
+		Spell:                     NewSpellClient(cfg),
+		Upload:                    NewUploadClient(cfg),
+		User:                      NewUserClient(cfg),
 	}, nil
 }
 
@@ -526,9 +556,11 @@ func (c *Client) Use(hooks ...Hook) {
 		c.CompendiumFeat, c.CompendiumRace, c.CompendiumSpell, c.CraftingRecipe,
 		c.DiceRoll, c.DowntimeActivity, c.EmailSetting, c.EncounterMonster,
 		c.EncounterTemplate, c.Faction, c.FactionReputation, c.InventoryItem,
-		c.JournalEntry, c.LevelUpPlan, c.Location, c.NPC, c.OneShotActNPC, c.PartyItem,
-		c.Quest, c.RestLog, c.Session, c.SessionPlan, c.ShareLink, c.Shop, c.ShopItem,
-		c.ShopTransaction, c.Spell, c.Upload, c.User,
+		c.JournalEntry, c.LevelUpPlan, c.Location, c.NPC, c.OneShotAct,
+		c.OneShotActNPC, c.OneShotAdventure, c.OneShotAdventureEncounter,
+		c.OneShotItem, c.OneShotScene, c.PartyItem, c.Quest, c.RestLog, c.Session,
+		c.SessionPlan, c.ShareLink, c.Shop, c.ShopItem, c.ShopTransaction, c.Spell,
+		c.Upload, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -548,9 +580,11 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.CompendiumFeat, c.CompendiumRace, c.CompendiumSpell, c.CraftingRecipe,
 		c.DiceRoll, c.DowntimeActivity, c.EmailSetting, c.EncounterMonster,
 		c.EncounterTemplate, c.Faction, c.FactionReputation, c.InventoryItem,
-		c.JournalEntry, c.LevelUpPlan, c.Location, c.NPC, c.OneShotActNPC, c.PartyItem,
-		c.Quest, c.RestLog, c.Session, c.SessionPlan, c.ShareLink, c.Shop, c.ShopItem,
-		c.ShopTransaction, c.Spell, c.Upload, c.User,
+		c.JournalEntry, c.LevelUpPlan, c.Location, c.NPC, c.OneShotAct,
+		c.OneShotActNPC, c.OneShotAdventure, c.OneShotAdventureEncounter,
+		c.OneShotItem, c.OneShotScene, c.PartyItem, c.Quest, c.RestLog, c.Session,
+		c.SessionPlan, c.ShareLink, c.Shop, c.ShopItem, c.ShopTransaction, c.Spell,
+		c.Upload, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -647,8 +681,18 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Location.mutate(ctx, m)
 	case *NPCMutation:
 		return c.NPC.mutate(ctx, m)
+	case *OneShotActMutation:
+		return c.OneShotAct.mutate(ctx, m)
 	case *OneShotActNPCMutation:
 		return c.OneShotActNPC.mutate(ctx, m)
+	case *OneShotAdventureMutation:
+		return c.OneShotAdventure.mutate(ctx, m)
+	case *OneShotAdventureEncounterMutation:
+		return c.OneShotAdventureEncounter.mutate(ctx, m)
+	case *OneShotItemMutation:
+		return c.OneShotItem.mutate(ctx, m)
+	case *OneShotSceneMutation:
+		return c.OneShotScene.mutate(ctx, m)
 	case *PartyItemMutation:
 		return c.PartyItem.mutate(ctx, m)
 	case *QuestMutation:
@@ -7970,6 +8014,235 @@ func (c *NPCClient) mutate(ctx context.Context, m *NPCMutation) (Value, error) {
 	}
 }
 
+// OneShotActClient is a client for the OneShotAct schema.
+type OneShotActClient struct {
+	config
+}
+
+// NewOneShotActClient returns a client for the OneShotAct from the given config.
+func NewOneShotActClient(c config) *OneShotActClient {
+	return &OneShotActClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `oneshotact.Hooks(f(g(h())))`.
+func (c *OneShotActClient) Use(hooks ...Hook) {
+	c.hooks.OneShotAct = append(c.hooks.OneShotAct, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `oneshotact.Intercept(f(g(h())))`.
+func (c *OneShotActClient) Intercept(interceptors ...Interceptor) {
+	c.inters.OneShotAct = append(c.inters.OneShotAct, interceptors...)
+}
+
+// Create returns a builder for creating a OneShotAct entity.
+func (c *OneShotActClient) Create() *OneShotActCreate {
+	mutation := newOneShotActMutation(c.config, OpCreate)
+	return &OneShotActCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of OneShotAct entities.
+func (c *OneShotActClient) CreateBulk(builders ...*OneShotActCreate) *OneShotActCreateBulk {
+	return &OneShotActCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OneShotActClient) MapCreateBulk(slice any, setFunc func(*OneShotActCreate, int)) *OneShotActCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OneShotActCreateBulk{err: fmt.Errorf("calling to OneShotActClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OneShotActCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OneShotActCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for OneShotAct.
+func (c *OneShotActClient) Update() *OneShotActUpdate {
+	mutation := newOneShotActMutation(c.config, OpUpdate)
+	return &OneShotActUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OneShotActClient) UpdateOne(_m *OneShotAct) *OneShotActUpdateOne {
+	mutation := newOneShotActMutation(c.config, OpUpdateOne, withOneShotAct(_m))
+	return &OneShotActUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OneShotActClient) UpdateOneID(id int64) *OneShotActUpdateOne {
+	mutation := newOneShotActMutation(c.config, OpUpdateOne, withOneShotActID(id))
+	return &OneShotActUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for OneShotAct.
+func (c *OneShotActClient) Delete() *OneShotActDelete {
+	mutation := newOneShotActMutation(c.config, OpDelete)
+	return &OneShotActDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OneShotActClient) DeleteOne(_m *OneShotAct) *OneShotActDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OneShotActClient) DeleteOneID(id int64) *OneShotActDeleteOne {
+	builder := c.Delete().Where(oneshotact.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OneShotActDeleteOne{builder}
+}
+
+// Query returns a query builder for OneShotAct.
+func (c *OneShotActClient) Query() *OneShotActQuery {
+	return &OneShotActQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOneShotAct},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a OneShotAct entity by its id.
+func (c *OneShotActClient) Get(ctx context.Context, id int64) (*OneShotAct, error) {
+	return c.Query().Where(oneshotact.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OneShotActClient) GetX(ctx context.Context, id int64) *OneShotAct {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAdventure queries the adventure edge of a OneShotAct.
+func (c *OneShotActClient) QueryAdventure(_m *OneShotAct) *OneShotAdventureQuery {
+	query := (&OneShotAdventureClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oneshotact.Table, oneshotact.FieldID, id),
+			sqlgraph.To(oneshotadventure.Table, oneshotadventure.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, oneshotact.AdventureTable, oneshotact.AdventureColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryScenes queries the scenes edge of a OneShotAct.
+func (c *OneShotActClient) QueryScenes(_m *OneShotAct) *OneShotSceneQuery {
+	query := (&OneShotSceneClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oneshotact.Table, oneshotact.FieldID, id),
+			sqlgraph.To(oneshotscene.Table, oneshotscene.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, oneshotact.ScenesTable, oneshotact.ScenesColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryChildren queries the children edge of a OneShotAct.
+func (c *OneShotActClient) QueryChildren(_m *OneShotAct) *OneShotActQuery {
+	query := (&OneShotActClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oneshotact.Table, oneshotact.FieldID, id),
+			sqlgraph.To(oneshotact.Table, oneshotact.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, oneshotact.ChildrenTable, oneshotact.ChildrenColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryParent queries the parent edge of a OneShotAct.
+func (c *OneShotActClient) QueryParent(_m *OneShotAct) *OneShotActQuery {
+	query := (&OneShotActClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oneshotact.Table, oneshotact.FieldID, id),
+			sqlgraph.To(oneshotact.Table, oneshotact.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, oneshotact.ParentTable, oneshotact.ParentColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryItems queries the items edge of a OneShotAct.
+func (c *OneShotActClient) QueryItems(_m *OneShotAct) *OneShotItemQuery {
+	query := (&OneShotItemClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oneshotact.Table, oneshotact.FieldID, id),
+			sqlgraph.To(oneshotitem.Table, oneshotitem.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, oneshotact.ItemsTable, oneshotact.ItemsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryEncounters queries the encounters edge of a OneShotAct.
+func (c *OneShotActClient) QueryEncounters(_m *OneShotAct) *OneShotAdventureEncounterQuery {
+	query := (&OneShotAdventureEncounterClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oneshotact.Table, oneshotact.FieldID, id),
+			sqlgraph.To(oneshotadventureencounter.Table, oneshotadventureencounter.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, oneshotact.EncountersTable, oneshotact.EncountersColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *OneShotActClient) Hooks() []Hook {
+	return c.hooks.OneShotAct
+}
+
+// Interceptors returns the client interceptors.
+func (c *OneShotActClient) Interceptors() []Interceptor {
+	return c.inters.OneShotAct
+}
+
+func (c *OneShotActClient) mutate(ctx context.Context, m *OneShotActMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OneShotActCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OneShotActUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OneShotActUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OneShotActDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown OneShotAct mutation op: %q", m.Op())
+	}
+}
+
 // OneShotActNPCClient is a client for the OneShotActNPC schema.
 type OneShotActNPCClient struct {
 	config
@@ -8100,6 +8373,602 @@ func (c *OneShotActNPCClient) mutate(ctx context.Context, m *OneShotActNPCMutati
 		return (&OneShotActNPCDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown OneShotActNPC mutation op: %q", m.Op())
+	}
+}
+
+// OneShotAdventureClient is a client for the OneShotAdventure schema.
+type OneShotAdventureClient struct {
+	config
+}
+
+// NewOneShotAdventureClient returns a client for the OneShotAdventure from the given config.
+func NewOneShotAdventureClient(c config) *OneShotAdventureClient {
+	return &OneShotAdventureClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `oneshotadventure.Hooks(f(g(h())))`.
+func (c *OneShotAdventureClient) Use(hooks ...Hook) {
+	c.hooks.OneShotAdventure = append(c.hooks.OneShotAdventure, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `oneshotadventure.Intercept(f(g(h())))`.
+func (c *OneShotAdventureClient) Intercept(interceptors ...Interceptor) {
+	c.inters.OneShotAdventure = append(c.inters.OneShotAdventure, interceptors...)
+}
+
+// Create returns a builder for creating a OneShotAdventure entity.
+func (c *OneShotAdventureClient) Create() *OneShotAdventureCreate {
+	mutation := newOneShotAdventureMutation(c.config, OpCreate)
+	return &OneShotAdventureCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of OneShotAdventure entities.
+func (c *OneShotAdventureClient) CreateBulk(builders ...*OneShotAdventureCreate) *OneShotAdventureCreateBulk {
+	return &OneShotAdventureCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OneShotAdventureClient) MapCreateBulk(slice any, setFunc func(*OneShotAdventureCreate, int)) *OneShotAdventureCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OneShotAdventureCreateBulk{err: fmt.Errorf("calling to OneShotAdventureClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OneShotAdventureCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OneShotAdventureCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for OneShotAdventure.
+func (c *OneShotAdventureClient) Update() *OneShotAdventureUpdate {
+	mutation := newOneShotAdventureMutation(c.config, OpUpdate)
+	return &OneShotAdventureUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OneShotAdventureClient) UpdateOne(_m *OneShotAdventure) *OneShotAdventureUpdateOne {
+	mutation := newOneShotAdventureMutation(c.config, OpUpdateOne, withOneShotAdventure(_m))
+	return &OneShotAdventureUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OneShotAdventureClient) UpdateOneID(id int64) *OneShotAdventureUpdateOne {
+	mutation := newOneShotAdventureMutation(c.config, OpUpdateOne, withOneShotAdventureID(id))
+	return &OneShotAdventureUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for OneShotAdventure.
+func (c *OneShotAdventureClient) Delete() *OneShotAdventureDelete {
+	mutation := newOneShotAdventureMutation(c.config, OpDelete)
+	return &OneShotAdventureDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OneShotAdventureClient) DeleteOne(_m *OneShotAdventure) *OneShotAdventureDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OneShotAdventureClient) DeleteOneID(id int64) *OneShotAdventureDeleteOne {
+	builder := c.Delete().Where(oneshotadventure.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OneShotAdventureDeleteOne{builder}
+}
+
+// Query returns a query builder for OneShotAdventure.
+func (c *OneShotAdventureClient) Query() *OneShotAdventureQuery {
+	return &OneShotAdventureQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOneShotAdventure},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a OneShotAdventure entity by its id.
+func (c *OneShotAdventureClient) Get(ctx context.Context, id int64) (*OneShotAdventure, error) {
+	return c.Query().Where(oneshotadventure.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OneShotAdventureClient) GetX(ctx context.Context, id int64) *OneShotAdventure {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryActs queries the acts edge of a OneShotAdventure.
+func (c *OneShotAdventureClient) QueryActs(_m *OneShotAdventure) *OneShotActQuery {
+	query := (&OneShotActClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oneshotadventure.Table, oneshotadventure.FieldID, id),
+			sqlgraph.To(oneshotact.Table, oneshotact.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, oneshotadventure.ActsTable, oneshotadventure.ActsColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *OneShotAdventureClient) Hooks() []Hook {
+	return c.hooks.OneShotAdventure
+}
+
+// Interceptors returns the client interceptors.
+func (c *OneShotAdventureClient) Interceptors() []Interceptor {
+	return c.inters.OneShotAdventure
+}
+
+func (c *OneShotAdventureClient) mutate(ctx context.Context, m *OneShotAdventureMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OneShotAdventureCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OneShotAdventureUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OneShotAdventureUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OneShotAdventureDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown OneShotAdventure mutation op: %q", m.Op())
+	}
+}
+
+// OneShotAdventureEncounterClient is a client for the OneShotAdventureEncounter schema.
+type OneShotAdventureEncounterClient struct {
+	config
+}
+
+// NewOneShotAdventureEncounterClient returns a client for the OneShotAdventureEncounter from the given config.
+func NewOneShotAdventureEncounterClient(c config) *OneShotAdventureEncounterClient {
+	return &OneShotAdventureEncounterClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `oneshotadventureencounter.Hooks(f(g(h())))`.
+func (c *OneShotAdventureEncounterClient) Use(hooks ...Hook) {
+	c.hooks.OneShotAdventureEncounter = append(c.hooks.OneShotAdventureEncounter, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `oneshotadventureencounter.Intercept(f(g(h())))`.
+func (c *OneShotAdventureEncounterClient) Intercept(interceptors ...Interceptor) {
+	c.inters.OneShotAdventureEncounter = append(c.inters.OneShotAdventureEncounter, interceptors...)
+}
+
+// Create returns a builder for creating a OneShotAdventureEncounter entity.
+func (c *OneShotAdventureEncounterClient) Create() *OneShotAdventureEncounterCreate {
+	mutation := newOneShotAdventureEncounterMutation(c.config, OpCreate)
+	return &OneShotAdventureEncounterCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of OneShotAdventureEncounter entities.
+func (c *OneShotAdventureEncounterClient) CreateBulk(builders ...*OneShotAdventureEncounterCreate) *OneShotAdventureEncounterCreateBulk {
+	return &OneShotAdventureEncounterCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OneShotAdventureEncounterClient) MapCreateBulk(slice any, setFunc func(*OneShotAdventureEncounterCreate, int)) *OneShotAdventureEncounterCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OneShotAdventureEncounterCreateBulk{err: fmt.Errorf("calling to OneShotAdventureEncounterClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OneShotAdventureEncounterCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OneShotAdventureEncounterCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for OneShotAdventureEncounter.
+func (c *OneShotAdventureEncounterClient) Update() *OneShotAdventureEncounterUpdate {
+	mutation := newOneShotAdventureEncounterMutation(c.config, OpUpdate)
+	return &OneShotAdventureEncounterUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OneShotAdventureEncounterClient) UpdateOne(_m *OneShotAdventureEncounter) *OneShotAdventureEncounterUpdateOne {
+	mutation := newOneShotAdventureEncounterMutation(c.config, OpUpdateOne, withOneShotAdventureEncounter(_m))
+	return &OneShotAdventureEncounterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OneShotAdventureEncounterClient) UpdateOneID(id int64) *OneShotAdventureEncounterUpdateOne {
+	mutation := newOneShotAdventureEncounterMutation(c.config, OpUpdateOne, withOneShotAdventureEncounterID(id))
+	return &OneShotAdventureEncounterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for OneShotAdventureEncounter.
+func (c *OneShotAdventureEncounterClient) Delete() *OneShotAdventureEncounterDelete {
+	mutation := newOneShotAdventureEncounterMutation(c.config, OpDelete)
+	return &OneShotAdventureEncounterDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OneShotAdventureEncounterClient) DeleteOne(_m *OneShotAdventureEncounter) *OneShotAdventureEncounterDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OneShotAdventureEncounterClient) DeleteOneID(id int64) *OneShotAdventureEncounterDeleteOne {
+	builder := c.Delete().Where(oneshotadventureencounter.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OneShotAdventureEncounterDeleteOne{builder}
+}
+
+// Query returns a query builder for OneShotAdventureEncounter.
+func (c *OneShotAdventureEncounterClient) Query() *OneShotAdventureEncounterQuery {
+	return &OneShotAdventureEncounterQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOneShotAdventureEncounter},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a OneShotAdventureEncounter entity by its id.
+func (c *OneShotAdventureEncounterClient) Get(ctx context.Context, id int64) (*OneShotAdventureEncounter, error) {
+	return c.Query().Where(oneshotadventureencounter.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OneShotAdventureEncounterClient) GetX(ctx context.Context, id int64) *OneShotAdventureEncounter {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAct queries the act edge of a OneShotAdventureEncounter.
+func (c *OneShotAdventureEncounterClient) QueryAct(_m *OneShotAdventureEncounter) *OneShotActQuery {
+	query := (&OneShotActClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oneshotadventureencounter.Table, oneshotadventureencounter.FieldID, id),
+			sqlgraph.To(oneshotact.Table, oneshotact.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, oneshotadventureencounter.ActTable, oneshotadventureencounter.ActColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *OneShotAdventureEncounterClient) Hooks() []Hook {
+	return c.hooks.OneShotAdventureEncounter
+}
+
+// Interceptors returns the client interceptors.
+func (c *OneShotAdventureEncounterClient) Interceptors() []Interceptor {
+	return c.inters.OneShotAdventureEncounter
+}
+
+func (c *OneShotAdventureEncounterClient) mutate(ctx context.Context, m *OneShotAdventureEncounterMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OneShotAdventureEncounterCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OneShotAdventureEncounterUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OneShotAdventureEncounterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OneShotAdventureEncounterDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown OneShotAdventureEncounter mutation op: %q", m.Op())
+	}
+}
+
+// OneShotItemClient is a client for the OneShotItem schema.
+type OneShotItemClient struct {
+	config
+}
+
+// NewOneShotItemClient returns a client for the OneShotItem from the given config.
+func NewOneShotItemClient(c config) *OneShotItemClient {
+	return &OneShotItemClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `oneshotitem.Hooks(f(g(h())))`.
+func (c *OneShotItemClient) Use(hooks ...Hook) {
+	c.hooks.OneShotItem = append(c.hooks.OneShotItem, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `oneshotitem.Intercept(f(g(h())))`.
+func (c *OneShotItemClient) Intercept(interceptors ...Interceptor) {
+	c.inters.OneShotItem = append(c.inters.OneShotItem, interceptors...)
+}
+
+// Create returns a builder for creating a OneShotItem entity.
+func (c *OneShotItemClient) Create() *OneShotItemCreate {
+	mutation := newOneShotItemMutation(c.config, OpCreate)
+	return &OneShotItemCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of OneShotItem entities.
+func (c *OneShotItemClient) CreateBulk(builders ...*OneShotItemCreate) *OneShotItemCreateBulk {
+	return &OneShotItemCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OneShotItemClient) MapCreateBulk(slice any, setFunc func(*OneShotItemCreate, int)) *OneShotItemCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OneShotItemCreateBulk{err: fmt.Errorf("calling to OneShotItemClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OneShotItemCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OneShotItemCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for OneShotItem.
+func (c *OneShotItemClient) Update() *OneShotItemUpdate {
+	mutation := newOneShotItemMutation(c.config, OpUpdate)
+	return &OneShotItemUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OneShotItemClient) UpdateOne(_m *OneShotItem) *OneShotItemUpdateOne {
+	mutation := newOneShotItemMutation(c.config, OpUpdateOne, withOneShotItem(_m))
+	return &OneShotItemUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OneShotItemClient) UpdateOneID(id int64) *OneShotItemUpdateOne {
+	mutation := newOneShotItemMutation(c.config, OpUpdateOne, withOneShotItemID(id))
+	return &OneShotItemUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for OneShotItem.
+func (c *OneShotItemClient) Delete() *OneShotItemDelete {
+	mutation := newOneShotItemMutation(c.config, OpDelete)
+	return &OneShotItemDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OneShotItemClient) DeleteOne(_m *OneShotItem) *OneShotItemDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OneShotItemClient) DeleteOneID(id int64) *OneShotItemDeleteOne {
+	builder := c.Delete().Where(oneshotitem.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OneShotItemDeleteOne{builder}
+}
+
+// Query returns a query builder for OneShotItem.
+func (c *OneShotItemClient) Query() *OneShotItemQuery {
+	return &OneShotItemQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOneShotItem},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a OneShotItem entity by its id.
+func (c *OneShotItemClient) Get(ctx context.Context, id int64) (*OneShotItem, error) {
+	return c.Query().Where(oneshotitem.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OneShotItemClient) GetX(ctx context.Context, id int64) *OneShotItem {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAct queries the act edge of a OneShotItem.
+func (c *OneShotItemClient) QueryAct(_m *OneShotItem) *OneShotActQuery {
+	query := (&OneShotActClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oneshotitem.Table, oneshotitem.FieldID, id),
+			sqlgraph.To(oneshotact.Table, oneshotact.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, oneshotitem.ActTable, oneshotitem.ActColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *OneShotItemClient) Hooks() []Hook {
+	return c.hooks.OneShotItem
+}
+
+// Interceptors returns the client interceptors.
+func (c *OneShotItemClient) Interceptors() []Interceptor {
+	return c.inters.OneShotItem
+}
+
+func (c *OneShotItemClient) mutate(ctx context.Context, m *OneShotItemMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OneShotItemCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OneShotItemUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OneShotItemUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OneShotItemDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown OneShotItem mutation op: %q", m.Op())
+	}
+}
+
+// OneShotSceneClient is a client for the OneShotScene schema.
+type OneShotSceneClient struct {
+	config
+}
+
+// NewOneShotSceneClient returns a client for the OneShotScene from the given config.
+func NewOneShotSceneClient(c config) *OneShotSceneClient {
+	return &OneShotSceneClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `oneshotscene.Hooks(f(g(h())))`.
+func (c *OneShotSceneClient) Use(hooks ...Hook) {
+	c.hooks.OneShotScene = append(c.hooks.OneShotScene, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `oneshotscene.Intercept(f(g(h())))`.
+func (c *OneShotSceneClient) Intercept(interceptors ...Interceptor) {
+	c.inters.OneShotScene = append(c.inters.OneShotScene, interceptors...)
+}
+
+// Create returns a builder for creating a OneShotScene entity.
+func (c *OneShotSceneClient) Create() *OneShotSceneCreate {
+	mutation := newOneShotSceneMutation(c.config, OpCreate)
+	return &OneShotSceneCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of OneShotScene entities.
+func (c *OneShotSceneClient) CreateBulk(builders ...*OneShotSceneCreate) *OneShotSceneCreateBulk {
+	return &OneShotSceneCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OneShotSceneClient) MapCreateBulk(slice any, setFunc func(*OneShotSceneCreate, int)) *OneShotSceneCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OneShotSceneCreateBulk{err: fmt.Errorf("calling to OneShotSceneClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OneShotSceneCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OneShotSceneCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for OneShotScene.
+func (c *OneShotSceneClient) Update() *OneShotSceneUpdate {
+	mutation := newOneShotSceneMutation(c.config, OpUpdate)
+	return &OneShotSceneUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OneShotSceneClient) UpdateOne(_m *OneShotScene) *OneShotSceneUpdateOne {
+	mutation := newOneShotSceneMutation(c.config, OpUpdateOne, withOneShotScene(_m))
+	return &OneShotSceneUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OneShotSceneClient) UpdateOneID(id int64) *OneShotSceneUpdateOne {
+	mutation := newOneShotSceneMutation(c.config, OpUpdateOne, withOneShotSceneID(id))
+	return &OneShotSceneUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for OneShotScene.
+func (c *OneShotSceneClient) Delete() *OneShotSceneDelete {
+	mutation := newOneShotSceneMutation(c.config, OpDelete)
+	return &OneShotSceneDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OneShotSceneClient) DeleteOne(_m *OneShotScene) *OneShotSceneDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OneShotSceneClient) DeleteOneID(id int64) *OneShotSceneDeleteOne {
+	builder := c.Delete().Where(oneshotscene.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OneShotSceneDeleteOne{builder}
+}
+
+// Query returns a query builder for OneShotScene.
+func (c *OneShotSceneClient) Query() *OneShotSceneQuery {
+	return &OneShotSceneQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOneShotScene},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a OneShotScene entity by its id.
+func (c *OneShotSceneClient) Get(ctx context.Context, id int64) (*OneShotScene, error) {
+	return c.Query().Where(oneshotscene.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OneShotSceneClient) GetX(ctx context.Context, id int64) *OneShotScene {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryAct queries the act edge of a OneShotScene.
+func (c *OneShotSceneClient) QueryAct(_m *OneShotScene) *OneShotActQuery {
+	query := (&OneShotActClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(oneshotscene.Table, oneshotscene.FieldID, id),
+			sqlgraph.To(oneshotact.Table, oneshotact.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, oneshotscene.ActTable, oneshotscene.ActColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *OneShotSceneClient) Hooks() []Hook {
+	return c.hooks.OneShotScene
+}
+
+// Interceptors returns the client interceptors.
+func (c *OneShotSceneClient) Interceptors() []Interceptor {
+	return c.inters.OneShotScene
+}
+
+func (c *OneShotSceneClient) mutate(ctx context.Context, m *OneShotSceneMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OneShotSceneCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OneShotSceneUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OneShotSceneUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OneShotSceneDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown OneShotScene mutation op: %q", m.Op())
 	}
 }
 
@@ -10095,9 +10964,10 @@ type (
 		CompendiumBackground, CompendiumClass, CompendiumEquipment, CompendiumFeat,
 		CompendiumRace, CompendiumSpell, CraftingRecipe, DiceRoll, DowntimeActivity,
 		EmailSetting, EncounterMonster, EncounterTemplate, Faction, FactionReputation,
-		InventoryItem, JournalEntry, LevelUpPlan, Location, NPC, OneShotActNPC,
-		PartyItem, Quest, RestLog, Session, SessionPlan, ShareLink, Shop, ShopItem,
-		ShopTransaction, Spell, Upload, User []ent.Hook
+		InventoryItem, JournalEntry, LevelUpPlan, Location, NPC, OneShotAct,
+		OneShotActNPC, OneShotAdventure, OneShotAdventureEncounter, OneShotItem,
+		OneShotScene, PartyItem, Quest, RestLog, Session, SessionPlan, ShareLink, Shop,
+		ShopItem, ShopTransaction, Spell, Upload, User []ent.Hook
 	}
 	inters struct {
 		BackupSetting, Campaign, CampaignCalendarEvent, CampaignMap, CampaignMapPin,
@@ -10109,8 +10979,9 @@ type (
 		CompendiumBackground, CompendiumClass, CompendiumEquipment, CompendiumFeat,
 		CompendiumRace, CompendiumSpell, CraftingRecipe, DiceRoll, DowntimeActivity,
 		EmailSetting, EncounterMonster, EncounterTemplate, Faction, FactionReputation,
-		InventoryItem, JournalEntry, LevelUpPlan, Location, NPC, OneShotActNPC,
-		PartyItem, Quest, RestLog, Session, SessionPlan, ShareLink, Shop, ShopItem,
-		ShopTransaction, Spell, Upload, User []ent.Interceptor
+		InventoryItem, JournalEntry, LevelUpPlan, Location, NPC, OneShotAct,
+		OneShotActNPC, OneShotAdventure, OneShotAdventureEncounter, OneShotItem,
+		OneShotScene, PartyItem, Quest, RestLog, Session, SessionPlan, ShareLink, Shop,
+		ShopItem, ShopTransaction, Spell, Upload, User []ent.Interceptor
 	}
 )

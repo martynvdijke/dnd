@@ -45,6 +45,34 @@ func (_c *ShopCreate) SetNillableCampaignID(v *int64) *ShopCreate {
 	return _c
 }
 
+// SetOneshotAdventureID sets the "oneshot_adventure_id" field.
+func (_c *ShopCreate) SetOneshotAdventureID(v int64) *ShopCreate {
+	_c.mutation.SetOneshotAdventureID(v)
+	return _c
+}
+
+// SetNillableOneshotAdventureID sets the "oneshot_adventure_id" field if the given value is not nil.
+func (_c *ShopCreate) SetNillableOneshotAdventureID(v *int64) *ShopCreate {
+	if v != nil {
+		_c.SetOneshotAdventureID(*v)
+	}
+	return _c
+}
+
+// SetActID sets the "act_id" field.
+func (_c *ShopCreate) SetActID(v int64) *ShopCreate {
+	_c.mutation.SetActID(v)
+	return _c
+}
+
+// SetNillableActID sets the "act_id" field if the given value is not nil.
+func (_c *ShopCreate) SetNillableActID(v *int64) *ShopCreate {
+	if v != nil {
+		_c.SetActID(*v)
+	}
+	return _c
+}
+
 // SetName sets the "name" field.
 func (_c *ShopCreate) SetName(v string) *ShopCreate {
 	_c.mutation.SetName(v)
@@ -262,6 +290,14 @@ func (_c *ShopCreate) createSpec() (*Shop, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
+	if value, ok := _c.mutation.OneshotAdventureID(); ok {
+		_spec.SetField(shop.FieldOneshotAdventureID, field.TypeInt64, value)
+		_node.OneshotAdventureID = value
+	}
+	if value, ok := _c.mutation.ActID(); ok {
+		_spec.SetField(shop.FieldActID, field.TypeInt64, value)
+		_node.ActID = value
+	}
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(shop.FieldName, field.TypeString, value)
 		_node.Name = value
@@ -430,6 +466,54 @@ func (u *ShopUpsert) ClearCampaignID() *ShopUpsert {
 	return u
 }
 
+// SetOneshotAdventureID sets the "oneshot_adventure_id" field.
+func (u *ShopUpsert) SetOneshotAdventureID(v int64) *ShopUpsert {
+	u.Set(shop.FieldOneshotAdventureID, v)
+	return u
+}
+
+// UpdateOneshotAdventureID sets the "oneshot_adventure_id" field to the value that was provided on create.
+func (u *ShopUpsert) UpdateOneshotAdventureID() *ShopUpsert {
+	u.SetExcluded(shop.FieldOneshotAdventureID)
+	return u
+}
+
+// AddOneshotAdventureID adds v to the "oneshot_adventure_id" field.
+func (u *ShopUpsert) AddOneshotAdventureID(v int64) *ShopUpsert {
+	u.Add(shop.FieldOneshotAdventureID, v)
+	return u
+}
+
+// ClearOneshotAdventureID clears the value of the "oneshot_adventure_id" field.
+func (u *ShopUpsert) ClearOneshotAdventureID() *ShopUpsert {
+	u.SetNull(shop.FieldOneshotAdventureID)
+	return u
+}
+
+// SetActID sets the "act_id" field.
+func (u *ShopUpsert) SetActID(v int64) *ShopUpsert {
+	u.Set(shop.FieldActID, v)
+	return u
+}
+
+// UpdateActID sets the "act_id" field to the value that was provided on create.
+func (u *ShopUpsert) UpdateActID() *ShopUpsert {
+	u.SetExcluded(shop.FieldActID)
+	return u
+}
+
+// AddActID adds v to the "act_id" field.
+func (u *ShopUpsert) AddActID(v int64) *ShopUpsert {
+	u.Add(shop.FieldActID, v)
+	return u
+}
+
+// ClearActID clears the value of the "act_id" field.
+func (u *ShopUpsert) ClearActID() *ShopUpsert {
+	u.SetNull(shop.FieldActID)
+	return u
+}
+
 // SetName sets the "name" field.
 func (u *ShopUpsert) SetName(v string) *ShopUpsert {
 	u.Set(shop.FieldName, v)
@@ -582,6 +666,62 @@ func (u *ShopUpsertOne) UpdateCampaignID() *ShopUpsertOne {
 func (u *ShopUpsertOne) ClearCampaignID() *ShopUpsertOne {
 	return u.Update(func(s *ShopUpsert) {
 		s.ClearCampaignID()
+	})
+}
+
+// SetOneshotAdventureID sets the "oneshot_adventure_id" field.
+func (u *ShopUpsertOne) SetOneshotAdventureID(v int64) *ShopUpsertOne {
+	return u.Update(func(s *ShopUpsert) {
+		s.SetOneshotAdventureID(v)
+	})
+}
+
+// AddOneshotAdventureID adds v to the "oneshot_adventure_id" field.
+func (u *ShopUpsertOne) AddOneshotAdventureID(v int64) *ShopUpsertOne {
+	return u.Update(func(s *ShopUpsert) {
+		s.AddOneshotAdventureID(v)
+	})
+}
+
+// UpdateOneshotAdventureID sets the "oneshot_adventure_id" field to the value that was provided on create.
+func (u *ShopUpsertOne) UpdateOneshotAdventureID() *ShopUpsertOne {
+	return u.Update(func(s *ShopUpsert) {
+		s.UpdateOneshotAdventureID()
+	})
+}
+
+// ClearOneshotAdventureID clears the value of the "oneshot_adventure_id" field.
+func (u *ShopUpsertOne) ClearOneshotAdventureID() *ShopUpsertOne {
+	return u.Update(func(s *ShopUpsert) {
+		s.ClearOneshotAdventureID()
+	})
+}
+
+// SetActID sets the "act_id" field.
+func (u *ShopUpsertOne) SetActID(v int64) *ShopUpsertOne {
+	return u.Update(func(s *ShopUpsert) {
+		s.SetActID(v)
+	})
+}
+
+// AddActID adds v to the "act_id" field.
+func (u *ShopUpsertOne) AddActID(v int64) *ShopUpsertOne {
+	return u.Update(func(s *ShopUpsert) {
+		s.AddActID(v)
+	})
+}
+
+// UpdateActID sets the "act_id" field to the value that was provided on create.
+func (u *ShopUpsertOne) UpdateActID() *ShopUpsertOne {
+	return u.Update(func(s *ShopUpsert) {
+		s.UpdateActID()
+	})
+}
+
+// ClearActID clears the value of the "act_id" field.
+func (u *ShopUpsertOne) ClearActID() *ShopUpsertOne {
+	return u.Update(func(s *ShopUpsert) {
+		s.ClearActID()
 	})
 }
 
@@ -915,6 +1055,62 @@ func (u *ShopUpsertBulk) UpdateCampaignID() *ShopUpsertBulk {
 func (u *ShopUpsertBulk) ClearCampaignID() *ShopUpsertBulk {
 	return u.Update(func(s *ShopUpsert) {
 		s.ClearCampaignID()
+	})
+}
+
+// SetOneshotAdventureID sets the "oneshot_adventure_id" field.
+func (u *ShopUpsertBulk) SetOneshotAdventureID(v int64) *ShopUpsertBulk {
+	return u.Update(func(s *ShopUpsert) {
+		s.SetOneshotAdventureID(v)
+	})
+}
+
+// AddOneshotAdventureID adds v to the "oneshot_adventure_id" field.
+func (u *ShopUpsertBulk) AddOneshotAdventureID(v int64) *ShopUpsertBulk {
+	return u.Update(func(s *ShopUpsert) {
+		s.AddOneshotAdventureID(v)
+	})
+}
+
+// UpdateOneshotAdventureID sets the "oneshot_adventure_id" field to the value that was provided on create.
+func (u *ShopUpsertBulk) UpdateOneshotAdventureID() *ShopUpsertBulk {
+	return u.Update(func(s *ShopUpsert) {
+		s.UpdateOneshotAdventureID()
+	})
+}
+
+// ClearOneshotAdventureID clears the value of the "oneshot_adventure_id" field.
+func (u *ShopUpsertBulk) ClearOneshotAdventureID() *ShopUpsertBulk {
+	return u.Update(func(s *ShopUpsert) {
+		s.ClearOneshotAdventureID()
+	})
+}
+
+// SetActID sets the "act_id" field.
+func (u *ShopUpsertBulk) SetActID(v int64) *ShopUpsertBulk {
+	return u.Update(func(s *ShopUpsert) {
+		s.SetActID(v)
+	})
+}
+
+// AddActID adds v to the "act_id" field.
+func (u *ShopUpsertBulk) AddActID(v int64) *ShopUpsertBulk {
+	return u.Update(func(s *ShopUpsert) {
+		s.AddActID(v)
+	})
+}
+
+// UpdateActID sets the "act_id" field to the value that was provided on create.
+func (u *ShopUpsertBulk) UpdateActID() *ShopUpsertBulk {
+	return u.Update(func(s *ShopUpsert) {
+		s.UpdateActID()
+	})
+}
+
+// ClearActID clears the value of the "act_id" field.
+func (u *ShopUpsertBulk) ClearActID() *ShopUpsertBulk {
+	return u.Update(func(s *ShopUpsert) {
+		s.ClearActID()
 	})
 }
 

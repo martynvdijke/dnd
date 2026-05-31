@@ -51,7 +51,12 @@ import (
 	"villum/ent/levelupplan"
 	"villum/ent/location"
 	"villum/ent/npc"
+	"villum/ent/oneshotact"
 	"villum/ent/oneshotactnpc"
+	"villum/ent/oneshotadventure"
+	"villum/ent/oneshotadventureencounter"
+	"villum/ent/oneshotitem"
+	"villum/ent/oneshotscene"
 	"villum/ent/partyitem"
 	"villum/ent/predicate"
 	"villum/ent/quest"
@@ -79,63 +84,68 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
-	TypeBackupSetting         = "BackupSetting"
-	TypeCampaign              = "Campaign"
-	TypeCampaignCalendarEvent = "CampaignCalendarEvent"
-	TypeCampaignMap           = "CampaignMap"
-	TypeCampaignMapPin        = "CampaignMapPin"
-	TypeCampaignMember        = "CampaignMember"
-	TypeCampaignRecap         = "CampaignRecap"
-	TypeCampaignTimelineEvent = "CampaignTimelineEvent"
-	TypeCampaignWikiPage      = "CampaignWikiPage"
-	TypeCharacter             = "Character"
-	TypeCharacterClass        = "CharacterClass"
-	TypeCharacterCondition    = "CharacterCondition"
-	TypeCharacterCrafting     = "CharacterCrafting"
-	TypeCharacterCurrency     = "CharacterCurrency"
-	TypeCharacterFeat         = "CharacterFeat"
-	TypeCharacterFeature      = "CharacterFeature"
-	TypeCharacterLocation     = "CharacterLocation"
-	TypeCharacterNPC          = "CharacterNPC"
-	TypeCharacterNote         = "CharacterNote"
-	TypeCharacterProficiency  = "CharacterProficiency"
-	TypeCharacterResource     = "CharacterResource"
-	TypeCharacterSpellcasting = "CharacterSpellcasting"
-	TypeCombatEntry           = "CombatEntry"
-	TypeCombatLogEntry        = "CombatLogEntry"
-	TypeCompanion             = "Companion"
-	TypeCompendiumBackground  = "CompendiumBackground"
-	TypeCompendiumClass       = "CompendiumClass"
-	TypeCompendiumEquipment   = "CompendiumEquipment"
-	TypeCompendiumFeat        = "CompendiumFeat"
-	TypeCompendiumRace        = "CompendiumRace"
-	TypeCompendiumSpell       = "CompendiumSpell"
-	TypeCraftingRecipe        = "CraftingRecipe"
-	TypeDiceRoll              = "DiceRoll"
-	TypeDowntimeActivity      = "DowntimeActivity"
-	TypeEmailSetting          = "EmailSetting"
-	TypeEncounterMonster      = "EncounterMonster"
-	TypeEncounterTemplate     = "EncounterTemplate"
-	TypeFaction               = "Faction"
-	TypeFactionReputation     = "FactionReputation"
-	TypeInventoryItem         = "InventoryItem"
-	TypeJournalEntry          = "JournalEntry"
-	TypeLevelUpPlan           = "LevelUpPlan"
-	TypeLocation              = "Location"
-	TypeNPC                   = "NPC"
-	TypeOneShotActNPC         = "OneShotActNPC"
-	TypePartyItem             = "PartyItem"
-	TypeQuest                 = "Quest"
-	TypeRestLog               = "RestLog"
-	TypeSession               = "Session"
-	TypeSessionPlan           = "SessionPlan"
-	TypeShareLink             = "ShareLink"
-	TypeShop                  = "Shop"
-	TypeShopItem              = "ShopItem"
-	TypeShopTransaction       = "ShopTransaction"
-	TypeSpell                 = "Spell"
-	TypeUpload                = "Upload"
-	TypeUser                  = "User"
+	TypeBackupSetting             = "BackupSetting"
+	TypeCampaign                  = "Campaign"
+	TypeCampaignCalendarEvent     = "CampaignCalendarEvent"
+	TypeCampaignMap               = "CampaignMap"
+	TypeCampaignMapPin            = "CampaignMapPin"
+	TypeCampaignMember            = "CampaignMember"
+	TypeCampaignRecap             = "CampaignRecap"
+	TypeCampaignTimelineEvent     = "CampaignTimelineEvent"
+	TypeCampaignWikiPage          = "CampaignWikiPage"
+	TypeCharacter                 = "Character"
+	TypeCharacterClass            = "CharacterClass"
+	TypeCharacterCondition        = "CharacterCondition"
+	TypeCharacterCrafting         = "CharacterCrafting"
+	TypeCharacterCurrency         = "CharacterCurrency"
+	TypeCharacterFeat             = "CharacterFeat"
+	TypeCharacterFeature          = "CharacterFeature"
+	TypeCharacterLocation         = "CharacterLocation"
+	TypeCharacterNPC              = "CharacterNPC"
+	TypeCharacterNote             = "CharacterNote"
+	TypeCharacterProficiency      = "CharacterProficiency"
+	TypeCharacterResource         = "CharacterResource"
+	TypeCharacterSpellcasting     = "CharacterSpellcasting"
+	TypeCombatEntry               = "CombatEntry"
+	TypeCombatLogEntry            = "CombatLogEntry"
+	TypeCompanion                 = "Companion"
+	TypeCompendiumBackground      = "CompendiumBackground"
+	TypeCompendiumClass           = "CompendiumClass"
+	TypeCompendiumEquipment       = "CompendiumEquipment"
+	TypeCompendiumFeat            = "CompendiumFeat"
+	TypeCompendiumRace            = "CompendiumRace"
+	TypeCompendiumSpell           = "CompendiumSpell"
+	TypeCraftingRecipe            = "CraftingRecipe"
+	TypeDiceRoll                  = "DiceRoll"
+	TypeDowntimeActivity          = "DowntimeActivity"
+	TypeEmailSetting              = "EmailSetting"
+	TypeEncounterMonster          = "EncounterMonster"
+	TypeEncounterTemplate         = "EncounterTemplate"
+	TypeFaction                   = "Faction"
+	TypeFactionReputation         = "FactionReputation"
+	TypeInventoryItem             = "InventoryItem"
+	TypeJournalEntry              = "JournalEntry"
+	TypeLevelUpPlan               = "LevelUpPlan"
+	TypeLocation                  = "Location"
+	TypeNPC                       = "NPC"
+	TypeOneShotAct                = "OneShotAct"
+	TypeOneShotActNPC             = "OneShotActNPC"
+	TypeOneShotAdventure          = "OneShotAdventure"
+	TypeOneShotAdventureEncounter = "OneShotAdventureEncounter"
+	TypeOneShotItem               = "OneShotItem"
+	TypeOneShotScene              = "OneShotScene"
+	TypePartyItem                 = "PartyItem"
+	TypeQuest                     = "Quest"
+	TypeRestLog                   = "RestLog"
+	TypeSession                   = "Session"
+	TypeSessionPlan               = "SessionPlan"
+	TypeShareLink                 = "ShareLink"
+	TypeShop                      = "Shop"
+	TypeShopItem                  = "ShopItem"
+	TypeShopTransaction           = "ShopTransaction"
+	TypeSpell                     = "Spell"
+	TypeUpload                    = "Upload"
+	TypeUser                      = "User"
 )
 
 // BackupSettingMutation represents an operation that mutates the BackupSetting nodes in the graph.
@@ -47234,6 +47244,1287 @@ func (m *NPCMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown NPC edge %s", name)
 }
 
+// OneShotActMutation represents an operation that mutates the OneShotAct nodes in the graph.
+type OneShotActMutation struct {
+	config
+	op                   Op
+	typ                  string
+	id                   *int64
+	number               *int
+	addnumber            *int
+	sort_order           *int
+	addsort_order        *int
+	title                *string
+	description          *string
+	estimated_minutes    *int
+	addestimated_minutes *int
+	notes                *string
+	clearedFields        map[string]struct{}
+	adventure            *int64
+	clearedadventure     bool
+	scenes               map[int64]struct{}
+	removedscenes        map[int64]struct{}
+	clearedscenes        bool
+	children             map[int64]struct{}
+	removedchildren      map[int64]struct{}
+	clearedchildren      bool
+	parent               *int64
+	clearedparent        bool
+	items                map[int64]struct{}
+	removeditems         map[int64]struct{}
+	cleareditems         bool
+	encounters           map[int64]struct{}
+	removedencounters    map[int64]struct{}
+	clearedencounters    bool
+	done                 bool
+	oldValue             func(context.Context) (*OneShotAct, error)
+	predicates           []predicate.OneShotAct
+}
+
+var _ ent.Mutation = (*OneShotActMutation)(nil)
+
+// oneshotactOption allows management of the mutation configuration using functional options.
+type oneshotactOption func(*OneShotActMutation)
+
+// newOneShotActMutation creates new mutation for the OneShotAct entity.
+func newOneShotActMutation(c config, op Op, opts ...oneshotactOption) *OneShotActMutation {
+	m := &OneShotActMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeOneShotAct,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withOneShotActID sets the ID field of the mutation.
+func withOneShotActID(id int64) oneshotactOption {
+	return func(m *OneShotActMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *OneShotAct
+		)
+		m.oldValue = func(ctx context.Context) (*OneShotAct, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().OneShotAct.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withOneShotAct sets the old OneShotAct of the mutation.
+func withOneShotAct(node *OneShotAct) oneshotactOption {
+	return func(m *OneShotActMutation) {
+		m.oldValue = func(context.Context) (*OneShotAct, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m OneShotActMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m OneShotActMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of OneShotAct entities.
+func (m *OneShotActMutation) SetID(id int64) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *OneShotActMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *OneShotActMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().OneShotAct.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetAdventureID sets the "adventure_id" field.
+func (m *OneShotActMutation) SetAdventureID(i int64) {
+	m.adventure = &i
+}
+
+// AdventureID returns the value of the "adventure_id" field in the mutation.
+func (m *OneShotActMutation) AdventureID() (r int64, exists bool) {
+	v := m.adventure
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAdventureID returns the old "adventure_id" field's value of the OneShotAct entity.
+// If the OneShotAct object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotActMutation) OldAdventureID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAdventureID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAdventureID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAdventureID: %w", err)
+	}
+	return oldValue.AdventureID, nil
+}
+
+// ResetAdventureID resets all changes to the "adventure_id" field.
+func (m *OneShotActMutation) ResetAdventureID() {
+	m.adventure = nil
+}
+
+// SetParentActID sets the "parent_act_id" field.
+func (m *OneShotActMutation) SetParentActID(i int64) {
+	m.parent = &i
+}
+
+// ParentActID returns the value of the "parent_act_id" field in the mutation.
+func (m *OneShotActMutation) ParentActID() (r int64, exists bool) {
+	v := m.parent
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldParentActID returns the old "parent_act_id" field's value of the OneShotAct entity.
+// If the OneShotAct object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotActMutation) OldParentActID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldParentActID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldParentActID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldParentActID: %w", err)
+	}
+	return oldValue.ParentActID, nil
+}
+
+// ClearParentActID clears the value of the "parent_act_id" field.
+func (m *OneShotActMutation) ClearParentActID() {
+	m.parent = nil
+	m.clearedFields[oneshotact.FieldParentActID] = struct{}{}
+}
+
+// ParentActIDCleared returns if the "parent_act_id" field was cleared in this mutation.
+func (m *OneShotActMutation) ParentActIDCleared() bool {
+	_, ok := m.clearedFields[oneshotact.FieldParentActID]
+	return ok
+}
+
+// ResetParentActID resets all changes to the "parent_act_id" field.
+func (m *OneShotActMutation) ResetParentActID() {
+	m.parent = nil
+	delete(m.clearedFields, oneshotact.FieldParentActID)
+}
+
+// SetNumber sets the "number" field.
+func (m *OneShotActMutation) SetNumber(i int) {
+	m.number = &i
+	m.addnumber = nil
+}
+
+// Number returns the value of the "number" field in the mutation.
+func (m *OneShotActMutation) Number() (r int, exists bool) {
+	v := m.number
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNumber returns the old "number" field's value of the OneShotAct entity.
+// If the OneShotAct object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotActMutation) OldNumber(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNumber is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNumber requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNumber: %w", err)
+	}
+	return oldValue.Number, nil
+}
+
+// AddNumber adds i to the "number" field.
+func (m *OneShotActMutation) AddNumber(i int) {
+	if m.addnumber != nil {
+		*m.addnumber += i
+	} else {
+		m.addnumber = &i
+	}
+}
+
+// AddedNumber returns the value that was added to the "number" field in this mutation.
+func (m *OneShotActMutation) AddedNumber() (r int, exists bool) {
+	v := m.addnumber
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetNumber resets all changes to the "number" field.
+func (m *OneShotActMutation) ResetNumber() {
+	m.number = nil
+	m.addnumber = nil
+}
+
+// SetSortOrder sets the "sort_order" field.
+func (m *OneShotActMutation) SetSortOrder(i int) {
+	m.sort_order = &i
+	m.addsort_order = nil
+}
+
+// SortOrder returns the value of the "sort_order" field in the mutation.
+func (m *OneShotActMutation) SortOrder() (r int, exists bool) {
+	v := m.sort_order
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSortOrder returns the old "sort_order" field's value of the OneShotAct entity.
+// If the OneShotAct object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotActMutation) OldSortOrder(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSortOrder is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSortOrder requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSortOrder: %w", err)
+	}
+	return oldValue.SortOrder, nil
+}
+
+// AddSortOrder adds i to the "sort_order" field.
+func (m *OneShotActMutation) AddSortOrder(i int) {
+	if m.addsort_order != nil {
+		*m.addsort_order += i
+	} else {
+		m.addsort_order = &i
+	}
+}
+
+// AddedSortOrder returns the value that was added to the "sort_order" field in this mutation.
+func (m *OneShotActMutation) AddedSortOrder() (r int, exists bool) {
+	v := m.addsort_order
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSortOrder resets all changes to the "sort_order" field.
+func (m *OneShotActMutation) ResetSortOrder() {
+	m.sort_order = nil
+	m.addsort_order = nil
+}
+
+// SetTitle sets the "title" field.
+func (m *OneShotActMutation) SetTitle(s string) {
+	m.title = &s
+}
+
+// Title returns the value of the "title" field in the mutation.
+func (m *OneShotActMutation) Title() (r string, exists bool) {
+	v := m.title
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTitle returns the old "title" field's value of the OneShotAct entity.
+// If the OneShotAct object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotActMutation) OldTitle(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTitle is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTitle requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTitle: %w", err)
+	}
+	return oldValue.Title, nil
+}
+
+// ResetTitle resets all changes to the "title" field.
+func (m *OneShotActMutation) ResetTitle() {
+	m.title = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *OneShotActMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *OneShotActMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the OneShotAct entity.
+// If the OneShotAct object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotActMutation) OldDescription(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *OneShotActMutation) ResetDescription() {
+	m.description = nil
+}
+
+// SetEstimatedMinutes sets the "estimated_minutes" field.
+func (m *OneShotActMutation) SetEstimatedMinutes(i int) {
+	m.estimated_minutes = &i
+	m.addestimated_minutes = nil
+}
+
+// EstimatedMinutes returns the value of the "estimated_minutes" field in the mutation.
+func (m *OneShotActMutation) EstimatedMinutes() (r int, exists bool) {
+	v := m.estimated_minutes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEstimatedMinutes returns the old "estimated_minutes" field's value of the OneShotAct entity.
+// If the OneShotAct object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotActMutation) OldEstimatedMinutes(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEstimatedMinutes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEstimatedMinutes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEstimatedMinutes: %w", err)
+	}
+	return oldValue.EstimatedMinutes, nil
+}
+
+// AddEstimatedMinutes adds i to the "estimated_minutes" field.
+func (m *OneShotActMutation) AddEstimatedMinutes(i int) {
+	if m.addestimated_minutes != nil {
+		*m.addestimated_minutes += i
+	} else {
+		m.addestimated_minutes = &i
+	}
+}
+
+// AddedEstimatedMinutes returns the value that was added to the "estimated_minutes" field in this mutation.
+func (m *OneShotActMutation) AddedEstimatedMinutes() (r int, exists bool) {
+	v := m.addestimated_minutes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetEstimatedMinutes resets all changes to the "estimated_minutes" field.
+func (m *OneShotActMutation) ResetEstimatedMinutes() {
+	m.estimated_minutes = nil
+	m.addestimated_minutes = nil
+}
+
+// SetNotes sets the "notes" field.
+func (m *OneShotActMutation) SetNotes(s string) {
+	m.notes = &s
+}
+
+// Notes returns the value of the "notes" field in the mutation.
+func (m *OneShotActMutation) Notes() (r string, exists bool) {
+	v := m.notes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNotes returns the old "notes" field's value of the OneShotAct entity.
+// If the OneShotAct object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotActMutation) OldNotes(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNotes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNotes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNotes: %w", err)
+	}
+	return oldValue.Notes, nil
+}
+
+// ResetNotes resets all changes to the "notes" field.
+func (m *OneShotActMutation) ResetNotes() {
+	m.notes = nil
+}
+
+// ClearAdventure clears the "adventure" edge to the OneShotAdventure entity.
+func (m *OneShotActMutation) ClearAdventure() {
+	m.clearedadventure = true
+	m.clearedFields[oneshotact.FieldAdventureID] = struct{}{}
+}
+
+// AdventureCleared reports if the "adventure" edge to the OneShotAdventure entity was cleared.
+func (m *OneShotActMutation) AdventureCleared() bool {
+	return m.clearedadventure
+}
+
+// AdventureIDs returns the "adventure" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// AdventureID instead. It exists only for internal usage by the builders.
+func (m *OneShotActMutation) AdventureIDs() (ids []int64) {
+	if id := m.adventure; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetAdventure resets all changes to the "adventure" edge.
+func (m *OneShotActMutation) ResetAdventure() {
+	m.adventure = nil
+	m.clearedadventure = false
+}
+
+// AddSceneIDs adds the "scenes" edge to the OneShotScene entity by ids.
+func (m *OneShotActMutation) AddSceneIDs(ids ...int64) {
+	if m.scenes == nil {
+		m.scenes = make(map[int64]struct{})
+	}
+	for i := range ids {
+		m.scenes[ids[i]] = struct{}{}
+	}
+}
+
+// ClearScenes clears the "scenes" edge to the OneShotScene entity.
+func (m *OneShotActMutation) ClearScenes() {
+	m.clearedscenes = true
+}
+
+// ScenesCleared reports if the "scenes" edge to the OneShotScene entity was cleared.
+func (m *OneShotActMutation) ScenesCleared() bool {
+	return m.clearedscenes
+}
+
+// RemoveSceneIDs removes the "scenes" edge to the OneShotScene entity by IDs.
+func (m *OneShotActMutation) RemoveSceneIDs(ids ...int64) {
+	if m.removedscenes == nil {
+		m.removedscenes = make(map[int64]struct{})
+	}
+	for i := range ids {
+		delete(m.scenes, ids[i])
+		m.removedscenes[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedScenes returns the removed IDs of the "scenes" edge to the OneShotScene entity.
+func (m *OneShotActMutation) RemovedScenesIDs() (ids []int64) {
+	for id := range m.removedscenes {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ScenesIDs returns the "scenes" edge IDs in the mutation.
+func (m *OneShotActMutation) ScenesIDs() (ids []int64) {
+	for id := range m.scenes {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetScenes resets all changes to the "scenes" edge.
+func (m *OneShotActMutation) ResetScenes() {
+	m.scenes = nil
+	m.clearedscenes = false
+	m.removedscenes = nil
+}
+
+// AddChildIDs adds the "children" edge to the OneShotAct entity by ids.
+func (m *OneShotActMutation) AddChildIDs(ids ...int64) {
+	if m.children == nil {
+		m.children = make(map[int64]struct{})
+	}
+	for i := range ids {
+		m.children[ids[i]] = struct{}{}
+	}
+}
+
+// ClearChildren clears the "children" edge to the OneShotAct entity.
+func (m *OneShotActMutation) ClearChildren() {
+	m.clearedchildren = true
+}
+
+// ChildrenCleared reports if the "children" edge to the OneShotAct entity was cleared.
+func (m *OneShotActMutation) ChildrenCleared() bool {
+	return m.clearedchildren
+}
+
+// RemoveChildIDs removes the "children" edge to the OneShotAct entity by IDs.
+func (m *OneShotActMutation) RemoveChildIDs(ids ...int64) {
+	if m.removedchildren == nil {
+		m.removedchildren = make(map[int64]struct{})
+	}
+	for i := range ids {
+		delete(m.children, ids[i])
+		m.removedchildren[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedChildren returns the removed IDs of the "children" edge to the OneShotAct entity.
+func (m *OneShotActMutation) RemovedChildrenIDs() (ids []int64) {
+	for id := range m.removedchildren {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ChildrenIDs returns the "children" edge IDs in the mutation.
+func (m *OneShotActMutation) ChildrenIDs() (ids []int64) {
+	for id := range m.children {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetChildren resets all changes to the "children" edge.
+func (m *OneShotActMutation) ResetChildren() {
+	m.children = nil
+	m.clearedchildren = false
+	m.removedchildren = nil
+}
+
+// SetParentID sets the "parent" edge to the OneShotAct entity by id.
+func (m *OneShotActMutation) SetParentID(id int64) {
+	m.parent = &id
+}
+
+// ClearParent clears the "parent" edge to the OneShotAct entity.
+func (m *OneShotActMutation) ClearParent() {
+	m.clearedparent = true
+	m.clearedFields[oneshotact.FieldParentActID] = struct{}{}
+}
+
+// ParentCleared reports if the "parent" edge to the OneShotAct entity was cleared.
+func (m *OneShotActMutation) ParentCleared() bool {
+	return m.ParentActIDCleared() || m.clearedparent
+}
+
+// ParentID returns the "parent" edge ID in the mutation.
+func (m *OneShotActMutation) ParentID() (id int64, exists bool) {
+	if m.parent != nil {
+		return *m.parent, true
+	}
+	return
+}
+
+// ParentIDs returns the "parent" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ParentID instead. It exists only for internal usage by the builders.
+func (m *OneShotActMutation) ParentIDs() (ids []int64) {
+	if id := m.parent; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetParent resets all changes to the "parent" edge.
+func (m *OneShotActMutation) ResetParent() {
+	m.parent = nil
+	m.clearedparent = false
+}
+
+// AddItemIDs adds the "items" edge to the OneShotItem entity by ids.
+func (m *OneShotActMutation) AddItemIDs(ids ...int64) {
+	if m.items == nil {
+		m.items = make(map[int64]struct{})
+	}
+	for i := range ids {
+		m.items[ids[i]] = struct{}{}
+	}
+}
+
+// ClearItems clears the "items" edge to the OneShotItem entity.
+func (m *OneShotActMutation) ClearItems() {
+	m.cleareditems = true
+}
+
+// ItemsCleared reports if the "items" edge to the OneShotItem entity was cleared.
+func (m *OneShotActMutation) ItemsCleared() bool {
+	return m.cleareditems
+}
+
+// RemoveItemIDs removes the "items" edge to the OneShotItem entity by IDs.
+func (m *OneShotActMutation) RemoveItemIDs(ids ...int64) {
+	if m.removeditems == nil {
+		m.removeditems = make(map[int64]struct{})
+	}
+	for i := range ids {
+		delete(m.items, ids[i])
+		m.removeditems[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedItems returns the removed IDs of the "items" edge to the OneShotItem entity.
+func (m *OneShotActMutation) RemovedItemsIDs() (ids []int64) {
+	for id := range m.removeditems {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ItemsIDs returns the "items" edge IDs in the mutation.
+func (m *OneShotActMutation) ItemsIDs() (ids []int64) {
+	for id := range m.items {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetItems resets all changes to the "items" edge.
+func (m *OneShotActMutation) ResetItems() {
+	m.items = nil
+	m.cleareditems = false
+	m.removeditems = nil
+}
+
+// AddEncounterIDs adds the "encounters" edge to the OneShotAdventureEncounter entity by ids.
+func (m *OneShotActMutation) AddEncounterIDs(ids ...int64) {
+	if m.encounters == nil {
+		m.encounters = make(map[int64]struct{})
+	}
+	for i := range ids {
+		m.encounters[ids[i]] = struct{}{}
+	}
+}
+
+// ClearEncounters clears the "encounters" edge to the OneShotAdventureEncounter entity.
+func (m *OneShotActMutation) ClearEncounters() {
+	m.clearedencounters = true
+}
+
+// EncountersCleared reports if the "encounters" edge to the OneShotAdventureEncounter entity was cleared.
+func (m *OneShotActMutation) EncountersCleared() bool {
+	return m.clearedencounters
+}
+
+// RemoveEncounterIDs removes the "encounters" edge to the OneShotAdventureEncounter entity by IDs.
+func (m *OneShotActMutation) RemoveEncounterIDs(ids ...int64) {
+	if m.removedencounters == nil {
+		m.removedencounters = make(map[int64]struct{})
+	}
+	for i := range ids {
+		delete(m.encounters, ids[i])
+		m.removedencounters[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedEncounters returns the removed IDs of the "encounters" edge to the OneShotAdventureEncounter entity.
+func (m *OneShotActMutation) RemovedEncountersIDs() (ids []int64) {
+	for id := range m.removedencounters {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// EncountersIDs returns the "encounters" edge IDs in the mutation.
+func (m *OneShotActMutation) EncountersIDs() (ids []int64) {
+	for id := range m.encounters {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetEncounters resets all changes to the "encounters" edge.
+func (m *OneShotActMutation) ResetEncounters() {
+	m.encounters = nil
+	m.clearedencounters = false
+	m.removedencounters = nil
+}
+
+// Where appends a list predicates to the OneShotActMutation builder.
+func (m *OneShotActMutation) Where(ps ...predicate.OneShotAct) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the OneShotActMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *OneShotActMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.OneShotAct, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *OneShotActMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *OneShotActMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (OneShotAct).
+func (m *OneShotActMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *OneShotActMutation) Fields() []string {
+	fields := make([]string, 0, 8)
+	if m.adventure != nil {
+		fields = append(fields, oneshotact.FieldAdventureID)
+	}
+	if m.parent != nil {
+		fields = append(fields, oneshotact.FieldParentActID)
+	}
+	if m.number != nil {
+		fields = append(fields, oneshotact.FieldNumber)
+	}
+	if m.sort_order != nil {
+		fields = append(fields, oneshotact.FieldSortOrder)
+	}
+	if m.title != nil {
+		fields = append(fields, oneshotact.FieldTitle)
+	}
+	if m.description != nil {
+		fields = append(fields, oneshotact.FieldDescription)
+	}
+	if m.estimated_minutes != nil {
+		fields = append(fields, oneshotact.FieldEstimatedMinutes)
+	}
+	if m.notes != nil {
+		fields = append(fields, oneshotact.FieldNotes)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *OneShotActMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case oneshotact.FieldAdventureID:
+		return m.AdventureID()
+	case oneshotact.FieldParentActID:
+		return m.ParentActID()
+	case oneshotact.FieldNumber:
+		return m.Number()
+	case oneshotact.FieldSortOrder:
+		return m.SortOrder()
+	case oneshotact.FieldTitle:
+		return m.Title()
+	case oneshotact.FieldDescription:
+		return m.Description()
+	case oneshotact.FieldEstimatedMinutes:
+		return m.EstimatedMinutes()
+	case oneshotact.FieldNotes:
+		return m.Notes()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *OneShotActMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case oneshotact.FieldAdventureID:
+		return m.OldAdventureID(ctx)
+	case oneshotact.FieldParentActID:
+		return m.OldParentActID(ctx)
+	case oneshotact.FieldNumber:
+		return m.OldNumber(ctx)
+	case oneshotact.FieldSortOrder:
+		return m.OldSortOrder(ctx)
+	case oneshotact.FieldTitle:
+		return m.OldTitle(ctx)
+	case oneshotact.FieldDescription:
+		return m.OldDescription(ctx)
+	case oneshotact.FieldEstimatedMinutes:
+		return m.OldEstimatedMinutes(ctx)
+	case oneshotact.FieldNotes:
+		return m.OldNotes(ctx)
+	}
+	return nil, fmt.Errorf("unknown OneShotAct field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *OneShotActMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case oneshotact.FieldAdventureID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAdventureID(v)
+		return nil
+	case oneshotact.FieldParentActID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetParentActID(v)
+		return nil
+	case oneshotact.FieldNumber:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNumber(v)
+		return nil
+	case oneshotact.FieldSortOrder:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSortOrder(v)
+		return nil
+	case oneshotact.FieldTitle:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTitle(v)
+		return nil
+	case oneshotact.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case oneshotact.FieldEstimatedMinutes:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEstimatedMinutes(v)
+		return nil
+	case oneshotact.FieldNotes:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNotes(v)
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotAct field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *OneShotActMutation) AddedFields() []string {
+	var fields []string
+	if m.addnumber != nil {
+		fields = append(fields, oneshotact.FieldNumber)
+	}
+	if m.addsort_order != nil {
+		fields = append(fields, oneshotact.FieldSortOrder)
+	}
+	if m.addestimated_minutes != nil {
+		fields = append(fields, oneshotact.FieldEstimatedMinutes)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *OneShotActMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case oneshotact.FieldNumber:
+		return m.AddedNumber()
+	case oneshotact.FieldSortOrder:
+		return m.AddedSortOrder()
+	case oneshotact.FieldEstimatedMinutes:
+		return m.AddedEstimatedMinutes()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *OneShotActMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case oneshotact.FieldNumber:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddNumber(v)
+		return nil
+	case oneshotact.FieldSortOrder:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSortOrder(v)
+		return nil
+	case oneshotact.FieldEstimatedMinutes:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddEstimatedMinutes(v)
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotAct numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *OneShotActMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(oneshotact.FieldParentActID) {
+		fields = append(fields, oneshotact.FieldParentActID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *OneShotActMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *OneShotActMutation) ClearField(name string) error {
+	switch name {
+	case oneshotact.FieldParentActID:
+		m.ClearParentActID()
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotAct nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *OneShotActMutation) ResetField(name string) error {
+	switch name {
+	case oneshotact.FieldAdventureID:
+		m.ResetAdventureID()
+		return nil
+	case oneshotact.FieldParentActID:
+		m.ResetParentActID()
+		return nil
+	case oneshotact.FieldNumber:
+		m.ResetNumber()
+		return nil
+	case oneshotact.FieldSortOrder:
+		m.ResetSortOrder()
+		return nil
+	case oneshotact.FieldTitle:
+		m.ResetTitle()
+		return nil
+	case oneshotact.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case oneshotact.FieldEstimatedMinutes:
+		m.ResetEstimatedMinutes()
+		return nil
+	case oneshotact.FieldNotes:
+		m.ResetNotes()
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotAct field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *OneShotActMutation) AddedEdges() []string {
+	edges := make([]string, 0, 6)
+	if m.adventure != nil {
+		edges = append(edges, oneshotact.EdgeAdventure)
+	}
+	if m.scenes != nil {
+		edges = append(edges, oneshotact.EdgeScenes)
+	}
+	if m.children != nil {
+		edges = append(edges, oneshotact.EdgeChildren)
+	}
+	if m.parent != nil {
+		edges = append(edges, oneshotact.EdgeParent)
+	}
+	if m.items != nil {
+		edges = append(edges, oneshotact.EdgeItems)
+	}
+	if m.encounters != nil {
+		edges = append(edges, oneshotact.EdgeEncounters)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *OneShotActMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case oneshotact.EdgeAdventure:
+		if id := m.adventure; id != nil {
+			return []ent.Value{*id}
+		}
+	case oneshotact.EdgeScenes:
+		ids := make([]ent.Value, 0, len(m.scenes))
+		for id := range m.scenes {
+			ids = append(ids, id)
+		}
+		return ids
+	case oneshotact.EdgeChildren:
+		ids := make([]ent.Value, 0, len(m.children))
+		for id := range m.children {
+			ids = append(ids, id)
+		}
+		return ids
+	case oneshotact.EdgeParent:
+		if id := m.parent; id != nil {
+			return []ent.Value{*id}
+		}
+	case oneshotact.EdgeItems:
+		ids := make([]ent.Value, 0, len(m.items))
+		for id := range m.items {
+			ids = append(ids, id)
+		}
+		return ids
+	case oneshotact.EdgeEncounters:
+		ids := make([]ent.Value, 0, len(m.encounters))
+		for id := range m.encounters {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *OneShotActMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 6)
+	if m.removedscenes != nil {
+		edges = append(edges, oneshotact.EdgeScenes)
+	}
+	if m.removedchildren != nil {
+		edges = append(edges, oneshotact.EdgeChildren)
+	}
+	if m.removeditems != nil {
+		edges = append(edges, oneshotact.EdgeItems)
+	}
+	if m.removedencounters != nil {
+		edges = append(edges, oneshotact.EdgeEncounters)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *OneShotActMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case oneshotact.EdgeScenes:
+		ids := make([]ent.Value, 0, len(m.removedscenes))
+		for id := range m.removedscenes {
+			ids = append(ids, id)
+		}
+		return ids
+	case oneshotact.EdgeChildren:
+		ids := make([]ent.Value, 0, len(m.removedchildren))
+		for id := range m.removedchildren {
+			ids = append(ids, id)
+		}
+		return ids
+	case oneshotact.EdgeItems:
+		ids := make([]ent.Value, 0, len(m.removeditems))
+		for id := range m.removeditems {
+			ids = append(ids, id)
+		}
+		return ids
+	case oneshotact.EdgeEncounters:
+		ids := make([]ent.Value, 0, len(m.removedencounters))
+		for id := range m.removedencounters {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *OneShotActMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 6)
+	if m.clearedadventure {
+		edges = append(edges, oneshotact.EdgeAdventure)
+	}
+	if m.clearedscenes {
+		edges = append(edges, oneshotact.EdgeScenes)
+	}
+	if m.clearedchildren {
+		edges = append(edges, oneshotact.EdgeChildren)
+	}
+	if m.clearedparent {
+		edges = append(edges, oneshotact.EdgeParent)
+	}
+	if m.cleareditems {
+		edges = append(edges, oneshotact.EdgeItems)
+	}
+	if m.clearedencounters {
+		edges = append(edges, oneshotact.EdgeEncounters)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *OneShotActMutation) EdgeCleared(name string) bool {
+	switch name {
+	case oneshotact.EdgeAdventure:
+		return m.clearedadventure
+	case oneshotact.EdgeScenes:
+		return m.clearedscenes
+	case oneshotact.EdgeChildren:
+		return m.clearedchildren
+	case oneshotact.EdgeParent:
+		return m.clearedparent
+	case oneshotact.EdgeItems:
+		return m.cleareditems
+	case oneshotact.EdgeEncounters:
+		return m.clearedencounters
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *OneShotActMutation) ClearEdge(name string) error {
+	switch name {
+	case oneshotact.EdgeAdventure:
+		m.ClearAdventure()
+		return nil
+	case oneshotact.EdgeParent:
+		m.ClearParent()
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotAct unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *OneShotActMutation) ResetEdge(name string) error {
+	switch name {
+	case oneshotact.EdgeAdventure:
+		m.ResetAdventure()
+		return nil
+	case oneshotact.EdgeScenes:
+		m.ResetScenes()
+		return nil
+	case oneshotact.EdgeChildren:
+		m.ResetChildren()
+		return nil
+	case oneshotact.EdgeParent:
+		m.ResetParent()
+		return nil
+	case oneshotact.EdgeItems:
+		m.ResetItems()
+		return nil
+	case oneshotact.EdgeEncounters:
+		m.ResetEncounters()
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotAct edge %s", name)
+}
+
 // OneShotActNPCMutation represents an operation that mutates the OneShotActNPC nodes in the graph.
 type OneShotActNPCMutation struct {
 	config
@@ -47980,6 +49271,3901 @@ func (m *OneShotActNPCMutation) ClearEdge(name string) error {
 // It returns an error if the edge is not defined in the schema.
 func (m *OneShotActNPCMutation) ResetEdge(name string) error {
 	return fmt.Errorf("unknown OneShotActNPC edge %s", name)
+}
+
+// OneShotAdventureMutation represents an operation that mutates the OneShotAdventure nodes in the graph.
+type OneShotAdventureMutation struct {
+	config
+	op                   Op
+	typ                  string
+	id                   *int64
+	user_id              *int64
+	adduser_id           *int64
+	campaign_id          *int64
+	addcampaign_id       *int64
+	title                *string
+	premise              *string
+	hook                 *string
+	template             *string
+	estimated_minutes    *int
+	addestimated_minutes *int
+	difficulty           *string
+	notes                *string
+	created_at           *string
+	updated_at           *string
+	clearedFields        map[string]struct{}
+	acts                 map[int64]struct{}
+	removedacts          map[int64]struct{}
+	clearedacts          bool
+	done                 bool
+	oldValue             func(context.Context) (*OneShotAdventure, error)
+	predicates           []predicate.OneShotAdventure
+}
+
+var _ ent.Mutation = (*OneShotAdventureMutation)(nil)
+
+// oneshotadventureOption allows management of the mutation configuration using functional options.
+type oneshotadventureOption func(*OneShotAdventureMutation)
+
+// newOneShotAdventureMutation creates new mutation for the OneShotAdventure entity.
+func newOneShotAdventureMutation(c config, op Op, opts ...oneshotadventureOption) *OneShotAdventureMutation {
+	m := &OneShotAdventureMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeOneShotAdventure,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withOneShotAdventureID sets the ID field of the mutation.
+func withOneShotAdventureID(id int64) oneshotadventureOption {
+	return func(m *OneShotAdventureMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *OneShotAdventure
+		)
+		m.oldValue = func(ctx context.Context) (*OneShotAdventure, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().OneShotAdventure.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withOneShotAdventure sets the old OneShotAdventure of the mutation.
+func withOneShotAdventure(node *OneShotAdventure) oneshotadventureOption {
+	return func(m *OneShotAdventureMutation) {
+		m.oldValue = func(context.Context) (*OneShotAdventure, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m OneShotAdventureMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m OneShotAdventureMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of OneShotAdventure entities.
+func (m *OneShotAdventureMutation) SetID(id int64) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *OneShotAdventureMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *OneShotAdventureMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().OneShotAdventure.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetUserID sets the "user_id" field.
+func (m *OneShotAdventureMutation) SetUserID(i int64) {
+	m.user_id = &i
+	m.adduser_id = nil
+}
+
+// UserID returns the value of the "user_id" field in the mutation.
+func (m *OneShotAdventureMutation) UserID() (r int64, exists bool) {
+	v := m.user_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUserID returns the old "user_id" field's value of the OneShotAdventure entity.
+// If the OneShotAdventure object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotAdventureMutation) OldUserID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUserID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUserID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUserID: %w", err)
+	}
+	return oldValue.UserID, nil
+}
+
+// AddUserID adds i to the "user_id" field.
+func (m *OneShotAdventureMutation) AddUserID(i int64) {
+	if m.adduser_id != nil {
+		*m.adduser_id += i
+	} else {
+		m.adduser_id = &i
+	}
+}
+
+// AddedUserID returns the value that was added to the "user_id" field in this mutation.
+func (m *OneShotAdventureMutation) AddedUserID() (r int64, exists bool) {
+	v := m.adduser_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetUserID resets all changes to the "user_id" field.
+func (m *OneShotAdventureMutation) ResetUserID() {
+	m.user_id = nil
+	m.adduser_id = nil
+}
+
+// SetCampaignID sets the "campaign_id" field.
+func (m *OneShotAdventureMutation) SetCampaignID(i int64) {
+	m.campaign_id = &i
+	m.addcampaign_id = nil
+}
+
+// CampaignID returns the value of the "campaign_id" field in the mutation.
+func (m *OneShotAdventureMutation) CampaignID() (r int64, exists bool) {
+	v := m.campaign_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCampaignID returns the old "campaign_id" field's value of the OneShotAdventure entity.
+// If the OneShotAdventure object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotAdventureMutation) OldCampaignID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCampaignID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCampaignID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCampaignID: %w", err)
+	}
+	return oldValue.CampaignID, nil
+}
+
+// AddCampaignID adds i to the "campaign_id" field.
+func (m *OneShotAdventureMutation) AddCampaignID(i int64) {
+	if m.addcampaign_id != nil {
+		*m.addcampaign_id += i
+	} else {
+		m.addcampaign_id = &i
+	}
+}
+
+// AddedCampaignID returns the value that was added to the "campaign_id" field in this mutation.
+func (m *OneShotAdventureMutation) AddedCampaignID() (r int64, exists bool) {
+	v := m.addcampaign_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearCampaignID clears the value of the "campaign_id" field.
+func (m *OneShotAdventureMutation) ClearCampaignID() {
+	m.campaign_id = nil
+	m.addcampaign_id = nil
+	m.clearedFields[oneshotadventure.FieldCampaignID] = struct{}{}
+}
+
+// CampaignIDCleared returns if the "campaign_id" field was cleared in this mutation.
+func (m *OneShotAdventureMutation) CampaignIDCleared() bool {
+	_, ok := m.clearedFields[oneshotadventure.FieldCampaignID]
+	return ok
+}
+
+// ResetCampaignID resets all changes to the "campaign_id" field.
+func (m *OneShotAdventureMutation) ResetCampaignID() {
+	m.campaign_id = nil
+	m.addcampaign_id = nil
+	delete(m.clearedFields, oneshotadventure.FieldCampaignID)
+}
+
+// SetTitle sets the "title" field.
+func (m *OneShotAdventureMutation) SetTitle(s string) {
+	m.title = &s
+}
+
+// Title returns the value of the "title" field in the mutation.
+func (m *OneShotAdventureMutation) Title() (r string, exists bool) {
+	v := m.title
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTitle returns the old "title" field's value of the OneShotAdventure entity.
+// If the OneShotAdventure object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotAdventureMutation) OldTitle(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTitle is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTitle requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTitle: %w", err)
+	}
+	return oldValue.Title, nil
+}
+
+// ResetTitle resets all changes to the "title" field.
+func (m *OneShotAdventureMutation) ResetTitle() {
+	m.title = nil
+}
+
+// SetPremise sets the "premise" field.
+func (m *OneShotAdventureMutation) SetPremise(s string) {
+	m.premise = &s
+}
+
+// Premise returns the value of the "premise" field in the mutation.
+func (m *OneShotAdventureMutation) Premise() (r string, exists bool) {
+	v := m.premise
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPremise returns the old "premise" field's value of the OneShotAdventure entity.
+// If the OneShotAdventure object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotAdventureMutation) OldPremise(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPremise is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPremise requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPremise: %w", err)
+	}
+	return oldValue.Premise, nil
+}
+
+// ResetPremise resets all changes to the "premise" field.
+func (m *OneShotAdventureMutation) ResetPremise() {
+	m.premise = nil
+}
+
+// SetHook sets the "hook" field.
+func (m *OneShotAdventureMutation) SetHook(s string) {
+	m.hook = &s
+}
+
+// Hook returns the value of the "hook" field in the mutation.
+func (m *OneShotAdventureMutation) Hook() (r string, exists bool) {
+	v := m.hook
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldHook returns the old "hook" field's value of the OneShotAdventure entity.
+// If the OneShotAdventure object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotAdventureMutation) OldHook(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldHook is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldHook requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldHook: %w", err)
+	}
+	return oldValue.Hook, nil
+}
+
+// ResetHook resets all changes to the "hook" field.
+func (m *OneShotAdventureMutation) ResetHook() {
+	m.hook = nil
+}
+
+// SetTemplate sets the "template" field.
+func (m *OneShotAdventureMutation) SetTemplate(s string) {
+	m.template = &s
+}
+
+// Template returns the value of the "template" field in the mutation.
+func (m *OneShotAdventureMutation) Template() (r string, exists bool) {
+	v := m.template
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTemplate returns the old "template" field's value of the OneShotAdventure entity.
+// If the OneShotAdventure object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotAdventureMutation) OldTemplate(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTemplate is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTemplate requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTemplate: %w", err)
+	}
+	return oldValue.Template, nil
+}
+
+// ResetTemplate resets all changes to the "template" field.
+func (m *OneShotAdventureMutation) ResetTemplate() {
+	m.template = nil
+}
+
+// SetEstimatedMinutes sets the "estimated_minutes" field.
+func (m *OneShotAdventureMutation) SetEstimatedMinutes(i int) {
+	m.estimated_minutes = &i
+	m.addestimated_minutes = nil
+}
+
+// EstimatedMinutes returns the value of the "estimated_minutes" field in the mutation.
+func (m *OneShotAdventureMutation) EstimatedMinutes() (r int, exists bool) {
+	v := m.estimated_minutes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEstimatedMinutes returns the old "estimated_minutes" field's value of the OneShotAdventure entity.
+// If the OneShotAdventure object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotAdventureMutation) OldEstimatedMinutes(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEstimatedMinutes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEstimatedMinutes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEstimatedMinutes: %w", err)
+	}
+	return oldValue.EstimatedMinutes, nil
+}
+
+// AddEstimatedMinutes adds i to the "estimated_minutes" field.
+func (m *OneShotAdventureMutation) AddEstimatedMinutes(i int) {
+	if m.addestimated_minutes != nil {
+		*m.addestimated_minutes += i
+	} else {
+		m.addestimated_minutes = &i
+	}
+}
+
+// AddedEstimatedMinutes returns the value that was added to the "estimated_minutes" field in this mutation.
+func (m *OneShotAdventureMutation) AddedEstimatedMinutes() (r int, exists bool) {
+	v := m.addestimated_minutes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetEstimatedMinutes resets all changes to the "estimated_minutes" field.
+func (m *OneShotAdventureMutation) ResetEstimatedMinutes() {
+	m.estimated_minutes = nil
+	m.addestimated_minutes = nil
+}
+
+// SetDifficulty sets the "difficulty" field.
+func (m *OneShotAdventureMutation) SetDifficulty(s string) {
+	m.difficulty = &s
+}
+
+// Difficulty returns the value of the "difficulty" field in the mutation.
+func (m *OneShotAdventureMutation) Difficulty() (r string, exists bool) {
+	v := m.difficulty
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDifficulty returns the old "difficulty" field's value of the OneShotAdventure entity.
+// If the OneShotAdventure object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotAdventureMutation) OldDifficulty(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDifficulty is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDifficulty requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDifficulty: %w", err)
+	}
+	return oldValue.Difficulty, nil
+}
+
+// ResetDifficulty resets all changes to the "difficulty" field.
+func (m *OneShotAdventureMutation) ResetDifficulty() {
+	m.difficulty = nil
+}
+
+// SetNotes sets the "notes" field.
+func (m *OneShotAdventureMutation) SetNotes(s string) {
+	m.notes = &s
+}
+
+// Notes returns the value of the "notes" field in the mutation.
+func (m *OneShotAdventureMutation) Notes() (r string, exists bool) {
+	v := m.notes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNotes returns the old "notes" field's value of the OneShotAdventure entity.
+// If the OneShotAdventure object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotAdventureMutation) OldNotes(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNotes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNotes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNotes: %w", err)
+	}
+	return oldValue.Notes, nil
+}
+
+// ResetNotes resets all changes to the "notes" field.
+func (m *OneShotAdventureMutation) ResetNotes() {
+	m.notes = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *OneShotAdventureMutation) SetCreatedAt(s string) {
+	m.created_at = &s
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *OneShotAdventureMutation) CreatedAt() (r string, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the OneShotAdventure entity.
+// If the OneShotAdventure object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotAdventureMutation) OldCreatedAt(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *OneShotAdventureMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *OneShotAdventureMutation) SetUpdatedAt(s string) {
+	m.updated_at = &s
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *OneShotAdventureMutation) UpdatedAt() (r string, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the OneShotAdventure entity.
+// If the OneShotAdventure object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotAdventureMutation) OldUpdatedAt(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *OneShotAdventureMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// AddActIDs adds the "acts" edge to the OneShotAct entity by ids.
+func (m *OneShotAdventureMutation) AddActIDs(ids ...int64) {
+	if m.acts == nil {
+		m.acts = make(map[int64]struct{})
+	}
+	for i := range ids {
+		m.acts[ids[i]] = struct{}{}
+	}
+}
+
+// ClearActs clears the "acts" edge to the OneShotAct entity.
+func (m *OneShotAdventureMutation) ClearActs() {
+	m.clearedacts = true
+}
+
+// ActsCleared reports if the "acts" edge to the OneShotAct entity was cleared.
+func (m *OneShotAdventureMutation) ActsCleared() bool {
+	return m.clearedacts
+}
+
+// RemoveActIDs removes the "acts" edge to the OneShotAct entity by IDs.
+func (m *OneShotAdventureMutation) RemoveActIDs(ids ...int64) {
+	if m.removedacts == nil {
+		m.removedacts = make(map[int64]struct{})
+	}
+	for i := range ids {
+		delete(m.acts, ids[i])
+		m.removedacts[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedActs returns the removed IDs of the "acts" edge to the OneShotAct entity.
+func (m *OneShotAdventureMutation) RemovedActsIDs() (ids []int64) {
+	for id := range m.removedacts {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ActsIDs returns the "acts" edge IDs in the mutation.
+func (m *OneShotAdventureMutation) ActsIDs() (ids []int64) {
+	for id := range m.acts {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetActs resets all changes to the "acts" edge.
+func (m *OneShotAdventureMutation) ResetActs() {
+	m.acts = nil
+	m.clearedacts = false
+	m.removedacts = nil
+}
+
+// Where appends a list predicates to the OneShotAdventureMutation builder.
+func (m *OneShotAdventureMutation) Where(ps ...predicate.OneShotAdventure) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the OneShotAdventureMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *OneShotAdventureMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.OneShotAdventure, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *OneShotAdventureMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *OneShotAdventureMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (OneShotAdventure).
+func (m *OneShotAdventureMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *OneShotAdventureMutation) Fields() []string {
+	fields := make([]string, 0, 11)
+	if m.user_id != nil {
+		fields = append(fields, oneshotadventure.FieldUserID)
+	}
+	if m.campaign_id != nil {
+		fields = append(fields, oneshotadventure.FieldCampaignID)
+	}
+	if m.title != nil {
+		fields = append(fields, oneshotadventure.FieldTitle)
+	}
+	if m.premise != nil {
+		fields = append(fields, oneshotadventure.FieldPremise)
+	}
+	if m.hook != nil {
+		fields = append(fields, oneshotadventure.FieldHook)
+	}
+	if m.template != nil {
+		fields = append(fields, oneshotadventure.FieldTemplate)
+	}
+	if m.estimated_minutes != nil {
+		fields = append(fields, oneshotadventure.FieldEstimatedMinutes)
+	}
+	if m.difficulty != nil {
+		fields = append(fields, oneshotadventure.FieldDifficulty)
+	}
+	if m.notes != nil {
+		fields = append(fields, oneshotadventure.FieldNotes)
+	}
+	if m.created_at != nil {
+		fields = append(fields, oneshotadventure.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, oneshotadventure.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *OneShotAdventureMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case oneshotadventure.FieldUserID:
+		return m.UserID()
+	case oneshotadventure.FieldCampaignID:
+		return m.CampaignID()
+	case oneshotadventure.FieldTitle:
+		return m.Title()
+	case oneshotadventure.FieldPremise:
+		return m.Premise()
+	case oneshotadventure.FieldHook:
+		return m.Hook()
+	case oneshotadventure.FieldTemplate:
+		return m.Template()
+	case oneshotadventure.FieldEstimatedMinutes:
+		return m.EstimatedMinutes()
+	case oneshotadventure.FieldDifficulty:
+		return m.Difficulty()
+	case oneshotadventure.FieldNotes:
+		return m.Notes()
+	case oneshotadventure.FieldCreatedAt:
+		return m.CreatedAt()
+	case oneshotadventure.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *OneShotAdventureMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case oneshotadventure.FieldUserID:
+		return m.OldUserID(ctx)
+	case oneshotadventure.FieldCampaignID:
+		return m.OldCampaignID(ctx)
+	case oneshotadventure.FieldTitle:
+		return m.OldTitle(ctx)
+	case oneshotadventure.FieldPremise:
+		return m.OldPremise(ctx)
+	case oneshotadventure.FieldHook:
+		return m.OldHook(ctx)
+	case oneshotadventure.FieldTemplate:
+		return m.OldTemplate(ctx)
+	case oneshotadventure.FieldEstimatedMinutes:
+		return m.OldEstimatedMinutes(ctx)
+	case oneshotadventure.FieldDifficulty:
+		return m.OldDifficulty(ctx)
+	case oneshotadventure.FieldNotes:
+		return m.OldNotes(ctx)
+	case oneshotadventure.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case oneshotadventure.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown OneShotAdventure field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *OneShotAdventureMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case oneshotadventure.FieldUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUserID(v)
+		return nil
+	case oneshotadventure.FieldCampaignID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCampaignID(v)
+		return nil
+	case oneshotadventure.FieldTitle:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTitle(v)
+		return nil
+	case oneshotadventure.FieldPremise:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPremise(v)
+		return nil
+	case oneshotadventure.FieldHook:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetHook(v)
+		return nil
+	case oneshotadventure.FieldTemplate:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTemplate(v)
+		return nil
+	case oneshotadventure.FieldEstimatedMinutes:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEstimatedMinutes(v)
+		return nil
+	case oneshotadventure.FieldDifficulty:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDifficulty(v)
+		return nil
+	case oneshotadventure.FieldNotes:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNotes(v)
+		return nil
+	case oneshotadventure.FieldCreatedAt:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case oneshotadventure.FieldUpdatedAt:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotAdventure field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *OneShotAdventureMutation) AddedFields() []string {
+	var fields []string
+	if m.adduser_id != nil {
+		fields = append(fields, oneshotadventure.FieldUserID)
+	}
+	if m.addcampaign_id != nil {
+		fields = append(fields, oneshotadventure.FieldCampaignID)
+	}
+	if m.addestimated_minutes != nil {
+		fields = append(fields, oneshotadventure.FieldEstimatedMinutes)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *OneShotAdventureMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case oneshotadventure.FieldUserID:
+		return m.AddedUserID()
+	case oneshotadventure.FieldCampaignID:
+		return m.AddedCampaignID()
+	case oneshotadventure.FieldEstimatedMinutes:
+		return m.AddedEstimatedMinutes()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *OneShotAdventureMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case oneshotadventure.FieldUserID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddUserID(v)
+		return nil
+	case oneshotadventure.FieldCampaignID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCampaignID(v)
+		return nil
+	case oneshotadventure.FieldEstimatedMinutes:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddEstimatedMinutes(v)
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotAdventure numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *OneShotAdventureMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(oneshotadventure.FieldCampaignID) {
+		fields = append(fields, oneshotadventure.FieldCampaignID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *OneShotAdventureMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *OneShotAdventureMutation) ClearField(name string) error {
+	switch name {
+	case oneshotadventure.FieldCampaignID:
+		m.ClearCampaignID()
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotAdventure nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *OneShotAdventureMutation) ResetField(name string) error {
+	switch name {
+	case oneshotadventure.FieldUserID:
+		m.ResetUserID()
+		return nil
+	case oneshotadventure.FieldCampaignID:
+		m.ResetCampaignID()
+		return nil
+	case oneshotadventure.FieldTitle:
+		m.ResetTitle()
+		return nil
+	case oneshotadventure.FieldPremise:
+		m.ResetPremise()
+		return nil
+	case oneshotadventure.FieldHook:
+		m.ResetHook()
+		return nil
+	case oneshotadventure.FieldTemplate:
+		m.ResetTemplate()
+		return nil
+	case oneshotadventure.FieldEstimatedMinutes:
+		m.ResetEstimatedMinutes()
+		return nil
+	case oneshotadventure.FieldDifficulty:
+		m.ResetDifficulty()
+		return nil
+	case oneshotadventure.FieldNotes:
+		m.ResetNotes()
+		return nil
+	case oneshotadventure.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case oneshotadventure.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotAdventure field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *OneShotAdventureMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.acts != nil {
+		edges = append(edges, oneshotadventure.EdgeActs)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *OneShotAdventureMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case oneshotadventure.EdgeActs:
+		ids := make([]ent.Value, 0, len(m.acts))
+		for id := range m.acts {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *OneShotAdventureMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.removedacts != nil {
+		edges = append(edges, oneshotadventure.EdgeActs)
+	}
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *OneShotAdventureMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case oneshotadventure.EdgeActs:
+		ids := make([]ent.Value, 0, len(m.removedacts))
+		for id := range m.removedacts {
+			ids = append(ids, id)
+		}
+		return ids
+	}
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *OneShotAdventureMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedacts {
+		edges = append(edges, oneshotadventure.EdgeActs)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *OneShotAdventureMutation) EdgeCleared(name string) bool {
+	switch name {
+	case oneshotadventure.EdgeActs:
+		return m.clearedacts
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *OneShotAdventureMutation) ClearEdge(name string) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown OneShotAdventure unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *OneShotAdventureMutation) ResetEdge(name string) error {
+	switch name {
+	case oneshotadventure.EdgeActs:
+		m.ResetActs()
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotAdventure edge %s", name)
+}
+
+// OneShotAdventureEncounterMutation represents an operation that mutates the OneShotAdventureEncounter nodes in the graph.
+type OneShotAdventureEncounterMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *int64
+	adventure_id    *int64
+	addadventure_id *int64
+	encounter_id    *int64
+	addencounter_id *int64
+	clearedFields   map[string]struct{}
+	act             *int64
+	clearedact      bool
+	done            bool
+	oldValue        func(context.Context) (*OneShotAdventureEncounter, error)
+	predicates      []predicate.OneShotAdventureEncounter
+}
+
+var _ ent.Mutation = (*OneShotAdventureEncounterMutation)(nil)
+
+// oneshotadventureencounterOption allows management of the mutation configuration using functional options.
+type oneshotadventureencounterOption func(*OneShotAdventureEncounterMutation)
+
+// newOneShotAdventureEncounterMutation creates new mutation for the OneShotAdventureEncounter entity.
+func newOneShotAdventureEncounterMutation(c config, op Op, opts ...oneshotadventureencounterOption) *OneShotAdventureEncounterMutation {
+	m := &OneShotAdventureEncounterMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeOneShotAdventureEncounter,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withOneShotAdventureEncounterID sets the ID field of the mutation.
+func withOneShotAdventureEncounterID(id int64) oneshotadventureencounterOption {
+	return func(m *OneShotAdventureEncounterMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *OneShotAdventureEncounter
+		)
+		m.oldValue = func(ctx context.Context) (*OneShotAdventureEncounter, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().OneShotAdventureEncounter.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withOneShotAdventureEncounter sets the old OneShotAdventureEncounter of the mutation.
+func withOneShotAdventureEncounter(node *OneShotAdventureEncounter) oneshotadventureencounterOption {
+	return func(m *OneShotAdventureEncounterMutation) {
+		m.oldValue = func(context.Context) (*OneShotAdventureEncounter, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m OneShotAdventureEncounterMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m OneShotAdventureEncounterMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of OneShotAdventureEncounter entities.
+func (m *OneShotAdventureEncounterMutation) SetID(id int64) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *OneShotAdventureEncounterMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *OneShotAdventureEncounterMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().OneShotAdventureEncounter.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetAdventureID sets the "adventure_id" field.
+func (m *OneShotAdventureEncounterMutation) SetAdventureID(i int64) {
+	m.adventure_id = &i
+	m.addadventure_id = nil
+}
+
+// AdventureID returns the value of the "adventure_id" field in the mutation.
+func (m *OneShotAdventureEncounterMutation) AdventureID() (r int64, exists bool) {
+	v := m.adventure_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAdventureID returns the old "adventure_id" field's value of the OneShotAdventureEncounter entity.
+// If the OneShotAdventureEncounter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotAdventureEncounterMutation) OldAdventureID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAdventureID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAdventureID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAdventureID: %w", err)
+	}
+	return oldValue.AdventureID, nil
+}
+
+// AddAdventureID adds i to the "adventure_id" field.
+func (m *OneShotAdventureEncounterMutation) AddAdventureID(i int64) {
+	if m.addadventure_id != nil {
+		*m.addadventure_id += i
+	} else {
+		m.addadventure_id = &i
+	}
+}
+
+// AddedAdventureID returns the value that was added to the "adventure_id" field in this mutation.
+func (m *OneShotAdventureEncounterMutation) AddedAdventureID() (r int64, exists bool) {
+	v := m.addadventure_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAdventureID resets all changes to the "adventure_id" field.
+func (m *OneShotAdventureEncounterMutation) ResetAdventureID() {
+	m.adventure_id = nil
+	m.addadventure_id = nil
+}
+
+// SetActID sets the "act_id" field.
+func (m *OneShotAdventureEncounterMutation) SetActID(i int64) {
+	m.act = &i
+}
+
+// ActID returns the value of the "act_id" field in the mutation.
+func (m *OneShotAdventureEncounterMutation) ActID() (r int64, exists bool) {
+	v := m.act
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActID returns the old "act_id" field's value of the OneShotAdventureEncounter entity.
+// If the OneShotAdventureEncounter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotAdventureEncounterMutation) OldActID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActID: %w", err)
+	}
+	return oldValue.ActID, nil
+}
+
+// ClearActID clears the value of the "act_id" field.
+func (m *OneShotAdventureEncounterMutation) ClearActID() {
+	m.act = nil
+	m.clearedFields[oneshotadventureencounter.FieldActID] = struct{}{}
+}
+
+// ActIDCleared returns if the "act_id" field was cleared in this mutation.
+func (m *OneShotAdventureEncounterMutation) ActIDCleared() bool {
+	_, ok := m.clearedFields[oneshotadventureencounter.FieldActID]
+	return ok
+}
+
+// ResetActID resets all changes to the "act_id" field.
+func (m *OneShotAdventureEncounterMutation) ResetActID() {
+	m.act = nil
+	delete(m.clearedFields, oneshotadventureencounter.FieldActID)
+}
+
+// SetEncounterID sets the "encounter_id" field.
+func (m *OneShotAdventureEncounterMutation) SetEncounterID(i int64) {
+	m.encounter_id = &i
+	m.addencounter_id = nil
+}
+
+// EncounterID returns the value of the "encounter_id" field in the mutation.
+func (m *OneShotAdventureEncounterMutation) EncounterID() (r int64, exists bool) {
+	v := m.encounter_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEncounterID returns the old "encounter_id" field's value of the OneShotAdventureEncounter entity.
+// If the OneShotAdventureEncounter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotAdventureEncounterMutation) OldEncounterID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEncounterID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEncounterID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEncounterID: %w", err)
+	}
+	return oldValue.EncounterID, nil
+}
+
+// AddEncounterID adds i to the "encounter_id" field.
+func (m *OneShotAdventureEncounterMutation) AddEncounterID(i int64) {
+	if m.addencounter_id != nil {
+		*m.addencounter_id += i
+	} else {
+		m.addencounter_id = &i
+	}
+}
+
+// AddedEncounterID returns the value that was added to the "encounter_id" field in this mutation.
+func (m *OneShotAdventureEncounterMutation) AddedEncounterID() (r int64, exists bool) {
+	v := m.addencounter_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetEncounterID resets all changes to the "encounter_id" field.
+func (m *OneShotAdventureEncounterMutation) ResetEncounterID() {
+	m.encounter_id = nil
+	m.addencounter_id = nil
+}
+
+// ClearAct clears the "act" edge to the OneShotAct entity.
+func (m *OneShotAdventureEncounterMutation) ClearAct() {
+	m.clearedact = true
+	m.clearedFields[oneshotadventureencounter.FieldActID] = struct{}{}
+}
+
+// ActCleared reports if the "act" edge to the OneShotAct entity was cleared.
+func (m *OneShotAdventureEncounterMutation) ActCleared() bool {
+	return m.ActIDCleared() || m.clearedact
+}
+
+// ActIDs returns the "act" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ActID instead. It exists only for internal usage by the builders.
+func (m *OneShotAdventureEncounterMutation) ActIDs() (ids []int64) {
+	if id := m.act; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetAct resets all changes to the "act" edge.
+func (m *OneShotAdventureEncounterMutation) ResetAct() {
+	m.act = nil
+	m.clearedact = false
+}
+
+// Where appends a list predicates to the OneShotAdventureEncounterMutation builder.
+func (m *OneShotAdventureEncounterMutation) Where(ps ...predicate.OneShotAdventureEncounter) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the OneShotAdventureEncounterMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *OneShotAdventureEncounterMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.OneShotAdventureEncounter, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *OneShotAdventureEncounterMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *OneShotAdventureEncounterMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (OneShotAdventureEncounter).
+func (m *OneShotAdventureEncounterMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *OneShotAdventureEncounterMutation) Fields() []string {
+	fields := make([]string, 0, 3)
+	if m.adventure_id != nil {
+		fields = append(fields, oneshotadventureencounter.FieldAdventureID)
+	}
+	if m.act != nil {
+		fields = append(fields, oneshotadventureencounter.FieldActID)
+	}
+	if m.encounter_id != nil {
+		fields = append(fields, oneshotadventureencounter.FieldEncounterID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *OneShotAdventureEncounterMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case oneshotadventureencounter.FieldAdventureID:
+		return m.AdventureID()
+	case oneshotadventureencounter.FieldActID:
+		return m.ActID()
+	case oneshotadventureencounter.FieldEncounterID:
+		return m.EncounterID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *OneShotAdventureEncounterMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case oneshotadventureencounter.FieldAdventureID:
+		return m.OldAdventureID(ctx)
+	case oneshotadventureencounter.FieldActID:
+		return m.OldActID(ctx)
+	case oneshotadventureencounter.FieldEncounterID:
+		return m.OldEncounterID(ctx)
+	}
+	return nil, fmt.Errorf("unknown OneShotAdventureEncounter field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *OneShotAdventureEncounterMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case oneshotadventureencounter.FieldAdventureID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAdventureID(v)
+		return nil
+	case oneshotadventureencounter.FieldActID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActID(v)
+		return nil
+	case oneshotadventureencounter.FieldEncounterID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEncounterID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotAdventureEncounter field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *OneShotAdventureEncounterMutation) AddedFields() []string {
+	var fields []string
+	if m.addadventure_id != nil {
+		fields = append(fields, oneshotadventureencounter.FieldAdventureID)
+	}
+	if m.addencounter_id != nil {
+		fields = append(fields, oneshotadventureencounter.FieldEncounterID)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *OneShotAdventureEncounterMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case oneshotadventureencounter.FieldAdventureID:
+		return m.AddedAdventureID()
+	case oneshotadventureencounter.FieldEncounterID:
+		return m.AddedEncounterID()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *OneShotAdventureEncounterMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case oneshotadventureencounter.FieldAdventureID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAdventureID(v)
+		return nil
+	case oneshotadventureencounter.FieldEncounterID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddEncounterID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotAdventureEncounter numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *OneShotAdventureEncounterMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(oneshotadventureencounter.FieldActID) {
+		fields = append(fields, oneshotadventureencounter.FieldActID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *OneShotAdventureEncounterMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *OneShotAdventureEncounterMutation) ClearField(name string) error {
+	switch name {
+	case oneshotadventureencounter.FieldActID:
+		m.ClearActID()
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotAdventureEncounter nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *OneShotAdventureEncounterMutation) ResetField(name string) error {
+	switch name {
+	case oneshotadventureencounter.FieldAdventureID:
+		m.ResetAdventureID()
+		return nil
+	case oneshotadventureencounter.FieldActID:
+		m.ResetActID()
+		return nil
+	case oneshotadventureencounter.FieldEncounterID:
+		m.ResetEncounterID()
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotAdventureEncounter field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *OneShotAdventureEncounterMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.act != nil {
+		edges = append(edges, oneshotadventureencounter.EdgeAct)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *OneShotAdventureEncounterMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case oneshotadventureencounter.EdgeAct:
+		if id := m.act; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *OneShotAdventureEncounterMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *OneShotAdventureEncounterMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *OneShotAdventureEncounterMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedact {
+		edges = append(edges, oneshotadventureencounter.EdgeAct)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *OneShotAdventureEncounterMutation) EdgeCleared(name string) bool {
+	switch name {
+	case oneshotadventureencounter.EdgeAct:
+		return m.clearedact
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *OneShotAdventureEncounterMutation) ClearEdge(name string) error {
+	switch name {
+	case oneshotadventureencounter.EdgeAct:
+		m.ClearAct()
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotAdventureEncounter unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *OneShotAdventureEncounterMutation) ResetEdge(name string) error {
+	switch name {
+	case oneshotadventureencounter.EdgeAct:
+		m.ResetAct()
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotAdventureEncounter edge %s", name)
+}
+
+// OneShotItemMutation represents an operation that mutates the OneShotItem nodes in the graph.
+type OneShotItemMutation struct {
+	config
+	op              Op
+	typ             string
+	id              *int64
+	adventure_id    *int64
+	addadventure_id *int64
+	name            *string
+	description     *string
+	category        *string
+	quantity        *int
+	addquantity     *int
+	weight          *float64
+	addweight       *float64
+	price_gp        *float64
+	addprice_gp     *float64
+	is_magical      *bool
+	attunement      *bool
+	notes           *string
+	created_at      *string
+	clearedFields   map[string]struct{}
+	act             *int64
+	clearedact      bool
+	done            bool
+	oldValue        func(context.Context) (*OneShotItem, error)
+	predicates      []predicate.OneShotItem
+}
+
+var _ ent.Mutation = (*OneShotItemMutation)(nil)
+
+// oneshotitemOption allows management of the mutation configuration using functional options.
+type oneshotitemOption func(*OneShotItemMutation)
+
+// newOneShotItemMutation creates new mutation for the OneShotItem entity.
+func newOneShotItemMutation(c config, op Op, opts ...oneshotitemOption) *OneShotItemMutation {
+	m := &OneShotItemMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeOneShotItem,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withOneShotItemID sets the ID field of the mutation.
+func withOneShotItemID(id int64) oneshotitemOption {
+	return func(m *OneShotItemMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *OneShotItem
+		)
+		m.oldValue = func(ctx context.Context) (*OneShotItem, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().OneShotItem.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withOneShotItem sets the old OneShotItem of the mutation.
+func withOneShotItem(node *OneShotItem) oneshotitemOption {
+	return func(m *OneShotItemMutation) {
+		m.oldValue = func(context.Context) (*OneShotItem, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m OneShotItemMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m OneShotItemMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of OneShotItem entities.
+func (m *OneShotItemMutation) SetID(id int64) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *OneShotItemMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *OneShotItemMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().OneShotItem.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetAdventureID sets the "adventure_id" field.
+func (m *OneShotItemMutation) SetAdventureID(i int64) {
+	m.adventure_id = &i
+	m.addadventure_id = nil
+}
+
+// AdventureID returns the value of the "adventure_id" field in the mutation.
+func (m *OneShotItemMutation) AdventureID() (r int64, exists bool) {
+	v := m.adventure_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAdventureID returns the old "adventure_id" field's value of the OneShotItem entity.
+// If the OneShotItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotItemMutation) OldAdventureID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAdventureID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAdventureID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAdventureID: %w", err)
+	}
+	return oldValue.AdventureID, nil
+}
+
+// AddAdventureID adds i to the "adventure_id" field.
+func (m *OneShotItemMutation) AddAdventureID(i int64) {
+	if m.addadventure_id != nil {
+		*m.addadventure_id += i
+	} else {
+		m.addadventure_id = &i
+	}
+}
+
+// AddedAdventureID returns the value that was added to the "adventure_id" field in this mutation.
+func (m *OneShotItemMutation) AddedAdventureID() (r int64, exists bool) {
+	v := m.addadventure_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetAdventureID resets all changes to the "adventure_id" field.
+func (m *OneShotItemMutation) ResetAdventureID() {
+	m.adventure_id = nil
+	m.addadventure_id = nil
+}
+
+// SetActID sets the "act_id" field.
+func (m *OneShotItemMutation) SetActID(i int64) {
+	m.act = &i
+}
+
+// ActID returns the value of the "act_id" field in the mutation.
+func (m *OneShotItemMutation) ActID() (r int64, exists bool) {
+	v := m.act
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActID returns the old "act_id" field's value of the OneShotItem entity.
+// If the OneShotItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotItemMutation) OldActID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActID: %w", err)
+	}
+	return oldValue.ActID, nil
+}
+
+// ClearActID clears the value of the "act_id" field.
+func (m *OneShotItemMutation) ClearActID() {
+	m.act = nil
+	m.clearedFields[oneshotitem.FieldActID] = struct{}{}
+}
+
+// ActIDCleared returns if the "act_id" field was cleared in this mutation.
+func (m *OneShotItemMutation) ActIDCleared() bool {
+	_, ok := m.clearedFields[oneshotitem.FieldActID]
+	return ok
+}
+
+// ResetActID resets all changes to the "act_id" field.
+func (m *OneShotItemMutation) ResetActID() {
+	m.act = nil
+	delete(m.clearedFields, oneshotitem.FieldActID)
+}
+
+// SetName sets the "name" field.
+func (m *OneShotItemMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *OneShotItemMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the OneShotItem entity.
+// If the OneShotItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotItemMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *OneShotItemMutation) ResetName() {
+	m.name = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *OneShotItemMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *OneShotItemMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the OneShotItem entity.
+// If the OneShotItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotItemMutation) OldDescription(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *OneShotItemMutation) ResetDescription() {
+	m.description = nil
+}
+
+// SetCategory sets the "category" field.
+func (m *OneShotItemMutation) SetCategory(s string) {
+	m.category = &s
+}
+
+// Category returns the value of the "category" field in the mutation.
+func (m *OneShotItemMutation) Category() (r string, exists bool) {
+	v := m.category
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCategory returns the old "category" field's value of the OneShotItem entity.
+// If the OneShotItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotItemMutation) OldCategory(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCategory is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCategory requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCategory: %w", err)
+	}
+	return oldValue.Category, nil
+}
+
+// ResetCategory resets all changes to the "category" field.
+func (m *OneShotItemMutation) ResetCategory() {
+	m.category = nil
+}
+
+// SetQuantity sets the "quantity" field.
+func (m *OneShotItemMutation) SetQuantity(i int) {
+	m.quantity = &i
+	m.addquantity = nil
+}
+
+// Quantity returns the value of the "quantity" field in the mutation.
+func (m *OneShotItemMutation) Quantity() (r int, exists bool) {
+	v := m.quantity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldQuantity returns the old "quantity" field's value of the OneShotItem entity.
+// If the OneShotItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotItemMutation) OldQuantity(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldQuantity is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldQuantity requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldQuantity: %w", err)
+	}
+	return oldValue.Quantity, nil
+}
+
+// AddQuantity adds i to the "quantity" field.
+func (m *OneShotItemMutation) AddQuantity(i int) {
+	if m.addquantity != nil {
+		*m.addquantity += i
+	} else {
+		m.addquantity = &i
+	}
+}
+
+// AddedQuantity returns the value that was added to the "quantity" field in this mutation.
+func (m *OneShotItemMutation) AddedQuantity() (r int, exists bool) {
+	v := m.addquantity
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetQuantity resets all changes to the "quantity" field.
+func (m *OneShotItemMutation) ResetQuantity() {
+	m.quantity = nil
+	m.addquantity = nil
+}
+
+// SetWeight sets the "weight" field.
+func (m *OneShotItemMutation) SetWeight(f float64) {
+	m.weight = &f
+	m.addweight = nil
+}
+
+// Weight returns the value of the "weight" field in the mutation.
+func (m *OneShotItemMutation) Weight() (r float64, exists bool) {
+	v := m.weight
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldWeight returns the old "weight" field's value of the OneShotItem entity.
+// If the OneShotItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotItemMutation) OldWeight(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldWeight is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldWeight requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldWeight: %w", err)
+	}
+	return oldValue.Weight, nil
+}
+
+// AddWeight adds f to the "weight" field.
+func (m *OneShotItemMutation) AddWeight(f float64) {
+	if m.addweight != nil {
+		*m.addweight += f
+	} else {
+		m.addweight = &f
+	}
+}
+
+// AddedWeight returns the value that was added to the "weight" field in this mutation.
+func (m *OneShotItemMutation) AddedWeight() (r float64, exists bool) {
+	v := m.addweight
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetWeight resets all changes to the "weight" field.
+func (m *OneShotItemMutation) ResetWeight() {
+	m.weight = nil
+	m.addweight = nil
+}
+
+// SetPriceGp sets the "price_gp" field.
+func (m *OneShotItemMutation) SetPriceGp(f float64) {
+	m.price_gp = &f
+	m.addprice_gp = nil
+}
+
+// PriceGp returns the value of the "price_gp" field in the mutation.
+func (m *OneShotItemMutation) PriceGp() (r float64, exists bool) {
+	v := m.price_gp
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPriceGp returns the old "price_gp" field's value of the OneShotItem entity.
+// If the OneShotItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotItemMutation) OldPriceGp(ctx context.Context) (v float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPriceGp is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPriceGp requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPriceGp: %w", err)
+	}
+	return oldValue.PriceGp, nil
+}
+
+// AddPriceGp adds f to the "price_gp" field.
+func (m *OneShotItemMutation) AddPriceGp(f float64) {
+	if m.addprice_gp != nil {
+		*m.addprice_gp += f
+	} else {
+		m.addprice_gp = &f
+	}
+}
+
+// AddedPriceGp returns the value that was added to the "price_gp" field in this mutation.
+func (m *OneShotItemMutation) AddedPriceGp() (r float64, exists bool) {
+	v := m.addprice_gp
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetPriceGp resets all changes to the "price_gp" field.
+func (m *OneShotItemMutation) ResetPriceGp() {
+	m.price_gp = nil
+	m.addprice_gp = nil
+}
+
+// SetIsMagical sets the "is_magical" field.
+func (m *OneShotItemMutation) SetIsMagical(b bool) {
+	m.is_magical = &b
+}
+
+// IsMagical returns the value of the "is_magical" field in the mutation.
+func (m *OneShotItemMutation) IsMagical() (r bool, exists bool) {
+	v := m.is_magical
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsMagical returns the old "is_magical" field's value of the OneShotItem entity.
+// If the OneShotItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotItemMutation) OldIsMagical(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsMagical is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsMagical requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsMagical: %w", err)
+	}
+	return oldValue.IsMagical, nil
+}
+
+// ResetIsMagical resets all changes to the "is_magical" field.
+func (m *OneShotItemMutation) ResetIsMagical() {
+	m.is_magical = nil
+}
+
+// SetAttunement sets the "attunement" field.
+func (m *OneShotItemMutation) SetAttunement(b bool) {
+	m.attunement = &b
+}
+
+// Attunement returns the value of the "attunement" field in the mutation.
+func (m *OneShotItemMutation) Attunement() (r bool, exists bool) {
+	v := m.attunement
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldAttunement returns the old "attunement" field's value of the OneShotItem entity.
+// If the OneShotItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotItemMutation) OldAttunement(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldAttunement is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldAttunement requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldAttunement: %w", err)
+	}
+	return oldValue.Attunement, nil
+}
+
+// ResetAttunement resets all changes to the "attunement" field.
+func (m *OneShotItemMutation) ResetAttunement() {
+	m.attunement = nil
+}
+
+// SetNotes sets the "notes" field.
+func (m *OneShotItemMutation) SetNotes(s string) {
+	m.notes = &s
+}
+
+// Notes returns the value of the "notes" field in the mutation.
+func (m *OneShotItemMutation) Notes() (r string, exists bool) {
+	v := m.notes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNotes returns the old "notes" field's value of the OneShotItem entity.
+// If the OneShotItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotItemMutation) OldNotes(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNotes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNotes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNotes: %w", err)
+	}
+	return oldValue.Notes, nil
+}
+
+// ResetNotes resets all changes to the "notes" field.
+func (m *OneShotItemMutation) ResetNotes() {
+	m.notes = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *OneShotItemMutation) SetCreatedAt(s string) {
+	m.created_at = &s
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *OneShotItemMutation) CreatedAt() (r string, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the OneShotItem entity.
+// If the OneShotItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotItemMutation) OldCreatedAt(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *OneShotItemMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// ClearAct clears the "act" edge to the OneShotAct entity.
+func (m *OneShotItemMutation) ClearAct() {
+	m.clearedact = true
+	m.clearedFields[oneshotitem.FieldActID] = struct{}{}
+}
+
+// ActCleared reports if the "act" edge to the OneShotAct entity was cleared.
+func (m *OneShotItemMutation) ActCleared() bool {
+	return m.ActIDCleared() || m.clearedact
+}
+
+// ActIDs returns the "act" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ActID instead. It exists only for internal usage by the builders.
+func (m *OneShotItemMutation) ActIDs() (ids []int64) {
+	if id := m.act; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetAct resets all changes to the "act" edge.
+func (m *OneShotItemMutation) ResetAct() {
+	m.act = nil
+	m.clearedact = false
+}
+
+// Where appends a list predicates to the OneShotItemMutation builder.
+func (m *OneShotItemMutation) Where(ps ...predicate.OneShotItem) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the OneShotItemMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *OneShotItemMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.OneShotItem, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *OneShotItemMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *OneShotItemMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (OneShotItem).
+func (m *OneShotItemMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *OneShotItemMutation) Fields() []string {
+	fields := make([]string, 0, 12)
+	if m.adventure_id != nil {
+		fields = append(fields, oneshotitem.FieldAdventureID)
+	}
+	if m.act != nil {
+		fields = append(fields, oneshotitem.FieldActID)
+	}
+	if m.name != nil {
+		fields = append(fields, oneshotitem.FieldName)
+	}
+	if m.description != nil {
+		fields = append(fields, oneshotitem.FieldDescription)
+	}
+	if m.category != nil {
+		fields = append(fields, oneshotitem.FieldCategory)
+	}
+	if m.quantity != nil {
+		fields = append(fields, oneshotitem.FieldQuantity)
+	}
+	if m.weight != nil {
+		fields = append(fields, oneshotitem.FieldWeight)
+	}
+	if m.price_gp != nil {
+		fields = append(fields, oneshotitem.FieldPriceGp)
+	}
+	if m.is_magical != nil {
+		fields = append(fields, oneshotitem.FieldIsMagical)
+	}
+	if m.attunement != nil {
+		fields = append(fields, oneshotitem.FieldAttunement)
+	}
+	if m.notes != nil {
+		fields = append(fields, oneshotitem.FieldNotes)
+	}
+	if m.created_at != nil {
+		fields = append(fields, oneshotitem.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *OneShotItemMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case oneshotitem.FieldAdventureID:
+		return m.AdventureID()
+	case oneshotitem.FieldActID:
+		return m.ActID()
+	case oneshotitem.FieldName:
+		return m.Name()
+	case oneshotitem.FieldDescription:
+		return m.Description()
+	case oneshotitem.FieldCategory:
+		return m.Category()
+	case oneshotitem.FieldQuantity:
+		return m.Quantity()
+	case oneshotitem.FieldWeight:
+		return m.Weight()
+	case oneshotitem.FieldPriceGp:
+		return m.PriceGp()
+	case oneshotitem.FieldIsMagical:
+		return m.IsMagical()
+	case oneshotitem.FieldAttunement:
+		return m.Attunement()
+	case oneshotitem.FieldNotes:
+		return m.Notes()
+	case oneshotitem.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *OneShotItemMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case oneshotitem.FieldAdventureID:
+		return m.OldAdventureID(ctx)
+	case oneshotitem.FieldActID:
+		return m.OldActID(ctx)
+	case oneshotitem.FieldName:
+		return m.OldName(ctx)
+	case oneshotitem.FieldDescription:
+		return m.OldDescription(ctx)
+	case oneshotitem.FieldCategory:
+		return m.OldCategory(ctx)
+	case oneshotitem.FieldQuantity:
+		return m.OldQuantity(ctx)
+	case oneshotitem.FieldWeight:
+		return m.OldWeight(ctx)
+	case oneshotitem.FieldPriceGp:
+		return m.OldPriceGp(ctx)
+	case oneshotitem.FieldIsMagical:
+		return m.OldIsMagical(ctx)
+	case oneshotitem.FieldAttunement:
+		return m.OldAttunement(ctx)
+	case oneshotitem.FieldNotes:
+		return m.OldNotes(ctx)
+	case oneshotitem.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown OneShotItem field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *OneShotItemMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case oneshotitem.FieldAdventureID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAdventureID(v)
+		return nil
+	case oneshotitem.FieldActID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActID(v)
+		return nil
+	case oneshotitem.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case oneshotitem.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case oneshotitem.FieldCategory:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCategory(v)
+		return nil
+	case oneshotitem.FieldQuantity:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetQuantity(v)
+		return nil
+	case oneshotitem.FieldWeight:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetWeight(v)
+		return nil
+	case oneshotitem.FieldPriceGp:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPriceGp(v)
+		return nil
+	case oneshotitem.FieldIsMagical:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsMagical(v)
+		return nil
+	case oneshotitem.FieldAttunement:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetAttunement(v)
+		return nil
+	case oneshotitem.FieldNotes:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNotes(v)
+		return nil
+	case oneshotitem.FieldCreatedAt:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotItem field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *OneShotItemMutation) AddedFields() []string {
+	var fields []string
+	if m.addadventure_id != nil {
+		fields = append(fields, oneshotitem.FieldAdventureID)
+	}
+	if m.addquantity != nil {
+		fields = append(fields, oneshotitem.FieldQuantity)
+	}
+	if m.addweight != nil {
+		fields = append(fields, oneshotitem.FieldWeight)
+	}
+	if m.addprice_gp != nil {
+		fields = append(fields, oneshotitem.FieldPriceGp)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *OneShotItemMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case oneshotitem.FieldAdventureID:
+		return m.AddedAdventureID()
+	case oneshotitem.FieldQuantity:
+		return m.AddedQuantity()
+	case oneshotitem.FieldWeight:
+		return m.AddedWeight()
+	case oneshotitem.FieldPriceGp:
+		return m.AddedPriceGp()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *OneShotItemMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case oneshotitem.FieldAdventureID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddAdventureID(v)
+		return nil
+	case oneshotitem.FieldQuantity:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddQuantity(v)
+		return nil
+	case oneshotitem.FieldWeight:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddWeight(v)
+		return nil
+	case oneshotitem.FieldPriceGp:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPriceGp(v)
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotItem numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *OneShotItemMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(oneshotitem.FieldActID) {
+		fields = append(fields, oneshotitem.FieldActID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *OneShotItemMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *OneShotItemMutation) ClearField(name string) error {
+	switch name {
+	case oneshotitem.FieldActID:
+		m.ClearActID()
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotItem nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *OneShotItemMutation) ResetField(name string) error {
+	switch name {
+	case oneshotitem.FieldAdventureID:
+		m.ResetAdventureID()
+		return nil
+	case oneshotitem.FieldActID:
+		m.ResetActID()
+		return nil
+	case oneshotitem.FieldName:
+		m.ResetName()
+		return nil
+	case oneshotitem.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case oneshotitem.FieldCategory:
+		m.ResetCategory()
+		return nil
+	case oneshotitem.FieldQuantity:
+		m.ResetQuantity()
+		return nil
+	case oneshotitem.FieldWeight:
+		m.ResetWeight()
+		return nil
+	case oneshotitem.FieldPriceGp:
+		m.ResetPriceGp()
+		return nil
+	case oneshotitem.FieldIsMagical:
+		m.ResetIsMagical()
+		return nil
+	case oneshotitem.FieldAttunement:
+		m.ResetAttunement()
+		return nil
+	case oneshotitem.FieldNotes:
+		m.ResetNotes()
+		return nil
+	case oneshotitem.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotItem field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *OneShotItemMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.act != nil {
+		edges = append(edges, oneshotitem.EdgeAct)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *OneShotItemMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case oneshotitem.EdgeAct:
+		if id := m.act; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *OneShotItemMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *OneShotItemMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *OneShotItemMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedact {
+		edges = append(edges, oneshotitem.EdgeAct)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *OneShotItemMutation) EdgeCleared(name string) bool {
+	switch name {
+	case oneshotitem.EdgeAct:
+		return m.clearedact
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *OneShotItemMutation) ClearEdge(name string) error {
+	switch name {
+	case oneshotitem.EdgeAct:
+		m.ClearAct()
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotItem unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *OneShotItemMutation) ResetEdge(name string) error {
+	switch name {
+	case oneshotitem.EdgeAct:
+		m.ResetAct()
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotItem edge %s", name)
+}
+
+// OneShotSceneMutation represents an operation that mutates the OneShotScene nodes in the graph.
+type OneShotSceneMutation struct {
+	config
+	op                   Op
+	typ                  string
+	id                   *int64
+	number               *int
+	addnumber            *int
+	sort_order           *int
+	addsort_order        *int
+	title                *string
+	description          *string
+	scene_type           *string
+	location_id          *int64
+	addlocation_id       *int64
+	encounter_id         *int64
+	addencounter_id      *int64
+	estimated_minutes    *int
+	addestimated_minutes *int
+	notes                *string
+	clearedFields        map[string]struct{}
+	act                  *int64
+	clearedact           bool
+	done                 bool
+	oldValue             func(context.Context) (*OneShotScene, error)
+	predicates           []predicate.OneShotScene
+}
+
+var _ ent.Mutation = (*OneShotSceneMutation)(nil)
+
+// oneshotsceneOption allows management of the mutation configuration using functional options.
+type oneshotsceneOption func(*OneShotSceneMutation)
+
+// newOneShotSceneMutation creates new mutation for the OneShotScene entity.
+func newOneShotSceneMutation(c config, op Op, opts ...oneshotsceneOption) *OneShotSceneMutation {
+	m := &OneShotSceneMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeOneShotScene,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withOneShotSceneID sets the ID field of the mutation.
+func withOneShotSceneID(id int64) oneshotsceneOption {
+	return func(m *OneShotSceneMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *OneShotScene
+		)
+		m.oldValue = func(ctx context.Context) (*OneShotScene, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().OneShotScene.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withOneShotScene sets the old OneShotScene of the mutation.
+func withOneShotScene(node *OneShotScene) oneshotsceneOption {
+	return func(m *OneShotSceneMutation) {
+		m.oldValue = func(context.Context) (*OneShotScene, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m OneShotSceneMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m OneShotSceneMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of OneShotScene entities.
+func (m *OneShotSceneMutation) SetID(id int64) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *OneShotSceneMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *OneShotSceneMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().OneShotScene.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetActID sets the "act_id" field.
+func (m *OneShotSceneMutation) SetActID(i int64) {
+	m.act = &i
+}
+
+// ActID returns the value of the "act_id" field in the mutation.
+func (m *OneShotSceneMutation) ActID() (r int64, exists bool) {
+	v := m.act
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActID returns the old "act_id" field's value of the OneShotScene entity.
+// If the OneShotScene object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotSceneMutation) OldActID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActID: %w", err)
+	}
+	return oldValue.ActID, nil
+}
+
+// ResetActID resets all changes to the "act_id" field.
+func (m *OneShotSceneMutation) ResetActID() {
+	m.act = nil
+}
+
+// SetNumber sets the "number" field.
+func (m *OneShotSceneMutation) SetNumber(i int) {
+	m.number = &i
+	m.addnumber = nil
+}
+
+// Number returns the value of the "number" field in the mutation.
+func (m *OneShotSceneMutation) Number() (r int, exists bool) {
+	v := m.number
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNumber returns the old "number" field's value of the OneShotScene entity.
+// If the OneShotScene object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotSceneMutation) OldNumber(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNumber is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNumber requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNumber: %w", err)
+	}
+	return oldValue.Number, nil
+}
+
+// AddNumber adds i to the "number" field.
+func (m *OneShotSceneMutation) AddNumber(i int) {
+	if m.addnumber != nil {
+		*m.addnumber += i
+	} else {
+		m.addnumber = &i
+	}
+}
+
+// AddedNumber returns the value that was added to the "number" field in this mutation.
+func (m *OneShotSceneMutation) AddedNumber() (r int, exists bool) {
+	v := m.addnumber
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetNumber resets all changes to the "number" field.
+func (m *OneShotSceneMutation) ResetNumber() {
+	m.number = nil
+	m.addnumber = nil
+}
+
+// SetSortOrder sets the "sort_order" field.
+func (m *OneShotSceneMutation) SetSortOrder(i int) {
+	m.sort_order = &i
+	m.addsort_order = nil
+}
+
+// SortOrder returns the value of the "sort_order" field in the mutation.
+func (m *OneShotSceneMutation) SortOrder() (r int, exists bool) {
+	v := m.sort_order
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSortOrder returns the old "sort_order" field's value of the OneShotScene entity.
+// If the OneShotScene object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotSceneMutation) OldSortOrder(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSortOrder is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSortOrder requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSortOrder: %w", err)
+	}
+	return oldValue.SortOrder, nil
+}
+
+// AddSortOrder adds i to the "sort_order" field.
+func (m *OneShotSceneMutation) AddSortOrder(i int) {
+	if m.addsort_order != nil {
+		*m.addsort_order += i
+	} else {
+		m.addsort_order = &i
+	}
+}
+
+// AddedSortOrder returns the value that was added to the "sort_order" field in this mutation.
+func (m *OneShotSceneMutation) AddedSortOrder() (r int, exists bool) {
+	v := m.addsort_order
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSortOrder resets all changes to the "sort_order" field.
+func (m *OneShotSceneMutation) ResetSortOrder() {
+	m.sort_order = nil
+	m.addsort_order = nil
+}
+
+// SetTitle sets the "title" field.
+func (m *OneShotSceneMutation) SetTitle(s string) {
+	m.title = &s
+}
+
+// Title returns the value of the "title" field in the mutation.
+func (m *OneShotSceneMutation) Title() (r string, exists bool) {
+	v := m.title
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTitle returns the old "title" field's value of the OneShotScene entity.
+// If the OneShotScene object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotSceneMutation) OldTitle(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTitle is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTitle requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTitle: %w", err)
+	}
+	return oldValue.Title, nil
+}
+
+// ResetTitle resets all changes to the "title" field.
+func (m *OneShotSceneMutation) ResetTitle() {
+	m.title = nil
+}
+
+// SetDescription sets the "description" field.
+func (m *OneShotSceneMutation) SetDescription(s string) {
+	m.description = &s
+}
+
+// Description returns the value of the "description" field in the mutation.
+func (m *OneShotSceneMutation) Description() (r string, exists bool) {
+	v := m.description
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldDescription returns the old "description" field's value of the OneShotScene entity.
+// If the OneShotScene object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotSceneMutation) OldDescription(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldDescription is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldDescription requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldDescription: %w", err)
+	}
+	return oldValue.Description, nil
+}
+
+// ResetDescription resets all changes to the "description" field.
+func (m *OneShotSceneMutation) ResetDescription() {
+	m.description = nil
+}
+
+// SetSceneType sets the "scene_type" field.
+func (m *OneShotSceneMutation) SetSceneType(s string) {
+	m.scene_type = &s
+}
+
+// SceneType returns the value of the "scene_type" field in the mutation.
+func (m *OneShotSceneMutation) SceneType() (r string, exists bool) {
+	v := m.scene_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSceneType returns the old "scene_type" field's value of the OneShotScene entity.
+// If the OneShotScene object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotSceneMutation) OldSceneType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSceneType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSceneType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSceneType: %w", err)
+	}
+	return oldValue.SceneType, nil
+}
+
+// ResetSceneType resets all changes to the "scene_type" field.
+func (m *OneShotSceneMutation) ResetSceneType() {
+	m.scene_type = nil
+}
+
+// SetLocationID sets the "location_id" field.
+func (m *OneShotSceneMutation) SetLocationID(i int64) {
+	m.location_id = &i
+	m.addlocation_id = nil
+}
+
+// LocationID returns the value of the "location_id" field in the mutation.
+func (m *OneShotSceneMutation) LocationID() (r int64, exists bool) {
+	v := m.location_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldLocationID returns the old "location_id" field's value of the OneShotScene entity.
+// If the OneShotScene object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotSceneMutation) OldLocationID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldLocationID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldLocationID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldLocationID: %w", err)
+	}
+	return oldValue.LocationID, nil
+}
+
+// AddLocationID adds i to the "location_id" field.
+func (m *OneShotSceneMutation) AddLocationID(i int64) {
+	if m.addlocation_id != nil {
+		*m.addlocation_id += i
+	} else {
+		m.addlocation_id = &i
+	}
+}
+
+// AddedLocationID returns the value that was added to the "location_id" field in this mutation.
+func (m *OneShotSceneMutation) AddedLocationID() (r int64, exists bool) {
+	v := m.addlocation_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearLocationID clears the value of the "location_id" field.
+func (m *OneShotSceneMutation) ClearLocationID() {
+	m.location_id = nil
+	m.addlocation_id = nil
+	m.clearedFields[oneshotscene.FieldLocationID] = struct{}{}
+}
+
+// LocationIDCleared returns if the "location_id" field was cleared in this mutation.
+func (m *OneShotSceneMutation) LocationIDCleared() bool {
+	_, ok := m.clearedFields[oneshotscene.FieldLocationID]
+	return ok
+}
+
+// ResetLocationID resets all changes to the "location_id" field.
+func (m *OneShotSceneMutation) ResetLocationID() {
+	m.location_id = nil
+	m.addlocation_id = nil
+	delete(m.clearedFields, oneshotscene.FieldLocationID)
+}
+
+// SetEncounterID sets the "encounter_id" field.
+func (m *OneShotSceneMutation) SetEncounterID(i int64) {
+	m.encounter_id = &i
+	m.addencounter_id = nil
+}
+
+// EncounterID returns the value of the "encounter_id" field in the mutation.
+func (m *OneShotSceneMutation) EncounterID() (r int64, exists bool) {
+	v := m.encounter_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEncounterID returns the old "encounter_id" field's value of the OneShotScene entity.
+// If the OneShotScene object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotSceneMutation) OldEncounterID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEncounterID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEncounterID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEncounterID: %w", err)
+	}
+	return oldValue.EncounterID, nil
+}
+
+// AddEncounterID adds i to the "encounter_id" field.
+func (m *OneShotSceneMutation) AddEncounterID(i int64) {
+	if m.addencounter_id != nil {
+		*m.addencounter_id += i
+	} else {
+		m.addencounter_id = &i
+	}
+}
+
+// AddedEncounterID returns the value that was added to the "encounter_id" field in this mutation.
+func (m *OneShotSceneMutation) AddedEncounterID() (r int64, exists bool) {
+	v := m.addencounter_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearEncounterID clears the value of the "encounter_id" field.
+func (m *OneShotSceneMutation) ClearEncounterID() {
+	m.encounter_id = nil
+	m.addencounter_id = nil
+	m.clearedFields[oneshotscene.FieldEncounterID] = struct{}{}
+}
+
+// EncounterIDCleared returns if the "encounter_id" field was cleared in this mutation.
+func (m *OneShotSceneMutation) EncounterIDCleared() bool {
+	_, ok := m.clearedFields[oneshotscene.FieldEncounterID]
+	return ok
+}
+
+// ResetEncounterID resets all changes to the "encounter_id" field.
+func (m *OneShotSceneMutation) ResetEncounterID() {
+	m.encounter_id = nil
+	m.addencounter_id = nil
+	delete(m.clearedFields, oneshotscene.FieldEncounterID)
+}
+
+// SetEstimatedMinutes sets the "estimated_minutes" field.
+func (m *OneShotSceneMutation) SetEstimatedMinutes(i int) {
+	m.estimated_minutes = &i
+	m.addestimated_minutes = nil
+}
+
+// EstimatedMinutes returns the value of the "estimated_minutes" field in the mutation.
+func (m *OneShotSceneMutation) EstimatedMinutes() (r int, exists bool) {
+	v := m.estimated_minutes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEstimatedMinutes returns the old "estimated_minutes" field's value of the OneShotScene entity.
+// If the OneShotScene object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotSceneMutation) OldEstimatedMinutes(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEstimatedMinutes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEstimatedMinutes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEstimatedMinutes: %w", err)
+	}
+	return oldValue.EstimatedMinutes, nil
+}
+
+// AddEstimatedMinutes adds i to the "estimated_minutes" field.
+func (m *OneShotSceneMutation) AddEstimatedMinutes(i int) {
+	if m.addestimated_minutes != nil {
+		*m.addestimated_minutes += i
+	} else {
+		m.addestimated_minutes = &i
+	}
+}
+
+// AddedEstimatedMinutes returns the value that was added to the "estimated_minutes" field in this mutation.
+func (m *OneShotSceneMutation) AddedEstimatedMinutes() (r int, exists bool) {
+	v := m.addestimated_minutes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetEstimatedMinutes resets all changes to the "estimated_minutes" field.
+func (m *OneShotSceneMutation) ResetEstimatedMinutes() {
+	m.estimated_minutes = nil
+	m.addestimated_minutes = nil
+}
+
+// SetNotes sets the "notes" field.
+func (m *OneShotSceneMutation) SetNotes(s string) {
+	m.notes = &s
+}
+
+// Notes returns the value of the "notes" field in the mutation.
+func (m *OneShotSceneMutation) Notes() (r string, exists bool) {
+	v := m.notes
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldNotes returns the old "notes" field's value of the OneShotScene entity.
+// If the OneShotScene object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotSceneMutation) OldNotes(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldNotes is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldNotes requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldNotes: %w", err)
+	}
+	return oldValue.Notes, nil
+}
+
+// ResetNotes resets all changes to the "notes" field.
+func (m *OneShotSceneMutation) ResetNotes() {
+	m.notes = nil
+}
+
+// ClearAct clears the "act" edge to the OneShotAct entity.
+func (m *OneShotSceneMutation) ClearAct() {
+	m.clearedact = true
+	m.clearedFields[oneshotscene.FieldActID] = struct{}{}
+}
+
+// ActCleared reports if the "act" edge to the OneShotAct entity was cleared.
+func (m *OneShotSceneMutation) ActCleared() bool {
+	return m.clearedact
+}
+
+// ActIDs returns the "act" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// ActID instead. It exists only for internal usage by the builders.
+func (m *OneShotSceneMutation) ActIDs() (ids []int64) {
+	if id := m.act; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetAct resets all changes to the "act" edge.
+func (m *OneShotSceneMutation) ResetAct() {
+	m.act = nil
+	m.clearedact = false
+}
+
+// Where appends a list predicates to the OneShotSceneMutation builder.
+func (m *OneShotSceneMutation) Where(ps ...predicate.OneShotScene) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the OneShotSceneMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *OneShotSceneMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.OneShotScene, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *OneShotSceneMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *OneShotSceneMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (OneShotScene).
+func (m *OneShotSceneMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *OneShotSceneMutation) Fields() []string {
+	fields := make([]string, 0, 10)
+	if m.act != nil {
+		fields = append(fields, oneshotscene.FieldActID)
+	}
+	if m.number != nil {
+		fields = append(fields, oneshotscene.FieldNumber)
+	}
+	if m.sort_order != nil {
+		fields = append(fields, oneshotscene.FieldSortOrder)
+	}
+	if m.title != nil {
+		fields = append(fields, oneshotscene.FieldTitle)
+	}
+	if m.description != nil {
+		fields = append(fields, oneshotscene.FieldDescription)
+	}
+	if m.scene_type != nil {
+		fields = append(fields, oneshotscene.FieldSceneType)
+	}
+	if m.location_id != nil {
+		fields = append(fields, oneshotscene.FieldLocationID)
+	}
+	if m.encounter_id != nil {
+		fields = append(fields, oneshotscene.FieldEncounterID)
+	}
+	if m.estimated_minutes != nil {
+		fields = append(fields, oneshotscene.FieldEstimatedMinutes)
+	}
+	if m.notes != nil {
+		fields = append(fields, oneshotscene.FieldNotes)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *OneShotSceneMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case oneshotscene.FieldActID:
+		return m.ActID()
+	case oneshotscene.FieldNumber:
+		return m.Number()
+	case oneshotscene.FieldSortOrder:
+		return m.SortOrder()
+	case oneshotscene.FieldTitle:
+		return m.Title()
+	case oneshotscene.FieldDescription:
+		return m.Description()
+	case oneshotscene.FieldSceneType:
+		return m.SceneType()
+	case oneshotscene.FieldLocationID:
+		return m.LocationID()
+	case oneshotscene.FieldEncounterID:
+		return m.EncounterID()
+	case oneshotscene.FieldEstimatedMinutes:
+		return m.EstimatedMinutes()
+	case oneshotscene.FieldNotes:
+		return m.Notes()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *OneShotSceneMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case oneshotscene.FieldActID:
+		return m.OldActID(ctx)
+	case oneshotscene.FieldNumber:
+		return m.OldNumber(ctx)
+	case oneshotscene.FieldSortOrder:
+		return m.OldSortOrder(ctx)
+	case oneshotscene.FieldTitle:
+		return m.OldTitle(ctx)
+	case oneshotscene.FieldDescription:
+		return m.OldDescription(ctx)
+	case oneshotscene.FieldSceneType:
+		return m.OldSceneType(ctx)
+	case oneshotscene.FieldLocationID:
+		return m.OldLocationID(ctx)
+	case oneshotscene.FieldEncounterID:
+		return m.OldEncounterID(ctx)
+	case oneshotscene.FieldEstimatedMinutes:
+		return m.OldEstimatedMinutes(ctx)
+	case oneshotscene.FieldNotes:
+		return m.OldNotes(ctx)
+	}
+	return nil, fmt.Errorf("unknown OneShotScene field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *OneShotSceneMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case oneshotscene.FieldActID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActID(v)
+		return nil
+	case oneshotscene.FieldNumber:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNumber(v)
+		return nil
+	case oneshotscene.FieldSortOrder:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSortOrder(v)
+		return nil
+	case oneshotscene.FieldTitle:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTitle(v)
+		return nil
+	case oneshotscene.FieldDescription:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetDescription(v)
+		return nil
+	case oneshotscene.FieldSceneType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSceneType(v)
+		return nil
+	case oneshotscene.FieldLocationID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetLocationID(v)
+		return nil
+	case oneshotscene.FieldEncounterID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEncounterID(v)
+		return nil
+	case oneshotscene.FieldEstimatedMinutes:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEstimatedMinutes(v)
+		return nil
+	case oneshotscene.FieldNotes:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetNotes(v)
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotScene field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *OneShotSceneMutation) AddedFields() []string {
+	var fields []string
+	if m.addnumber != nil {
+		fields = append(fields, oneshotscene.FieldNumber)
+	}
+	if m.addsort_order != nil {
+		fields = append(fields, oneshotscene.FieldSortOrder)
+	}
+	if m.addlocation_id != nil {
+		fields = append(fields, oneshotscene.FieldLocationID)
+	}
+	if m.addencounter_id != nil {
+		fields = append(fields, oneshotscene.FieldEncounterID)
+	}
+	if m.addestimated_minutes != nil {
+		fields = append(fields, oneshotscene.FieldEstimatedMinutes)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *OneShotSceneMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case oneshotscene.FieldNumber:
+		return m.AddedNumber()
+	case oneshotscene.FieldSortOrder:
+		return m.AddedSortOrder()
+	case oneshotscene.FieldLocationID:
+		return m.AddedLocationID()
+	case oneshotscene.FieldEncounterID:
+		return m.AddedEncounterID()
+	case oneshotscene.FieldEstimatedMinutes:
+		return m.AddedEstimatedMinutes()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *OneShotSceneMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case oneshotscene.FieldNumber:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddNumber(v)
+		return nil
+	case oneshotscene.FieldSortOrder:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSortOrder(v)
+		return nil
+	case oneshotscene.FieldLocationID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddLocationID(v)
+		return nil
+	case oneshotscene.FieldEncounterID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddEncounterID(v)
+		return nil
+	case oneshotscene.FieldEstimatedMinutes:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddEstimatedMinutes(v)
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotScene numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *OneShotSceneMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(oneshotscene.FieldLocationID) {
+		fields = append(fields, oneshotscene.FieldLocationID)
+	}
+	if m.FieldCleared(oneshotscene.FieldEncounterID) {
+		fields = append(fields, oneshotscene.FieldEncounterID)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *OneShotSceneMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *OneShotSceneMutation) ClearField(name string) error {
+	switch name {
+	case oneshotscene.FieldLocationID:
+		m.ClearLocationID()
+		return nil
+	case oneshotscene.FieldEncounterID:
+		m.ClearEncounterID()
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotScene nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *OneShotSceneMutation) ResetField(name string) error {
+	switch name {
+	case oneshotscene.FieldActID:
+		m.ResetActID()
+		return nil
+	case oneshotscene.FieldNumber:
+		m.ResetNumber()
+		return nil
+	case oneshotscene.FieldSortOrder:
+		m.ResetSortOrder()
+		return nil
+	case oneshotscene.FieldTitle:
+		m.ResetTitle()
+		return nil
+	case oneshotscene.FieldDescription:
+		m.ResetDescription()
+		return nil
+	case oneshotscene.FieldSceneType:
+		m.ResetSceneType()
+		return nil
+	case oneshotscene.FieldLocationID:
+		m.ResetLocationID()
+		return nil
+	case oneshotscene.FieldEncounterID:
+		m.ResetEncounterID()
+		return nil
+	case oneshotscene.FieldEstimatedMinutes:
+		m.ResetEstimatedMinutes()
+		return nil
+	case oneshotscene.FieldNotes:
+		m.ResetNotes()
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotScene field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *OneShotSceneMutation) AddedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.act != nil {
+		edges = append(edges, oneshotscene.EdgeAct)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *OneShotSceneMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case oneshotscene.EdgeAct:
+		if id := m.act; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *OneShotSceneMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 1)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *OneShotSceneMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *OneShotSceneMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 1)
+	if m.clearedact {
+		edges = append(edges, oneshotscene.EdgeAct)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *OneShotSceneMutation) EdgeCleared(name string) bool {
+	switch name {
+	case oneshotscene.EdgeAct:
+		return m.clearedact
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *OneShotSceneMutation) ClearEdge(name string) error {
+	switch name {
+	case oneshotscene.EdgeAct:
+		m.ClearAct()
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotScene unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *OneShotSceneMutation) ResetEdge(name string) error {
+	switch name {
+	case oneshotscene.EdgeAct:
+		m.ResetAct()
+		return nil
+	}
+	return fmt.Errorf("unknown OneShotScene edge %s", name)
 }
 
 // PartyItemMutation represents an operation that mutates the PartyItem nodes in the graph.
@@ -52789,30 +57975,34 @@ func (m *ShareLinkMutation) ResetEdge(name string) error {
 // ShopMutation represents an operation that mutates the Shop nodes in the graph.
 type ShopMutation struct {
 	config
-	op                    Op
-	typ                   string
-	id                    *int64
-	name                  *string
-	description           *string
-	markup_percent        *float64
-	addmarkup_percent     *float64
-	markup_buy_percent    *float64
-	addmarkup_buy_percent *float64
-	created_at            *string
-	clearedFields         map[string]struct{}
-	user                  *int64
-	cleareduser           bool
-	campaign              *int64
-	clearedcampaign       bool
-	items                 map[int64]struct{}
-	removeditems          map[int64]struct{}
-	cleareditems          bool
-	transactions          map[int64]struct{}
-	removedtransactions   map[int64]struct{}
-	clearedtransactions   bool
-	done                  bool
-	oldValue              func(context.Context) (*Shop, error)
-	predicates            []predicate.Shop
+	op                      Op
+	typ                     string
+	id                      *int64
+	oneshot_adventure_id    *int64
+	addoneshot_adventure_id *int64
+	act_id                  *int64
+	addact_id               *int64
+	name                    *string
+	description             *string
+	markup_percent          *float64
+	addmarkup_percent       *float64
+	markup_buy_percent      *float64
+	addmarkup_buy_percent   *float64
+	created_at              *string
+	clearedFields           map[string]struct{}
+	user                    *int64
+	cleareduser             bool
+	campaign                *int64
+	clearedcampaign         bool
+	items                   map[int64]struct{}
+	removeditems            map[int64]struct{}
+	cleareditems            bool
+	transactions            map[int64]struct{}
+	removedtransactions     map[int64]struct{}
+	clearedtransactions     bool
+	done                    bool
+	oldValue                func(context.Context) (*Shop, error)
+	predicates              []predicate.Shop
 }
 
 var _ ent.Mutation = (*ShopMutation)(nil)
@@ -53002,6 +58192,146 @@ func (m *ShopMutation) CampaignIDCleared() bool {
 func (m *ShopMutation) ResetCampaignID() {
 	m.campaign = nil
 	delete(m.clearedFields, shop.FieldCampaignID)
+}
+
+// SetOneshotAdventureID sets the "oneshot_adventure_id" field.
+func (m *ShopMutation) SetOneshotAdventureID(i int64) {
+	m.oneshot_adventure_id = &i
+	m.addoneshot_adventure_id = nil
+}
+
+// OneshotAdventureID returns the value of the "oneshot_adventure_id" field in the mutation.
+func (m *ShopMutation) OneshotAdventureID() (r int64, exists bool) {
+	v := m.oneshot_adventure_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOneshotAdventureID returns the old "oneshot_adventure_id" field's value of the Shop entity.
+// If the Shop object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ShopMutation) OldOneshotAdventureID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOneshotAdventureID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOneshotAdventureID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOneshotAdventureID: %w", err)
+	}
+	return oldValue.OneshotAdventureID, nil
+}
+
+// AddOneshotAdventureID adds i to the "oneshot_adventure_id" field.
+func (m *ShopMutation) AddOneshotAdventureID(i int64) {
+	if m.addoneshot_adventure_id != nil {
+		*m.addoneshot_adventure_id += i
+	} else {
+		m.addoneshot_adventure_id = &i
+	}
+}
+
+// AddedOneshotAdventureID returns the value that was added to the "oneshot_adventure_id" field in this mutation.
+func (m *ShopMutation) AddedOneshotAdventureID() (r int64, exists bool) {
+	v := m.addoneshot_adventure_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearOneshotAdventureID clears the value of the "oneshot_adventure_id" field.
+func (m *ShopMutation) ClearOneshotAdventureID() {
+	m.oneshot_adventure_id = nil
+	m.addoneshot_adventure_id = nil
+	m.clearedFields[shop.FieldOneshotAdventureID] = struct{}{}
+}
+
+// OneshotAdventureIDCleared returns if the "oneshot_adventure_id" field was cleared in this mutation.
+func (m *ShopMutation) OneshotAdventureIDCleared() bool {
+	_, ok := m.clearedFields[shop.FieldOneshotAdventureID]
+	return ok
+}
+
+// ResetOneshotAdventureID resets all changes to the "oneshot_adventure_id" field.
+func (m *ShopMutation) ResetOneshotAdventureID() {
+	m.oneshot_adventure_id = nil
+	m.addoneshot_adventure_id = nil
+	delete(m.clearedFields, shop.FieldOneshotAdventureID)
+}
+
+// SetActID sets the "act_id" field.
+func (m *ShopMutation) SetActID(i int64) {
+	m.act_id = &i
+	m.addact_id = nil
+}
+
+// ActID returns the value of the "act_id" field in the mutation.
+func (m *ShopMutation) ActID() (r int64, exists bool) {
+	v := m.act_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldActID returns the old "act_id" field's value of the Shop entity.
+// If the Shop object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ShopMutation) OldActID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldActID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldActID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldActID: %w", err)
+	}
+	return oldValue.ActID, nil
+}
+
+// AddActID adds i to the "act_id" field.
+func (m *ShopMutation) AddActID(i int64) {
+	if m.addact_id != nil {
+		*m.addact_id += i
+	} else {
+		m.addact_id = &i
+	}
+}
+
+// AddedActID returns the value that was added to the "act_id" field in this mutation.
+func (m *ShopMutation) AddedActID() (r int64, exists bool) {
+	v := m.addact_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearActID clears the value of the "act_id" field.
+func (m *ShopMutation) ClearActID() {
+	m.act_id = nil
+	m.addact_id = nil
+	m.clearedFields[shop.FieldActID] = struct{}{}
+}
+
+// ActIDCleared returns if the "act_id" field was cleared in this mutation.
+func (m *ShopMutation) ActIDCleared() bool {
+	_, ok := m.clearedFields[shop.FieldActID]
+	return ok
+}
+
+// ResetActID resets all changes to the "act_id" field.
+func (m *ShopMutation) ResetActID() {
+	m.act_id = nil
+	m.addact_id = nil
+	delete(m.clearedFields, shop.FieldActID)
 }
 
 // SetName sets the "name" field.
@@ -53420,12 +58750,18 @@ func (m *ShopMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ShopMutation) Fields() []string {
-	fields := make([]string, 0, 7)
+	fields := make([]string, 0, 9)
 	if m.user != nil {
 		fields = append(fields, shop.FieldUserID)
 	}
 	if m.campaign != nil {
 		fields = append(fields, shop.FieldCampaignID)
+	}
+	if m.oneshot_adventure_id != nil {
+		fields = append(fields, shop.FieldOneshotAdventureID)
+	}
+	if m.act_id != nil {
+		fields = append(fields, shop.FieldActID)
 	}
 	if m.name != nil {
 		fields = append(fields, shop.FieldName)
@@ -53454,6 +58790,10 @@ func (m *ShopMutation) Field(name string) (ent.Value, bool) {
 		return m.UserID()
 	case shop.FieldCampaignID:
 		return m.CampaignID()
+	case shop.FieldOneshotAdventureID:
+		return m.OneshotAdventureID()
+	case shop.FieldActID:
+		return m.ActID()
 	case shop.FieldName:
 		return m.Name()
 	case shop.FieldDescription:
@@ -53477,6 +58817,10 @@ func (m *ShopMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldUserID(ctx)
 	case shop.FieldCampaignID:
 		return m.OldCampaignID(ctx)
+	case shop.FieldOneshotAdventureID:
+		return m.OldOneshotAdventureID(ctx)
+	case shop.FieldActID:
+		return m.OldActID(ctx)
 	case shop.FieldName:
 		return m.OldName(ctx)
 	case shop.FieldDescription:
@@ -53509,6 +58853,20 @@ func (m *ShopMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCampaignID(v)
+		return nil
+	case shop.FieldOneshotAdventureID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOneshotAdventureID(v)
+		return nil
+	case shop.FieldActID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetActID(v)
 		return nil
 	case shop.FieldName:
 		v, ok := value.(string)
@@ -53553,6 +58911,12 @@ func (m *ShopMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *ShopMutation) AddedFields() []string {
 	var fields []string
+	if m.addoneshot_adventure_id != nil {
+		fields = append(fields, shop.FieldOneshotAdventureID)
+	}
+	if m.addact_id != nil {
+		fields = append(fields, shop.FieldActID)
+	}
 	if m.addmarkup_percent != nil {
 		fields = append(fields, shop.FieldMarkupPercent)
 	}
@@ -53567,6 +58931,10 @@ func (m *ShopMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *ShopMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case shop.FieldOneshotAdventureID:
+		return m.AddedOneshotAdventureID()
+	case shop.FieldActID:
+		return m.AddedActID()
 	case shop.FieldMarkupPercent:
 		return m.AddedMarkupPercent()
 	case shop.FieldMarkupBuyPercent:
@@ -53580,6 +58948,20 @@ func (m *ShopMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *ShopMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case shop.FieldOneshotAdventureID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddOneshotAdventureID(v)
+		return nil
+	case shop.FieldActID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddActID(v)
+		return nil
 	case shop.FieldMarkupPercent:
 		v, ok := value.(float64)
 		if !ok {
@@ -53605,6 +58987,12 @@ func (m *ShopMutation) ClearedFields() []string {
 	if m.FieldCleared(shop.FieldCampaignID) {
 		fields = append(fields, shop.FieldCampaignID)
 	}
+	if m.FieldCleared(shop.FieldOneshotAdventureID) {
+		fields = append(fields, shop.FieldOneshotAdventureID)
+	}
+	if m.FieldCleared(shop.FieldActID) {
+		fields = append(fields, shop.FieldActID)
+	}
 	return fields
 }
 
@@ -53622,6 +59010,12 @@ func (m *ShopMutation) ClearField(name string) error {
 	case shop.FieldCampaignID:
 		m.ClearCampaignID()
 		return nil
+	case shop.FieldOneshotAdventureID:
+		m.ClearOneshotAdventureID()
+		return nil
+	case shop.FieldActID:
+		m.ClearActID()
+		return nil
 	}
 	return fmt.Errorf("unknown Shop nullable field %s", name)
 }
@@ -53635,6 +59029,12 @@ func (m *ShopMutation) ResetField(name string) error {
 		return nil
 	case shop.FieldCampaignID:
 		m.ResetCampaignID()
+		return nil
+	case shop.FieldOneshotAdventureID:
+		m.ResetOneshotAdventureID()
+		return nil
+	case shop.FieldActID:
+		m.ResetActID()
 		return nil
 	case shop.FieldName:
 		m.ResetName()

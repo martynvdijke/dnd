@@ -23,15 +23,34 @@ type OneShotAdventure struct {
 type OneShotAct struct {
 	ID               int64  `json:"id"`
 	AdventureID      int64  `json:"adventure_id"`
+	ParentActID      *int64 `json:"parent_act_id,omitempty"`
 	Number           int    `json:"number"`
+	SortOrder        int    `json:"sort_order"`
 	Title            string `json:"title"`
 	Description      string `json:"description"`
 	EstimatedMinutes int    `json:"estimated_minutes"`
 	Notes            string `json:"notes"`
 	// Loaded relations
-	Scenes   []OneShotScene  `json:"scenes,omitempty"`
-	ActNPCs  []OneShotActNPC `json:"act_npcs,omitempty"`
-	ActNotes []DmNote        `json:"act_notes,omitempty"`
+	Scenes     []OneShotScene              `json:"scenes,omitempty"`
+	ActNPCs    []OneShotActNPC             `json:"act_npcs,omitempty"`
+	ActNotes   []DmNote                    `json:"act_notes,omitempty"`
+	Shops      []OneShotShop               `json:"shops,omitempty"`
+	Items      []OneShotItem               `json:"items,omitempty"`
+	Encounters []OneShotAdventureEncounter `json:"encounters,omitempty"`
+	Children   []OneShotAct                `json:"children,omitempty"`
+}
+
+type OneShotShop struct {
+	ID                int64   `json:"id"`
+	UserID            int64   `json:"user_id"`
+	CampaignID        *int64  `json:"campaign_id,omitempty"`
+	OneshotAdventureID *int64 `json:"oneshot_adventure_id,omitempty"`
+	ActID             *int64  `json:"act_id,omitempty"`
+	Name              string  `json:"name"`
+	Description       string  `json:"description"`
+	MarkupPercent     float64 `json:"markup_percent"`
+	MarkupBuyPercent  float64 `json:"markup_buy_percent"`
+	CreatedAt         string  `json:"created_at"`
 }
 
 type OneShotActNPC struct {
@@ -49,6 +68,7 @@ type OneShotScene struct {
 	ID               int64  `json:"id"`
 	ActID            int64  `json:"act_id"`
 	Number           int    `json:"number"`
+	SortOrder        int    `json:"sort_order"`
 	Title            string `json:"title"`
 	Description      string `json:"description"`
 	SceneType        string `json:"scene_type"`
@@ -79,6 +99,7 @@ type OneShotAdventureLocation struct {
 type OneShotAdventureEncounter struct {
 	ID            int64  `json:"id"`
 	AdventureID   int64  `json:"adventure_id"`
+	ActID         *int64 `json:"act_id,omitempty"`
 	EncounterID   int64  `json:"encounter_id"`
 	EncounterName string `json:"encounter_name,omitempty"`
 }

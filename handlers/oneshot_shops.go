@@ -10,15 +10,16 @@ import (
 )
 
 type OneShotShop struct {
-	ID             int64   `json:"id"`
-	UserID         int64   `json:"user_id"`
-	CampaignID     *int64  `json:"campaign_id,omitempty"`
-	OneshotID      *int64  `json:"oneshot_adventure_id,omitempty"`
-	Name           string  `json:"name"`
-	Description    string  `json:"description"`
-	MarkupPercent  float64 `json:"markup_percent"`
+	ID             int64    `json:"id"`
+	UserID         int64    `json:"user_id"`
+	CampaignID     *int64   `json:"campaign_id,omitempty"`
+	OneshotID      *int64   `json:"oneshot_adventure_id,omitempty"`
+	ActID          *int64   `json:"act_id,omitempty"`
+	Name           string   `json:"name"`
+	Description    string   `json:"description"`
+	MarkupPercent  float64  `json:"markup_percent"`
 	MarkupBuyPercent float64 `json:"markup_buy_percent"`
-	CreatedAt      string  `json:"created_at"`
+	CreatedAt      string   `json:"created_at"`
 }
 
 func ListOneShotShops(c *gin.Context) {
@@ -46,15 +47,15 @@ func CreateOneShotShop(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	result, err := db.DB.Exec("INSERT INTO shops(user_id, oneshot_adventure_id, name, description, markup_percent, markup_buy_percent) VALUES(?,?,?,?,?,?)",
-		userID, adventureID, s.Name, s.Description, s.MarkupPercent, s.MarkupBuyPercent)
+	result, err := db.DB.Exec("INSERT INTO shops(user_id, oneshot_adventure_id, act_id, name, description, markup_percent, markup_buy_percent) VALUES(?,?,?,?,?,?,?)",
+		userID, adventureID, s.ActID, s.Name, s.Description, s.MarkupPercent, s.MarkupBuyPercent)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	id, _ := result.LastInsertId()
-	db.DB.QueryRow("SELECT id, user_id, campaign_id, oneshot_adventure_id, name, description, markup_percent, markup_buy_percent, created_at FROM shops WHERE id=?", id).Scan(
-		&s.ID, &s.UserID, &s.CampaignID, &s.OneshotID, &s.Name, &s.Description, &s.MarkupPercent, &s.MarkupBuyPercent, &s.CreatedAt)
+	db.DB.QueryRow("SELECT id, user_id, campaign_id, oneshot_adventure_id, act_id, name, description, markup_percent, markup_buy_percent, created_at FROM shops WHERE id=?", id).Scan(
+		&s.ID, &s.UserID, &s.CampaignID, &s.OneshotID, &s.ActID, &s.Name, &s.Description, &s.MarkupPercent, &s.MarkupBuyPercent, &s.CreatedAt)
 	c.JSON(http.StatusCreated, s)
 }
 

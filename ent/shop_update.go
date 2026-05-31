@@ -65,6 +65,60 @@ func (_u *ShopUpdate) ClearCampaignID() *ShopUpdate {
 	return _u
 }
 
+// SetOneshotAdventureID sets the "oneshot_adventure_id" field.
+func (_u *ShopUpdate) SetOneshotAdventureID(v int64) *ShopUpdate {
+	_u.mutation.ResetOneshotAdventureID()
+	_u.mutation.SetOneshotAdventureID(v)
+	return _u
+}
+
+// SetNillableOneshotAdventureID sets the "oneshot_adventure_id" field if the given value is not nil.
+func (_u *ShopUpdate) SetNillableOneshotAdventureID(v *int64) *ShopUpdate {
+	if v != nil {
+		_u.SetOneshotAdventureID(*v)
+	}
+	return _u
+}
+
+// AddOneshotAdventureID adds value to the "oneshot_adventure_id" field.
+func (_u *ShopUpdate) AddOneshotAdventureID(v int64) *ShopUpdate {
+	_u.mutation.AddOneshotAdventureID(v)
+	return _u
+}
+
+// ClearOneshotAdventureID clears the value of the "oneshot_adventure_id" field.
+func (_u *ShopUpdate) ClearOneshotAdventureID() *ShopUpdate {
+	_u.mutation.ClearOneshotAdventureID()
+	return _u
+}
+
+// SetActID sets the "act_id" field.
+func (_u *ShopUpdate) SetActID(v int64) *ShopUpdate {
+	_u.mutation.ResetActID()
+	_u.mutation.SetActID(v)
+	return _u
+}
+
+// SetNillableActID sets the "act_id" field if the given value is not nil.
+func (_u *ShopUpdate) SetNillableActID(v *int64) *ShopUpdate {
+	if v != nil {
+		_u.SetActID(*v)
+	}
+	return _u
+}
+
+// AddActID adds value to the "act_id" field.
+func (_u *ShopUpdate) AddActID(v int64) *ShopUpdate {
+	_u.mutation.AddActID(v)
+	return _u
+}
+
+// ClearActID clears the value of the "act_id" field.
+func (_u *ShopUpdate) ClearActID() *ShopUpdate {
+	_u.mutation.ClearActID()
+	return _u
+}
+
 // SetName sets the "name" field.
 func (_u *ShopUpdate) SetName(v string) *ShopUpdate {
 	_u.mutation.SetName(v)
@@ -295,6 +349,24 @@ func (_u *ShopUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
+	if value, ok := _u.mutation.OneshotAdventureID(); ok {
+		_spec.SetField(shop.FieldOneshotAdventureID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedOneshotAdventureID(); ok {
+		_spec.AddField(shop.FieldOneshotAdventureID, field.TypeInt64, value)
+	}
+	if _u.mutation.OneshotAdventureIDCleared() {
+		_spec.ClearField(shop.FieldOneshotAdventureID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.ActID(); ok {
+		_spec.SetField(shop.FieldActID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedActID(); ok {
+		_spec.AddField(shop.FieldActID, field.TypeInt64, value)
+	}
+	if _u.mutation.ActIDCleared() {
+		_spec.ClearField(shop.FieldActID, field.TypeInt64)
+	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(shop.FieldName, field.TypeString, value)
 	}
@@ -515,6 +587,60 @@ func (_u *ShopUpdateOne) SetNillableCampaignID(v *int64) *ShopUpdateOne {
 // ClearCampaignID clears the value of the "campaign_id" field.
 func (_u *ShopUpdateOne) ClearCampaignID() *ShopUpdateOne {
 	_u.mutation.ClearCampaignID()
+	return _u
+}
+
+// SetOneshotAdventureID sets the "oneshot_adventure_id" field.
+func (_u *ShopUpdateOne) SetOneshotAdventureID(v int64) *ShopUpdateOne {
+	_u.mutation.ResetOneshotAdventureID()
+	_u.mutation.SetOneshotAdventureID(v)
+	return _u
+}
+
+// SetNillableOneshotAdventureID sets the "oneshot_adventure_id" field if the given value is not nil.
+func (_u *ShopUpdateOne) SetNillableOneshotAdventureID(v *int64) *ShopUpdateOne {
+	if v != nil {
+		_u.SetOneshotAdventureID(*v)
+	}
+	return _u
+}
+
+// AddOneshotAdventureID adds value to the "oneshot_adventure_id" field.
+func (_u *ShopUpdateOne) AddOneshotAdventureID(v int64) *ShopUpdateOne {
+	_u.mutation.AddOneshotAdventureID(v)
+	return _u
+}
+
+// ClearOneshotAdventureID clears the value of the "oneshot_adventure_id" field.
+func (_u *ShopUpdateOne) ClearOneshotAdventureID() *ShopUpdateOne {
+	_u.mutation.ClearOneshotAdventureID()
+	return _u
+}
+
+// SetActID sets the "act_id" field.
+func (_u *ShopUpdateOne) SetActID(v int64) *ShopUpdateOne {
+	_u.mutation.ResetActID()
+	_u.mutation.SetActID(v)
+	return _u
+}
+
+// SetNillableActID sets the "act_id" field if the given value is not nil.
+func (_u *ShopUpdateOne) SetNillableActID(v *int64) *ShopUpdateOne {
+	if v != nil {
+		_u.SetActID(*v)
+	}
+	return _u
+}
+
+// AddActID adds value to the "act_id" field.
+func (_u *ShopUpdateOne) AddActID(v int64) *ShopUpdateOne {
+	_u.mutation.AddActID(v)
+	return _u
+}
+
+// ClearActID clears the value of the "act_id" field.
+func (_u *ShopUpdateOne) ClearActID() *ShopUpdateOne {
+	_u.mutation.ClearActID()
 	return _u
 }
 
@@ -777,6 +903,24 @@ func (_u *ShopUpdateOne) sqlSave(ctx context.Context) (_node *Shop, err error) {
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.OneshotAdventureID(); ok {
+		_spec.SetField(shop.FieldOneshotAdventureID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedOneshotAdventureID(); ok {
+		_spec.AddField(shop.FieldOneshotAdventureID, field.TypeInt64, value)
+	}
+	if _u.mutation.OneshotAdventureIDCleared() {
+		_spec.ClearField(shop.FieldOneshotAdventureID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.ActID(); ok {
+		_spec.SetField(shop.FieldActID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedActID(); ok {
+		_spec.AddField(shop.FieldActID, field.TypeInt64, value)
+	}
+	if _u.mutation.ActIDCleared() {
+		_spec.ClearField(shop.FieldActID, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(shop.FieldName, field.TypeString, value)
