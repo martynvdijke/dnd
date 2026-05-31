@@ -16,6 +16,9 @@ import (
 	"villum/ent"
 	"villum/ent/oneshotact"
 	"villum/ent/oneshotactnpc"
+	"villum/ent/oneshotadventureencounter"
+	"villum/ent/oneshotitem"
+	"villum/ent/oneshotscene"
 	"villum/models"
 )
 
@@ -176,9 +179,15 @@ func loadAdventureDetail(ctx context.Context, adventureID int64) (*models.OneSho
 
 	entActs, err := db.Client.OneShotAct.Query().
 		Where(oneshotact.AdventureID(adventureID)).
-		WithScenes().
-		WithItems().
-		WithEncounters().
+		WithScenes(func(q *ent.OneShotSceneQuery) {
+			q.Order(ent.Asc(oneshotscene.FieldSortOrder), ent.Asc(oneshotscene.FieldID))
+		}).
+		WithItems(func(q *ent.OneShotItemQuery) {
+			q.Order(ent.Asc(oneshotitem.FieldName))
+		}).
+		WithEncounters(func(q *ent.OneShotAdventureEncounterQuery) {
+			q.Order(ent.Asc(oneshotadventureencounter.FieldID))
+		}).
 		Order(oneshotact.BySortOrder(), oneshotact.ByID()).
 		All(ctx)
 	if err != nil {
