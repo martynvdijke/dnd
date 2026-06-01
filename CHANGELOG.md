@@ -1,3 +1,20 @@
+# [2.4.0](https://github.com/martynvdijke/dnd/compare/v2.3.0...v2.4.0) (2026-06-01)
+
+
+### Bug Fixes
+
+* add CSRF token to Playwright upload API tests ([1fd245b](https://github.com/martynvdijke/dnd/commit/1fd245b7e4d0133c101602e726cfaaf92194a5dc))
+* return id in duplicate upload response (was missing, broke upload-links test) ([a803baa](https://github.com/martynvdijke/dnd/commit/a803baadd4cdb9caa3d54806a043eef4142ba56b))
+* update Playwright upload tests to not depend on seeded campaign ([996bab7](https://github.com/martynvdijke/dnd/commit/996bab7cb66d0bbe3cfe0d6e31ef1c29a724271b))
+* use explicit JSON string for upload-links POST body ([8e681ed](https://github.com/martynvdijke/dnd/commit/8e681edfdbf4b7b92c1a75b0e01f88ae09838ada))
+* use page.evaluate with fetch for upload-links tests ([aa9a668](https://github.com/martynvdijke/dnd/commit/aa9a66809db16bccc9f7cfcc2e1d31b53e858d7d))
+* use Playwright multipart API for upload tests ([5812c71](https://github.com/martynvdijke/dnd/commit/5812c71bd544e209322e88a19919dd32d5085f64))
+
+
+### Features
+
+* add file upload system with upload_links, media galleries, NPC portraits, and crop tool ([b32cb8c](https://github.com/martynvdijke/dnd/commit/b32cb8c599410e04017b9abae70698a81377f58e))
+
 # [2.3.0](https://github.com/martynvdijke/dnd/compare/v2.2.0...v2.3.0) (2026-06-01)
 
 
