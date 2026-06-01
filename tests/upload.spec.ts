@@ -73,6 +73,7 @@ test.describe('File upload and media gallery', () => {
     }, {csrf, pngB64: pngBytes.toString('base64')});
     expect(uploadResult.status).toBe(200);
     const uploadData = uploadResult.body;
+    console.log('CI-DEBUG uploadData:', JSON.stringify(uploadData));
 
     // Create upload link via page context
     const linkResult = await page.evaluate(async ({csrf, uploadId}) => {
@@ -91,6 +92,7 @@ test.describe('File upload and media gallery', () => {
       });
       return {status: resp.status, body: await resp.json()};
     }, {csrf, uploadId: uploadData.id});
+    console.log('CI-DEBUG linkResult:', JSON.stringify(linkResult));
     expect(linkResult.status).toBe(201);
     const linkData = linkResult.body;
     expect(linkData).toHaveProperty('id');
