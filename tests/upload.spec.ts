@@ -87,7 +87,10 @@ test.describe('File upload and media gallery', () => {
         'X-CSRF-Token': csrf,
       },
     });
-    expect(linkResp.status()).toBe(201);
+    if (linkResp.status() !== 201) {
+      const body = await linkResp.text();
+      throw new Error(`Expected 201, got ${linkResp.status()}: ${body}`);
+    }
     const linkData = await linkResp.json();
     expect(linkData).toHaveProperty('id');
     expect(linkData.entity_type).toBe('campaign');
