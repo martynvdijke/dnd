@@ -1,3 +1,16 @@
+# [2.3.0](https://github.com/martynvdijke/dnd/compare/v2.2.0...v2.3.0) (2026-06-01)
+
+
+### Bug Fixes
+
+* update party.spec.ts to use sidebar nav for desktop ([20fffd3](https://github.com/martynvdijke/dnd/commit/20fffd34db00abc13f7deda2029371411542c277))
+* update Playwright tests to use sidebar navigation ([c874d3a](https://github.com/martynvdijke/dnd/commit/c874d3ad3b0c048a2aa44a73769b88e503860472)), closes [#appSidebar](https://github.com/martynvdijke/dnd/issues/appSidebar)
+
+
+### Features
+
+* add mini-campaign support, NPC story hooks, and campaign overview ([30ed427](https://github.com/martynvdijke/dnd/commit/30ed427f470c438026534f51348404e780fa17a5))
+
 # [2.2.0](https://github.com/martynvdijke/dnd/compare/v2.1.1...v2.2.0) (2026-05-31)
 
 
