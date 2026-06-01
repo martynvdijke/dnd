@@ -1,5 +1,13 @@
 import { test, expect } from '@playwright/test';
 
+function makeTestPNG(): Buffer {
+  // Minimal valid 1x1 red PNG
+  return Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    'base64'
+  );
+}
+
 test.describe('File upload and media gallery', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login');
@@ -12,7 +20,6 @@ test.describe('File upload and media gallery', () => {
   });
 
   test('empty media gallery shows empty state', async ({ page }) => {
-    // Direct HTMX load for a non-existent entity — shows empty state
     await page.goto('/htmx/media-gallery?owner_type=campaign&owner_id=99999', { waitUntil: 'domcontentloaded' });
 
     const emptyState = page.locator('text=No Media Yet');
@@ -20,24 +27,16 @@ test.describe('File upload and media gallery', () => {
   });
 
   test('upload API works and returns valid response', async ({ page }) => {
-    // Test the upload API directly via page.request
-    const pngBytes = Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-      'base64'
-    );
-    const boundary = '----TestBoundary' + Date.now();
-    const body = [
-      `--${boundary}`,
-      'Content-Disposition: form-data; name="image"; filename="test.png"',
-      'Content-Type: image/png',
-      '',
-      pngBytes.toString('binary'),
-      `--${boundary}--`,
-    ].join('\r\n');
+    const pngBytes = makeTestPNG();
 
     const resp = await page.request.post('/api/upload', {
-      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
-      data: Buffer.from(body, 'binary'),
+      multipart: {
+        image: {
+          name: 'test.png',
+          mimeType: 'image/png',
+          buffer: pngBytes,
+        },
+      },
     });
     expect(resp.status()).toBe(200);
     const data = await resp.json();
@@ -47,24 +46,17 @@ test.describe('File upload and media gallery', () => {
   });
 
   test('upload-links API works', async ({ page }) => {
-    // Upload an image
-    const pngBytes = Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-      'base64'
-    );
-    const boundary = '----TestBoundary' + Date.now();
-    const body = [
-      `--${boundary}`,
-      'Content-Disposition: form-data; name="image"; filename="test.png"',
-      'Content-Type: image/png',
-      '',
-      pngBytes.toString('binary'),
-      `--${boundary}--`,
-    ].join('\r\n');
+    const pngBytes = makeTestPNG();
 
+    // Upload an image
     const uploadResp = await page.request.post('/api/upload', {
-      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
-      data: Buffer.from(body, 'binary'),
+      multipart: {
+        image: {
+          name: 'test.png',
+          mimeType: 'image/png',
+          buffer: pngBytes,
+        },
+      },
     });
     expect(uploadResp.status()).toBe(200);
     const uploadData = await uploadResp.json();
@@ -92,7 +84,6 @@ test.describe('File upload and media gallery', () => {
     await page.goto('/htmx/media-gallery?owner_type=campaign&owner_id=99999', { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(500);
 
-    // Gallery should contain Upload button
     const uploadBtn = page.locator('button:has-text("Upload")');
     await expect(uploadBtn).toBeVisible({ timeout: 5000 });
   });
