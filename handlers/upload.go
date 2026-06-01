@@ -112,9 +112,10 @@ func HandleUpload(c *gin.Context) {
 
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
+		var existingID int64
 		var existingURL string
-		if err := db.DB.QueryRow("SELECT url FROM uploads WHERE hash = ?", hashStr).Scan(&existingURL); err == nil {
-			c.JSON(http.StatusOK, gin.H{"url": existingURL, "duplicate": true})
+		if err := db.DB.QueryRow("SELECT id, url FROM uploads WHERE hash = ?", hashStr).Scan(&existingID, &existingURL); err == nil {
+			c.JSON(http.StatusOK, gin.H{"id": existingID, "url": existingURL, "duplicate": true})
 			return
 		}
 	}

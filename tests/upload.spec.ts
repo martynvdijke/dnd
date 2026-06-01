@@ -59,54 +59,47 @@ test.describe('File upload and media gallery', () => {
     const pngBytes = makeTestPNG();
     const csrf = await getCSRFToken(page);
 
-    // Upload an image via page context
-    const uploadResult = await page.evaluate(async ({csrf, pngB64}) => {
-      const blob = Uint8Array.from(atob(pngB64), c => c.charCodeAt(0));
-      const formData = new FormData();
-      formData.append('image', new Blob([blob], {type: 'image/png'}), 'test.png');
-      const resp = await fetch('/api/upload', {
-        method: 'POST',
-        headers: {'X-CSRF-Token': csrf},
-        body: formData,
-      });
-      return {status: resp.status, body: await resp.json()};
-    }, {csrf, pngB64: pngBytes.toString('base64')});
-    expect(uploadResult.status).toBe(200);
-    const uploadData = uploadResult.body;
-    console.log('CI-DEBUG uploadData:', JSON.stringify(uploadData));
-
-    // Create upload link via page context
-    const linkResult = await page.evaluate(async ({csrf, uploadId}) => {
-      const resp = await fetch('/api/upload-links', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': csrf,
+    // Upload an image
+    const uploadResp = await page.request.post('/api/upload', {
+      multipart: {
+        image: {
+          name: 'test.png',
+          mimeType: 'image/png',
+          buffer: pngBytes,
         },
-        body: JSON.stringify({
-          upload_id: uploadId,
-          entity_type: 'campaign',
-          entity_id: 42,
-          field_name: 'map',
-        }),
-      });
-      return {status: resp.status, body: await resp.json()};
-    }, {csrf, uploadId: uploadData.id});
-    console.log('CI-DEBUG linkResult:', JSON.stringify(linkResult));
-    expect(linkResult.status).toBe(201);
-    const linkData = linkResult.body;
+      },
+      headers: {
+        'X-CSRF-Token': csrf,
+      },
+    });
+    expect(uploadResp.status()).toBe(200);
+    const uploadData = await uploadResp.json();
+    expect(uploadData).toHaveProperty('id');
+
+    // Create upload link
+    const linkResp = await page.request.post('/api/upload-links', {
+      data: {
+        upload_id: uploadData.id,
+        entity_type: 'campaign',
+        entity_id: 42,
+        field_name: 'map',
+      },
+      headers: {
+        'X-CSRF-Token': csrf,
+      },
+    });
+    expect(linkResp.status()).toBe(201);
+    const linkData = await linkResp.json();
     expect(linkData).toHaveProperty('id');
     expect(linkData.entity_type).toBe('campaign');
 
-    // Delete upload link via page context
-    const deleteResult = await page.evaluate(async ({csrf, linkId}) => {
-      const resp = await fetch(`/api/upload-links/${linkId}`, {
-        method: 'DELETE',
-        headers: {'X-CSRF-Token': csrf},
-      });
-      return resp.status;
-    }, {csrf, linkId: linkData.id});
-    expect(deleteResult).toBe(204);
+    // Delete upload link
+    const deleteResp = await page.request.delete(`/api/upload-links/${linkData.id}`, {
+      headers: {
+        'X-CSRF-Token': csrf,
+      },
+    });
+    expect(deleteResp.status()).toBe(204);
   });
 
   test('media gallery HTMX loads and renders upload button', async ({ page }) => {
