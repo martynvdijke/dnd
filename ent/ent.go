@@ -69,6 +69,7 @@ import (
 	"villum/ent/shoptransaction"
 	"villum/ent/spell"
 	"villum/ent/upload"
+	"villum/ent/uploadlink"
 	"villum/ent/user"
 
 	"entgo.io/ent"
@@ -195,6 +196,7 @@ func checkColumn(t, c string) error {
 			shoptransaction.Table:           shoptransaction.ValidColumn,
 			spell.Table:                     spell.ValidColumn,
 			upload.Table:                    upload.ValidColumn,
+			uploadlink.Table:                uploadlink.ValidColumn,
 			user.Table:                      user.ValidColumn,
 		})
 	})

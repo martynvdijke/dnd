@@ -421,6 +421,20 @@ func (_u *NPCUpdate) SetNillableBackstory(v *string) *NPCUpdate {
 	return _u
 }
 
+// SetPortraitURL sets the "portrait_url" field.
+func (_u *NPCUpdate) SetPortraitURL(v string) *NPCUpdate {
+	_u.mutation.SetPortraitURL(v)
+	return _u
+}
+
+// SetNillablePortraitURL sets the "portrait_url" field if the given value is not nil.
+func (_u *NPCUpdate) SetNillablePortraitURL(v *string) *NPCUpdate {
+	if v != nil {
+		_u.SetPortraitURL(*v)
+	}
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *NPCUpdate) SetCreatedAt(v string) *NPCUpdate {
 	_u.mutation.SetCreatedAt(v)
@@ -629,6 +643,9 @@ func (_u *NPCUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Backstory(); ok {
 		_spec.SetField(npc.FieldBackstory, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.PortraitURL(); ok {
+		_spec.SetField(npc.FieldPortraitURL, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(npc.FieldCreatedAt, field.TypeString, value)
@@ -1119,6 +1136,20 @@ func (_u *NPCUpdateOne) SetNillableBackstory(v *string) *NPCUpdateOne {
 	return _u
 }
 
+// SetPortraitURL sets the "portrait_url" field.
+func (_u *NPCUpdateOne) SetPortraitURL(v string) *NPCUpdateOne {
+	_u.mutation.SetPortraitURL(v)
+	return _u
+}
+
+// SetNillablePortraitURL sets the "portrait_url" field if the given value is not nil.
+func (_u *NPCUpdateOne) SetNillablePortraitURL(v *string) *NPCUpdateOne {
+	if v != nil {
+		_u.SetPortraitURL(*v)
+	}
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *NPCUpdateOne) SetCreatedAt(v string) *NPCUpdateOne {
 	_u.mutation.SetCreatedAt(v)
@@ -1357,6 +1388,9 @@ func (_u *NPCUpdateOne) sqlSave(ctx context.Context) (_node *NPC, err error) {
 	}
 	if value, ok := _u.mutation.Backstory(); ok {
 		_spec.SetField(npc.FieldBackstory, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.PortraitURL(); ok {
+		_spec.SetField(npc.FieldPortraitURL, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(npc.FieldCreatedAt, field.TypeString, value)

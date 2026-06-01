@@ -41,7 +41,34 @@
   <label class="form-label">Description / Backstory</label>
   <textarea class="form-control" id="newNPCDesc" name="description" rows="3"></textarea>
 </div>
-<button class="btn btn-primary w-100" hx-post="/htmx/npcs" hx-target="#npcsSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create</button></form>
+<div class="mb-3">
+  <label class="form-label">Portrait URL</label>
+  <div class="input-group">
+    <input class="form-control" name="portrait_url" id="npPortraitUrl" placeholder="URL or upload below">
+    <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('npPortraitUpload').click()"><i class="fa-solid fa-upload"></i></button>
+    <input type="file" id="npPortraitUpload" accept="image/*" style="display:none" onchange="uploadNPCPortrait(this.files)">
+  </div>
+</div>
+<button class="btn btn-primary w-100" hx-post="/htmx/npcs" hx-target="#npcsSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create</button>
+<script>
+function uploadNPCPortrait(files) {
+  if (!files.length) return;
+  var formData = new FormData();
+  formData.append("image", files[0]);
+  formData.append("owner_type", "npc");
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", "/api/upload", true);
+  xhr.setRequestHeader("X-CSRF-Token", document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
+  xhr.onload = function() {
+    if (xhr.status === 200) {
+      var resp = JSON.parse(xhr.responseText);
+      document.getElementById("npPortraitUrl").value = resp.url;
+    }
+  };
+  xhr.send(formData);
+}
+</script>
+</form>
 <script>
 document.getElementById('npcTier').addEventListener('change', function(){
   var isFull = this.value === '1';

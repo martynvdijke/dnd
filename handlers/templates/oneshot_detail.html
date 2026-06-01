@@ -181,6 +181,17 @@
     </div>
   </div>
 </div>
+{{else}}
+<div class="row g-3 mb-4">
+  <div class="col-12">
+    <div class="card h-100">
+      <div class="card-header py-2"><strong><i class="fa-solid fa-images me-1"></i>Media</strong></div>
+      <div class="card-body" hx-get="/htmx/media-gallery?owner_type=oneshot&owner_id={{.Adventure.ID}}" hx-trigger="load" hx-swap="innerHTML">
+        <div class="text-muted small">✧ Loading media...</div>
+      </div>
+    </div>
+  </div>
+</div>
 {{end}}
 
 <script>

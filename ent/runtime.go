@@ -63,6 +63,7 @@ import (
 	"villum/ent/shoptransaction"
 	"villum/ent/spell"
 	"villum/ent/upload"
+	"villum/ent/uploadlink"
 	"villum/ent/user"
 )
 
@@ -1516,8 +1517,12 @@ func init() {
 	npcDescBackstory := npcFields[23].Descriptor()
 	// npc.DefaultBackstory holds the default value on creation for the backstory field.
 	npc.DefaultBackstory = npcDescBackstory.Default.(string)
+	// npcDescPortraitURL is the schema descriptor for portrait_url field.
+	npcDescPortraitURL := npcFields[24].Descriptor()
+	// npc.DefaultPortraitURL holds the default value on creation for the portrait_url field.
+	npc.DefaultPortraitURL = npcDescPortraitURL.Default.(string)
 	// npcDescCreatedAt is the schema descriptor for created_at field.
-	npcDescCreatedAt := npcFields[24].Descriptor()
+	npcDescCreatedAt := npcFields[25].Descriptor()
 	// npc.DefaultCreatedAt holds the default value on creation for the created_at field.
 	npc.DefaultCreatedAt = npcDescCreatedAt.Default.(string)
 	oneshotactFields := schema.OneShotAct{}.Fields()
@@ -1940,6 +1945,16 @@ func init() {
 	uploadDescCreatedAt := uploadFields[8].Descriptor()
 	// upload.DefaultCreatedAt holds the default value on creation for the created_at field.
 	upload.DefaultCreatedAt = uploadDescCreatedAt.Default.(string)
+	uploadlinkFields := schema.UploadLink{}.Fields()
+	_ = uploadlinkFields
+	// uploadlinkDescFieldName is the schema descriptor for field_name field.
+	uploadlinkDescFieldName := uploadlinkFields[4].Descriptor()
+	// uploadlink.DefaultFieldName holds the default value on creation for the field_name field.
+	uploadlink.DefaultFieldName = uploadlinkDescFieldName.Default.(string)
+	// uploadlinkDescCreatedAt is the schema descriptor for created_at field.
+	uploadlinkDescCreatedAt := uploadlinkFields[5].Descriptor()
+	// uploadlink.DefaultCreatedAt holds the default value on creation for the created_at field.
+	uploadlink.DefaultCreatedAt = uploadlinkDescCreatedAt.Default.(string)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescDisplayName is the schema descriptor for display_name field.

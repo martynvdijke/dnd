@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"villum/ent/upload"
+	"villum/ent/uploadlink"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -139,6 +140,21 @@ func (_c *UploadCreate) SetID(v int64) *UploadCreate {
 	return _c
 }
 
+// AddUploadLinkIDs adds the "upload_links" edge to the UploadLink entity by IDs.
+func (_c *UploadCreate) AddUploadLinkIDs(ids ...int64) *UploadCreate {
+	_c.mutation.AddUploadLinkIDs(ids...)
+	return _c
+}
+
+// AddUploadLinks adds the "upload_links" edges to the UploadLink entity.
+func (_c *UploadCreate) AddUploadLinks(v ...*UploadLink) *UploadCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddUploadLinkIDs(ids...)
+}
+
 // Mutation returns the UploadMutation object of the builder.
 func (_c *UploadCreate) Mutation() *UploadMutation {
 	return _c.mutation
@@ -263,6 +279,22 @@ func (_c *UploadCreate) createSpec() (*Upload, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(upload.FieldCreatedAt, field.TypeString, value)
 		_node.CreatedAt = value
+	}
+	if nodes := _c.mutation.UploadLinksIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   upload.UploadLinksTable,
+			Columns: []string{upload.UploadLinksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(uploadlink.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

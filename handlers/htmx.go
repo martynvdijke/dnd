@@ -734,12 +734,13 @@ type htmxNPCData struct {
 
 type npcsLink struct {
 	models.CharacterNPC
-	NPCName  string `json:"npc_name"`
-	NPCRace  string `json:"npc_race"`
-	NPCClass string `json:"npc_class"`
-	NPHPMax  int    `json:"npc_hp_max"`
-	NPHPCurr int    `json:"npc_hp_current"`
-	NPCAlive bool   `json:"npc_is_alive"`
+	NPCName        string `json:"npc_name"`
+	NPCRace        string `json:"npc_race"`
+	NPCClass       string `json:"npc_class"`
+	NPHPMax        int    `json:"npc_hp_max"`
+	NPHPCurr       int    `json:"npc_hp_current"`
+	NPCAlive       bool   `json:"npc_is_alive"`
+	NPCPortraitURL string `json:"npc_portrait_url"`
 }
 
 func HtmxListNPCs(c *gin.Context) {
@@ -751,7 +752,7 @@ func HtmxListNPCs(c *gin.Context) {
 	rows, err := db.DB.Query(`
 		SELECT cn.id, cn.character_id, cn.npc_id, cn.relationship, cn.notes,
 			cn.interaction_count, cn.last_interacted,
-			n.name, n.race, n.class, n.hp_max, n.hp_current, n.is_alive
+			n.name, n.race, n.class, n.hp_max, n.hp_current, n.is_alive, COALESCE(n.portrait_url,'')
 		FROM character_npcs cn JOIN npcs n ON cn.npc_id = n.id
 		WHERE cn.character_id=? ORDER BY cn.interaction_count DESC`, charID)
 	if err != nil {
@@ -764,7 +765,7 @@ func HtmxListNPCs(c *gin.Context) {
 		var nl npcsLink
 		rows.Scan(&nl.ID, &nl.CharacterID, &nl.NPCID, &nl.Relationship, &nl.Notes,
 			&nl.InteractionCount, &nl.LastInteracted,
-			&nl.NPCName, &nl.NPCRace, &nl.NPCClass, &nl.NPHPMax, &nl.NPHPCurr, &nl.NPCAlive)
+			&nl.NPCName, &nl.NPCRace, &nl.NPCClass, &nl.NPHPMax, &nl.NPHPCurr, &nl.NPCAlive, &nl.NPCPortraitURL)
 		links = append(links, nl)
 	}
 	cid, _ := strconv.ParseInt(charID, 10, 64)
@@ -781,7 +782,7 @@ func HtmxLinkNPCForm(c *gin.Context) {
 	charID := c.Query("character_id")
 	cid, _ := strconv.ParseInt(charID, 10, 64)
 	userID, _ := c.Get("user_id")
-	rows, err := db.DB.Query("SELECT id, name, race, class, description, notes, str, dex, con, int, wis, cha, hp_max, hp_current, is_alive, created_at FROM npcs WHERE user_id=? ORDER BY name", userID)
+	rows, err := db.DB.Query("SELECT id, name, race, class, description, notes, str, dex, con, int, wis, cha, hp_max, hp_current, is_alive, created_at, COALESCE(portrait_url,'') FROM npcs WHERE user_id=? ORDER BY name", userID)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -791,7 +792,7 @@ func HtmxLinkNPCForm(c *gin.Context) {
 	for rows.Next() {
 		var n models.NPC
 		rows.Scan(&n.ID, &n.Name, &n.Race, &n.Class, &n.Description, &n.Notes,
-			&n.Str, &n.Dex, &n.Con, &n.Int, &n.Wis, &n.Cha, &n.HPMax, &n.HPCurrent, &n.IsAlive, &n.CreatedAt)
+			&n.Str, &n.Dex, &n.Con, &n.Int, &n.Wis, &n.Cha, &n.HPMax, &n.HPCurrent, &n.IsAlive, &n.CreatedAt, &n.PortraitURL)
 		_ = n.UserID
 		all = append(all, n)
 	}
@@ -806,7 +807,8 @@ func HtmxCreateNPC(c *gin.Context) {
 		c.String(http.StatusBadRequest, "name required")
 		return
 	}
-	result, err := db.DB.Exec("INSERT INTO npcs(user_id,name,race,class,description,notes) VALUES(?,?,?,?,?,?)", userID, name, c.PostForm("race"), c.PostForm("class"), c.PostForm("description"), c.PostForm("notes"))
+	portraitURL := c.PostForm("portrait_url")
+	result, err := db.DB.Exec("INSERT INTO npcs(user_id,name,race,class,description,notes,portrait_url) VALUES(?,?,?,?,?,?,?)", userID, name, c.PostForm("race"), c.PostForm("class"), c.PostForm("description"), c.PostForm("notes"), portraitURL)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -1299,6 +1301,69 @@ func HtmxDeleteFaction(c *gin.Context) {
 	HtmxListFactions(c)
 }
 
+// ─── Media Gallery ───
+
+type htmxMediaGalleryData struct {
+	OwnerType string
+	OwnerID   string
+	Uploads   []mediaUploadItem
+}
+
+type mediaUploadItem struct {
+	models.Upload
+	LinkID  int64  `json:"link_id"`
+	IsPDF   bool   `json:"is_pdf"`
+}
+
+func HtmxMediaGallery(c *gin.Context) {
+	ownerType := c.Query("owner_type")
+	ownerID := c.Query("owner_id")
+	if ownerType == "" || ownerID == "" {
+		c.String(http.StatusBadRequest, "owner_type and owner_id required")
+		return
+	}
+
+	rows, err := db.DB.Query(`
+		SELECT u.id, u.hash, u.ext, u.url, COALESCE(u.resized_url,''), COALESCE(u.thumbnail_url,''),
+			u.owner_type, u.owner_id, COALESCE(u.created_at,''), ul.id as link_id
+		FROM uploads u
+		JOIN upload_links ul ON u.id = ul.upload_id
+		WHERE ul.entity_type = ? AND ul.entity_id = ?
+		ORDER BY u.created_at DESC`, ownerType, ownerID)
+	if err != nil {
+		// Fallback: query by owner_type/owner_id directly
+		rows, err = db.DB.Query(`
+			SELECT u.id, u.hash, u.ext, u.url, COALESCE(u.resized_url,''), COALESCE(u.thumbnail_url,''),
+				u.owner_type, u.owner_id, COALESCE(u.created_at,''), 0 as link_id
+			FROM uploads u
+			WHERE u.owner_type = ? AND u.owner_id = ?
+			ORDER BY u.created_at DESC`, ownerType, ownerID)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+	defer rows.Close()
+
+	var uploads []mediaUploadItem
+	for rows.Next() {
+		var item mediaUploadItem
+		var ownerTypeStr, ownerIDStr string
+		rows.Scan(&item.ID, &item.Hash, &item.Ext, &item.URL, &item.ResizedURL,
+			&item.ThumbnailURL, &ownerTypeStr, &ownerIDStr, &item.CreatedAt, &item.LinkID)
+		item.OwnerType = ownerTypeStr
+		item.OwnerID, _ = strconv.ParseInt(ownerIDStr, 10, 64)
+		item.IsPDF = item.Ext == ".pdf"
+		uploads = append(uploads, item)
+	}
+
+	renderTemplate(c, "media_gallery.html", htmxMediaGalleryData{
+		OwnerType: ownerType,
+		OwnerID:   ownerID,
+		Uploads:   uploads,
+	})
+}
+
 // ─── Settings export for use in main.go ───
 
 func HtmxRegisterRoutes(r *gin.RouterGroup) {
@@ -1417,6 +1482,9 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"POST", "/htmx/factions", HtmxCreateFaction},
 		{"PUT", "/htmx/factions/:id", HtmxUpdateFaction},
 		{"DELETE", "/htmx/factions/:id", HtmxDeleteFaction},
+
+		// Media Gallery
+		{"GET", "/htmx/media-gallery", HtmxMediaGallery},
 
 		// Campaign Overview
 		{"GET", "/htmx/campaigns/:id/overview", HtmxCampaignOverview},

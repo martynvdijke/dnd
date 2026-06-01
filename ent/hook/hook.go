@@ -740,6 +740,18 @@ func (f UploadFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, erro
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UploadMutation", m)
 }
 
+// The UploadLinkFunc type is an adapter to allow the use of ordinary
+// function as UploadLink mutator.
+type UploadLinkFunc func(context.Context, *ent.UploadLinkMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f UploadLinkFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.UploadLinkMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.UploadLinkMutation", m)
+}
+
 // The UserFunc type is an adapter to allow the use of ordinary
 // function as User mutator.
 type UserFunc func(context.Context, *ent.UserMutation) (ent.Value, error)

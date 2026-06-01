@@ -39,7 +39,7 @@ func HandleUpload(c *gin.Context) {
 	allowedExts := map[string]bool{
 		".jpg": true, ".jpeg": true, ".png": true, ".gif": true,
 		".webp": true, ".avif": true, ".svg": true, ".bmp": true,
-		".tiff": true, ".tif": true,
+		".tiff": true, ".tif": true, ".pdf": true,
 	}
 	if !allowedExts[ext] {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid file type"})
@@ -59,8 +59,15 @@ func HandleUpload(c *gin.Context) {
 		return
 	}
 
+	const maxSize = 10 * 1024 * 1024 // 10MB
+	if len(data) > maxSize {
+		c.AbortWithStatusJSON(http.StatusRequestEntityTooLarge, gin.H{"error": "File too large (max 10MB)"})
+		return
+	}
+
 	mimeType := http.DetectContentType(data)
-	if !strings.HasPrefix(mimeType, "image/") {
+	isPDF := ext == ".pdf" || mimeType == "application/pdf"
+	if !isPDF && !strings.HasPrefix(mimeType, "image/") {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "File content does not match image type"})
 		return
 	}
@@ -71,7 +78,7 @@ func HandleUpload(c *gin.Context) {
 	if ownerIDStr != "" {
 		ownerID, _ = strconv.ParseInt(ownerIDStr, 10, 64)
 	}
-	allowedOwnerTypes := map[string]bool{"party": true, "item": true, "oneshot": true, "character": true, "npc": true, "": true}
+	allowedOwnerTypes := map[string]bool{"party": true, "item": true, "oneshot": true, "character": true, "npc": true, "campaign": true, "": true}
 	if !allowedOwnerTypes[ownerType] {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid owner_type"})
 		return
@@ -119,7 +126,7 @@ func HandleUpload(c *gin.Context) {
 
 	uploadPath := filepath.Join(dir, filename)
 
-	if ext != ".gif" && ext != ".svg" && ext != ".tif" && ext != ".tiff" {
+	if ext != ".gif" && ext != ".svg" && ext != ".tif" && ext != ".tiff" && !isPDF {
 		img, format, err := image.Decode(bytes.NewReader(data))
 		if err == nil {
 			size := img.Bounds().Size()
@@ -160,7 +167,12 @@ func HandleUpload(c *gin.Context) {
 		db.DB.Exec("UPDATE uploads SET thumbnail_url = ? WHERE hash = ?", thumbnailURL, hashStr)
 	}
 
+	// Fetch upload ID after insert
+	var uploadID int64
+	db.DB.QueryRow("SELECT id FROM uploads WHERE hash = ?", hashStr).Scan(&uploadID)
+
 	c.JSON(http.StatusOK, gin.H{
+		"id":            uploadID,
 		"url":           url,
 		"resized_url":   url,
 		"thumbnail_url": thumbnailURL,
@@ -203,16 +215,31 @@ func saveImage(path string, img image.Image, format string) error {
 }
 
 func GetUploads(c *gin.Context) {
+	entityType := c.Query("entity_type")
+	entityIDStr := c.Query("entity_id")
 	ownerType := c.Query("owner_type")
 	ownerID := c.Query("owner_id")
 
-	query := "SELECT id, hash, ext, url, COALESCE(resized_url,''), COALESCE(thumbnail_url,''), owner_type, owner_id, COALESCE(created_at,'') FROM uploads"
+	query := `SELECT DISTINCT u.id, u.hash, u.ext, u.url, COALESCE(u.resized_url,''), COALESCE(u.thumbnail_url,''), u.owner_type, u.owner_id, COALESCE(u.created_at,'') FROM uploads u`
 	args := []interface{}{}
+	conditions := []string{}
+
+	if entityType != "" && entityIDStr != "" {
+		query += ` LEFT JOIN upload_links ul ON u.id = ul.upload_id`
+		conditions = append(conditions, "(ul.entity_type=? AND ul.entity_id=?)")
+		args = append(args, entityType, entityIDStr)
+	}
+
 	if ownerType != "" && ownerID != "" {
-		query += " WHERE owner_type=? AND owner_id=?"
+		conditions = append(conditions, "(u.owner_type=? AND u.owner_id=?)")
 		args = append(args, ownerType, ownerID)
 	}
-	query += " ORDER BY created_at DESC LIMIT 50"
+
+	if len(conditions) > 0 {
+		query += " WHERE " + strings.Join(conditions, " OR ")
+	}
+
+	query += " ORDER BY u.created_at DESC LIMIT 50"
 
 	rows, err := db.DB.Query(query, args...)
 	if err != nil {
@@ -230,4 +257,108 @@ func GetUploads(c *gin.Context) {
 		uploads = append(uploads, u)
 	}
 	c.JSON(http.StatusOK, uploads)
+}
+
+func HandleCropUpload(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid upload id"})
+		return
+	}
+
+	var req struct {
+		X            int `json:"x"`
+		Y            int `json:"y"`
+		Width        int `json:"width"`
+		Height       int `json:"height"`
+		TargetWidth  int `json:"target_width"`
+		TargetHeight int `json:"target_height"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if req.Width <= 0 || req.Height <= 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid crop dimensions"})
+		return
+	}
+
+	var hash, ext, url string
+	err = db.DB.QueryRow("SELECT hash, ext, url FROM uploads WHERE id = ?", id).Scan(&hash, &ext, &url)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "upload not found"})
+		return
+	}
+
+	// Normalize extension for file access
+	saveExt := ext
+	if ext == ".jpeg" {
+		saveExt = ".jpg"
+	}
+	if ext == ".tiff" {
+		saveExt = ".tif"
+	}
+
+	subDir := hash[:2]
+	srcPath := filepath.Join(MediaPath, subDir, hash+saveExt)
+
+	data, err := os.ReadFile(srcPath)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to read original"})
+		return
+	}
+
+	img, format, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to decode image"})
+		return
+	}
+
+	// Sub-image crop
+	bounds := img.Bounds()
+	if req.X+req.Width > bounds.Dx() || req.Y+req.Height > bounds.Dy() {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "crop area exceeds image bounds"})
+		return
+	}
+
+	cropped := image.NewRGBA(image.Rect(0, 0, req.Width, req.Height))
+	draw.CatmullRom.Scale(cropped, cropped.Bounds(), img, image.Rect(req.X, req.Y, req.X+req.Width, req.Y+req.Height), draw.Over, nil)
+
+	// Resize to target if specified
+	var final image.Image = cropped
+	if req.TargetWidth > 0 && req.TargetHeight > 0 {
+		maxDim := req.TargetWidth
+		if req.TargetHeight > maxDim {
+			maxDim = req.TargetHeight
+		}
+		final = resizeImage(cropped, maxDim)
+	}
+
+	cropFilename := hash + "_crop" + saveExt
+	cropPath := filepath.Join(MediaPath, subDir, cropFilename)
+	if err := saveImage(cropPath, final, format); err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "failed to save cropped image"})
+		return
+	}
+
+	cropURL := fmt.Sprintf("/media/%s/%s", subDir, cropFilename)
+	db.DB.Exec("UPDATE uploads SET resized_url = ? WHERE id = ?", cropURL, id)
+
+	// Regenerate thumbnail
+	thumb := resizeImage(final, 300)
+	thumbFilename := hash + "_thumb" + saveExt
+	thumbPath := filepath.Join(MediaPath, subDir, thumbFilename)
+	thumbURL := ""
+	if err := saveImage(thumbPath, thumb, format); err == nil {
+		thumbURL = fmt.Sprintf("/media/%s/%s", subDir, thumbFilename)
+		db.DB.Exec("UPDATE uploads SET thumbnail_url = ? WHERE id = ?", thumbURL, id)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"url":           url,
+		"resized_url":   cropURL,
+		"thumbnail_url": thumbURL,
+	})
 }

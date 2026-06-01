@@ -169,6 +169,11 @@ func Backstory(v string) predicate.NPC {
 	return predicate.NPC(sql.FieldEQ(FieldBackstory, v))
 }
 
+// PortraitURL applies equality check predicate on the "portrait_url" field. It's identical to PortraitURLEQ.
+func PortraitURL(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldEQ(FieldPortraitURL, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v string) predicate.NPC {
 	return predicate.NPC(sql.FieldEQ(FieldCreatedAt, v))
@@ -1262,6 +1267,71 @@ func BackstoryEqualFold(v string) predicate.NPC {
 // BackstoryContainsFold applies the ContainsFold predicate on the "backstory" field.
 func BackstoryContainsFold(v string) predicate.NPC {
 	return predicate.NPC(sql.FieldContainsFold(FieldBackstory, v))
+}
+
+// PortraitURLEQ applies the EQ predicate on the "portrait_url" field.
+func PortraitURLEQ(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldEQ(FieldPortraitURL, v))
+}
+
+// PortraitURLNEQ applies the NEQ predicate on the "portrait_url" field.
+func PortraitURLNEQ(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldNEQ(FieldPortraitURL, v))
+}
+
+// PortraitURLIn applies the In predicate on the "portrait_url" field.
+func PortraitURLIn(vs ...string) predicate.NPC {
+	return predicate.NPC(sql.FieldIn(FieldPortraitURL, vs...))
+}
+
+// PortraitURLNotIn applies the NotIn predicate on the "portrait_url" field.
+func PortraitURLNotIn(vs ...string) predicate.NPC {
+	return predicate.NPC(sql.FieldNotIn(FieldPortraitURL, vs...))
+}
+
+// PortraitURLGT applies the GT predicate on the "portrait_url" field.
+func PortraitURLGT(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldGT(FieldPortraitURL, v))
+}
+
+// PortraitURLGTE applies the GTE predicate on the "portrait_url" field.
+func PortraitURLGTE(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldGTE(FieldPortraitURL, v))
+}
+
+// PortraitURLLT applies the LT predicate on the "portrait_url" field.
+func PortraitURLLT(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldLT(FieldPortraitURL, v))
+}
+
+// PortraitURLLTE applies the LTE predicate on the "portrait_url" field.
+func PortraitURLLTE(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldLTE(FieldPortraitURL, v))
+}
+
+// PortraitURLContains applies the Contains predicate on the "portrait_url" field.
+func PortraitURLContains(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldContains(FieldPortraitURL, v))
+}
+
+// PortraitURLHasPrefix applies the HasPrefix predicate on the "portrait_url" field.
+func PortraitURLHasPrefix(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldHasPrefix(FieldPortraitURL, v))
+}
+
+// PortraitURLHasSuffix applies the HasSuffix predicate on the "portrait_url" field.
+func PortraitURLHasSuffix(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldHasSuffix(FieldPortraitURL, v))
+}
+
+// PortraitURLEqualFold applies the EqualFold predicate on the "portrait_url" field.
+func PortraitURLEqualFold(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldEqualFold(FieldPortraitURL, v))
+}
+
+// PortraitURLContainsFold applies the ContainsFold predicate on the "portrait_url" field.
+func PortraitURLContainsFold(v string) predicate.NPC {
+	return predicate.NPC(sql.FieldContainsFold(FieldPortraitURL, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

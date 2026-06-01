@@ -45,6 +45,7 @@ func (NPC) Fields() []ent.Field {
 		field.String("features").Default(""),
 		field.String("actions").Default(""),
 		field.String("backstory").Default(""),
+		field.String("portrait_url").Default(""),
 		field.String("created_at").Default(""),
 	}
 }

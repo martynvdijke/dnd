@@ -134,6 +134,8 @@ type Tx struct {
 	Spell *SpellClient
 	// Upload is the client for interacting with the Upload builders.
 	Upload *UploadClient
+	// UploadLink is the client for interacting with the UploadLink builders.
+	UploadLink *UploadLinkClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 
@@ -328,6 +330,7 @@ func (tx *Tx) init() {
 	tx.ShopTransaction = NewShopTransactionClient(tx.config)
 	tx.Spell = NewSpellClient(tx.config)
 	tx.Upload = NewUploadClient(tx.config)
+	tx.UploadLink = NewUploadLinkClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }
 

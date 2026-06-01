@@ -329,6 +329,20 @@ func (_c *NPCCreate) SetNillableBackstory(v *string) *NPCCreate {
 	return _c
 }
 
+// SetPortraitURL sets the "portrait_url" field.
+func (_c *NPCCreate) SetPortraitURL(v string) *NPCCreate {
+	_c.mutation.SetPortraitURL(v)
+	return _c
+}
+
+// SetNillablePortraitURL sets the "portrait_url" field if the given value is not nil.
+func (_c *NPCCreate) SetNillablePortraitURL(v *string) *NPCCreate {
+	if v != nil {
+		_c.SetPortraitURL(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *NPCCreate) SetCreatedAt(v string) *NPCCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -488,6 +502,10 @@ func (_c *NPCCreate) defaults() {
 		v := npc.DefaultBackstory
 		_c.mutation.SetBackstory(v)
 	}
+	if _, ok := _c.mutation.PortraitURL(); !ok {
+		v := npc.DefaultPortraitURL
+		_c.mutation.SetPortraitURL(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := npc.DefaultCreatedAt
 		_c.mutation.SetCreatedAt(v)
@@ -564,6 +582,9 @@ func (_c *NPCCreate) check() error {
 	}
 	if _, ok := _c.mutation.Backstory(); !ok {
 		return &ValidationError{Name: "backstory", err: errors.New(`ent: missing required field "NPC.backstory"`)}
+	}
+	if _, ok := _c.mutation.PortraitURL(); !ok {
+		return &ValidationError{Name: "portrait_url", err: errors.New(`ent: missing required field "NPC.portrait_url"`)}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "NPC.created_at"`)}
@@ -691,6 +712,10 @@ func (_c *NPCCreate) createSpec() (*NPC, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Backstory(); ok {
 		_spec.SetField(npc.FieldBackstory, field.TypeString, value)
 		_node.Backstory = value
+	}
+	if value, ok := _c.mutation.PortraitURL(); ok {
+		_spec.SetField(npc.FieldPortraitURL, field.TypeString, value)
+		_node.PortraitURL = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(npc.FieldCreatedAt, field.TypeString, value)
@@ -1114,6 +1139,18 @@ func (u *NPCUpsert) SetBackstory(v string) *NPCUpsert {
 // UpdateBackstory sets the "backstory" field to the value that was provided on create.
 func (u *NPCUpsert) UpdateBackstory() *NPCUpsert {
 	u.SetExcluded(npc.FieldBackstory)
+	return u
+}
+
+// SetPortraitURL sets the "portrait_url" field.
+func (u *NPCUpsert) SetPortraitURL(v string) *NPCUpsert {
+	u.Set(npc.FieldPortraitURL, v)
+	return u
+}
+
+// UpdatePortraitURL sets the "portrait_url" field to the value that was provided on create.
+func (u *NPCUpsert) UpdatePortraitURL() *NPCUpsert {
+	u.SetExcluded(npc.FieldPortraitURL)
 	return u
 }
 
@@ -1566,6 +1603,20 @@ func (u *NPCUpsertOne) SetBackstory(v string) *NPCUpsertOne {
 func (u *NPCUpsertOne) UpdateBackstory() *NPCUpsertOne {
 	return u.Update(func(s *NPCUpsert) {
 		s.UpdateBackstory()
+	})
+}
+
+// SetPortraitURL sets the "portrait_url" field.
+func (u *NPCUpsertOne) SetPortraitURL(v string) *NPCUpsertOne {
+	return u.Update(func(s *NPCUpsert) {
+		s.SetPortraitURL(v)
+	})
+}
+
+// UpdatePortraitURL sets the "portrait_url" field to the value that was provided on create.
+func (u *NPCUpsertOne) UpdatePortraitURL() *NPCUpsertOne {
+	return u.Update(func(s *NPCUpsert) {
+		s.UpdatePortraitURL()
 	})
 }
 
@@ -2186,6 +2237,20 @@ func (u *NPCUpsertBulk) SetBackstory(v string) *NPCUpsertBulk {
 func (u *NPCUpsertBulk) UpdateBackstory() *NPCUpsertBulk {
 	return u.Update(func(s *NPCUpsert) {
 		s.UpdateBackstory()
+	})
+}
+
+// SetPortraitURL sets the "portrait_url" field.
+func (u *NPCUpsertBulk) SetPortraitURL(v string) *NPCUpsertBulk {
+	return u.Update(func(s *NPCUpsert) {
+		s.SetPortraitURL(v)
+	})
+}
+
+// UpdatePortraitURL sets the "portrait_url" field to the value that was provided on create.
+func (u *NPCUpsertBulk) UpdatePortraitURL() *NPCUpsertBulk {
+	return u.Update(func(s *NPCUpsert) {
+		s.UpdatePortraitURL()
 	})
 }
 

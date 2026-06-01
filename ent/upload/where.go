@@ -6,6 +6,7 @@ import (
 	"villum/ent/predicate"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 // ID filters vertices based on their ID field.
@@ -636,6 +637,29 @@ func CreatedAtEqualFold(v string) predicate.Upload {
 // CreatedAtContainsFold applies the ContainsFold predicate on the "created_at" field.
 func CreatedAtContainsFold(v string) predicate.Upload {
 	return predicate.Upload(sql.FieldContainsFold(FieldCreatedAt, v))
+}
+
+// HasUploadLinks applies the HasEdge predicate on the "upload_links" edge.
+func HasUploadLinks() predicate.Upload {
+	return predicate.Upload(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, UploadLinksTable, UploadLinksColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasUploadLinksWith applies the HasEdge predicate on the "upload_links" edge with a given conditions (other predicates).
+func HasUploadLinksWith(preds ...predicate.UploadLink) predicate.Upload {
+	return predicate.Upload(func(s *sql.Selector) {
+		step := newUploadLinksStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

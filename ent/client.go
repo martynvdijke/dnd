@@ -72,6 +72,7 @@ import (
 	"villum/ent/shoptransaction"
 	"villum/ent/spell"
 	"villum/ent/upload"
+	"villum/ent/uploadlink"
 	"villum/ent/user"
 
 	"entgo.io/ent"
@@ -207,6 +208,8 @@ type Client struct {
 	Spell *SpellClient
 	// Upload is the client for interacting with the Upload builders.
 	Upload *UploadClient
+	// UploadLink is the client for interacting with the UploadLink builders.
+	UploadLink *UploadLinkClient
 	// User is the client for interacting with the User builders.
 	User *UserClient
 }
@@ -281,6 +284,7 @@ func (c *Client) init() {
 	c.ShopTransaction = NewShopTransactionClient(c.config)
 	c.Spell = NewSpellClient(c.config)
 	c.Upload = NewUploadClient(c.config)
+	c.UploadLink = NewUploadLinkClient(c.config)
 	c.User = NewUserClient(c.config)
 }
 
@@ -435,6 +439,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		ShopTransaction:           NewShopTransactionClient(cfg),
 		Spell:                     NewSpellClient(cfg),
 		Upload:                    NewUploadClient(cfg),
+		UploadLink:                NewUploadLinkClient(cfg),
 		User:                      NewUserClient(cfg),
 	}, nil
 }
@@ -516,6 +521,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		ShopTransaction:           NewShopTransactionClient(cfg),
 		Spell:                     NewSpellClient(cfg),
 		Upload:                    NewUploadClient(cfg),
+		UploadLink:                NewUploadLinkClient(cfg),
 		User:                      NewUserClient(cfg),
 	}, nil
 }
@@ -560,7 +566,7 @@ func (c *Client) Use(hooks ...Hook) {
 		c.OneShotActNPC, c.OneShotAdventure, c.OneShotAdventureEncounter,
 		c.OneShotItem, c.OneShotScene, c.PartyItem, c.Quest, c.RestLog, c.Session,
 		c.SessionPlan, c.ShareLink, c.Shop, c.ShopItem, c.ShopTransaction, c.Spell,
-		c.Upload, c.User,
+		c.Upload, c.UploadLink, c.User,
 	} {
 		n.Use(hooks...)
 	}
@@ -584,7 +590,7 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.OneShotActNPC, c.OneShotAdventure, c.OneShotAdventureEncounter,
 		c.OneShotItem, c.OneShotScene, c.PartyItem, c.Quest, c.RestLog, c.Session,
 		c.SessionPlan, c.ShareLink, c.Shop, c.ShopItem, c.ShopTransaction, c.Spell,
-		c.Upload, c.User,
+		c.Upload, c.UploadLink, c.User,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -715,6 +721,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Spell.mutate(ctx, m)
 	case *UploadMutation:
 		return c.Upload.mutate(ctx, m)
+	case *UploadLinkMutation:
+		return c.UploadLink.mutate(ctx, m)
 	case *UserMutation:
 		return c.User.mutate(ctx, m)
 	default:
@@ -10618,6 +10626,22 @@ func (c *UploadClient) GetX(ctx context.Context, id int64) *Upload {
 	return obj
 }
 
+// QueryUploadLinks queries the upload_links edge of a Upload.
+func (c *UploadClient) QueryUploadLinks(_m *Upload) *UploadLinkQuery {
+	query := (&UploadLinkClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(upload.Table, upload.FieldID, id),
+			sqlgraph.To(uploadlink.Table, uploadlink.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, upload.UploadLinksTable, upload.UploadLinksColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // Hooks returns the client hooks.
 func (c *UploadClient) Hooks() []Hook {
 	return c.hooks.Upload
@@ -10640,6 +10664,139 @@ func (c *UploadClient) mutate(ctx context.Context, m *UploadMutation) (Value, er
 		return (&UploadDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown Upload mutation op: %q", m.Op())
+	}
+}
+
+// UploadLinkClient is a client for the UploadLink schema.
+type UploadLinkClient struct {
+	config
+}
+
+// NewUploadLinkClient returns a client for the UploadLink from the given config.
+func NewUploadLinkClient(c config) *UploadLinkClient {
+	return &UploadLinkClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `uploadlink.Hooks(f(g(h())))`.
+func (c *UploadLinkClient) Use(hooks ...Hook) {
+	c.hooks.UploadLink = append(c.hooks.UploadLink, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `uploadlink.Intercept(f(g(h())))`.
+func (c *UploadLinkClient) Intercept(interceptors ...Interceptor) {
+	c.inters.UploadLink = append(c.inters.UploadLink, interceptors...)
+}
+
+// Create returns a builder for creating a UploadLink entity.
+func (c *UploadLinkClient) Create() *UploadLinkCreate {
+	mutation := newUploadLinkMutation(c.config, OpCreate)
+	return &UploadLinkCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of UploadLink entities.
+func (c *UploadLinkClient) CreateBulk(builders ...*UploadLinkCreate) *UploadLinkCreateBulk {
+	return &UploadLinkCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *UploadLinkClient) MapCreateBulk(slice any, setFunc func(*UploadLinkCreate, int)) *UploadLinkCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &UploadLinkCreateBulk{err: fmt.Errorf("calling to UploadLinkClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*UploadLinkCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &UploadLinkCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for UploadLink.
+func (c *UploadLinkClient) Update() *UploadLinkUpdate {
+	mutation := newUploadLinkMutation(c.config, OpUpdate)
+	return &UploadLinkUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *UploadLinkClient) UpdateOne(_m *UploadLink) *UploadLinkUpdateOne {
+	mutation := newUploadLinkMutation(c.config, OpUpdateOne, withUploadLink(_m))
+	return &UploadLinkUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *UploadLinkClient) UpdateOneID(id int64) *UploadLinkUpdateOne {
+	mutation := newUploadLinkMutation(c.config, OpUpdateOne, withUploadLinkID(id))
+	return &UploadLinkUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for UploadLink.
+func (c *UploadLinkClient) Delete() *UploadLinkDelete {
+	mutation := newUploadLinkMutation(c.config, OpDelete)
+	return &UploadLinkDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *UploadLinkClient) DeleteOne(_m *UploadLink) *UploadLinkDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *UploadLinkClient) DeleteOneID(id int64) *UploadLinkDeleteOne {
+	builder := c.Delete().Where(uploadlink.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &UploadLinkDeleteOne{builder}
+}
+
+// Query returns a query builder for UploadLink.
+func (c *UploadLinkClient) Query() *UploadLinkQuery {
+	return &UploadLinkQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeUploadLink},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a UploadLink entity by its id.
+func (c *UploadLinkClient) Get(ctx context.Context, id int64) (*UploadLink, error) {
+	return c.Query().Where(uploadlink.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *UploadLinkClient) GetX(ctx context.Context, id int64) *UploadLink {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *UploadLinkClient) Hooks() []Hook {
+	return c.hooks.UploadLink
+}
+
+// Interceptors returns the client interceptors.
+func (c *UploadLinkClient) Interceptors() []Interceptor {
+	return c.inters.UploadLink
+}
+
+func (c *UploadLinkClient) mutate(ctx context.Context, m *UploadLinkMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&UploadLinkCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&UploadLinkUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&UploadLinkUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&UploadLinkDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown UploadLink mutation op: %q", m.Op())
 	}
 }
 
@@ -10967,7 +11124,7 @@ type (
 		InventoryItem, JournalEntry, LevelUpPlan, Location, NPC, OneShotAct,
 		OneShotActNPC, OneShotAdventure, OneShotAdventureEncounter, OneShotItem,
 		OneShotScene, PartyItem, Quest, RestLog, Session, SessionPlan, ShareLink, Shop,
-		ShopItem, ShopTransaction, Spell, Upload, User []ent.Hook
+		ShopItem, ShopTransaction, Spell, Upload, UploadLink, User []ent.Hook
 	}
 	inters struct {
 		BackupSetting, Campaign, CampaignCalendarEvent, CampaignMap, CampaignMapPin,
@@ -10982,6 +11139,6 @@ type (
 		InventoryItem, JournalEntry, LevelUpPlan, Location, NPC, OneShotAct,
 		OneShotActNPC, OneShotAdventure, OneShotAdventureEncounter, OneShotItem,
 		OneShotScene, PartyItem, Quest, RestLog, Session, SessionPlan, ShareLink, Shop,
-		ShopItem, ShopTransaction, Spell, Upload, User []ent.Interceptor
+		ShopItem, ShopTransaction, Spell, Upload, UploadLink, User []ent.Interceptor
 	}
 )

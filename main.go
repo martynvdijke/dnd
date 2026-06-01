@@ -367,6 +367,9 @@ func main() {
 		// Media upload
 		auth.POST("/upload", handlers.HandleUpload)
 		auth.GET("/uploads", handlers.GetUploads)
+		auth.POST("/uploads/:id/crop", handlers.HandleCropUpload)
+		auth.POST("/upload-links", handlers.CreateUploadLink)
+		auth.DELETE("/upload-links/:id", handlers.DeleteUploadLink)
 
 		// Share links
 		auth.POST("/share", handlers.CreateShareLink)

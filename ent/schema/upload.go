@@ -2,11 +2,18 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
 
 type Upload struct {
 	ent.Schema
+}
+
+func (Upload) Edges() []ent.Edge {
+	return []ent.Edge{
+		edge.To("upload_links", UploadLink.Type),
+	}
 }
 
 func (Upload) Fields() []ent.Field {

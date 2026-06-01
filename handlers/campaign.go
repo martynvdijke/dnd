@@ -271,6 +271,7 @@ func ListNPCs(c *gin.Context) {
 			Features:    n.Features,
 			Actions:     n.Actions,
 			Backstory:   n.Backstory,
+			PortraitURL: n.PortraitURL,
 			CreatedAt:   n.CreatedAt,
 		})
 	}
@@ -307,7 +308,8 @@ func CreateNPC(c *gin.Context) {
 		SetSaves(n.Saves).
 		SetFeatures(n.Features).
 		SetActions(n.Actions).
-		SetBackstory(n.Backstory)
+		SetBackstory(n.Backstory).
+		SetPortraitURL(n.PortraitURL)
 	result, err := q.Save(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -361,7 +363,8 @@ func UpdateNPC(c *gin.Context) {
 		SetSaves(n.Saves).
 		SetFeatures(n.Features).
 		SetActions(n.Actions).
-		SetBackstory(n.Backstory)
+		SetBackstory(n.Backstory).
+		SetPortraitURL(n.PortraitURL)
 	up.Save(c.Request.Context())
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

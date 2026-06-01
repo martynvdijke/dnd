@@ -4,6 +4,7 @@ package upload
 
 import (
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 const (
@@ -27,8 +28,17 @@ const (
 	FieldOwnerID = "owner_id"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
+	// EdgeUploadLinks holds the string denoting the upload_links edge name in mutations.
+	EdgeUploadLinks = "upload_links"
 	// Table holds the table name of the upload in the database.
 	Table = "uploads"
+	// UploadLinksTable is the table that holds the upload_links relation/edge.
+	UploadLinksTable = "upload_links"
+	// UploadLinksInverseTable is the table name for the UploadLink entity.
+	// It exists in this package in order to avoid circular dependency with the "uploadlink" package.
+	UploadLinksInverseTable = "upload_links"
+	// UploadLinksColumn is the table column denoting the upload_links relation/edge.
+	UploadLinksColumn = "upload_upload_links"
 )
 
 // Columns holds all SQL columns for upload fields.
@@ -109,4 +119,25 @@ func ByOwnerID(opts ...sql.OrderTermOption) OrderOption {
 // ByCreatedAt orders the results by the created_at field.
 func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCreatedAt, opts...).ToFunc()
+}
+
+// ByUploadLinksCount orders the results by upload_links count.
+func ByUploadLinksCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newUploadLinksStep(), opts...)
+	}
+}
+
+// ByUploadLinks orders the results by upload_links terms.
+func ByUploadLinks(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newUploadLinksStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+func newUploadLinksStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(UploadLinksInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, UploadLinksTable, UploadLinksColumn),
+	)
 }

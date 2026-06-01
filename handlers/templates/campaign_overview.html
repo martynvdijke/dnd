@@ -193,4 +193,15 @@
       </div>
     </div>
   </div>
+
+  <div class="row g-3 mt-1">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header"><i class="fa-solid fa-images me-2"></i>Media</div>
+        <div class="card-body p-2" hx-get="/htmx/media-gallery?owner_type=campaign&owner_id={{.ID}}" hx-trigger="load" hx-swap="innerHTML">
+          <div class="text-muted small">Loading media...</div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

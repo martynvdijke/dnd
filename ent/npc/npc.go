@@ -58,6 +58,8 @@ const (
 	FieldActions = "actions"
 	// FieldBackstory holds the string denoting the backstory field in the database.
 	FieldBackstory = "backstory"
+	// FieldPortraitURL holds the string denoting the portrait_url field in the database.
+	FieldPortraitURL = "portrait_url"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// EdgeUser holds the string denoting the user edge name in mutations.
@@ -108,6 +110,7 @@ var Columns = []string{
 	FieldFeatures,
 	FieldActions,
 	FieldBackstory,
+	FieldPortraitURL,
 	FieldCreatedAt,
 }
 
@@ -164,6 +167,8 @@ var (
 	DefaultActions string
 	// DefaultBackstory holds the default value on creation for the "backstory" field.
 	DefaultBackstory string
+	// DefaultPortraitURL holds the default value on creation for the "portrait_url" field.
+	DefaultPortraitURL string
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt string
 )
@@ -289,6 +294,11 @@ func ByActions(opts ...sql.OrderTermOption) OrderOption {
 // ByBackstory orders the results by the backstory field.
 func ByBackstory(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldBackstory, opts...).ToFunc()
+}
+
+// ByPortraitURL orders the results by the portrait_url field.
+func ByPortraitURL(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPortraitURL, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

@@ -31,8 +31,29 @@ type Upload struct {
 	// OwnerID holds the value of the "owner_id" field.
 	OwnerID int64 `json:"owner_id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
-	CreatedAt    string `json:"created_at,omitempty"`
+	CreatedAt string `json:"created_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the UploadQuery when eager-loading is set.
+	Edges        UploadEdges `json:"edges"`
 	selectValues sql.SelectValues
+}
+
+// UploadEdges holds the relations/edges for other nodes in the graph.
+type UploadEdges struct {
+	// UploadLinks holds the value of the upload_links edge.
+	UploadLinks []*UploadLink `json:"upload_links,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// UploadLinksOrErr returns the UploadLinks value or an error if the edge
+// was not loaded in eager-loading.
+func (e UploadEdges) UploadLinksOrErr() ([]*UploadLink, error) {
+	if e.loadedTypes[0] {
+		return e.UploadLinks, nil
+	}
+	return nil, &NotLoadedError{edge: "upload_links"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -124,6 +145,11 @@ func (_m *Upload) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *Upload) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QueryUploadLinks queries the "upload_links" edge of the Upload entity.
+func (_m *Upload) QueryUploadLinks() *UploadLinkQuery {
+	return NewUploadClient(_m.config).QueryUploadLinks(_m)
 }
 
 // Update returns a builder for updating this Upload.

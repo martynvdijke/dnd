@@ -1,0 +1,146 @@
+<div class="media-gallery" id="mediaGallery-{{.OwnerType}}-{{.OwnerID}}">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h6 class="mb-0"><i class="fa-solid fa-images me-2"></i>Media</h6>
+    <div>
+      <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('mediaUploadInput-{{.OwnerType}}-{{.OwnerID}}').click()">
+        <i class="fa-solid fa-upload me-1"></i>Upload
+      </button>
+      <input type="file" id="mediaUploadInput-{{.OwnerType}}-{{.OwnerID}}"
+             accept="image/*,.pdf" style="display:none" multiple
+             onchange="handleMediaUpload(this.files, '{{.OwnerType}}', '{{.OwnerID}}')">
+    </div>
+  </div>
+  <div class="row g-2" id="mediaGrid-{{.OwnerType}}-{{.OwnerID}}">
+    {{range .Uploads}}
+    {{template "media_gallery_item" .}}
+    {{else}}
+    <div class="col-12">
+      <div class="empty-state">
+        <i class="fa-solid fa-image fa-3x mb-2 d-block text-muted"></i>
+        <p class="fw-bold">No Media Yet</p>
+        <p class="small text-muted">Upload images, maps, PDFs, and more.</p>
+      </div>
+    </div>
+    {{end}}
+  </div>
+  <div class="mt-2">
+    <div class="progress" id="uploadProgress-{{.OwnerType}}-{{.OwnerID}}" style="display:none;height:6px">
+      <div class="progress-bar" role="progressbar" style="width:0%"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function handleMediaUpload(files, ownerType, ownerID) {
+  var galleryId = "mediaGallery-" + ownerType + "-" + ownerID;
+  var gridId = "mediaGrid-" + ownerType + "-" + ownerID;
+  for (var i = 0; i < files.length; i++) {
+    (function(file) {
+      var formData = new FormData();
+      formData.append("image", file);
+      formData.append("owner_type", ownerType);
+      formData.append("owner_id", ownerID);
+
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/upload", true);
+      xhr.setRequestHeader("X-CSRF-Token", document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
+
+      xhr.upload.onprogress = function(e) {
+        if (e.lengthComputable) {
+          var pct = Math.round((e.loaded / e.total) * 100);
+          var bar = document.getElementById("uploadProgress-" + ownerType + "-" + ownerID);
+          if (bar) { bar.style.display = "block"; bar.querySelector(".progress-bar").style.width = pct + "%"; }
+        }
+      };
+
+      xhr.onload = function() {
+        var bar = document.getElementById("uploadProgress-" + ownerType + "-" + ownerID);
+        if (bar) { bar.style.display = "none"; bar.querySelector(".progress-bar").style.width = "0%"; }
+        if (xhr.status === 200) {
+          // Auto-link upload to entity
+          var resp = JSON.parse(xhr.responseText);
+          if (resp.id && ownerType && ownerID) {
+            var linkData = new FormData(); // will use JSON
+            var linkPayload = JSON.stringify({
+              upload_id: resp.id,
+              entity_type: ownerType,
+              entity_id: parseInt(ownerID),
+              field_name: ""
+            });
+            var linkXhr = new XMLHttpRequest();
+            linkXhr.open("POST", "/api/upload-links", true);
+            linkXhr.setRequestHeader("Content-Type", "application/json");
+            linkXhr.setRequestHeader("X-CSRF-Token", document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
+            linkXhr.onload = function() {
+              htmx.ajax("GET", "/htmx/media-gallery?owner_type=" + ownerType + "&owner_id=" + ownerID, {target: "#" + galleryId, swap: "outerHTML"});
+            };
+            linkXhr.send(linkPayload);
+          } else {
+            htmx.ajax("GET", "/htmx/media-gallery?owner_type=" + ownerType + "&owner_id=" + ownerID, {target: "#" + galleryId, swap: "outerHTML"});
+          }
+        }
+      };
+      xhr.send(formData);
+    })(files[i]);
+  }
+}
+
+function copyMediaUrl(url) {
+  navigator.clipboard.writeText(window.location.origin + url).then(function() {
+    var toast = document.getElementById("toastPlaceholder") || document.querySelector(".toast-container");
+    if (!toast) {
+      toast = document.createElement("div");
+      toast.className = "toast-container position-fixed bottom-0 end-0 p-3";
+      document.body.appendChild(toast);
+    }
+    var t = document.createElement("div");
+    t.className = "toast align-items-center text-bg-success border-0 show";
+    t.innerHTML = '<div class="d-flex"><div class="toast-body"><i class="fa-solid fa-check me-1"></i>URL copied!</div><button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button></div>';
+    toast.appendChild(t);
+    setTimeout(function() { t.remove(); }, 2000);
+  });
+}
+
+function deleteMedia(linkId, ownerType, ownerID) {
+  if (!confirm("Remove this file from the gallery?")) return;
+  var xhr = new XMLHttpRequest();
+  xhr.open("DELETE", "/api/upload-links/" + linkId, true);
+  xhr.setRequestHeader("X-CSRF-Token", document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
+  xhr.onload = function() {
+    htmx.ajax("GET", "/htmx/media-gallery?owner_type=" + ownerType + "&owner_id=" + ownerID, {target: "#mediaGallery-" + ownerType + "-" + ownerID, swap: "outerHTML"});
+  };
+  xhr.send();
+}
+
+function cropMedia(uploadId, ownerType, ownerID) {
+  document.getElementById("cropUploadId").value = uploadId;
+  document.getElementById("cropOwnerType").value = ownerType;
+  document.getElementById("cropOwnerID").value = ownerID;
+  document.getElementById("cropModalTitle").textContent = "Crop Image";
+  var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById("cropModal"));
+  modal.show();
+}
+
+function applyCrop() {
+  var uploadId = document.getElementById("cropUploadId").value;
+  var ownerType = document.getElementById("cropOwnerType").value;
+  var ownerID = document.getElementById("cropOwnerID").value;
+  var x = parseInt(document.getElementById("cropX").value);
+  var y = parseInt(document.getElementById("cropY").value);
+  var w = parseInt(document.getElementById("cropW").value);
+  var h = parseInt(document.getElementById("cropH").value);
+  var tw = parseInt(document.getElementById("cropTW").value) || 0;
+  var th = parseInt(document.getElementById("cropTH").value) || 0;
+  if (!w || !h) { alert("Please enter crop dimensions"); return; }
+  var payload = JSON.stringify({x:x, y:y, width:w, height:h, target_width:tw, target_height:th});
+  var xhr = new XMLHttpRequest();
+  xhr.open("POST", "/api/uploads/" + uploadId + "/crop", true);
+  xhr.setRequestHeader("Content-Type", "application/json");
+  xhr.setRequestHeader("X-CSRF-Token", document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
+  xhr.onload = function() {
+    bootstrap.Modal.getInstance(document.getElementById("cropModal")).hide();
+    htmx.ajax("GET", "/htmx/media-gallery?owner_type=" + ownerType + "&owner_id=" + ownerID, {target: "#mediaGallery-" + ownerType + "-" + ownerID, swap: "outerHTML"});
+  };
+  xhr.send(payload);
+}
+</script>

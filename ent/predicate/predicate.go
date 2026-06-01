@@ -189,5 +189,8 @@ type Spell func(*sql.Selector)
 // Upload is the predicate function for upload builders.
 type Upload func(*sql.Selector)
 
+// UploadLink is the predicate function for uploadlink builders.
+type UploadLink func(*sql.Selector)
+
 // User is the predicate function for user builders.
 type User func(*sql.Selector)

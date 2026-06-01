@@ -63,6 +63,8 @@ type NPC struct {
 	Actions string `json:"actions,omitempty"`
 	// Backstory holds the value of the "backstory" field.
 	Backstory string `json:"backstory,omitempty"`
+	// PortraitURL holds the value of the "portrait_url" field.
+	PortraitURL string `json:"portrait_url,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt string `json:"created_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -111,7 +113,7 @@ func (*NPC) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case npc.FieldID, npc.FieldUserID, npc.FieldStr, npc.FieldDex, npc.FieldCon, npc.FieldInt, npc.FieldWis, npc.FieldCha, npc.FieldHpMax, npc.FieldHpCurrent, npc.FieldAc, npc.FieldSpeed:
 			values[i] = new(sql.NullInt64)
-		case npc.FieldName, npc.FieldRace, npc.FieldClass, npc.FieldDescription, npc.FieldNotes, npc.FieldSkills, npc.FieldSaves, npc.FieldFeatures, npc.FieldActions, npc.FieldBackstory, npc.FieldCreatedAt:
+		case npc.FieldName, npc.FieldRace, npc.FieldClass, npc.FieldDescription, npc.FieldNotes, npc.FieldSkills, npc.FieldSaves, npc.FieldFeatures, npc.FieldActions, npc.FieldBackstory, npc.FieldPortraitURL, npc.FieldCreatedAt:
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -272,6 +274,12 @@ func (_m *NPC) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Backstory = value.String
 			}
+		case npc.FieldPortraitURL:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field portrait_url", values[i])
+			} else if value.Valid {
+				_m.PortraitURL = value.String
+			}
 		case npc.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -392,6 +400,9 @@ func (_m *NPC) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("backstory=")
 	builder.WriteString(_m.Backstory)
+	builder.WriteString(", ")
+	builder.WriteString("portrait_url=")
+	builder.WriteString(_m.PortraitURL)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt)

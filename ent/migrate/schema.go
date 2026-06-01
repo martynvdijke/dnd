@@ -1464,6 +1464,7 @@ var (
 		{Name: "features", Type: field.TypeString, Default: ""},
 		{Name: "actions", Type: field.TypeString, Default: ""},
 		{Name: "backstory", Type: field.TypeString, Default: ""},
+		{Name: "portrait_url", Type: field.TypeString, Default: ""},
 		{Name: "created_at", Type: field.TypeString, Default: ""},
 		{Name: "user_id", Type: field.TypeInt64},
 	}
@@ -1475,7 +1476,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "npcs_users_npcs",
-				Columns:    []*schema.Column{NpcsColumns[24]},
+				Columns:    []*schema.Column{NpcsColumns[25]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1484,7 +1485,7 @@ var (
 			{
 				Name:    "npc_user_id",
 				Unique:  false,
-				Columns: []*schema.Column{NpcsColumns[24]},
+				Columns: []*schema.Column{NpcsColumns[25]},
 			},
 		},
 	}
@@ -2063,6 +2064,42 @@ var (
 		Columns:    UploadsColumns,
 		PrimaryKey: []*schema.Column{UploadsColumns[0]},
 	}
+	// UploadLinksColumns holds the columns for the "upload_links" table.
+	UploadLinksColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "upload_id", Type: field.TypeInt64},
+		{Name: "entity_type", Type: field.TypeString},
+		{Name: "entity_id", Type: field.TypeInt64},
+		{Name: "field_name", Type: field.TypeString, Default: ""},
+		{Name: "created_at", Type: field.TypeString, Default: ""},
+		{Name: "upload_upload_links", Type: field.TypeInt64, Nullable: true},
+	}
+	// UploadLinksTable holds the schema information for the "upload_links" table.
+	UploadLinksTable = &schema.Table{
+		Name:       "upload_links",
+		Columns:    UploadLinksColumns,
+		PrimaryKey: []*schema.Column{UploadLinksColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "upload_links_uploads_upload_links",
+				Columns:    []*schema.Column{UploadLinksColumns[6]},
+				RefColumns: []*schema.Column{UploadsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "uploadlink_upload_id_entity_type_entity_id",
+				Unique:  true,
+				Columns: []*schema.Column{UploadLinksColumns[1], UploadLinksColumns[2], UploadLinksColumns[3]},
+			},
+			{
+				Name:    "uploadlink_entity_type_entity_id",
+				Unique:  false,
+				Columns: []*schema.Column{UploadLinksColumns[2], UploadLinksColumns[3]},
+			},
+		},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -2149,6 +2186,7 @@ var (
 		ShopTransactionsTable,
 		SpellsTable,
 		UploadsTable,
+		UploadLinksTable,
 		UsersTable,
 	}
 )
@@ -2264,4 +2302,5 @@ func init() {
 	ShopItemsTable.ForeignKeys[0].RefTable = ShopsTable
 	ShopTransactionsTable.ForeignKeys[0].RefTable = ShopsTable
 	SpellsTable.ForeignKeys[0].RefTable = CharactersTable
+	UploadLinksTable.ForeignKeys[0].RefTable = UploadsTable
 }

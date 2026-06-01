@@ -69,6 +69,7 @@ import (
 	"villum/ent/shoptransaction"
 	"villum/ent/spell"
 	"villum/ent/upload"
+	"villum/ent/uploadlink"
 	"villum/ent/user"
 
 	"entgo.io/ent"
@@ -145,6 +146,7 @@ const (
 	TypeShopTransaction           = "ShopTransaction"
 	TypeSpell                     = "Spell"
 	TypeUpload                    = "Upload"
+	TypeUploadLink                = "UploadLink"
 	TypeUser                      = "User"
 )
 
@@ -45236,6 +45238,7 @@ type NPCMutation struct {
 	features              *string
 	actions               *string
 	backstory             *string
+	portrait_url          *string
 	created_at            *string
 	clearedFields         map[string]struct{}
 	user                  *int64
@@ -46380,6 +46383,42 @@ func (m *NPCMutation) ResetBackstory() {
 	m.backstory = nil
 }
 
+// SetPortraitURL sets the "portrait_url" field.
+func (m *NPCMutation) SetPortraitURL(s string) {
+	m.portrait_url = &s
+}
+
+// PortraitURL returns the value of the "portrait_url" field in the mutation.
+func (m *NPCMutation) PortraitURL() (r string, exists bool) {
+	v := m.portrait_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPortraitURL returns the old "portrait_url" field's value of the NPC entity.
+// If the NPC object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *NPCMutation) OldPortraitURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPortraitURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPortraitURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPortraitURL: %w", err)
+	}
+	return oldValue.PortraitURL, nil
+}
+
+// ResetPortraitURL resets all changes to the "portrait_url" field.
+func (m *NPCMutation) ResetPortraitURL() {
+	m.portrait_url = nil
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *NPCMutation) SetCreatedAt(s string) {
 	m.created_at = &s
@@ -46531,7 +46570,7 @@ func (m *NPCMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *NPCMutation) Fields() []string {
-	fields := make([]string, 0, 24)
+	fields := make([]string, 0, 25)
 	if m.user != nil {
 		fields = append(fields, npc.FieldUserID)
 	}
@@ -46601,6 +46640,9 @@ func (m *NPCMutation) Fields() []string {
 	if m.backstory != nil {
 		fields = append(fields, npc.FieldBackstory)
 	}
+	if m.portrait_url != nil {
+		fields = append(fields, npc.FieldPortraitURL)
+	}
 	if m.created_at != nil {
 		fields = append(fields, npc.FieldCreatedAt)
 	}
@@ -46658,6 +46700,8 @@ func (m *NPCMutation) Field(name string) (ent.Value, bool) {
 		return m.Actions()
 	case npc.FieldBackstory:
 		return m.Backstory()
+	case npc.FieldPortraitURL:
+		return m.PortraitURL()
 	case npc.FieldCreatedAt:
 		return m.CreatedAt()
 	}
@@ -46715,6 +46759,8 @@ func (m *NPCMutation) OldField(ctx context.Context, name string) (ent.Value, err
 		return m.OldActions(ctx)
 	case npc.FieldBackstory:
 		return m.OldBackstory(ctx)
+	case npc.FieldPortraitURL:
+		return m.OldPortraitURL(ctx)
 	case npc.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	}
@@ -46886,6 +46932,13 @@ func (m *NPCMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetBackstory(v)
+		return nil
+	case npc.FieldPortraitURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPortraitURL(v)
 		return nil
 	case npc.FieldCreatedAt:
 		v, ok := value.(string)
@@ -47134,6 +47187,9 @@ func (m *NPCMutation) ResetField(name string) error {
 		return nil
 	case npc.FieldBackstory:
 		m.ResetBackstory()
+		return nil
+	case npc.FieldPortraitURL:
+		m.ResetPortraitURL()
 		return nil
 	case npc.FieldCreatedAt:
 		m.ResetCreatedAt()
@@ -61973,22 +62029,25 @@ func (m *SpellMutation) ResetEdge(name string) error {
 // UploadMutation represents an operation that mutates the Upload nodes in the graph.
 type UploadMutation struct {
 	config
-	op            Op
-	typ           string
-	id            *int64
-	hash          *string
-	ext           *string
-	url           *string
-	resized_url   *string
-	thumbnail_url *string
-	owner_type    *string
-	owner_id      *int64
-	addowner_id   *int64
-	created_at    *string
-	clearedFields map[string]struct{}
-	done          bool
-	oldValue      func(context.Context) (*Upload, error)
-	predicates    []predicate.Upload
+	op                  Op
+	typ                 string
+	id                  *int64
+	hash                *string
+	ext                 *string
+	url                 *string
+	resized_url         *string
+	thumbnail_url       *string
+	owner_type          *string
+	owner_id            *int64
+	addowner_id         *int64
+	created_at          *string
+	clearedFields       map[string]struct{}
+	upload_links        map[int64]struct{}
+	removedupload_links map[int64]struct{}
+	clearedupload_links bool
+	done                bool
+	oldValue            func(context.Context) (*Upload, error)
+	predicates          []predicate.Upload
 }
 
 var _ ent.Mutation = (*UploadMutation)(nil)
@@ -62468,6 +62527,60 @@ func (m *UploadMutation) ResetCreatedAt() {
 	m.created_at = nil
 }
 
+// AddUploadLinkIDs adds the "upload_links" edge to the UploadLink entity by ids.
+func (m *UploadMutation) AddUploadLinkIDs(ids ...int64) {
+	if m.upload_links == nil {
+		m.upload_links = make(map[int64]struct{})
+	}
+	for i := range ids {
+		m.upload_links[ids[i]] = struct{}{}
+	}
+}
+
+// ClearUploadLinks clears the "upload_links" edge to the UploadLink entity.
+func (m *UploadMutation) ClearUploadLinks() {
+	m.clearedupload_links = true
+}
+
+// UploadLinksCleared reports if the "upload_links" edge to the UploadLink entity was cleared.
+func (m *UploadMutation) UploadLinksCleared() bool {
+	return m.clearedupload_links
+}
+
+// RemoveUploadLinkIDs removes the "upload_links" edge to the UploadLink entity by IDs.
+func (m *UploadMutation) RemoveUploadLinkIDs(ids ...int64) {
+	if m.removedupload_links == nil {
+		m.removedupload_links = make(map[int64]struct{})
+	}
+	for i := range ids {
+		delete(m.upload_links, ids[i])
+		m.removedupload_links[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedUploadLinks returns the removed IDs of the "upload_links" edge to the UploadLink entity.
+func (m *UploadMutation) RemovedUploadLinksIDs() (ids []int64) {
+	for id := range m.removedupload_links {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// UploadLinksIDs returns the "upload_links" edge IDs in the mutation.
+func (m *UploadMutation) UploadLinksIDs() (ids []int64) {
+	for id := range m.upload_links {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetUploadLinks resets all changes to the "upload_links" edge.
+func (m *UploadMutation) ResetUploadLinks() {
+	m.upload_links = nil
+	m.clearedupload_links = false
+	m.removedupload_links = nil
+}
+
 // Where appends a list predicates to the UploadMutation builder.
 func (m *UploadMutation) Where(ps ...predicate.Upload) {
 	m.predicates = append(m.predicates, ps...)
@@ -62768,50 +62881,703 @@ func (m *UploadMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *UploadMutation) AddedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.upload_links != nil {
+		edges = append(edges, upload.EdgeUploadLinks)
+	}
 	return edges
 }
 
 // AddedIDs returns all IDs (to other nodes) that were added for the given edge
 // name in this mutation.
 func (m *UploadMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case upload.EdgeUploadLinks:
+		ids := make([]ent.Value, 0, len(m.upload_links))
+		for id := range m.upload_links {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *UploadMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.removedupload_links != nil {
+		edges = append(edges, upload.EdgeUploadLinks)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *UploadMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case upload.EdgeUploadLinks:
+		ids := make([]ent.Value, 0, len(m.removedupload_links))
+		for id := range m.removedupload_links {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *UploadMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 0)
+	edges := make([]string, 0, 1)
+	if m.clearedupload_links {
+		edges = append(edges, upload.EdgeUploadLinks)
+	}
 	return edges
 }
 
 // EdgeCleared returns a boolean which indicates if the edge with the given name
 // was cleared in this mutation.
 func (m *UploadMutation) EdgeCleared(name string) bool {
+	switch name {
+	case upload.EdgeUploadLinks:
+		return m.clearedupload_links
+	}
 	return false
 }
 
 // ClearEdge clears the value of the edge with the given name. It returns an error
 // if that edge is not defined in the schema.
 func (m *UploadMutation) ClearEdge(name string) error {
+	switch name {
+	}
 	return fmt.Errorf("unknown Upload unique edge %s", name)
 }
 
 // ResetEdge resets all changes to the edge with the given name in this mutation.
 // It returns an error if the edge is not defined in the schema.
 func (m *UploadMutation) ResetEdge(name string) error {
+	switch name {
+	case upload.EdgeUploadLinks:
+		m.ResetUploadLinks()
+		return nil
+	}
 	return fmt.Errorf("unknown Upload edge %s", name)
+}
+
+// UploadLinkMutation represents an operation that mutates the UploadLink nodes in the graph.
+type UploadLinkMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int64
+	upload_id     *int64
+	addupload_id  *int64
+	entity_type   *string
+	entity_id     *int64
+	addentity_id  *int64
+	field_name    *string
+	created_at    *string
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*UploadLink, error)
+	predicates    []predicate.UploadLink
+}
+
+var _ ent.Mutation = (*UploadLinkMutation)(nil)
+
+// uploadlinkOption allows management of the mutation configuration using functional options.
+type uploadlinkOption func(*UploadLinkMutation)
+
+// newUploadLinkMutation creates new mutation for the UploadLink entity.
+func newUploadLinkMutation(c config, op Op, opts ...uploadlinkOption) *UploadLinkMutation {
+	m := &UploadLinkMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeUploadLink,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withUploadLinkID sets the ID field of the mutation.
+func withUploadLinkID(id int64) uploadlinkOption {
+	return func(m *UploadLinkMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *UploadLink
+		)
+		m.oldValue = func(ctx context.Context) (*UploadLink, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().UploadLink.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withUploadLink sets the old UploadLink of the mutation.
+func withUploadLink(node *UploadLink) uploadlinkOption {
+	return func(m *UploadLinkMutation) {
+		m.oldValue = func(context.Context) (*UploadLink, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m UploadLinkMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m UploadLinkMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of UploadLink entities.
+func (m *UploadLinkMutation) SetID(id int64) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *UploadLinkMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *UploadLinkMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().UploadLink.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetUploadID sets the "upload_id" field.
+func (m *UploadLinkMutation) SetUploadID(i int64) {
+	m.upload_id = &i
+	m.addupload_id = nil
+}
+
+// UploadID returns the value of the "upload_id" field in the mutation.
+func (m *UploadLinkMutation) UploadID() (r int64, exists bool) {
+	v := m.upload_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUploadID returns the old "upload_id" field's value of the UploadLink entity.
+// If the UploadLink object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UploadLinkMutation) OldUploadID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUploadID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUploadID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUploadID: %w", err)
+	}
+	return oldValue.UploadID, nil
+}
+
+// AddUploadID adds i to the "upload_id" field.
+func (m *UploadLinkMutation) AddUploadID(i int64) {
+	if m.addupload_id != nil {
+		*m.addupload_id += i
+	} else {
+		m.addupload_id = &i
+	}
+}
+
+// AddedUploadID returns the value that was added to the "upload_id" field in this mutation.
+func (m *UploadLinkMutation) AddedUploadID() (r int64, exists bool) {
+	v := m.addupload_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetUploadID resets all changes to the "upload_id" field.
+func (m *UploadLinkMutation) ResetUploadID() {
+	m.upload_id = nil
+	m.addupload_id = nil
+}
+
+// SetEntityType sets the "entity_type" field.
+func (m *UploadLinkMutation) SetEntityType(s string) {
+	m.entity_type = &s
+}
+
+// EntityType returns the value of the "entity_type" field in the mutation.
+func (m *UploadLinkMutation) EntityType() (r string, exists bool) {
+	v := m.entity_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEntityType returns the old "entity_type" field's value of the UploadLink entity.
+// If the UploadLink object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UploadLinkMutation) OldEntityType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEntityType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEntityType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEntityType: %w", err)
+	}
+	return oldValue.EntityType, nil
+}
+
+// ResetEntityType resets all changes to the "entity_type" field.
+func (m *UploadLinkMutation) ResetEntityType() {
+	m.entity_type = nil
+}
+
+// SetEntityID sets the "entity_id" field.
+func (m *UploadLinkMutation) SetEntityID(i int64) {
+	m.entity_id = &i
+	m.addentity_id = nil
+}
+
+// EntityID returns the value of the "entity_id" field in the mutation.
+func (m *UploadLinkMutation) EntityID() (r int64, exists bool) {
+	v := m.entity_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEntityID returns the old "entity_id" field's value of the UploadLink entity.
+// If the UploadLink object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UploadLinkMutation) OldEntityID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEntityID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEntityID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEntityID: %w", err)
+	}
+	return oldValue.EntityID, nil
+}
+
+// AddEntityID adds i to the "entity_id" field.
+func (m *UploadLinkMutation) AddEntityID(i int64) {
+	if m.addentity_id != nil {
+		*m.addentity_id += i
+	} else {
+		m.addentity_id = &i
+	}
+}
+
+// AddedEntityID returns the value that was added to the "entity_id" field in this mutation.
+func (m *UploadLinkMutation) AddedEntityID() (r int64, exists bool) {
+	v := m.addentity_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetEntityID resets all changes to the "entity_id" field.
+func (m *UploadLinkMutation) ResetEntityID() {
+	m.entity_id = nil
+	m.addentity_id = nil
+}
+
+// SetFieldName sets the "field_name" field.
+func (m *UploadLinkMutation) SetFieldName(s string) {
+	m.field_name = &s
+}
+
+// FieldName returns the value of the "field_name" field in the mutation.
+func (m *UploadLinkMutation) FieldName() (r string, exists bool) {
+	v := m.field_name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldFieldName returns the old "field_name" field's value of the UploadLink entity.
+// If the UploadLink object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UploadLinkMutation) OldFieldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldFieldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldFieldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldFieldName: %w", err)
+	}
+	return oldValue.FieldName, nil
+}
+
+// ResetFieldName resets all changes to the "field_name" field.
+func (m *UploadLinkMutation) ResetFieldName() {
+	m.field_name = nil
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *UploadLinkMutation) SetCreatedAt(s string) {
+	m.created_at = &s
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *UploadLinkMutation) CreatedAt() (r string, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the UploadLink entity.
+// If the UploadLink object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UploadLinkMutation) OldCreatedAt(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *UploadLinkMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// Where appends a list predicates to the UploadLinkMutation builder.
+func (m *UploadLinkMutation) Where(ps ...predicate.UploadLink) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the UploadLinkMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *UploadLinkMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.UploadLink, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *UploadLinkMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *UploadLinkMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (UploadLink).
+func (m *UploadLinkMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *UploadLinkMutation) Fields() []string {
+	fields := make([]string, 0, 5)
+	if m.upload_id != nil {
+		fields = append(fields, uploadlink.FieldUploadID)
+	}
+	if m.entity_type != nil {
+		fields = append(fields, uploadlink.FieldEntityType)
+	}
+	if m.entity_id != nil {
+		fields = append(fields, uploadlink.FieldEntityID)
+	}
+	if m.field_name != nil {
+		fields = append(fields, uploadlink.FieldFieldName)
+	}
+	if m.created_at != nil {
+		fields = append(fields, uploadlink.FieldCreatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *UploadLinkMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case uploadlink.FieldUploadID:
+		return m.UploadID()
+	case uploadlink.FieldEntityType:
+		return m.EntityType()
+	case uploadlink.FieldEntityID:
+		return m.EntityID()
+	case uploadlink.FieldFieldName:
+		return m.FieldName()
+	case uploadlink.FieldCreatedAt:
+		return m.CreatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *UploadLinkMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case uploadlink.FieldUploadID:
+		return m.OldUploadID(ctx)
+	case uploadlink.FieldEntityType:
+		return m.OldEntityType(ctx)
+	case uploadlink.FieldEntityID:
+		return m.OldEntityID(ctx)
+	case uploadlink.FieldFieldName:
+		return m.OldFieldName(ctx)
+	case uploadlink.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown UploadLink field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *UploadLinkMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case uploadlink.FieldUploadID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUploadID(v)
+		return nil
+	case uploadlink.FieldEntityType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEntityType(v)
+		return nil
+	case uploadlink.FieldEntityID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEntityID(v)
+		return nil
+	case uploadlink.FieldFieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetFieldName(v)
+		return nil
+	case uploadlink.FieldCreatedAt:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown UploadLink field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *UploadLinkMutation) AddedFields() []string {
+	var fields []string
+	if m.addupload_id != nil {
+		fields = append(fields, uploadlink.FieldUploadID)
+	}
+	if m.addentity_id != nil {
+		fields = append(fields, uploadlink.FieldEntityID)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *UploadLinkMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case uploadlink.FieldUploadID:
+		return m.AddedUploadID()
+	case uploadlink.FieldEntityID:
+		return m.AddedEntityID()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *UploadLinkMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case uploadlink.FieldUploadID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddUploadID(v)
+		return nil
+	case uploadlink.FieldEntityID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddEntityID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown UploadLink numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *UploadLinkMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *UploadLinkMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *UploadLinkMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown UploadLink nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *UploadLinkMutation) ResetField(name string) error {
+	switch name {
+	case uploadlink.FieldUploadID:
+		m.ResetUploadID()
+		return nil
+	case uploadlink.FieldEntityType:
+		m.ResetEntityType()
+		return nil
+	case uploadlink.FieldEntityID:
+		m.ResetEntityID()
+		return nil
+	case uploadlink.FieldFieldName:
+		m.ResetFieldName()
+		return nil
+	case uploadlink.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown UploadLink field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *UploadLinkMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *UploadLinkMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *UploadLinkMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *UploadLinkMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *UploadLinkMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *UploadLinkMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *UploadLinkMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown UploadLink unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *UploadLinkMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown UploadLink edge %s", name)
 }
 
 // UserMutation represents an operation that mutates the User nodes in the graph.

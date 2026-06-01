@@ -204,6 +204,7 @@ type NPC struct {
 	Features    string `json:"features"`
 	Actions     string `json:"actions"`
 	Backstory   string `json:"backstory"`
+	PortraitURL string `json:"portrait_url"`
 	CreatedAt   string `json:"created_at"`
 }
 
@@ -215,6 +216,15 @@ type CharacterNPC struct {
 	Notes            string `json:"notes"`
 	InteractionCount int    `json:"interaction_count"`
 	LastInteracted   string `json:"last_interacted"`
+}
+
+type UploadLink struct {
+	ID         int64  `json:"id"`
+	UploadID   int64  `json:"upload_id"`
+	EntityType string `json:"entity_type"`
+	EntityID   int64  `json:"entity_id"`
+	FieldName  string `json:"field_name"`
+	CreatedAt  string `json:"created_at"`
 }
 
 type Session struct {
