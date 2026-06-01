@@ -2790,6 +2790,13 @@ body.session-mode .hp-bar .text-white {
   }
 }
 
+/* ─── Desktop: hide top navbar links when sidebar is visible ─── */
+@media (min-width: 769px) {
+  body:not(.sidebar-collapsed) .navbar .navbar-nav {
+    display: none;
+  }
+}
+
 /* ─── Desktop sidebar expanded content area ─── */
 body.sidebar-expanded .container {
   max-width: calc(100% - 220px);

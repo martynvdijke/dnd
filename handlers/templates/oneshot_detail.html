@@ -4,6 +4,7 @@
     <div class="small text-muted">
       {{if .Adventure.Difficulty}}<span class="badge {{if eq .Adventure.Difficulty "easy"}}bg-success{{else if eq .Adventure.Difficulty "medium"}}bg-warning{{else if eq .Adventure.Difficulty "hard"}}bg-danger{{else}}bg-dark{{end}} me-1">{{.Adventure.Difficulty}}</span>{{end}}
       <i class="fa-regular fa-clock ms-1 me-1"></i>{{.Adventure.EstimatedMinutes}} min
+      {{if .Adventure.IsMiniCampaign}}<span class="badge bg-purple ms-1"><i class="fa-solid fa-globe me-1"></i>Mini-Campaign</span>{{end}}
       <span class="badge badge-gold ms-1">{{.Adventure.Template}}</span>
     </div>
   </div>
@@ -118,6 +119,14 @@
 <div class="row g-3 mb-4">
   <div class="col-md-6">
     <div class="card h-100">
+      <div class="card-header py-2"><strong><i class="fa-solid fa-user-tie me-1"></i>NPCs</strong></div>
+      <div class="card-body" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}/npcs" hx-trigger="load" hx-swap="innerHTML">
+        <div class="text-muted small">✧ Loading NPCs...</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100">
       <div class="card-header py-2"><strong><i class="fa-solid fa-backpack me-1"></i>Items</strong></div>
       <div class="card-body" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}/items" hx-trigger="load" hx-swap="innerHTML">
         <div class="text-muted small">✧ Loading items...</div>
@@ -152,6 +161,27 @@
     </div>
   </div>
 </div>
+
+{{if .Adventure.IsMiniCampaign}}
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header py-2"><strong><i class="fa-solid fa-timeline me-1"></i>Timeline</strong></div>
+      <div class="card-body" hx-get="/htmx/timeline?oneshot_adventure_id={{.Adventure.ID}}" hx-trigger="load" hx-swap="innerHTML">
+        <div class="text-muted small">✧ Loading timeline...</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header py-2"><strong><i class="fa-solid fa-flag me-1"></i>Factions</strong></div>
+      <div class="card-body" hx-get="/htmx/factions?oneshot_adventure_id={{.Adventure.ID}}" hx-trigger="load" hx-swap="innerHTML">
+        <div class="text-muted small">✧ Loading factions...</div>
+      </div>
+    </div>
+  </div>
+</div>
+{{end}}
 
 <script>
 (function(){

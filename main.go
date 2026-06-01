@@ -375,6 +375,8 @@ func main() {
 
 		// Campaign Dashboard
 		auth.GET("/campaigns/:id/dashboard", handlers.GetCampaignDashboard)
+		auth.GET("/campaigns/:id/one-shots", handlers.ListCampaignOneShots)
+		auth.PUT("/campaigns/:id/one-shots/reorder", handlers.ReorderCampaignOneShots)
 
 		// Character Resources
 		auth.GET("/characters/:id/resources", handlers.ListCharacterResources)

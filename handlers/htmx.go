@@ -1175,7 +1175,15 @@ type htmxTimelineData struct {
 }
 
 func HtmxListTimeline(c *gin.Context) {
-	rows, err := db.DB.Query("SELECT id, campaign_id, title, description, event_date, event_type, importance, icon, linked_entity_type, linked_entity_id, created_at FROM campaign_timeline_events ORDER BY event_date DESC")
+	oneshotID := c.Query("oneshot_adventure_id")
+	query := "SELECT id, campaign_id, title, description, event_date, event_type, importance, icon, linked_entity_type, linked_entity_id, created_at FROM campaign_timeline_events" + " WHERE 1=1"
+	var args []interface{}
+	if oneshotID != "" {
+		query += " AND oneshot_adventure_id=?"
+		args = append(args, oneshotID)
+	}
+	query += " ORDER BY event_date DESC"
+	rows, err := db.DB.Query(query, args...)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -1233,7 +1241,15 @@ type htmxFactionData struct {
 }
 
 func HtmxListFactions(c *gin.Context) {
-	rows, err := db.DB.Query("SELECT id, campaign_id, name, description, type, headquarters FROM factions ORDER BY name")
+	oneshotID := c.Query("oneshot_adventure_id")
+	query := "SELECT id, campaign_id, name, description, type, headquarters FROM factions WHERE 1=1"
+	var args []interface{}
+	if oneshotID != "" {
+		query += " AND oneshot_adventure_id=?"
+		args = append(args, oneshotID)
+	}
+	query += " ORDER BY name"
+	rows, err := db.DB.Query(query, args...)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -1402,6 +1418,9 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"PUT", "/htmx/factions/:id", HtmxUpdateFaction},
 		{"DELETE", "/htmx/factions/:id", HtmxDeleteFaction},
 
+		// Campaign Overview
+		{"GET", "/htmx/campaigns/:id/overview", HtmxCampaignOverview},
+
 		// One-Shot Adventures
 		{"GET", "/htmx/oneshot-adventures", HtmxListOneShots},
 		{"GET", "/htmx/oneshot-adventures/new", HtmxNewOneShotForm},
@@ -1437,6 +1456,7 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"DELETE", "/htmx/oneshot-adventures/:id/checklist/:cid", HtmxDeleteChecklistItem},
 
 		// DM Screen / Quick Reference
+		{"GET", "/htmx/oneshot-adventures/:id/npcs", HtmxOneShotNPCs},
 		{"GET", "/htmx/oneshot-adventures/:id/items", HtmxOneShotItems},
 		{"GET", "/htmx/oneshot-adventures/:id/shops", HtmxOneShotShops},
 		{"GET", "/htmx/oneshot-adventures/:id/monsters", HtmxOneShotMonsters},

@@ -1424,6 +1424,15 @@ func Migrate() error {
 		"ALTER TABLE inventory ADD COLUMN is_identified INTEGER NOT NULL DEFAULT 1",
 		"ALTER TABLE oneshot_acts ADD COLUMN notes TEXT NOT NULL DEFAULT ''",
 		"ALTER TABLE dm_notes ADD COLUMN act_id INTEGER REFERENCES oneshot_acts(id) ON DELETE CASCADE",
+		// NPC linking for one-shots
+		"ALTER TABLE oneshot_adventure_npcs ADD COLUMN story_hook TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE oneshot_adventure_npcs ADD COLUMN combat_ready INTEGER NOT NULL DEFAULT 0",
+		// Mini-campaign mode for one-shots
+		"ALTER TABLE oneshot_adventures ADD COLUMN is_mini_campaign INTEGER NOT NULL DEFAULT 0",
+		"ALTER TABLE oneshot_adventures ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0",
+		// One-shot scoping
+		"ALTER TABLE campaign_timeline_events ADD COLUMN oneshot_adventure_id INTEGER REFERENCES oneshot_adventures(id) ON DELETE CASCADE",
+		"ALTER TABLE factions ADD COLUMN oneshot_adventure_id INTEGER REFERENCES oneshot_adventures(id) ON DELETE CASCADE",
 	}
 	for _, stmt := range alterStatements {
 		if _, err := DB.Exec(stmt); err != nil {

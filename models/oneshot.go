@@ -13,6 +13,8 @@ type OneShotAdventure struct {
 	Notes           string `json:"notes"`
 	CreatedAt       string `json:"created_at"`
 	UpdatedAt       string `json:"updated_at"`
+	IsMiniCampaign  bool   `json:"is_mini_campaign"`
+	SortOrder       int    `json:"sort_order"`
 	// Loaded relations
 	Acts       []OneShotAct                `json:"acts,omitempty"`
 	NPCs       []OneShotAdventureNPC       `json:"npcs,omitempty"`
@@ -86,6 +88,8 @@ type OneShotAdventureNPC struct {
 	AdventureID int64  `json:"adventure_id"`
 	NPCID       int64  `json:"npc_id"`
 	Role        string `json:"role"`
+	StoryHook   string `json:"story_hook"`
+	CombatReady bool   `json:"combat_ready"`
 	NPCName     string `json:"npc_name,omitempty"`
 }
 

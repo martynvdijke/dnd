@@ -11,7 +11,8 @@ export type ViewState =
   | 'oneshot'
   | 'factions'
   | 'shops'
-  | 'singleEncounter';
+  | 'singleEncounter'
+  | 'campaignOverview';
 
 export type SessionModeState = 'normal' | 'session';
 

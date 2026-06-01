@@ -98,13 +98,15 @@ func sortActsBySortOrder(acts *[]models.OneShotAct) {
 }
 
 func loadAdventureNPCs(adventureID int64) []models.OneShotAdventureNPC {
-	rows, err := db.DB.Query("SELECT oan.id, oan.adventure_id, oan.npc_id, oan.role, COALESCE(n.name,'') FROM oneshot_adventure_npcs oan LEFT JOIN npcs n ON oan.npc_id=n.id WHERE oan.adventure_id=?", adventureID)
+	rows, err := db.DB.Query("SELECT oan.id, oan.adventure_id, oan.npc_id, oan.role, oan.story_hook, oan.combat_ready, COALESCE(n.name,'') FROM oneshot_adventure_npcs oan LEFT JOIN npcs n ON oan.npc_id=n.id WHERE oan.adventure_id=?", adventureID)
 	if err != nil { return nil }
 	defer rows.Close()
 	out := make([]models.OneShotAdventureNPC, 0)
 	for rows.Next() {
 		var npc models.OneShotAdventureNPC
-		rows.Scan(&npc.ID, &npc.AdventureID, &npc.NPCID, &npc.Role, &npc.NPCName)
+		var combatReady int
+		rows.Scan(&npc.ID, &npc.AdventureID, &npc.NPCID, &npc.Role, &npc.StoryHook, &combatReady, &npc.NPCName)
+		npc.CombatReady = combatReady == 1
 		out = append(out, npc)
 	}
 	return out
@@ -225,6 +227,13 @@ func loadAdventureDetail(ctx context.Context, adventureID int64) (*models.OneSho
 	a.Locations = loadAdventureLocations(adventureID)
 	a.Encounters = loadAdventureEncounters(adventureID)
 
+	var isMiniCampaign int
+	db.DB.QueryRow("SELECT COALESCE(is_mini_campaign,0) FROM oneshot_adventures WHERE id=?", adventureID).Scan(&isMiniCampaign)
+	a.IsMiniCampaign = isMiniCampaign == 1
+	var sortOrder int
+	db.DB.QueryRow("SELECT COALESCE(sort_order,0) FROM oneshot_adventures WHERE id=?", adventureID).Scan(&sortOrder)
+	a.SortOrder = sortOrder
+
 	return &a, nil
 }
 
@@ -237,9 +246,9 @@ func ListOneShotAdventures(c *gin.Context) {
 	var rows *sql.Rows
 	var err error
 	if campaignID != "" {
-		rows, err = db.DB.Query("SELECT id, user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes, created_at, updated_at FROM oneshot_adventures WHERE campaign_id=? ORDER BY updated_at DESC", campaignID)
+		rows, err = db.DB.Query("SELECT id, user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes, created_at, updated_at, COALESCE(is_mini_campaign,0), COALESCE(sort_order,0) FROM oneshot_adventures WHERE campaign_id=? ORDER BY sort_order ASC, updated_at DESC", campaignID)
 	} else {
-		rows, err = db.DB.Query("SELECT id, user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes, created_at, updated_at FROM oneshot_adventures WHERE user_id=? ORDER BY updated_at DESC", userID)
+		rows, err = db.DB.Query("SELECT id, user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes, created_at, updated_at, COALESCE(is_mini_campaign,0), COALESCE(sort_order,0) FROM oneshot_adventures WHERE user_id=? ORDER BY updated_at DESC", userID)
 	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -250,7 +259,10 @@ func ListOneShotAdventures(c *gin.Context) {
 	out := make([]models.OneShotAdventure, 0)
 	for rows.Next() {
 		var a models.OneShotAdventure
-		rows.Scan(&a.ID, &a.UserID, &a.CampaignID, &a.Title, &a.Premise, &a.Hook, &a.Template, &a.EstimatedMinutes, &a.Difficulty, &a.Notes, &a.CreatedAt, &a.UpdatedAt)
+		var isMiniCampaign, sortOrder int
+		rows.Scan(&a.ID, &a.UserID, &a.CampaignID, &a.Title, &a.Premise, &a.Hook, &a.Template, &a.EstimatedMinutes, &a.Difficulty, &a.Notes, &a.CreatedAt, &a.UpdatedAt, &isMiniCampaign, &sortOrder)
+		a.IsMiniCampaign = isMiniCampaign == 1
+		a.SortOrder = sortOrder
 		out = append(out, a)
 	}
 	c.JSON(http.StatusOK, out)
@@ -456,7 +468,7 @@ func DeleteOneShotScene(c *gin.Context) {
 
 func GetOneShotNPCs(c *gin.Context) {
 	adventureID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	rows, err := db.DB.Query("SELECT oan.id, oan.adventure_id, oan.npc_id, oan.role, COALESCE(n.name,'') FROM oneshot_adventure_npcs oan LEFT JOIN npcs n ON oan.npc_id=n.id WHERE oan.adventure_id=?", adventureID)
+	rows, err := db.DB.Query("SELECT oan.id, oan.adventure_id, oan.npc_id, oan.role, oan.story_hook, oan.combat_ready, COALESCE(n.name,'') FROM oneshot_adventure_npcs oan LEFT JOIN npcs n ON oan.npc_id=n.id WHERE oan.adventure_id=?", adventureID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -465,7 +477,9 @@ func GetOneShotNPCs(c *gin.Context) {
 	out := make([]models.OneShotAdventureNPC, 0)
 	for rows.Next() {
 		var npc models.OneShotAdventureNPC
-		rows.Scan(&npc.ID, &npc.AdventureID, &npc.NPCID, &npc.Role, &npc.NPCName)
+		var combatReady int
+		rows.Scan(&npc.ID, &npc.AdventureID, &npc.NPCID, &npc.Role, &npc.StoryHook, &combatReady, &npc.NPCName)
+		npc.CombatReady = combatReady == 1
 		out = append(out, npc)
 	}
 	c.JSON(http.StatusOK, out)
@@ -474,14 +488,19 @@ func GetOneShotNPCs(c *gin.Context) {
 func LinkOneShotNPC(c *gin.Context) {
 	adventureID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var link struct {
-		NPCID int64  `json:"npc_id"`
-		Role  string `json:"role"`
+		NPCID       int64  `json:"npc_id"`
+		Role        string `json:"role"`
+		StoryHook   string `json:"story_hook"`
+		CombatReady bool   `json:"combat_ready"`
 	}
 	if err := c.ShouldBindJSON(&link); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	_, err := db.DB.Exec("INSERT OR IGNORE INTO oneshot_adventure_npcs(adventure_id, npc_id, role) VALUES(?,?,?)", adventureID, link.NPCID, link.Role)
+	combatReady := 0
+	if link.CombatReady { combatReady = 1 }
+	_, err := db.DB.Exec("INSERT OR REPLACE INTO oneshot_adventure_npcs(adventure_id, npc_id, role, story_hook, combat_ready) VALUES(?,?,?,?,?)",
+		adventureID, link.NPCID, link.Role, link.StoryHook, combatReady)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -934,8 +953,13 @@ func HtmxCreateOneShot(c *gin.Context) {
 		}
 	}
 
-	result, err := db.DB.Exec("INSERT INTO oneshot_adventures(user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes) VALUES(?,?,?,?,?,?,?,?,?)",
-		userID, campaignID, title, premise, hook, template, minutes, difficulty, notes)
+	isMiniCampaign := 0
+	if c.PostForm("is_mini_campaign") == "1" {
+		isMiniCampaign = 1
+	}
+
+	result, err := db.DB.Exec("INSERT INTO oneshot_adventures(user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes, is_mini_campaign) VALUES(?,?,?,?,?,?,?,?,?,?)",
+		userID, campaignID, title, premise, hook, template, minutes, difficulty, notes, isMiniCampaign)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "insert error: %v", err)
 		return
@@ -962,9 +986,13 @@ func HtmxUpdateOneShot(c *gin.Context) {
 	difficulty := c.PostForm("difficulty")
 	minutes, _ := strconv.Atoi(c.PostForm("estimated_minutes"))
 	notes := c.PostForm("notes")
+	isMiniCampaign := 0
+	if c.PostForm("is_mini_campaign") == "1" {
+		isMiniCampaign = 1
+	}
 
-	db.DB.Exec("UPDATE oneshot_adventures SET title=?, premise=?, hook=?, template=?, estimated_minutes=?, difficulty=?, notes=?, updated_at=datetime('now') WHERE id=?",
-		title, premise, hook, template, minutes, difficulty, notes, id)
+	db.DB.Exec("UPDATE oneshot_adventures SET title=?, premise=?, hook=?, template=?, estimated_minutes=?, difficulty=?, notes=?, is_mini_campaign=?, updated_at=datetime('now') WHERE id=?",
+		title, premise, hook, template, minutes, difficulty, notes, isMiniCampaign, id)
 
 	HtmxListOneShots(c)
 }
@@ -1247,6 +1275,182 @@ func HtmxGenerateOneShot(c *gin.Context) {
 	}
 
 	HtmxListOneShots(c)
+}
+
+type ReorderRequest struct {
+	ID        int64 `json:"id"`
+	SortOrder int   `json:"sort_order"`
+}
+
+func ReorderCampaignOneShots(c *gin.Context) {
+	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var req []ReorderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	for _, item := range req {
+		db.DB.Exec("UPDATE oneshot_adventures SET sort_order=? WHERE id=? AND campaign_id=?", item.SortOrder, item.ID, campaignID)
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func ListCampaignOneShots(c *gin.Context) {
+	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	rows, err := db.DB.Query("SELECT id, user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes, created_at, updated_at, COALESCE(is_mini_campaign,0), COALESCE(sort_order,0) FROM oneshot_adventures WHERE campaign_id=? ORDER BY sort_order ASC, updated_at DESC", campaignID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	out := make([]models.OneShotAdventure, 0)
+	for rows.Next() {
+		var a models.OneShotAdventure
+		var isMiniCampaign, sortOrder int
+		rows.Scan(&a.ID, &a.UserID, &a.CampaignID, &a.Title, &a.Premise, &a.Hook, &a.Template, &a.EstimatedMinutes, &a.Difficulty, &a.Notes, &a.CreatedAt, &a.UpdatedAt, &isMiniCampaign, &sortOrder)
+		a.IsMiniCampaign = isMiniCampaign == 1
+		a.SortOrder = sortOrder
+		out = append(out, a)
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+// ─── Campaign Overview ───
+
+type CampaignOverviewData struct {
+	ID               int64
+	Name             string
+	PartyName        string
+	ActiveQuests     int
+	UpcomingSessions int
+	TotalMembers     int
+	ActiveConditions int
+	Weather          *WeatherResult
+	RecentJournal    int
+	Characters       []CharacterDashSummary
+	UpcomingEvents   []CalendarEventSummary
+	RecentTimeline   []TimelineEventSummary
+	OneShots         []models.OneShotAdventure
+	RecentRecaps     []RecapSummary
+	RecentCombats    []CombatSummary
+	RecentDiceRolls  []DiceRollSummary
+}
+
+func HtmxCampaignOverview(c *gin.Context) {
+	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+
+	var data CampaignOverviewData
+	data.ID = campaignID
+
+	db.DB.QueryRow("SELECT name, COALESCE(party_name,'') FROM campaigns WHERE id=?", campaignID).Scan(&data.Name, &data.PartyName)
+
+	db.DB.QueryRow("SELECT COUNT(*) FROM quests q JOIN characters c ON q.character_id=c.id WHERE c.campaign_id=? AND q.status='active'", campaignID).Scan(&data.ActiveQuests)
+
+	rows, _ := db.DB.Query("SELECT COUNT(*) FROM campaign_calendar_events WHERE campaign_id=? AND event_date >= date('now') AND event_type='session'", campaignID)
+	if rows != nil {
+		rows.Next()
+		rows.Scan(&data.UpcomingSessions)
+		rows.Close()
+	}
+
+	db.DB.QueryRow("SELECT COUNT(*) FROM campaign_members WHERE campaign_id=?", campaignID).Scan(&data.TotalMembers)
+
+	db.DB.QueryRow("SELECT COUNT(*) FROM character_conditions cc JOIN characters c ON cc.character_id=c.id WHERE c.campaign_id=?", campaignID).Scan(&data.ActiveConditions)
+
+	db.DB.QueryRow("SELECT COUNT(*) FROM journal j JOIN characters c ON j.character_id=c.id WHERE c.campaign_id=? AND j.created_at >= datetime('now', '-7 days')", campaignID).Scan(&data.RecentJournal)
+
+	data.Weather = getCampaignWeather(campaignID)
+
+	calRows, _ := db.DB.Query("SELECT id, title, event_date, event_type, color FROM campaign_calendar_events WHERE campaign_id=? AND event_date >= date('now') ORDER BY event_date LIMIT 5", campaignID)
+	if calRows != nil {
+		for calRows.Next() {
+			var ev CalendarEventSummary
+			calRows.Scan(&ev.ID, &ev.Title, &ev.EventDate, &ev.EventType, &ev.Color)
+			data.UpcomingEvents = append(data.UpcomingEvents, ev)
+		}
+		calRows.Close()
+	}
+
+	tlRows, _ := db.DB.Query("SELECT id, title, event_date, event_type, importance FROM campaign_timeline_events WHERE campaign_id=? ORDER BY event_date DESC LIMIT 5", campaignID)
+	if tlRows != nil {
+		for tlRows.Next() {
+			var tl TimelineEventSummary
+			tlRows.Scan(&tl.ID, &tl.Title, &tl.EventDate, &tl.EventType, &tl.Importance)
+			data.RecentTimeline = append(data.RecentTimeline, tl)
+		}
+		tlRows.Close()
+	}
+
+	charRows, _ := db.DB.Query("SELECT id, name, race, class, level, hp_current, hp_max FROM characters WHERE campaign_id=? ORDER BY name", campaignID)
+	if charRows != nil {
+		for charRows.Next() {
+			var cs CharacterDashSummary
+			charRows.Scan(&cs.ID, &cs.Name, &cs.Race, &cs.Class, &cs.Level, &cs.HPCurrent, &cs.HPMax)
+			data.Characters = append(data.Characters, cs)
+		}
+		charRows.Close()
+	}
+
+	// One-shots linked to this campaign
+	osRows, _ := db.DB.Query("SELECT id, user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes, created_at, updated_at, COALESCE(is_mini_campaign,0), COALESCE(sort_order,0) FROM oneshot_adventures WHERE campaign_id=? ORDER BY sort_order ASC, updated_at DESC", campaignID)
+	if osRows != nil {
+		for osRows.Next() {
+			var a models.OneShotAdventure
+			var isMiniCampaign, sortOrder int
+			osRows.Scan(&a.ID, &a.UserID, &a.CampaignID, &a.Title, &a.Premise, &a.Hook, &a.Template, &a.EstimatedMinutes, &a.Difficulty, &a.Notes, &a.CreatedAt, &a.UpdatedAt, &isMiniCampaign, &sortOrder)
+			a.IsMiniCampaign = isMiniCampaign == 1
+			a.SortOrder = sortOrder
+			data.OneShots = append(data.OneShots, a)
+		}
+		osRows.Close()
+	}
+
+	recapRows, _ := db.DB.Query("SELECT id, title, COALESCE(session_start_date,''), created_at FROM campaign_recaps WHERE campaign_id=? ORDER BY created_at DESC LIMIT 3", campaignID)
+	if recapRows != nil {
+		for recapRows.Next() {
+			var r RecapSummary
+			recapRows.Scan(&r.ID, &r.Title, &r.SessionStartDate, &r.CreatedAt)
+			data.RecentRecaps = append(data.RecentRecaps, r)
+		}
+		recapRows.Close()
+	}
+
+	combatRows, _ := db.DB.Query("SELECT id, name, round, created_at FROM combat_entries WHERE campaign_id=? ORDER BY created_at DESC LIMIT 3", campaignID)
+	if combatRows != nil {
+		for combatRows.Next() {
+			var cs CombatSummary
+			combatRows.Scan(&cs.ID, &cs.Name, &cs.Round, &cs.CreatedAt)
+			data.RecentCombats = append(data.RecentCombats, cs)
+		}
+		combatRows.Close()
+	}
+
+	rollRows, _ := db.DB.Query(`
+		SELECT dr.id, dr.expression, dr.total, dr.created_at
+		FROM dice_rolls dr
+		JOIN characters c ON dr.character_id = c.id
+		WHERE c.campaign_id=?
+		ORDER BY dr.created_at DESC LIMIT 5
+	`, campaignID)
+	if rollRows != nil {
+		for rollRows.Next() {
+			var dr DiceRollSummary
+			rollRows.Scan(&dr.ID, &dr.Expression, &dr.Total, &dr.CreatedAt)
+			data.RecentDiceRolls = append(data.RecentDiceRolls, dr)
+		}
+		rollRows.Close()
+	}
+
+	renderTemplate(c, "campaign_overview.html", data)
+}
+
+func getCampaignWeather(campaignID int64) *WeatherResult {
+	var wr WeatherResult
+	err := db.DB.QueryRow("SELECT temperature, description, COALESCE(sky,'') FROM campaign_weather WHERE campaign_id=? ORDER BY created_at DESC LIMIT 1", campaignID).Scan(&wr.Temperature, &wr.Description, &wr.Sky)
+	if err != nil {
+		return nil
+	}
+	return &wr
 }
 
 // ─── Session Pacing API Handlers ───
@@ -3003,6 +3207,27 @@ func HtmxOneShotItems(c *gin.Context) {
 	renderTemplate(c, "oneshot_items_section.html", itemsSectionData{Items: out, AdventureID: id})
 }
 
+// ─── One-Shot NPCs Section (HTMX) ───
+
+func HtmxOneShotNPCs(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	rows, err := db.DB.Query("SELECT oan.id, oan.adventure_id, oan.npc_id, oan.role, oan.story_hook, oan.combat_ready, COALESCE(n.name,'') FROM oneshot_adventure_npcs oan LEFT JOIN npcs n ON oan.npc_id=n.id WHERE oan.adventure_id=? ORDER BY oan.id", id)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "query error")
+		return
+	}
+	defer rows.Close()
+	out := make([]models.OneShotAdventureNPC, 0)
+	for rows.Next() {
+		var npc models.OneShotAdventureNPC
+		var combatReady int
+		rows.Scan(&npc.ID, &npc.AdventureID, &npc.NPCID, &npc.Role, &npc.StoryHook, &combatReady, &npc.NPCName)
+		npc.CombatReady = combatReady == 1
+		out = append(out, npc)
+	}
+	renderTemplate(c, "oneshot_npcs_section.html", npcsSectionData{NPCs: out, AdventureID: id})
+}
+
 // ─── One-Shot Shops Section (HTMX) ───
 
 func HtmxOneShotShops(c *gin.Context) {
@@ -3077,6 +3302,11 @@ func HtmxOneShotPCs(c *gin.Context) {
 }
 
 // ─── Data structs for section templates ───
+
+type npcsSectionData struct {
+	NPCs        []models.OneShotAdventureNPC
+	AdventureID int64
+}
 
 type itemsSectionData struct {
 	Items       []models.OneShotItem

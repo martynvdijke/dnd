@@ -21,6 +21,7 @@ const views: ViewItem[] = [
   { id: 'factions', divId: 'factionsView' },
   { id: 'shops', divId: 'shopsView' },
   { id: 'singleEncounter', divId: 'singleEncounterView' },
+  { id: 'campaignOverview', divId: 'campaignOverviewView' },
 ];
 
 export let currentView: ViewState = 'characters';

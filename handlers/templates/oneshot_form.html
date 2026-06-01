@@ -24,6 +24,13 @@
     <input class="form-control" type="number" name="estimated_minutes" value="{{if and $adv $adv.EstimatedMinutes}}{{$adv.EstimatedMinutes}}{{else}}180{{end}}" min="15" step="15">
   </div>
 </div>
+<div class="mb-3">
+  <div class="form-check form-switch">
+    <input class="form-check-input" type="checkbox" name="is_mini_campaign" id="isMiniCampaign" value="1" {{if and $adv $adv.IsMiniCampaign}}checked{{end}}>
+    <label class="form-check-label" for="isMiniCampaign"><i class="fa-solid fa-globe me-1"></i>Mini-Campaign Mode</label>
+    <div class="form-text small mt-0">Enables timeline, factions, and extended sections for multi-session adventures.</div>
+  </div>
+</div>
 <div class="mb-3"><label class="form-label">DM Notes</label><textarea class="form-control" name="notes" rows="2">{{if $adv}}{{$adv.Notes}}{{end}}</textarea></div>
 {{if and $adv $adv.ID}}
 <button class="btn btn-primary w-100" hx-put="/htmx/oneshot-adventures/{{$adv.ID}}" hx-target="#oneshotSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Changes</button>

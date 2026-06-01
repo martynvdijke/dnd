@@ -1,0 +1,196 @@
+<div class="campaign-overview">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <button class="btn btn-outline-secondary btn-sm me-2" onclick="showView('characters');loadCharacters()"><i class="fa-solid fa-arrow-left me-1"></i>Back</button>
+      <h1 class="h3 mb-0 d-inline-block"><i class="fa-solid fa-flag me-2"></i>{{.Name}}</h1>
+      {{if .PartyName}}<span class="text-muted ms-2 fst-italic">{{.PartyName}}</span>{{end}}
+    </div>
+    <div class="d-flex gap-2">
+      <span class="badge bg-info fs-6">{{.TotalMembers}} members</span>
+      <span class="badge bg-warning fs-6">{{.ActiveQuests}} active quests</span>
+      <span class="badge bg-success fs-6">{{.UpcomingSessions}} sessions</span>
+    </div>
+  </div>
+
+  {{if .Weather}}
+  <div class="alert alert-secondary py-2 small mb-3">
+    <i class="fa-solid fa-cloud-sun me-1"></i> <strong>Weather:</strong> {{.Weather.Description}} ({{.Weather.Temperature}}°F)
+  </div>
+  {{end}}
+
+  <div class="row g-3 mb-3">
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="fa-solid fa-users me-2"></i>Characters</span>
+        </div>
+        <div class="card-body p-2">
+          <div class="list-group list-group-flush">
+            {{range .Characters}}
+            <div class="list-group-item px-2 py-1 d-flex justify-content-between align-items-center">
+              <span>
+                <strong>{{.Name}}</strong>
+                <span class="text-muted small ms-1">{{.Race}} {{.Class}} Lv{{.Level}}</span>
+              </span>
+              <span class="small">
+                <span class="badge bg-danger me-1">HP {{.HPCurrent}}/{{.HPMax}}</span>
+              </span>
+            </div>
+            {{else}}
+            <div class="list-group-item px-2 py-1 text-muted small">No characters yet</div>
+            {{end}}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="fa-solid fa-calendar me-2"></i>Upcoming Events</span>
+        </div>
+        <div class="card-body p-2">
+          <div class="list-group list-group-flush">
+            {{range .UpcomingEvents}}
+            <div class="list-group-item px-2 py-1">
+              <div class="d-flex justify-content-between">
+                <span><strong>{{.Title}}</strong></span>
+                <span class="text-muted small">{{.EventDate}}</span>
+              </div>
+            </div>
+            {{else}}
+            <div class="list-group-item px-2 py-1 text-muted small">No upcoming events</div>
+            {{end}}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-12 col-lg-8">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span><i class="fa-solid fa-scroll me-2"></i>One-Shot Adventures</span>
+          <button class="btn btn-primary btn-sm" onclick="showView('oneshot');showOneShots()"><i class="fa-solid fa-plus me-1"></i>New</button>
+        </div>
+        <div class="card-body p-2" id="campaignOneShotsSection">
+          <div class="list-group list-group-flush">
+            {{range .OneShots}}
+            <a href="#" class="list-group-item list-group-item-action px-2 py-2 d-flex justify-content-between align-items-center" onclick="showView('oneshot');htmx.ajax('GET', '/htmx/oneshot-adventures/{{.ID}}', {target:'#oneshotSection', swap:'innerHTML'});return false">
+              <div>
+                <strong>{{.Title}}</strong>
+                {{if .IsMiniCampaign}}<span class="badge bg-purple ms-1">Mini-Campaign</span>{{end}}
+                <span class="badge bg-secondary ms-1">{{.Difficulty}}</span>
+                <span class="text-muted small ms-2">{{.EstimatedMinutes}}min</span>
+              </div>
+              <span class="text-muted small">{{.UpdatedAt}}</span>
+            </a>
+            {{else}}
+            <div class="list-group-item px-2 py-1 text-muted small">No one-shots yet. Create one from the One-Shots view.</div>
+            {{end}}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-4">
+      <div class="card h-100">
+        <div class="card-header"><i class="fa-solid fa-clock me-2"></i>Recent Timeline</div>
+        <div class="card-body p-2">
+          <div class="list-group list-group-flush">
+            {{range .RecentTimeline}}
+            <div class="list-group-item px-2 py-1 small">
+              <span class="badge bg-secondary me-1">{{.EventDate}}</span>
+              <strong>{{.Title}}</strong>
+            </div>
+            {{else}}
+            <div class="list-group-item px-2 py-1 text-muted small">No timeline events yet</div>
+            {{end}}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-3">
+    <div class="col-12 col-md-6">
+      <div class="card">
+        <div class="card-header"><i class="fa-solid fa-book me-2"></i>Recent Recaps</div>
+        <div class="card-body p-2">
+          <div class="list-group list-group-flush">
+            {{range .RecentRecaps}}
+            <div class="list-group-item px-2 py-1 d-flex justify-content-between">
+              <span><strong>{{.Title}}</strong></span>
+              <span class="text-muted small">{{.SessionStartDate}}</span>
+            </div>
+            {{else}}
+            <div class="list-group-item px-2 py-1 text-muted small">No recaps yet</div>
+            {{end}}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6">
+      <div class="card">
+        <div class="card-header"><i class="fa-solid fa-swords me-2"></i>Recent Combats</div>
+        <div class="card-body p-2">
+          <div class="list-group list-group-flush">
+            {{range .RecentCombats}}
+            <div class="list-group-item px-2 py-1 d-flex justify-content-between">
+              <span><strong>{{.Name}}</strong></span>
+              <span class="text-muted small">Round {{.Round}}</span>
+            </div>
+            {{else}}
+            <div class="list-group-item px-2 py-1 text-muted small">No recent combats</div>
+            {{end}}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {{if .RecentDiceRolls}}
+  <div class="card mb-3">
+    <div class="card-header"><i class="fa-solid fa-dice me-2"></i>Recent Dice Rolls</div>
+    <div class="card-body p-2">
+      <div class="list-group list-group-flush">
+        {{range .RecentDiceRolls}}
+        <div class="list-group-item px-2 py-1 small">
+          <code>{{.Expression}}</code> = <strong>{{.Total}}</strong>
+          <span class="text-muted ms-2">{{.CreatedAt}}</span>
+        </div>
+        {{end}}
+      </div>
+    </div>
+  </div>
+  {{end}}
+
+  <div class="row g-3">
+    <div class="col-12 col-md-4">
+      <div class="card">
+        <div class="card-header"><i class="fa-solid fa-flag me-2"></i>Factions</div>
+        <div class="card-body p-2" hx-get="/htmx/factions" hx-trigger="load" hx-swap="innerHTML">
+          <div class="text-muted small">Loading...</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="card">
+        <div class="card-header"><i class="fa-solid fa-store me-2"></i>Shops</div>
+        <div class="card-body p-2" hx-get="/htmx/shops" hx-trigger="load" hx-swap="innerHTML">
+          <div class="text-muted small">Loading...</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="card">
+        <div class="card-header"><i class="fa-solid fa-crosshairs me-2"></i>Encounters</div>
+        <div class="card-body p-2" hx-get="/htmx/encounters" hx-trigger="load" hx-swap="innerHTML">
+          <div class="text-muted small">Loading...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

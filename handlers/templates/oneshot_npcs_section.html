@@ -1,0 +1,24 @@
+{{if .NPCs}}
+<div class="list-group list-group-flush">
+  {{range .NPCs}}
+  <div class="list-group-item py-2 px-0 d-flex justify-content-between align-items-start">
+    <div>
+      <strong>{{.NPCName}}</strong>
+      <span class="badge {{if eq .Role "ally"}}bg-success{{else if eq .Role "enemy"}}bg-danger{{else}}bg-secondary{{end}} ms-1">{{.Role}}</span>
+      {{if .CombatReady}}<span class="badge bg-warning ms-1">Combat</span>{{end}}
+      {{if .StoryHook}}<div class="small text-muted mt-1"><em>"{{.StoryHook}}"</em></div>{{end}}
+    </div>
+    <div class="d-flex gap-1">
+      {{if .CombatReady}}<button class="btn btn-sm btn-outline-warning" onclick="addNPCToCombat({{.NPCID}}, '{{.NPCName}}')" title="Add to combat tracker"><i class="fa-solid fa-swords"></i></button>{{end}}
+      <button class="btn btn-sm btn-outline-danger" onclick="deleteOneShotNPC({{.AdventureID}}, {{.NPCID}})"><i class="fa-solid fa-trash"></i></button>
+    </div>
+  </div>
+  {{end}}
+</div>
+{{else}}
+<div class="text-muted small fst-italic">No NPCs linked yet.</div>
+{{end}}
+<div class="mt-2 d-flex gap-2">
+  <button class="btn btn-sm btn-outline-primary" onclick="showOneShotNPCLinkForm({{.AdventureID}})"><i class="fa-solid fa-plus me-1"></i>Link NPC</button>
+  <button class="btn btn-sm btn-outline-warning" onclick="addOneShotCombatNPCs({{.AdventureID}})"><i class="fa-solid fa-swords me-1"></i>Send Combat NPCs to Tracker</button>
+</div>

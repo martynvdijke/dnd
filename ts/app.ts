@@ -4126,7 +4126,7 @@ async function renderNotes() {
   const el = document.getElementById('shopsContent')!;
   try {
     const data = await api('GET', '/api/shops');
-    if (!data.length) {
+    if (!data || !data.length) {
       el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-store fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Shops</p><p class="small text-muted">No shops have been created yet.</p></div>';
       return;
     }
@@ -4143,6 +4143,16 @@ async function renderNotes() {
   el.setAttribute('hx-trigger', 'load');
   el.setAttribute('hx-swap', 'innerHTML');
   el.innerHTML = '<div class="ornament">✧ Loading one-shot adventures... ✧</div>';
+  htmx.process(el);
+};
+
+(window as any).showCampaignOverview = function (campaignId: number) {
+  showView('campaignOverview');
+  const el = document.getElementById('campaignOverviewSection')!;
+  el.setAttribute('hx-get', `/htmx/campaigns/${campaignId}/overview`);
+  el.setAttribute('hx-trigger', 'load');
+  el.setAttribute('hx-swap', 'innerHTML');
+  el.innerHTML = '<div class="ornament">✧ Loading campaign overview... ✧</div>';
   htmx.process(el);
 };
 
@@ -5250,6 +5260,109 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
   toast('Monster deleted');
   const monstersCard = document.querySelector('[hx-get*="/monsters"]');
   if (monstersCard) htmx.trigger(monstersCard, 'load');
+};
+
+// ─── One-Shot NPC Linking ───
+
+(window as any).showOneShotNPCLinkForm = async function (adventureId: number) {
+  let npcs: any[];
+  try {
+    const res = await fetch('/api/npcs');
+    npcs = await res.json();
+  } catch {
+    toast('Failed to load NPCs', true);
+    return;
+  }
+  const list = npcs.map(n => `<div class="form-check"><input class="form-check-input npc-select" type="radio" name="npc_id" value="${n.id}" id="npc_${n.id}"><label class="form-check-label" for="npc_${n.id}"><strong>${esc(n.name)}</strong> ${n.race ? '(' + esc(n.race) + ')' : ''} ${n.class ? '- ' + esc(n.class) : ''}</label></div>`).join('');
+  showModal('Link NPC', `
+    <div class="mb-3">
+      <input class="form-control form-control-sm" id="npcSearchInput" placeholder="Search NPCs..." oninput="filterNPCList(this.value)">
+    </div>
+    <div id="npcSelectList" style="max-height:200px;overflow-y:auto" class="mb-3 border rounded p-2">${list}</div>
+    <div class="mb-2"><label class="form-label">Role</label>
+      <select class="form-select" id="npcLinkRole">
+        <option value="ally">Ally</option>
+        <option value="neutral">Neutral</option>
+        <option value="enemy">Enemy</option>
+      </select>
+    </div>
+    <div class="mb-2"><label class="form-label">Story Hook</label><textarea class="form-control" id="npcLinkHook" rows="2" placeholder="Brief story hook or note for this NPC..."></textarea></div>
+    <div class="mb-3"><label class="form-label"><input type="checkbox" id="npcLinkCombat"> Combat-ready</label></div>
+    <button class="btn btn-primary w-100" onclick="linkOneShotNPC(${adventureId})">Link NPC</button>
+  `);
+};
+
+(window as any).filterNPCList = function (query: string) {
+  const list = document.getElementById('npcSelectList');
+  if (!list) return;
+  const q = query.toLowerCase();
+  list.querySelectorAll('.form-check').forEach(el => {
+    const label = el.querySelector('.form-check-label')?.textContent?.toLowerCase() || '';
+    el.classList.toggle('d-none', !label.includes(q));
+  });
+};
+
+(window as any).linkOneShotNPC = async function (adventureId: number) {
+  const selected = document.querySelector<HTMLInputElement>('.npc-select:checked');
+  if (!selected) { toast('Select an NPC', true); return; }
+  const npcId = parseInt(selected.value);
+  const role = (document.getElementById('npcLinkRole') as HTMLSelectElement).value;
+  const storyHook = (document.getElementById('npcLinkHook') as HTMLTextAreaElement).value;
+  const combatReady = (document.getElementById('npcLinkCombat') as HTMLInputElement).checked;
+  await api('POST', `/api/oneshot-adventures/${adventureId}/npcs`, { npc_id: npcId, role, story_hook: storyHook, combat_ready: combatReady });
+  hideModal();
+  toast('NPC linked');
+  const npcCard = document.querySelector('[hx-get*="/npcs"]');
+  if (npcCard) htmx.trigger(npcCard, 'load');
+};
+
+(window as any).deleteOneShotNPC = async function (adventureId: number, npcId: number) {
+  if (!confirm('Remove this NPC from the adventure?')) return;
+  await api('DELETE', `/api/oneshot-adventures/${adventureId}/npcs/${npcId}`);
+  toast('NPC removed');
+  const npcCard = document.querySelector('[hx-get*="/npcs"]');
+  if (npcCard) htmx.trigger(npcCard, 'load');
+};
+
+// ─── Combat-Ready NPCs → Combat Tracker ───
+
+(window as any).addNPCToCombat = async function (npcId: number, npcName: string) {
+  try {
+    await api('POST', '/api/combat', {
+      name: npcName,
+      type: 'npc',
+      ac: 10,
+      hp_max: 20,
+      hp_current: 20,
+      initiative_mod: 0,
+      source_npc_id: npcId,
+    });
+    showView('combatTracker');
+    (window as any).showCombatTracker();
+    toast(`${npcName} added to combat tracker`);
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).addOneShotCombatNPCs = async function (adventureId: number) {
+  try {
+    const res = await api('GET', `/api/oneshot-adventures/${adventureId}/npcs`);
+    const combatNPCs = res.filter((n: any) => n.combat_ready);
+    if (!combatNPCs.length) { toast('No combat-ready NPCs in this one-shot'); return; }
+    for (const npc of combatNPCs) {
+      await api('POST', '/api/combat', {
+        name: npc.npc_name,
+        type: 'npc',
+        ac: 10,
+        hp_max: 20,
+        hp_current: 20,
+        initiative_mod: 0,
+        source_npc_id: npc.npc_id,
+      });
+    }
+    showView('combatTracker');
+    (window as any).showCombatTracker();
+    toast(`${combatNPCs.length} combat-ready NPC(s) added to tracker`);
+  } catch (e: any) { toast(e.message, true); }
 };
 
 // Monster Library

@@ -59,7 +59,7 @@ func ListShops(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
-	var shops []Shop
+	shops := make([]Shop, 0)
 	for rows.Next() {
 		var s Shop
 		rows.Scan(&s.ID, &s.UserID, &s.CampaignID, &s.Name, &s.Description, &s.MarkupPercent, &s.MarkupBuyPercent, &s.CreatedAt)
