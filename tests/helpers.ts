@@ -1,13 +1,24 @@
 import { Page } from '@playwright/test';
 
+const desktopNavMap: Record<string, string> = {
+  'Characters': 'characters',
+  'Dice': 'dice',
+  'Party': 'party',
+  'Compendium': 'compendium',
+  'Encounters': 'encounters',
+  'Timeline': 'timeline',
+  'One-Shots': 'oneshots',
+  'Combat': 'combat',
+  'Factions': 'factions',
+  'Shops': 'shops',
+  'Admin': 'admin',
+};
+
 export async function ensureNavOpen(page: Page) {
-  const navbar = page.locator('.navbar');
-  if (await navbar.isVisible()) {
-    const toggler = page.locator('.navbar-toggler');
-    if (await toggler.isVisible()) {
-      await toggler.click();
-      await page.waitForTimeout(300);
-    }
+  const toggler = page.locator('.navbar-toggler');
+  if (await toggler.isVisible()) {
+    await toggler.click();
+    await page.waitForTimeout(300);
   }
 }
 
@@ -36,7 +47,10 @@ export async function clickNavItem(page: Page, text: string, bottomNav?: string)
       await page.click(`#bottomTabBar button[data-nav="${bottomNav}"]`);
     }
   } else {
-    await page.click(`a:has-text("${text}")`);
+    const nav = desktopNavMap[text];
+    if (nav) {
+      await page.locator(`#appSidebar button[data-nav="${nav}"]`).click();
+    }
   }
 }
 
@@ -56,8 +70,10 @@ export async function clickSecondaryNavItem(page: Page, desktopText: string, mor
     }, moreId);
     await page.waitForTimeout(300);
   } else {
-    await ensureNavOpen(page);
-    await page.click(`nav a:has-text("${desktopText}")`);
+    const nav = desktopNavMap[desktopText];
+    if (nav) {
+      await page.locator(`#appSidebar button[data-nav="${nav}"]`).click();
+    }
   }
 }
 

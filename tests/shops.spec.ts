@@ -2,13 +2,7 @@ import { test, expect } from '@playwright/test';
 
 const uniqueName = () => `Shop-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-async function ensureNavOpen(page) {
-  const toggler = page.locator('.navbar-toggler');
-  if (await toggler.isVisible()) {
-    await toggler.click();
-    await page.waitForTimeout(300);
-  }
-}
+import { ensureNavOpen } from './helpers.js';
 
 test.describe('Shops & Trading', () => {
   test.beforeEach(async ({ page }) => {
@@ -28,7 +22,7 @@ test.describe('Shops & Trading', () => {
 
   test('shops nav is visible for admin', async ({ page }) => {
     await ensureNavOpen(page);
-    await expect(page.locator('#shopsNavItem')).toBeVisible();
+    await expect(page.locator('#sidebarShopsNav')).toBeVisible();
   });
 
   test('create a shop via API', async ({ page }) => {
@@ -42,7 +36,7 @@ test.describe('Shops & Trading', () => {
       });
     }, shopName);
     await ensureNavOpen(page);
-    await page.click('#shopsNavItem a');
+    await page.locator('#appSidebar button[data-nav="shops"]').click();
     await page.waitForTimeout(500);
     await expect(page.locator('#shopSelect')).toContainText(shopName);
   });
@@ -61,7 +55,7 @@ test.describe('Shops & Trading', () => {
     }, shopName);
 
     await ensureNavOpen(page);
-    await page.click('#shopsNavItem a');
+    await page.locator('#appSidebar button[data-nav="shops"]').click();
     await page.waitForTimeout(500);
     await expect(page.locator('#shopSelect')).toContainText(shopName);
   });

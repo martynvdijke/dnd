@@ -11,7 +11,7 @@ async function openCombat(page: Page) {
     });
   } else {
     await ensureNavOpen(page);
-    await page.click('#combatNavItem a');
+    await page.locator('#appSidebar button[data-nav="combat"]').click();
   }
   await page.waitForTimeout(500);
 }

@@ -47,6 +47,7 @@ test.describe('Full application smoke test', () => {
       page.click('button[type="submit"]'),
     ]);
 
+    const navMap = { 'Compendium': 'compendium', 'Dice': 'dice', 'Encounters': 'encounters', 'Factions': 'factions' };
     async function clickNav(page, text) {
       const toggler = page.locator('.navbar-toggler');
       const isMobile = await toggler.isVisible();
@@ -56,13 +57,14 @@ test.describe('Full application smoke test', () => {
           await toggler.click();
           await page.locator('#mainNav').waitFor({ state: 'visible', timeout: 5000 });
         }
-      }
-      const link = page.locator(`nav a:has-text("${text}")`);
-      await link.waitFor({ state: 'visible', timeout: 5000 });
-      if (isMobile) {
+        const link = page.locator(`nav a:has-text("${text}")`);
+        await link.waitFor({ state: 'visible', timeout: 5000 });
         await link.click();
       } else {
-        await link.click();
+        const nav = navMap[text];
+        if (nav) {
+          await page.locator(`#appSidebar button[data-nav="${nav}"]`).click();
+        }
       }
     }
 

@@ -24,7 +24,7 @@ test.describe('Admin panel', () => {
       await expect(page.locator('#adminUsers .card-header')).toContainText('Users');
     } else {
       await ensureNavOpen(page);
-      await expect(page.locator('#adminNavItem')).toBeVisible();
+      await expect(page.locator('#sidebarAdminNav')).toBeVisible();
     }
   });
 
