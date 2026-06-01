@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { clickNavItem } from './helpers.js';
 
 const uniqueName = () => `Party-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -170,12 +171,7 @@ test.describe('Party Management', () => {
     }, name);
 
     // Navigate to Party View
-    const toggler = page.locator('.navbar-toggler');
-    if (await toggler.isVisible()) {
-      await toggler.click();
-      await page.waitForTimeout(300);
-    }
-    await page.locator('nav a:has-text("Party View")').click();
+    await clickNavItem(page, 'Party', 'party');
     await page.waitForTimeout(1500);
 
     // Check the party content area contains the party name
