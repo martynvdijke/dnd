@@ -8,6 +8,12 @@ function makeTestPNG(): Buffer {
   );
 }
 
+async function getCSRFToken(page: { request: { get: (url: string) => Promise<{ json: () => Promise<Record<string, string>> }> } }): Promise<string> {
+  const resp = await page.request.get('/api/csrf-token');
+  const data = await resp.json();
+  return data.token;
+}
+
 test.describe('File upload and media gallery', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login');
@@ -28,6 +34,7 @@ test.describe('File upload and media gallery', () => {
 
   test('upload API works and returns valid response', async ({ page }) => {
     const pngBytes = makeTestPNG();
+    const csrf = await getCSRFToken(page);
 
     const resp = await page.request.post('/api/upload', {
       multipart: {
@@ -36,6 +43,9 @@ test.describe('File upload and media gallery', () => {
           mimeType: 'image/png',
           buffer: pngBytes,
         },
+      },
+      headers: {
+        'X-CSRF-Token': csrf,
       },
     });
     expect(resp.status()).toBe(200);
@@ -47,6 +57,7 @@ test.describe('File upload and media gallery', () => {
 
   test('upload-links API works', async ({ page }) => {
     const pngBytes = makeTestPNG();
+    const csrf = await getCSRFToken(page);
 
     // Upload an image
     const uploadResp = await page.request.post('/api/upload', {
@@ -56,6 +67,9 @@ test.describe('File upload and media gallery', () => {
           mimeType: 'image/png',
           buffer: pngBytes,
         },
+      },
+      headers: {
+        'X-CSRF-Token': csrf,
       },
     });
     expect(uploadResp.status()).toBe(200);
@@ -69,6 +83,9 @@ test.describe('File upload and media gallery', () => {
         entity_id: 42,
         field_name: 'map',
       },
+      headers: {
+        'X-CSRF-Token': csrf,
+      },
     });
     expect(linkResp.status()).toBe(201);
     const linkData = await linkResp.json();
@@ -76,7 +93,11 @@ test.describe('File upload and media gallery', () => {
     expect(linkData.entity_type).toBe('campaign');
 
     // Delete upload link
-    const deleteResp = await page.request.delete(`/api/upload-links/${linkData.id}`);
+    const deleteResp = await page.request.delete(`/api/upload-links/${linkData.id}`, {
+      headers: {
+        'X-CSRF-Token': csrf,
+      },
+    });
     expect(deleteResp.status()).toBe(204);
   });
 
