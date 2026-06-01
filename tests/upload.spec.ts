@@ -77,20 +77,18 @@ test.describe('File upload and media gallery', () => {
 
     // Create upload link
     const linkResp = await page.request.post('/api/upload-links', {
-      data: {
+      data: JSON.stringify({
         upload_id: uploadData.id,
         entity_type: 'campaign',
         entity_id: 42,
         field_name: 'map',
-      },
+      }),
       headers: {
+        'Content-Type': 'application/json',
         'X-CSRF-Token': csrf,
       },
     });
-    if (linkResp.status() !== 201) {
-      const body = await linkResp.text();
-      throw new Error(`Expected 201, got ${linkResp.status()}: ${body}`);
-    }
+    expect(linkResp.status()).toBe(201);
     const linkData = await linkResp.json();
     expect(linkData).toHaveProperty('id');
     expect(linkData.entity_type).toBe('campaign');
