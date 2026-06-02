@@ -99,6 +99,16 @@ func Notes(v string) predicate.OneShotAdventure {
 	return predicate.OneShotAdventure(sql.FieldEQ(FieldNotes, v))
 }
 
+// IsMiniCampaign applies equality check predicate on the "is_mini_campaign" field. It's identical to IsMiniCampaignEQ.
+func IsMiniCampaign(v bool) predicate.OneShotAdventure {
+	return predicate.OneShotAdventure(sql.FieldEQ(FieldIsMiniCampaign, v))
+}
+
+// SortOrder applies equality check predicate on the "sort_order" field. It's identical to SortOrderEQ.
+func SortOrder(v int) predicate.OneShotAdventure {
+	return predicate.OneShotAdventure(sql.FieldEQ(FieldSortOrder, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v string) predicate.OneShotAdventure {
 	return predicate.OneShotAdventure(sql.FieldEQ(FieldCreatedAt, v))
@@ -627,6 +637,56 @@ func NotesEqualFold(v string) predicate.OneShotAdventure {
 // NotesContainsFold applies the ContainsFold predicate on the "notes" field.
 func NotesContainsFold(v string) predicate.OneShotAdventure {
 	return predicate.OneShotAdventure(sql.FieldContainsFold(FieldNotes, v))
+}
+
+// IsMiniCampaignEQ applies the EQ predicate on the "is_mini_campaign" field.
+func IsMiniCampaignEQ(v bool) predicate.OneShotAdventure {
+	return predicate.OneShotAdventure(sql.FieldEQ(FieldIsMiniCampaign, v))
+}
+
+// IsMiniCampaignNEQ applies the NEQ predicate on the "is_mini_campaign" field.
+func IsMiniCampaignNEQ(v bool) predicate.OneShotAdventure {
+	return predicate.OneShotAdventure(sql.FieldNEQ(FieldIsMiniCampaign, v))
+}
+
+// SortOrderEQ applies the EQ predicate on the "sort_order" field.
+func SortOrderEQ(v int) predicate.OneShotAdventure {
+	return predicate.OneShotAdventure(sql.FieldEQ(FieldSortOrder, v))
+}
+
+// SortOrderNEQ applies the NEQ predicate on the "sort_order" field.
+func SortOrderNEQ(v int) predicate.OneShotAdventure {
+	return predicate.OneShotAdventure(sql.FieldNEQ(FieldSortOrder, v))
+}
+
+// SortOrderIn applies the In predicate on the "sort_order" field.
+func SortOrderIn(vs ...int) predicate.OneShotAdventure {
+	return predicate.OneShotAdventure(sql.FieldIn(FieldSortOrder, vs...))
+}
+
+// SortOrderNotIn applies the NotIn predicate on the "sort_order" field.
+func SortOrderNotIn(vs ...int) predicate.OneShotAdventure {
+	return predicate.OneShotAdventure(sql.FieldNotIn(FieldSortOrder, vs...))
+}
+
+// SortOrderGT applies the GT predicate on the "sort_order" field.
+func SortOrderGT(v int) predicate.OneShotAdventure {
+	return predicate.OneShotAdventure(sql.FieldGT(FieldSortOrder, v))
+}
+
+// SortOrderGTE applies the GTE predicate on the "sort_order" field.
+func SortOrderGTE(v int) predicate.OneShotAdventure {
+	return predicate.OneShotAdventure(sql.FieldGTE(FieldSortOrder, v))
+}
+
+// SortOrderLT applies the LT predicate on the "sort_order" field.
+func SortOrderLT(v int) predicate.OneShotAdventure {
+	return predicate.OneShotAdventure(sql.FieldLT(FieldSortOrder, v))
+}
+
+// SortOrderLTE applies the LTE predicate on the "sort_order" field.
+func SortOrderLTE(v int) predicate.OneShotAdventure {
+	return predicate.OneShotAdventure(sql.FieldLTE(FieldSortOrder, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

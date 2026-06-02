@@ -181,6 +181,41 @@ func (_u *OneShotAdventureUpdate) SetNillableNotes(v *string) *OneShotAdventureU
 	return _u
 }
 
+// SetIsMiniCampaign sets the "is_mini_campaign" field.
+func (_u *OneShotAdventureUpdate) SetIsMiniCampaign(v bool) *OneShotAdventureUpdate {
+	_u.mutation.SetIsMiniCampaign(v)
+	return _u
+}
+
+// SetNillableIsMiniCampaign sets the "is_mini_campaign" field if the given value is not nil.
+func (_u *OneShotAdventureUpdate) SetNillableIsMiniCampaign(v *bool) *OneShotAdventureUpdate {
+	if v != nil {
+		_u.SetIsMiniCampaign(*v)
+	}
+	return _u
+}
+
+// SetSortOrder sets the "sort_order" field.
+func (_u *OneShotAdventureUpdate) SetSortOrder(v int) *OneShotAdventureUpdate {
+	_u.mutation.ResetSortOrder()
+	_u.mutation.SetSortOrder(v)
+	return _u
+}
+
+// SetNillableSortOrder sets the "sort_order" field if the given value is not nil.
+func (_u *OneShotAdventureUpdate) SetNillableSortOrder(v *int) *OneShotAdventureUpdate {
+	if v != nil {
+		_u.SetSortOrder(*v)
+	}
+	return _u
+}
+
+// AddSortOrder adds value to the "sort_order" field.
+func (_u *OneShotAdventureUpdate) AddSortOrder(v int) *OneShotAdventureUpdate {
+	_u.mutation.AddSortOrder(v)
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *OneShotAdventureUpdate) SetCreatedAt(v string) *OneShotAdventureUpdate {
 	_u.mutation.SetCreatedAt(v)
@@ -324,6 +359,15 @@ func (_u *OneShotAdventureUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(oneshotadventure.FieldNotes, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.IsMiniCampaign(); ok {
+		_spec.SetField(oneshotadventure.FieldIsMiniCampaign, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.SortOrder(); ok {
+		_spec.SetField(oneshotadventure.FieldSortOrder, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedSortOrder(); ok {
+		_spec.AddField(oneshotadventure.FieldSortOrder, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(oneshotadventure.FieldCreatedAt, field.TypeString, value)
@@ -549,6 +593,41 @@ func (_u *OneShotAdventureUpdateOne) SetNillableNotes(v *string) *OneShotAdventu
 	return _u
 }
 
+// SetIsMiniCampaign sets the "is_mini_campaign" field.
+func (_u *OneShotAdventureUpdateOne) SetIsMiniCampaign(v bool) *OneShotAdventureUpdateOne {
+	_u.mutation.SetIsMiniCampaign(v)
+	return _u
+}
+
+// SetNillableIsMiniCampaign sets the "is_mini_campaign" field if the given value is not nil.
+func (_u *OneShotAdventureUpdateOne) SetNillableIsMiniCampaign(v *bool) *OneShotAdventureUpdateOne {
+	if v != nil {
+		_u.SetIsMiniCampaign(*v)
+	}
+	return _u
+}
+
+// SetSortOrder sets the "sort_order" field.
+func (_u *OneShotAdventureUpdateOne) SetSortOrder(v int) *OneShotAdventureUpdateOne {
+	_u.mutation.ResetSortOrder()
+	_u.mutation.SetSortOrder(v)
+	return _u
+}
+
+// SetNillableSortOrder sets the "sort_order" field if the given value is not nil.
+func (_u *OneShotAdventureUpdateOne) SetNillableSortOrder(v *int) *OneShotAdventureUpdateOne {
+	if v != nil {
+		_u.SetSortOrder(*v)
+	}
+	return _u
+}
+
+// AddSortOrder adds value to the "sort_order" field.
+func (_u *OneShotAdventureUpdateOne) AddSortOrder(v int) *OneShotAdventureUpdateOne {
+	_u.mutation.AddSortOrder(v)
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *OneShotAdventureUpdateOne) SetCreatedAt(v string) *OneShotAdventureUpdateOne {
 	_u.mutation.SetCreatedAt(v)
@@ -722,6 +801,15 @@ func (_u *OneShotAdventureUpdateOne) sqlSave(ctx context.Context) (_node *OneSho
 	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(oneshotadventure.FieldNotes, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.IsMiniCampaign(); ok {
+		_spec.SetField(oneshotadventure.FieldIsMiniCampaign, field.TypeBool, value)
+	}
+	if value, ok := _u.mutation.SortOrder(); ok {
+		_spec.SetField(oneshotadventure.FieldSortOrder, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedSortOrder(); ok {
+		_spec.AddField(oneshotadventure.FieldSortOrder, field.TypeInt, value)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(oneshotadventure.FieldCreatedAt, field.TypeString, value)

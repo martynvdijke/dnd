@@ -9,6 +9,28 @@ import (
 )
 
 var (
+	// AiEndpointsColumns holds the columns for the "ai_endpoints" table.
+	AiEndpointsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "name", Type: field.TypeString, Unique: true},
+		{Name: "type", Type: field.TypeEnum, Enums: []string{"text", "image"}},
+		{Name: "base_url", Type: field.TypeString},
+		{Name: "encrypted_api_key", Type: field.TypeString},
+		{Name: "model", Type: field.TypeString},
+		{Name: "tags", Type: field.TypeJSON, Nullable: true},
+		{Name: "enabled", Type: field.TypeBool, Default: true},
+		{Name: "temperature", Type: field.TypeFloat64, Nullable: true},
+		{Name: "max_tokens", Type: field.TypeInt, Nullable: true},
+		{Name: "image_size", Type: field.TypeString, Nullable: true},
+		{Name: "created_at", Type: field.TypeString},
+		{Name: "updated_at", Type: field.TypeString},
+	}
+	// AiEndpointsTable holds the schema information for the "ai_endpoints" table.
+	AiEndpointsTable = &schema.Table{
+		Name:       "ai_endpoints",
+		Columns:    AiEndpointsColumns,
+		PrimaryKey: []*schema.Column{AiEndpointsColumns[0]},
+	}
 	// BackupSettingsColumns holds the columns for the "backup_settings" table.
 	BackupSettingsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -1224,6 +1246,8 @@ var (
 	// FactionsColumns holds the columns for the "factions" table.
 	FactionsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "party_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "oneshot_adventure_id", Type: field.TypeInt64, Nullable: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString, Default: ""},
 		{Name: "type", Type: field.TypeString, Default: "organization"},
@@ -1239,7 +1263,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "factions_campaigns_factions",
-				Columns:    []*schema.Column{FactionsColumns[6]},
+				Columns:    []*schema.Column{FactionsColumns[8]},
 				RefColumns: []*schema.Column{CampaignsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -1248,7 +1272,17 @@ var (
 			{
 				Name:    "faction_campaign_id",
 				Unique:  false,
-				Columns: []*schema.Column{FactionsColumns[6]},
+				Columns: []*schema.Column{FactionsColumns[8]},
+			},
+			{
+				Name:    "faction_party_id",
+				Unique:  false,
+				Columns: []*schema.Column{FactionsColumns[1]},
+			},
+			{
+				Name:    "faction_oneshot_adventure_id",
+				Unique:  false,
+				Columns: []*schema.Column{FactionsColumns[2]},
 			},
 		},
 	}
@@ -1574,6 +1608,8 @@ var (
 		{Name: "estimated_minutes", Type: field.TypeInt, Default: 180},
 		{Name: "difficulty", Type: field.TypeString, Default: "medium"},
 		{Name: "notes", Type: field.TypeString, Default: ""},
+		{Name: "is_mini_campaign", Type: field.TypeBool, Default: false},
+		{Name: "sort_order", Type: field.TypeInt, Default: 0},
 		{Name: "created_at", Type: field.TypeString, Default: ""},
 		{Name: "updated_at", Type: field.TypeString, Default: ""},
 	}
@@ -2125,6 +2161,7 @@ var (
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		AiEndpointsTable,
 		BackupSettingsTable,
 		CampaignsTable,
 		CampaignCalendarEventsTable,

@@ -37,6 +37,34 @@ func (_c *FactionCreate) SetNillableCampaignID(v *int64) *FactionCreate {
 	return _c
 }
 
+// SetPartyID sets the "party_id" field.
+func (_c *FactionCreate) SetPartyID(v int64) *FactionCreate {
+	_c.mutation.SetPartyID(v)
+	return _c
+}
+
+// SetNillablePartyID sets the "party_id" field if the given value is not nil.
+func (_c *FactionCreate) SetNillablePartyID(v *int64) *FactionCreate {
+	if v != nil {
+		_c.SetPartyID(*v)
+	}
+	return _c
+}
+
+// SetOneshotAdventureID sets the "oneshot_adventure_id" field.
+func (_c *FactionCreate) SetOneshotAdventureID(v int64) *FactionCreate {
+	_c.mutation.SetOneshotAdventureID(v)
+	return _c
+}
+
+// SetNillableOneshotAdventureID sets the "oneshot_adventure_id" field if the given value is not nil.
+func (_c *FactionCreate) SetNillableOneshotAdventureID(v *int64) *FactionCreate {
+	if v != nil {
+		_c.SetOneshotAdventureID(*v)
+	}
+	return _c
+}
+
 // SetName sets the "name" field.
 func (_c *FactionCreate) SetName(v string) *FactionCreate {
 	_c.mutation.SetName(v)
@@ -228,6 +256,14 @@ func (_c *FactionCreate) createSpec() (*Faction, *sqlgraph.CreateSpec) {
 		_node.ID = id
 		_spec.ID.Value = id
 	}
+	if value, ok := _c.mutation.PartyID(); ok {
+		_spec.SetField(faction.FieldPartyID, field.TypeInt64, value)
+		_node.PartyID = value
+	}
+	if value, ok := _c.mutation.OneshotAdventureID(); ok {
+		_spec.SetField(faction.FieldOneshotAdventureID, field.TypeInt64, value)
+		_node.OneshotAdventureID = value
+	}
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(faction.FieldName, field.TypeString, value)
 		_node.Name = value
@@ -348,6 +384,54 @@ func (u *FactionUpsert) UpdateCampaignID() *FactionUpsert {
 // ClearCampaignID clears the value of the "campaign_id" field.
 func (u *FactionUpsert) ClearCampaignID() *FactionUpsert {
 	u.SetNull(faction.FieldCampaignID)
+	return u
+}
+
+// SetPartyID sets the "party_id" field.
+func (u *FactionUpsert) SetPartyID(v int64) *FactionUpsert {
+	u.Set(faction.FieldPartyID, v)
+	return u
+}
+
+// UpdatePartyID sets the "party_id" field to the value that was provided on create.
+func (u *FactionUpsert) UpdatePartyID() *FactionUpsert {
+	u.SetExcluded(faction.FieldPartyID)
+	return u
+}
+
+// AddPartyID adds v to the "party_id" field.
+func (u *FactionUpsert) AddPartyID(v int64) *FactionUpsert {
+	u.Add(faction.FieldPartyID, v)
+	return u
+}
+
+// ClearPartyID clears the value of the "party_id" field.
+func (u *FactionUpsert) ClearPartyID() *FactionUpsert {
+	u.SetNull(faction.FieldPartyID)
+	return u
+}
+
+// SetOneshotAdventureID sets the "oneshot_adventure_id" field.
+func (u *FactionUpsert) SetOneshotAdventureID(v int64) *FactionUpsert {
+	u.Set(faction.FieldOneshotAdventureID, v)
+	return u
+}
+
+// UpdateOneshotAdventureID sets the "oneshot_adventure_id" field to the value that was provided on create.
+func (u *FactionUpsert) UpdateOneshotAdventureID() *FactionUpsert {
+	u.SetExcluded(faction.FieldOneshotAdventureID)
+	return u
+}
+
+// AddOneshotAdventureID adds v to the "oneshot_adventure_id" field.
+func (u *FactionUpsert) AddOneshotAdventureID(v int64) *FactionUpsert {
+	u.Add(faction.FieldOneshotAdventureID, v)
+	return u
+}
+
+// ClearOneshotAdventureID clears the value of the "oneshot_adventure_id" field.
+func (u *FactionUpsert) ClearOneshotAdventureID() *FactionUpsert {
+	u.SetNull(faction.FieldOneshotAdventureID)
 	return u
 }
 
@@ -477,6 +561,62 @@ func (u *FactionUpsertOne) UpdateCampaignID() *FactionUpsertOne {
 func (u *FactionUpsertOne) ClearCampaignID() *FactionUpsertOne {
 	return u.Update(func(s *FactionUpsert) {
 		s.ClearCampaignID()
+	})
+}
+
+// SetPartyID sets the "party_id" field.
+func (u *FactionUpsertOne) SetPartyID(v int64) *FactionUpsertOne {
+	return u.Update(func(s *FactionUpsert) {
+		s.SetPartyID(v)
+	})
+}
+
+// AddPartyID adds v to the "party_id" field.
+func (u *FactionUpsertOne) AddPartyID(v int64) *FactionUpsertOne {
+	return u.Update(func(s *FactionUpsert) {
+		s.AddPartyID(v)
+	})
+}
+
+// UpdatePartyID sets the "party_id" field to the value that was provided on create.
+func (u *FactionUpsertOne) UpdatePartyID() *FactionUpsertOne {
+	return u.Update(func(s *FactionUpsert) {
+		s.UpdatePartyID()
+	})
+}
+
+// ClearPartyID clears the value of the "party_id" field.
+func (u *FactionUpsertOne) ClearPartyID() *FactionUpsertOne {
+	return u.Update(func(s *FactionUpsert) {
+		s.ClearPartyID()
+	})
+}
+
+// SetOneshotAdventureID sets the "oneshot_adventure_id" field.
+func (u *FactionUpsertOne) SetOneshotAdventureID(v int64) *FactionUpsertOne {
+	return u.Update(func(s *FactionUpsert) {
+		s.SetOneshotAdventureID(v)
+	})
+}
+
+// AddOneshotAdventureID adds v to the "oneshot_adventure_id" field.
+func (u *FactionUpsertOne) AddOneshotAdventureID(v int64) *FactionUpsertOne {
+	return u.Update(func(s *FactionUpsert) {
+		s.AddOneshotAdventureID(v)
+	})
+}
+
+// UpdateOneshotAdventureID sets the "oneshot_adventure_id" field to the value that was provided on create.
+func (u *FactionUpsertOne) UpdateOneshotAdventureID() *FactionUpsertOne {
+	return u.Update(func(s *FactionUpsert) {
+		s.UpdateOneshotAdventureID()
+	})
+}
+
+// ClearOneshotAdventureID clears the value of the "oneshot_adventure_id" field.
+func (u *FactionUpsertOne) ClearOneshotAdventureID() *FactionUpsertOne {
+	return u.Update(func(s *FactionUpsert) {
+		s.ClearOneshotAdventureID()
 	})
 }
 
@@ -782,6 +922,62 @@ func (u *FactionUpsertBulk) UpdateCampaignID() *FactionUpsertBulk {
 func (u *FactionUpsertBulk) ClearCampaignID() *FactionUpsertBulk {
 	return u.Update(func(s *FactionUpsert) {
 		s.ClearCampaignID()
+	})
+}
+
+// SetPartyID sets the "party_id" field.
+func (u *FactionUpsertBulk) SetPartyID(v int64) *FactionUpsertBulk {
+	return u.Update(func(s *FactionUpsert) {
+		s.SetPartyID(v)
+	})
+}
+
+// AddPartyID adds v to the "party_id" field.
+func (u *FactionUpsertBulk) AddPartyID(v int64) *FactionUpsertBulk {
+	return u.Update(func(s *FactionUpsert) {
+		s.AddPartyID(v)
+	})
+}
+
+// UpdatePartyID sets the "party_id" field to the value that was provided on create.
+func (u *FactionUpsertBulk) UpdatePartyID() *FactionUpsertBulk {
+	return u.Update(func(s *FactionUpsert) {
+		s.UpdatePartyID()
+	})
+}
+
+// ClearPartyID clears the value of the "party_id" field.
+func (u *FactionUpsertBulk) ClearPartyID() *FactionUpsertBulk {
+	return u.Update(func(s *FactionUpsert) {
+		s.ClearPartyID()
+	})
+}
+
+// SetOneshotAdventureID sets the "oneshot_adventure_id" field.
+func (u *FactionUpsertBulk) SetOneshotAdventureID(v int64) *FactionUpsertBulk {
+	return u.Update(func(s *FactionUpsert) {
+		s.SetOneshotAdventureID(v)
+	})
+}
+
+// AddOneshotAdventureID adds v to the "oneshot_adventure_id" field.
+func (u *FactionUpsertBulk) AddOneshotAdventureID(v int64) *FactionUpsertBulk {
+	return u.Update(func(s *FactionUpsert) {
+		s.AddOneshotAdventureID(v)
+	})
+}
+
+// UpdateOneshotAdventureID sets the "oneshot_adventure_id" field to the value that was provided on create.
+func (u *FactionUpsertBulk) UpdateOneshotAdventureID() *FactionUpsertBulk {
+	return u.Update(func(s *FactionUpsert) {
+		s.UpdateOneshotAdventureID()
+	})
+}
+
+// ClearOneshotAdventureID clears the value of the "oneshot_adventure_id" field.
+func (u *FactionUpsertBulk) ClearOneshotAdventureID() *FactionUpsertBulk {
+	return u.Update(func(s *FactionUpsert) {
+		s.ClearOneshotAdventureID()
 	})
 }
 

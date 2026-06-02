@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+	"villum/ent/aiendpoint"
 	"villum/ent/backupsetting"
 	"villum/ent/campaign"
 	"villum/ent/campaigncalendarevent"
@@ -135,6 +136,7 @@ var (
 func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
+			aiendpoint.Table:                aiendpoint.ValidColumn,
 			backupsetting.Table:             backupsetting.ValidColumn,
 			campaign.Table:                  campaign.ValidColumn,
 			campaigncalendarevent.Table:     campaigncalendarevent.ValidColumn,

@@ -54,12 +54,15 @@ async function init() {
 function showAdminTab(tab: string) {
   document.querySelectorAll('#adminTabs .nav-link').forEach(el => el.classList.remove('active'));
   document.getElementById('tab' + capitalize(tab) + 'Btn')?.classList.add('active');
-  ['users', 'compendium', 'backup', 'email'].forEach(s => {
-    document.getElementById('admin' + capitalize(s))!.style.display = s === tab ? 'block' : 'none';
+  const tabs = ['users', 'compendium', 'backup', 'email', 'ai-endpoints'];
+  tabs.forEach(s => {
+    const id = 'admin' + s.split('-').map((p, i) => i === 0 ? capitalize(p) : capitalize(p)).join('');
+    document.getElementById(id)!.style.display = s === tab ? 'block' : 'none';
   });
   if (tab === 'users') loadUsers();
   if (tab === 'backup') { loadBackupSettings(); loadBackupList(); }
   if (tab === 'email') loadEmailSettings();
+  if (tab === 'ai-endpoints') loadAIEndpoints();
 }
 (window as any).showAdminTab = showAdminTab;
 
@@ -358,6 +361,158 @@ async function loadEmailSettings() {
   } catch (e: any) {
     toast(e.message, true);
   }
+};
+
+// ─── AI Endpoints ───
+
+let aiEndpointEditId: number | null = null;
+
+async function loadAIEndpoints() {
+  try {
+    const endpoints = await api('GET', '/api/admin/ai-endpoints');
+    const tbody = document.querySelector('#aiEndpointTable tbody')!;
+    tbody.innerHTML = endpoints.map((ep: any) => `
+      <tr>
+        <td>${esc(ep.name)}</td>
+        <td><span class="badge ${ep.type === 'text' ? 'badge-primary' : 'badge-secondary'}">${ep.type}</span></td>
+        <td>${esc(ep.model)}</td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(ep.base_url)}">${esc(ep.base_url)}</td>
+        <td>${ep.tags && ep.tags.length ? ep.tags.map((t: string) => `<span class="badge bg-secondary me-1">${esc(t)}</span>`).join('') : '-'}</td>
+        <td>${ep.enabled ? '<span class="text-success"><i class="fa-solid fa-check"></i></span>' : '<span class="text-danger"><i class="fa-solid fa-xmark"></i></span>'}</td>
+        <td>
+          <button class="btn btn-outline-primary btn-sm" onclick="editAIEndpoint(${ep.id})" title="Edit"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-outline-danger btn-sm" onclick="deleteAIEndpoint(${ep.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>
+          <button class="btn btn-outline-info btn-sm" onclick="testAIEndpoint(${ep.id})" title="Test Connection"><i class="fa-solid fa-flask"></i></button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+}
+(window as any).loadAIEndpoints = loadAIEndpoints;
+
+function toggleAIEndpointFields() {
+  const type = (document.getElementById('aiEndpointType') as HTMLSelectElement).value;
+  document.getElementById('aiEndpointTextFields')!.style.display = type === 'text' ? 'flex' : 'none';
+  document.getElementById('aiEndpointImageSizeField')!.style.display = type === 'image' ? 'block' : 'none';
+}
+(window as any).toggleAIEndpointFields = toggleAIEndpointFields;
+
+(window as any).showAddAIEndpoint = function () {
+  aiEndpointEditId = null;
+  document.getElementById('aiEndpointModalTitle')!.textContent = 'Add AI Endpoint';
+  (document.getElementById('aiEndpointId') as HTMLInputElement).value = '';
+  (document.getElementById('aiEndpointName') as HTMLInputElement).value = '';
+  (document.getElementById('aiEndpointType') as HTMLSelectElement).value = 'text';
+  (document.getElementById('aiEndpointBaseURL') as HTMLInputElement).value = '';
+  (document.getElementById('aiEndpointAPIKey') as HTMLInputElement).value = '';
+  (document.getElementById('aiEndpointTemperature') as HTMLInputElement).value = '';
+  (document.getElementById('aiEndpointMaxTokens') as HTMLInputElement).value = '';
+  (document.getElementById('aiEndpointImageSize') as HTMLSelectElement).value = '';
+  (document.getElementById('aiEndpointTags') as HTMLInputElement).value = '';
+  (document.getElementById('aiEndpointEnabled') as HTMLInputElement).checked = true;
+  (document.getElementById('aiEndpointAPIKey') as HTMLInputElement).placeholder = 'sk-...';
+  toggleAIEndpointFields();
+  const modal = new (window as any).bootstrap.Modal(document.getElementById('aiEndpointModal')!);
+  modal.show();
+};
+
+(window as any).editAIEndpoint = async function (id: number) {
+  aiEndpointEditId = id;
+  try {
+    const ep = await api('GET', `/api/admin/ai-endpoints/${id}`);
+    document.getElementById('aiEndpointModalTitle')!.textContent = 'Edit AI Endpoint';
+    (document.getElementById('aiEndpointId') as HTMLInputElement).value = String(id);
+    (document.getElementById('aiEndpointName') as HTMLInputElement).value = ep.name;
+    (document.getElementById('aiEndpointType') as HTMLSelectElement).value = ep.type;
+    (document.getElementById('aiEndpointBaseURL') as HTMLInputElement).value = ep.base_url;
+    (document.getElementById('aiEndpointAPIKey') as HTMLInputElement).value = '';
+    (document.getElementById('aiEndpointAPIKey') as HTMLInputElement).placeholder = 'Leave blank to keep current';
+    (document.getElementById('aiEndpointModel') as HTMLInputElement).value = ep.model;
+    (document.getElementById('aiEndpointTemperature') as HTMLInputElement).value = ep.temperature != null ? String(ep.temperature) : '';
+    (document.getElementById('aiEndpointMaxTokens') as HTMLInputElement).value = ep.max_tokens != null ? String(ep.max_tokens) : '';
+    (document.getElementById('aiEndpointImageSize') as HTMLSelectElement).value = ep.image_size || '';
+    (document.getElementById('aiEndpointTags') as HTMLInputElement).value = ep.tags ? ep.tags.join(', ') : '';
+    (document.getElementById('aiEndpointEnabled') as HTMLInputElement).checked = ep.enabled;
+    toggleAIEndpointFields();
+    const modal = new (window as any).bootstrap.Modal(document.getElementById('aiEndpointModal')!);
+    modal.show();
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+(window as any).saveAIEndpoint = async function () {
+  const name = (document.getElementById('aiEndpointName') as HTMLInputElement).value.trim();
+  const type = (document.getElementById('aiEndpointType') as HTMLSelectElement).value;
+  const base_url = (document.getElementById('aiEndpointBaseURL') as HTMLInputElement).value.trim();
+  const api_key = (document.getElementById('aiEndpointAPIKey') as HTMLInputElement).value;
+  const model = (document.getElementById('aiEndpointModel') as HTMLInputElement).value.trim();
+  const temperatureStr = (document.getElementById('aiEndpointTemperature') as HTMLInputElement).value;
+  const maxTokensStr = (document.getElementById('aiEndpointMaxTokens') as HTMLInputElement).value;
+  const imageSize = (document.getElementById('aiEndpointImageSize') as HTMLSelectElement).value;
+  const tagsStr = (document.getElementById('aiEndpointTags') as HTMLInputElement).value;
+  const enabled = (document.getElementById('aiEndpointEnabled') as HTMLInputElement).checked;
+
+  if (!name || !type || !base_url || !model) {
+    toast('Name, Type, Base URL, and Model are required', true);
+    return;
+  }
+  if (!aiEndpointEditId && !api_key) {
+    toast('API Key is required for new endpoints', true);
+    return;
+  }
+
+  const body: any = { name, type, base_url, model, enabled };
+  if (api_key) body.api_key = api_key;
+  if (temperatureStr) body.temperature = parseFloat(temperatureStr);
+  if (maxTokensStr) body.max_tokens = parseInt(maxTokensStr, 10);
+  if (imageSize) body.image_size = imageSize;
+  body.tags = tagsStr ? tagsStr.split(',').map((t: string) => t.trim()).filter((t: string) => t) : [];
+
+  try {
+    if (aiEndpointEditId) {
+      await api('PUT', `/api/admin/ai-endpoints/${aiEndpointEditId}`, body);
+      toast('Endpoint updated');
+    } else {
+      await api('POST', '/api/admin/ai-endpoints', body);
+      toast('Endpoint created');
+    }
+    const modalEl = document.getElementById('aiEndpointModal')!;
+    const modal = (window as any).bootstrap.Modal.getInstance(modalEl);
+    if (modal) modal.hide();
+    loadAIEndpoints();
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+(window as any).deleteAIEndpoint = async function (id: number) {
+  if (!confirm('Delete this AI endpoint? This cannot be undone.')) return;
+  try {
+    await api('DELETE', `/api/admin/ai-endpoints/${id}`);
+    loadAIEndpoints();
+    toast('Endpoint deleted');
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+(window as any).testAIEndpoint = async function (id: number) {
+  const btn = event?.target as HTMLElement;
+  if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+  try {
+    const result = await api('POST', `/api/admin/ai-endpoints/${id}/test`);
+    if (result.success) {
+      toast('Connection successful (status ' + result.status + ')');
+    } else {
+      toast('Test failed: ' + (result.error || 'Unknown error'), true);
+    }
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+  if (btn) btn.innerHTML = '<i class="fa-solid fa-flask"></i>';
 };
 
 // ─── Utils ───

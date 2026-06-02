@@ -5286,7 +5286,7 @@ func TestOneShotAdventureCRUD(t *testing.T) {
 	// List one-shot adventures
 	resp = tc.get("/api/oneshot-adventures", nil)
 	if resp.Code != 200 {
-		t.Fatalf("list oneshots failed: %d", resp.Code)
+		t.Fatalf("list oneshots failed: %d - %s", resp.Code, resp.Body.String())
 	}
 	var list []any
 	readJSON(resp, &list)
@@ -5590,7 +5590,7 @@ func TestOneShotAdventureEdgeCases(t *testing.T) {
 	// Filter by campaign
 	resp := tc.get("/api/oneshot-adventures?campaign_id=9999", nil)
 	if resp.Code != 200 {
-		t.Fatalf("list by campaign filter failed: %d", resp.Code)
+		t.Fatalf("list by campaign filter failed: %d - %s", resp.Code, resp.Body.String())
 	}
 
 	// Generate without specifying fields

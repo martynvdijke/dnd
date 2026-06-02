@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"villum/ent/aiendpoint"
 	"villum/ent/backupsetting"
 	"villum/ent/campaign"
 	"villum/ent/campaigncalendarevent"
@@ -85,6 +86,7 @@ const (
 	OpUpdateOne = ent.OpUpdateOne
 
 	// Node types.
+	TypeAIEndpoint                = "AIEndpoint"
 	TypeBackupSetting             = "BackupSetting"
 	TypeCampaign                  = "Campaign"
 	TypeCampaignCalendarEvent     = "CampaignCalendarEvent"
@@ -149,6 +151,1099 @@ const (
 	TypeUploadLink                = "UploadLink"
 	TypeUser                      = "User"
 )
+
+// AIEndpointMutation represents an operation that mutates the AIEndpoint nodes in the graph.
+type AIEndpointMutation struct {
+	config
+	op                Op
+	typ               string
+	id                *int64
+	name              *string
+	_type             *aiendpoint.Type
+	base_url          *string
+	encrypted_api_key *string
+	model             *string
+	tags              *[]string
+	appendtags        []string
+	enabled           *bool
+	temperature       *float64
+	addtemperature    *float64
+	max_tokens        *int
+	addmax_tokens     *int
+	image_size        *string
+	created_at        *string
+	updated_at        *string
+	clearedFields     map[string]struct{}
+	done              bool
+	oldValue          func(context.Context) (*AIEndpoint, error)
+	predicates        []predicate.AIEndpoint
+}
+
+var _ ent.Mutation = (*AIEndpointMutation)(nil)
+
+// aiendpointOption allows management of the mutation configuration using functional options.
+type aiendpointOption func(*AIEndpointMutation)
+
+// newAIEndpointMutation creates new mutation for the AIEndpoint entity.
+func newAIEndpointMutation(c config, op Op, opts ...aiendpointOption) *AIEndpointMutation {
+	m := &AIEndpointMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeAIEndpoint,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withAIEndpointID sets the ID field of the mutation.
+func withAIEndpointID(id int64) aiendpointOption {
+	return func(m *AIEndpointMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *AIEndpoint
+		)
+		m.oldValue = func(ctx context.Context) (*AIEndpoint, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().AIEndpoint.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withAIEndpoint sets the old AIEndpoint of the mutation.
+func withAIEndpoint(node *AIEndpoint) aiendpointOption {
+	return func(m *AIEndpointMutation) {
+		m.oldValue = func(context.Context) (*AIEndpoint, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m AIEndpointMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m AIEndpointMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of AIEndpoint entities.
+func (m *AIEndpointMutation) SetID(id int64) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *AIEndpointMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *AIEndpointMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().AIEndpoint.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetName sets the "name" field.
+func (m *AIEndpointMutation) SetName(s string) {
+	m.name = &s
+}
+
+// Name returns the value of the "name" field in the mutation.
+func (m *AIEndpointMutation) Name() (r string, exists bool) {
+	v := m.name
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldName returns the old "name" field's value of the AIEndpoint entity.
+// If the AIEndpoint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AIEndpointMutation) OldName(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldName is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldName requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldName: %w", err)
+	}
+	return oldValue.Name, nil
+}
+
+// ResetName resets all changes to the "name" field.
+func (m *AIEndpointMutation) ResetName() {
+	m.name = nil
+}
+
+// SetType sets the "type" field.
+func (m *AIEndpointMutation) SetType(a aiendpoint.Type) {
+	m._type = &a
+}
+
+// GetType returns the value of the "type" field in the mutation.
+func (m *AIEndpointMutation) GetType() (r aiendpoint.Type, exists bool) {
+	v := m._type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldType returns the old "type" field's value of the AIEndpoint entity.
+// If the AIEndpoint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AIEndpointMutation) OldType(ctx context.Context) (v aiendpoint.Type, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldType: %w", err)
+	}
+	return oldValue.Type, nil
+}
+
+// ResetType resets all changes to the "type" field.
+func (m *AIEndpointMutation) ResetType() {
+	m._type = nil
+}
+
+// SetBaseURL sets the "base_url" field.
+func (m *AIEndpointMutation) SetBaseURL(s string) {
+	m.base_url = &s
+}
+
+// BaseURL returns the value of the "base_url" field in the mutation.
+func (m *AIEndpointMutation) BaseURL() (r string, exists bool) {
+	v := m.base_url
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldBaseURL returns the old "base_url" field's value of the AIEndpoint entity.
+// If the AIEndpoint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AIEndpointMutation) OldBaseURL(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldBaseURL is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldBaseURL requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldBaseURL: %w", err)
+	}
+	return oldValue.BaseURL, nil
+}
+
+// ResetBaseURL resets all changes to the "base_url" field.
+func (m *AIEndpointMutation) ResetBaseURL() {
+	m.base_url = nil
+}
+
+// SetEncryptedAPIKey sets the "encrypted_api_key" field.
+func (m *AIEndpointMutation) SetEncryptedAPIKey(s string) {
+	m.encrypted_api_key = &s
+}
+
+// EncryptedAPIKey returns the value of the "encrypted_api_key" field in the mutation.
+func (m *AIEndpointMutation) EncryptedAPIKey() (r string, exists bool) {
+	v := m.encrypted_api_key
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEncryptedAPIKey returns the old "encrypted_api_key" field's value of the AIEndpoint entity.
+// If the AIEndpoint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AIEndpointMutation) OldEncryptedAPIKey(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEncryptedAPIKey is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEncryptedAPIKey requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEncryptedAPIKey: %w", err)
+	}
+	return oldValue.EncryptedAPIKey, nil
+}
+
+// ResetEncryptedAPIKey resets all changes to the "encrypted_api_key" field.
+func (m *AIEndpointMutation) ResetEncryptedAPIKey() {
+	m.encrypted_api_key = nil
+}
+
+// SetModel sets the "model" field.
+func (m *AIEndpointMutation) SetModel(s string) {
+	m.model = &s
+}
+
+// Model returns the value of the "model" field in the mutation.
+func (m *AIEndpointMutation) Model() (r string, exists bool) {
+	v := m.model
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldModel returns the old "model" field's value of the AIEndpoint entity.
+// If the AIEndpoint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AIEndpointMutation) OldModel(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldModel is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldModel requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldModel: %w", err)
+	}
+	return oldValue.Model, nil
+}
+
+// ResetModel resets all changes to the "model" field.
+func (m *AIEndpointMutation) ResetModel() {
+	m.model = nil
+}
+
+// SetTags sets the "tags" field.
+func (m *AIEndpointMutation) SetTags(s []string) {
+	m.tags = &s
+	m.appendtags = nil
+}
+
+// Tags returns the value of the "tags" field in the mutation.
+func (m *AIEndpointMutation) Tags() (r []string, exists bool) {
+	v := m.tags
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTags returns the old "tags" field's value of the AIEndpoint entity.
+// If the AIEndpoint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AIEndpointMutation) OldTags(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTags is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTags requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTags: %w", err)
+	}
+	return oldValue.Tags, nil
+}
+
+// AppendTags adds s to the "tags" field.
+func (m *AIEndpointMutation) AppendTags(s []string) {
+	m.appendtags = append(m.appendtags, s...)
+}
+
+// AppendedTags returns the list of values that were appended to the "tags" field in this mutation.
+func (m *AIEndpointMutation) AppendedTags() ([]string, bool) {
+	if len(m.appendtags) == 0 {
+		return nil, false
+	}
+	return m.appendtags, true
+}
+
+// ClearTags clears the value of the "tags" field.
+func (m *AIEndpointMutation) ClearTags() {
+	m.tags = nil
+	m.appendtags = nil
+	m.clearedFields[aiendpoint.FieldTags] = struct{}{}
+}
+
+// TagsCleared returns if the "tags" field was cleared in this mutation.
+func (m *AIEndpointMutation) TagsCleared() bool {
+	_, ok := m.clearedFields[aiendpoint.FieldTags]
+	return ok
+}
+
+// ResetTags resets all changes to the "tags" field.
+func (m *AIEndpointMutation) ResetTags() {
+	m.tags = nil
+	m.appendtags = nil
+	delete(m.clearedFields, aiendpoint.FieldTags)
+}
+
+// SetEnabled sets the "enabled" field.
+func (m *AIEndpointMutation) SetEnabled(b bool) {
+	m.enabled = &b
+}
+
+// Enabled returns the value of the "enabled" field in the mutation.
+func (m *AIEndpointMutation) Enabled() (r bool, exists bool) {
+	v := m.enabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEnabled returns the old "enabled" field's value of the AIEndpoint entity.
+// If the AIEndpoint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AIEndpointMutation) OldEnabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEnabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEnabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEnabled: %w", err)
+	}
+	return oldValue.Enabled, nil
+}
+
+// ResetEnabled resets all changes to the "enabled" field.
+func (m *AIEndpointMutation) ResetEnabled() {
+	m.enabled = nil
+}
+
+// SetTemperature sets the "temperature" field.
+func (m *AIEndpointMutation) SetTemperature(f float64) {
+	m.temperature = &f
+	m.addtemperature = nil
+}
+
+// Temperature returns the value of the "temperature" field in the mutation.
+func (m *AIEndpointMutation) Temperature() (r float64, exists bool) {
+	v := m.temperature
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldTemperature returns the old "temperature" field's value of the AIEndpoint entity.
+// If the AIEndpoint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AIEndpointMutation) OldTemperature(ctx context.Context) (v *float64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldTemperature is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldTemperature requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldTemperature: %w", err)
+	}
+	return oldValue.Temperature, nil
+}
+
+// AddTemperature adds f to the "temperature" field.
+func (m *AIEndpointMutation) AddTemperature(f float64) {
+	if m.addtemperature != nil {
+		*m.addtemperature += f
+	} else {
+		m.addtemperature = &f
+	}
+}
+
+// AddedTemperature returns the value that was added to the "temperature" field in this mutation.
+func (m *AIEndpointMutation) AddedTemperature() (r float64, exists bool) {
+	v := m.addtemperature
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearTemperature clears the value of the "temperature" field.
+func (m *AIEndpointMutation) ClearTemperature() {
+	m.temperature = nil
+	m.addtemperature = nil
+	m.clearedFields[aiendpoint.FieldTemperature] = struct{}{}
+}
+
+// TemperatureCleared returns if the "temperature" field was cleared in this mutation.
+func (m *AIEndpointMutation) TemperatureCleared() bool {
+	_, ok := m.clearedFields[aiendpoint.FieldTemperature]
+	return ok
+}
+
+// ResetTemperature resets all changes to the "temperature" field.
+func (m *AIEndpointMutation) ResetTemperature() {
+	m.temperature = nil
+	m.addtemperature = nil
+	delete(m.clearedFields, aiendpoint.FieldTemperature)
+}
+
+// SetMaxTokens sets the "max_tokens" field.
+func (m *AIEndpointMutation) SetMaxTokens(i int) {
+	m.max_tokens = &i
+	m.addmax_tokens = nil
+}
+
+// MaxTokens returns the value of the "max_tokens" field in the mutation.
+func (m *AIEndpointMutation) MaxTokens() (r int, exists bool) {
+	v := m.max_tokens
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldMaxTokens returns the old "max_tokens" field's value of the AIEndpoint entity.
+// If the AIEndpoint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AIEndpointMutation) OldMaxTokens(ctx context.Context) (v *int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldMaxTokens is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldMaxTokens requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldMaxTokens: %w", err)
+	}
+	return oldValue.MaxTokens, nil
+}
+
+// AddMaxTokens adds i to the "max_tokens" field.
+func (m *AIEndpointMutation) AddMaxTokens(i int) {
+	if m.addmax_tokens != nil {
+		*m.addmax_tokens += i
+	} else {
+		m.addmax_tokens = &i
+	}
+}
+
+// AddedMaxTokens returns the value that was added to the "max_tokens" field in this mutation.
+func (m *AIEndpointMutation) AddedMaxTokens() (r int, exists bool) {
+	v := m.addmax_tokens
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearMaxTokens clears the value of the "max_tokens" field.
+func (m *AIEndpointMutation) ClearMaxTokens() {
+	m.max_tokens = nil
+	m.addmax_tokens = nil
+	m.clearedFields[aiendpoint.FieldMaxTokens] = struct{}{}
+}
+
+// MaxTokensCleared returns if the "max_tokens" field was cleared in this mutation.
+func (m *AIEndpointMutation) MaxTokensCleared() bool {
+	_, ok := m.clearedFields[aiendpoint.FieldMaxTokens]
+	return ok
+}
+
+// ResetMaxTokens resets all changes to the "max_tokens" field.
+func (m *AIEndpointMutation) ResetMaxTokens() {
+	m.max_tokens = nil
+	m.addmax_tokens = nil
+	delete(m.clearedFields, aiendpoint.FieldMaxTokens)
+}
+
+// SetImageSize sets the "image_size" field.
+func (m *AIEndpointMutation) SetImageSize(s string) {
+	m.image_size = &s
+}
+
+// ImageSize returns the value of the "image_size" field in the mutation.
+func (m *AIEndpointMutation) ImageSize() (r string, exists bool) {
+	v := m.image_size
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldImageSize returns the old "image_size" field's value of the AIEndpoint entity.
+// If the AIEndpoint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AIEndpointMutation) OldImageSize(ctx context.Context) (v *string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldImageSize is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldImageSize requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldImageSize: %w", err)
+	}
+	return oldValue.ImageSize, nil
+}
+
+// ClearImageSize clears the value of the "image_size" field.
+func (m *AIEndpointMutation) ClearImageSize() {
+	m.image_size = nil
+	m.clearedFields[aiendpoint.FieldImageSize] = struct{}{}
+}
+
+// ImageSizeCleared returns if the "image_size" field was cleared in this mutation.
+func (m *AIEndpointMutation) ImageSizeCleared() bool {
+	_, ok := m.clearedFields[aiendpoint.FieldImageSize]
+	return ok
+}
+
+// ResetImageSize resets all changes to the "image_size" field.
+func (m *AIEndpointMutation) ResetImageSize() {
+	m.image_size = nil
+	delete(m.clearedFields, aiendpoint.FieldImageSize)
+}
+
+// SetCreatedAt sets the "created_at" field.
+func (m *AIEndpointMutation) SetCreatedAt(s string) {
+	m.created_at = &s
+}
+
+// CreatedAt returns the value of the "created_at" field in the mutation.
+func (m *AIEndpointMutation) CreatedAt() (r string, exists bool) {
+	v := m.created_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedAt returns the old "created_at" field's value of the AIEndpoint entity.
+// If the AIEndpoint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AIEndpointMutation) OldCreatedAt(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedAt: %w", err)
+	}
+	return oldValue.CreatedAt, nil
+}
+
+// ResetCreatedAt resets all changes to the "created_at" field.
+func (m *AIEndpointMutation) ResetCreatedAt() {
+	m.created_at = nil
+}
+
+// SetUpdatedAt sets the "updated_at" field.
+func (m *AIEndpointMutation) SetUpdatedAt(s string) {
+	m.updated_at = &s
+}
+
+// UpdatedAt returns the value of the "updated_at" field in the mutation.
+func (m *AIEndpointMutation) UpdatedAt() (r string, exists bool) {
+	v := m.updated_at
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedAt returns the old "updated_at" field's value of the AIEndpoint entity.
+// If the AIEndpoint object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *AIEndpointMutation) OldUpdatedAt(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedAt is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedAt requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedAt: %w", err)
+	}
+	return oldValue.UpdatedAt, nil
+}
+
+// ResetUpdatedAt resets all changes to the "updated_at" field.
+func (m *AIEndpointMutation) ResetUpdatedAt() {
+	m.updated_at = nil
+}
+
+// Where appends a list predicates to the AIEndpointMutation builder.
+func (m *AIEndpointMutation) Where(ps ...predicate.AIEndpoint) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the AIEndpointMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *AIEndpointMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.AIEndpoint, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *AIEndpointMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *AIEndpointMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (AIEndpoint).
+func (m *AIEndpointMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *AIEndpointMutation) Fields() []string {
+	fields := make([]string, 0, 12)
+	if m.name != nil {
+		fields = append(fields, aiendpoint.FieldName)
+	}
+	if m._type != nil {
+		fields = append(fields, aiendpoint.FieldType)
+	}
+	if m.base_url != nil {
+		fields = append(fields, aiendpoint.FieldBaseURL)
+	}
+	if m.encrypted_api_key != nil {
+		fields = append(fields, aiendpoint.FieldEncryptedAPIKey)
+	}
+	if m.model != nil {
+		fields = append(fields, aiendpoint.FieldModel)
+	}
+	if m.tags != nil {
+		fields = append(fields, aiendpoint.FieldTags)
+	}
+	if m.enabled != nil {
+		fields = append(fields, aiendpoint.FieldEnabled)
+	}
+	if m.temperature != nil {
+		fields = append(fields, aiendpoint.FieldTemperature)
+	}
+	if m.max_tokens != nil {
+		fields = append(fields, aiendpoint.FieldMaxTokens)
+	}
+	if m.image_size != nil {
+		fields = append(fields, aiendpoint.FieldImageSize)
+	}
+	if m.created_at != nil {
+		fields = append(fields, aiendpoint.FieldCreatedAt)
+	}
+	if m.updated_at != nil {
+		fields = append(fields, aiendpoint.FieldUpdatedAt)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *AIEndpointMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case aiendpoint.FieldName:
+		return m.Name()
+	case aiendpoint.FieldType:
+		return m.GetType()
+	case aiendpoint.FieldBaseURL:
+		return m.BaseURL()
+	case aiendpoint.FieldEncryptedAPIKey:
+		return m.EncryptedAPIKey()
+	case aiendpoint.FieldModel:
+		return m.Model()
+	case aiendpoint.FieldTags:
+		return m.Tags()
+	case aiendpoint.FieldEnabled:
+		return m.Enabled()
+	case aiendpoint.FieldTemperature:
+		return m.Temperature()
+	case aiendpoint.FieldMaxTokens:
+		return m.MaxTokens()
+	case aiendpoint.FieldImageSize:
+		return m.ImageSize()
+	case aiendpoint.FieldCreatedAt:
+		return m.CreatedAt()
+	case aiendpoint.FieldUpdatedAt:
+		return m.UpdatedAt()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *AIEndpointMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case aiendpoint.FieldName:
+		return m.OldName(ctx)
+	case aiendpoint.FieldType:
+		return m.OldType(ctx)
+	case aiendpoint.FieldBaseURL:
+		return m.OldBaseURL(ctx)
+	case aiendpoint.FieldEncryptedAPIKey:
+		return m.OldEncryptedAPIKey(ctx)
+	case aiendpoint.FieldModel:
+		return m.OldModel(ctx)
+	case aiendpoint.FieldTags:
+		return m.OldTags(ctx)
+	case aiendpoint.FieldEnabled:
+		return m.OldEnabled(ctx)
+	case aiendpoint.FieldTemperature:
+		return m.OldTemperature(ctx)
+	case aiendpoint.FieldMaxTokens:
+		return m.OldMaxTokens(ctx)
+	case aiendpoint.FieldImageSize:
+		return m.OldImageSize(ctx)
+	case aiendpoint.FieldCreatedAt:
+		return m.OldCreatedAt(ctx)
+	case aiendpoint.FieldUpdatedAt:
+		return m.OldUpdatedAt(ctx)
+	}
+	return nil, fmt.Errorf("unknown AIEndpoint field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AIEndpointMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case aiendpoint.FieldName:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetName(v)
+		return nil
+	case aiendpoint.FieldType:
+		v, ok := value.(aiendpoint.Type)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetType(v)
+		return nil
+	case aiendpoint.FieldBaseURL:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetBaseURL(v)
+		return nil
+	case aiendpoint.FieldEncryptedAPIKey:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEncryptedAPIKey(v)
+		return nil
+	case aiendpoint.FieldModel:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetModel(v)
+		return nil
+	case aiendpoint.FieldTags:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTags(v)
+		return nil
+	case aiendpoint.FieldEnabled:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEnabled(v)
+		return nil
+	case aiendpoint.FieldTemperature:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetTemperature(v)
+		return nil
+	case aiendpoint.FieldMaxTokens:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetMaxTokens(v)
+		return nil
+	case aiendpoint.FieldImageSize:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetImageSize(v)
+		return nil
+	case aiendpoint.FieldCreatedAt:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedAt(v)
+		return nil
+	case aiendpoint.FieldUpdatedAt:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedAt(v)
+		return nil
+	}
+	return fmt.Errorf("unknown AIEndpoint field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *AIEndpointMutation) AddedFields() []string {
+	var fields []string
+	if m.addtemperature != nil {
+		fields = append(fields, aiendpoint.FieldTemperature)
+	}
+	if m.addmax_tokens != nil {
+		fields = append(fields, aiendpoint.FieldMaxTokens)
+	}
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *AIEndpointMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	case aiendpoint.FieldTemperature:
+		return m.AddedTemperature()
+	case aiendpoint.FieldMaxTokens:
+		return m.AddedMaxTokens()
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *AIEndpointMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	case aiendpoint.FieldTemperature:
+		v, ok := value.(float64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddTemperature(v)
+		return nil
+	case aiendpoint.FieldMaxTokens:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddMaxTokens(v)
+		return nil
+	}
+	return fmt.Errorf("unknown AIEndpoint numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *AIEndpointMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(aiendpoint.FieldTags) {
+		fields = append(fields, aiendpoint.FieldTags)
+	}
+	if m.FieldCleared(aiendpoint.FieldTemperature) {
+		fields = append(fields, aiendpoint.FieldTemperature)
+	}
+	if m.FieldCleared(aiendpoint.FieldMaxTokens) {
+		fields = append(fields, aiendpoint.FieldMaxTokens)
+	}
+	if m.FieldCleared(aiendpoint.FieldImageSize) {
+		fields = append(fields, aiendpoint.FieldImageSize)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *AIEndpointMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *AIEndpointMutation) ClearField(name string) error {
+	switch name {
+	case aiendpoint.FieldTags:
+		m.ClearTags()
+		return nil
+	case aiendpoint.FieldTemperature:
+		m.ClearTemperature()
+		return nil
+	case aiendpoint.FieldMaxTokens:
+		m.ClearMaxTokens()
+		return nil
+	case aiendpoint.FieldImageSize:
+		m.ClearImageSize()
+		return nil
+	}
+	return fmt.Errorf("unknown AIEndpoint nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *AIEndpointMutation) ResetField(name string) error {
+	switch name {
+	case aiendpoint.FieldName:
+		m.ResetName()
+		return nil
+	case aiendpoint.FieldType:
+		m.ResetType()
+		return nil
+	case aiendpoint.FieldBaseURL:
+		m.ResetBaseURL()
+		return nil
+	case aiendpoint.FieldEncryptedAPIKey:
+		m.ResetEncryptedAPIKey()
+		return nil
+	case aiendpoint.FieldModel:
+		m.ResetModel()
+		return nil
+	case aiendpoint.FieldTags:
+		m.ResetTags()
+		return nil
+	case aiendpoint.FieldEnabled:
+		m.ResetEnabled()
+		return nil
+	case aiendpoint.FieldTemperature:
+		m.ResetTemperature()
+		return nil
+	case aiendpoint.FieldMaxTokens:
+		m.ResetMaxTokens()
+		return nil
+	case aiendpoint.FieldImageSize:
+		m.ResetImageSize()
+		return nil
+	case aiendpoint.FieldCreatedAt:
+		m.ResetCreatedAt()
+		return nil
+	case aiendpoint.FieldUpdatedAt:
+		m.ResetUpdatedAt()
+		return nil
+	}
+	return fmt.Errorf("unknown AIEndpoint field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *AIEndpointMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *AIEndpointMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *AIEndpointMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *AIEndpointMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *AIEndpointMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *AIEndpointMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *AIEndpointMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown AIEndpoint unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *AIEndpointMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown AIEndpoint edge %s", name)
+}
 
 // BackupSettingMutation represents an operation that mutates the BackupSetting nodes in the graph.
 type BackupSettingMutation struct {
@@ -40049,23 +41144,27 @@ func (m *EncounterTemplateMutation) ResetEdge(name string) error {
 // FactionMutation represents an operation that mutates the Faction nodes in the graph.
 type FactionMutation struct {
 	config
-	op                 Op
-	typ                string
-	id                 *int64
-	name               *string
-	description        *string
-	_type              *string
-	headquarters       *string
-	created_at         *string
-	clearedFields      map[string]struct{}
-	campaign           *int64
-	clearedcampaign    bool
-	reputations        map[int64]struct{}
-	removedreputations map[int64]struct{}
-	clearedreputations bool
-	done               bool
-	oldValue           func(context.Context) (*Faction, error)
-	predicates         []predicate.Faction
+	op                      Op
+	typ                     string
+	id                      *int64
+	party_id                *int64
+	addparty_id             *int64
+	oneshot_adventure_id    *int64
+	addoneshot_adventure_id *int64
+	name                    *string
+	description             *string
+	_type                   *string
+	headquarters            *string
+	created_at              *string
+	clearedFields           map[string]struct{}
+	campaign                *int64
+	clearedcampaign         bool
+	reputations             map[int64]struct{}
+	removedreputations      map[int64]struct{}
+	clearedreputations      bool
+	done                    bool
+	oldValue                func(context.Context) (*Faction, error)
+	predicates              []predicate.Faction
 }
 
 var _ ent.Mutation = (*FactionMutation)(nil)
@@ -40219,6 +41318,146 @@ func (m *FactionMutation) CampaignIDCleared() bool {
 func (m *FactionMutation) ResetCampaignID() {
 	m.campaign = nil
 	delete(m.clearedFields, faction.FieldCampaignID)
+}
+
+// SetPartyID sets the "party_id" field.
+func (m *FactionMutation) SetPartyID(i int64) {
+	m.party_id = &i
+	m.addparty_id = nil
+}
+
+// PartyID returns the value of the "party_id" field in the mutation.
+func (m *FactionMutation) PartyID() (r int64, exists bool) {
+	v := m.party_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPartyID returns the old "party_id" field's value of the Faction entity.
+// If the Faction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FactionMutation) OldPartyID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPartyID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPartyID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPartyID: %w", err)
+	}
+	return oldValue.PartyID, nil
+}
+
+// AddPartyID adds i to the "party_id" field.
+func (m *FactionMutation) AddPartyID(i int64) {
+	if m.addparty_id != nil {
+		*m.addparty_id += i
+	} else {
+		m.addparty_id = &i
+	}
+}
+
+// AddedPartyID returns the value that was added to the "party_id" field in this mutation.
+func (m *FactionMutation) AddedPartyID() (r int64, exists bool) {
+	v := m.addparty_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearPartyID clears the value of the "party_id" field.
+func (m *FactionMutation) ClearPartyID() {
+	m.party_id = nil
+	m.addparty_id = nil
+	m.clearedFields[faction.FieldPartyID] = struct{}{}
+}
+
+// PartyIDCleared returns if the "party_id" field was cleared in this mutation.
+func (m *FactionMutation) PartyIDCleared() bool {
+	_, ok := m.clearedFields[faction.FieldPartyID]
+	return ok
+}
+
+// ResetPartyID resets all changes to the "party_id" field.
+func (m *FactionMutation) ResetPartyID() {
+	m.party_id = nil
+	m.addparty_id = nil
+	delete(m.clearedFields, faction.FieldPartyID)
+}
+
+// SetOneshotAdventureID sets the "oneshot_adventure_id" field.
+func (m *FactionMutation) SetOneshotAdventureID(i int64) {
+	m.oneshot_adventure_id = &i
+	m.addoneshot_adventure_id = nil
+}
+
+// OneshotAdventureID returns the value of the "oneshot_adventure_id" field in the mutation.
+func (m *FactionMutation) OneshotAdventureID() (r int64, exists bool) {
+	v := m.oneshot_adventure_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldOneshotAdventureID returns the old "oneshot_adventure_id" field's value of the Faction entity.
+// If the Faction object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *FactionMutation) OldOneshotAdventureID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldOneshotAdventureID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldOneshotAdventureID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldOneshotAdventureID: %w", err)
+	}
+	return oldValue.OneshotAdventureID, nil
+}
+
+// AddOneshotAdventureID adds i to the "oneshot_adventure_id" field.
+func (m *FactionMutation) AddOneshotAdventureID(i int64) {
+	if m.addoneshot_adventure_id != nil {
+		*m.addoneshot_adventure_id += i
+	} else {
+		m.addoneshot_adventure_id = &i
+	}
+}
+
+// AddedOneshotAdventureID returns the value that was added to the "oneshot_adventure_id" field in this mutation.
+func (m *FactionMutation) AddedOneshotAdventureID() (r int64, exists bool) {
+	v := m.addoneshot_adventure_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearOneshotAdventureID clears the value of the "oneshot_adventure_id" field.
+func (m *FactionMutation) ClearOneshotAdventureID() {
+	m.oneshot_adventure_id = nil
+	m.addoneshot_adventure_id = nil
+	m.clearedFields[faction.FieldOneshotAdventureID] = struct{}{}
+}
+
+// OneshotAdventureIDCleared returns if the "oneshot_adventure_id" field was cleared in this mutation.
+func (m *FactionMutation) OneshotAdventureIDCleared() bool {
+	_, ok := m.clearedFields[faction.FieldOneshotAdventureID]
+	return ok
+}
+
+// ResetOneshotAdventureID resets all changes to the "oneshot_adventure_id" field.
+func (m *FactionMutation) ResetOneshotAdventureID() {
+	m.oneshot_adventure_id = nil
+	m.addoneshot_adventure_id = nil
+	delete(m.clearedFields, faction.FieldOneshotAdventureID)
 }
 
 // SetName sets the "name" field.
@@ -40516,9 +41755,15 @@ func (m *FactionMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *FactionMutation) Fields() []string {
-	fields := make([]string, 0, 6)
+	fields := make([]string, 0, 8)
 	if m.campaign != nil {
 		fields = append(fields, faction.FieldCampaignID)
+	}
+	if m.party_id != nil {
+		fields = append(fields, faction.FieldPartyID)
+	}
+	if m.oneshot_adventure_id != nil {
+		fields = append(fields, faction.FieldOneshotAdventureID)
 	}
 	if m.name != nil {
 		fields = append(fields, faction.FieldName)
@@ -40545,6 +41790,10 @@ func (m *FactionMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case faction.FieldCampaignID:
 		return m.CampaignID()
+	case faction.FieldPartyID:
+		return m.PartyID()
+	case faction.FieldOneshotAdventureID:
+		return m.OneshotAdventureID()
 	case faction.FieldName:
 		return m.Name()
 	case faction.FieldDescription:
@@ -40566,6 +41815,10 @@ func (m *FactionMutation) OldField(ctx context.Context, name string) (ent.Value,
 	switch name {
 	case faction.FieldCampaignID:
 		return m.OldCampaignID(ctx)
+	case faction.FieldPartyID:
+		return m.OldPartyID(ctx)
+	case faction.FieldOneshotAdventureID:
+		return m.OldOneshotAdventureID(ctx)
 	case faction.FieldName:
 		return m.OldName(ctx)
 	case faction.FieldDescription:
@@ -40591,6 +41844,20 @@ func (m *FactionMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCampaignID(v)
+		return nil
+	case faction.FieldPartyID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPartyID(v)
+		return nil
+	case faction.FieldOneshotAdventureID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetOneshotAdventureID(v)
 		return nil
 	case faction.FieldName:
 		v, ok := value.(string)
@@ -40635,6 +41902,12 @@ func (m *FactionMutation) SetField(name string, value ent.Value) error {
 // this mutation.
 func (m *FactionMutation) AddedFields() []string {
 	var fields []string
+	if m.addparty_id != nil {
+		fields = append(fields, faction.FieldPartyID)
+	}
+	if m.addoneshot_adventure_id != nil {
+		fields = append(fields, faction.FieldOneshotAdventureID)
+	}
 	return fields
 }
 
@@ -40643,6 +41916,10 @@ func (m *FactionMutation) AddedFields() []string {
 // was not set, or was not defined in the schema.
 func (m *FactionMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
+	case faction.FieldPartyID:
+		return m.AddedPartyID()
+	case faction.FieldOneshotAdventureID:
+		return m.AddedOneshotAdventureID()
 	}
 	return nil, false
 }
@@ -40652,6 +41929,20 @@ func (m *FactionMutation) AddedField(name string) (ent.Value, bool) {
 // type.
 func (m *FactionMutation) AddField(name string, value ent.Value) error {
 	switch name {
+	case faction.FieldPartyID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddPartyID(v)
+		return nil
+	case faction.FieldOneshotAdventureID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddOneshotAdventureID(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Faction numeric field %s", name)
 }
@@ -40662,6 +41953,12 @@ func (m *FactionMutation) ClearedFields() []string {
 	var fields []string
 	if m.FieldCleared(faction.FieldCampaignID) {
 		fields = append(fields, faction.FieldCampaignID)
+	}
+	if m.FieldCleared(faction.FieldPartyID) {
+		fields = append(fields, faction.FieldPartyID)
+	}
+	if m.FieldCleared(faction.FieldOneshotAdventureID) {
+		fields = append(fields, faction.FieldOneshotAdventureID)
 	}
 	return fields
 }
@@ -40680,6 +41977,12 @@ func (m *FactionMutation) ClearField(name string) error {
 	case faction.FieldCampaignID:
 		m.ClearCampaignID()
 		return nil
+	case faction.FieldPartyID:
+		m.ClearPartyID()
+		return nil
+	case faction.FieldOneshotAdventureID:
+		m.ClearOneshotAdventureID()
+		return nil
 	}
 	return fmt.Errorf("unknown Faction nullable field %s", name)
 }
@@ -40690,6 +41993,12 @@ func (m *FactionMutation) ResetField(name string) error {
 	switch name {
 	case faction.FieldCampaignID:
 		m.ResetCampaignID()
+		return nil
+	case faction.FieldPartyID:
+		m.ResetPartyID()
+		return nil
+	case faction.FieldOneshotAdventureID:
+		m.ResetOneshotAdventureID()
 		return nil
 	case faction.FieldName:
 		m.ResetName()
@@ -49347,6 +50656,9 @@ type OneShotAdventureMutation struct {
 	addestimated_minutes *int
 	difficulty           *string
 	notes                *string
+	is_mini_campaign     *bool
+	sort_order           *int
+	addsort_order        *int
 	created_at           *string
 	updated_at           *string
 	clearedFields        map[string]struct{}
@@ -49860,6 +51172,98 @@ func (m *OneShotAdventureMutation) ResetNotes() {
 	m.notes = nil
 }
 
+// SetIsMiniCampaign sets the "is_mini_campaign" field.
+func (m *OneShotAdventureMutation) SetIsMiniCampaign(b bool) {
+	m.is_mini_campaign = &b
+}
+
+// IsMiniCampaign returns the value of the "is_mini_campaign" field in the mutation.
+func (m *OneShotAdventureMutation) IsMiniCampaign() (r bool, exists bool) {
+	v := m.is_mini_campaign
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldIsMiniCampaign returns the old "is_mini_campaign" field's value of the OneShotAdventure entity.
+// If the OneShotAdventure object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotAdventureMutation) OldIsMiniCampaign(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldIsMiniCampaign is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldIsMiniCampaign requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldIsMiniCampaign: %w", err)
+	}
+	return oldValue.IsMiniCampaign, nil
+}
+
+// ResetIsMiniCampaign resets all changes to the "is_mini_campaign" field.
+func (m *OneShotAdventureMutation) ResetIsMiniCampaign() {
+	m.is_mini_campaign = nil
+}
+
+// SetSortOrder sets the "sort_order" field.
+func (m *OneShotAdventureMutation) SetSortOrder(i int) {
+	m.sort_order = &i
+	m.addsort_order = nil
+}
+
+// SortOrder returns the value of the "sort_order" field in the mutation.
+func (m *OneShotAdventureMutation) SortOrder() (r int, exists bool) {
+	v := m.sort_order
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldSortOrder returns the old "sort_order" field's value of the OneShotAdventure entity.
+// If the OneShotAdventure object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OneShotAdventureMutation) OldSortOrder(ctx context.Context) (v int, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldSortOrder is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldSortOrder requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldSortOrder: %w", err)
+	}
+	return oldValue.SortOrder, nil
+}
+
+// AddSortOrder adds i to the "sort_order" field.
+func (m *OneShotAdventureMutation) AddSortOrder(i int) {
+	if m.addsort_order != nil {
+		*m.addsort_order += i
+	} else {
+		m.addsort_order = &i
+	}
+}
+
+// AddedSortOrder returns the value that was added to the "sort_order" field in this mutation.
+func (m *OneShotAdventureMutation) AddedSortOrder() (r int, exists bool) {
+	v := m.addsort_order
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ResetSortOrder resets all changes to the "sort_order" field.
+func (m *OneShotAdventureMutation) ResetSortOrder() {
+	m.sort_order = nil
+	m.addsort_order = nil
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *OneShotAdventureMutation) SetCreatedAt(s string) {
 	m.created_at = &s
@@ -50020,7 +51424,7 @@ func (m *OneShotAdventureMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *OneShotAdventureMutation) Fields() []string {
-	fields := make([]string, 0, 11)
+	fields := make([]string, 0, 13)
 	if m.user_id != nil {
 		fields = append(fields, oneshotadventure.FieldUserID)
 	}
@@ -50047,6 +51451,12 @@ func (m *OneShotAdventureMutation) Fields() []string {
 	}
 	if m.notes != nil {
 		fields = append(fields, oneshotadventure.FieldNotes)
+	}
+	if m.is_mini_campaign != nil {
+		fields = append(fields, oneshotadventure.FieldIsMiniCampaign)
+	}
+	if m.sort_order != nil {
+		fields = append(fields, oneshotadventure.FieldSortOrder)
 	}
 	if m.created_at != nil {
 		fields = append(fields, oneshotadventure.FieldCreatedAt)
@@ -50080,6 +51490,10 @@ func (m *OneShotAdventureMutation) Field(name string) (ent.Value, bool) {
 		return m.Difficulty()
 	case oneshotadventure.FieldNotes:
 		return m.Notes()
+	case oneshotadventure.FieldIsMiniCampaign:
+		return m.IsMiniCampaign()
+	case oneshotadventure.FieldSortOrder:
+		return m.SortOrder()
 	case oneshotadventure.FieldCreatedAt:
 		return m.CreatedAt()
 	case oneshotadventure.FieldUpdatedAt:
@@ -50111,6 +51525,10 @@ func (m *OneShotAdventureMutation) OldField(ctx context.Context, name string) (e
 		return m.OldDifficulty(ctx)
 	case oneshotadventure.FieldNotes:
 		return m.OldNotes(ctx)
+	case oneshotadventure.FieldIsMiniCampaign:
+		return m.OldIsMiniCampaign(ctx)
+	case oneshotadventure.FieldSortOrder:
+		return m.OldSortOrder(ctx)
 	case oneshotadventure.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case oneshotadventure.FieldUpdatedAt:
@@ -50187,6 +51605,20 @@ func (m *OneShotAdventureMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetNotes(v)
 		return nil
+	case oneshotadventure.FieldIsMiniCampaign:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetIsMiniCampaign(v)
+		return nil
+	case oneshotadventure.FieldSortOrder:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetSortOrder(v)
+		return nil
 	case oneshotadventure.FieldCreatedAt:
 		v, ok := value.(string)
 		if !ok {
@@ -50218,6 +51650,9 @@ func (m *OneShotAdventureMutation) AddedFields() []string {
 	if m.addestimated_minutes != nil {
 		fields = append(fields, oneshotadventure.FieldEstimatedMinutes)
 	}
+	if m.addsort_order != nil {
+		fields = append(fields, oneshotadventure.FieldSortOrder)
+	}
 	return fields
 }
 
@@ -50232,6 +51667,8 @@ func (m *OneShotAdventureMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedCampaignID()
 	case oneshotadventure.FieldEstimatedMinutes:
 		return m.AddedEstimatedMinutes()
+	case oneshotadventure.FieldSortOrder:
+		return m.AddedSortOrder()
 	}
 	return nil, false
 }
@@ -50261,6 +51698,13 @@ func (m *OneShotAdventureMutation) AddField(name string, value ent.Value) error 
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.AddEstimatedMinutes(v)
+		return nil
+	case oneshotadventure.FieldSortOrder:
+		v, ok := value.(int)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddSortOrder(v)
 		return nil
 	}
 	return fmt.Errorf("unknown OneShotAdventure numeric field %s", name)
@@ -50324,6 +51768,12 @@ func (m *OneShotAdventureMutation) ResetField(name string) error {
 		return nil
 	case oneshotadventure.FieldNotes:
 		m.ResetNotes()
+		return nil
+	case oneshotadventure.FieldIsMiniCampaign:
+		m.ResetIsMiniCampaign()
+		return nil
+	case oneshotadventure.FieldSortOrder:
+		m.ResetSortOrder()
 		return nil
 	case oneshotadventure.FieldCreatedAt:
 		m.ResetCreatedAt()

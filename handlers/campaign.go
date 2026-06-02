@@ -1429,7 +1429,7 @@ func DeleteCampaign(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-	db.Client.Character.Update().Where(character.CampaignID(id)).SetCampaignID(0).Save(ctx)
+	db.Client.Character.Update().Where(character.CampaignID(id)).ClearCampaignID().Save(ctx)
 	db.Client.Campaign.DeleteOneID(id).Exec(ctx)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
@@ -1651,18 +1651,38 @@ func DoRest(c *gin.Context) {
 			newExhaustion := char.ExhaustionLevel - 1
 			db.Client.Character.UpdateOneID(charID).SetExhaustionLevel(newExhaustion).Exec(ctx)
 		}
-		db.Client.CharacterSpellcasting.Update().
-			Where(characterspellcasting.CharacterID(charID)).
-			SetSlots1Used(0).
-			SetSlots2Used(0).
-			SetSlots3Used(0).
-			SetSlots4Used(0).
-			SetSlots5Used(0).
-			SetSlots6Used(0).
-			SetSlots7Used(0).
-			SetSlots8Used(0).
-			SetSlots9Used(0).
-			Save(ctx)
+		// Reset spell slots — create record if missing
+		count, _ := db.Client.CharacterSpellcasting.Query().Where(characterspellcasting.CharacterID(charID)).Count(ctx)
+		if count > 0 {
+			db.Client.CharacterSpellcasting.Update().
+				Where(characterspellcasting.CharacterID(charID)).
+				SetSlots1Used(0).
+				SetSlots2Used(0).
+				SetSlots3Used(0).
+				SetSlots4Used(0).
+				SetSlots5Used(0).
+				SetSlots6Used(0).
+				SetSlots7Used(0).
+				SetSlots8Used(0).
+				SetSlots9Used(0).
+				Save(ctx)
+		} else if char.Class != "" {
+			db.Client.CharacterSpellcasting.Create().
+				SetCharacterID(charID).
+				SetAbility("").
+				SetSaveDc(10).
+				SetAttackBonus(0).
+				SetSlots1Used(0).
+				SetSlots2Used(0).
+				SetSlots3Used(0).
+				SetSlots4Used(0).
+				SetSlots5Used(0).
+				SetSlots6Used(0).
+				SetSlots7Used(0).
+				SetSlots8Used(0).
+				SetSlots9Used(0).
+				Save(ctx)
+		}
 	} else {
 		count := req.HitDiceCount
 		if count < 0 {

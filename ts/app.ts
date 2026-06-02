@@ -6165,6 +6165,134 @@ function rollDice(dice: string): number {
   `;
 };
 
+// ─── AI Generation ───
+
+let aiGenLastResult: string | null = null;
+let aiGenLastImageUrl: string | null = null;
+
+/**
+ * Open the AI generation modal.
+ * @param mode 'text' | 'image'
+ * @param targetId ID of the textarea/field to insert/replace into
+ * @param promptHint Optional pre-fill for the prompt
+ * @param title Optional modal title
+ */
+(window as any).openAIGenModal = function (mode: string, targetId: string, promptHint?: string, title?: string) {
+  aiGenLastResult = null;
+  aiGenLastImageUrl = null;
+  document.getElementById('aiGenResult')!.style.display = 'none';
+
+  (document.getElementById('aiGenTargetId') as HTMLInputElement).value = targetId;
+  (document.getElementById('aiGenMode') as HTMLInputElement).value = mode;
+  (document.getElementById('aiGenModal') as any).querySelector('.modal-title')!.textContent = title || (mode === 'image' ? 'Generate Image with AI' : 'Generate Text with AI');
+
+  const promptEl = document.getElementById('aiGenPrompt') as HTMLTextAreaElement;
+  if (promptHint) promptEl.value = promptHint;
+
+  // Show/hide system prompt field based on mode
+  document.getElementById('aiGenSystemField')!.style.display = mode === 'text' ? 'block' : 'none';
+  document.getElementById('aiGenInsertBtn')!.style.display = mode === 'text' ? 'inline-block' : 'none';
+  document.getElementById('aiGenReplaceBtn')!.style.display = mode === 'text' ? 'inline-block' : 'none';
+
+  const modal = new (window as any).bootstrap.Modal(document.getElementById('aiGenModal')!);
+  modal.show();
+
+  // Fetch endpoints for this mode
+  fetchAIEndpoints(mode);
+};
+
+async function fetchAIEndpoints(type: string) {
+  const select = document.getElementById('aiGenEndpoint') as HTMLSelectElement;
+  try {
+    const endpoints = await api('GET', '/api/user/me'); // just check auth; fetch actual endpoints via DM endpoint
+    // Actually we need a way to get enabled endpoints - use the admin endpoint
+    // For now, let's try to get them from a specific endpoint
+    const eps = await api('GET', '/api/admin/ai-endpoints');
+    const filtered = eps.filter((ep: any) => ep.type === type && ep.enabled);
+    if (filtered.length === 0) {
+      select.innerHTML = '<option value="">No enabled endpoints available</option>';
+      return;
+    }
+    select.innerHTML = filtered.map((ep: any) =>
+      `<option value="${ep.id}">${esc(ep.name)} (${ep.model})</option>`
+    ).join('');
+  } catch {
+    select.innerHTML = '<option value="">Failed to load endpoints</option>';
+  }
+}
+
+(window as any).generateWithAI = async function () {
+  const endpointId = parseInt((document.getElementById('aiGenEndpoint') as HTMLSelectElement).value);
+  const prompt = (document.getElementById('aiGenPrompt') as HTMLTextAreaElement).value.trim();
+  const mode = (document.getElementById('aiGenMode') as HTMLInputElement).value;
+
+  if (!endpointId) { toast('Please select an AI endpoint', true); return; }
+  if (!prompt) { toast('Please enter a prompt', true); return; }
+
+  const btn = document.getElementById('aiGenGenerateBtn') as HTMLButtonElement;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Generating...';
+
+  try {
+    if (mode === 'text') {
+      const system = (document.getElementById('aiGenSystem') as HTMLTextAreaElement).value.trim();
+      const result: any = await api('POST', '/api/ai/generate/text', {
+        endpoint_id: endpointId,
+        prompt: prompt,
+        system: system || undefined,
+      });
+      aiGenLastResult = result.text;
+      document.getElementById('aiGenResultText')!.textContent = result.text;
+      document.getElementById('aiGenResultText')!.style.display = 'block';
+      document.getElementById('aiGenResultImage')!.style.display = 'none';
+    } else {
+      const result: any = await api('POST', '/api/ai/generate/image', {
+        endpoint_id: endpointId,
+        prompt: prompt,
+      });
+      aiGenLastImageUrl = result.image_url;
+      const img = document.getElementById('aiGenResultImage') as HTMLImageElement;
+      img.src = result.image_url;
+      img.style.display = 'block';
+      document.getElementById('aiGenResultText')!.style.display = 'none';
+    }
+    document.getElementById('aiGenResult')!.style.display = 'block';
+  } catch (e: any) {
+    toast(e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate';
+  }
+};
+
+(window as any).regenerateWithAI = function () {
+  (window as any).generateWithAI();
+};
+
+(window as any).insertAIGenResult = function () {
+  const targetId = (document.getElementById('aiGenTargetId') as HTMLInputElement).value;
+  if (!targetId || !aiGenLastResult) return;
+  const target = document.getElementById(targetId) as HTMLTextAreaElement | HTMLInputElement;
+  if (target) {
+    target.value += (target.value ? '\n' : '') + aiGenLastResult;
+    const modal = (window as any).bootstrap.Modal.getInstance(document.getElementById('aiGenModal')!);
+    if (modal) modal.hide();
+    toast('Text inserted');
+  }
+};
+
+(window as any).replaceAIGenResult = function () {
+  const targetId = (document.getElementById('aiGenTargetId') as HTMLInputElement).value;
+  if (!targetId || !aiGenLastResult) return;
+  const target = document.getElementById(targetId) as HTMLTextAreaElement | HTMLInputElement;
+  if (target) {
+    target.value = aiGenLastResult;
+    const modal = (window as any).bootstrap.Modal.getInstance(document.getElementById('aiGenModal')!);
+    if (modal) modal.hide();
+    toast('Text replaced');
+  }
+};
+
 // ─── Add Dashboard button to campaign cards ───
 // (patched into showParty directly, but helper here for when called from manage modal)
 

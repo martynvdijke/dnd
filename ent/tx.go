@@ -12,6 +12,8 @@ import (
 // Tx is a transactional client that is created by calling Client.Tx().
 type Tx struct {
 	config
+	// AIEndpoint is the client for interacting with the AIEndpoint builders.
+	AIEndpoint *AIEndpointClient
 	// BackupSetting is the client for interacting with the BackupSetting builders.
 	BackupSetting *BackupSettingClient
 	// Campaign is the client for interacting with the Campaign builders.
@@ -269,6 +271,7 @@ func (tx *Tx) Client() *Client {
 }
 
 func (tx *Tx) init() {
+	tx.AIEndpoint = NewAIEndpointClient(tx.config)
 	tx.BackupSetting = NewBackupSettingClient(tx.config)
 	tx.Campaign = NewCampaignClient(tx.config)
 	tx.CampaignCalendarEvent = NewCampaignCalendarEventClient(tx.config)
@@ -341,7 +344,7 @@ func (tx *Tx) init() {
 // of them in order to commit or rollback the transaction.
 //
 // If a closed transaction is embedded in one of the generated entities, and the entity
-// applies a query, for example: BackupSetting.QueryXXX(), the query will be executed
+// applies a query, for example: AIEndpoint.QueryXXX(), the query will be executed
 // through the driver which created this transaction.
 //
 // Note that txDriver is not goroutine safe.

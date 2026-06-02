@@ -30,6 +30,10 @@ const (
 	FieldDifficulty = "difficulty"
 	// FieldNotes holds the string denoting the notes field in the database.
 	FieldNotes = "notes"
+	// FieldIsMiniCampaign holds the string denoting the is_mini_campaign field in the database.
+	FieldIsMiniCampaign = "is_mini_campaign"
+	// FieldSortOrder holds the string denoting the sort_order field in the database.
+	FieldSortOrder = "sort_order"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -59,6 +63,8 @@ var Columns = []string{
 	FieldEstimatedMinutes,
 	FieldDifficulty,
 	FieldNotes,
+	FieldIsMiniCampaign,
+	FieldSortOrder,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -88,6 +94,10 @@ var (
 	DefaultDifficulty string
 	// DefaultNotes holds the default value on creation for the "notes" field.
 	DefaultNotes string
+	// DefaultIsMiniCampaign holds the default value on creation for the "is_mini_campaign" field.
+	DefaultIsMiniCampaign bool
+	// DefaultSortOrder holds the default value on creation for the "sort_order" field.
+	DefaultSortOrder int
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt string
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -145,6 +155,16 @@ func ByDifficulty(opts ...sql.OrderTermOption) OrderOption {
 // ByNotes orders the results by the notes field.
 func ByNotes(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNotes, opts...).ToFunc()
+}
+
+// ByIsMiniCampaign orders the results by the is_mini_campaign field.
+func ByIsMiniCampaign(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldIsMiniCampaign, opts...).ToFunc()
+}
+
+// BySortOrder orders the results by the sort_order field.
+func BySortOrder(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldSortOrder, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

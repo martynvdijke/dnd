@@ -118,9 +118,13 @@ func SetFactionReputation(c *gin.Context) {
 	if req.Standing > 100 {
 		req.Standing = 100
 	}
-	_, err := db.DB.Exec(`INSERT INTO faction_reputation(character_id,faction_id,standing,rank,notes) VALUES(?,?,?,?,?)
-		ON CONFLICT(character_id,faction_id) DO UPDATE SET standing=excluded.standing, rank=excluded.rank, notes=excluded.notes`,
-		req.CharacterID, req.FactionID, req.Standing, req.Rank, req.Notes)
+	var existingID int64
+	err := db.DB.QueryRow("SELECT id FROM faction_reputation WHERE character_id=? AND faction_id=?", req.CharacterID, req.FactionID).Scan(&existingID)
+	if err == nil {
+		_, err = db.DB.Exec("UPDATE faction_reputation SET standing=?, rank=?, notes=? WHERE id=?", req.Standing, req.Rank, req.Notes, existingID)
+	} else {
+		_, err = db.DB.Exec("INSERT INTO faction_reputation(character_id,faction_id,standing,rank,notes) VALUES(?,?,?,?,?)", req.CharacterID, req.FactionID, req.Standing, req.Rank, req.Notes)
+	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

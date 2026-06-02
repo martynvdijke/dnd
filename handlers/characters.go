@@ -1230,23 +1230,42 @@ func UpdateSpellcasting(c *gin.Context) {
 		}
 	}
 
-	db.Client.CharacterSpellcasting.Create().
-		SetCharacterID(id).
-		SetAbility(sc.Ability).
-		SetSaveDc(sc.SaveDC).
-		SetAttackBonus(sc.AttackBonus).
-		SetSlots1Max(sc.Slots1Max).SetSlots1Used(sc.Slots1Used).
-		SetSlots2Max(sc.Slots2Max).SetSlots2Used(sc.Slots2Used).
-		SetSlots3Max(sc.Slots3Max).SetSlots3Used(sc.Slots3Used).
-		SetSlots4Max(sc.Slots4Max).SetSlots4Used(sc.Slots4Used).
-		SetSlots5Max(sc.Slots5Max).SetSlots5Used(sc.Slots5Used).
-		SetSlots6Max(sc.Slots6Max).SetSlots6Used(sc.Slots6Used).
-		SetSlots7Max(sc.Slots7Max).SetSlots7Used(sc.Slots7Used).
-		SetSlots8Max(sc.Slots8Max).SetSlots8Used(sc.Slots8Used).
-		SetSlots9Max(sc.Slots9Max).SetSlots9Used(sc.Slots9Used).
-		OnConflictColumns("character_id").
-		UpdateNewValues().
-		Exec(c.Request.Context())
+	ctx := c.Request.Context()
+	existing, err := db.Client.CharacterSpellcasting.Query().
+		Where(characterspellcasting.CharacterID(id)).
+		Only(ctx)
+	if err == nil && existing != nil {
+		db.Client.CharacterSpellcasting.UpdateOneID(existing.ID).
+			SetAbility(sc.Ability).
+			SetSaveDc(sc.SaveDC).
+			SetAttackBonus(sc.AttackBonus).
+			SetSlots1Max(sc.Slots1Max).SetSlots1Used(sc.Slots1Used).
+			SetSlots2Max(sc.Slots2Max).SetSlots2Used(sc.Slots2Used).
+			SetSlots3Max(sc.Slots3Max).SetSlots3Used(sc.Slots3Used).
+			SetSlots4Max(sc.Slots4Max).SetSlots4Used(sc.Slots4Used).
+			SetSlots5Max(sc.Slots5Max).SetSlots5Used(sc.Slots5Used).
+			SetSlots6Max(sc.Slots6Max).SetSlots6Used(sc.Slots6Used).
+			SetSlots7Max(sc.Slots7Max).SetSlots7Used(sc.Slots7Used).
+			SetSlots8Max(sc.Slots8Max).SetSlots8Used(sc.Slots8Used).
+			SetSlots9Max(sc.Slots9Max).SetSlots9Used(sc.Slots9Used).
+			Exec(ctx)
+	} else {
+		db.Client.CharacterSpellcasting.Create().
+			SetCharacterID(id).
+			SetAbility(sc.Ability).
+			SetSaveDc(sc.SaveDC).
+			SetAttackBonus(sc.AttackBonus).
+			SetSlots1Max(sc.Slots1Max).SetSlots1Used(sc.Slots1Used).
+			SetSlots2Max(sc.Slots2Max).SetSlots2Used(sc.Slots2Used).
+			SetSlots3Max(sc.Slots3Max).SetSlots3Used(sc.Slots3Used).
+			SetSlots4Max(sc.Slots4Max).SetSlots4Used(sc.Slots4Used).
+			SetSlots5Max(sc.Slots5Max).SetSlots5Used(sc.Slots5Used).
+			SetSlots6Max(sc.Slots6Max).SetSlots6Used(sc.Slots6Used).
+			SetSlots7Max(sc.Slots7Max).SetSlots7Used(sc.Slots7Used).
+			SetSlots8Max(sc.Slots8Max).SetSlots8Used(sc.Slots8Used).
+			SetSlots9Max(sc.Slots9Max).SetSlots9Used(sc.Slots9Used).
+			Exec(ctx)
+	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

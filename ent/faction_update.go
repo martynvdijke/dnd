@@ -49,6 +49,60 @@ func (_u *FactionUpdate) ClearCampaignID() *FactionUpdate {
 	return _u
 }
 
+// SetPartyID sets the "party_id" field.
+func (_u *FactionUpdate) SetPartyID(v int64) *FactionUpdate {
+	_u.mutation.ResetPartyID()
+	_u.mutation.SetPartyID(v)
+	return _u
+}
+
+// SetNillablePartyID sets the "party_id" field if the given value is not nil.
+func (_u *FactionUpdate) SetNillablePartyID(v *int64) *FactionUpdate {
+	if v != nil {
+		_u.SetPartyID(*v)
+	}
+	return _u
+}
+
+// AddPartyID adds value to the "party_id" field.
+func (_u *FactionUpdate) AddPartyID(v int64) *FactionUpdate {
+	_u.mutation.AddPartyID(v)
+	return _u
+}
+
+// ClearPartyID clears the value of the "party_id" field.
+func (_u *FactionUpdate) ClearPartyID() *FactionUpdate {
+	_u.mutation.ClearPartyID()
+	return _u
+}
+
+// SetOneshotAdventureID sets the "oneshot_adventure_id" field.
+func (_u *FactionUpdate) SetOneshotAdventureID(v int64) *FactionUpdate {
+	_u.mutation.ResetOneshotAdventureID()
+	_u.mutation.SetOneshotAdventureID(v)
+	return _u
+}
+
+// SetNillableOneshotAdventureID sets the "oneshot_adventure_id" field if the given value is not nil.
+func (_u *FactionUpdate) SetNillableOneshotAdventureID(v *int64) *FactionUpdate {
+	if v != nil {
+		_u.SetOneshotAdventureID(*v)
+	}
+	return _u
+}
+
+// AddOneshotAdventureID adds value to the "oneshot_adventure_id" field.
+func (_u *FactionUpdate) AddOneshotAdventureID(v int64) *FactionUpdate {
+	_u.mutation.AddOneshotAdventureID(v)
+	return _u
+}
+
+// ClearOneshotAdventureID clears the value of the "oneshot_adventure_id" field.
+func (_u *FactionUpdate) ClearOneshotAdventureID() *FactionUpdate {
+	_u.mutation.ClearOneshotAdventureID()
+	return _u
+}
+
 // SetName sets the "name" field.
 func (_u *FactionUpdate) SetName(v string) *FactionUpdate {
 	_u.mutation.SetName(v)
@@ -207,6 +261,24 @@ func (_u *FactionUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			}
 		}
 	}
+	if value, ok := _u.mutation.PartyID(); ok {
+		_spec.SetField(faction.FieldPartyID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedPartyID(); ok {
+		_spec.AddField(faction.FieldPartyID, field.TypeInt64, value)
+	}
+	if _u.mutation.PartyIDCleared() {
+		_spec.ClearField(faction.FieldPartyID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.OneshotAdventureID(); ok {
+		_spec.SetField(faction.FieldOneshotAdventureID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedOneshotAdventureID(); ok {
+		_spec.AddField(faction.FieldOneshotAdventureID, field.TypeInt64, value)
+	}
+	if _u.mutation.OneshotAdventureIDCleared() {
+		_spec.ClearField(faction.FieldOneshotAdventureID, field.TypeInt64)
+	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(faction.FieldName, field.TypeString, value)
 	}
@@ -333,6 +405,60 @@ func (_u *FactionUpdateOne) SetNillableCampaignID(v *int64) *FactionUpdateOne {
 // ClearCampaignID clears the value of the "campaign_id" field.
 func (_u *FactionUpdateOne) ClearCampaignID() *FactionUpdateOne {
 	_u.mutation.ClearCampaignID()
+	return _u
+}
+
+// SetPartyID sets the "party_id" field.
+func (_u *FactionUpdateOne) SetPartyID(v int64) *FactionUpdateOne {
+	_u.mutation.ResetPartyID()
+	_u.mutation.SetPartyID(v)
+	return _u
+}
+
+// SetNillablePartyID sets the "party_id" field if the given value is not nil.
+func (_u *FactionUpdateOne) SetNillablePartyID(v *int64) *FactionUpdateOne {
+	if v != nil {
+		_u.SetPartyID(*v)
+	}
+	return _u
+}
+
+// AddPartyID adds value to the "party_id" field.
+func (_u *FactionUpdateOne) AddPartyID(v int64) *FactionUpdateOne {
+	_u.mutation.AddPartyID(v)
+	return _u
+}
+
+// ClearPartyID clears the value of the "party_id" field.
+func (_u *FactionUpdateOne) ClearPartyID() *FactionUpdateOne {
+	_u.mutation.ClearPartyID()
+	return _u
+}
+
+// SetOneshotAdventureID sets the "oneshot_adventure_id" field.
+func (_u *FactionUpdateOne) SetOneshotAdventureID(v int64) *FactionUpdateOne {
+	_u.mutation.ResetOneshotAdventureID()
+	_u.mutation.SetOneshotAdventureID(v)
+	return _u
+}
+
+// SetNillableOneshotAdventureID sets the "oneshot_adventure_id" field if the given value is not nil.
+func (_u *FactionUpdateOne) SetNillableOneshotAdventureID(v *int64) *FactionUpdateOne {
+	if v != nil {
+		_u.SetOneshotAdventureID(*v)
+	}
+	return _u
+}
+
+// AddOneshotAdventureID adds value to the "oneshot_adventure_id" field.
+func (_u *FactionUpdateOne) AddOneshotAdventureID(v int64) *FactionUpdateOne {
+	_u.mutation.AddOneshotAdventureID(v)
+	return _u
+}
+
+// ClearOneshotAdventureID clears the value of the "oneshot_adventure_id" field.
+func (_u *FactionUpdateOne) ClearOneshotAdventureID() *FactionUpdateOne {
+	_u.mutation.ClearOneshotAdventureID()
 	return _u
 }
 
@@ -523,6 +649,24 @@ func (_u *FactionUpdateOne) sqlSave(ctx context.Context) (_node *Faction, err er
 				ps[i](selector)
 			}
 		}
+	}
+	if value, ok := _u.mutation.PartyID(); ok {
+		_spec.SetField(faction.FieldPartyID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedPartyID(); ok {
+		_spec.AddField(faction.FieldPartyID, field.TypeInt64, value)
+	}
+	if _u.mutation.PartyIDCleared() {
+		_spec.ClearField(faction.FieldPartyID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.OneshotAdventureID(); ok {
+		_spec.SetField(faction.FieldOneshotAdventureID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedOneshotAdventureID(); ok {
+		_spec.AddField(faction.FieldOneshotAdventureID, field.TypeInt64, value)
+	}
+	if _u.mutation.OneshotAdventureIDCleared() {
+		_spec.ClearField(faction.FieldOneshotAdventureID, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(faction.FieldName, field.TypeString, value)

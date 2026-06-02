@@ -34,6 +34,10 @@ type OneShotAdventure struct {
 	Difficulty string `json:"difficulty,omitempty"`
 	// Notes holds the value of the "notes" field.
 	Notes string `json:"notes,omitempty"`
+	// IsMiniCampaign holds the value of the "is_mini_campaign" field.
+	IsMiniCampaign bool `json:"is_mini_campaign,omitempty"`
+	// SortOrder holds the value of the "sort_order" field.
+	SortOrder int `json:"sort_order,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt string `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -67,7 +71,9 @@ func (*OneShotAdventure) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case oneshotadventure.FieldID, oneshotadventure.FieldUserID, oneshotadventure.FieldCampaignID, oneshotadventure.FieldEstimatedMinutes:
+		case oneshotadventure.FieldIsMiniCampaign:
+			values[i] = new(sql.NullBool)
+		case oneshotadventure.FieldID, oneshotadventure.FieldUserID, oneshotadventure.FieldCampaignID, oneshotadventure.FieldEstimatedMinutes, oneshotadventure.FieldSortOrder:
 			values[i] = new(sql.NullInt64)
 		case oneshotadventure.FieldTitle, oneshotadventure.FieldPremise, oneshotadventure.FieldHook, oneshotadventure.FieldTemplate, oneshotadventure.FieldDifficulty, oneshotadventure.FieldNotes, oneshotadventure.FieldCreatedAt, oneshotadventure.FieldUpdatedAt:
 			values[i] = new(sql.NullString)
@@ -145,6 +151,18 @@ func (_m *OneShotAdventure) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field notes", values[i])
 			} else if value.Valid {
 				_m.Notes = value.String
+			}
+		case oneshotadventure.FieldIsMiniCampaign:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field is_mini_campaign", values[i])
+			} else if value.Valid {
+				_m.IsMiniCampaign = value.Bool
+			}
+		case oneshotadventure.FieldSortOrder:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field sort_order", values[i])
+			} else if value.Valid {
+				_m.SortOrder = int(value.Int64)
 			}
 		case oneshotadventure.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -225,6 +243,12 @@ func (_m *OneShotAdventure) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("notes=")
 	builder.WriteString(_m.Notes)
+	builder.WriteString(", ")
+	builder.WriteString("is_mini_campaign=")
+	builder.WriteString(fmt.Sprintf("%v", _m.IsMiniCampaign))
+	builder.WriteString(", ")
+	builder.WriteString("sort_order=")
+	builder.WriteString(fmt.Sprintf("%v", _m.SortOrder))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt)

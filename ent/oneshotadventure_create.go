@@ -140,6 +140,34 @@ func (_c *OneShotAdventureCreate) SetNillableNotes(v *string) *OneShotAdventureC
 	return _c
 }
 
+// SetIsMiniCampaign sets the "is_mini_campaign" field.
+func (_c *OneShotAdventureCreate) SetIsMiniCampaign(v bool) *OneShotAdventureCreate {
+	_c.mutation.SetIsMiniCampaign(v)
+	return _c
+}
+
+// SetNillableIsMiniCampaign sets the "is_mini_campaign" field if the given value is not nil.
+func (_c *OneShotAdventureCreate) SetNillableIsMiniCampaign(v *bool) *OneShotAdventureCreate {
+	if v != nil {
+		_c.SetIsMiniCampaign(*v)
+	}
+	return _c
+}
+
+// SetSortOrder sets the "sort_order" field.
+func (_c *OneShotAdventureCreate) SetSortOrder(v int) *OneShotAdventureCreate {
+	_c.mutation.SetSortOrder(v)
+	return _c
+}
+
+// SetNillableSortOrder sets the "sort_order" field if the given value is not nil.
+func (_c *OneShotAdventureCreate) SetNillableSortOrder(v *int) *OneShotAdventureCreate {
+	if v != nil {
+		_c.SetSortOrder(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *OneShotAdventureCreate) SetCreatedAt(v string) *OneShotAdventureCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -252,6 +280,14 @@ func (_c *OneShotAdventureCreate) defaults() {
 		v := oneshotadventure.DefaultNotes
 		_c.mutation.SetNotes(v)
 	}
+	if _, ok := _c.mutation.IsMiniCampaign(); !ok {
+		v := oneshotadventure.DefaultIsMiniCampaign
+		_c.mutation.SetIsMiniCampaign(v)
+	}
+	if _, ok := _c.mutation.SortOrder(); !ok {
+		v := oneshotadventure.DefaultSortOrder
+		_c.mutation.SetSortOrder(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := oneshotadventure.DefaultCreatedAt
 		_c.mutation.SetCreatedAt(v)
@@ -287,6 +323,12 @@ func (_c *OneShotAdventureCreate) check() error {
 	}
 	if _, ok := _c.mutation.Notes(); !ok {
 		return &ValidationError{Name: "notes", err: errors.New(`ent: missing required field "OneShotAdventure.notes"`)}
+	}
+	if _, ok := _c.mutation.IsMiniCampaign(); !ok {
+		return &ValidationError{Name: "is_mini_campaign", err: errors.New(`ent: missing required field "OneShotAdventure.is_mini_campaign"`)}
+	}
+	if _, ok := _c.mutation.SortOrder(); !ok {
+		return &ValidationError{Name: "sort_order", err: errors.New(`ent: missing required field "OneShotAdventure.sort_order"`)}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "OneShotAdventure.created_at"`)}
@@ -362,6 +404,14 @@ func (_c *OneShotAdventureCreate) createSpec() (*OneShotAdventure, *sqlgraph.Cre
 	if value, ok := _c.mutation.Notes(); ok {
 		_spec.SetField(oneshotadventure.FieldNotes, field.TypeString, value)
 		_node.Notes = value
+	}
+	if value, ok := _c.mutation.IsMiniCampaign(); ok {
+		_spec.SetField(oneshotadventure.FieldIsMiniCampaign, field.TypeBool, value)
+		_node.IsMiniCampaign = value
+	}
+	if value, ok := _c.mutation.SortOrder(); ok {
+		_spec.SetField(oneshotadventure.FieldSortOrder, field.TypeInt, value)
+		_node.SortOrder = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(oneshotadventure.FieldCreatedAt, field.TypeString, value)
@@ -568,6 +618,36 @@ func (u *OneShotAdventureUpsert) SetNotes(v string) *OneShotAdventureUpsert {
 // UpdateNotes sets the "notes" field to the value that was provided on create.
 func (u *OneShotAdventureUpsert) UpdateNotes() *OneShotAdventureUpsert {
 	u.SetExcluded(oneshotadventure.FieldNotes)
+	return u
+}
+
+// SetIsMiniCampaign sets the "is_mini_campaign" field.
+func (u *OneShotAdventureUpsert) SetIsMiniCampaign(v bool) *OneShotAdventureUpsert {
+	u.Set(oneshotadventure.FieldIsMiniCampaign, v)
+	return u
+}
+
+// UpdateIsMiniCampaign sets the "is_mini_campaign" field to the value that was provided on create.
+func (u *OneShotAdventureUpsert) UpdateIsMiniCampaign() *OneShotAdventureUpsert {
+	u.SetExcluded(oneshotadventure.FieldIsMiniCampaign)
+	return u
+}
+
+// SetSortOrder sets the "sort_order" field.
+func (u *OneShotAdventureUpsert) SetSortOrder(v int) *OneShotAdventureUpsert {
+	u.Set(oneshotadventure.FieldSortOrder, v)
+	return u
+}
+
+// UpdateSortOrder sets the "sort_order" field to the value that was provided on create.
+func (u *OneShotAdventureUpsert) UpdateSortOrder() *OneShotAdventureUpsert {
+	u.SetExcluded(oneshotadventure.FieldSortOrder)
+	return u
+}
+
+// AddSortOrder adds v to the "sort_order" field.
+func (u *OneShotAdventureUpsert) AddSortOrder(v int) *OneShotAdventureUpsert {
+	u.Add(oneshotadventure.FieldSortOrder, v)
 	return u
 }
 
@@ -794,6 +874,41 @@ func (u *OneShotAdventureUpsertOne) SetNotes(v string) *OneShotAdventureUpsertOn
 func (u *OneShotAdventureUpsertOne) UpdateNotes() *OneShotAdventureUpsertOne {
 	return u.Update(func(s *OneShotAdventureUpsert) {
 		s.UpdateNotes()
+	})
+}
+
+// SetIsMiniCampaign sets the "is_mini_campaign" field.
+func (u *OneShotAdventureUpsertOne) SetIsMiniCampaign(v bool) *OneShotAdventureUpsertOne {
+	return u.Update(func(s *OneShotAdventureUpsert) {
+		s.SetIsMiniCampaign(v)
+	})
+}
+
+// UpdateIsMiniCampaign sets the "is_mini_campaign" field to the value that was provided on create.
+func (u *OneShotAdventureUpsertOne) UpdateIsMiniCampaign() *OneShotAdventureUpsertOne {
+	return u.Update(func(s *OneShotAdventureUpsert) {
+		s.UpdateIsMiniCampaign()
+	})
+}
+
+// SetSortOrder sets the "sort_order" field.
+func (u *OneShotAdventureUpsertOne) SetSortOrder(v int) *OneShotAdventureUpsertOne {
+	return u.Update(func(s *OneShotAdventureUpsert) {
+		s.SetSortOrder(v)
+	})
+}
+
+// AddSortOrder adds v to the "sort_order" field.
+func (u *OneShotAdventureUpsertOne) AddSortOrder(v int) *OneShotAdventureUpsertOne {
+	return u.Update(func(s *OneShotAdventureUpsert) {
+		s.AddSortOrder(v)
+	})
+}
+
+// UpdateSortOrder sets the "sort_order" field to the value that was provided on create.
+func (u *OneShotAdventureUpsertOne) UpdateSortOrder() *OneShotAdventureUpsertOne {
+	return u.Update(func(s *OneShotAdventureUpsert) {
+		s.UpdateSortOrder()
 	})
 }
 
@@ -1190,6 +1305,41 @@ func (u *OneShotAdventureUpsertBulk) SetNotes(v string) *OneShotAdventureUpsertB
 func (u *OneShotAdventureUpsertBulk) UpdateNotes() *OneShotAdventureUpsertBulk {
 	return u.Update(func(s *OneShotAdventureUpsert) {
 		s.UpdateNotes()
+	})
+}
+
+// SetIsMiniCampaign sets the "is_mini_campaign" field.
+func (u *OneShotAdventureUpsertBulk) SetIsMiniCampaign(v bool) *OneShotAdventureUpsertBulk {
+	return u.Update(func(s *OneShotAdventureUpsert) {
+		s.SetIsMiniCampaign(v)
+	})
+}
+
+// UpdateIsMiniCampaign sets the "is_mini_campaign" field to the value that was provided on create.
+func (u *OneShotAdventureUpsertBulk) UpdateIsMiniCampaign() *OneShotAdventureUpsertBulk {
+	return u.Update(func(s *OneShotAdventureUpsert) {
+		s.UpdateIsMiniCampaign()
+	})
+}
+
+// SetSortOrder sets the "sort_order" field.
+func (u *OneShotAdventureUpsertBulk) SetSortOrder(v int) *OneShotAdventureUpsertBulk {
+	return u.Update(func(s *OneShotAdventureUpsert) {
+		s.SetSortOrder(v)
+	})
+}
+
+// AddSortOrder adds v to the "sort_order" field.
+func (u *OneShotAdventureUpsertBulk) AddSortOrder(v int) *OneShotAdventureUpsertBulk {
+	return u.Update(func(s *OneShotAdventureUpsert) {
+		s.AddSortOrder(v)
+	})
+}
+
+// UpdateSortOrder sets the "sort_order" field to the value that was provided on create.
+func (u *OneShotAdventureUpsertBulk) UpdateSortOrder() *OneShotAdventureUpsertBulk {
+	return u.Update(func(s *OneShotAdventureUpsert) {
+		s.UpdateSortOrder()
 	})
 }
 

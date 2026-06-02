@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"villum/ent/aiendpoint"
 	"villum/ent/backupsetting"
 	"villum/ent/campaign"
 	"villum/ent/campaigncalendarevent"
@@ -71,6 +72,12 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	aiendpointFields := schema.AIEndpoint{}.Fields()
+	_ = aiendpointFields
+	// aiendpointDescEnabled is the schema descriptor for enabled field.
+	aiendpointDescEnabled := aiendpointFields[7].Descriptor()
+	// aiendpoint.DefaultEnabled holds the default value on creation for the enabled field.
+	aiendpoint.DefaultEnabled = aiendpointDescEnabled.Default.(bool)
 	backupsettingFields := schema.BackupSetting{}.Fields()
 	_ = backupsettingFields
 	// backupsettingDescEnabled is the schema descriptor for enabled field.
@@ -1290,19 +1297,19 @@ func init() {
 	factionFields := schema.Faction{}.Fields()
 	_ = factionFields
 	// factionDescDescription is the schema descriptor for description field.
-	factionDescDescription := factionFields[3].Descriptor()
+	factionDescDescription := factionFields[5].Descriptor()
 	// faction.DefaultDescription holds the default value on creation for the description field.
 	faction.DefaultDescription = factionDescDescription.Default.(string)
 	// factionDescType is the schema descriptor for type field.
-	factionDescType := factionFields[4].Descriptor()
+	factionDescType := factionFields[6].Descriptor()
 	// faction.DefaultType holds the default value on creation for the type field.
 	faction.DefaultType = factionDescType.Default.(string)
 	// factionDescHeadquarters is the schema descriptor for headquarters field.
-	factionDescHeadquarters := factionFields[5].Descriptor()
+	factionDescHeadquarters := factionFields[7].Descriptor()
 	// faction.DefaultHeadquarters holds the default value on creation for the headquarters field.
 	faction.DefaultHeadquarters = factionDescHeadquarters.Default.(string)
 	// factionDescCreatedAt is the schema descriptor for created_at field.
-	factionDescCreatedAt := factionFields[6].Descriptor()
+	factionDescCreatedAt := factionFields[8].Descriptor()
 	// faction.DefaultCreatedAt holds the default value on creation for the created_at field.
 	faction.DefaultCreatedAt = factionDescCreatedAt.Default.(string)
 	factionreputationFields := schema.FactionReputation{}.Fields()
@@ -1603,12 +1610,20 @@ func init() {
 	oneshotadventureDescNotes := oneshotadventureFields[9].Descriptor()
 	// oneshotadventure.DefaultNotes holds the default value on creation for the notes field.
 	oneshotadventure.DefaultNotes = oneshotadventureDescNotes.Default.(string)
+	// oneshotadventureDescIsMiniCampaign is the schema descriptor for is_mini_campaign field.
+	oneshotadventureDescIsMiniCampaign := oneshotadventureFields[10].Descriptor()
+	// oneshotadventure.DefaultIsMiniCampaign holds the default value on creation for the is_mini_campaign field.
+	oneshotadventure.DefaultIsMiniCampaign = oneshotadventureDescIsMiniCampaign.Default.(bool)
+	// oneshotadventureDescSortOrder is the schema descriptor for sort_order field.
+	oneshotadventureDescSortOrder := oneshotadventureFields[11].Descriptor()
+	// oneshotadventure.DefaultSortOrder holds the default value on creation for the sort_order field.
+	oneshotadventure.DefaultSortOrder = oneshotadventureDescSortOrder.Default.(int)
 	// oneshotadventureDescCreatedAt is the schema descriptor for created_at field.
-	oneshotadventureDescCreatedAt := oneshotadventureFields[10].Descriptor()
+	oneshotadventureDescCreatedAt := oneshotadventureFields[12].Descriptor()
 	// oneshotadventure.DefaultCreatedAt holds the default value on creation for the created_at field.
 	oneshotadventure.DefaultCreatedAt = oneshotadventureDescCreatedAt.Default.(string)
 	// oneshotadventureDescUpdatedAt is the schema descriptor for updated_at field.
-	oneshotadventureDescUpdatedAt := oneshotadventureFields[11].Descriptor()
+	oneshotadventureDescUpdatedAt := oneshotadventureFields[13].Descriptor()
 	// oneshotadventure.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	oneshotadventure.DefaultUpdatedAt = oneshotadventureDescUpdatedAt.Default.(string)
 	oneshotitemFields := schema.OneShotItem{}.Fields()

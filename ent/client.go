@@ -11,6 +11,7 @@ import (
 
 	"villum/ent/migrate"
 
+	"villum/ent/aiendpoint"
 	"villum/ent/backupsetting"
 	"villum/ent/campaign"
 	"villum/ent/campaigncalendarevent"
@@ -86,6 +87,8 @@ type Client struct {
 	config
 	// Schema is the client for creating, migrating and dropping schema.
 	Schema *migrate.Schema
+	// AIEndpoint is the client for interacting with the AIEndpoint builders.
+	AIEndpoint *AIEndpointClient
 	// BackupSetting is the client for interacting with the BackupSetting builders.
 	BackupSetting *BackupSettingClient
 	// Campaign is the client for interacting with the Campaign builders.
@@ -223,6 +226,7 @@ func NewClient(opts ...Option) *Client {
 
 func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
+	c.AIEndpoint = NewAIEndpointClient(c.config)
 	c.BackupSetting = NewBackupSettingClient(c.config)
 	c.Campaign = NewCampaignClient(c.config)
 	c.CampaignCalendarEvent = NewCampaignCalendarEventClient(c.config)
@@ -378,6 +382,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 	return &Tx{
 		ctx:                       ctx,
 		config:                    cfg,
+		AIEndpoint:                NewAIEndpointClient(cfg),
 		BackupSetting:             NewBackupSettingClient(cfg),
 		Campaign:                  NewCampaignClient(cfg),
 		CampaignCalendarEvent:     NewCampaignCalendarEventClient(cfg),
@@ -460,6 +465,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 	return &Tx{
 		ctx:                       ctx,
 		config:                    cfg,
+		AIEndpoint:                NewAIEndpointClient(cfg),
 		BackupSetting:             NewBackupSettingClient(cfg),
 		Campaign:                  NewCampaignClient(cfg),
 		CampaignCalendarEvent:     NewCampaignCalendarEventClient(cfg),
@@ -529,7 +535,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 // Debug returns a new debug-client. It's used to get verbose logging on specific operations.
 //
 //	client.Debug().
-//		BackupSetting.
+//		AIEndpoint.
 //		Query().
 //		Count(ctx)
 func (c *Client) Debug() *Client {
@@ -552,13 +558,14 @@ func (c *Client) Close() error {
 // In order to add hooks to a specific client, call: `client.Node.Use(...)`.
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
-		c.BackupSetting, c.Campaign, c.CampaignCalendarEvent, c.CampaignMap,
-		c.CampaignMapPin, c.CampaignMember, c.CampaignRecap, c.CampaignTimelineEvent,
-		c.CampaignWikiPage, c.Character, c.CharacterClass, c.CharacterCondition,
-		c.CharacterCrafting, c.CharacterCurrency, c.CharacterFeat, c.CharacterFeature,
-		c.CharacterLocation, c.CharacterNPC, c.CharacterNote, c.CharacterProficiency,
-		c.CharacterResource, c.CharacterSpellcasting, c.CombatEntry, c.CombatLogEntry,
-		c.Companion, c.CompendiumBackground, c.CompendiumClass, c.CompendiumEquipment,
+		c.AIEndpoint, c.BackupSetting, c.Campaign, c.CampaignCalendarEvent,
+		c.CampaignMap, c.CampaignMapPin, c.CampaignMember, c.CampaignRecap,
+		c.CampaignTimelineEvent, c.CampaignWikiPage, c.Character, c.CharacterClass,
+		c.CharacterCondition, c.CharacterCrafting, c.CharacterCurrency,
+		c.CharacterFeat, c.CharacterFeature, c.CharacterLocation, c.CharacterNPC,
+		c.CharacterNote, c.CharacterProficiency, c.CharacterResource,
+		c.CharacterSpellcasting, c.CombatEntry, c.CombatLogEntry, c.Companion,
+		c.CompendiumBackground, c.CompendiumClass, c.CompendiumEquipment,
 		c.CompendiumFeat, c.CompendiumRace, c.CompendiumSpell, c.CraftingRecipe,
 		c.DiceRoll, c.DowntimeActivity, c.EmailSetting, c.EncounterMonster,
 		c.EncounterTemplate, c.Faction, c.FactionReputation, c.InventoryItem,
@@ -576,13 +583,14 @@ func (c *Client) Use(hooks ...Hook) {
 // In order to add interceptors to a specific client, call: `client.Node.Intercept(...)`.
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
-		c.BackupSetting, c.Campaign, c.CampaignCalendarEvent, c.CampaignMap,
-		c.CampaignMapPin, c.CampaignMember, c.CampaignRecap, c.CampaignTimelineEvent,
-		c.CampaignWikiPage, c.Character, c.CharacterClass, c.CharacterCondition,
-		c.CharacterCrafting, c.CharacterCurrency, c.CharacterFeat, c.CharacterFeature,
-		c.CharacterLocation, c.CharacterNPC, c.CharacterNote, c.CharacterProficiency,
-		c.CharacterResource, c.CharacterSpellcasting, c.CombatEntry, c.CombatLogEntry,
-		c.Companion, c.CompendiumBackground, c.CompendiumClass, c.CompendiumEquipment,
+		c.AIEndpoint, c.BackupSetting, c.Campaign, c.CampaignCalendarEvent,
+		c.CampaignMap, c.CampaignMapPin, c.CampaignMember, c.CampaignRecap,
+		c.CampaignTimelineEvent, c.CampaignWikiPage, c.Character, c.CharacterClass,
+		c.CharacterCondition, c.CharacterCrafting, c.CharacterCurrency,
+		c.CharacterFeat, c.CharacterFeature, c.CharacterLocation, c.CharacterNPC,
+		c.CharacterNote, c.CharacterProficiency, c.CharacterResource,
+		c.CharacterSpellcasting, c.CombatEntry, c.CombatLogEntry, c.Companion,
+		c.CompendiumBackground, c.CompendiumClass, c.CompendiumEquipment,
 		c.CompendiumFeat, c.CompendiumRace, c.CompendiumSpell, c.CraftingRecipe,
 		c.DiceRoll, c.DowntimeActivity, c.EmailSetting, c.EncounterMonster,
 		c.EncounterTemplate, c.Faction, c.FactionReputation, c.InventoryItem,
@@ -599,6 +607,8 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 // Mutate implements the ent.Mutator interface.
 func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 	switch m := m.(type) {
+	case *AIEndpointMutation:
+		return c.AIEndpoint.mutate(ctx, m)
 	case *BackupSettingMutation:
 		return c.BackupSetting.mutate(ctx, m)
 	case *CampaignMutation:
@@ -727,6 +737,139 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.User.mutate(ctx, m)
 	default:
 		return nil, fmt.Errorf("ent: unknown mutation type %T", m)
+	}
+}
+
+// AIEndpointClient is a client for the AIEndpoint schema.
+type AIEndpointClient struct {
+	config
+}
+
+// NewAIEndpointClient returns a client for the AIEndpoint from the given config.
+func NewAIEndpointClient(c config) *AIEndpointClient {
+	return &AIEndpointClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `aiendpoint.Hooks(f(g(h())))`.
+func (c *AIEndpointClient) Use(hooks ...Hook) {
+	c.hooks.AIEndpoint = append(c.hooks.AIEndpoint, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `aiendpoint.Intercept(f(g(h())))`.
+func (c *AIEndpointClient) Intercept(interceptors ...Interceptor) {
+	c.inters.AIEndpoint = append(c.inters.AIEndpoint, interceptors...)
+}
+
+// Create returns a builder for creating a AIEndpoint entity.
+func (c *AIEndpointClient) Create() *AIEndpointCreate {
+	mutation := newAIEndpointMutation(c.config, OpCreate)
+	return &AIEndpointCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of AIEndpoint entities.
+func (c *AIEndpointClient) CreateBulk(builders ...*AIEndpointCreate) *AIEndpointCreateBulk {
+	return &AIEndpointCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *AIEndpointClient) MapCreateBulk(slice any, setFunc func(*AIEndpointCreate, int)) *AIEndpointCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &AIEndpointCreateBulk{err: fmt.Errorf("calling to AIEndpointClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*AIEndpointCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &AIEndpointCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for AIEndpoint.
+func (c *AIEndpointClient) Update() *AIEndpointUpdate {
+	mutation := newAIEndpointMutation(c.config, OpUpdate)
+	return &AIEndpointUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *AIEndpointClient) UpdateOne(_m *AIEndpoint) *AIEndpointUpdateOne {
+	mutation := newAIEndpointMutation(c.config, OpUpdateOne, withAIEndpoint(_m))
+	return &AIEndpointUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *AIEndpointClient) UpdateOneID(id int64) *AIEndpointUpdateOne {
+	mutation := newAIEndpointMutation(c.config, OpUpdateOne, withAIEndpointID(id))
+	return &AIEndpointUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for AIEndpoint.
+func (c *AIEndpointClient) Delete() *AIEndpointDelete {
+	mutation := newAIEndpointMutation(c.config, OpDelete)
+	return &AIEndpointDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *AIEndpointClient) DeleteOne(_m *AIEndpoint) *AIEndpointDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *AIEndpointClient) DeleteOneID(id int64) *AIEndpointDeleteOne {
+	builder := c.Delete().Where(aiendpoint.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &AIEndpointDeleteOne{builder}
+}
+
+// Query returns a query builder for AIEndpoint.
+func (c *AIEndpointClient) Query() *AIEndpointQuery {
+	return &AIEndpointQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeAIEndpoint},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a AIEndpoint entity by its id.
+func (c *AIEndpointClient) Get(ctx context.Context, id int64) (*AIEndpoint, error) {
+	return c.Query().Where(aiendpoint.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *AIEndpointClient) GetX(ctx context.Context, id int64) *AIEndpoint {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *AIEndpointClient) Hooks() []Hook {
+	return c.hooks.AIEndpoint
+}
+
+// Interceptors returns the client interceptors.
+func (c *AIEndpointClient) Interceptors() []Interceptor {
+	return c.inters.AIEndpoint
+}
+
+func (c *AIEndpointClient) mutate(ctx context.Context, m *AIEndpointMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&AIEndpointCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&AIEndpointUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&AIEndpointUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&AIEndpointDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown AIEndpoint mutation op: %q", m.Op())
 	}
 }
 
@@ -11112,33 +11255,35 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		BackupSetting, Campaign, CampaignCalendarEvent, CampaignMap, CampaignMapPin,
-		CampaignMember, CampaignRecap, CampaignTimelineEvent, CampaignWikiPage,
-		Character, CharacterClass, CharacterCondition, CharacterCrafting,
-		CharacterCurrency, CharacterFeat, CharacterFeature, CharacterLocation,
-		CharacterNPC, CharacterNote, CharacterProficiency, CharacterResource,
-		CharacterSpellcasting, CombatEntry, CombatLogEntry, Companion,
-		CompendiumBackground, CompendiumClass, CompendiumEquipment, CompendiumFeat,
-		CompendiumRace, CompendiumSpell, CraftingRecipe, DiceRoll, DowntimeActivity,
-		EmailSetting, EncounterMonster, EncounterTemplate, Faction, FactionReputation,
-		InventoryItem, JournalEntry, LevelUpPlan, Location, NPC, OneShotAct,
-		OneShotActNPC, OneShotAdventure, OneShotAdventureEncounter, OneShotItem,
-		OneShotScene, PartyItem, Quest, RestLog, Session, SessionPlan, ShareLink, Shop,
-		ShopItem, ShopTransaction, Spell, Upload, UploadLink, User []ent.Hook
+		AIEndpoint, BackupSetting, Campaign, CampaignCalendarEvent, CampaignMap,
+		CampaignMapPin, CampaignMember, CampaignRecap, CampaignTimelineEvent,
+		CampaignWikiPage, Character, CharacterClass, CharacterCondition,
+		CharacterCrafting, CharacterCurrency, CharacterFeat, CharacterFeature,
+		CharacterLocation, CharacterNPC, CharacterNote, CharacterProficiency,
+		CharacterResource, CharacterSpellcasting, CombatEntry, CombatLogEntry,
+		Companion, CompendiumBackground, CompendiumClass, CompendiumEquipment,
+		CompendiumFeat, CompendiumRace, CompendiumSpell, CraftingRecipe, DiceRoll,
+		DowntimeActivity, EmailSetting, EncounterMonster, EncounterTemplate, Faction,
+		FactionReputation, InventoryItem, JournalEntry, LevelUpPlan, Location, NPC,
+		OneShotAct, OneShotActNPC, OneShotAdventure, OneShotAdventureEncounter,
+		OneShotItem, OneShotScene, PartyItem, Quest, RestLog, Session, SessionPlan,
+		ShareLink, Shop, ShopItem, ShopTransaction, Spell, Upload, UploadLink,
+		User []ent.Hook
 	}
 	inters struct {
-		BackupSetting, Campaign, CampaignCalendarEvent, CampaignMap, CampaignMapPin,
-		CampaignMember, CampaignRecap, CampaignTimelineEvent, CampaignWikiPage,
-		Character, CharacterClass, CharacterCondition, CharacterCrafting,
-		CharacterCurrency, CharacterFeat, CharacterFeature, CharacterLocation,
-		CharacterNPC, CharacterNote, CharacterProficiency, CharacterResource,
-		CharacterSpellcasting, CombatEntry, CombatLogEntry, Companion,
-		CompendiumBackground, CompendiumClass, CompendiumEquipment, CompendiumFeat,
-		CompendiumRace, CompendiumSpell, CraftingRecipe, DiceRoll, DowntimeActivity,
-		EmailSetting, EncounterMonster, EncounterTemplate, Faction, FactionReputation,
-		InventoryItem, JournalEntry, LevelUpPlan, Location, NPC, OneShotAct,
-		OneShotActNPC, OneShotAdventure, OneShotAdventureEncounter, OneShotItem,
-		OneShotScene, PartyItem, Quest, RestLog, Session, SessionPlan, ShareLink, Shop,
-		ShopItem, ShopTransaction, Spell, Upload, UploadLink, User []ent.Interceptor
+		AIEndpoint, BackupSetting, Campaign, CampaignCalendarEvent, CampaignMap,
+		CampaignMapPin, CampaignMember, CampaignRecap, CampaignTimelineEvent,
+		CampaignWikiPage, Character, CharacterClass, CharacterCondition,
+		CharacterCrafting, CharacterCurrency, CharacterFeat, CharacterFeature,
+		CharacterLocation, CharacterNPC, CharacterNote, CharacterProficiency,
+		CharacterResource, CharacterSpellcasting, CombatEntry, CombatLogEntry,
+		Companion, CompendiumBackground, CompendiumClass, CompendiumEquipment,
+		CompendiumFeat, CompendiumRace, CompendiumSpell, CraftingRecipe, DiceRoll,
+		DowntimeActivity, EmailSetting, EncounterMonster, EncounterTemplate, Faction,
+		FactionReputation, InventoryItem, JournalEntry, LevelUpPlan, Location, NPC,
+		OneShotAct, OneShotActNPC, OneShotAdventure, OneShotAdventureEncounter,
+		OneShotItem, OneShotScene, PartyItem, Quest, RestLog, Session, SessionPlan,
+		ShareLink, Shop, ShopItem, ShopTransaction, Spell, Upload, UploadLink,
+		User []ent.Interceptor
 	}
 )

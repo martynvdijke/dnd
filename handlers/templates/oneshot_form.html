@@ -3,8 +3,20 @@
 {{if and $adv $adv.ID}}<input type="hidden" name="id" value="{{$adv.ID}}">{{end}}
 <input type="hidden" name="campaign_id" value="{{if and $adv $adv.CampaignID}}{{$adv.CampaignID}}{{end}}">
 <div class="mb-3"><label class="form-label">Title</label><input class="form-control" name="title" value="{{if $adv}}{{$adv.Title}}{{end}}" placeholder="One-Shot title" required></div>
-<div class="mb-3"><label class="form-label">Premise</label><textarea class="form-control" name="premise" rows="3" placeholder="Brief overview of the adventure...">{{if $adv}}{{$adv.Premise}}{{end}}</textarea></div>
-<div class="mb-3"><label class="form-label">Hook</label><textarea class="form-control" name="hook" rows="2" placeholder="What draws the party in?">{{if $adv}}{{$adv.Hook}}{{end}}</textarea></div>
+<div class="mb-3">
+  <label class="form-label">Premise</label>
+  <div class="input-group">
+    <textarea class="form-control" name="premise" id="oneshotPremise" rows="3" placeholder="Brief overview of the adventure...">{{if $adv}}{{$adv.Premise}}{{end}}</textarea>
+    <button class="btn btn-outline-primary" type="button" onclick="openAIGenModal('text','oneshotPremise','Write a compelling adventure premise for a D&D one-shot based on the title','Generate Premise')" title="Generate with AI"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+  </div>
+</div>
+<div class="mb-3">
+  <label class="form-label">Hook</label>
+  <div class="input-group">
+    <textarea class="form-control" name="hook" id="oneshotHook" rows="2" placeholder="What draws the party in?">{{if $adv}}{{$adv.Hook}}{{end}}</textarea>
+    <button class="btn btn-outline-primary" type="button" onclick="openAIGenModal('text','oneshotHook','Write a short story hook to draw the party into this D&D adventure','Generate Hook')" title="Generate with AI"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+  </div>
+</div>
 <div class="row g-3 mb-3">
   <div class="col-4"><label class="form-label">Template</label>
     <select class="form-select" name="template">

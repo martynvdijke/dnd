@@ -8,6 +8,18 @@ import (
 	"villum/ent"
 )
 
+// The AIEndpointFunc type is an adapter to allow the use of ordinary
+// function as AIEndpoint mutator.
+type AIEndpointFunc func(context.Context, *ent.AIEndpointMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f AIEndpointFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.AIEndpointMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.AIEndpointMutation", m)
+}
+
 // The BackupSettingFunc type is an adapter to allow the use of ordinary
 // function as BackupSetting mutator.
 type BackupSettingFunc func(context.Context, *ent.BackupSettingMutation) (ent.Value, error)

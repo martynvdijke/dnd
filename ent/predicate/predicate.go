@@ -6,6 +6,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// AIEndpoint is the predicate function for aiendpoint builders.
+type AIEndpoint func(*sql.Selector)
+
 // BackupSetting is the predicate function for backupsetting builders.
 type BackupSetting func(*sql.Selector)
 

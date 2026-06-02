@@ -559,6 +559,10 @@ func main() {
 		dm.GET("/oneshot-scenes/:id/monsters", handlers.ListSceneMonsters)
 		dm.POST("/oneshot-scenes/:id/monsters", handlers.CreateSceneMonster)
 
+		// AI Generation
+		dm.POST("/ai/generate/text", handlers.HandleTextGeneration)
+		dm.POST("/ai/generate/image", handlers.HandleImageGeneration)
+
 		// Monster Library
 		dm.GET("/monster-library", handlers.ListMonsterLibrary)
 		dm.POST("/monster-library", handlers.CreateMonsterLibraryEntry)
@@ -614,6 +618,14 @@ func main() {
 		admin.DELETE("/shops/:id", handlers.DeleteShop)
 		admin.POST("/shops/:id/items", handlers.CreateShopItem)
 		admin.DELETE("/shop-items/:id", handlers.DeleteShopItem)
+
+		// AI Endpoint management
+		admin.GET("/ai-endpoints", handlers.ListAIEndpoints)
+		admin.GET("/ai-endpoints/:id", handlers.GetAIEndpoint)
+		admin.POST("/ai-endpoints", handlers.CreateAIEndpoint)
+		admin.PUT("/ai-endpoints/:id", handlers.UpdateAIEndpoint)
+		admin.DELETE("/ai-endpoints/:id", handlers.DeleteAIEndpoint)
+		admin.POST("/ai-endpoints/:id/test", handlers.TestAIEndpoint)
 
 		// Compendium CRUD
 		admin.POST("/compendium/:type", handlers.AdminCreateCompendiumEntry)

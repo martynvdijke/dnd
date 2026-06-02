@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -47,7 +48,16 @@ func Init(dbPath string) error {
 	drv := entsql.OpenDB(dialect.SQLite, DB)
 	Client = ent.NewClient(ent.Driver(drv))
 
-	return Migrate()
+	if err := Migrate(); err != nil {
+		return err
+	}
+
+	// Auto-migrate ent schemas (currently: AIEndpoint)
+	if err := Client.Schema.Create(context.Background()); err != nil {
+		return fmt.Errorf("ent schema migrate: %w", err)
+	}
+
+	return nil
 }
 
 func Close() {

@@ -14,6 +14,10 @@ const (
 	FieldID = "id"
 	// FieldCampaignID holds the string denoting the campaign_id field in the database.
 	FieldCampaignID = "campaign_id"
+	// FieldPartyID holds the string denoting the party_id field in the database.
+	FieldPartyID = "party_id"
+	// FieldOneshotAdventureID holds the string denoting the oneshot_adventure_id field in the database.
+	FieldOneshotAdventureID = "oneshot_adventure_id"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
 	// FieldDescription holds the string denoting the description field in the database.
@@ -50,6 +54,8 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldCampaignID,
+	FieldPartyID,
+	FieldOneshotAdventureID,
 	FieldName,
 	FieldDescription,
 	FieldType,
@@ -89,6 +95,16 @@ func ByID(opts ...sql.OrderTermOption) OrderOption {
 // ByCampaignID orders the results by the campaign_id field.
 func ByCampaignID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCampaignID, opts...).ToFunc()
+}
+
+// ByPartyID orders the results by the party_id field.
+func ByPartyID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldPartyID, opts...).ToFunc()
+}
+
+// ByOneshotAdventureID orders the results by the oneshot_adventure_id field.
+func ByOneshotAdventureID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldOneshotAdventureID, opts...).ToFunc()
 }
 
 // ByName orders the results by the name field.

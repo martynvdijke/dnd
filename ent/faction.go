@@ -19,6 +19,10 @@ type Faction struct {
 	ID int64 `json:"id,omitempty"`
 	// CampaignID holds the value of the "campaign_id" field.
 	CampaignID int64 `json:"campaign_id,omitempty"`
+	// PartyID holds the value of the "party_id" field.
+	PartyID int64 `json:"party_id,omitempty"`
+	// OneshotAdventureID holds the value of the "oneshot_adventure_id" field.
+	OneshotAdventureID int64 `json:"oneshot_adventure_id,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// Description holds the value of the "description" field.
@@ -71,7 +75,7 @@ func (*Faction) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case faction.FieldID, faction.FieldCampaignID:
+		case faction.FieldID, faction.FieldCampaignID, faction.FieldPartyID, faction.FieldOneshotAdventureID:
 			values[i] = new(sql.NullInt64)
 		case faction.FieldName, faction.FieldDescription, faction.FieldType, faction.FieldHeadquarters, faction.FieldCreatedAt:
 			values[i] = new(sql.NullString)
@@ -101,6 +105,18 @@ func (_m *Faction) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field campaign_id", values[i])
 			} else if value.Valid {
 				_m.CampaignID = value.Int64
+			}
+		case faction.FieldPartyID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field party_id", values[i])
+			} else if value.Valid {
+				_m.PartyID = value.Int64
+			}
+		case faction.FieldOneshotAdventureID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field oneshot_adventure_id", values[i])
+			} else if value.Valid {
+				_m.OneshotAdventureID = value.Int64
 			}
 		case faction.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -180,6 +196,12 @@ func (_m *Faction) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("campaign_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.CampaignID))
+	builder.WriteString(", ")
+	builder.WriteString("party_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.PartyID))
+	builder.WriteString(", ")
+	builder.WriteString("oneshot_adventure_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.OneshotAdventureID))
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)

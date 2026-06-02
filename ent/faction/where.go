@@ -59,6 +59,16 @@ func CampaignID(v int64) predicate.Faction {
 	return predicate.Faction(sql.FieldEQ(FieldCampaignID, v))
 }
 
+// PartyID applies equality check predicate on the "party_id" field. It's identical to PartyIDEQ.
+func PartyID(v int64) predicate.Faction {
+	return predicate.Faction(sql.FieldEQ(FieldPartyID, v))
+}
+
+// OneshotAdventureID applies equality check predicate on the "oneshot_adventure_id" field. It's identical to OneshotAdventureIDEQ.
+func OneshotAdventureID(v int64) predicate.Faction {
+	return predicate.Faction(sql.FieldEQ(FieldOneshotAdventureID, v))
+}
+
 // Name applies equality check predicate on the "name" field. It's identical to NameEQ.
 func Name(v string) predicate.Faction {
 	return predicate.Faction(sql.FieldEQ(FieldName, v))
@@ -112,6 +122,106 @@ func CampaignIDIsNil() predicate.Faction {
 // CampaignIDNotNil applies the NotNil predicate on the "campaign_id" field.
 func CampaignIDNotNil() predicate.Faction {
 	return predicate.Faction(sql.FieldNotNull(FieldCampaignID))
+}
+
+// PartyIDEQ applies the EQ predicate on the "party_id" field.
+func PartyIDEQ(v int64) predicate.Faction {
+	return predicate.Faction(sql.FieldEQ(FieldPartyID, v))
+}
+
+// PartyIDNEQ applies the NEQ predicate on the "party_id" field.
+func PartyIDNEQ(v int64) predicate.Faction {
+	return predicate.Faction(sql.FieldNEQ(FieldPartyID, v))
+}
+
+// PartyIDIn applies the In predicate on the "party_id" field.
+func PartyIDIn(vs ...int64) predicate.Faction {
+	return predicate.Faction(sql.FieldIn(FieldPartyID, vs...))
+}
+
+// PartyIDNotIn applies the NotIn predicate on the "party_id" field.
+func PartyIDNotIn(vs ...int64) predicate.Faction {
+	return predicate.Faction(sql.FieldNotIn(FieldPartyID, vs...))
+}
+
+// PartyIDGT applies the GT predicate on the "party_id" field.
+func PartyIDGT(v int64) predicate.Faction {
+	return predicate.Faction(sql.FieldGT(FieldPartyID, v))
+}
+
+// PartyIDGTE applies the GTE predicate on the "party_id" field.
+func PartyIDGTE(v int64) predicate.Faction {
+	return predicate.Faction(sql.FieldGTE(FieldPartyID, v))
+}
+
+// PartyIDLT applies the LT predicate on the "party_id" field.
+func PartyIDLT(v int64) predicate.Faction {
+	return predicate.Faction(sql.FieldLT(FieldPartyID, v))
+}
+
+// PartyIDLTE applies the LTE predicate on the "party_id" field.
+func PartyIDLTE(v int64) predicate.Faction {
+	return predicate.Faction(sql.FieldLTE(FieldPartyID, v))
+}
+
+// PartyIDIsNil applies the IsNil predicate on the "party_id" field.
+func PartyIDIsNil() predicate.Faction {
+	return predicate.Faction(sql.FieldIsNull(FieldPartyID))
+}
+
+// PartyIDNotNil applies the NotNil predicate on the "party_id" field.
+func PartyIDNotNil() predicate.Faction {
+	return predicate.Faction(sql.FieldNotNull(FieldPartyID))
+}
+
+// OneshotAdventureIDEQ applies the EQ predicate on the "oneshot_adventure_id" field.
+func OneshotAdventureIDEQ(v int64) predicate.Faction {
+	return predicate.Faction(sql.FieldEQ(FieldOneshotAdventureID, v))
+}
+
+// OneshotAdventureIDNEQ applies the NEQ predicate on the "oneshot_adventure_id" field.
+func OneshotAdventureIDNEQ(v int64) predicate.Faction {
+	return predicate.Faction(sql.FieldNEQ(FieldOneshotAdventureID, v))
+}
+
+// OneshotAdventureIDIn applies the In predicate on the "oneshot_adventure_id" field.
+func OneshotAdventureIDIn(vs ...int64) predicate.Faction {
+	return predicate.Faction(sql.FieldIn(FieldOneshotAdventureID, vs...))
+}
+
+// OneshotAdventureIDNotIn applies the NotIn predicate on the "oneshot_adventure_id" field.
+func OneshotAdventureIDNotIn(vs ...int64) predicate.Faction {
+	return predicate.Faction(sql.FieldNotIn(FieldOneshotAdventureID, vs...))
+}
+
+// OneshotAdventureIDGT applies the GT predicate on the "oneshot_adventure_id" field.
+func OneshotAdventureIDGT(v int64) predicate.Faction {
+	return predicate.Faction(sql.FieldGT(FieldOneshotAdventureID, v))
+}
+
+// OneshotAdventureIDGTE applies the GTE predicate on the "oneshot_adventure_id" field.
+func OneshotAdventureIDGTE(v int64) predicate.Faction {
+	return predicate.Faction(sql.FieldGTE(FieldOneshotAdventureID, v))
+}
+
+// OneshotAdventureIDLT applies the LT predicate on the "oneshot_adventure_id" field.
+func OneshotAdventureIDLT(v int64) predicate.Faction {
+	return predicate.Faction(sql.FieldLT(FieldOneshotAdventureID, v))
+}
+
+// OneshotAdventureIDLTE applies the LTE predicate on the "oneshot_adventure_id" field.
+func OneshotAdventureIDLTE(v int64) predicate.Faction {
+	return predicate.Faction(sql.FieldLTE(FieldOneshotAdventureID, v))
+}
+
+// OneshotAdventureIDIsNil applies the IsNil predicate on the "oneshot_adventure_id" field.
+func OneshotAdventureIDIsNil() predicate.Faction {
+	return predicate.Faction(sql.FieldIsNull(FieldOneshotAdventureID))
+}
+
+// OneshotAdventureIDNotNil applies the NotNil predicate on the "oneshot_adventure_id" field.
+func OneshotAdventureIDNotNil() predicate.Faction {
+	return predicate.Faction(sql.FieldNotNull(FieldOneshotAdventureID))
 }
 
 // NameEQ applies the EQ predicate on the "name" field.

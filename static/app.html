@@ -256,6 +256,50 @@
 
   <div class="toast-container toast-custom" id="toastContainer"></div>
 
+<!-- AI Generation Modal -->
+<div class="modal fade" id="aiGenModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="aiGenModalTitle">Generate with AI</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="aiGenTargetId" value="">
+        <input type="hidden" id="aiGenMode" value="text">
+        <div class="mb-3">
+          <label class="form-label">AI Endpoint</label>
+          <select class="form-select" id="aiGenEndpoint">
+            <option value="">Loading endpoints...</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Prompt</label>
+          <textarea class="form-control" id="aiGenPrompt" rows="4" placeholder="Describe what you want to generate..."></textarea>
+        </div>
+        <div class="mb-3" id="aiGenSystemField">
+          <label class="form-label">System Prompt <small class="text-muted">(optional)</small></label>
+          <textarea class="form-control" id="aiGenSystem" rows="2" placeholder="You are a creative writing assistant for D&D..."></textarea>
+        </div>
+        <button class="btn btn-primary w-100 mb-3" id="aiGenGenerateBtn" onclick="generateWithAI()">
+          <i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate
+        </button>
+        <div id="aiGenResult" style="display:none">
+          <hr>
+          <label class="form-label">Result</label>
+          <div class="p-3 mb-2 bg-light rounded" id="aiGenResultText" style="white-space:pre-wrap;max-height:300px;overflow-y:auto;"></div>
+          <img id="aiGenResultImage" style="display:none;max-width:100%;border-radius:8px;margin-bottom:8px" alt="Generated image">
+          <div class="d-flex gap-2" id="aiGenActions">
+            <button class="btn btn-success btn-sm flex-fill" id="aiGenInsertBtn" onclick="insertAIGenResult()"><i class="fa-solid fa-check me-1"></i>Insert</button>
+            <button class="btn btn-warning btn-sm flex-fill" id="aiGenReplaceBtn" onclick="replaceAIGenResult()"><i class="fa-solid fa-rotate me-1"></i>Replace</button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="regenerateWithAI()"><i class="fa-solid fa-arrows-rotate me-1"></i>Regenerate</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="genericModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-scrollable">
     <div class="modal-content">
