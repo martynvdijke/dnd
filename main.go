@@ -587,7 +587,6 @@ func main() {
 
 		// Campaign Encounter Monsters
 		dm.GET("/encounters/:id/monsters", handlers.ListCampaignEncounterMonsters)
-		dm.POST("/encounters/:id/monsters", handlers.CreateCampaignEncounterMonster)
 
 		// Linked Player Characters
 		dm.GET("/oneshot-adventures/:id/characters", handlers.ListLinkedCharacters)

@@ -176,13 +176,56 @@ func CreateCampaignEncounterMonster(c *gin.Context) {
 
 func AddEncounterMonster(c *gin.Context) {
 	eid, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	var m models.EncounterMonster
-	if err := c.ShouldBindJSON(&m); err != nil {
+	var req struct {
+		Name                string `json:"name"`
+		Count               int    `json:"count"`
+		CR                  string `json:"cr"`
+		XP                  int    `json:"xp"`
+		AC                  int    `json:"ac"`
+		HP                  int    `json:"hp"`
+		InitiativeMod       int    `json:"initiative_mod"`
+		Source              string `json:"source"`
+		Notes               string `json:"notes"`
+		CompendiumMonsterID *int64 `json:"compendium_monster_id,omitempty"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	result, err := db.DB.Exec("INSERT INTO encounter_monsters(encounter_id,name,count,cr,xp,ac,hp,initiative_mod,source,notes) VALUES(?,?,?,?,?,?,?,?,?,?)",
-		eid, m.Name, m.Count, m.CR, m.XP, m.AC, m.HP, m.InitiativeMod, m.Source, m.Notes)
+	if req.Count < 1 {
+		req.Count = 1
+	}
+	if req.Source == "" {
+		req.Source = "homebrew"
+	}
+
+	// If compendium_monster_id is provided, pre-fill from compendium
+	if req.CompendiumMonsterID != nil && *req.CompendiumMonsterID > 0 {
+		var name, cr, source string
+		var ac, hp int
+		err := db.DB.QueryRow("SELECT name, ac, hp, cr, source FROM compendium_monsters WHERE id=?", *req.CompendiumMonsterID).
+			Scan(&name, &ac, &hp, &cr, &source)
+		if err == nil {
+			if req.Name == "" {
+				req.Name = name
+			}
+			if req.AC == 0 {
+				req.AC = ac
+			}
+			if req.HP == 0 {
+				req.HP = hp
+			}
+			if req.CR == "" {
+				req.CR = cr
+			}
+			if req.Source == "homebrew" {
+				req.Source = source
+			}
+		}
+	}
+
+	result, err := db.DB.Exec("INSERT INTO encounter_monsters(encounter_id,name,count,cr,xp,ac,hp,initiative_mod,source,notes,compendium_monster_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+		eid, req.Name, req.Count, req.CR, req.XP, req.AC, req.HP, req.InitiativeMod, req.Source, req.Notes, req.CompendiumMonsterID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
