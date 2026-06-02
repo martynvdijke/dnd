@@ -57,7 +57,7 @@ func ImportCompendiumMonsterToOneShot(c *gin.Context) {
 }
 
 func ImportCompendiumMonsterToEncounter(c *gin.Context) {
-	encounterID, _ := strconv.ParseInt(c.Param("eid"), 10, 64)
+	encounterID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var req struct {
 		CompendiumMonsterID int64 `json:"compendium_monster_id"`
 		Count               int   `json:"count"`

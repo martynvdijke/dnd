@@ -575,7 +575,7 @@ func main() {
 
 		// Monster Import
 		dm.POST("/oneshot-adventures/:id/import/compendium", handlers.ImportCompendiumMonsterToOneShot)
-		dm.POST("/encounters/:eid/import/compendium", handlers.ImportCompendiumMonsterToEncounter)
+		dm.POST("/encounters/:id/import/compendium", handlers.ImportCompendiumMonsterToEncounter)
 		dm.POST("/oneshot-adventures/:id/import/library", handlers.ImportLibraryMonsterToOneShot)
 
 		// Campaign NPCs
