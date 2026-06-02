@@ -1,3 +1,17 @@
+# [2.5.0](https://github.com/martynvdijke/dnd/compare/v2.4.0...v2.5.0) (2026-06-02)
+
+
+### Bug Fixes
+
+* add compendium_monster_id to ent EncounterMonster schema ([f764cd4](https://github.com/martynvdijke/dnd/commit/f764cd47a11b25d8be22ccfa950f39da0213b650))
+* include seed_monsters.go and ai.go in git, fix :eid/:id route conflict in main.go ([cb44601](https://github.com/martynvdijke/dnd/commit/cb4460193916a1ec004237811d3eedf6101adb8c))
+* resolve duplicate /api/encounters/:id/monsters route conflict ([c404a13](https://github.com/martynvdijke/dnd/commit/c404a13099fa01ac3850520527812712e2dd00b3))
+
+
+### Features
+
+* add NPC and monster management to campaigns and one-shots ([d806872](https://github.com/martynvdijke/dnd/commit/d8068729a52ccc840247ac9d3e5892fb6eeffe5c))
+
 # [2.4.0](https://github.com/martynvdijke/dnd/compare/v2.3.0...v2.4.0) (2026-06-01)
 
 
