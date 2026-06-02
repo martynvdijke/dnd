@@ -32,6 +32,8 @@ const (
 	FieldSource = "source"
 	// FieldNotes holds the string denoting the notes field in the database.
 	FieldNotes = "notes"
+	// FieldCompendiumMonsterID holds the string denoting the compendium_monster_id field in the database.
+	FieldCompendiumMonsterID = "compendium_monster_id"
 	// EdgeEncounter holds the string denoting the encounter edge name in mutations.
 	EdgeEncounter = "encounter"
 	// Table holds the table name of the encountermonster in the database.
@@ -58,6 +60,7 @@ var Columns = []string{
 	FieldInitiativeMod,
 	FieldSource,
 	FieldNotes,
+	FieldCompendiumMonsterID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -145,6 +148,11 @@ func BySource(opts ...sql.OrderTermOption) OrderOption {
 // ByNotes orders the results by the notes field.
 func ByNotes(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNotes, opts...).ToFunc()
+}
+
+// ByCompendiumMonsterID orders the results by the compendium_monster_id field.
+func ByCompendiumMonsterID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCompendiumMonsterID, opts...).ToFunc()
 }
 
 // ByEncounterField orders the results by encounter field.

@@ -203,6 +203,33 @@ func (_u *EncounterMonsterUpdate) SetNillableNotes(v *string) *EncounterMonsterU
 	return _u
 }
 
+// SetCompendiumMonsterID sets the "compendium_monster_id" field.
+func (_u *EncounterMonsterUpdate) SetCompendiumMonsterID(v int64) *EncounterMonsterUpdate {
+	_u.mutation.ResetCompendiumMonsterID()
+	_u.mutation.SetCompendiumMonsterID(v)
+	return _u
+}
+
+// SetNillableCompendiumMonsterID sets the "compendium_monster_id" field if the given value is not nil.
+func (_u *EncounterMonsterUpdate) SetNillableCompendiumMonsterID(v *int64) *EncounterMonsterUpdate {
+	if v != nil {
+		_u.SetCompendiumMonsterID(*v)
+	}
+	return _u
+}
+
+// AddCompendiumMonsterID adds value to the "compendium_monster_id" field.
+func (_u *EncounterMonsterUpdate) AddCompendiumMonsterID(v int64) *EncounterMonsterUpdate {
+	_u.mutation.AddCompendiumMonsterID(v)
+	return _u
+}
+
+// ClearCompendiumMonsterID clears the value of the "compendium_monster_id" field.
+func (_u *EncounterMonsterUpdate) ClearCompendiumMonsterID() *EncounterMonsterUpdate {
+	_u.mutation.ClearCompendiumMonsterID()
+	return _u
+}
+
 // SetEncounter sets the "encounter" edge to the EncounterTemplate entity.
 func (_u *EncounterMonsterUpdate) SetEncounter(v *EncounterTemplate) *EncounterMonsterUpdate {
 	return _u.SetEncounterID(v.ID)
@@ -307,6 +334,15 @@ func (_u *EncounterMonsterUpdate) sqlSave(ctx context.Context) (_node int, err e
 	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(encountermonster.FieldNotes, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.CompendiumMonsterID(); ok {
+		_spec.SetField(encountermonster.FieldCompendiumMonsterID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedCompendiumMonsterID(); ok {
+		_spec.AddField(encountermonster.FieldCompendiumMonsterID, field.TypeInt64, value)
+	}
+	if _u.mutation.CompendiumMonsterIDCleared() {
+		_spec.ClearField(encountermonster.FieldCompendiumMonsterID, field.TypeInt64)
 	}
 	if _u.mutation.EncounterCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -532,6 +568,33 @@ func (_u *EncounterMonsterUpdateOne) SetNillableNotes(v *string) *EncounterMonst
 	return _u
 }
 
+// SetCompendiumMonsterID sets the "compendium_monster_id" field.
+func (_u *EncounterMonsterUpdateOne) SetCompendiumMonsterID(v int64) *EncounterMonsterUpdateOne {
+	_u.mutation.ResetCompendiumMonsterID()
+	_u.mutation.SetCompendiumMonsterID(v)
+	return _u
+}
+
+// SetNillableCompendiumMonsterID sets the "compendium_monster_id" field if the given value is not nil.
+func (_u *EncounterMonsterUpdateOne) SetNillableCompendiumMonsterID(v *int64) *EncounterMonsterUpdateOne {
+	if v != nil {
+		_u.SetCompendiumMonsterID(*v)
+	}
+	return _u
+}
+
+// AddCompendiumMonsterID adds value to the "compendium_monster_id" field.
+func (_u *EncounterMonsterUpdateOne) AddCompendiumMonsterID(v int64) *EncounterMonsterUpdateOne {
+	_u.mutation.AddCompendiumMonsterID(v)
+	return _u
+}
+
+// ClearCompendiumMonsterID clears the value of the "compendium_monster_id" field.
+func (_u *EncounterMonsterUpdateOne) ClearCompendiumMonsterID() *EncounterMonsterUpdateOne {
+	_u.mutation.ClearCompendiumMonsterID()
+	return _u
+}
+
 // SetEncounter sets the "encounter" edge to the EncounterTemplate entity.
 func (_u *EncounterMonsterUpdateOne) SetEncounter(v *EncounterTemplate) *EncounterMonsterUpdateOne {
 	return _u.SetEncounterID(v.ID)
@@ -666,6 +729,15 @@ func (_u *EncounterMonsterUpdateOne) sqlSave(ctx context.Context) (_node *Encoun
 	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(encountermonster.FieldNotes, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.CompendiumMonsterID(); ok {
+		_spec.SetField(encountermonster.FieldCompendiumMonsterID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedCompendiumMonsterID(); ok {
+		_spec.AddField(encountermonster.FieldCompendiumMonsterID, field.TypeInt64, value)
+	}
+	if _u.mutation.CompendiumMonsterIDCleared() {
+		_spec.ClearField(encountermonster.FieldCompendiumMonsterID, field.TypeInt64)
 	}
 	if _u.mutation.EncounterCleared() {
 		edge := &sqlgraph.EdgeSpec{

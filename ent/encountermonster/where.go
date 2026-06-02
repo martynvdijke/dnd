@@ -104,6 +104,11 @@ func Notes(v string) predicate.EncounterMonster {
 	return predicate.EncounterMonster(sql.FieldEQ(FieldNotes, v))
 }
 
+// CompendiumMonsterID applies equality check predicate on the "compendium_monster_id" field. It's identical to CompendiumMonsterIDEQ.
+func CompendiumMonsterID(v int64) predicate.EncounterMonster {
+	return predicate.EncounterMonster(sql.FieldEQ(FieldCompendiumMonsterID, v))
+}
+
 // EncounterIDEQ applies the EQ predicate on the "encounter_id" field.
 func EncounterIDEQ(v int64) predicate.EncounterMonster {
 	return predicate.EncounterMonster(sql.FieldEQ(FieldEncounterID, v))
@@ -582,6 +587,56 @@ func NotesEqualFold(v string) predicate.EncounterMonster {
 // NotesContainsFold applies the ContainsFold predicate on the "notes" field.
 func NotesContainsFold(v string) predicate.EncounterMonster {
 	return predicate.EncounterMonster(sql.FieldContainsFold(FieldNotes, v))
+}
+
+// CompendiumMonsterIDEQ applies the EQ predicate on the "compendium_monster_id" field.
+func CompendiumMonsterIDEQ(v int64) predicate.EncounterMonster {
+	return predicate.EncounterMonster(sql.FieldEQ(FieldCompendiumMonsterID, v))
+}
+
+// CompendiumMonsterIDNEQ applies the NEQ predicate on the "compendium_monster_id" field.
+func CompendiumMonsterIDNEQ(v int64) predicate.EncounterMonster {
+	return predicate.EncounterMonster(sql.FieldNEQ(FieldCompendiumMonsterID, v))
+}
+
+// CompendiumMonsterIDIn applies the In predicate on the "compendium_monster_id" field.
+func CompendiumMonsterIDIn(vs ...int64) predicate.EncounterMonster {
+	return predicate.EncounterMonster(sql.FieldIn(FieldCompendiumMonsterID, vs...))
+}
+
+// CompendiumMonsterIDNotIn applies the NotIn predicate on the "compendium_monster_id" field.
+func CompendiumMonsterIDNotIn(vs ...int64) predicate.EncounterMonster {
+	return predicate.EncounterMonster(sql.FieldNotIn(FieldCompendiumMonsterID, vs...))
+}
+
+// CompendiumMonsterIDGT applies the GT predicate on the "compendium_monster_id" field.
+func CompendiumMonsterIDGT(v int64) predicate.EncounterMonster {
+	return predicate.EncounterMonster(sql.FieldGT(FieldCompendiumMonsterID, v))
+}
+
+// CompendiumMonsterIDGTE applies the GTE predicate on the "compendium_monster_id" field.
+func CompendiumMonsterIDGTE(v int64) predicate.EncounterMonster {
+	return predicate.EncounterMonster(sql.FieldGTE(FieldCompendiumMonsterID, v))
+}
+
+// CompendiumMonsterIDLT applies the LT predicate on the "compendium_monster_id" field.
+func CompendiumMonsterIDLT(v int64) predicate.EncounterMonster {
+	return predicate.EncounterMonster(sql.FieldLT(FieldCompendiumMonsterID, v))
+}
+
+// CompendiumMonsterIDLTE applies the LTE predicate on the "compendium_monster_id" field.
+func CompendiumMonsterIDLTE(v int64) predicate.EncounterMonster {
+	return predicate.EncounterMonster(sql.FieldLTE(FieldCompendiumMonsterID, v))
+}
+
+// CompendiumMonsterIDIsNil applies the IsNil predicate on the "compendium_monster_id" field.
+func CompendiumMonsterIDIsNil() predicate.EncounterMonster {
+	return predicate.EncounterMonster(sql.FieldIsNull(FieldCompendiumMonsterID))
+}
+
+// CompendiumMonsterIDNotNil applies the NotNil predicate on the "compendium_monster_id" field.
+func CompendiumMonsterIDNotNil() predicate.EncounterMonster {
+	return predicate.EncounterMonster(sql.FieldNotNull(FieldCompendiumMonsterID))
 }
 
 // HasEncounter applies the HasEdge predicate on the "encounter" edge.

@@ -39010,29 +39010,31 @@ func (m *EmailSettingMutation) ResetEdge(name string) error {
 // EncounterMonsterMutation represents an operation that mutates the EncounterMonster nodes in the graph.
 type EncounterMonsterMutation struct {
 	config
-	op                Op
-	typ               string
-	id                *int64
-	name              *string
-	count             *int
-	addcount          *int
-	cr                *string
-	xp                *int
-	addxp             *int
-	ac                *int
-	addac             *int
-	hp                *int
-	addhp             *int
-	initiative_mod    *int
-	addinitiative_mod *int
-	source            *string
-	notes             *string
-	clearedFields     map[string]struct{}
-	encounter         *int64
-	clearedencounter  bool
-	done              bool
-	oldValue          func(context.Context) (*EncounterMonster, error)
-	predicates        []predicate.EncounterMonster
+	op                       Op
+	typ                      string
+	id                       *int64
+	name                     *string
+	count                    *int
+	addcount                 *int
+	cr                       *string
+	xp                       *int
+	addxp                    *int
+	ac                       *int
+	addac                    *int
+	hp                       *int
+	addhp                    *int
+	initiative_mod           *int
+	addinitiative_mod        *int
+	source                   *string
+	notes                    *string
+	compendium_monster_id    *int64
+	addcompendium_monster_id *int64
+	clearedFields            map[string]struct{}
+	encounter                *int64
+	clearedencounter         bool
+	done                     bool
+	oldValue                 func(context.Context) (*EncounterMonster, error)
+	predicates               []predicate.EncounterMonster
 }
 
 var _ ent.Mutation = (*EncounterMonsterMutation)(nil)
@@ -39599,6 +39601,76 @@ func (m *EncounterMonsterMutation) ResetNotes() {
 	m.notes = nil
 }
 
+// SetCompendiumMonsterID sets the "compendium_monster_id" field.
+func (m *EncounterMonsterMutation) SetCompendiumMonsterID(i int64) {
+	m.compendium_monster_id = &i
+	m.addcompendium_monster_id = nil
+}
+
+// CompendiumMonsterID returns the value of the "compendium_monster_id" field in the mutation.
+func (m *EncounterMonsterMutation) CompendiumMonsterID() (r int64, exists bool) {
+	v := m.compendium_monster_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCompendiumMonsterID returns the old "compendium_monster_id" field's value of the EncounterMonster entity.
+// If the EncounterMonster object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *EncounterMonsterMutation) OldCompendiumMonsterID(ctx context.Context) (v *int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCompendiumMonsterID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCompendiumMonsterID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCompendiumMonsterID: %w", err)
+	}
+	return oldValue.CompendiumMonsterID, nil
+}
+
+// AddCompendiumMonsterID adds i to the "compendium_monster_id" field.
+func (m *EncounterMonsterMutation) AddCompendiumMonsterID(i int64) {
+	if m.addcompendium_monster_id != nil {
+		*m.addcompendium_monster_id += i
+	} else {
+		m.addcompendium_monster_id = &i
+	}
+}
+
+// AddedCompendiumMonsterID returns the value that was added to the "compendium_monster_id" field in this mutation.
+func (m *EncounterMonsterMutation) AddedCompendiumMonsterID() (r int64, exists bool) {
+	v := m.addcompendium_monster_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearCompendiumMonsterID clears the value of the "compendium_monster_id" field.
+func (m *EncounterMonsterMutation) ClearCompendiumMonsterID() {
+	m.compendium_monster_id = nil
+	m.addcompendium_monster_id = nil
+	m.clearedFields[encountermonster.FieldCompendiumMonsterID] = struct{}{}
+}
+
+// CompendiumMonsterIDCleared returns if the "compendium_monster_id" field was cleared in this mutation.
+func (m *EncounterMonsterMutation) CompendiumMonsterIDCleared() bool {
+	_, ok := m.clearedFields[encountermonster.FieldCompendiumMonsterID]
+	return ok
+}
+
+// ResetCompendiumMonsterID resets all changes to the "compendium_monster_id" field.
+func (m *EncounterMonsterMutation) ResetCompendiumMonsterID() {
+	m.compendium_monster_id = nil
+	m.addcompendium_monster_id = nil
+	delete(m.clearedFields, encountermonster.FieldCompendiumMonsterID)
+}
+
 // ClearEncounter clears the "encounter" edge to the EncounterTemplate entity.
 func (m *EncounterMonsterMutation) ClearEncounter() {
 	m.clearedencounter = true
@@ -39660,7 +39732,7 @@ func (m *EncounterMonsterMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *EncounterMonsterMutation) Fields() []string {
-	fields := make([]string, 0, 10)
+	fields := make([]string, 0, 11)
 	if m.encounter != nil {
 		fields = append(fields, encountermonster.FieldEncounterID)
 	}
@@ -39691,6 +39763,9 @@ func (m *EncounterMonsterMutation) Fields() []string {
 	if m.notes != nil {
 		fields = append(fields, encountermonster.FieldNotes)
 	}
+	if m.compendium_monster_id != nil {
+		fields = append(fields, encountermonster.FieldCompendiumMonsterID)
+	}
 	return fields
 }
 
@@ -39719,6 +39794,8 @@ func (m *EncounterMonsterMutation) Field(name string) (ent.Value, bool) {
 		return m.Source()
 	case encountermonster.FieldNotes:
 		return m.Notes()
+	case encountermonster.FieldCompendiumMonsterID:
+		return m.CompendiumMonsterID()
 	}
 	return nil, false
 }
@@ -39748,6 +39825,8 @@ func (m *EncounterMonsterMutation) OldField(ctx context.Context, name string) (e
 		return m.OldSource(ctx)
 	case encountermonster.FieldNotes:
 		return m.OldNotes(ctx)
+	case encountermonster.FieldCompendiumMonsterID:
+		return m.OldCompendiumMonsterID(ctx)
 	}
 	return nil, fmt.Errorf("unknown EncounterMonster field %s", name)
 }
@@ -39827,6 +39906,13 @@ func (m *EncounterMonsterMutation) SetField(name string, value ent.Value) error 
 		}
 		m.SetNotes(v)
 		return nil
+	case encountermonster.FieldCompendiumMonsterID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCompendiumMonsterID(v)
+		return nil
 	}
 	return fmt.Errorf("unknown EncounterMonster field %s", name)
 }
@@ -39850,6 +39936,9 @@ func (m *EncounterMonsterMutation) AddedFields() []string {
 	if m.addinitiative_mod != nil {
 		fields = append(fields, encountermonster.FieldInitiativeMod)
 	}
+	if m.addcompendium_monster_id != nil {
+		fields = append(fields, encountermonster.FieldCompendiumMonsterID)
+	}
 	return fields
 }
 
@@ -39868,6 +39957,8 @@ func (m *EncounterMonsterMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedHp()
 	case encountermonster.FieldInitiativeMod:
 		return m.AddedInitiativeMod()
+	case encountermonster.FieldCompendiumMonsterID:
+		return m.AddedCompendiumMonsterID()
 	}
 	return nil, false
 }
@@ -39912,6 +40003,13 @@ func (m *EncounterMonsterMutation) AddField(name string, value ent.Value) error 
 		}
 		m.AddInitiativeMod(v)
 		return nil
+	case encountermonster.FieldCompendiumMonsterID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCompendiumMonsterID(v)
+		return nil
 	}
 	return fmt.Errorf("unknown EncounterMonster numeric field %s", name)
 }
@@ -39919,7 +40017,11 @@ func (m *EncounterMonsterMutation) AddField(name string, value ent.Value) error 
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *EncounterMonsterMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(encountermonster.FieldCompendiumMonsterID) {
+		fields = append(fields, encountermonster.FieldCompendiumMonsterID)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -39932,6 +40034,11 @@ func (m *EncounterMonsterMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *EncounterMonsterMutation) ClearField(name string) error {
+	switch name {
+	case encountermonster.FieldCompendiumMonsterID:
+		m.ClearCompendiumMonsterID()
+		return nil
+	}
 	return fmt.Errorf("unknown EncounterMonster nullable field %s", name)
 }
 
@@ -39968,6 +40075,9 @@ func (m *EncounterMonsterMutation) ResetField(name string) error {
 		return nil
 	case encountermonster.FieldNotes:
 		m.ResetNotes()
+		return nil
+	case encountermonster.FieldCompendiumMonsterID:
+		m.ResetCompendiumMonsterID()
 		return nil
 	}
 	return fmt.Errorf("unknown EncounterMonster field %s", name)

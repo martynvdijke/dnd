@@ -1505,7 +1505,6 @@ func Migrate() error {
 		"ALTER TABLE factions ADD COLUMN oneshot_adventure_id INTEGER REFERENCES oneshot_adventures(id) ON DELETE CASCADE",
 		// Campaign NPC linking
 		"ALTER TABLE oneshot_monsters ADD COLUMN compendium_monster_id INTEGER DEFAULT NULL",
-		"ALTER TABLE encounter_monsters ADD COLUMN compendium_monster_id INTEGER DEFAULT NULL",
 	}
 	for _, stmt := range alterStatements {
 		if _, err := DB.Exec(stmt); err != nil {

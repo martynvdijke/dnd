@@ -37,6 +37,8 @@ type EncounterMonster struct {
 	Source string `json:"source,omitempty"`
 	// Notes holds the value of the "notes" field.
 	Notes string `json:"notes,omitempty"`
+	// CompendiumMonsterID holds the value of the "compendium_monster_id" field.
+	CompendiumMonsterID *int64 `json:"compendium_monster_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the EncounterMonsterQuery when eager-loading is set.
 	Edges        EncounterMonsterEdges `json:"edges"`
@@ -68,7 +70,7 @@ func (*EncounterMonster) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case encountermonster.FieldID, encountermonster.FieldEncounterID, encountermonster.FieldCount, encountermonster.FieldXp, encountermonster.FieldAc, encountermonster.FieldHp, encountermonster.FieldInitiativeMod:
+		case encountermonster.FieldID, encountermonster.FieldEncounterID, encountermonster.FieldCount, encountermonster.FieldXp, encountermonster.FieldAc, encountermonster.FieldHp, encountermonster.FieldInitiativeMod, encountermonster.FieldCompendiumMonsterID:
 			values[i] = new(sql.NullInt64)
 		case encountermonster.FieldName, encountermonster.FieldCr, encountermonster.FieldSource, encountermonster.FieldNotes:
 			values[i] = new(sql.NullString)
@@ -153,6 +155,13 @@ func (_m *EncounterMonster) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Notes = value.String
 			}
+		case encountermonster.FieldCompendiumMonsterID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field compendium_monster_id", values[i])
+			} else if value.Valid {
+				_m.CompendiumMonsterID = new(int64)
+				*_m.CompendiumMonsterID = value.Int64
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -223,6 +232,11 @@ func (_m *EncounterMonster) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("notes=")
 	builder.WriteString(_m.Notes)
+	builder.WriteString(", ")
+	if v := _m.CompendiumMonsterID; v != nil {
+		builder.WriteString("compendium_monster_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

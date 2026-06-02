@@ -24,6 +24,7 @@ func (EncounterMonster) Fields() []ent.Field {
 		field.Int("initiative_mod").Default(0),
 		field.String("source").Default("homebrew"),
 		field.String("notes").Default(""),
+		field.Int64("compendium_monster_id").Optional().Nillable(),
 	}
 }
 

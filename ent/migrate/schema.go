@@ -1179,6 +1179,7 @@ var (
 		{Name: "initiative_mod", Type: field.TypeInt, Default: 0},
 		{Name: "source", Type: field.TypeString, Default: "homebrew"},
 		{Name: "notes", Type: field.TypeString, Default: ""},
+		{Name: "compendium_monster_id", Type: field.TypeInt64, Nullable: true},
 		{Name: "encounter_id", Type: field.TypeInt64},
 	}
 	// EncounterMonstersTable holds the schema information for the "encounter_monsters" table.
@@ -1189,7 +1190,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "encounter_monsters_encounter_templates_monsters",
-				Columns:    []*schema.Column{EncounterMonstersColumns[10]},
+				Columns:    []*schema.Column{EncounterMonstersColumns[11]},
 				RefColumns: []*schema.Column{EncounterTemplatesColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1198,7 +1199,7 @@ var (
 			{
 				Name:    "encountermonster_encounter_id",
 				Unique:  false,
-				Columns: []*schema.Column{EncounterMonstersColumns[10]},
+				Columns: []*schema.Column{EncounterMonstersColumns[11]},
 			},
 		},
 	}

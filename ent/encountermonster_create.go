@@ -146,6 +146,20 @@ func (_c *EncounterMonsterCreate) SetNillableNotes(v *string) *EncounterMonsterC
 	return _c
 }
 
+// SetCompendiumMonsterID sets the "compendium_monster_id" field.
+func (_c *EncounterMonsterCreate) SetCompendiumMonsterID(v int64) *EncounterMonsterCreate {
+	_c.mutation.SetCompendiumMonsterID(v)
+	return _c
+}
+
+// SetNillableCompendiumMonsterID sets the "compendium_monster_id" field if the given value is not nil.
+func (_c *EncounterMonsterCreate) SetNillableCompendiumMonsterID(v *int64) *EncounterMonsterCreate {
+	if v != nil {
+		_c.SetCompendiumMonsterID(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *EncounterMonsterCreate) SetID(v int64) *EncounterMonsterCreate {
 	_c.mutation.SetID(v)
@@ -329,6 +343,10 @@ func (_c *EncounterMonsterCreate) createSpec() (*EncounterMonster, *sqlgraph.Cre
 	if value, ok := _c.mutation.Notes(); ok {
 		_spec.SetField(encountermonster.FieldNotes, field.TypeString, value)
 		_node.Notes = value
+	}
+	if value, ok := _c.mutation.CompendiumMonsterID(); ok {
+		_spec.SetField(encountermonster.FieldCompendiumMonsterID, field.TypeInt64, value)
+		_node.CompendiumMonsterID = &value
 	}
 	if nodes := _c.mutation.EncounterIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -546,6 +564,30 @@ func (u *EncounterMonsterUpsert) SetNotes(v string) *EncounterMonsterUpsert {
 // UpdateNotes sets the "notes" field to the value that was provided on create.
 func (u *EncounterMonsterUpsert) UpdateNotes() *EncounterMonsterUpsert {
 	u.SetExcluded(encountermonster.FieldNotes)
+	return u
+}
+
+// SetCompendiumMonsterID sets the "compendium_monster_id" field.
+func (u *EncounterMonsterUpsert) SetCompendiumMonsterID(v int64) *EncounterMonsterUpsert {
+	u.Set(encountermonster.FieldCompendiumMonsterID, v)
+	return u
+}
+
+// UpdateCompendiumMonsterID sets the "compendium_monster_id" field to the value that was provided on create.
+func (u *EncounterMonsterUpsert) UpdateCompendiumMonsterID() *EncounterMonsterUpsert {
+	u.SetExcluded(encountermonster.FieldCompendiumMonsterID)
+	return u
+}
+
+// AddCompendiumMonsterID adds v to the "compendium_monster_id" field.
+func (u *EncounterMonsterUpsert) AddCompendiumMonsterID(v int64) *EncounterMonsterUpsert {
+	u.Add(encountermonster.FieldCompendiumMonsterID, v)
+	return u
+}
+
+// ClearCompendiumMonsterID clears the value of the "compendium_monster_id" field.
+func (u *EncounterMonsterUpsert) ClearCompendiumMonsterID() *EncounterMonsterUpsert {
+	u.SetNull(encountermonster.FieldCompendiumMonsterID)
 	return u
 }
 
@@ -769,6 +811,34 @@ func (u *EncounterMonsterUpsertOne) SetNotes(v string) *EncounterMonsterUpsertOn
 func (u *EncounterMonsterUpsertOne) UpdateNotes() *EncounterMonsterUpsertOne {
 	return u.Update(func(s *EncounterMonsterUpsert) {
 		s.UpdateNotes()
+	})
+}
+
+// SetCompendiumMonsterID sets the "compendium_monster_id" field.
+func (u *EncounterMonsterUpsertOne) SetCompendiumMonsterID(v int64) *EncounterMonsterUpsertOne {
+	return u.Update(func(s *EncounterMonsterUpsert) {
+		s.SetCompendiumMonsterID(v)
+	})
+}
+
+// AddCompendiumMonsterID adds v to the "compendium_monster_id" field.
+func (u *EncounterMonsterUpsertOne) AddCompendiumMonsterID(v int64) *EncounterMonsterUpsertOne {
+	return u.Update(func(s *EncounterMonsterUpsert) {
+		s.AddCompendiumMonsterID(v)
+	})
+}
+
+// UpdateCompendiumMonsterID sets the "compendium_monster_id" field to the value that was provided on create.
+func (u *EncounterMonsterUpsertOne) UpdateCompendiumMonsterID() *EncounterMonsterUpsertOne {
+	return u.Update(func(s *EncounterMonsterUpsert) {
+		s.UpdateCompendiumMonsterID()
+	})
+}
+
+// ClearCompendiumMonsterID clears the value of the "compendium_monster_id" field.
+func (u *EncounterMonsterUpsertOne) ClearCompendiumMonsterID() *EncounterMonsterUpsertOne {
+	return u.Update(func(s *EncounterMonsterUpsert) {
+		s.ClearCompendiumMonsterID()
 	})
 }
 
@@ -1158,6 +1228,34 @@ func (u *EncounterMonsterUpsertBulk) SetNotes(v string) *EncounterMonsterUpsertB
 func (u *EncounterMonsterUpsertBulk) UpdateNotes() *EncounterMonsterUpsertBulk {
 	return u.Update(func(s *EncounterMonsterUpsert) {
 		s.UpdateNotes()
+	})
+}
+
+// SetCompendiumMonsterID sets the "compendium_monster_id" field.
+func (u *EncounterMonsterUpsertBulk) SetCompendiumMonsterID(v int64) *EncounterMonsterUpsertBulk {
+	return u.Update(func(s *EncounterMonsterUpsert) {
+		s.SetCompendiumMonsterID(v)
+	})
+}
+
+// AddCompendiumMonsterID adds v to the "compendium_monster_id" field.
+func (u *EncounterMonsterUpsertBulk) AddCompendiumMonsterID(v int64) *EncounterMonsterUpsertBulk {
+	return u.Update(func(s *EncounterMonsterUpsert) {
+		s.AddCompendiumMonsterID(v)
+	})
+}
+
+// UpdateCompendiumMonsterID sets the "compendium_monster_id" field to the value that was provided on create.
+func (u *EncounterMonsterUpsertBulk) UpdateCompendiumMonsterID() *EncounterMonsterUpsertBulk {
+	return u.Update(func(s *EncounterMonsterUpsert) {
+		s.UpdateCompendiumMonsterID()
+	})
+}
+
+// ClearCompendiumMonsterID clears the value of the "compendium_monster_id" field.
+func (u *EncounterMonsterUpsertBulk) ClearCompendiumMonsterID() *EncounterMonsterUpsertBulk {
+	return u.Update(func(s *EncounterMonsterUpsert) {
+		s.ClearCompendiumMonsterID()
 	})
 }
 
