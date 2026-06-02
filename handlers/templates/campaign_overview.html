@@ -195,6 +195,25 @@
   </div>
 
   <div class="row g-3 mt-1">
+    <div class="col-12 col-md-6">
+      <div class="card">
+        <div class="card-header"><i class="fa-solid fa-user-tie me-2"></i>NPCs</div>
+        <div class="card-body p-2" hx-get="/htmx/campaigns/{{.ID}}/npcs-section" hx-trigger="load" hx-swap="innerHTML">
+          <div class="text-muted small">Loading NPCs...</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-6">
+      <div class="card">
+        <div class="card-header"><i class="fa-solid fa-dragon me-2"></i>Campaign Encounters</div>
+        <div class="card-body p-2" hx-get="/htmx/campaigns/{{.ID}}/encounters-section" hx-trigger="load" hx-swap="innerHTML">
+          <div class="text-muted small">Loading encounters...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
     <div class="col-12">
       <div class="card">
         <div class="card-header"><i class="fa-solid fa-images me-2"></i>Media</div>

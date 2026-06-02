@@ -6,8 +6,6 @@ vellum-server
 villum
 villum.db*
 vellum.db*
-*.db-shm
-*.db-wal
 backups/
 media/
 playwright-report/
@@ -15,7 +13,7 @@ test-results/
 data/*.db
 data/*.db-shm
 data/*.db-wal
-db/
+*.db
 tmp/*
 static/js/*.js
 static/js/*.js.map

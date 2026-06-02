@@ -1,0 +1,25 @@
+{{define "campaign_npc_link_form"}}
+<form hx-post="/htmx/campaigns/{{.CampaignID}}/npcs/link" hx-target="#campaignNPCsSection" hx-swap="innerHTML">
+  <div class="mb-2">
+    <label class="form-label small">Select NPC</label>
+    <select name="npc_id" class="form-select form-select-sm" required>
+      <option value="">Choose...</option>
+      {{range .AllNPCs}}
+      <option value="{{.ID}}">{{.Name}} {{if .Race}}({{.Race}}){{end}}</option>
+      {{end}}
+    </select>
+  </div>
+  <div class="mb-2">
+    <label class="form-label small">Role</label>
+    <select name="role" class="form-select form-select-sm">
+      <option value="">None</option>
+      <option value="ally">Ally</option>
+      <option value="neutral">Neutral</option>
+      <option value="enemy">Enemy</option>
+      <option value="quest_giver">Quest Giver</option>
+      <option value="vendor">Vendor</option>
+    </select>
+  </div>
+  <button type="submit" class="btn btn-primary btn-sm w-100"><i class="fa-solid fa-link me-1"></i>Link NPC</button>
+</form>
+{{end}}

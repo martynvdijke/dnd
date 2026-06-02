@@ -1,0 +1,38 @@
+{{define "campaign_npc_create_form"}}
+<form hx-post="/htmx/campaigns/{{.CampaignID}}/npcs/create-and-link" hx-target="#campaignNPCsSection" hx-swap="innerHTML">
+  <div class="mb-2">
+    <label class="form-label small">Name *</label>
+    <input type="text" name="name" class="form-control form-control-sm" required>
+  </div>
+  <div class="row g-1 mb-2">
+    <div class="col-6">
+      <label class="form-label small">Race</label>
+      <input type="text" name="race" class="form-control form-control-sm">
+    </div>
+    <div class="col-6">
+      <label class="form-label small">Class</label>
+      <input type="text" name="class" class="form-control form-control-sm">
+    </div>
+  </div>
+  <div class="mb-2">
+    <label class="form-label small">Role</label>
+    <select name="role" class="form-select form-select-sm">
+      <option value="">None</option>
+      <option value="ally">Ally</option>
+      <option value="neutral">Neutral</option>
+      <option value="enemy">Enemy</option>
+      <option value="quest_giver">Quest Giver</option>
+      <option value="vendor">Vendor</option>
+    </select>
+  </div>
+  <div class="mb-2">
+    <label class="form-label small">Description</label>
+    <textarea name="description" class="form-control form-control-sm" rows="2"></textarea>
+  </div>
+  <div class="mb-2">
+    <label class="form-label small">Notes</label>
+    <textarea name="notes" class="form-control form-control-sm" rows="2"></textarea>
+  </div>
+  <button type="submit" class="btn btn-success btn-sm w-100"><i class="fa-solid fa-plus me-1"></i>Create & Link NPC</button>
+</form>
+{{end}}

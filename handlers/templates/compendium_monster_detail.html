@@ -1,0 +1,72 @@
+{{define "compendium_monster_detail"}}
+{{with .Monster}}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center py-2">
+    <h6 class="mb-0">{{.Name}} <span class="badge bg-secondary">{{.Size}} {{.Type}}</span></h6>
+    <div class="d-flex gap-1">
+      {{if $.EncounterID}}
+      <button class="btn btn-sm btn-success" onclick="importCompendiumMonsterToEncounter({{.ID}}, {{$.EncounterID}}, {{$.CampaignID}})">
+        <i class="fa-solid fa-plus me-1"></i>Add to Encounter
+      </button>
+      {{end}}
+      {{if $.AdventureID}}
+      <button class="btn btn-sm btn-success" onclick="importCompendiumMonsterToOneShot({{.ID}}, {{$.AdventureID}})">
+        <i class="fa-solid fa-plus me-1"></i>Add to One-Shot
+      </button>
+      {{end}}
+      <button class="btn btn-sm btn-outline-secondary" onclick="hideCompendiumDetail()"><i class="fa-solid fa-times"></i></button>
+    </div>
+  </div>
+  <div class="card-body p-2">
+    <div class="row g-1 small">
+      <div class="col-4"><strong>AC:</strong> {{.AC}}</div>
+      <div class="col-4"><strong>HP:</strong> {{.HP}}</div>
+      <div class="col-4"><strong>CR:</strong> {{.CR}}</div>
+    </div>
+    <hr class="my-2">
+    <div class="row g-1 small text-center">
+      <div class="col-2"><strong>STR</strong><br>{{.Str}} <span class="text-muted">({{sign (div (sub .Str 10) 2)}})</span></div>
+      <div class="col-2"><strong>DEX</strong><br>{{.Dex}} <span class="text-muted">({{sign (div (sub .Dex 10) 2)}})</span></div>
+      <div class="col-2"><strong>CON</strong><br>{{.Con}} <span class="text-muted">({{sign (div (sub .Con 10) 2)}})</span></div>
+      <div class="col-2"><strong>INT</strong><br>{{.Int}} <span class="text-muted">({{sign (div (sub .Int 10) 2)}})</span></div>
+      <div class="col-2"><strong>WIS</strong><br>{{.Wis}} <span class="text-muted">({{sign (div (sub .Wis 10) 2)}})</span></div>
+      <div class="col-2"><strong>CHA</strong><br>{{.Cha}} <span class="text-muted">({{sign (div (sub .Cha 10) 2)}})</span></div>
+    </div>
+    {{if or .Saves .Skills .Senses .Languages}}
+    <hr class="my-2">
+    {{if .Saves}}<div class="small"><strong>Saves:</strong> {{.Saves}}</div>{{end}}
+    {{if .Skills}}<div class="small"><strong>Skills:</strong> {{.Skills}}</div>{{end}}
+    {{if .Senses}}<div class="small"><strong>Senses:</strong> {{.Senses}}</div>{{end}}
+    {{if .Languages}}<div class="small"><strong>Languages:</strong> {{.Languages}}</div>{{end}}
+    {{end}}
+    {{if or .DamageVulnerabilities .DamageResistances .DamageImmunities .ConditionImmunities}}
+    <hr class="my-2">
+    {{if .DamageVulnerabilities}}<div class="small"><strong>Vulnerabilities:</strong> {{.DamageVulnerabilities}}</div>{{end}}
+    {{if .DamageResistances}}<div class="small"><strong>Resistances:</strong> {{.DamageResistances}}</div>{{end}}
+    {{if .DamageImmunities}}<div class="small"><strong>Immunities:</strong> {{.DamageImmunities}}</div>{{end}}
+    {{if .ConditionImmunities}}<div class="small"><strong>Condition Immunities:</strong> {{.ConditionImmunities}}</div>{{end}}
+    {{end}}
+    {{if .SpecialAbilities}}
+    <hr class="my-2">
+    <div class="small"><strong>Special Abilities:</strong></div>
+    <div class="small" style="white-space:pre-line">{{.SpecialAbilities}}</div>
+    {{end}}
+    {{if .Actions}}
+    <hr class="my-2">
+    <div class="small"><strong>Actions:</strong></div>
+    <div class="small" style="white-space:pre-line">{{.Actions}}</div>
+    {{end}}
+    {{if .LegendaryActions}}
+    <hr class="my-2">
+    <div class="small"><strong>Legendary Actions:</strong></div>
+    <div class="small" style="white-space:pre-line">{{.LegendaryActions}}</div>
+    {{end}}
+    {{if .Description}}
+    <hr class="my-2">
+    <div class="small"><strong>Description:</strong></div>
+    <div class="small" style="white-space:pre-line">{{.Description}}</div>
+    {{end}}
+  </div>
+</div>
+{{end}}
+{{end}}

@@ -19,6 +19,7 @@ func Seed() {
 		{"backgrounds", seedJSONCategory("backgrounds"), seedBackgrounds},
 		{"spells", seedJSONCategory("spells"), seedSpells},
 		{"equipment", seedJSONCategory("equipment"), seedEquipment},
+		{"monsters", seedJSONCategory("monsters"), seedMonsters},
 	}
 
 	anyLoaded := false

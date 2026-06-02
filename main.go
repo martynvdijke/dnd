@@ -569,6 +569,26 @@ func main() {
 		dm.PUT("/monster-library/:id", handlers.UpdateMonsterLibraryEntry)
 		dm.DELETE("/monster-library/:id", handlers.DeleteMonsterLibraryEntry)
 
+		// Monster Compendium
+		dm.GET("/compendium-monsters", handlers.ListCompendiumMonsters)
+		dm.GET("/compendium-monsters/:id", handlers.GetCompendiumMonster)
+
+		// Monster Import
+		dm.POST("/oneshot-adventures/:id/import/compendium", handlers.ImportCompendiumMonsterToOneShot)
+		dm.POST("/encounters/:eid/import/compendium", handlers.ImportCompendiumMonsterToEncounter)
+		dm.POST("/oneshot-adventures/:id/import/library", handlers.ImportLibraryMonsterToOneShot)
+
+		// Campaign NPCs
+		dm.GET("/campaigns/:id/npcs", handlers.ListCampaignNPCs)
+		dm.POST("/campaigns/:id/npcs", handlers.LinkNPCCampaign)
+		dm.PUT("/campaign-npcs/:id", handlers.UpdateCampaignNPC)
+		dm.DELETE("/campaign-npcs/:id", handlers.UnlinkCampaignNPC)
+		dm.POST("/campaigns/:id/npcs/create-and-link", handlers.CreateAndLinkCampaignNPC)
+
+		// Campaign Encounter Monsters
+		dm.GET("/encounters/:id/monsters", handlers.ListCampaignEncounterMonsters)
+		dm.POST("/encounters/:id/monsters", handlers.CreateCampaignEncounterMonster)
+
 		// Linked Player Characters
 		dm.GET("/oneshot-adventures/:id/characters", handlers.ListLinkedCharacters)
 		dm.POST("/oneshot-adventures/:id/characters", handlers.LinkCharacterToOneShot)

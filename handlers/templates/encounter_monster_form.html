@@ -1,0 +1,54 @@
+{{define "encounter_monster_form"}}
+<form hx-post="/htmx/encounters/{{.EncounterID}}/monsters" hx-target="#campaignEncounterMonstersSection" hx-swap="innerHTML">
+  <input type="hidden" name="campaign_id" value="{{.CampaignID}}">
+  <div class="mb-2">
+    <label class="form-label small">Name *</label>
+    <input type="text" name="name" class="form-control form-control-sm" value="{{if .Monster}}{{.Monster.Name}}{{end}}" required>
+  </div>
+  <div class="row g-1 mb-2">
+    <div class="col-4">
+      <label class="form-label small">CR</label>
+      <input type="text" name="cr" class="form-control form-control-sm" value="{{if .Monster}}{{.Monster.CR}}{{end}}" placeholder="e.g. 1, 1/2">
+    </div>
+    <div class="col-4">
+      <label class="form-label small">AC</label>
+      <input type="number" name="ac" class="form-control form-control-sm" value="{{if .Monster}}{{.Monster.AC}}{{else}}10{{end}}">
+    </div>
+    <div class="col-4">
+      <label class="form-label small">HP</label>
+      <input type="number" name="hp" class="form-control form-control-sm" value="{{if .Monster}}{{.Monster.HP}}{{else}}10{{end}}">
+    </div>
+  </div>
+  <div class="row g-1 mb-2">
+    <div class="col-4">
+      <label class="form-label small">Count</label>
+      <input type="number" name="count" class="form-control form-control-sm" value="{{if .Monster}}{{.Monster.Count}}{{else}}1{{end}}" min="1">
+    </div>
+    <div class="col-4">
+      <label class="form-label small">XP</label>
+      <input type="number" name="xp" class="form-control form-control-sm" value="{{if .Monster}}{{.Monster.XP}}{{else}}0{{end}}">
+    </div>
+    <div class="col-4">
+      <label class="form-label small">Init Mod</label>
+      <input type="number" name="initiative_mod" class="form-control form-control-sm" value="{{if .Monster}}{{.Monster.InitiativeMod}}{{else}}0{{end}}">
+    </div>
+  </div>
+  <div class="mb-2">
+    <label class="form-label small">Source</label>
+    <input type="text" name="source" class="form-control form-control-sm" value="{{if .Monster}}{{.Monster.Source}}{{else}}homebrew{{end}}">
+  </div>
+  <div class="mb-2">
+    <label class="form-label small">Notes</label>
+    <textarea name="notes" class="form-control form-control-sm" rows="2">{{if .Monster}}{{.Monster.Notes}}{{end}}</textarea>
+  </div>
+  {{if .Monster}}
+  <input type="hidden" name="_method" value="PUT">
+  <button type="submit" class="btn btn-warning btn-sm w-100"><i class="fa-solid fa-pen me-1"></i>Update Monster</button>
+  {{else}}
+  <button type="submit" class="btn btn-primary btn-sm w-100"><i class="fa-solid fa-plus me-1"></i>Add Monster</button>
+  {{end}}
+</form>
+{{if .Monster}}
+<p class="small text-muted mt-2">Use the update form above to modify this monster.</p>
+{{end}}
+{{end}}

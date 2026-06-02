@@ -1,0 +1,29 @@
+{{define "campaign_npcs_section"}}
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <span><strong>{{len .NPCs}} NPCs</strong></span>
+  <div class="d-flex gap-1">
+    <button class="btn btn-sm btn-outline-primary" onclick="showCampaignNPCLinkForm({{.CampaignID}})"><i class="fa-solid fa-link me-1"></i>Link NPC</button>
+    <button class="btn btn-sm btn-outline-success" onclick="showCampaignNPCCreateForm({{.CampaignID}})"><i class="fa-solid fa-plus me-1"></i>New NPC</button>
+  </div>
+</div>
+{{if .NPCs}}
+<div class="list-group list-group-flush">
+  {{range .NPCs}}
+  <div class="list-group-item px-2 py-2 d-flex justify-content-between align-items-start">
+    <div>
+      <strong>{{.NPCName}}</strong>
+      {{if .NPCRace}}<span class="text-muted small ms-1">{{.NPCRace}}</span>{{end}}
+      {{if .NPCClass}}<span class="text-muted small ms-1">{{.NPCClass}}</span>{{end}}
+      {{if .Role}}<span class="badge {{if eq .Role "ally"}}bg-success{{else if eq .Role "enemy"}}bg-danger{{else}}bg-secondary{{end}} ms-1">{{.Role}}</span>{{end}}
+      {{if .Notes}}<div class="small text-muted mt-1">{{.Notes}}</div>{{end}}
+    </div>
+    <div class="d-flex gap-1 flex-shrink-0">
+      <button class="btn btn-sm btn-outline-danger" onclick="unlinkCampaignNPC({{.ID}}, {{.CampaignID}})" title="Unlink NPC"><i class="fa-solid fa-unlink"></i></button>
+    </div>
+  </div>
+  {{end}}
+</div>
+{{else}}
+<div class="text-muted small fst-italic py-2">No NPCs linked to this campaign.</div>
+{{end}}
+{{end}}

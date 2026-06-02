@@ -1,0 +1,25 @@
+{{define "compendium_monster_list_item"}}
+{{range .Monsters}}
+<div class="list-group-item list-group-item-action px-2 py-2"
+     hx-get="/htmx/compendium-monsters/{{.ID}}"
+     hx-target="#compendiumDetail"
+     hx-swap="innerHTML"
+     hx-trigger="click"
+     style="cursor:pointer">
+  <div class="d-flex justify-content-between align-items-start">
+    <div>
+      <strong>{{.Name}}</strong>
+      <span class="badge bg-secondary ms-1">{{.Size}} {{.Type}}</span>
+      <span class="badge bg-danger ms-1">CR {{.CR}}</span>
+    </div>
+    <div class="text-muted small text-end">
+      <div>AC {{.AC}}</div>
+      <div>HP {{.HP}}</div>
+    </div>
+  </div>
+</div>
+{{end}}
+{{if not .Monsters}}
+<div class="text-muted small fst-italic py-3 text-center">No monsters found matching your search.</div>
+{{end}}
+{{end}}

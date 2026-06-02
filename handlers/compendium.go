@@ -355,6 +355,69 @@ func AdminDeleteCompendiumEntry(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
+// ─── Monster Compendium ───
+
+func ListCompendiumMonsters(c *gin.Context) {
+	query := "SELECT id,name,type,size,ac,hp,str,dex,con,int_,wis,cha,cr,source,is_full,saves,skills,damage_vulnerabilities,damage_resistances,damage_immunities,condition_immunities,senses,languages,special_abilities,actions,legendary_actions,description FROM compendium_monsters WHERE 1=1"
+	args := []interface{}{}
+
+	if q := c.Query("q"); q != "" {
+		query += " AND name LIKE ?"
+		args = append(args, "%"+q+"%")
+	}
+	if cr := c.Query("cr"); cr != "" {
+		query += " AND cr=?"
+		args = append(args, cr)
+	}
+	if t := c.Query("type"); t != "" {
+		query += " AND type LIKE ?"
+		args = append(args, "%"+t+"%")
+	}
+	query += " ORDER BY name"
+
+	rows, err := db.DB.Query(query, args...)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	out := make([]models.CompendiumMonster, 0)
+	for rows.Next() {
+		var m models.CompendiumMonster
+		var isFull int
+		err := rows.Scan(&m.ID, &m.Name, &m.Type, &m.Size, &m.AC, &m.HP,
+			&m.Str, &m.Dex, &m.Con, &m.Int, &m.Wis, &m.Cha,
+			&m.CR, &m.Source, &isFull,
+			&m.Saves, &m.Skills, &m.DamageVulnerabilities, &m.DamageResistances, &m.DamageImmunities, &m.ConditionImmunities,
+			&m.Senses, &m.Languages, &m.SpecialAbilities, &m.Actions, &m.LegendaryActions, &m.Description)
+		if err != nil {
+			continue
+		}
+		m.IsFull = isFull == 1
+		out = append(out, m)
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+func GetCompendiumMonster(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var m models.CompendiumMonster
+	var isFull int
+	err := db.DB.QueryRow("SELECT id,name,type,size,ac,hp,str,dex,con,int_,wis,cha,cr,source,is_full,saves,skills,damage_vulnerabilities,damage_resistances,damage_immunities,condition_immunities,senses,languages,special_abilities,actions,legendary_actions,description FROM compendium_monsters WHERE id=?", id).
+		Scan(&m.ID, &m.Name, &m.Type, &m.Size, &m.AC, &m.HP,
+			&m.Str, &m.Dex, &m.Con, &m.Int, &m.Wis, &m.Cha,
+			&m.CR, &m.Source, &isFull,
+			&m.Saves, &m.Skills, &m.DamageVulnerabilities, &m.DamageResistances, &m.DamageImmunities, &m.ConditionImmunities,
+			&m.Senses, &m.Languages, &m.SpecialAbilities, &m.Actions, &m.LegendaryActions, &m.Description)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "monster not found"})
+		return
+	}
+	m.IsFull = isFull == 1
+	c.JSON(http.StatusOK, m)
+}
+
 func SearchCompendium(c *gin.Context) {
 	q := strings.TrimSpace(c.Query("q"))
 	if q == "" {

@@ -1541,6 +1541,38 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"DELETE", "/htmx/clues/:id", HtmxDeleteClue},
 		{"POST", "/htmx/clues/:id/reveal", HtmxRevealClue},
 		{"POST", "/htmx/clues/:id/hide", HtmxHideClue},
+
+		// Campaign NPCs (HTMX)
+		{"GET", "/htmx/campaigns/:id/npcs-section", HtmxCampaignNPCsSection},
+		{"GET", "/htmx/campaigns/:id/npcs/link-form", HtmxCampaignNPCLinkForm},
+		{"GET", "/htmx/campaigns/:id/npcs/create-form", HtmxCampaignNPCCreateForm},
+		{"POST", "/htmx/campaigns/:id/npcs/link", HtmxCampaignLinkNPC},
+		{"POST", "/htmx/campaigns/:id/npcs/create-and-link", HtmxCampaignCreateAndLinkNPC},
+		{"DELETE", "/htmx/campaigns/:id/npcs/:nid", HtmxCampaignUnlinkNPC},
+
+		// Campaign Encounters (HTMX)
+		{"GET", "/htmx/campaigns/:id/encounters-section", HtmxCampaignEncountersSection},
+		{"GET", "/htmx/campaigns/:id/encounters/new", HtmxNewEncounterForm},
+		{"POST", "/htmx/campaigns/:id/encounters", HtmxCreateEncounter},
+		{"DELETE", "/htmx/campaigns/:id/encounters/:eid", HtmxDeleteEncounter},
+		{"GET", "/htmx/campaigns/:id/encounters/:eid/monsters", HtmxCampaignEncounterMonsters},
+		{"GET", "/htmx/campaigns/:id/encounters/:eid/monster-list", HtmxCampaignEncounterMonsterList},
+		{"GET", "/htmx/encounters/:eid/monsters/new", HtmxAddEncounterMonsterForm},
+		{"POST", "/htmx/encounters/:eid/monsters", HtmxCreateEncounterMonster},
+		{"GET", "/htmx/encounters/:eid/monsters/:mid/edit", HtmxEditEncounterMonsterForm},
+		{"PUT", "/htmx/encounters/:eid/monsters/:mid", HtmxUpdateEncounterMonster},
+		{"DELETE", "/htmx/encounters/:eid/monsters/:mid", HtmxDeleteEncounterMonster},
+		{"POST", "/htmx/encounters/:eid/import-compendium", HtmxImportCompendiumMonsterToEncounter},
+
+		// Compendium Monsters (HTMX)
+		{"GET", "/htmx/compendium-monsters", HtmxCompendiumMonsterBrowser},
+		{"GET", "/htmx/compendium-monsters/search", HtmxCompendiumMonsterSearch},
+		{"GET", "/htmx/compendium-monsters/:id", HtmxCompendiumMonsterDetail},
+		{"GET", "/htmx/compendium-monsters/picker/:eid", HtmxCompendiumMonsterPickerForEncounter},
+		{"GET", "/htmx/compendium-monsters/oneshot/:id", HtmxCompendiumMonsterPickerForOneShot},
+
+		// Import Compendium Monster to One-Shot (HTMX)
+		{"POST", "/htmx/oneshot-adventures/:id/import-compendium", HtmxImportCompendiumMonsterToOneShot},
 	}
 	for _, rt := range routes {
 		r.Handle(rt.method, rt.path, rt.handler)

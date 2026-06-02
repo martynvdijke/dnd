@@ -83,6 +83,7 @@ type OneShotMonster struct {
 	Actions             string `json:"actions"`
 	LegendaryActions    string `json:"legendary_actions"`
 	LibraryID           *int64 `json:"library_id,omitempty"`
+	CompendiumMonsterID *int64 `json:"compendium_monster_id,omitempty"`
 	CreatedAt           string `json:"created_at"`
 }
 
@@ -105,4 +106,46 @@ type OneShotPlayerCharacter struct {
 	Notes       string `json:"notes"`
 	CharName    string `json:"char_name,omitempty"`
 	Username    string `json:"username,omitempty"`
+}
+
+type CompendiumMonster struct {
+	ID                    int64  `json:"id"`
+	Name                  string `json:"name"`
+	Type                  string `json:"type"`
+	Size                  string `json:"size"`
+	AC                    int    `json:"ac"`
+	HP                    int    `json:"hp"`
+	Str                   int    `json:"str"`
+	Dex                   int    `json:"dex"`
+	Con                   int    `json:"con"`
+	Int                   int    `json:"int"`
+	Wis                   int    `json:"wis"`
+	Cha                   int    `json:"cha"`
+	CR                    string `json:"cr"`
+	Source                string `json:"source"`
+	IsFull                bool   `json:"is_full"`
+	Saves                 string `json:"saves"`
+	Skills                string `json:"skills"`
+	DamageVulnerabilities string `json:"damage_vulnerabilities"`
+	DamageResistances     string `json:"damage_resistances"`
+	DamageImmunities      string `json:"damage_immunities"`
+	ConditionImmunities   string `json:"condition_immunities"`
+	Senses                string `json:"senses"`
+	Languages             string `json:"languages"`
+	SpecialAbilities      string `json:"special_abilities"`
+	Actions               string `json:"actions"`
+	LegendaryActions      string `json:"legendary_actions"`
+	Description           string `json:"description"`
+}
+
+type CampaignNPC struct {
+	ID         int64  `json:"id"`
+	CampaignID int64  `json:"campaign_id"`
+	NPCID      int64  `json:"npc_id"`
+	Role       string `json:"role"`
+	Notes      string `json:"notes"`
+	CreatedAt  string `json:"created_at"`
+	NPCName    string `json:"npc_name,omitempty"`
+	NPCRace    string `json:"npc_race,omitempty"`
+	NPCClass   string `json:"npc_class,omitempty"`
 }

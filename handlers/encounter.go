@@ -97,6 +97,83 @@ func DeleteEncounter(c *gin.Context) {
 
 // Encounter monsters
 
+func ListCampaignEncounterMonsters(c *gin.Context) {
+	encounterID := c.Param("id")
+	rows, err := db.DB.Query("SELECT id, encounter_id, name, count, cr, xp, ac, hp, initiative_mod, source, notes, compendium_monster_id FROM encounter_monsters WHERE encounter_id=? ORDER BY id", encounterID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+	out := make([]models.EncounterMonster, 0)
+	for rows.Next() {
+		var m models.EncounterMonster
+		rows.Scan(&m.ID, &m.EncounterID, &m.Name, &m.Count, &m.CR, &m.XP, &m.AC, &m.HP, &m.InitiativeMod, &m.Source, &m.Notes, &m.CompendiumMonsterID)
+		out = append(out, m)
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+func CreateCampaignEncounterMonster(c *gin.Context) {
+	eid, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var req struct {
+		Name                string `json:"name"`
+		Count               int    `json:"count"`
+		CR                  string `json:"cr"`
+		XP                  int    `json:"xp"`
+		AC                  int    `json:"ac"`
+		HP                  int    `json:"hp"`
+		InitiativeMod       int    `json:"initiative_mod"`
+		Source              string `json:"source"`
+		Notes               string `json:"notes"`
+		CompendiumMonsterID *int64 `json:"compendium_monster_id,omitempty"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if req.Count < 1 {
+		req.Count = 1
+	}
+	if req.Source == "" {
+		req.Source = "homebrew"
+	}
+
+	// If compendium_monster_id is provided, pre-fill from compendium
+	if req.CompendiumMonsterID != nil && *req.CompendiumMonsterID > 0 {
+		var name, cr, source string
+		var ac, hp int
+		err := db.DB.QueryRow("SELECT name, ac, hp, cr, source FROM compendium_monsters WHERE id=?", *req.CompendiumMonsterID).
+			Scan(&name, &ac, &hp, &cr, &source)
+		if err == nil {
+			if req.Name == "" {
+				req.Name = name
+			}
+			if req.AC == 0 {
+				req.AC = ac
+			}
+			if req.HP == 0 {
+				req.HP = hp
+			}
+			if req.CR == "" {
+				req.CR = cr
+			}
+			if req.Source == "homebrew" {
+				req.Source = source
+			}
+		}
+	}
+
+	result, err := db.DB.Exec("INSERT INTO encounter_monsters(encounter_id,name,count,cr,xp,ac,hp,initiative_mod,source,notes,compendium_monster_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+		eid, req.Name, req.Count, req.CR, req.XP, req.AC, req.HP, req.InitiativeMod, req.Source, req.Notes, req.CompendiumMonsterID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
 func AddEncounterMonster(c *gin.Context) {
 	eid, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var m models.EncounterMonster
@@ -116,13 +193,24 @@ func AddEncounterMonster(c *gin.Context) {
 
 func UpdateEncounterMonster(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("mid"), 10, 64)
-	var m models.EncounterMonster
-	if err := c.ShouldBindJSON(&m); err != nil {
+	var req struct {
+		Name                string `json:"name"`
+		Count               int    `json:"count"`
+		CR                  string `json:"cr"`
+		XP                  int    `json:"xp"`
+		AC                  int    `json:"ac"`
+		HP                  int    `json:"hp"`
+		InitiativeMod       int    `json:"initiative_mod"`
+		Source              string `json:"source"`
+		Notes               string `json:"notes"`
+		CompendiumMonsterID *int64 `json:"compendium_monster_id,omitempty"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	db.DB.Exec("UPDATE encounter_monsters SET name=?, count=?, cr=?, xp=?, ac=?, hp=?, initiative_mod=?, source=?, notes=? WHERE id=?",
-		m.Name, m.Count, m.CR, m.XP, m.AC, m.HP, m.InitiativeMod, m.Source, m.Notes, id)
+	db.DB.Exec("UPDATE encounter_monsters SET name=?, count=?, cr=?, xp=?, ac=?, hp=?, initiative_mod=?, source=?, notes=?, compendium_monster_id=? WHERE id=?",
+		req.Name, req.Count, req.CR, req.XP, req.AC, req.HP, req.InitiativeMod, req.Source, req.Notes, req.CompendiumMonsterID, id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 

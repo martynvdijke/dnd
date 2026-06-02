@@ -1,0 +1,32 @@
+{{define "encounter_form"}}
+<form hx-post="/htmx/campaigns/{{.CampaignID}}/encounters" hx-target="#campaignEncountersSection" hx-swap="innerHTML">
+  <div class="mb-2">
+    <label class="form-label small">Name *</label>
+    <input type="text" name="name" class="form-control form-control-sm" required>
+  </div>
+  <div class="mb-2">
+    <label class="form-label small">Description</label>
+    <textarea name="description" class="form-control form-control-sm" rows="2"></textarea>
+  </div>
+  <div class="row g-1 mb-2">
+    <div class="col-6">
+      <label class="form-label small">Difficulty</label>
+      <select name="difficulty" class="form-select form-select-sm">
+        <option value="easy">Easy</option>
+        <option value="medium" selected>Medium</option>
+        <option value="hard">Hard</option>
+        <option value="deadly">Deadly</option>
+      </select>
+    </div>
+    <div class="col-6">
+      <label class="form-label small">Environment</label>
+      <input type="text" name="environment" class="form-control form-control-sm" placeholder="e.g. dungeon, forest">
+    </div>
+  </div>
+  <div class="mb-2">
+    <label class="form-label small">Notes</label>
+    <textarea name="notes" class="form-control form-control-sm" rows="2"></textarea>
+  </div>
+  <button type="submit" class="btn btn-primary btn-sm w-100"><i class="fa-solid fa-plus me-1"></i>Create Encounter</button>
+</form>
+{{end}}

@@ -1,0 +1,34 @@
+{{define "campaign_encounters_section"}}
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <span><strong>{{len .Encounters}} Encounters</strong></span>
+  <button class="btn btn-sm btn-outline-primary" onclick="showNewEncounterForm({{.CampaignID}})"><i class="fa-solid fa-plus me-1"></i>New Encounter</button>
+</div>
+{{if .Encounters}}
+<div class="list-group list-group-flush">
+  {{range .Encounters}}
+  <div class="list-group-item px-2 py-2">
+    <div class="d-flex justify-content-between align-items-start">
+      <div class="flex-grow-1">
+        <div class="d-flex align-items-center gap-2">
+          <strong>{{.Name}}</strong>
+          {{if .Difficulty}}<span class="badge {{if eq .Difficulty "easy"}}bg-success{{else if eq .Difficulty "medium"}}bg-warning{{else if eq .Difficulty "hard"}}bg-danger{{else}}bg-dark{{end}}">{{.Difficulty}}</span>{{end}}
+          {{if .Environment}}<span class="badge bg-info">{{.Environment}}</span>{{end}}
+        </div>
+        {{if .Description}}<div class="small text-muted mt-1">{{.Description}}</div>{{end}}
+        <div class="small text-muted mt-1">
+          <span class="me-2"><i class="fa-solid fa-skull me-1"></i>{{.TotalXP}} XP</span>
+          <span><i class="fa-solid fa-dragon me-1"></i>{{len .Monsters}} monsters</span>
+        </div>
+      </div>
+      <div class="d-flex gap-1 flex-shrink-0 ms-2">
+        <button class="btn btn-sm btn-outline-info" onclick="showEncounterMonsters({{.ID}}, {{$.CampaignID}})" title="View monsters"><i class="fa-solid fa-dragon"></i></button>
+        <button class="btn btn-sm btn-outline-danger" onclick="deleteEncounter({{.ID}}, {{$.CampaignID}})" title="Delete"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>
+  </div>
+  {{end}}
+</div>
+{{else}}
+<div class="text-muted small fst-italic py-2">No encounters yet.</div>
+{{end}}
+{{end}}

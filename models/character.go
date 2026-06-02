@@ -338,8 +338,9 @@ type EncounterMonster struct {
 	AC           int    `json:"ac"`
 	HP           int    `json:"hp"`
 	InitiativeMod int   `json:"initiative_mod"`
-	Source       string `json:"source"`
-	Notes        string `json:"notes"`
+	Source              string `json:"source"`
+	Notes               string `json:"notes"`
+	CompendiumMonsterID *int64 `json:"compendium_monster_id,omitempty"`
 }
 
 type CalendarEvent struct {
