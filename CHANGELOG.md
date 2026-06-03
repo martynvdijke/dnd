@@ -1,3 +1,10 @@
+## [2.5.2](https://github.com/martynvdijke/dnd/compare/v2.5.1...v2.5.2) (2026-06-03)
+
+
+### Bug Fixes
+
+* **deps:** update github.com/dop251/goja digest to 1f200ca ([5c8dfd2](https://github.com/martynvdijke/dnd/commit/5c8dfd2a4f5fd45bd3a32947edd7c6eeb954e26d))
+
 ## [2.5.1](https://github.com/martynvdijke/dnd/compare/v2.5.0...v2.5.1) (2026-06-03)
 
 
