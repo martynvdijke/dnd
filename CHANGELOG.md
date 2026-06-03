@@ -1,3 +1,10 @@
+## [2.5.1](https://github.com/martynvdijke/dnd/compare/v2.5.0...v2.5.1) (2026-06-03)
+
+
+### Bug Fixes
+
+* remove openspec files ([67b6652](https://github.com/martynvdijke/dnd/commit/67b66525ecaf6431dd2627a7b4995151b1c04223))
+
 # [2.5.0](https://github.com/martynvdijke/dnd/compare/v2.4.0...v2.5.0) (2026-06-02)
 
 
