@@ -598,6 +598,9 @@ func main() {
 		dm.PATCH("/oneshot-scenes/:id/duration", handlers.UpdateSceneDuration)
 		dm.PUT("/oneshot-adventures/:id/acts/reorder", handlers.ReorderActs)
 		dm.PUT("/oneshot-acts/:id/scenes/reorder", handlers.ReorderScenes)
+
+		// Scene Dialogs
+		dm.PUT("/oneshot-scenes/:id/dialogs/reorder", handlers.ReorderDialogs)
 	}
 
 	// htmx endpoints (separate group, outside /api, with auth + CSRF)

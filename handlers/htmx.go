@@ -1504,8 +1504,18 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"DELETE", "/htmx/oneshot-scenes/:id", HtmxDeleteScene},
 		{"GET", "/htmx/oneshot-adventures/:id/new-act-form", HtmxNewActForm},
 		{"GET", "/htmx/oneshot-acts/:id/new-scene-form", HtmxSceneForm},
+		{"GET", "/htmx/oneshot-acts/:id/edit", HtmxEditActForm},
 		{"PUT", "/htmx/oneshot-acts/:id", HtmxUpdateAct},
+		{"GET", "/htmx/oneshot-scenes/:id/edit", HtmxEditSceneForm},
 		{"PUT", "/htmx/oneshot-scenes/:id", HtmxUpdateScene},
+
+		// Scene Dialogs
+		{"GET", "/htmx/oneshot-scenes/:id/dialogs", HtmxDialogList},
+		{"GET", "/htmx/oneshot-scenes/:id/dialogs/new", HtmxNewDialogForm},
+		{"POST", "/htmx/oneshot-scenes/:id/dialogs", HtmxCreateDialog},
+		{"GET", "/htmx/oneshot-scene-dialogs/:id/edit", HtmxEditDialogForm},
+		{"PUT", "/htmx/oneshot-scene-dialogs/:id", HtmxUpdateDialog},
+		{"DELETE", "/htmx/oneshot-scene-dialogs/:id", HtmxDeleteDialog},
 
 		// Session Pacing
 		{"GET", "/htmx/session-pacing/:id", HtmxGetPacingDashboard},

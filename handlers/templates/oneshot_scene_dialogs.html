@@ -1,0 +1,51 @@
+<div class="dialogs-container">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <strong><i class="fa-solid fa-comment me-1"></i>Scene Dialog</strong>
+    <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/oneshot-scenes/{{.Adventure.ID}}/dialogs/new" hx-target="#dialogFormContainer" hx-trigger="click" onclick="document.getElementById('dialogFormContainer').innerHTML=''"><i class="fa-solid fa-plus"></i> Add Dialog</button>
+  </div>
+
+  <div id="dialogFormContainer"></div>
+
+  {{if .Dialogs}}
+  <div class="sortable-dialogs">
+    {{range .Dialogs}}
+    <div class="card mb-1 dialog-card" data-id="{{.ID}}">
+      <div class="card-body py-2 px-3 d-flex align-items-start gap-2">
+        <span class="sortable-handle" style="cursor:grab;color:var(--muted);font-size:0.8rem;margin-top:0.25rem">⋮⋮</span>
+        <div class="flex-grow-1">
+          <div class="d-flex align-items-center gap-2">
+            <strong class="text-primary" style="font-size:0.85rem">{{.Speaker}}</strong>
+            {{if .Condition}}<span class="badge bg-info" style="font-size:0.65rem">{{.Condition}}</span>{{end}}
+          </div>
+          <p class="mb-0 small" style="white-space:pre-wrap">{{.DialogText}}</p>
+          {{if .DMNotes}}<div class="text-muted small mt-1"><em>DM: {{.DMNotes}}</em></div>{{end}}
+          {{if .PlayerHandout}}<div class="small mt-1 p-1 bg-light rounded"><strong>Handout:</strong> {{.PlayerHandout}}</div>{{end}}
+        </div>
+        <div class="d-flex gap-1 flex-shrink-0">
+          <button class="btn btn-sm btn-outline-secondary" style="font-size:0.65rem;padding:0.1rem 0.3rem"
+            hx-get="/htmx/oneshot-scene-dialogs/{{.ID}}/edit"
+            hx-target="#dialogFormContainer"
+            hx-trigger="click"
+            title="Edit"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-sm btn-outline-danger" style="font-size:0.65rem;padding:0.1rem 0.3rem"
+            hx-delete="/htmx/oneshot-scene-dialogs/{{.ID}}"
+            hx-target="closest .dialogs-container"
+            hx-swap="outerHTML"
+            hx-confirm="Delete this dialog?"
+            hx-trigger="click"
+            title="Delete"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </div>
+    </div>
+    {{end}}
+  </div>
+  {{else}}
+  <div class="text-muted small py-2 text-center">No dialog entries yet. Add one above.</div>
+  {{end}}
+</div>
+
+<script>
+(function(){
+  if(typeof initDialogSort === 'function') initDialogSort();
+})()
+</script>

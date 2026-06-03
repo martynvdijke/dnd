@@ -1,0 +1,27 @@
+<form>
+  <div class="mb-2">
+    <label class="form-label small">Speaker</label>
+    <input class="form-control form-control-sm" name="speaker" value="{{.Dialog.Speaker}}" placeholder="NPC name or narrator" required>
+  </div>
+  <div class="mb-2">
+    <label class="form-label small">Dialog Text</label>
+    <textarea class="form-control form-control-sm" name="dialog_text" rows="2" placeholder="What they say...">{{.Dialog.DialogText}}</textarea>
+  </div>
+  <div class="mb-2">
+    <label class="form-label small">DM Notes</label>
+    <textarea class="form-control form-control-sm" name="dm_notes" rows="1" placeholder="Behind the scenes notes">{{.Dialog.DMNotes}}</textarea>
+  </div>
+  <div class="mb-2">
+    <label class="form-label small">Player Handout</label>
+    <textarea class="form-control form-control-sm" name="player_handout" rows="1" placeholder="Info to share with players">{{.Dialog.PlayerHandout}}</textarea>
+  </div>
+  <div class="mb-2">
+    <label class="form-label small">Condition / Trigger</label>
+    <input class="form-control form-control-sm" name="condition" value="{{.Dialog.Condition}}" placeholder="e.g. only if persuasion > 15">
+  </div>
+  {{if .Dialog.ID}}
+  <button class="btn btn-primary btn-sm w-100" hx-put="/htmx/oneshot-scene-dialogs/{{.Dialog.ID}}" hx-target="closest .dialogs-container" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Update Dialog</button>
+  {{else}}
+  <button class="btn btn-primary btn-sm w-100" hx-post="/htmx/oneshot-scenes/{{.Dialog.SceneID}}/dialogs" hx-target="closest .dialogs-container" hx-swap="outerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add Dialog</button>
+  {{end}}
+</form>

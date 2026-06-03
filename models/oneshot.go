@@ -110,6 +110,18 @@ type OneShotAdventureEncounter struct {
 
 // ─── Session Pacing ───
 
+type OneShotSceneDialog struct {
+	ID            int64  `json:"id"`
+	SceneID       int64  `json:"scene_id"`
+	SortOrder     int    `json:"sort_order"`
+	Speaker       string `json:"speaker"`
+	DialogText    string `json:"dialog_text"`
+	DMNotes       string `json:"dm_notes"`
+	PlayerHandout string `json:"player_handout"`
+	Condition     string `json:"condition"`
+	CreatedAt     string `json:"created_at"`
+}
+
 type SessionPacing struct {
 	ID              int64  `json:"id"`
 	AdventureID     int64  `json:"adventure_id"`

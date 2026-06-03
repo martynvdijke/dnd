@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"bytes"
 	"fmt"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -651,4 +653,274 @@ func TestActCRUD(t *testing.T) {
 	// Delete act
 	w = testutil.Delete(t, r, fmt.Sprintf("/api/oneshot-acts/%d", actID))
 	testutil.AssertStatus(t, w, 200)
+}
+
+func TestActTreeParentUpdateViaAPI(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCharacter(t, 1, 1, "ParentTestChar", "Human", "Fighter")
+	seedAdventure(t, 1, 1, "Parent Update Adventure")
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.POST("/oneshot-adventures/:id/acts", CreateOneShotAct)
+		auth.GET("/oneshot-adventures/:id", GetOneShotAdventure)
+		auth.PUT("/oneshot-acts/:id", UpdateOneShotAct)
+	})
+
+	// Create root act
+	w := testutil.PostJSON(t, r, "/api/oneshot-adventures/1/acts", map[string]any{
+		"title": "Root", "description": "Root act",
+		"number": 1, "sort_order": 1,
+	})
+	testutil.AssertStatus(t, w, 201)
+	var rootResp map[string]any
+	testutil.ParseJSON(t, w, &rootResp)
+	rootID := int64(rootResp["id"].(float64))
+
+	// Create child1
+	w = testutil.PostJSON(t, r, "/api/oneshot-adventures/1/acts", map[string]any{
+		"title": "Child1", "description": "First child",
+		"parent_act_id": rootID, "number": 1, "sort_order": 1,
+	})
+	testutil.AssertStatus(t, w, 201)
+	var child1Resp map[string]any
+	testutil.ParseJSON(t, w, &child1Resp)
+	child1ID := int64(child1Resp["id"].(float64))
+
+	// Create child2
+	w = testutil.PostJSON(t, r, "/api/oneshot-adventures/1/acts", map[string]any{
+		"title": "Child2", "description": "Second child",
+		"parent_act_id": rootID, "number": 2, "sort_order": 2,
+	})
+	testutil.AssertStatus(t, w, 201)
+	var child2Resp map[string]any
+	testutil.ParseJSON(t, w, &child2Resp)
+	child2ID := int64(child2Resp["id"].(float64))
+
+	// Move child1 to be under child2
+	w = testutil.PutJSON(t, r, fmt.Sprintf("/api/oneshot-acts/%d", child1ID), map[string]any{
+		"title": "Child1", "description": "Moved",
+		"parent_act_id": child2ID, "number": 1, "sort_order": 1,
+	})
+	testutil.AssertStatus(t, w, 200)
+
+	// Verify tree: Root → Child2 → Child1
+	w = testutil.Get(t, r, "/api/oneshot-adventures/1")
+	testutil.AssertStatus(t, w, 200)
+	var adv map[string]any
+	testutil.ParseJSON(t, w, &adv)
+	acts := adv["acts"].([]any)
+	if len(acts) != 1 {
+		t.Fatalf("expected 1 root act, got %d", len(acts))
+	}
+	rootChildren := acts[0].(map[string]any)["children"].([]any)
+	if len(rootChildren) != 1 {
+		t.Fatalf("expected 1 child of root, got %d", len(rootChildren))
+	}
+	if rootChildren[0].(map[string]any)["title"] != "Child2" {
+		t.Fatalf("expected Child2 under root, got %v", rootChildren[0].(map[string]any)["title"])
+	}
+	grandChildren := rootChildren[0].(map[string]any)["children"].([]any)
+	if len(grandChildren) != 1 {
+		t.Fatalf("expected 1 grandchild, got %d", len(grandChildren))
+	}
+	if grandChildren[0].(map[string]any)["title"] != "Child1" {
+		t.Fatalf("expected Child1 under Child2, got %v", grandChildren[0].(map[string]any)["title"])
+	}
+}
+
+func TestHtmxEditActForm(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCharacter(t, 1, 1, "EditActChar", "Human", "Fighter")
+	seedAdventure(t, 1, 1, "Edit Act Adventure")
+
+	_, err := db.DB.Exec(
+		"INSERT INTO oneshot_acts(id, adventure_id, number, title, description, sort_order) VALUES(?,?,?,?,?,?)",
+		1, 1, 1, "Editable Act", "An act to edit", 1,
+	)
+	if err != nil {
+		t.Fatalf("seed act: %v", err)
+	}
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.GET("/htmx/oneshot-acts/:id/edit", HtmxEditActForm)
+		auth.GET("/htmx/oneshot-adventures/:id", HtmxGetOneShotDetail)
+		auth.GET("/htmx/oneshot-adventures/:id/new-act-form", HtmxNewActForm)
+	})
+
+	w := testutil.Get(t, r, "/api/htmx/oneshot-acts/1/edit")
+	testutil.AssertStatus(t, w, 200)
+	body := w.Body.String()
+	if !contains(body, "Editable Act") {
+		t.Fatal("expected edit form to contain 'Editable Act'")
+	}
+	if !contains(body, "Update Act") {
+		t.Fatal("expected edit form to have 'Update Act' button")
+	}
+}
+
+func TestHtmxEditSceneForm(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCharacter(t, 1, 1, "EditSceneChar", "Human", "Fighter")
+	seedAdventure(t, 1, 1, "Edit Scene Adventure")
+
+	_, err := db.DB.Exec(
+		"INSERT INTO oneshot_acts(id, adventure_id, number, title, sort_order) VALUES(?,?,?,?,?)",
+		1, 1, 1, "Act With Scene", 1,
+	)
+	if err != nil {
+		t.Fatalf("seed act: %v", err)
+	}
+	_, err = db.DB.Exec(
+		"INSERT INTO oneshot_scenes(id, act_id, number, title, scene_type, sort_order) VALUES(?,?,?,?,?,?)",
+		1, 1, 1, "Editable Scene", "roleplay", 1,
+	)
+	if err != nil {
+		t.Fatalf("seed scene: %v", err)
+	}
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.GET("/htmx/oneshot-scenes/:id/edit", HtmxEditSceneForm)
+	})
+
+	w := testutil.Get(t, r, "/api/htmx/oneshot-scenes/1/edit")
+	testutil.AssertStatus(t, w, 200)
+	body := w.Body.String()
+	if !contains(body, "Editable Scene") {
+		t.Fatal("expected edit form to contain 'Editable Scene'")
+	}
+	if !contains(body, "Update Scene") {
+		t.Fatal("expected edit form to have 'Update Scene' button")
+	}
+}
+
+func TestDialogCRUD(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCharacter(t, 1, 1, "DialogChar", "Human", "Fighter")
+	seedAdventure(t, 1, 1, "Dialog Adventure")
+
+	_, err := db.DB.Exec(
+		"INSERT INTO oneshot_acts(id, adventure_id, number, title, sort_order) VALUES(?,?,?,?,?)",
+		1, 1, 1, "Dialog Act", 1,
+	)
+	if err != nil {
+		t.Fatalf("seed act: %v", err)
+	}
+	_, err = db.DB.Exec(
+		"INSERT INTO oneshot_scenes(id, act_id, number, title, scene_type, sort_order) VALUES(?,?,?,?,?,?)",
+		1, 1, 1, "Dialog Scene", "roleplay", 1,
+	)
+	if err != nil {
+		t.Fatalf("seed scene: %v", err)
+	}
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.GET("/htmx/oneshot-scenes/:id/dialogs", HtmxDialogList)
+		auth.POST("/htmx/oneshot-scenes/:id/dialogs", HtmxCreateDialog)
+		auth.PUT("/htmx/oneshot-scene-dialogs/:id", HtmxUpdateDialog)
+		auth.DELETE("/htmx/oneshot-scene-dialogs/:id", HtmxDeleteDialog)
+		auth.PUT("/oneshot-scenes/:id/dialogs/reorder", ReorderDialogs)
+	})
+
+	// Create dialog via form POST
+	formBody := "speaker=Guard&dialog_text=Halt!+Who+goes+there?"
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/api/htmx/oneshot-scenes/1/dialogs", bytes.NewReader([]byte(formBody)))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r.ServeHTTP(w, req)
+	testutil.AssertStatus(t, w, 200)
+	body := w.Body.String()
+	if !contains(body, "Guard") || !contains(body, "Halt!") {
+		t.Fatal("expected dialog list to contain created dialog")
+	}
+
+	// Get dialog ID from DB
+	var dialogID int64
+	db.DB.QueryRow("SELECT id FROM oneshot_scene_dialogs WHERE scene_id=1").Scan(&dialogID)
+	if dialogID == 0 {
+		t.Fatal("expected dialog to exist in DB")
+	}
+
+	// Update dialog via form PUT
+	formBody = "speaker=Captain&dialog_text=Password%3F"
+	w = httptest.NewRecorder()
+	req = httptest.NewRequest("PUT", fmt.Sprintf("/api/htmx/oneshot-scene-dialogs/%d", dialogID), bytes.NewReader([]byte(formBody)))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	r.ServeHTTP(w, req)
+	testutil.AssertStatus(t, w, 200)
+	body = w.Body.String()
+	if !contains(body, "Captain") || !contains(body, "Password?") {
+		t.Fatal("expected updated dialog content")
+	}
+
+	// Delete dialog
+	w = testutil.Delete(t, r, fmt.Sprintf("/api/htmx/oneshot-scene-dialogs/%d", dialogID))
+	testutil.AssertStatus(t, w, 200)
+
+	// Verify deleted
+	var count int
+	db.DB.QueryRow("SELECT COUNT(*) FROM oneshot_scene_dialogs WHERE id=?", dialogID).Scan(&count)
+	if count != 0 {
+		t.Fatal("expected dialog to be deleted")
+	}
+}
+
+func TestDialogReorder(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCharacter(t, 1, 1, "DialogReorderChar", "Human", "Fighter")
+	seedAdventure(t, 1, 1, "Dialog Reorder Adventure")
+
+	_, err := db.DB.Exec(
+		"INSERT INTO oneshot_acts(id, adventure_id, number, title, sort_order) VALUES(?,?,?,?,?)",
+		1, 1, 1, "Reorder Act", 1,
+	)
+	if err != nil {
+		t.Fatalf("seed act: %v", err)
+	}
+	_, err = db.DB.Exec(
+		"INSERT INTO oneshot_scenes(id, act_id, number, title, scene_type, sort_order) VALUES(?,?,?,?,?,?)",
+		1, 1, 1, "Reorder Scene", "roleplay", 1,
+	)
+	if err != nil {
+		t.Fatalf("seed scene: %v", err)
+	}
+
+	// Seed 3 dialogs
+	for i := 1; i <= 3; i++ {
+		_, err := db.DB.Exec(
+			"INSERT INTO oneshot_scene_dialogs(id, scene_id, sort_order, speaker, dialog_text) VALUES(?,?,?,?,?)",
+			i, 1, i, fmt.Sprintf("Speaker %d", i), fmt.Sprintf("Text %d", i),
+		)
+		if err != nil {
+			t.Fatalf("seed dialog %d: %v", i, err)
+		}
+	}
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.PUT("/oneshot-scenes/:id/dialogs/reorder", ReorderDialogs)
+	})
+
+	// Reorder: 3, 2, 1
+	w := testutil.PutJSON(t, r, "/api/oneshot-scenes/1/dialogs/reorder", map[string]any{
+		"order": []int64{3, 2, 1},
+	})
+	testutil.AssertStatus(t, w, 200)
+
+	// Verify sort_order
+	var so1, so2, so3 int
+	db.DB.QueryRow("SELECT sort_order FROM oneshot_scene_dialogs WHERE id=1").Scan(&so1)
+	db.DB.QueryRow("SELECT sort_order FROM oneshot_scene_dialogs WHERE id=2").Scan(&so2)
+	db.DB.QueryRow("SELECT sort_order FROM oneshot_scene_dialogs WHERE id=3").Scan(&so3)
+	if so1 != 3 || so2 != 2 || so3 != 1 {
+		t.Fatalf("expected sort_order 3,2,1 got %d,%d,%d", so1, so2, so3)
+	}
 }

@@ -777,4 +777,222 @@ test.describe('One-Shot Content Features', () => {
       expect(updatedAct.scenes[0].id).toBe(reversed[0]);
     });
   });
+
+  // ─── Act & Scene Editing ───
+
+  test.describe('Act & Scene Editing', () => {
+    test('Edit act title via HTMX', async ({ page }) => {
+      const title = uniqueName();
+      const adv = await createGeneratedOneShot(page, title);
+      const detail = await page.evaluate(async (id) => {
+        return (window as any).api('GET', `/api/oneshot-adventures/${id}`);
+      }, adv.id);
+      expect(detail.acts.length).toBeGreaterThan(0);
+      const actId = detail.acts[0].id;
+      const newTitle = 'Edited ' + uniqueName();
+
+      await navigateToOneShots(page);
+      await loadHtmx(page, `/htmx/oneshot-adventures/${adv.id}`);
+      await page.waitForTimeout(300);
+
+      // Click edit button on first act
+      const editBtn = page.locator(`.sortable-act[data-id="${actId}"] .btn-outline-secondary`).first();
+      await editBtn.click();
+      await page.waitForTimeout(300);
+
+      // Fill modal and submit
+      const titleInput = page.locator('#genericModalBody input[name="title"]');
+      await titleInput.fill(newTitle);
+      const submitBtn = page.locator('#genericModalBody button[class*="btn-primary"]');
+      await submitBtn.click();
+      await page.waitForTimeout(500);
+
+      // Verify updated title in detail
+      await expect(page.locator('#oneshotSection')).toContainText(newTitle, { timeout: 5000 });
+    });
+
+    test('Edit scene details via HTMX', async ({ page }) => {
+      const title = uniqueName();
+      const adv = await createGeneratedOneShot(page, title);
+      const detail = await page.evaluate(async (id) => {
+        return (window as any).api('GET', `/api/oneshot-adventures/${id}`);
+      }, adv.id);
+      expect(detail.acts.length).toBeGreaterThan(0);
+      expect(detail.acts[0].scenes.length).toBeGreaterThan(0);
+      const sceneId = detail.acts[0].scenes[0].id;
+      const newTitle = 'Edited Scene ' + uniqueName();
+
+      await navigateToOneShots(page);
+      await loadHtmx(page, `/htmx/oneshot-adventures/${adv.id}`);
+      await page.waitForTimeout(300);
+
+      // Click edit button on first scene
+      const editBtn = page.locator(`.sortable-scene[data-id="${sceneId}"] .btn-outline-secondary`).first();
+      await editBtn.click();
+      await page.waitForTimeout(300);
+
+      // Fill modal
+      const titleInput = page.locator('#genericModalBody input[name="title"]');
+      await titleInput.fill(newTitle);
+      const submitBtn = page.locator('#genericModalBody button[class*="btn-primary"]');
+      await submitBtn.click();
+      await page.waitForTimeout(500);
+
+      // Verify updated title
+      await expect(page.locator('#oneshotSection')).toContainText(newTitle, { timeout: 5000 });
+    });
+
+    test('Edit act parent via API', async ({ page }) => {
+      const title = uniqueName();
+      const adv = await createOneShot(page, title);
+
+      // Create 2 acts
+      const act1 = await page.evaluate(async ({ id }) => {
+        return (window as any).api('POST', `/api/oneshot-adventures/${id}/acts`, {
+          title: 'Root Act', number: 1, sort_order: 1,
+        });
+      }, { id: adv.id });
+
+      const act2 = await page.evaluate(async ({ id }) => {
+        return (window as any).api('POST', `/api/oneshot-adventures/${id}/acts`, {
+          title: 'Child Act', number: 1, sort_order: 1,
+        });
+      }, { id: adv.id });
+
+      // Move act2 under act1
+      await page.evaluate(async ({ id, parentId }) => {
+        return (window as any).api('PUT', `/api/oneshot-acts/${id}`, {
+          title: 'Child Act', number: 1, sort_order: 1, parent_act_id: parentId,
+        });
+      }, { id: act2.id, parentId: act1.id });
+
+      // Verify tree
+      const detail = await page.evaluate(async (id) => {
+        return (window as any).api('GET', `/api/oneshot-adventures/${id}`);
+      }, adv.id);
+      expect(detail.acts.length).toBe(1);
+      expect(detail.acts[0].children.length).toBe(1);
+      expect(detail.acts[0].children[0].title).toBe('Child Act');
+    });
+  });
+
+  // ─── Scene Dialogs ───
+
+  test.describe('Scene Dialogs', () => {
+    async function createDialog(page: any, sceneId: number, speaker: string, text: string) {
+      return page.evaluate(async ({ sceneId, speaker, text }) => {
+        const formData = new URLSearchParams();
+        formData.append('speaker', speaker);
+        formData.append('dialog_text', text);
+        const resp = await fetch(`/htmx/oneshot-scenes/${sceneId}/dialogs`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: formData.toString(),
+        });
+        return resp.ok;
+      }, { sceneId, speaker, text });
+    }
+
+    test('Create and view scene dialogs', async ({ page }) => {
+      const title = uniqueName();
+      const adv = await createGeneratedOneShot(page, title);
+      const detail = await page.evaluate(async (id) => {
+        return (window as any).api('GET', `/api/oneshot-adventures/${id}`);
+      }, adv.id);
+      expect(detail.acts.length).toBeGreaterThan(0);
+      const sceneId = detail.acts[0].scenes[0].id;
+
+      await navigateToOneShots(page);
+      await loadHtmx(page, `/htmx/oneshot-adventures/${adv.id}`);
+      await page.waitForTimeout(300);
+
+      // Open dialog modal for first scene
+      const dialogBtn = page.locator(`.sortable-scene[data-id="${sceneId}"] .btn-outline-warning`).first();
+      await dialogBtn.click();
+      await page.waitForTimeout(300);
+
+      // Create a dialog entry
+      const speaker = 'Guard ' + uniqueName();
+      const dtext = 'Halt! Who goes there?';
+      const created = await createDialog(page, sceneId, speaker, dtext);
+      expect(created).toBe(true);
+
+      // Reload dialogs in modal
+      await loadHtmx(page, `/htmx/oneshot-scenes/${sceneId}/dialogs`);
+      await page.waitForTimeout(300);
+      await expect(page.locator('#genericModalBody')).toContainText(speaker, { timeout: 5000 });
+      await expect(page.locator('#genericModalBody')).toContainText(dtext, { timeout: 5000 });
+    });
+
+    test('Edit scene dialog via HTMX', async ({ page }) => {
+      const title = uniqueName();
+      const adv = await createGeneratedOneShot(page, title);
+      const detail = await page.evaluate(async (id) => {
+        return (window as any).api('GET', `/api/oneshot-adventures/${id}`);
+      }, adv.id);
+      const sceneId = detail.acts[0].scenes[0].id;
+      const newText = 'Password? ' + uniqueName();
+
+      // Create dialog via API
+      const created = await createDialog(page, sceneId, 'Captain', 'Old text');
+      expect(created).toBe(true);
+
+      // Get dialog ID from DB
+      const dialogId = await page.evaluate(async (sceneId) => {
+        const resp = await fetch(`/htmx/oneshot-scenes/${sceneId}/dialogs`);
+        const html = await resp.text();
+        const match = html.match(/data-id="(\d+)"/);
+        return match ? parseInt(match[1]) : null;
+      }, sceneId);
+
+      // Open dialog edit form
+      await loadHtmx(page, `/htmx/oneshot-scene-dialogs/${dialogId}/edit`);
+      await page.waitForTimeout(200);
+
+      // Change text and submit
+      const textarea = page.locator('#genericModalBody textarea[name="dialog_text"]');
+      await textarea.fill(newText);
+      const submitBtn = page.locator('#genericModalBody button[class*="btn-primary"]');
+      await submitBtn.click();
+      await page.waitForTimeout(300);
+
+      // Verify updated text
+      await expect(page.locator('#genericModalBody')).toContainText(newText, { timeout: 5000 });
+    });
+
+    test('Delete scene dialog', async ({ page }) => {
+      const title = uniqueName();
+      const adv = await createGeneratedOneShot(page, title);
+      const detail = await page.evaluate(async (id) => {
+        return (window as any).api('GET', `/api/oneshot-adventures/${id}`);
+      }, adv.id);
+      const sceneId = detail.acts[0].scenes[0].id;
+      const speaker = 'DeleteMe ' + uniqueName();
+
+      // Create dialog
+      await createDialog(page, sceneId, speaker, 'Delete this');
+      const dialogId = await page.evaluate(async (sceneId) => {
+        const resp = await fetch(`/htmx/oneshot-scenes/${sceneId}/dialogs`);
+        const html = await resp.text();
+        const match = html.match(/data-id="(\d+)"/);
+        return match ? parseInt(match[1]) : null;
+      }, sceneId);
+      expect(dialogId).toBeGreaterThan(0);
+
+      // Load dialogs, then delete
+      await loadHtmx(page, `/htmx/oneshot-scenes/${sceneId}/dialogs`);
+      await page.waitForTimeout(200);
+
+      await expect(page.locator('#genericModalBody')).toContainText(speaker, { timeout: 5000 });
+
+      // Click delete button
+      const delBtn = page.locator(`.dialog-card[data-id="${dialogId}"] .btn-outline-danger`).first();
+      await delBtn.click();
+      await page.waitForTimeout(300);
+
+      // Verify deleted - speaker should no longer be visible
+      // The dialogs container gets replaced, so we check the new content
+      await expect(page.locator('#genericModalBody')).not.toContainText(speaker, { timeout: 5000 });
+    });
+  });
 });
