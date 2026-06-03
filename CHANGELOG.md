@@ -1,3 +1,15 @@
+# [2.6.0](https://github.com/martynvdijke/dnd/compare/v2.5.2...v2.6.0) (2026-06-03)
+
+
+### Bug Fixes
+
+* resolve HTMX handler param ID bugs and e2e test CSRF/confirm issues ([f4bff90](https://github.com/martynvdijke/dnd/commit/f4bff90e5ddf85715350362b81094b6f86f8f08b))
+
+
+### Features
+
+* add scene dialogs, fix act editing bugs ([8831c8d](https://github.com/martynvdijke/dnd/commit/8831c8d38bb04745abed305d806b53218d7ec1d9))
+
 ## [2.5.2](https://github.com/martynvdijke/dnd/compare/v2.5.1...v2.5.2) (2026-06-03)
 
 
