@@ -1206,7 +1206,10 @@ func HtmxUpdateAct(c *gin.Context) {
 		return
 	}
 
-	HtmxGetOneShotDetail(c)
+	// Look up adventure ID from act
+	var adventureID int64
+	db.DB.QueryRow("SELECT adventure_id FROM oneshot_acts WHERE id=?", id).Scan(&adventureID)
+	ReRenderOneShotDetail(c, adventureID)
 }
 func HtmxDeleteAct(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
@@ -1256,7 +1259,10 @@ func HtmxCreateScene(c *gin.Context) {
 		return
 	}
 
-	HtmxGetOneShotDetail(c)
+	// Look up adventure ID from act
+	var adventureID int64
+	db.DB.QueryRow("SELECT adventure_id FROM oneshot_acts WHERE id=?", actID).Scan(&adventureID)
+	ReRenderOneShotDetail(c, adventureID)
 }
 func HtmxUpdateScene(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
@@ -1288,7 +1294,10 @@ func HtmxUpdateScene(c *gin.Context) {
 		return
 	}
 
-	HtmxGetOneShotDetail(c)
+	// Look up adventure ID from scene's act
+	var adventureID int64
+	db.DB.QueryRow("SELECT oa.adventure_id FROM oneshot_acts oa JOIN oneshot_scenes s ON s.act_id=oa.id WHERE s.id=?", id).Scan(&adventureID)
+	ReRenderOneShotDetail(c, adventureID)
 }
 func HtmxDeleteScene(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
@@ -1326,8 +1335,7 @@ func HtmxEditDialogForm(c *gin.Context) {
 	renderTemplate(c, "oneshot_dialog_form.html", data)
 }
 
-func HtmxDialogList(c *gin.Context) {
-	sceneID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+func renderDialogList(c *gin.Context, sceneID int64) {
 	rows, err := db.DB.Query(
 		"SELECT id, scene_id, sort_order, speaker, dialog_text, dm_notes, player_handout, condition, created_at FROM oneshot_scene_dialogs WHERE scene_id=? ORDER BY sort_order ASC, id ASC",
 		sceneID,
@@ -1352,6 +1360,11 @@ func HtmxDialogList(c *gin.Context) {
 	renderTemplate(c, "oneshot_scene_dialogs.html", data)
 }
 
+func HtmxDialogList(c *gin.Context) {
+	sceneID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	renderDialogList(c, sceneID)
+}
+
 func HtmxCreateDialog(c *gin.Context) {
 	sceneID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	speaker := c.PostForm("speaker")
@@ -1372,7 +1385,7 @@ func HtmxCreateDialog(c *gin.Context) {
 		return
 	}
 
-	HtmxDialogList(c)
+	renderDialogList(c, sceneID)
 }
 
 func HtmxUpdateDialog(c *gin.Context) {
@@ -1395,7 +1408,7 @@ func HtmxUpdateDialog(c *gin.Context) {
 		return
 	}
 
-	HtmxDialogList(c)
+	renderDialogList(c, sceneID)
 }
 
 func HtmxDeleteDialog(c *gin.Context) {
@@ -1404,10 +1417,8 @@ func HtmxDeleteDialog(c *gin.Context) {
 	db.DB.QueryRow("SELECT scene_id FROM oneshot_scene_dialogs WHERE id=?", id).Scan(&sceneID)
 	db.DB.Exec("DELETE FROM oneshot_scene_dialogs WHERE id=?", id)
 
-	// Re-render dialog list
-	c.Redirect(http.StatusFound, fmt.Sprintf("/htmx/oneshot-scenes/%d/dialogs", sceneID))
-	// For HTMX, fetch and render directly
-	HtmxDialogList(c)
+	// Re-render dialog list directly (HTMX swaps this HTML in)
+	renderDialogList(c, sceneID)
 }
 
 // API: Reorder dialogs

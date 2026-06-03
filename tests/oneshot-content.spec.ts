@@ -4,13 +4,13 @@ import { waitLoadingDone, clickSecondaryNavItem } from './helpers.js';
 const uniqueName = () => `OSC-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 /** Load HTMX content into oneshotSection */
-async function loadHtmx(page, url) {
-  await page.evaluate(async (u) => {
+async function loadHtmx(page, url, target?: string) {
+  await page.evaluate(async ({ u, t }) => {
     const resp = await fetch(u, { credentials: 'same-origin' });
-    const el = document.getElementById('oneshotSection')!;
+    const el = document.getElementById(t || 'oneshotSection')!;
     el.innerHTML = await resp.text();
     (window as any).htmx?.process(el);
-  }, url);
+  }, { u: url, t: target || null });
 }
 
 /** Click the One-Shots nav link, handling mobile hamburger menu */
@@ -879,14 +879,24 @@ test.describe('One-Shot Content Features', () => {
   // ─── Scene Dialogs ───
 
   test.describe('Scene Dialogs', () => {
-    async function createDialog(page: any, sceneId: number, speaker: string, text: string) {
+    async function openDialogModal(page, sceneId) {
+      const dialogBtn = page.locator(`.sortable-scene[data-id="${sceneId}"] .btn-outline-warning`).first();
+      await dialogBtn.click();
+      await page.waitForTimeout(400);
+    }
+
+    async function createDialog(page, sceneId, speaker, text) {
       return page.evaluate(async ({ sceneId, speaker, text }) => {
+        const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
         const formData = new URLSearchParams();
         formData.append('speaker', speaker);
         formData.append('dialog_text', text);
         const resp = await fetch(`/htmx/oneshot-scenes/${sceneId}/dialogs`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRF-Token': csrf,
+          },
           body: formData.toString(),
         });
         return resp.ok;
@@ -907,9 +917,7 @@ test.describe('One-Shot Content Features', () => {
       await page.waitForTimeout(300);
 
       // Open dialog modal for first scene
-      const dialogBtn = page.locator(`.sortable-scene[data-id="${sceneId}"] .btn-outline-warning`).first();
-      await dialogBtn.click();
-      await page.waitForTimeout(300);
+      await openDialogModal(page, sceneId);
 
       // Create a dialog entry
       const speaker = 'Guard ' + uniqueName();
@@ -918,7 +926,7 @@ test.describe('One-Shot Content Features', () => {
       expect(created).toBe(true);
 
       // Reload dialogs in modal
-      await loadHtmx(page, `/htmx/oneshot-scenes/${sceneId}/dialogs`);
+      await loadHtmx(page, `/htmx/oneshot-scenes/${sceneId}/dialogs`, 'genericModalBody');
       await page.waitForTimeout(300);
       await expect(page.locator('#genericModalBody')).toContainText(speaker, { timeout: 5000 });
       await expect(page.locator('#genericModalBody')).toContainText(dtext, { timeout: 5000 });
@@ -933,21 +941,30 @@ test.describe('One-Shot Content Features', () => {
       const sceneId = detail.acts[0].scenes[0].id;
       const newText = 'Password? ' + uniqueName();
 
-      // Create dialog via API
+      await navigateToOneShots(page);
+      await loadHtmx(page, `/htmx/oneshot-adventures/${adv.id}`);
+      await page.waitForTimeout(300);
+
+      // Open dialog modal and create a dialog
+      await openDialogModal(page, sceneId);
       const created = await createDialog(page, sceneId, 'Captain', 'Old text');
       expect(created).toBe(true);
 
-      // Get dialog ID from DB
-      const dialogId = await page.evaluate(async (sceneId) => {
-        const resp = await fetch(`/htmx/oneshot-scenes/${sceneId}/dialogs`);
-        const html = await resp.text();
-        const match = html.match(/data-id="(\d+)"/);
-        return match ? parseInt(match[1]) : null;
-      }, sceneId);
-
-      // Open dialog edit form
-      await loadHtmx(page, `/htmx/oneshot-scene-dialogs/${dialogId}/edit`);
+      // Reload dialogs in modal to get dialog in DOM
+      await loadHtmx(page, `/htmx/oneshot-scenes/${sceneId}/dialogs`, 'genericModalBody');
       await page.waitForTimeout(200);
+
+      // Get dialog ID from the rendered dialog list
+      const dialogId = await page.evaluate(() => {
+        const card = document.querySelector('.dialog-card');
+        return card ? parseInt(card.getAttribute('data-id') || '0') : 0;
+      });
+      expect(dialogId).toBeGreaterThan(0);
+
+      // Click edit button on dialog (HTMX)
+      const editBtn = page.locator(`.dialog-card[data-id="${dialogId}"] .btn-outline-secondary`).first();
+      await editBtn.click();
+      await page.waitForTimeout(300);
 
       // Change text and submit
       const textarea = page.locator('#genericModalBody textarea[name="dialog_text"]');
@@ -969,29 +986,34 @@ test.describe('One-Shot Content Features', () => {
       const sceneId = detail.acts[0].scenes[0].id;
       const speaker = 'DeleteMe ' + uniqueName();
 
-      // Create dialog
-      await createDialog(page, sceneId, speaker, 'Delete this');
-      const dialogId = await page.evaluate(async (sceneId) => {
-        const resp = await fetch(`/htmx/oneshot-scenes/${sceneId}/dialogs`);
-        const html = await resp.text();
-        const match = html.match(/data-id="(\d+)"/);
-        return match ? parseInt(match[1]) : null;
-      }, sceneId);
-      expect(dialogId).toBeGreaterThan(0);
+      await navigateToOneShots(page);
+      await loadHtmx(page, `/htmx/oneshot-adventures/${adv.id}`);
+      await page.waitForTimeout(300);
 
-      // Load dialogs, then delete
-      await loadHtmx(page, `/htmx/oneshot-scenes/${sceneId}/dialogs`);
+      // Open dialog modal and create dialog
+      await openDialogModal(page, sceneId);
+      await createDialog(page, sceneId, speaker, 'Delete this');
+
+      // Reload dialogs in modal
+      await loadHtmx(page, `/htmx/oneshot-scenes/${sceneId}/dialogs`, 'genericModalBody');
       await page.waitForTimeout(200);
+
+      // Get dialog ID from DOM
+      const dialogId = await page.evaluate(() => {
+        const card = document.querySelector('.dialog-card');
+        return card ? parseInt(card.getAttribute('data-id') || '0') : 0;
+      });
+      expect(dialogId).toBeGreaterThan(0);
 
       await expect(page.locator('#genericModalBody')).toContainText(speaker, { timeout: 5000 });
 
-      // Click delete button
+      // Click delete button (handle hx-confirm dialog)
+      page.once('dialog', dialog => dialog.accept());
       const delBtn = page.locator(`.dialog-card[data-id="${dialogId}"] .btn-outline-danger`).first();
       await delBtn.click();
       await page.waitForTimeout(300);
 
       // Verify deleted - speaker should no longer be visible
-      // The dialogs container gets replaced, so we check the new content
       await expect(page.locator('#genericModalBody')).not.toContainText(speaker, { timeout: 5000 });
     });
   });
