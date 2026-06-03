@@ -6,7 +6,7 @@ COPY tsconfig.json vite.config.ts ./
 COPY ts/ ts/
 RUN npm run build:ts
 
-FROM golang:1.26.3-alpine AS builder
+FROM golang:1.26.4-alpine AS builder
 RUN apk add --no-cache gcc musl-dev sqlite-dev
 WORKDIR /app
 COPY go.mod go.sum ./
