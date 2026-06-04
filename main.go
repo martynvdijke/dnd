@@ -683,6 +683,9 @@ func main() {
 		// Legacy Migration
 		admin.POST("/compendium/migrate-legacy", handlers.HandleMigrateLegacy)
 
+		// Frontend batch import (flat route matching admin.ts POST)
+		admin.POST("/compendium-import", handlers.ImportCompendiumBatchJSON)
+
 		// Import Logs
 		admin.GET("/compendium-import-logs", handlers.ListCompendiumImportLogs)
 		admin.POST("/compendium-import-logs/:id/rollback", handlers.RollbackCompendiumImport)

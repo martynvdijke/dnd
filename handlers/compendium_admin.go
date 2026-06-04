@@ -1481,6 +1481,195 @@ func ImportCompendiumEntriesWithMapping(c *gin.Context) {
 	})
 }
 
+// ImportCompendiumBatchJSON handles the frontend admin.ts POST /api/admin/compendium-import.
+// The frontend sends schema_id in the body and uses different field names than the
+// existing /compendium-schemas/:id/import/with-mapping route.
+func ImportCompendiumBatchJSON(c *gin.Context) {
+	var req struct {
+		SchemaID       int64 `json:"schema_id"`
+		Entries        []map[string]interface{} `json:"entries"`
+		DedupAction    string `json:"dedup_action"`
+		FieldMapping   []struct {
+			SourceField string `json:"source_field"`
+			SchemaField string `json:"schema_field"`
+		} `json:"field_mapping"`
+		Filename string `json:"filename"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request: " + err.Error()})
+		return
+	}
+	if req.SchemaID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "schema_id is required"})
+		return
+	}
+	if len(req.Entries) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no entries to import"})
+		return
+	}
+
+	userID, _ := c.Get("user_id")
+
+	// Get schema fields for validation
+	var fieldsJSON string
+	err := db.DB.QueryRow("SELECT fields FROM compendium_schemas WHERE id=?", req.SchemaID).Scan(&fieldsJSON)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "schema not found"})
+		return
+	}
+	var schemaFields []models.SchemaField
+	json.Unmarshal([]byte(fieldsJSON), &schemaFields)
+
+	requiredFieldNames := make(map[string]bool)
+	for _, f := range schemaFields {
+		if f.Required {
+			requiredFieldNames[f.Name] = true
+		}
+	}
+
+	// Convert frontend mapping format (source_field/schema_field) to internal (source/target)
+	type fieldMap struct {
+		Source string `json:"source"`
+		Target string `json:"target"`
+	}
+	var fieldMapping []fieldMap
+	for _, m := range req.FieldMapping {
+		if m.SourceField == "" || m.SchemaField == "" {
+			continue
+		}
+		fieldMapping = append(fieldMapping, fieldMap{Source: m.SourceField, Target: m.SchemaField})
+	}
+
+	duplicateAction := req.DedupAction
+	if duplicateAction == "" {
+		duplicateAction = "skip"
+	}
+
+	// Apply field mapping to each entry
+	mappedEntries := make([]map[string]interface{}, 0, len(req.Entries))
+	fieldErrors := make([]models.CompendiumImportError, 0)
+
+	for i, entry := range req.Entries {
+		mapped := make(map[string]interface{})
+		if len(fieldMapping) > 0 {
+			for _, m := range fieldMapping {
+				val := getNestedValue(entry, m.Source)
+				if val != nil {
+					mapped[m.Target] = val
+				}
+			}
+		} else {
+			for k, v := range entry {
+				if k == "publisher" || k == "book" || k == "properties" {
+					continue
+				}
+				if sub, ok := v.(map[string]interface{}); ok {
+					for sk, sv := range sub {
+						mapped[sk] = sv
+					}
+				} else {
+					mapped[k] = v
+				}
+			}
+		}
+
+		// Validate required fields
+		for rf := range requiredFieldNames {
+			if val, ok := mapped[rf]; !ok || val == nil || fmt.Sprintf("%v", val) == "" {
+				fieldErrors = append(fieldErrors, models.CompendiumImportError{
+					Index:   i,
+					Field:   rf,
+					Message: fmt.Sprintf("missing required field: %s", rf),
+				})
+			}
+		}
+
+		mappedEntries = append(mappedEntries, mapped)
+	}
+
+	// Check duplicates (by name field)
+	skipCount := 0
+	cleanEntries := make([]map[string]interface{}, 0)
+
+	existingNames := loadExistingNames(req.SchemaID)
+	existingSet := make(map[string]bool, len(existingNames))
+	for _, n := range existingNames {
+		existingSet[strings.ToLower(n)] = true
+	}
+
+	for _, entry := range mappedEntries {
+		var entryName string
+		if n, ok := entry["name"].(string); ok && n != "" {
+			entryName = n
+		}
+
+		if entryName != "" && existingSet[strings.ToLower(entryName)] {
+			if duplicateAction == "skip" {
+				skipCount++
+				continue
+			} else if duplicateAction == "overwrite" {
+				var existingID int64
+				db.DB.QueryRow(`SELECT id FROM compendium_entries WHERE schema_id=? AND json_extract(data, '$.name')=?`,
+					req.SchemaID, entryName).Scan(&existingID)
+				if existingID > 0 {
+					dataJSON, _ := json.Marshal(entry)
+					db.DB.Exec(`UPDATE compendium_entries SET data=?, updated_at=datetime('now') WHERE id=?`,
+						string(dataJSON), existingID)
+				}
+				continue
+			}
+			// create-new: falls through
+		}
+		cleanEntries = append(cleanEntries, entry)
+	}
+
+	// Insert new entries
+	inserted := 0
+	for _, entry := range cleanEntries {
+		dataJSON, _ := json.Marshal(entry)
+		_, err := db.DB.Exec(`INSERT INTO compendium_entries(schema_id, data) VALUES(?,?)`, req.SchemaID, string(dataJSON))
+		if err == nil {
+			inserted++
+		}
+	}
+
+	// Log the import
+	totalEntries := len(req.Entries)
+	filesJSON, _ := json.Marshal([]map[string]interface{}{
+		{"filename": req.Filename, "entries": totalEntries},
+	})
+	summary := map[string]interface{}{
+		"total":             totalEntries,
+		"mapped":            len(mappedEntries),
+		"inserted":          inserted,
+		"duplicates_skipped": skipCount,
+		"validation_errors": len(fieldErrors),
+	}
+	summaryJSON, _ := json.Marshal(summary)
+
+	// Build mapping JSON for the log using the converted mapping
+	mappingJSON, _ := json.Marshal(fieldMapping)
+
+	var logID int64
+	if inserted > 0 || skipCount > 0 {
+		result, err := db.DB.Exec(`INSERT INTO compendium_import_logs(user_id, status, files, mapping, summary) VALUES(?,?,?,?,?)`,
+			userID, "completed", string(filesJSON), string(mappingJSON), string(summaryJSON))
+		if err == nil {
+			logID, _ = result.LastInsertId()
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"import_log_id": logID,
+		"imported":      inserted,
+		"total":         totalEntries,
+		"mapped":        len(mappedEntries),
+		"skipped":       skipCount,
+		"errors":        fieldErrors,
+		"summary":       summary,
+	})
+}
+
 func loadExistingNames(schemaID int64) []string {
 	rows, err := db.DB.Query(`SELECT json_extract(data, '$.name') FROM compendium_entries WHERE schema_id=?`, schemaID)
 	if err != nil {
