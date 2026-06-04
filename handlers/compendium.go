@@ -15,7 +15,7 @@ import (
 )
 
 func ListCompendiumRaces(c *gin.Context) {
-	rows, err := db.DB.Query("SELECT id,name,description,speed,size,ability_bonuses,traits,languages,source_page,system,source FROM compendium_races ORDER BY name")
+	rows, err := db.DB.Query("SELECT id,name,description,speed,size,ability_bonuses,traits,languages,source_page,system,source,category,expansion,publisher FROM compendium_races ORDER BY name")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -24,14 +24,14 @@ func ListCompendiumRaces(c *gin.Context) {
 	var out = make([]models.CompendiumRace, 0)
 	for rows.Next() {
 		var r models.CompendiumRace
-		rows.Scan(&r.ID, &r.Name, &r.Description, &r.Speed, &r.Size, &r.AbilityBonuses, &r.Traits, &r.Languages, &r.SourcePage, &r.System, &r.Source)
+		rows.Scan(&r.ID, &r.Name, &r.Description, &r.Speed, &r.Size, &r.AbilityBonuses, &r.Traits, &r.Languages, &r.SourcePage, &r.System, &r.Source, &r.Category, &r.Expansion, &r.Publisher)
 		out = append(out, r)
 	}
 	c.JSON(http.StatusOK, out)
 }
 
 func ListCompendiumClasses(c *gin.Context) {
-	rows, err := db.DB.Query("SELECT id,name,description,hit_die,primary_ability,saving_throws,proficiencies,spellcasting_ability,source_page,system,source FROM compendium_classes ORDER BY name")
+	rows, err := db.DB.Query("SELECT id,name,description,hit_die,primary_ability,saving_throws,proficiencies,spellcasting_ability,source_page,system,source,category,expansion,publisher FROM compendium_classes ORDER BY name")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -40,14 +40,14 @@ func ListCompendiumClasses(c *gin.Context) {
 	var out = make([]models.CompendiumClass, 0)
 	for rows.Next() {
 		var cl models.CompendiumClass
-		rows.Scan(&cl.ID, &cl.Name, &cl.Description, &cl.HitDie, &cl.PrimaryAbility, &cl.SavingThrows, &cl.Proficiencies, &cl.SpellcastingAbility, &cl.SourcePage, &cl.System, &cl.Source)
+		rows.Scan(&cl.ID, &cl.Name, &cl.Description, &cl.HitDie, &cl.PrimaryAbility, &cl.SavingThrows, &cl.Proficiencies, &cl.SpellcastingAbility, &cl.SourcePage, &cl.System, &cl.Source, &cl.Category, &cl.Expansion, &cl.Publisher)
 		out = append(out, cl)
 	}
 	c.JSON(http.StatusOK, out)
 }
 
 func ListCompendiumSpells(c *gin.Context) {
-	query := "SELECT id,name,level,school,casting_time,range,components,duration,description,higher_levels,classes,source_page,system,source FROM compendium_spells WHERE 1=1"
+	query := "SELECT id,name,level,school,casting_time,range,components,duration,description,higher_levels,classes,source_page,system,source,publisher FROM compendium_spells WHERE 1=1"
 	args := []interface{}{}
 
 	if cls := c.Query("class"); cls != "" {
@@ -77,7 +77,7 @@ func ListCompendiumSpells(c *gin.Context) {
 	var out = make([]models.CompendiumSpell, 0)
 	for rows.Next() {
 		var s models.CompendiumSpell
-		rows.Scan(&s.ID, &s.Name, &s.Level, &s.School, &s.CastingTime, &s.Range, &s.Components, &s.Duration, &s.Description, &s.HigherLevels, &s.Classes, &s.SourcePage, &s.System, &s.Source)
+		rows.Scan(&s.ID, &s.Name, &s.Level, &s.School, &s.CastingTime, &s.Range, &s.Components, &s.Duration, &s.Description, &s.HigherLevels, &s.Classes, &s.SourcePage, &s.System, &s.Source, &s.Publisher)
 		out = append(out, s)
 	}
 	c.JSON(http.StatusOK, out)
@@ -100,7 +100,7 @@ func ListCompendiumFeats(c *gin.Context) {
 }
 
 func ListCompendiumBackgrounds(c *gin.Context) {
-	rows, err := db.DB.Query("SELECT id,name,description,feature_name,feature_description,proficiencies,source_page,system,source FROM compendium_backgrounds ORDER BY name")
+	rows, err := db.DB.Query("SELECT id,name,description,feature_name,feature_description,proficiencies,source_page,system,source,category,data_list,data_bonds,data_flaws,data_ideals,data_equipment,data_starting_gold,data_personality_traits,publisher FROM compendium_backgrounds ORDER BY name")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -109,14 +109,14 @@ func ListCompendiumBackgrounds(c *gin.Context) {
 	var out = make([]models.CompendiumBackground, 0)
 	for rows.Next() {
 		var b models.CompendiumBackground
-		rows.Scan(&b.ID, &b.Name, &b.Description, &b.FeatureName, &b.FeatureDescription, &b.Proficiencies, &b.SourcePage, &b.System, &b.Source)
+		rows.Scan(&b.ID, &b.Name, &b.Description, &b.FeatureName, &b.FeatureDescription, &b.Proficiencies, &b.SourcePage, &b.System, &b.Source, &b.Category, &b.DataList, &b.DataBonds, &b.DataFlaws, &b.DataIdeals, &b.DataEquipment, &b.DataStartingGold, &b.DataPersonalityTraits, &b.Publisher)
 		out = append(out, b)
 	}
 	c.JSON(http.StatusOK, out)
 }
 
 func ListCompendiumEquipment(c *gin.Context) {
-	query := "SELECT id,name,category,cost,weight,description,source_page,system,source FROM compendium_equipment WHERE 1=1"
+	query := "SELECT id,name,category,cost,weight,description,source_page,system,source,item_type,item_rarity,publisher FROM compendium_equipment WHERE 1=1"
 	args := []interface{}{}
 
 	if cat := c.Query("category"); cat != "" {
@@ -138,7 +138,7 @@ func ListCompendiumEquipment(c *gin.Context) {
 	var out = make([]models.CompendiumEquipment, 0)
 	for rows.Next() {
 		var e models.CompendiumEquipment
-		rows.Scan(&e.ID, &e.Name, &e.Category, &e.Cost, &e.Weight, &e.Description, &e.SourcePage, &e.System, &e.Source)
+		rows.Scan(&e.ID, &e.Name, &e.Category, &e.Cost, &e.Weight, &e.Description, &e.SourcePage, &e.System, &e.Source, &e.ItemType, &e.ItemRarity, &e.Publisher)
 		out = append(out, e)
 	}
 	c.JSON(http.StatusOK, out)
@@ -159,8 +159,8 @@ func AdminCreateCompendiumEntry(c *gin.Context) {
 		if s.Source == "" {
 			s.Source = "srd"
 		}
-		result, err := db.DB.Exec(`INSERT INTO compendium_spells(name,level,school,casting_time,range,components,duration,description,higher_levels,classes,system,source) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
-			s.Name, s.Level, s.School, s.CastingTime, s.Range, s.Components, s.Duration, s.Description, s.HigherLevels, s.Classes, s.System, s.Source)
+		result, err := db.DB.Exec(`INSERT INTO compendium_spells(name,level,school,casting_time,range,components,duration,description,higher_levels,classes,system,source,publisher) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+			s.Name, s.Level, s.School, s.CastingTime, s.Range, s.Components, s.Duration, s.Description, s.HigherLevels, s.Classes, s.System, s.Source, s.Publisher)
 		if err != nil {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
@@ -179,8 +179,8 @@ func AdminCreateCompendiumEntry(c *gin.Context) {
 		if r.Source == "" {
 			r.Source = "srd"
 		}
-		result, err := db.DB.Exec(`INSERT INTO compendium_races(name,description,speed,size,ability_bonuses,traits,languages,system,source) VALUES(?,?,?,?,?,?,?,?,?)`,
-			r.Name, r.Description, r.Speed, r.Size, r.AbilityBonuses, r.Traits, r.Languages, r.System, r.Source)
+		result, err := db.DB.Exec(`INSERT INTO compendium_races(name,description,speed,size,ability_bonuses,traits,languages,system,source,category,expansion,publisher) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
+			r.Name, r.Description, r.Speed, r.Size, r.AbilityBonuses, r.Traits, r.Languages, r.System, r.Source, r.Category, r.Expansion, r.Publisher)
 		if err != nil {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
@@ -199,8 +199,8 @@ func AdminCreateCompendiumEntry(c *gin.Context) {
 		if cl.Source == "" {
 			cl.Source = "srd"
 		}
-		result, err := db.DB.Exec(`INSERT INTO compendium_classes(name,description,hit_die,primary_ability,saving_throws,proficiencies,spellcasting_ability,system,source) VALUES(?,?,?,?,?,?,?,?,?)`,
-			cl.Name, cl.Description, cl.HitDie, cl.PrimaryAbility, cl.SavingThrows, cl.Proficiencies, cl.SpellcastingAbility, cl.System, cl.Source)
+		result, err := db.DB.Exec(`INSERT INTO compendium_classes(name,description,hit_die,primary_ability,saving_throws,proficiencies,spellcasting_ability,system,source,category,expansion,publisher) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
+			cl.Name, cl.Description, cl.HitDie, cl.PrimaryAbility, cl.SavingThrows, cl.Proficiencies, cl.SpellcastingAbility, cl.System, cl.Source, cl.Category, cl.Expansion, cl.Publisher)
 		if err != nil {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
@@ -239,8 +239,8 @@ func AdminCreateCompendiumEntry(c *gin.Context) {
 		if b.Source == "" {
 			b.Source = "srd"
 		}
-		result, err := db.DB.Exec(`INSERT INTO compendium_backgrounds(name,description,feature_name,feature_description,proficiencies,system,source) VALUES(?,?,?,?,?,?,?)`,
-			b.Name, b.Description, b.FeatureName, b.FeatureDescription, b.Proficiencies, b.System, b.Source)
+		result, err := db.DB.Exec(`INSERT INTO compendium_backgrounds(name,description,feature_name,feature_description,proficiencies,system,source,category,data_list,data_bonds,data_flaws,data_ideals,data_equipment,data_starting_gold,data_personality_traits,publisher) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+			b.Name, b.Description, b.FeatureName, b.FeatureDescription, b.Proficiencies, b.System, b.Source, b.Category, b.DataList, b.DataBonds, b.DataFlaws, b.DataIdeals, b.DataEquipment, b.DataStartingGold, b.DataPersonalityTraits, b.Publisher)
 		if err != nil {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
@@ -259,8 +259,8 @@ func AdminCreateCompendiumEntry(c *gin.Context) {
 		if e.Source == "" {
 			e.Source = "srd"
 		}
-		result, err := db.DB.Exec(`INSERT INTO compendium_equipment(name,category,cost,weight,description,system,source) VALUES(?,?,?,?,?,?,?)`,
-			e.Name, e.Category, e.Cost, e.Weight, e.Description, e.System, e.Source)
+		result, err := db.DB.Exec(`INSERT INTO compendium_equipment(name,category,cost,weight,description,system,source,item_type,item_rarity,publisher) VALUES(?,?,?,?,?,?,?,?,?,?)`,
+			e.Name, e.Category, e.Cost, e.Weight, e.Description, e.System, e.Source, e.ItemType, e.ItemRarity, e.Publisher)
 		if err != nil {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
@@ -276,8 +276,8 @@ func AdminCreateCompendiumEntry(c *gin.Context) {
 		if m.Source == "" {
 			m.Source = "srd"
 		}
-		result, err := db.DB.Exec(`INSERT INTO compendium_monsters(name,type,size,ac,hp,str,dex,con,int_,wis,cha,cr,source,description) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-			m.Name, m.Type, m.Size, m.AC, m.HP, m.Str, m.Dex, m.Con, m.Int, m.Wis, m.Cha, m.CR, m.Source, m.Description)
+		result, err := db.DB.Exec(`INSERT INTO compendium_monsters(name,type,size,ac,hp,str,dex,con,int_,wis,cha,cr,source,description,alignment,expansion,publisher) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+			m.Name, m.Type, m.Size, m.AC, m.HP, m.Str, m.Dex, m.Con, m.Int, m.Wis, m.Cha, m.CR, m.Source, m.Description, m.Alignment, m.Expansion, m.Publisher)
 		if err != nil {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
@@ -300,24 +300,24 @@ func AdminUpdateCompendiumEntry(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		db.DB.Exec(`UPDATE compendium_spells SET name=?,level=?,school=?,casting_time=?,range=?,components=?,duration=?,description=?,higher_levels=?,classes=?,system=?,source=? WHERE id=?`,
-			s.Name, s.Level, s.School, s.CastingTime, s.Range, s.Components, s.Duration, s.Description, s.HigherLevels, s.Classes, s.System, s.Source, entryID)
+		db.DB.Exec(`UPDATE compendium_spells SET name=?,level=?,school=?,casting_time=?,range=?,components=?,duration=?,description=?,higher_levels=?,classes=?,system=?,source=?,publisher=? WHERE id=?`,
+			s.Name, s.Level, s.School, s.CastingTime, s.Range, s.Components, s.Duration, s.Description, s.HigherLevels, s.Classes, s.System, s.Source, s.Publisher, entryID)
 	case "races":
 		var r models.CompendiumRace
 		if err := c.ShouldBindJSON(&r); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		db.DB.Exec(`UPDATE compendium_races SET name=?,description=?,speed=?,size=?,ability_bonuses=?,traits=?,languages=?,system=?,source=? WHERE id=?`,
-			r.Name, r.Description, r.Speed, r.Size, r.AbilityBonuses, r.Traits, r.Languages, r.System, r.Source, entryID)
+		db.DB.Exec(`UPDATE compendium_races SET name=?,description=?,speed=?,size=?,ability_bonuses=?,traits=?,languages=?,system=?,source=?,category=?,expansion=?,publisher=? WHERE id=?`,
+			r.Name, r.Description, r.Speed, r.Size, r.AbilityBonuses, r.Traits, r.Languages, r.System, r.Source, r.Category, r.Expansion, r.Publisher, entryID)
 	case "classes":
 		var cl models.CompendiumClass
 		if err := c.ShouldBindJSON(&cl); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		db.DB.Exec(`UPDATE compendium_classes SET name=?,description=?,hit_die=?,primary_ability=?,saving_throws=?,proficiencies=?,spellcasting_ability=?,system=?,source=? WHERE id=?`,
-			cl.Name, cl.Description, cl.HitDie, cl.PrimaryAbility, cl.SavingThrows, cl.Proficiencies, cl.SpellcastingAbility, cl.System, cl.Source, entryID)
+		db.DB.Exec(`UPDATE compendium_classes SET name=?,description=?,hit_die=?,primary_ability=?,saving_throws=?,proficiencies=?,spellcasting_ability=?,system=?,source=?,category=?,expansion=?,publisher=? WHERE id=?`,
+			cl.Name, cl.Description, cl.HitDie, cl.PrimaryAbility, cl.SavingThrows, cl.Proficiencies, cl.SpellcastingAbility, cl.System, cl.Source, cl.Category, cl.Expansion, cl.Publisher, entryID)
 	case "feats":
 		var f models.CompendiumFeat
 		if err := c.ShouldBindJSON(&f); err != nil {
@@ -332,24 +332,24 @@ func AdminUpdateCompendiumEntry(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		db.DB.Exec(`UPDATE compendium_backgrounds SET name=?,description=?,feature_name=?,feature_description=?,proficiencies=?,system=?,source=? WHERE id=?`,
-			b.Name, b.Description, b.FeatureName, b.FeatureDescription, b.Proficiencies, b.System, b.Source, entryID)
+		db.DB.Exec(`UPDATE compendium_backgrounds SET name=?,description=?,feature_name=?,feature_description=?,proficiencies=?,system=?,source=?,category=?,data_list=?,data_bonds=?,data_flaws=?,data_ideals=?,data_equipment=?,data_starting_gold=?,data_personality_traits=?,publisher=? WHERE id=?`,
+			b.Name, b.Description, b.FeatureName, b.FeatureDescription, b.Proficiencies, b.System, b.Source, b.Category, b.DataList, b.DataBonds, b.DataFlaws, b.DataIdeals, b.DataEquipment, b.DataStartingGold, b.DataPersonalityTraits, b.Publisher, entryID)
 	case "equipment":
 		var e models.CompendiumEquipment
 		if err := c.ShouldBindJSON(&e); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		db.DB.Exec(`UPDATE compendium_equipment SET name=?,category=?,cost=?,weight=?,description=?,system=?,source=? WHERE id=?`,
-			e.Name, e.Category, e.Cost, e.Weight, e.Description, e.System, e.Source, entryID)
+		db.DB.Exec(`UPDATE compendium_equipment SET name=?,category=?,cost=?,weight=?,description=?,system=?,source=?,item_type=?,item_rarity=?,publisher=? WHERE id=?`,
+			e.Name, e.Category, e.Cost, e.Weight, e.Description, e.System, e.Source, e.ItemType, e.ItemRarity, e.Publisher, entryID)
 	case "monsters":
 		var m models.CompendiumMonster
 		if err := c.ShouldBindJSON(&m); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		db.DB.Exec(`UPDATE compendium_monsters SET name=?,type=?,size=?,ac=?,hp=?,str=?,dex=?,con=?,int_=?,wis=?,cha=?,cr=?,source=?,description=? WHERE id=?`,
-			m.Name, m.Type, m.Size, m.AC, m.HP, m.Str, m.Dex, m.Con, m.Int, m.Wis, m.Cha, m.CR, m.Source, m.Description, entryID)
+		db.DB.Exec(`UPDATE compendium_monsters SET name=?,type=?,size=?,ac=?,hp=?,str=?,dex=?,con=?,int_=?,wis=?,cha=?,cr=?,source=?,description=?,alignment=?,expansion=?,publisher=? WHERE id=?`,
+			m.Name, m.Type, m.Size, m.AC, m.HP, m.Str, m.Dex, m.Con, m.Int, m.Wis, m.Cha, m.CR, m.Source, m.Description, m.Alignment, m.Expansion, m.Publisher, entryID)
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{"error": "unknown type"})
 		return
@@ -385,7 +385,7 @@ func AdminDeleteCompendiumEntry(c *gin.Context) {
 // ─── Monster Compendium ───
 
 func ListCompendiumMonsters(c *gin.Context) {
-	query := "SELECT id,name,type,size,ac,hp,str,dex,con,int_,wis,cha,cr,source,is_full,saves,skills,damage_vulnerabilities,damage_resistances,damage_immunities,condition_immunities,senses,languages,special_abilities,actions,legendary_actions,description FROM compendium_monsters WHERE 1=1"
+	query := "SELECT id,name,type,size,ac,hp,str,dex,con,int_,wis,cha,cr,source,is_full,saves,skills,damage_vulnerabilities,damage_resistances,damage_immunities,condition_immunities,senses,languages,special_abilities,actions,legendary_actions,description,alignment,expansion,publisher FROM compendium_monsters WHERE 1=1"
 	args := []interface{}{}
 
 	if q := c.Query("q"); q != "" {
@@ -417,7 +417,8 @@ func ListCompendiumMonsters(c *gin.Context) {
 			&m.Str, &m.Dex, &m.Con, &m.Int, &m.Wis, &m.Cha,
 			&m.CR, &m.Source, &isFull,
 			&m.Saves, &m.Skills, &m.DamageVulnerabilities, &m.DamageResistances, &m.DamageImmunities, &m.ConditionImmunities,
-			&m.Senses, &m.Languages, &m.SpecialAbilities, &m.Actions, &m.LegendaryActions, &m.Description)
+			&m.Senses, &m.Languages, &m.SpecialAbilities, &m.Actions, &m.LegendaryActions, &m.Description,
+			&m.Alignment, &m.Expansion, &m.Publisher)
 		if err != nil {
 			continue
 		}
@@ -431,12 +432,13 @@ func GetCompendiumMonster(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var m models.CompendiumMonster
 	var isFull int
-	err := db.DB.QueryRow("SELECT id,name,type,size,ac,hp,str,dex,con,int_,wis,cha,cr,source,is_full,saves,skills,damage_vulnerabilities,damage_resistances,damage_immunities,condition_immunities,senses,languages,special_abilities,actions,legendary_actions,description FROM compendium_monsters WHERE id=?", id).
+	err := db.DB.QueryRow("SELECT id,name,type,size,ac,hp,str,dex,con,int_,wis,cha,cr,source,is_full,saves,skills,damage_vulnerabilities,damage_resistances,damage_immunities,condition_immunities,senses,languages,special_abilities,actions,legendary_actions,description,alignment,expansion,publisher FROM compendium_monsters WHERE id=?", id).
 		Scan(&m.ID, &m.Name, &m.Type, &m.Size, &m.AC, &m.HP,
 			&m.Str, &m.Dex, &m.Con, &m.Int, &m.Wis, &m.Cha,
 			&m.CR, &m.Source, &isFull,
 			&m.Saves, &m.Skills, &m.DamageVulnerabilities, &m.DamageResistances, &m.DamageImmunities, &m.ConditionImmunities,
-			&m.Senses, &m.Languages, &m.SpecialAbilities, &m.Actions, &m.LegendaryActions, &m.Description)
+			&m.Senses, &m.Languages, &m.SpecialAbilities, &m.Actions, &m.LegendaryActions, &m.Description,
+			&m.Alignment, &m.Expansion, &m.Publisher)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "monster not found"})
 		return

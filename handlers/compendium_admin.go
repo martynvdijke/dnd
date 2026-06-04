@@ -875,6 +875,9 @@ func SeedCompendiumSchemas() {
 				{Name: "source_page", Label: "Source Page", Type: models.FieldTypeString},
 				{Name: "system", Label: "System", Type: models.FieldTypeSelect, Options: []string{"dnd5e", "pf2e", "homebrew"}, Default: "dnd5e"},
 				{Name: "source", Label: "Source", Type: models.FieldTypeSelect, Options: []string{"srd", "homebrew", "custom"}, Default: "srd"},
+				{Name: "category", Label: "Category", Type: models.FieldTypeString},
+				{Name: "expansion", Label: "Expansion", Type: models.FieldTypeString},
+				{Name: "publisher", Label: "Publisher", Type: models.FieldTypeString},
 			},
 		},
 		{
@@ -890,6 +893,9 @@ func SeedCompendiumSchemas() {
 				{Name: "source_page", Label: "Source Page", Type: models.FieldTypeString},
 				{Name: "system", Label: "System", Type: models.FieldTypeSelect, Options: []string{"dnd5e", "pf2e", "homebrew"}, Default: "dnd5e"},
 				{Name: "source", Label: "Source", Type: models.FieldTypeSelect, Options: []string{"srd", "homebrew", "custom"}, Default: "srd"},
+				{Name: "category", Label: "Category", Type: models.FieldTypeString},
+				{Name: "expansion", Label: "Expansion", Type: models.FieldTypeString},
+				{Name: "publisher", Label: "Publisher", Type: models.FieldTypeString},
 			},
 		},
 		{
@@ -908,6 +914,7 @@ func SeedCompendiumSchemas() {
 				{Name: "source_page", Label: "Source Page", Type: models.FieldTypeString},
 				{Name: "system", Label: "System", Type: models.FieldTypeSelect, Options: []string{"dnd5e", "pf2e", "homebrew"}, Default: "dnd5e"},
 				{Name: "source", Label: "Source", Type: models.FieldTypeSelect, Options: []string{"srd", "homebrew", "custom"}, Default: "srd"},
+				{Name: "publisher", Label: "Publisher", Type: models.FieldTypeString},
 			},
 		},
 		{
@@ -932,6 +939,15 @@ func SeedCompendiumSchemas() {
 				{Name: "source_page", Label: "Source Page", Type: models.FieldTypeString},
 				{Name: "system", Label: "System", Type: models.FieldTypeSelect, Options: []string{"dnd5e", "pf2e", "homebrew"}, Default: "dnd5e"},
 				{Name: "source", Label: "Source", Type: models.FieldTypeSelect, Options: []string{"srd", "homebrew", "custom"}, Default: "srd"},
+				{Name: "category", Label: "Category", Type: models.FieldTypeString},
+				{Name: "data_list", Label: "Data List", Type: models.FieldTypeBoolean},
+				{Name: "data_bonds", Label: "Bonds", Type: models.FieldTypeText},
+				{Name: "data_flaws", Label: "Flaws", Type: models.FieldTypeText},
+				{Name: "data_ideals", Label: "Ideals", Type: models.FieldTypeText},
+				{Name: "data_equipment", Label: "Equipment", Type: models.FieldTypeText},
+				{Name: "data_starting_gold", Label: "Starting Gold", Type: models.FieldTypeInteger},
+				{Name: "data_personality_traits", Label: "Personality Traits", Type: models.FieldTypeText},
+				{Name: "publisher", Label: "Publisher", Type: models.FieldTypeString},
 			},
 		},
 		{
@@ -945,6 +961,9 @@ func SeedCompendiumSchemas() {
 				{Name: "source_page", Label: "Source Page", Type: models.FieldTypeString},
 				{Name: "system", Label: "System", Type: models.FieldTypeSelect, Options: []string{"dnd5e", "pf2e", "homebrew"}, Default: "dnd5e"},
 				{Name: "source", Label: "Source", Type: models.FieldTypeSelect, Options: []string{"srd", "homebrew", "custom"}, Default: "srd"},
+				{Name: "item_type", Label: "Item Type", Type: models.FieldTypeString},
+				{Name: "item_rarity", Label: "Item Rarity", Type: models.FieldTypeSelect, Options: []string{"common", "uncommon", "rare", "very rare", "legendary", "artifact"}},
+				{Name: "publisher", Label: "Publisher", Type: models.FieldTypeString},
 			},
 		},
 		{
@@ -975,6 +994,9 @@ func SeedCompendiumSchemas() {
 				{Name: "actions", Label: "Actions", Type: models.FieldTypeJSON},
 				{Name: "legendary_actions", Label: "Legendary Actions", Type: models.FieldTypeJSON},
 				{Name: "description", Label: "Description", Type: models.FieldTypeText, Searchable: true},
+				{Name: "alignment", Label: "Alignment", Type: models.FieldTypeSelect, Options: []string{"lawful good", "neutral good", "chaotic good", "lawful neutral", "neutral", "chaotic neutral", "lawful evil", "neutral evil", "chaotic evil", "unaligned"}},
+				{Name: "expansion", Label: "Expansion", Type: models.FieldTypeString},
+				{Name: "publisher", Label: "Publisher", Type: models.FieldTypeString},
 			},
 		},
 	}

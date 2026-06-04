@@ -1625,6 +1625,29 @@ func Migrate() error {
 		"ALTER TABLE factions ADD COLUMN oneshot_adventure_id INTEGER REFERENCES oneshot_adventures(id) ON DELETE CASCADE",
 		// Campaign NPC linking
 		"ALTER TABLE oneshot_monsters ADD COLUMN compendium_monster_id INTEGER DEFAULT NULL",
+		// Compendium schema field additions
+		"ALTER TABLE compendium_monsters ADD COLUMN alignment TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE compendium_monsters ADD COLUMN expansion TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE compendium_monsters ADD COLUMN publisher TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE compendium_backgrounds ADD COLUMN category TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE compendium_backgrounds ADD COLUMN data_list INTEGER NOT NULL DEFAULT 0",
+		"ALTER TABLE compendium_backgrounds ADD COLUMN data_bonds TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE compendium_backgrounds ADD COLUMN data_flaws TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE compendium_backgrounds ADD COLUMN data_ideals TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE compendium_backgrounds ADD COLUMN data_equipment TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE compendium_backgrounds ADD COLUMN data_starting_gold INTEGER NOT NULL DEFAULT 0",
+		"ALTER TABLE compendium_backgrounds ADD COLUMN data_personality_traits TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE compendium_backgrounds ADD COLUMN publisher TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE compendium_classes ADD COLUMN category TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE compendium_classes ADD COLUMN expansion TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE compendium_classes ADD COLUMN publisher TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE compendium_equipment ADD COLUMN item_type TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE compendium_equipment ADD COLUMN item_rarity TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE compendium_equipment ADD COLUMN publisher TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE compendium_races ADD COLUMN category TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE compendium_races ADD COLUMN expansion TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE compendium_races ADD COLUMN publisher TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE compendium_spells ADD COLUMN publisher TEXT NOT NULL DEFAULT ''",
 	}
 	for _, stmt := range alterStatements {
 		if _, err := DB.Exec(stmt); err != nil {

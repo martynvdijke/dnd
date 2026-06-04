@@ -125,6 +125,9 @@ type CompendiumRace struct {
 	SourcePage     string `json:"source_page"`
 	System         string `json:"system,omitempty"`
 	Source         string `json:"source,omitempty"`
+	Category       string `json:"category,omitempty"`
+	Expansion      string `json:"expansion,omitempty"`
+	Publisher      string `json:"publisher,omitempty"`
 }
 
 type CompendiumClass struct {
@@ -139,6 +142,9 @@ type CompendiumClass struct {
 	SourcePage          string `json:"source_page"`
 	System              string `json:"system,omitempty"`
 	Source              string `json:"source,omitempty"`
+	Category            string `json:"category,omitempty"`
+	Expansion           string `json:"expansion,omitempty"`
+	Publisher           string `json:"publisher,omitempty"`
 }
 
 type CompendiumSpell struct {
@@ -156,6 +162,7 @@ type CompendiumSpell struct {
 	SourcePage   string `json:"source_page"`
 	System       string `json:"system,omitempty"`
 	Source       string `json:"source,omitempty"`
+	Publisher    string `json:"publisher,omitempty"`
 }
 
 type CompendiumFeat struct {
@@ -169,15 +176,24 @@ type CompendiumFeat struct {
 }
 
 type CompendiumBackground struct {
-	ID                 int64  `json:"id"`
-	Name               string `json:"name"`
-	Description        string `json:"description"`
-	FeatureName        string `json:"feature_name"`
-	FeatureDescription string `json:"feature_description"`
-	Proficiencies      string `json:"proficiencies"`
-	SourcePage         string `json:"source_page"`
-	System             string `json:"system,omitempty"`
-	Source             string `json:"source,omitempty"`
+	ID                   int64  `json:"id"`
+	Name                 string `json:"name"`
+	Description          string `json:"description"`
+	FeatureName          string `json:"feature_name"`
+	FeatureDescription   string `json:"feature_description"`
+	Proficiencies        string `json:"proficiencies"`
+	SourcePage           string `json:"source_page"`
+	System               string `json:"system,omitempty"`
+	Source               string `json:"source,omitempty"`
+	Category             string `json:"category,omitempty"`
+	DataList             bool   `json:"data_list,omitempty"`
+	DataBonds            string `json:"data_bonds,omitempty"`
+	DataFlaws            string `json:"data_flaws,omitempty"`
+	DataIdeals           string `json:"data_ideals,omitempty"`
+	DataEquipment        string `json:"data_equipment,omitempty"`
+	DataStartingGold     int    `json:"data_starting_gold,omitempty"`
+	DataPersonalityTraits string `json:"data_personality_traits,omitempty"`
+	Publisher            string `json:"publisher,omitempty"`
 }
 
 type CompendiumEquipment struct {
@@ -190,6 +206,9 @@ type CompendiumEquipment struct {
 	SourcePage  string  `json:"source_page"`
 	System      string  `json:"system,omitempty"`
 	Source      string  `json:"source,omitempty"`
+	ItemType    string  `json:"item_type,omitempty"`
+	ItemRarity  string  `json:"item_rarity,omitempty"`
+	Publisher   string  `json:"publisher,omitempty"`
 }
 
 type ImportCharacter struct {

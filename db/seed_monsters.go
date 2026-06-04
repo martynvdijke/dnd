@@ -235,12 +235,12 @@ Mind Blast (Recharge 5-6): The mind flayer magically emits psychic energy in a 6
 		isFull := 1
 		DB.Exec(`INSERT INTO compendium_monsters(name,type,size,ac,hp,str,dex,con,int_,wis,cha,cr,source,is_full,
 			saves,skills,damage_vulnerabilities,damage_resistances,damage_immunities,condition_immunities,senses,languages,
-			special_abilities,actions,legendary_actions,description) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,
-			?,?,?,?,?,?,?,?,?,?,?,?)`,
+			special_abilities,actions,legendary_actions,description,alignment,expansion,publisher) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,
+			?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 			m.name, m.mtype, m.size, m.ac, m.hp, m.str, m.dex, m.con, m.int_, m.wis, m.cha,
 			m.cr, m.source, isFull,
 			m.saves, m.skills, m.vuln, m.resist, m.immun, m.condImmun,
-			m.senses, m.langs, m.abilities, m.actions, m.legendary, m.desc)
+			m.senses, m.langs, m.abilities, m.actions, m.legendary, m.desc, "", "", "")
 	}
 	log.Printf("Seeded %d compendium monsters", len(monsters))
 }

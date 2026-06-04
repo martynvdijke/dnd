@@ -136,6 +136,9 @@ type CompendiumMonster struct {
 	Actions               string `json:"actions"`
 	LegendaryActions      string `json:"legendary_actions"`
 	Description           string `json:"description"`
+	Alignment             string `json:"alignment,omitempty"`
+	Expansion             string `json:"expansion,omitempty"`
+	Publisher             string `json:"publisher,omitempty"`
 }
 
 type CampaignMonsterRoster struct {

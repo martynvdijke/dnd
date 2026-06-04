@@ -88,8 +88,8 @@ var jsonSeeders = map[string]func([]map[string]interface{}) error{
 func seedJSONMonsters(entries []map[string]interface{}) error {
 	stmt, err := DB.Prepare(`INSERT INTO compendium_monsters(name,type,size,ac,hp,str,dex,con,int_,wis,cha,cr,source,is_full,
 		saves,skills,damage_vulnerabilities,damage_resistances,damage_immunities,condition_immunities,senses,languages,
-		special_abilities,actions,legendary_actions,description) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,
-		?,?,?,?,?,?,?,?,?,?,?,?)`)
+		special_abilities,actions,legendary_actions,description,alignment,expansion,publisher) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,
+		?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
 		return err
 	}
@@ -102,6 +102,7 @@ func seedJSONMonsters(entries []map[string]interface{}) error {
 			getStr(e, "saves"), getStr(e, "skills"), getStr(e, "damage_vulnerabilities"), getStr(e, "damage_resistances"),
 			getStr(e, "damage_immunities"), getStr(e, "condition_immunities"), getStr(e, "senses"), getStr(e, "languages"),
 			getStr(e, "special_abilities"), getStr(e, "actions"), getStr(e, "legendary_actions"), getStr(e, "description"),
+			getStr(e, "alignment"), getStr(e, "expansion"), getStr(e, "publisher"),
 		)
 		if err != nil {
 			return fmt.Errorf("insert monster %v: %w", e["name"], err)
@@ -116,7 +117,7 @@ func hasForceFlag(dataDir string) bool {
 }
 
 func seedJSONRaces(entries []map[string]interface{}) error {
-	stmt, err := DB.Prepare(`INSERT INTO compendium_races(name,description,speed,size,ability_bonuses,traits,languages,source_page,system,source) VALUES(?,?,?,?,?,?,?,?,?,?)`)
+	stmt, err := DB.Prepare(`INSERT INTO compendium_races(name,description,speed,size,ability_bonuses,traits,languages,source_page,system,source,category,expansion,publisher) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
 		return err
 	}
@@ -127,6 +128,7 @@ func seedJSONRaces(entries []map[string]interface{}) error {
 			getStr(e, "size"), getStr(e, "ability_bonuses"), getStr(e, "traits"),
 			getStr(e, "languages"), getStr(e, "source_page"),
 			getStrDef(e, "system", "dnd5e"), getStrDef(e, "source", "custom"),
+			getStr(e, "category"), getStr(e, "expansion"), getStr(e, "publisher"),
 		)
 		if err != nil {
 			return fmt.Errorf("insert race %v: %w", e["name"], err)
@@ -136,7 +138,7 @@ func seedJSONRaces(entries []map[string]interface{}) error {
 }
 
 func seedJSONClasses(entries []map[string]interface{}) error {
-	stmt, err := DB.Prepare(`INSERT INTO compendium_classes(name,description,hit_die,primary_ability,saving_throws,proficiencies,spellcasting_ability,source_page,system,source) VALUES(?,?,?,?,?,?,?,?,?,?)`)
+	stmt, err := DB.Prepare(`INSERT INTO compendium_classes(name,description,hit_die,primary_ability,saving_throws,proficiencies,spellcasting_ability,source_page,system,source,category,expansion,publisher) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
 		return err
 	}
@@ -147,6 +149,7 @@ func seedJSONClasses(entries []map[string]interface{}) error {
 			getStr(e, "primary_ability"), getStr(e, "saving_throws"), getStr(e, "proficiencies"),
 			getStr(e, "spellcasting_ability"), getStr(e, "source_page"),
 			getStrDef(e, "system", "dnd5e"), getStrDef(e, "source", "custom"),
+			getStr(e, "category"), getStr(e, "expansion"), getStr(e, "publisher"),
 		)
 		if err != nil {
 			return fmt.Errorf("insert class %v: %w", e["name"], err)
@@ -156,7 +159,7 @@ func seedJSONClasses(entries []map[string]interface{}) error {
 }
 
 func seedJSONSpells(entries []map[string]interface{}) error {
-	stmt, err := DB.Prepare(`INSERT INTO compendium_spells(name,level,school,casting_time,range,components,duration,description,higher_levels,classes,source_page,system,source) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+	stmt, err := DB.Prepare(`INSERT INTO compendium_spells(name,level,school,casting_time,range,components,duration,description,higher_levels,classes,source_page,system,source,publisher) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
 		return err
 	}
@@ -168,6 +171,7 @@ func seedJSONSpells(entries []map[string]interface{}) error {
 			getStr(e, "duration"), getStr(e, "description"), getStr(e, "higher_levels"),
 			getStr(e, "classes"), getStr(e, "source_page"),
 			getStrDef(e, "system", "dnd5e"), getStrDef(e, "source", "custom"),
+			getStr(e, "publisher"),
 		)
 		if err != nil {
 			return fmt.Errorf("insert spell %v: %w", e["name"], err)
@@ -196,7 +200,7 @@ func seedJSONFeats(entries []map[string]interface{}) error {
 }
 
 func seedJSONBackgrounds(entries []map[string]interface{}) error {
-	stmt, err := DB.Prepare(`INSERT INTO compendium_backgrounds(name,description,feature_name,feature_description,proficiencies,source_page,system,source) VALUES(?,?,?,?,?,?,?,?)`)
+	stmt, err := DB.Prepare(`INSERT INTO compendium_backgrounds(name,description,feature_name,feature_description,proficiencies,source_page,system,source,category,data_list,data_bonds,data_flaws,data_ideals,data_equipment,data_starting_gold,data_personality_traits,publisher) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
 		return err
 	}
@@ -207,6 +211,10 @@ func seedJSONBackgrounds(entries []map[string]interface{}) error {
 			getStr(e, "feature_description"), getStr(e, "proficiencies"),
 			getStr(e, "source_page"),
 			getStrDef(e, "system", "dnd5e"), getStrDef(e, "source", "custom"),
+			getStr(e, "category"), getInt(e, "data_list", 0), getStr(e, "data_bonds"),
+			getStr(e, "data_flaws"), getStr(e, "data_ideals"), getStr(e, "data_equipment"),
+			getInt(e, "data_starting_gold", 0), getStr(e, "data_personality_traits"),
+			getStr(e, "publisher"),
 		)
 		if err != nil {
 			return fmt.Errorf("insert background %v: %w", e["name"], err)
@@ -216,7 +224,7 @@ func seedJSONBackgrounds(entries []map[string]interface{}) error {
 }
 
 func seedJSONEquipment(entries []map[string]interface{}) error {
-	stmt, err := DB.Prepare(`INSERT INTO compendium_equipment(name,category,cost,weight,description,source_page,system,source) VALUES(?,?,?,?,?,?,?,?)`)
+	stmt, err := DB.Prepare(`INSERT INTO compendium_equipment(name,category,cost,weight,description,source_page,system,source,item_type,item_rarity,publisher) VALUES(?,?,?,?,?,?,?,?,?,?,?)`)
 	if err != nil {
 		return err
 	}
@@ -226,6 +234,7 @@ func seedJSONEquipment(entries []map[string]interface{}) error {
 			getStr(e, "name"), getStr(e, "category"), getStr(e, "cost"),
 			getFloat(e, "weight", 0), getStr(e, "description"), getStr(e, "source_page"),
 			getStrDef(e, "system", "dnd5e"), getStrDef(e, "source", "custom"),
+			getStr(e, "item_type"), getStr(e, "item_rarity"), getStr(e, "publisher"),
 		)
 		if err != nil {
 			return fmt.Errorf("insert equipment %v: %w", e["name"], err)

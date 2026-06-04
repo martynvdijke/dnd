@@ -76,8 +76,8 @@ func seedRaces() {
 	}
 
 	for _, r := range races {
-		DB.Exec("INSERT INTO compendium_races(name,description,speed,size,ability_bonuses,traits,languages,system,source) VALUES(?,?,?,?,?,?,?,?,?)",
-			r.name, r.desc, r.speed, r.size, r.abilities, r.traits, r.langs, "dnd5e", "srd")
+		DB.Exec("INSERT INTO compendium_races(name,description,speed,size,ability_bonuses,traits,languages,system,source,category,expansion,publisher) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+			r.name, r.desc, r.speed, r.size, r.abilities, r.traits, r.langs, "dnd5e", "srd", "", "", "")
 	}
 	log.Printf("Seeded %d races", len(races))
 }
@@ -108,8 +108,8 @@ func seedClasses() {
 	}
 
 	for _, c := range classes {
-		DB.Exec("INSERT INTO compendium_classes(name,description,hit_die,primary_ability,saving_throws,proficiencies,spellcasting_ability,system,source) VALUES(?,?,?,?,?,?,?,?,?)",
-			c.name, c.desc, c.hitDie, c.primary, c.saves, c.profs, c.spellcasting, "dnd5e", "srd")
+		DB.Exec("INSERT INTO compendium_classes(name,description,hit_die,primary_ability,saving_throws,proficiencies,spellcasting_ability,system,source,category,expansion,publisher) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+			c.name, c.desc, c.hitDie, c.primary, c.saves, c.profs, c.spellcasting, "dnd5e", "srd", "", "", "")
 	}
 	log.Printf("Seeded %d classes", len(classes))
 }
@@ -152,8 +152,8 @@ func seedBackgrounds() {
 	}
 
 	for _, b := range bgs {
-		DB.Exec("INSERT INTO compendium_backgrounds(name,description,feature_name,feature_description,proficiencies,system,source) VALUES(?,?,?,?,?,?,?)",
-			b.name, b.desc, b.featName, b.featDesc, b.profs, "dnd5e", "srd")
+		DB.Exec("INSERT INTO compendium_backgrounds(name,description,feature_name,feature_description,proficiencies,system,source,category,data_list,data_bonds,data_flaws,data_ideals,data_equipment,data_starting_gold,data_personality_traits,publisher) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+			b.name, b.desc, b.featName, b.featDesc, b.profs, "dnd5e", "srd", "", 0, "", "", "", "", 0, "", "")
 	}
 	log.Printf("Seeded %d backgrounds", len(bgs))
 }
@@ -166,8 +166,8 @@ func seedSpells() {
 	}
 
 	for _, s := range SRDSpells {
-		DB.Exec("INSERT INTO compendium_spells(name,level,school,casting_time,range,components,duration,description,higher_levels,classes,system,source) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
-			s.name, s.level, s.school, s.time, s.rng, s.comp, s.dur, s.desc, s.higher, s.classes, "dnd5e", "srd")
+		DB.Exec("INSERT INTO compendium_spells(name,level,school,casting_time,range,components,duration,description,higher_levels,classes,system,source,publisher) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+			s.name, s.level, s.school, s.time, s.rng, s.comp, s.dur, s.desc, s.higher, s.classes, "dnd5e", "srd", "")
 	}
 	log.Printf("Seeded %d spells", len(SRDSpells))
 }
@@ -211,8 +211,8 @@ func seedEquipment() {
 	}
 
 	for _, e := range equipment {
-		DB.Exec("INSERT INTO compendium_equipment(name,category,cost,weight,description,system,source) VALUES(?,?,?,?,?,?,?)",
-			e.name, e.cat, e.cost, e.weight, e.desc, "dnd5e", "srd")
+		DB.Exec("INSERT INTO compendium_equipment(name,category,cost,weight,description,system,source,item_type,item_rarity,publisher) VALUES(?,?,?,?,?,?,?,?,?,?)",
+			e.name, e.cat, e.cost, e.weight, e.desc, "dnd5e", "srd", "", "", "")
 	}
 	log.Printf("Seeded %d equipment items", len(equipment))
 }
