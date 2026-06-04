@@ -1,3 +1,12 @@
+## [2.9.4](https://github.com/martynvdijke/dnd/compare/v2.9.3...v2.9.4) (2026-06-04)
+
+
+### Bug Fixes
+
+* remove _fk DSN param, keep explicit PRAGMA foreign_keys=ON ([6083f3d](https://github.com/martynvdijke/dnd/commit/6083f3d15178f9daf5818e3ded4adfa4d26a13e7))
+* run safe ALTER TABLE after ent.Schema.Create to avoid column loss ([5891c43](https://github.com/martynvdijke/dnd/commit/5891c4317456f26bc896a95504ac0db5c28d382a))
+* update SeedCompendiumSchemas to UPDATE existing schemas (not INSERT OR IGNORE) so new fields apply to existing database schemas ([e421e2b](https://github.com/martynvdijke/dnd/commit/e421e2b683cb84666f51780833c4540e3861c2c9))
+
 ## [2.9.3](https://github.com/martynvdijke/dnd/compare/v2.9.2...v2.9.3) (2026-06-04)
 
 
