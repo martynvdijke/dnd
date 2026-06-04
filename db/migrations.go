@@ -1581,7 +1581,12 @@ func Migrate() error {
 		}
 	}
 
-	// Run safe ALTER TABLE additions (ignore if column already exists)
+	return nil
+}
+
+// ApplySafeAlters runs ALTER TABLE statements that safely add columns if they don't exist.
+// This must run AFTER ent.Schema.Create() to avoid ent recreating tables and dropping extra columns.
+func ApplySafeAlters() error {
 	alterStatements := []string{
 		"ALTER TABLE characters ADD COLUMN campaign_id INTEGER REFERENCES campaigns(id) ON DELETE SET NULL",
 		"ALTER TABLE character_npcs ADD COLUMN interaction_count INTEGER NOT NULL DEFAULT 0",
@@ -1650,12 +1655,13 @@ func Migrate() error {
 		"ALTER TABLE compendium_spells ADD COLUMN publisher TEXT NOT NULL DEFAULT ''",
 	}
 	for _, stmt := range alterStatements {
+		log.Printf("ALTER: %s", stmt)
 		if _, err := DB.Exec(stmt); err != nil {
+			log.Printf("ALTER error: %v", err)
 			if !strings.Contains(err.Error(), "duplicate column") {
 				return fmt.Errorf("alter table: %w", err)
 			}
 		}
 	}
-
 	return nil
 }
