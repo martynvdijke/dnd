@@ -82,6 +82,32 @@ var jsonSeeders = map[string]func([]map[string]interface{}) error{
 	"feats":       seedJSONFeats,
 	"backgrounds": seedJSONBackgrounds,
 	"equipment":   seedJSONEquipment,
+	"monsters":    seedJSONMonsters,
+}
+
+func seedJSONMonsters(entries []map[string]interface{}) error {
+	stmt, err := DB.Prepare(`INSERT INTO compendium_monsters(name,type,size,ac,hp,str,dex,con,int_,wis,cha,cr,source,is_full,
+		saves,skills,damage_vulnerabilities,damage_resistances,damage_immunities,condition_immunities,senses,languages,
+		special_abilities,actions,legendary_actions,description) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,
+		?,?,?,?,?,?,?,?,?,?,?,?)`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	for _, e := range entries {
+		_, err := stmt.Exec(
+			getStr(e, "name"), getStr(e, "type"), getStr(e, "size"), getInt(e, "ac", 10), getInt(e, "hp", 1),
+			getInt(e, "str", 10), getInt(e, "dex", 10), getInt(e, "con", 10), getInt(e, "int", 10), getInt(e, "wis", 10), getInt(e, "cha", 10),
+			getStrDef(e, "cr", "0"), getStrDef(e, "source", "SRD"), getInt(e, "is_full", 0),
+			getStr(e, "saves"), getStr(e, "skills"), getStr(e, "damage_vulnerabilities"), getStr(e, "damage_resistances"),
+			getStr(e, "damage_immunities"), getStr(e, "condition_immunities"), getStr(e, "senses"), getStr(e, "languages"),
+			getStr(e, "special_abilities"), getStr(e, "actions"), getStr(e, "legendary_actions"), getStr(e, "description"),
+		)
+		if err != nil {
+			return fmt.Errorf("insert monster %v: %w", e["name"], err)
+		}
+	}
+	return nil
 }
 
 func hasForceFlag(dataDir string) bool {

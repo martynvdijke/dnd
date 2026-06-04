@@ -1577,6 +1577,9 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		// Compendium Monsters (HTMX)
 		{"GET", "/htmx/compendium-monsters", HtmxCompendiumMonsterBrowser},
 		{"GET", "/htmx/compendium-monsters/search", HtmxCompendiumMonsterSearch},
+		{"GET", "/htmx/compendium-monsters/import-modal", HtmxAPIImportModal},
+		{"GET", "/htmx/compendium-monsters/api-search", HtmxAPIImportSearch},
+		{"POST", "/htmx/compendium-monsters/import", HtmxImportAPIMonster},
 		{"GET", "/htmx/compendium-monsters/:id", HtmxCompendiumMonsterDetail},
 		{"GET", "/htmx/compendium-monsters/picker/:eid", HtmxCompendiumMonsterPickerForEncounter},
 		{"GET", "/htmx/compendium-monsters/oneshot/:id", HtmxCompendiumMonsterPickerForOneShot},

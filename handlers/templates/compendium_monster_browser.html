@@ -1,8 +1,13 @@
 {{define "compendium_monster_browser"}}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h6 class="mb-0"><i class="fa-solid fa-book me-2"></i>Monster Compendium</h6>
-  <button class="btn btn-sm btn-outline-secondary" onclick="hideCompendiumBrowser()"><i class="fa-solid fa-times"></i></button>
+  <div class="d-flex gap-1">
+    <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/compendium-monsters/import-modal" hx-target="#compendiumImportModal" hx-swap="innerHTML">
+      <i class="fa-solid fa-cloud-arrow-down me-1"></i>Import from API
+    </button>
+  </div>
 </div>
+<div id="compendiumImportModal"></div>
 <div class="input-group mb-3">
   <input type="text" class="form-control form-control-sm" id="compendiumSearch" placeholder="Search monsters..."
     hx-get="/htmx/compendium-monsters/search" hx-trigger="keyup changed delay:300ms" hx-target="#compendiumResults" hx-swap="innerHTML" hx-include="[name='cr'],[name='type']">

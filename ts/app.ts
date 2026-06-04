@@ -3242,7 +3242,7 @@ async function searchUsers(q: string) {
 
 (window as any).showCompendium = function () {
   showView('compendium');
-  loadCompendiumRaces();
+  loadCompendiumMonsters();
 };
 
 (window as any).loadCompendiumTab = function (tab:string) {
@@ -3250,9 +3250,10 @@ async function searchUsers(q: string) {
   document.getElementById('compTabClasses')!.classList.remove('active');
   document.getElementById('compTabSpells')!.classList.remove('active');
   document.getElementById('compTabEquipment')!.classList.remove('active');
+  document.getElementById('compTabMonsters')!.classList.remove('active');
   const tabEl = document.getElementById('compTab' + capitalize(tab));
   if (tabEl) tabEl.classList.add('active');
-  ['races','classes','spells','equipment'].forEach(s => {
+  ['races','classes','spells','equipment','monsters'].forEach(s => {
     const el = document.getElementById('comp' + capitalize(s));
     if (el) el.style.display = s === tab ? 'block' : 'none';
   });
@@ -3260,6 +3261,7 @@ async function searchUsers(q: string) {
   if (tab === 'classes') loadCompendiumClasses();
   if (tab === 'spells') loadCompendiumSpells();
   if (tab === 'equipment') loadCompendiumEquipment();
+  if (tab === 'monsters') loadCompendiumMonsters();
 };
 
 async function loadCompendiumRaces() {
@@ -3309,6 +3311,14 @@ async function loadCompendiumEquipment() {
         <span class="fw-bold">${esc(i.name)}</span>
         <span class="text-muted small">${esc(i.category)}${i.weight ? ' · ' + i.weight + 'lb' : ''}</span>
       </div>`).join('');
+  } catch {}
+}
+
+async function loadCompendiumMonsters() {
+  try {
+    const resp = await fetch('/htmx/compendium-monsters', { credentials: 'include' });
+    const html = await resp.text();
+    document.getElementById('compMonsters')!.innerHTML = html;
   } catch {}
 }
 
