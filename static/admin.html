@@ -390,5 +390,41 @@
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.getRegistrations().then(r=>r.forEach(r=>r.unregister()));</script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/static/js/admin.js"></script>
+
+<!-- PDF Viewer Modal -->
+<div class="modal fade" id="pdfViewerModal" tabindex="-1">
+  <div class="modal-dialog modal-fullscreen modal-dialog-scrollless">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="pdfViewerTitle">PDF Viewer</h5>
+        <div class="d-flex gap-1">
+          <button class="btn btn-sm btn-outline-secondary" onclick="pdfViewerDownload()" title="Download PDF"><i class="fa-solid fa-download"></i></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+      </div>
+      <div class="modal-body d-flex flex-column align-items-center justify-content-center bg-dark" id="pdfViewerBody">
+        <div id="pdfViewerLoading" class="text-light text-center py-5">
+          <div class="spinner-border text-light mb-2" role="status"></div>
+          <p class="mb-0">Loading PDF...</p>
+        </div>
+        <div id="pdfViewerError" class="text-danger text-center py-5" style="display:none"></div>
+        <canvas id="pdfViewerCanvas" style="display:none;max-width:100%;box-shadow:0 2px 20px rgba(0,0,0,0.3)"></canvas>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <div class="d-flex align-items-center gap-1">
+          <button class="btn btn-sm btn-outline-secondary" onclick="pdfViewerZoomOut()" title="Zoom Out"><i class="fa-solid fa-search-minus"></i></button>
+          <span class="mx-1 small fw-medium" id="pdfViewerZoomLevel" style="min-width:40px;text-align:center">100%</span>
+          <button class="btn btn-sm btn-outline-secondary" onclick="pdfViewerZoomIn()" title="Zoom In"><i class="fa-solid fa-search-plus"></i></button>
+          <button class="btn btn-sm btn-outline-secondary ms-1" onclick="pdfViewerFitToWidth()" title="Fit to Width"><i class="fa-solid fa-expand"></i></button>
+        </div>
+        <div class="d-flex align-items-center gap-1">
+          <button class="btn btn-sm btn-outline-secondary" onclick="pdfViewerPrevPage()" id="pdfViewerPrevBtn" disabled title="Previous Page (Left Arrow)"><i class="fa-solid fa-chevron-left"></i></button>
+          <span class="mx-2 small fw-medium" id="pdfViewerPageInfo">- / -</span>
+          <button class="btn btn-sm btn-outline-secondary" onclick="pdfViewerNextPage()" id="pdfViewerNextBtn" disabled title="Next Page (Right Arrow)"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
