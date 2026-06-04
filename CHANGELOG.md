@@ -1,3 +1,15 @@
+# [2.9.0](https://github.com/martynvdijke/dnd/compare/v2.8.1...v2.9.0) (2026-06-04)
+
+
+### Bug Fixes
+
+* rename :schema_id to :id in routes to resolve Gin wildcard conflict ([5ebb897](https://github.com/martynvdijke/dnd/commit/5ebb89728fc2283065b2719d5d01a1a73b5785f1))
+
+
+### Features
+
+* add dynamic compendium schema system with import/export UI ([6ce113a](https://github.com/martynvdijke/dnd/commit/6ce113ad6456a5098ce90514d2eafede8ac2a8a6))
+
 ## [2.8.1](https://github.com/martynvdijke/dnd/compare/v2.8.0...v2.8.1) (2026-06-04)
 
 # [2.8.0](https://github.com/martynvdijke/dnd/compare/v2.7.0...v2.8.0) (2026-06-04)
