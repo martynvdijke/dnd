@@ -758,6 +758,11 @@ async function loadImportLogs() {
 };
 
 (window as any).onImportSchemaChange = function () {
+  // If data is already loaded, re-run auto-detection instead of hiding everything
+  if (importJsonData && importJsonData.records.length > 0) {
+    autoDetectMapping();
+    return;
+  }
   document.getElementById('importPreview')!.style.display = 'none';
   document.getElementById('importMapping')!.style.display = 'none';
   (document.getElementById('importStartBtn') as HTMLButtonElement).disabled = true;
@@ -805,15 +810,45 @@ function useImportPaste() {
 async function fetchImportUrl() {
   const url = (document.getElementById('importFetchUrl') as HTMLInputElement).value.trim();
   if (!url) { toast('Enter a URL', true); return; }
+
+  // Detect and warn about GitHub blob URLs that won't work
+  const githubBlobMatch = url.match(/^https?:\/\/github\.com\/([^\/]+\/[^\/]+)\/blob\/(.+)/);
+  if (githubBlobMatch) {
+    const rawUrl = `https://raw.githubusercontent.com/${githubBlobMatch[1]}/${githubBlobMatch[2]}`;
+    toast(`GitHub blob URLs return HTML, not JSON. Try the raw URL instead: ${rawUrl}`, true);
+    return;
+  }
+
   const btn = document.querySelector('#importFetchArea .btn') as HTMLElement;
   if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Fetching...';
+  let errMsg = '';
   try {
     const res = await fetch(url);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
+    if (!res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('text/html')) {
+        errMsg = `URL returned HTML instead of JSON (HTTP ${res.status}). Make sure the URL points to a raw JSON file (e.g. raw.githubusercontent.com).`;
+      } else if (res.status === 404) {
+        errMsg = `URL not found (HTTP 404). Check that the path is correct.`;
+      } else if (res.status === 403) {
+        errMsg = `Access denied (HTTP 403). The server may be blocking cross-origin requests (CORS) or require authentication.`;
+      } else {
+        errMsg = `Server returned HTTP ${res.status}.`;
+      }
+      throw new Error(errMsg);
+    }
     const data = await res.json();
     setImportJsonData(data, url.split('/').pop() || 'remote.json');
   } catch (err: any) {
-    toast('Fetch failed: ' + err.message, true);
+    // Network/CORS errors don't have a status
+    if (!errMsg) {
+      if (err.message?.includes('Failed to fetch') || err.message?.includes('NetworkError')) {
+        errMsg = `Cannot fetch from this URL due to CORS restrictions or network error. Try using a CORS-friendly URL like raw.githubusercontent.com, or paste the JSON content manually.`;
+      } else {
+        errMsg = `Fetch failed: ${err.message}`;
+      }
+    }
+    toast(errMsg, true);
   }
   if (btn) btn.innerHTML = '<i class="fa-solid fa-download me-1"></i> Fetch';
 }

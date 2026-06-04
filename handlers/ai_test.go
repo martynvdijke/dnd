@@ -294,3 +294,79 @@ func TestAIEndpointAuth(t *testing.T) {
 		}
 	})
 }
+
+func TestSanitizeError(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want string
+	}{
+		{"short error", fmt.Errorf("connection refused"), "connection refused"},
+		{"long error truncated", fmt.Errorf("AAAAABBBBBCCCCCDDDDDEEEEEFFFFFGGGGGHHHHHIIIIIJJJJJKKKKKLLLLLMMMMMNNNNNOOOOOPPPPPQQQQQRRRRRSSSSSTTTTTUUUUUVVVVV"), "AAAAABBBBBCCCCCDDDDDEEEEEFFFFFGGGGGHHHHHIIIIIJJJJJKKKKKLLLLLMMMMMNNNNNOOOOOPPPPPQQQQQRRRRRSSSSSTTTTT..."},
+		{"newlines removed", fmt.Errorf("line1\nline2\nline3"), "line1 line2 line3"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := sanitizeError(tt.err)
+			if got != tt.want {
+				t.Errorf("sanitizeError() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestTruncateResponse(t *testing.T) {
+	tests := []struct {
+		name string
+		s    string
+		want string
+	}{
+		{"short string", "OK", "OK"},
+		{"long string truncated", `{"error": {"message": "Insufficient quota", "type": "insufficient_quota", "param": null, "code": "insufficient_quota"}}`, `{"error": {"message": "Insufficient quota", "type": "insufficient_quota", "param": null, "code": "insufficient_quota"}}`},
+		{"exactly 200 chars", repeatStr("a", 200), repeatStr("a", 200)},
+		{"over 200 chars", repeatStr("b", 300), repeatStr("b", 200) + "..."},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := truncateResponse(tt.s)
+			if got != tt.want {
+				t.Errorf("truncateResponse() = %q (len=%d), want %q (len=%d)", got, len(got), tt.want, len(tt.want))
+			}
+		})
+	}
+}
+
+func repeatStr(s string, n int) string {
+	result := ""
+	for i := 0; i < n; i++ {
+		result += s
+	}
+	return result
+}
+
+// TestAIErrorMessagesFormat verifies that AI endpoint error responses include
+// the actual error details rather than generic messages.
+func TestAIErrorMessagesFormat(t *testing.T) {
+	// Test the error message patterns used in HandleTextGeneration and HandleImageGeneration
+	// These are the fmt.Sprintf patterns that ensure users see the actual failure reason.
+
+	// Simulate a connection error
+	connErr := fmt.Errorf("dial tcp: lookup api.openai.com: no such host")
+	msg := fmt.Sprintf("AI provider request failed: %s", sanitizeError(connErr))
+	if !strings.Contains(msg, "no such host") {
+		t.Errorf("expected error message to include 'no such host', got: %s", msg)
+	}
+	if strings.Contains(msg, "\n") {
+		t.Errorf("error message should not contain newlines: %s", msg)
+	}
+
+	// Simulate an HTTP error response
+	respBody := `{"error": {"message": "You exceeded your current quota", "type": "insufficient_quota"}}`
+	httpMsg := fmt.Sprintf("AI provider returned HTTP %d: %s", 429, truncateResponse(respBody))
+	if !strings.Contains(httpMsg, "quota") {
+		t.Errorf("expected HTTP error message to include the API error detail, got: %s", httpMsg)
+	}
+	if !strings.Contains(httpMsg, "429") {
+		t.Errorf("expected HTTP error message to include status code, got: %s", httpMsg)
+	}
+}

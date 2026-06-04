@@ -359,7 +359,7 @@ func HandleTextGeneration(c *gin.Context) {
 	apiKey, err := crypto.Decrypt(fullEndpoint.EncryptedAPIKey)
 	if err != nil {
 		log.Printf("[ai] failed to decrypt API key: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to authenticate with AI provider"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to authenticate with AI provider: %s", sanitizeError(err))})
 		return
 	}
 
@@ -384,7 +384,7 @@ func HandleTextGeneration(c *gin.Context) {
 	body, _ := json.Marshal(payload)
 	httpReq, err := http.NewRequest("POST", endpoint.BaseURL+"/chat/completions", bytes.NewReader(body))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create request"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to create request: %s", sanitizeError(err))})
 		return
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
@@ -393,8 +393,9 @@ func HandleTextGeneration(c *gin.Context) {
 	client := &http.Client{Timeout: 60 * time.Second}
 	resp, err := client.Do(httpReq)
 	if err != nil {
+		errMsg := fmt.Sprintf("AI provider request failed: %s", sanitizeError(err))
 		log.Printf("[ai] text generation request failed: %v", err)
-		c.JSON(http.StatusBadGateway, gin.H{"error": "AI provider request failed"})
+		c.JSON(http.StatusBadGateway, gin.H{"error": errMsg})
 		return
 	}
 	defer resp.Body.Close()
@@ -402,8 +403,9 @@ func HandleTextGeneration(c *gin.Context) {
 	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 65536))
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		errMsg := fmt.Sprintf("AI provider returned HTTP %d: %s", resp.StatusCode, truncateResponse(string(respBody)))
 		log.Printf("[ai] text generation returned HTTP %d: %s", resp.StatusCode, truncateResponse(string(respBody)))
-		c.JSON(http.StatusBadGateway, gin.H{"error": "AI provider returned an error"})
+		c.JSON(http.StatusBadGateway, gin.H{"error": errMsg})
 		return
 	}
 
@@ -487,7 +489,7 @@ func HandleImageGeneration(c *gin.Context) {
 	apiKey, err := crypto.Decrypt(fullEndpoint.EncryptedAPIKey)
 	if err != nil {
 		log.Printf("[ai] failed to decrypt API key: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to authenticate with AI provider"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to authenticate with AI provider: %s", sanitizeError(err))})
 		return
 	}
 
@@ -509,7 +511,7 @@ func HandleImageGeneration(c *gin.Context) {
 	body, _ := json.Marshal(payload)
 	httpReq, err := http.NewRequest("POST", endpoint.BaseURL+"/images/generations", bytes.NewReader(body))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create request"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to create request: %s", sanitizeError(err))})
 		return
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
@@ -518,8 +520,9 @@ func HandleImageGeneration(c *gin.Context) {
 	client := &http.Client{Timeout: 120 * time.Second}
 	resp, err := client.Do(httpReq)
 	if err != nil {
+		errMsg := fmt.Sprintf("AI provider request failed: %s", sanitizeError(err))
 		log.Printf("[ai] image generation request failed: %v", err)
-		c.JSON(http.StatusBadGateway, gin.H{"error": "AI provider request failed"})
+		c.JSON(http.StatusBadGateway, gin.H{"error": errMsg})
 		return
 	}
 	defer resp.Body.Close()
@@ -527,8 +530,9 @@ func HandleImageGeneration(c *gin.Context) {
 	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 262144))
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		errMsg := fmt.Sprintf("AI provider returned HTTP %d: %s", resp.StatusCode, truncateResponse(string(respBody)))
 		log.Printf("[ai] image generation returned HTTP %d: %s", resp.StatusCode, truncateResponse(string(respBody)))
-		c.JSON(http.StatusBadGateway, gin.H{"error": "AI provider returned an error"})
+		c.JSON(http.StatusBadGateway, gin.H{"error": errMsg})
 		return
 	}
 
