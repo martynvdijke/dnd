@@ -6167,6 +6167,8 @@ function rollDice(dice: string): number {
 
 // ─── AI Generation ───
 
+const AI_DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant for a D&D website called villum. You help DMs create compelling narratives, NPCs, locations, items, and other TTRPG content. Be creative and concise.';
+
 let aiGenLastResult: string | null = null;
 let aiGenLastImageUrl: string | null = null;
 
@@ -6189,7 +6191,13 @@ let aiGenLastImageUrl: string | null = null;
   const promptEl = document.getElementById('aiGenPrompt') as HTMLTextAreaElement;
   if (promptHint) promptEl.value = promptHint;
 
-  // Show/hide system prompt field based on mode
+  // Pre-fill system prompt with default if empty
+  const systemEl = document.getElementById('aiGenSystem') as HTMLTextAreaElement;
+  if (!systemEl.value.trim()) {
+    systemEl.value = AI_DEFAULT_SYSTEM_PROMPT;
+  }
+
+  // Show/hide fields based on mode
   document.getElementById('aiGenSystemField')!.style.display = mode === 'text' ? 'block' : 'none';
   document.getElementById('aiGenInsertBtn')!.style.display = mode === 'text' ? 'inline-block' : 'none';
   document.getElementById('aiGenReplaceBtn')!.style.display = mode === 'text' ? 'inline-block' : 'none';
@@ -6204,22 +6212,31 @@ let aiGenLastImageUrl: string | null = null;
 async function fetchAIEndpoints(type: string) {
   const select = document.getElementById('aiGenEndpoint') as HTMLSelectElement;
   try {
-    const endpoints = await api('GET', '/api/user/me'); // just check auth; fetch actual endpoints via DM endpoint
-    // Actually we need a way to get enabled endpoints - use the admin endpoint
-    // For now, let's try to get them from a specific endpoint
-    const eps = await api('GET', '/api/admin/ai-endpoints');
-    const filtered = eps.filter((ep: any) => ep.type === type && ep.enabled);
-    if (filtered.length === 0) {
+    const eps = await api('GET', '/api/ai/endpoints?type=' + encodeURIComponent(type));
+    if (!eps || eps.length === 0) {
       select.innerHTML = '<option value="">No enabled endpoints available</option>';
       return;
     }
-    select.innerHTML = filtered.map((ep: any) =>
+    select.innerHTML = eps.map((ep: any) =>
       `<option value="${ep.id}">${esc(ep.name)} (${ep.model})</option>`
     ).join('');
   } catch {
     select.innerHTML = '<option value="">Failed to load endpoints</option>';
   }
 }
+
+// ─── Inline AI generation triggers ───
+
+document.addEventListener('click', function (e: MouseEvent) {
+  const btn = (e.target as HTMLElement).closest('.ai-generate-btn') as HTMLElement;
+  if (!btn) return;
+  e.preventDefault();
+  const mode = btn.getAttribute('data-ai-mode') || 'text';
+  const targetId = btn.getAttribute('data-ai-target') || '';
+  const hint = btn.getAttribute('data-ai-hint') || '';
+  const title = btn.getAttribute('data-ai-title') || undefined;
+  (window as any).openAIGenModal(mode, targetId, hint, title);
+});
 
 (window as any).generateWithAI = async function () {
   const endpointId = parseInt((document.getElementById('aiGenEndpoint') as HTMLSelectElement).value);
@@ -6231,7 +6248,8 @@ async function fetchAIEndpoints(type: string) {
 
   const btn = document.getElementById('aiGenGenerateBtn') as HTMLButtonElement;
   btn.disabled = true;
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>Generating...';
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>'
+    + (mode === 'image' ? 'Generating image...' : 'Generating...');
 
   try {
     if (mode === 'text') {
@@ -6250,18 +6268,23 @@ async function fetchAIEndpoints(type: string) {
         endpoint_id: endpointId,
         prompt: prompt,
       });
-      aiGenLastImageUrl = result.image_url;
+      const imageUrl = result.images?.[0] || result.image_url || '';
+      aiGenLastImageUrl = imageUrl;
       const img = document.getElementById('aiGenResultImage') as HTMLImageElement;
-      img.src = result.image_url;
+      img.src = imageUrl;
       img.style.display = 'block';
       document.getElementById('aiGenResultText')!.style.display = 'none';
+      if (!imageUrl) {
+        toast('Image generated but no URL returned', true);
+      }
     }
     document.getElementById('aiGenResult')!.style.display = 'block';
   } catch (e: any) {
-    toast(e.message, true);
+    toast(e.message || 'Generation failed', true);
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate';
+    btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles me-1"></i>'
+      + (mode === 'image' ? 'Generate Image' : 'Generate');
   }
 };
 

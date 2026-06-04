@@ -251,6 +251,7 @@
   <div class="fab-menu" id="fabMenu">
     <button class="fab-menu-item" onclick="newChar();toggleFabMenu()"><i class="fa-solid fa-plus me-2" aria-hidden="true"></i>New Character</button>
     <button class="fab-menu-item" onclick="showView('dice');renderDiceTab();toggleFabMenu()"><i class="fa-solid fa-dice me-2" aria-hidden="true"></i>Roll Dice</button>
+    <button class="fab-menu-item" onclick="openAIGenModal('text', '');toggleFabMenu()"><i class="fa-solid fa-wand-magic-sparkles me-2" aria-hidden="true"></i>Generate with AI</button>
     <button class="fab-menu-item" onclick="showParty();toggleFabMenu()"><i class="fa-solid fa-flag me-2" aria-hidden="true"></i>Party View</button>
   </div>
 
@@ -292,7 +293,7 @@
           <div class="d-flex gap-2" id="aiGenActions">
             <button class="btn btn-success btn-sm flex-fill" id="aiGenInsertBtn" onclick="insertAIGenResult()"><i class="fa-solid fa-check me-1"></i>Insert</button>
             <button class="btn btn-warning btn-sm flex-fill" id="aiGenReplaceBtn" onclick="replaceAIGenResult()"><i class="fa-solid fa-rotate me-1"></i>Replace</button>
-            <button class="btn btn-outline-secondary btn-sm" onclick="regenerateWithAI()"><i class="fa-solid fa-arrows-rotate me-1"></i>Regenerate</button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="regenerateWithAI()"><i class="fa-solid fa-arrows-rotate me-1"></i>Generate Again</button>
           </div>
         </div>
       </div>

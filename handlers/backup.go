@@ -13,8 +13,20 @@ import (
 	"villum/db"
 )
 
+func getBackupDir() string {
+	dbPath := getDBPath()
+	if dbPath == "" {
+		return "backups"
+	}
+	base := filepath.Dir(dbPath)
+	if base == "." {
+		return "backups"
+	}
+	return filepath.Join(base, "backups")
+}
+
 func CreateBackup() (string, error) {
-	backupDir := "backups"
+	backupDir := getBackupDir()
 	if err := os.MkdirAll(backupDir, 0755); err != nil {
 		return "", fmt.Errorf("create backup dir: %w", err)
 	}
@@ -135,7 +147,7 @@ func PruneBackups() {
 		keepCount = 7
 	}
 
-	backupDir := "backups"
+	backupDir := getBackupDir()
 	entries, err := os.ReadDir(backupDir)
 	if err != nil {
 		return

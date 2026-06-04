@@ -560,6 +560,7 @@ func main() {
 		dm.POST("/oneshot-scenes/:id/monsters", handlers.CreateSceneMonster)
 
 		// AI Generation
+		dm.GET("/ai/endpoints", handlers.HandleListEnabledAIEndpoints)
 		dm.POST("/ai/generate/text", handlers.HandleTextGeneration)
 		dm.POST("/ai/generate/image", handlers.HandleImageGeneration)
 

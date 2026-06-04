@@ -152,6 +152,31 @@ func GetEnabledAIEndpointsByType(ctx context.Context, endpointType string) ([]mo
 	return out, nil
 }
 
+// AIEndpointInfo is a lightweight view of an AI endpoint safe for DM exposure.
+type AIEndpointInfo struct {
+	ID    int64  `json:"id"`
+	Name  string `json:"name"`
+	Model string `json:"model"`
+	Type  string `json:"type"`
+}
+
+// ListEnabledAIEndpoints returns only id, name, model, type for enabled endpoints
+// of the given type — safe for non-admin users (no API key or base URL exposed).
+func ListEnabledAIEndpoints(ctx context.Context, endpointType string) ([]AIEndpointInfo, error) {
+	ents, err := Client.AIEndpoint.Query().
+		Where(aiendpoint.Enabled(true), aiendpoint.TypeEQ(aiendpoint.Type(endpointType))).
+		Order(ent.Asc(aiendpoint.FieldName)).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list enabled %s ai endpoints: %w", endpointType, err)
+	}
+	out := make([]AIEndpointInfo, len(ents))
+	for i, e := range ents {
+		out[i] = AIEndpointInfo{ID: e.ID, Name: e.Name, Model: e.Model, Type: string(e.Type)}
+	}
+	return out, nil
+}
+
 func CheckAIEndpointNameUnique(ctx context.Context, name string, excludeID int64) (bool, error) {
 	q := Client.AIEndpoint.Query().Where(aiendpoint.Name(name))
 	if excludeID != 0 {

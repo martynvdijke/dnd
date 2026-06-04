@@ -33,6 +33,24 @@ func ListAIEndpoints(c *gin.Context) {
 	c.JSON(http.StatusOK, endpoints)
 }
 
+func HandleListEnabledAIEndpoints(c *gin.Context) {
+	endpointType := c.DefaultQuery("type", "")
+	if endpointType == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "type query parameter is required (text or image)"})
+		return
+	}
+	if endpointType != "text" && endpointType != "image" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "type must be 'text' or 'image'"})
+		return
+	}
+	endpoints, err := db.ListEnabledAIEndpoints(c.Request.Context(), endpointType)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list AI endpoints"})
+		return
+	}
+	c.JSON(http.StatusOK, endpoints)
+}
+
 func GetAIEndpoint(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {

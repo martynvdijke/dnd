@@ -187,7 +187,7 @@ func TriggerBackup(c *gin.Context) {
 }
 
 func ListBackups(c *gin.Context) {
-	backupDir := "backups"
+	backupDir := getBackupDir()
 	entries, err := os.ReadDir(backupDir)
 	if err != nil {
 		c.JSON(http.StatusOK, []string{})
