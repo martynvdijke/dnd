@@ -376,6 +376,13 @@ func buildRouter() *gin.Engine {
 		auth.POST("/recaps/:id/mark-sent", handlers.MarkRecapAsSent)
 	}
 
+	dm := r.Group("/api")
+	dm.Use(middleware.AuthRequired(), middleware.DMRequired(), middleware.CSRFRequired())
+	{
+		dm.GET("/compendium-monsters", handlers.ListCompendiumMonsters)
+		dm.GET("/compendium-monsters/:id", handlers.GetCompendiumMonster)
+	}
+
 	htmxGroup := r.Group("/")
 	htmxGroup.Use(middleware.AuthRequired(), middleware.CSRFRequired())
 	handlers.HtmxRegisterRoutes(htmxGroup)
@@ -1408,6 +1415,50 @@ func TestAdminCompendiumCRUD(t *testing.T) {
 	}
 }
 
+func TestCompendiumMonsters(t *testing.T) {
+	tc := newTestClient()
+	setupAdmin(t, tc)
+
+	// List all compendium monsters
+	resp := tc.get("/api/compendium-monsters", nil)
+	if resp.Code != 200 {
+		t.Fatalf("list compendium monsters failed: %d - %s", resp.Code, resp.Body.String())
+	}
+	var monsters []map[string]any
+	readJSON(resp, &monsters)
+	if len(monsters) < 10 {
+		t.Fatalf("expected >=10 compendium monsters, got %d", len(monsters))
+	}
+	t.Logf("Total compendium monsters: %d", len(monsters))
+
+	// Verify monster fields
+	first := monsters[0]
+	requiredFields := []string{"id", "name", "type", "size", "ac", "hp", "str", "dex", "con", "cr"}
+	for _, field := range requiredFields {
+		if _, ok := first[field]; !ok {
+			t.Fatalf("monster missing required field: %s", field)
+		}
+	}
+
+	// Get a specific monster by ID
+	monsterID := int64(first["id"].(float64))
+	resp = tc.get(fmt.Sprintf("/api/compendium-monsters/%d", monsterID), nil)
+	if resp.Code != 200 {
+		t.Fatalf("get compendium monster %d failed: %d - %s", monsterID, resp.Code, resp.Body.String())
+	}
+	var monster map[string]any
+	readJSON(resp, &monster)
+	if monster["name"] != first["name"] {
+		t.Fatalf("expected monster name %q, got %q", first["name"], monster["name"])
+	}
+	if _, ok := monster["special_abilities"]; !ok {
+		t.Fatal("monster detail missing special_abilities")
+	}
+	if _, ok := monster["actions"]; !ok {
+		t.Fatal("monster detail missing actions")
+	}
+}
+
 func TestSeedData(t *testing.T) {
 	var count int
 	db.DB.QueryRow("SELECT COUNT(*) FROM compendium_races").Scan(&count)
@@ -1423,6 +1474,12 @@ func TestSeedData(t *testing.T) {
 		t.Fatalf("expected >=200 spells, got %d", count)
 	}
 	t.Logf("Total spells seeded: %d", count)
+
+	db.DB.QueryRow("SELECT COUNT(*) FROM compendium_monsters").Scan(&count)
+	if count < 10 {
+		t.Fatalf("expected >=10 monsters, got %d", count)
+	}
+	t.Logf("Total monsters seeded: %d", count)
 
 	// Verify system/source fields are populated
 	var sys, src string
