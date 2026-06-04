@@ -1,3 +1,10 @@
+# [2.7.0](https://github.com/martynvdijke/dnd/compare/v2.6.0...v2.7.0) (2026-06-04)
+
+
+### Features
+
+* add AI prompt UI with DM endpoint & Docker-aware backups ([6136ade](https://github.com/martynvdijke/dnd/commit/6136ade411454b487b798ef4fdc01b75af0a1227))
+
 # [2.6.0](https://github.com/martynvdijke/dnd/compare/v2.5.2...v2.6.0) (2026-06-03)
 
 
