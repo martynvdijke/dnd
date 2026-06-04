@@ -163,8 +163,8 @@ func TestCompendiumAdminEntryCRUD(t *testing.T) {
 
 	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
 		auth.GET("/admin/compendium-schemas", ListCompendiumSchemas)
-		auth.GET("/admin/compendium-schemas/:schema_id/entries", ListCompendiumEntries)
-		auth.POST("/admin/compendium-schemas/:schema_id/entries", CreateCompendiumEntry)
+		auth.GET("/admin/compendium-schemas/:id/entries", ListCompendiumEntries)
+		auth.POST("/admin/compendium-schemas/:id/entries", CreateCompendiumEntry)
 		auth.GET("/admin/compendium-entries/:id", GetCompendiumEntry)
 		auth.PUT("/admin/compendium-entries/:id", UpdateCompendiumEntry)
 		auth.DELETE("/admin/compendium-entries/:id", DeleteCompendiumEntry)
@@ -286,7 +286,7 @@ func TestCompendiumAdminSearch(t *testing.T) {
 
 	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
 		auth.GET("/admin/compendium-schemas", ListCompendiumSchemas)
-		auth.POST("/admin/compendium-schemas/:schema_id/entries", CreateCompendiumEntry)
+		auth.POST("/admin/compendium-schemas/:id/entries", CreateCompendiumEntry)
 		auth.GET("/admin/compendium-search", SearchCompendiumEntries)
 	})
 
@@ -358,7 +358,7 @@ func TestCompendiumAdminImport(t *testing.T) {
 
 	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
 		auth.GET("/admin/compendium-schemas", ListCompendiumSchemas)
-		auth.POST("/admin/compendium-schemas/:schema_id/import/with-mapping", ImportCompendiumEntriesWithMapping)
+		auth.POST("/admin/compendium-schemas/:id/import/with-mapping", ImportCompendiumEntriesWithMapping)
 	})
 
 	// Get race schema id
@@ -441,8 +441,8 @@ func TestCompendiumAdminExport(t *testing.T) {
 
 	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
 		auth.GET("/admin/compendium-schemas", ListCompendiumSchemas)
-		auth.POST("/admin/compendium-schemas/:schema_id/entries", CreateCompendiumEntry)
-		auth.GET("/admin/compendium-schemas/:schema_id/export", ExportCompendiumEntries)
+		auth.POST("/admin/compendium-schemas/:id/entries", CreateCompendiumEntry)
+		auth.GET("/admin/compendium-schemas/:id/export", ExportCompendiumEntries)
 	})
 
 	// Get race schema id and create an entry
@@ -499,7 +499,7 @@ func TestCompendiumAdminImportLogs(t *testing.T) {
 
 	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
 		auth.GET("/admin/compendium-schemas", ListCompendiumSchemas)
-		auth.POST("/admin/compendium-schemas/:schema_id/import/with-mapping", ImportCompendiumEntriesWithMapping)
+		auth.POST("/admin/compendium-schemas/:id/import/with-mapping", ImportCompendiumEntriesWithMapping)
 		auth.GET("/admin/compendium-import-logs", ListCompendiumImportLogs)
 		auth.POST("/admin/compendium-import-logs/:id/rollback", RollbackCompendiumImport)
 	})
@@ -584,7 +584,7 @@ func TestCompendiumAdminDetectFields(t *testing.T) {
 
 	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
 		auth.GET("/admin/compendium-schemas", ListCompendiumSchemas)
-		auth.POST("/admin/compendium-schemas/:schema_id/import/detect", DetectImportFields)
+		auth.POST("/admin/compendium-schemas/:id/import/detect", DetectImportFields)
 	})
 
 	var raceID float64

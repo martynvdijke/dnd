@@ -165,7 +165,7 @@ func DeleteCompendiumSchema(c *gin.Context) {
 // ─── Entry CRUD ───
 
 func ListCompendiumEntries(c *gin.Context) {
-	schemaID, err := strconv.ParseInt(c.Param("schema_id"), 10, 64)
+	schemaID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid schema_id"})
 		return
@@ -285,7 +285,7 @@ func GetCompendiumEntry(c *gin.Context) {
 }
 
 func CreateCompendiumEntry(c *gin.Context) {
-	schemaID, err := strconv.ParseInt(c.Param("schema_id"), 10, 64)
+	schemaID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid schema_id"})
 		return
@@ -440,7 +440,7 @@ func SearchCompendiumEntries(c *gin.Context) {
 // ─── Import ───
 
 func ImportCompendiumEntries(c *gin.Context) {
-	schemaID, err := strconv.ParseInt(c.Param("schema_id"), 10, 64)
+	schemaID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid schema_id"})
 		return
@@ -642,7 +642,7 @@ func ImportCompendiumEntries(c *gin.Context) {
 // ─── Export ───
 
 func ExportCompendiumEntries(c *gin.Context) {
-	schemaID, err := strconv.ParseInt(c.Param("schema_id"), 10, 64)
+	schemaID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid schema_id"})
 		return
@@ -1071,7 +1071,7 @@ func HandleMigrateLegacy(c *gin.Context) {
 // DetectImportFields analyzes a JSON payload and returns all discovered fields
 // (including nested keys via dot notation) plus auto-suggested mapping to schema fields.
 func DetectImportFields(c *gin.Context) {
-	schemaID, err := strconv.ParseInt(c.Param("schema_id"), 10, 64)
+	schemaID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid schema_id"})
 		return
@@ -1243,7 +1243,7 @@ func getNestedValue(data map[string]interface{}, path string) interface{} {
 
 // ImportCompendiumEntriesWithMapping is the enhanced import that accepts field mappings.
 func ImportCompendiumEntriesWithMapping(c *gin.Context) {
-	schemaID, err := strconv.ParseInt(c.Param("schema_id"), 10, 64)
+	schemaID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid schema_id"})
 		return

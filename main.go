@@ -664,8 +664,8 @@ func main() {
 		admin.DELETE("/compendium-schemas/:id", handlers.DeleteCompendiumSchema)
 
 		// Compendium Entries (within a schema)
-		admin.GET("/compendium-schemas/:schema_id/entries", handlers.ListCompendiumEntries)
-		admin.POST("/compendium-schemas/:schema_id/entries", handlers.CreateCompendiumEntry)
+		admin.GET("/compendium-schemas/:id/entries", handlers.ListCompendiumEntries)
+		admin.POST("/compendium-schemas/:id/entries", handlers.CreateCompendiumEntry)
 		admin.GET("/compendium-entries/:id", handlers.GetCompendiumEntry)
 		admin.PUT("/compendium-entries/:id", handlers.UpdateCompendiumEntry)
 		admin.DELETE("/compendium-entries/:id", handlers.DeleteCompendiumEntry)
@@ -674,10 +674,10 @@ func main() {
 		admin.GET("/compendium-search", handlers.SearchCompendiumEntries)
 
 		// Compendium Import/Export
-		admin.POST("/compendium-schemas/:schema_id/import", handlers.ImportCompendiumEntries)
-		admin.POST("/compendium-schemas/:schema_id/import/with-mapping", handlers.ImportCompendiumEntriesWithMapping)
-		admin.POST("/compendium-schemas/:schema_id/import/detect", handlers.DetectImportFields)
-		admin.GET("/compendium-schemas/:schema_id/export", handlers.ExportCompendiumEntries)
+		admin.POST("/compendium-schemas/:id/import", handlers.ImportCompendiumEntries)
+		admin.POST("/compendium-schemas/:id/import/with-mapping", handlers.ImportCompendiumEntriesWithMapping)
+		admin.POST("/compendium-schemas/:id/import/detect", handlers.DetectImportFields)
+		admin.GET("/compendium-schemas/:id/export", handlers.ExportCompendiumEntries)
 
 		// Legacy Migration
 		admin.POST("/compendium/migrate-legacy", handlers.HandleMigrateLegacy)
