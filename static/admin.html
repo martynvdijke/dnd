@@ -32,10 +32,12 @@
 
 <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
   <li class="nav-item"><button class="nav-link active" id="tabUsersBtn" onclick="showAdminTab('users')"><i class="fa-solid fa-users me-1" aria-hidden="true"></i>Users</button></li>
+  <li class="nav-item"><button class="nav-link" id="tabSchemasBtn" onclick="showAdminTab('schemas')"><i class="fa-solid fa-sitemap me-1" aria-hidden="true"></i>Schemas</button></li>
   <li class="nav-item"><button class="nav-link" id="tabCompendiumBtn" onclick="showAdminTab('compendium')"><i class="fa-solid fa-book me-1" aria-hidden="true"></i>Compendium</button></li>
   <li class="nav-item"><button class="nav-link" id="tabBackupBtn" onclick="showAdminTab('backup')"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Backup</button></li>
   <li class="nav-item"><button class="nav-link" id="tabEmailBtn" onclick="showAdminTab('email')"><i class="fa-solid fa-envelope me-1" aria-hidden="true"></i>Email</button></li>
   <li class="nav-item"><button class="nav-link" id="tabAIEndpointsBtn" onclick="showAdminTab('ai-endpoints')"><i class="fa-solid fa-robot me-1" aria-hidden="true"></i>AI Endpoints</button></li>
+  <li class="nav-item"><button class="nav-link" id="tabImportBtn" onclick="showAdminTab('import')"><i class="fa-solid fa-upload me-1" aria-hidden="true"></i>Import</button></li>
 </ul>
 
 <div id="adminUsers">
@@ -76,6 +78,27 @@
         </div>
       </div>
       <div id="compEntries"><p class="text-muted">Select a type to view entries</p></div>
+    </div>
+  </div>
+</div>
+
+<div id="adminSchemas" style="display:none">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="fa-solid fa-sitemap me-2" aria-hidden="true"></i>Compendium Schemas</span>
+      <button class="btn btn-primary btn-sm" onclick="showAddSchema()"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i>New Schema</button>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0" id="schemaTable">
+          <thead><tr><th>Icon</th><th>Name</th><th>Slug</th><th>Description</th><th>Fields</th><th>Entries</th><th>Built-in</th><th style="width:180px">Actions</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-footer">
+      <button class="btn btn-outline-secondary btn-sm" onclick="loadSchemaEntries()"><i class="fa-solid fa-list me-1"></i>Browse Entries by Schema</button>
+      <span id="schemaEntryBrowser" class="ms-3"></span>
     </div>
   </div>
 </div>
@@ -165,6 +188,108 @@
         <table class="table table-hover mb-0" id="aiEndpointTable">
           <thead><tr><th>Name</th><th>Type</th><th>Model</th><th>Base URL</th><th>Tags</th><th>Enabled</th><th style="width:200px">Actions</th></tr></thead>
           <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="adminImport" style="display:none">
+  <div class="card mb-3">
+    <div class="card-header"><i class="fa-solid fa-upload me-2" aria-hidden="true"></i>Import Compendium Entries</div>
+    <div class="card-body">
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <label class="form-label">Target Schema</label>
+          <select id="importSchema" class="form-select" onchange="onImportSchemaChange()">
+            <option value="">— Select Schema —</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Duplicate Action</label>
+          <select id="importDedup" class="form-select">
+            <option value="skip">Skip duplicates</option>
+            <option value="overwrite">Overwrite duplicates</option>
+            <option value="create-new">Create as new (rename)</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Source</label>
+          <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm flex-fill" id="importFileBtn" onclick="document.getElementById('importFileInput').click()"><i class="fa-solid fa-file me-1"></i>Upload JSON</button>
+            <button class="btn btn-outline-secondary btn-sm flex-fill" onclick="showImportPaste()"><i class="fa-solid fa-paste me-1"></i>Paste JSON</button>
+            <button class="btn btn-outline-info btn-sm flex-fill" onclick="showImportFetch()"><i class="fa-solid fa-link me-1"></i>Fetch URL</button>
+          </div>
+          <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="handleImportFile(event)">
+        </div>
+      </div>
+
+      <!-- Paste JSON area (hidden) -->
+      <div id="importPasteArea" class="mb-3" style="display:none">
+        <label class="form-label">Paste JSON</label>
+        <textarea id="importPasteText" class="form-control font-monospace" rows="5" placeholder="[{ &quot;name&quot;: &quot;...&quot;, &quot;description&quot;: &quot;...&quot;, ... }]"></textarea>
+        <button class="btn btn-outline-primary btn-sm mt-2" onclick="useImportPaste()"><i class="fa-solid fa-arrow-right me-1"></i>Use This JSON</button>
+      </div>
+
+      <!-- Fetch URL area (hidden) -->
+      <div id="importFetchArea" class="mb-3" style="display:none">
+        <label class="form-label">Fetch from URL</label>
+        <div class="input-group">
+          <input type="url" id="importFetchUrl" class="form-control" placeholder="https://raw.githubusercontent.com/.../data.json">
+          <button class="btn btn-outline-primary" onclick="fetchImportUrl()"><i class="fa-solid fa-download me-1"></i>Fetch</button>
+        </div>
+        <small class="text-muted">Fetch JSON from a URL (e.g. dnd-data GitHub raw files)</small>
+      </div>
+
+      <!-- JSON preview table -->
+      <div id="importPreview" style="display:none">
+        <hr>
+        <h6 class="mb-2">JSON Preview <small class="text-muted" id="importRecordCount"></small></h6>
+        <div class="table-responsive mb-2" style="max-height:200px;overflow-y:auto">
+          <table class="table table-sm table-bordered mb-0" id="importPreviewTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <button class="btn btn-outline-primary btn-sm mb-3" onclick="autoDetectMapping()"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Auto-Detect Field Mapping</button>
+      </div>
+
+      <!-- Field mapping table -->
+      <div id="importMapping" style="display:none">
+        <hr>
+        <h6 class="mb-2">Field Mapping <small class="text-muted">Map JSON fields to schema fields</small></h6>
+        <div class="table-responsive mb-3">
+          <table class="table table-sm" id="importMappingTable">
+            <thead><tr><th>JSON Field</th><th>→</th><th>Schema Field</th><th>Required</th><th>Preview</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div id="importProgressArea" style="display:none">
+        <hr>
+        <div class="mb-2 d-flex justify-content-between">
+          <span id="importProgressText">Importing...</span>
+          <span id="importProgressPct">0%</span>
+        </div>
+        <div class="progress mb-2" style="height:20px">
+          <div id="importProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width:0%"></div>
+        </div>
+        <div id="importResults" class="mb-2"></div>
+      </div>
+
+      <!-- Import button -->
+      <button id="importStartBtn" class="btn btn-primary" onclick="startImport()" disabled><i class="fa-solid fa-play me-1"></i>Start Import</button>
+      <button class="btn btn-outline-secondary ms-1" onclick="resetImportForm()"><i class="fa-solid fa-rotate-left me-1"></i>Reset</button>
+
+      <!-- Import Logs -->
+      <hr>
+      <h6>Recent Import Logs</h6>
+      <div class="table-responsive" style="max-height:200px;overflow-y:auto">
+        <table class="table table-sm" id="importLogTable">
+          <thead><tr><th>Schema</th><th>File</th><th>Created</th><th>Total</th><th>Imported</th><th>Skipped</th><th>Errors</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="importLogBody"><tr><td colspan="9" class="text-muted text-center">Loading...</td></tr></tbody>
         </table>
       </div>
     </div>

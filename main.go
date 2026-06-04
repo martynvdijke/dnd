@@ -53,6 +53,7 @@ func main() {
 	handlers.SetMediaPath(mediaPath)
 
 	db.Seed()
+	handlers.SeedCompendiumSchemas()
 	handlers.SeedCraftingRecipes()
 	handlers.SetDBPath(dbPath)
 	middleware.StartCleanupTask()
@@ -650,10 +651,40 @@ func main() {
 		admin.DELETE("/ai-endpoints/:id", handlers.DeleteAIEndpoint)
 		admin.POST("/ai-endpoints/:id/test", handlers.TestAIEndpoint)
 
-		// Compendium CRUD
+		// Compendium CRUD (legacy)
 		admin.POST("/compendium/:type", handlers.AdminCreateCompendiumEntry)
 		admin.PUT("/compendium/:type/:id", handlers.AdminUpdateCompendiumEntry)
 		admin.DELETE("/compendium/:type/:id", handlers.AdminDeleteCompendiumEntry)
+
+		// Compendium Schema System (dynamic types)
+		admin.GET("/compendium-schemas", handlers.ListCompendiumSchemas)
+		admin.POST("/compendium-schemas", handlers.CreateCompendiumSchema)
+		admin.GET("/compendium-schemas/:id", handlers.GetCompendiumSchema)
+		admin.PUT("/compendium-schemas/:id", handlers.UpdateCompendiumSchema)
+		admin.DELETE("/compendium-schemas/:id", handlers.DeleteCompendiumSchema)
+
+		// Compendium Entries (within a schema)
+		admin.GET("/compendium-schemas/:schema_id/entries", handlers.ListCompendiumEntries)
+		admin.POST("/compendium-schemas/:schema_id/entries", handlers.CreateCompendiumEntry)
+		admin.GET("/compendium-entries/:id", handlers.GetCompendiumEntry)
+		admin.PUT("/compendium-entries/:id", handlers.UpdateCompendiumEntry)
+		admin.DELETE("/compendium-entries/:id", handlers.DeleteCompendiumEntry)
+
+		// Compendium Search (cross-type FTS5)
+		admin.GET("/compendium-search", handlers.SearchCompendiumEntries)
+
+		// Compendium Import/Export
+		admin.POST("/compendium-schemas/:schema_id/import", handlers.ImportCompendiumEntries)
+		admin.POST("/compendium-schemas/:schema_id/import/with-mapping", handlers.ImportCompendiumEntriesWithMapping)
+		admin.POST("/compendium-schemas/:schema_id/import/detect", handlers.DetectImportFields)
+		admin.GET("/compendium-schemas/:schema_id/export", handlers.ExportCompendiumEntries)
+
+		// Legacy Migration
+		admin.POST("/compendium/migrate-legacy", handlers.HandleMigrateLegacy)
+
+		// Import Logs
+		admin.GET("/compendium-import-logs", handlers.ListCompendiumImportLogs)
+		admin.POST("/compendium-import-logs/:id/rollback", handlers.RollbackCompendiumImport)
 	}
 
 	// Serve uploaded media files

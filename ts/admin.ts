@@ -54,15 +54,17 @@ async function init() {
 function showAdminTab(tab: string) {
   document.querySelectorAll('#adminTabs .nav-link').forEach(el => el.classList.remove('active'));
   document.getElementById('tab' + capitalize(tab) + 'Btn')?.classList.add('active');
-  const tabs = ['users', 'compendium', 'backup', 'email', 'ai-endpoints'];
+  const tabs = ['users', 'schemas', 'compendium', 'backup', 'email', 'ai-endpoints', 'import'];
   tabs.forEach(s => {
     const id = 'admin' + s.split('-').map((p, i) => i === 0 ? capitalize(p) : capitalize(p)).join('');
     document.getElementById(id)!.style.display = s === tab ? 'block' : 'none';
   });
   if (tab === 'users') loadUsers();
+  if (tab === 'schemas') loadSchemas();
   if (tab === 'backup') { loadBackupSettings(); loadBackupList(); }
   if (tab === 'email') loadEmailSettings();
   if (tab === 'ai-endpoints') loadAIEndpoints();
+  if (tab === 'import') { loadImportSchemas(); loadImportLogs(); }
 }
 (window as any).showAdminTab = showAdminTab;
 
@@ -263,6 +265,194 @@ function getCompFields(type: string): string {
     await api('DELETE', `/api/admin/compendium/${type}/${id}`);
     loadCompEntries();
     toast('Deleted');
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+// ─── Schemas ───
+
+async function loadSchemas() {
+  try {
+    const schemas = await api('GET', '/api/admin/compendium-schemas');
+    const tbody = document.querySelector('#schemaTable tbody')!;
+    tbody.innerHTML = schemas.map((s: any) => `
+      <tr>
+        <td style="font-size:1.3rem">📖</td>
+        <td><strong>${esc(s.display_name)}</strong></td>
+        <td><code>${esc(s.type_name)}</code></td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(s.display_name || '')}"></td>
+        <td>${s.fields ? s.fields.length : 0}</td>
+        <td><span class="badge badge-primary">${s.entry_count || 0}</span></td>
+        <td>-</td>
+        <td>
+          <button class="btn btn-outline-primary btn-sm" onclick="editSchema(${s.id})" title="Edit"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-outline-info btn-sm" onclick="browseSchemaEntries(${s.id},'${esc(s.display_name)}')" title="Entries"><i class="fa-solid fa-list"></i></button>
+          <button class="btn btn-outline-danger btn-sm" onclick="deleteSchema(${s.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+}
+(window as any).loadSchemas = loadSchemas;
+
+let schemaEditId: number | null = null;
+
+(window as any).showAddSchema = function () {
+  schemaEditId = null;
+  showModal('New Compendium Schema', getSchemaFormHtml(null));
+};
+
+(window as any).editSchema = async function (id: number) {
+  schemaEditId = id;
+  try {
+    const s = await api('GET', `/api/admin/compendium-schemas/${id}`);
+    showModal('Edit Schema: ' + esc(s.display_name), getSchemaFormHtml(s));
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+function getSchemaFormHtml(schema: any): string {
+  const s = schema || {};
+  const fields = s.fields || [{ name: '', label: '', type: 'text', required: false }];
+  return `
+    <input type="hidden" id="schemaId" value="${s.id || ''}">
+    <div class="mb-2"><label class="form-label">Display Name</label><input class="form-control" id="schemaDisplayName" value="${esc(s.display_name || '')}" placeholder="e.g. Magic Items"></div>
+    <div class="row g-2 mb-2">
+      <div class="col-12"><label class="form-label">Type Name (slug)</label><input class="form-control" id="schemaTypeName" value="${esc(s.type_name || '')}" placeholder="e.g. magic-items"></div>
+    </div>
+    <hr>
+    <label class="form-label fw-bold">Fields</label>
+    <div id="schemaFields">${fields.map((f: any, i: number) => getSchemaFieldHtml(f, i)).join('')}</div>
+    <button type="button" class="btn btn-sm btn-outline-secondary mt-1" onclick="addSchemaField()"><i class="fa-solid fa-plus me-1"></i>Add Field</button>
+    <hr>
+    <button class="btn btn-primary w-100" onclick="saveSchema()">${s.id ? 'Update' : 'Create'} Schema</button>
+  `;
+}
+
+function getSchemaFieldHtml(field: any, index: number): string {
+  return `<div class="schema-field-row row g-1 mb-1 align-items-end" id="sf-${index}">
+    <div class="col-3"><input class="form-control form-control-sm" placeholder="Key" id="sf-name-${index}" value="${esc(field.name || '')}"></div>
+    <div class="col-3"><input class="form-control form-control-sm" placeholder="Label" id="sf-label-${index}" value="${esc(field.label || '')}"></div>
+    <div class="col-3">
+      <select class="form-select form-select-sm" id="sf-type-${index}">
+        <option value="text" ${field.type === 'text' ? 'selected' : ''}>Text</option>
+        <option value="textarea" ${field.type === 'textarea' ? 'selected' : ''}>Textarea</option>
+        <option value="number" ${field.type === 'number' ? 'selected' : ''}>Number</option>
+        <option value="richtext" ${field.type === 'richtext' ? 'selected' : ''}>Rich Text</option>
+        <option value="boolean" ${field.type === 'boolean' ? 'selected' : ''}>Yes/No</option>
+        <option value="list" ${field.type === 'list' ? 'selected' : ''}>List</option>
+      </select>
+    </div>
+    <div class="col-2">
+      <div class="form-check form-switch mb-1">
+        <input class="form-check-input" type="checkbox" id="sf-req-${index}" ${field.required ? 'checked' : ''}>
+        <label class="form-check-label" style="font-size:0.75rem" for="sf-req-${index}">Req</label>
+      </div>
+    </div>
+    <div class="col-1">
+      <button class="btn btn-sm btn-outline-danger" onclick="removeSchemaField(${index})" title="Remove field"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </div>`;
+}
+
+(window as any).addSchemaField = function () {
+  const container = document.getElementById('schemaFields')!;
+  const index = container.children.length;
+  container.insertAdjacentHTML('beforeend', getSchemaFieldHtml({ key: '', label: '', type: 'text', required: false }, index));
+};
+
+(window as any).removeSchemaField = function (index: number) {
+  const el = document.getElementById('sf-' + index);
+  if (el) el.remove();
+};
+
+(window as any).saveSchema = async function () {
+  const display_name = (document.getElementById('schemaDisplayName') as HTMLInputElement).value.trim();
+  const type_name = (document.getElementById('schemaTypeName') as HTMLInputElement).value.trim();
+  if (!display_name || !type_name) { toast('Display Name and Type Name are required', true); return; }
+
+  const fields: any[] = [];
+  const container = document.getElementById('schemaFields')!;
+  for (let i = 0; i < container.children.length; i++) {
+    const name = (document.getElementById('sf-name-' + i) as HTMLInputElement)?.value?.trim();
+    if (!name) continue;
+    fields.push({
+      name,
+      label: (document.getElementById('sf-label-' + i) as HTMLInputElement)?.value?.trim() || name,
+      type: (document.getElementById('sf-type-' + i) as HTMLSelectElement)?.value || 'text',
+      required: (document.getElementById('sf-req-' + i) as HTMLInputElement)?.checked || false,
+    });
+  }
+
+  const body = { type_name, display_name, fields };
+  try {
+    if (schemaEditId) {
+      await api('PUT', `/api/admin/compendium-schemas/${schemaEditId}`, body);
+      toast('Schema updated');
+    } else {
+      await api('POST', '/api/admin/compendium-schemas', body);
+      toast('Schema created');
+    }
+    hideModal();
+    loadSchemas();
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+(window as any).deleteSchema = async function (id: number) {
+  if (!confirm('Delete this schema? This cannot be undone.')) return;
+  try {
+    await api('DELETE', `/api/admin/compendium-schemas/${id}`);
+    loadSchemas();
+    toast('Schema deleted');
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+(window as any).browseSchemaEntries = async function (schemaId: number, schemaName: string) {
+  try {
+    const entries = await api('GET', `/api/admin/compendium-entries?schema_id=${schemaId}&limit=50`);
+    const el = document.getElementById('schemaEntryBrowser')!;
+    if (!entries || entries.length === 0) {
+      el.innerHTML = `<p class="text-muted">No entries in <strong>${esc(schemaName)}</strong></p>`;
+      return;
+    }
+    const fields = Object.keys(entries[0].data || {});
+    const previewFields = fields.slice(0, 3);
+    el.innerHTML = `
+      <div class="card mt-2">
+        <div class="card-header py-2"><strong>${esc(schemaName)}</strong> — ${entries.length} entries</div>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0">
+            <thead><tr><th>Name</th>${previewFields.map(f => `<th>${esc(f)}</th>`).join('')}${fields.length > 3 ? '<th>...</th>' : ''}<th style="width:60px"></th></tr></thead>
+            <tbody>${entries.map((e: any) => `
+              <tr>
+                <td>${esc(e.name)}</td>
+                ${previewFields.map(f => `<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(String(e.data?.[f] || ''))}</td>`).join('')}
+                ${fields.length > 3 ? '<td>…</td>' : ''}
+                <td><button class="btn btn-outline-danger btn-sm py-0" onclick="deleteSchemaEntryById(${e.id})" title="Delete"><i class="fa-solid fa-trash"></i></button></td>
+              </tr>
+            `).join('')}</tbody>
+          </table>
+        </div>
+      </div>`;
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+(window as any).deleteSchemaEntryById = async function (entryId: number) {
+  if (!confirm('Delete this entry?')) return;
+  try {
+    await api('DELETE', `/api/admin/compendium-entries/${entryId}`);
+    toast('Entry deleted');
+    loadSchemas();
   } catch (e: any) {
     toast(e.message, true);
   }
@@ -514,6 +704,281 @@ function toggleAIEndpointFields() {
   }
   if (btn) btn.innerHTML = '<i class="fa-solid fa-flask"></i>';
 };
+
+// ─── Import Wizard ───
+
+let importJsonData: { records: any[], filename: string } | null = null;
+let importMapping: { jsonField: string, schemaField: string, schemaLabel: string, required: boolean, preview: string }[] = [];
+
+async function loadImportSchemas() {
+  try {
+    const schemas = await api('GET', '/api/admin/compendium-schemas');
+    const sel = document.getElementById('importSchema') as HTMLSelectElement;
+    sel.innerHTML = '<option value="">— Select Schema —</option>' + schemas.map((s: any) => `<option value="${s.id}">${esc(s.display_name)} (${esc(s.type_name)})</option>`).join('');
+  } catch (e: any) { toast(e.message, true); }
+}
+
+async function loadImportLogs() {
+  try {
+    const logs = await api('GET', '/api/admin/compendium-import-logs');
+    const tbody = document.getElementById('importLogBody')!;
+    if (!logs.length) {
+      tbody.innerHTML = '<tr><td colspan="9" class="text-muted text-center">No imports yet</td></tr>';
+      return;
+    }
+    tbody.innerHTML = logs.map((l: any) => {
+      const summary = l.summary || {};
+      const total = summary.total || l.total_entries || 0;
+      const imported = summary.imported || l.imported_entries || 0;
+      const skipped = summary.skipped || l.skipped_entries || 0;
+      const errors = summary.errors || l.error_entries || 0;
+      const statusBadge = l.status === 'completed' ? 'bg-success' : l.status === 'failed' ? 'bg-danger' : l.status === 'rolled_back' ? 'bg-warning text-dark' : 'bg-secondary';
+      return `<tr>
+        <td>${esc(l.schema_name || l.schema_id || '-')}</td>
+        <td>${esc(l.filename || '-')}</td>
+        <td style="white-space:nowrap">${l.created_at || '-'}</td>
+        <td>${total}</td>
+        <td>${imported}</td>
+        <td>${skipped}</td>
+        <td>${errors}</td>
+        <td><span class="badge ${statusBadge}">${l.status}</span></td>
+        <td>${l.status === 'completed' ? `<button class="btn btn-outline-warning btn-sm" onclick="rollbackImport(${l.id})">Rollback</button>` : '-'}</td>
+      </tr>`;
+    }).join('');
+  } catch (e: any) { toast(e.message, true); }
+}
+
+(window as any).rollbackImport = async function (id: number) {
+  if (!confirm('Roll back this import? This will delete imported entries. Cannot be undone.')) return;
+  try {
+    await api('POST', `/api/admin/compendium-import-logs/${id}/rollback`);
+    toast('Import rolled back');
+    loadImportLogs();
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).onImportSchemaChange = function () {
+  document.getElementById('importPreview')!.style.display = 'none';
+  document.getElementById('importMapping')!.style.display = 'none';
+  (document.getElementById('importStartBtn') as HTMLButtonElement).disabled = true;
+};
+
+(window as any).showImportPaste = function () {
+  document.getElementById('importPasteArea')!.style.display = 'block';
+  document.getElementById('importFetchArea')!.style.display = 'none';
+};
+
+(window as any).showImportFetch = function () {
+  document.getElementById('importFetchArea')!.style.display = 'block';
+  document.getElementById('importPasteArea')!.style.display = 'none';
+};
+
+function handleImportFile(event: Event) {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    try {
+      const data = JSON.parse(e.target?.result as string);
+      setImportJsonData(data, file.name);
+    } catch (err: any) {
+      toast('Invalid JSON file: ' + err.message, true);
+    }
+  };
+  reader.readAsText(file);
+}
+(window as any).handleImportFile = handleImportFile;
+
+function useImportPaste() {
+  const text = (document.getElementById('importPasteText') as HTMLTextAreaElement).value.trim();
+  if (!text) { toast('Paste some JSON first', true); return; }
+  try {
+    const data = JSON.parse(text);
+    setImportJsonData(data, 'pasted.json');
+  } catch (err: any) {
+    toast('Invalid JSON: ' + err.message, true);
+  }
+}
+(window as any).useImportPaste = useImportPaste;
+
+async function fetchImportUrl() {
+  const url = (document.getElementById('importFetchUrl') as HTMLInputElement).value.trim();
+  if (!url) { toast('Enter a URL', true); return; }
+  const btn = document.querySelector('#importFetchArea .btn') as HTMLElement;
+  if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Fetching...';
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    setImportJsonData(data, url.split('/').pop() || 'remote.json');
+  } catch (err: any) {
+    toast('Fetch failed: ' + err.message, true);
+  }
+  if (btn) btn.innerHTML = '<i class="fa-solid fa-download me-1"></i> Fetch';
+}
+(window as any).fetchImportUrl = fetchImportUrl;
+
+function setImportJsonData(data: any, filename: string) {
+  const arr = Array.isArray(data) ? data : [data];
+  if (!arr.length) { toast('JSON has no records', true); return; }
+  importJsonData = { records: arr, filename };
+  const preview = document.getElementById('importPreview')!;
+  preview.style.display = 'block';
+  document.getElementById('importRecordCount')!.textContent = arr.length + ' records';
+  const keys = [...new Set(arr.flatMap((r: any) => Object.keys(r)))];
+  const thead = document.getElementById('importPreviewTable')!.querySelector('thead')!;
+  const tbody = document.getElementById('importPreviewTable')!.querySelector('tbody')!;
+  thead.innerHTML = '<tr>' + keys.slice(0, 6).map((k: string) => `<th>${esc(k)}</th>`).join('') + (keys.length > 6 ? '<th>…</th>' : '') + '</tr>';
+  tbody.innerHTML = arr.slice(0, 5).map((r: any) =>
+    '<tr>' + keys.slice(0, 6).map((k: string) => {
+      const v = getNestedValue(r, k);
+      return `<td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(v != null ? String(v) : '-')}</td>`;
+    }).join('') + (keys.length > 6 ? '<td>…</td>' : '') + '</tr>'
+  ).join('');
+  document.getElementById('importMapping')!.style.display = 'none';
+  importMapping = [];
+  (document.getElementById('importStartBtn') as HTMLButtonElement).disabled = true;
+  toast('Loaded ' + arr.length + ' records from ' + filename);
+}
+
+function getNestedValue(obj: any, path: string): any {
+  return path.split('.').reduce((o, k) => o != null ? o[k] : undefined, obj);
+}
+
+function discoverKeys(obj: any, prefix = ''): string[] {
+  let keys: string[] = [];
+  for (const k of Object.keys(obj)) {
+    const full = prefix ? prefix + '.' + k : k;
+    const v = obj[k];
+    if (v !== null && typeof v === 'object' && !Array.isArray(v)) {
+      keys.push(...discoverKeys(v, full));
+    } else {
+      keys.push(full);
+    }
+  }
+  return keys;
+}
+
+function autoDetectMapping() {
+  if (!importJsonData || !importJsonData.records.length) { toast('No data loaded', true); return; }
+  const schemaId = parseInt((document.getElementById('importSchema') as HTMLSelectElement).value, 10);
+  if (!schemaId) { toast('Select a target schema first', true); return; }
+  api('GET', '/api/admin/compendium-schemas').then((schemas: any[]) => {
+    const schema = schemas.find(s => s.id === schemaId);
+    if (!schema) { toast('Schema not found', true); return; }
+    const schemaFields = schema.fields || [];
+    const sample = importJsonData!.records[0];
+    const jsonKeys = discoverKeys(sample);
+    const mapping = jsonKeys.map((jk: string) => {
+      const lc = jk.toLowerCase();
+      let match = schemaFields.find((f: any) => f.name.toLowerCase() === lc || f.label.toLowerCase() === lc);
+      if (!match) match = schemaFields.find((f: any) => lc.includes(f.name.toLowerCase()) || f.name.toLowerCase().includes(lc));
+      return {
+        jsonField: jk,
+        schemaField: match ? match.name : '',
+        schemaLabel: match ? match.label : '(unmapped)',
+        required: match ? match.required : false,
+        preview: String(getNestedValue(sample, jk) ?? '').slice(0, 60)
+      };
+    });
+    importMapping = mapping;
+    renderMappingTable(schemaFields);
+    document.getElementById('importMapping')!.style.display = 'block';
+    (document.getElementById('importStartBtn') as HTMLButtonElement).disabled = false;
+    toast('Detected ' + mapping.filter((m: any) => m.schemaField).length + ' mapped fields');
+  }).catch((e: any) => toast(e.message, true));
+}
+(window as any).autoDetectMapping = autoDetectMapping;
+
+function renderMappingTable(schemaFields: any[]) {
+  const tbody = document.getElementById('importMappingTable')!.querySelector('tbody')!;
+  tbody.innerHTML = importMapping.map((m, i) => {
+    const options = '<option value="">(ignore)</option>' + schemaFields.map(f =>
+      `<option value="${esc(f.name)}" ${m.schemaField === f.name ? 'selected' : ''}>${esc(f.label)}</option>`
+    ).join('');
+    return `<tr>
+      <td><code>${esc(m.jsonField)}</code></td>
+      <td>→</td>
+      <td><select class="form-select form-select-sm" onchange="updateMapping(${i}, this.value)">${options}</select></td>
+      <td>${m.required ? '<span class="text-danger">*</span>' : ''}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(m.preview)}</td>
+    </tr>`;
+  }).join('');
+}
+
+(window as any).updateMapping = function (idx: number, schemaField: string) {
+  importMapping[idx].schemaField = schemaField;
+};
+
+async function startImport() {
+  const schemaId = parseInt((document.getElementById('importSchema') as HTMLSelectElement).value, 10);
+  if (!schemaId) { toast('Select a schema', true); return; }
+  if (!importJsonData || !importJsonData.records.length) { toast('No data to import', true); return; }
+  const dedup = (document.getElementById('importDedup') as HTMLSelectElement).value;
+  const mapping = importMapping.filter(m => m.schemaField).map(m => ({
+    source_field: m.jsonField,
+    schema_field: m.schemaField
+  }));
+  const bar = document.getElementById('importProgressBar')!;
+  const pct = document.getElementById('importProgressPct')!;
+  const text = document.getElementById('importProgressText')!;
+  const results = document.getElementById('importResults')!;
+  const btn = document.getElementById('importStartBtn') as HTMLButtonElement;
+  document.getElementById('importProgressArea')!.style.display = 'block';
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Importing...';
+  const records = importJsonData.records;
+  const batchSize = 50;
+  let totalImported = 0, totalSkipped = 0, totalErrors = 0;
+  for (let i = 0; i < records.length; i += batchSize) {
+    const batch = records.slice(i, i + batchSize);
+    const pctDone = Math.round((i / records.length) * 100);
+    bar.style.width = pctDone + '%';
+    pct.textContent = pctDone + '%';
+    text.textContent = 'Importing records ' + (i + 1) + '-' + Math.min(i + batchSize, records.length) + ' of ' + records.length + '...';
+    try {
+      const res = await api('POST', '/api/admin/compendium-import', {
+        schema_id: schemaId,
+        entries: batch,
+        dedup_action: dedup,
+        field_mapping: mapping,
+        filename: importJsonData.filename || 'import.json'
+      });
+      totalImported += res.imported || 0;
+      totalSkipped += res.skipped || 0;
+      totalErrors += (res.errors || []).length;
+    } catch (e: any) {
+      totalErrors += batch.length;
+      results.innerHTML += `<div class="text-danger small">Batch ${Math.floor(i / batchSize) + 1} failed: ${esc(e.message)}</div>`;
+    }
+  }
+  bar.style.width = '100%';
+  pct.textContent = '100%';
+  text.textContent = 'Import complete';
+  results.innerHTML = `<div class="alert alert-success mb-0 py-2">
+    <strong>Done!</strong> Imported ${totalImported}, Skipped ${totalSkipped}, Errors ${totalErrors} of ${records.length} records
+  </div>`;
+  btn.disabled = false;
+  btn.innerHTML = '<i class="fa-solid fa-play me-1"></i>Start Import';
+  loadImportLogs();
+}
+(window as any).startImport = startImport;
+
+function resetImportForm() {
+  importJsonData = null;
+  importMapping = [];
+  document.getElementById('importPreview')!.style.display = 'none';
+  document.getElementById('importMapping')!.style.display = 'none';
+  document.getElementById('importProgressArea')!.style.display = 'none';
+  document.getElementById('importPasteArea')!.style.display = 'none';
+  document.getElementById('importFetchArea')!.style.display = 'none';
+  (document.getElementById('importPasteText') as HTMLTextAreaElement).value = '';
+  (document.getElementById('importFetchUrl') as HTMLInputElement).value = '';
+  (document.getElementById('importFileInput') as HTMLInputElement).value = '';
+  (document.getElementById('importStartBtn') as HTMLButtonElement).disabled = true;
+}
+(window as any).resetImportForm = resetImportForm;
 
 // ─── Utils ───
 
