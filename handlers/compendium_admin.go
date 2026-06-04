@@ -1003,11 +1003,20 @@ func SeedCompendiumSchemas() {
 
 	for _, s := range schemas {
 		fieldsJSON, _ := json.Marshal(s.Fields)
-		_, err := db.DB.Exec(`INSERT OR IGNORE INTO compendium_schemas(type_name, display_name, fields) VALUES(?,?,?)`,
-			s.TypeName, s.DisplayName, string(fieldsJSON))
+		// Try UPDATE first — existing schemas get new fields without changing ID
+		result, err := db.DB.Exec(`UPDATE compendium_schemas SET display_name=?, fields=? WHERE type_name=?`,
+			s.DisplayName, string(fieldsJSON), s.TypeName)
 		if err != nil {
-			// Log but continue — schema may already exist
-			fmt.Printf("Warning: seed schema %s: %v\n", s.TypeName, err)
+			fmt.Printf("Warning: update schema %s: %v\n", s.TypeName, err)
+			continue
+		}
+		rows, _ := result.RowsAffected()
+		if rows == 0 {
+			_, err := db.DB.Exec(`INSERT INTO compendium_schemas(type_name, display_name, fields) VALUES(?,?,?)`,
+				s.TypeName, s.DisplayName, string(fieldsJSON))
+			if err != nil {
+				fmt.Printf("Warning: insert schema %s: %v\n", s.TypeName, err)
+			}
 		}
 	}
 }
