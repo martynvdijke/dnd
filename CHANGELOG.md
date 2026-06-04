@@ -1,3 +1,10 @@
+## [2.9.3](https://github.com/martynvdijke/dnd/compare/v2.9.2...v2.9.3) (2026-06-04)
+
+
+### Bug Fixes
+
+* add missing /api/admin/compendium-import route for frontend JSON import ([3db8f46](https://github.com/martynvdijke/dnd/commit/3db8f4625f360894376b66e48415e57075928e93))
+
 ## [2.9.2](https://github.com/martynvdijke/dnd/compare/v2.9.1...v2.9.2) (2026-06-04)
 
 
