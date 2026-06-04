@@ -267,6 +267,23 @@ func AdminCreateCompendiumEntry(c *gin.Context) {
 		}
 		id, _ := result.LastInsertId()
 		c.JSON(http.StatusCreated, gin.H{"id": id})
+	case "monsters":
+		var m models.CompendiumMonster
+		if err := c.ShouldBindJSON(&m); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		if m.Source == "" {
+			m.Source = "srd"
+		}
+		result, err := db.DB.Exec(`INSERT INTO compendium_monsters(name,type,size,ac,hp,str,dex,con,int_,wis,cha,cr,source,description) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+			m.Name, m.Type, m.Size, m.AC, m.HP, m.Str, m.Dex, m.Con, m.Int, m.Wis, m.Cha, m.CR, m.Source, m.Description)
+		if err != nil {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
+		id, _ := result.LastInsertId()
+		c.JSON(http.StatusCreated, gin.H{"id": id})
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{"error": "unknown type: " + entryType})
 	}
@@ -325,6 +342,14 @@ func AdminUpdateCompendiumEntry(c *gin.Context) {
 		}
 		db.DB.Exec(`UPDATE compendium_equipment SET name=?,category=?,cost=?,weight=?,description=?,system=?,source=? WHERE id=?`,
 			e.Name, e.Category, e.Cost, e.Weight, e.Description, e.System, e.Source, entryID)
+	case "monsters":
+		var m models.CompendiumMonster
+		if err := c.ShouldBindJSON(&m); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		db.DB.Exec(`UPDATE compendium_monsters SET name=?,type=?,size=?,ac=?,hp=?,str=?,dex=?,con=?,int_=?,wis=?,cha=?,cr=?,source=?,description=? WHERE id=?`,
+			m.Name, m.Type, m.Size, m.AC, m.HP, m.Str, m.Dex, m.Con, m.Int, m.Wis, m.Cha, m.CR, m.Source, m.Description, entryID)
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{"error": "unknown type"})
 		return
@@ -348,6 +373,8 @@ func AdminDeleteCompendiumEntry(c *gin.Context) {
 		db.DB.Exec("DELETE FROM compendium_backgrounds WHERE id=?", entryID)
 	case "equipment":
 		db.DB.Exec("DELETE FROM compendium_equipment WHERE id=?", entryID)
+	case "monsters":
+		db.DB.Exec("DELETE FROM compendium_monsters WHERE id=?", entryID)
 	default:
 		c.JSON(http.StatusBadRequest, gin.H{"error": "unknown type"})
 		return

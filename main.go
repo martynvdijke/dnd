@@ -143,6 +143,7 @@ func main() {
 		auth.GET("/compendium/feats", handlers.ListCompendiumFeats)
 		auth.GET("/compendium/backgrounds", handlers.ListCompendiumBackgrounds)
 		auth.GET("/compendium/equipment", handlers.ListCompendiumEquipment)
+		auth.GET("/compendium/monsters", handlers.ListCompendiumMonsters)
 		auth.GET("/compendium/search", handlers.SearchCompendium)
 		auth.GET("/search", handlers.HandleSearch)
 

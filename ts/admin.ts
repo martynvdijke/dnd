@@ -229,6 +229,29 @@ function getCompFields(type: string): string {
           <div class="col-6"><label class="form-label">Speed</label><input class="form-control" id="compSpeed" type="number" value="30"></div>
           <div class="col-6"><label class="form-label">Size</label><input class="form-control" id="compSize" value="Medium"></div>
         </div>`;
+    case 'monsters':
+      return `
+        <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="compName"></div>
+        <div class="row g-3 mb-3">
+          <div class="col-6"><label class="form-label">Type</label><input class="form-control" id="compTypeMonster" placeholder="e.g. beast, humanoid"></div>
+          <div class="col-6"><label class="form-label">Size</label><input class="form-control" id="compSizeMonster" value="Medium"></div>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-4"><label class="form-label">AC</label><input class="form-control" id="compAC" type="number" value="10"></div>
+          <div class="col-4"><label class="form-label">HP</label><input class="form-control" id="compHP" type="number" value="10"></div>
+          <div class="col-4"><label class="form-label">CR</label><input class="form-control" id="compCR" value="0"></div>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-4"><label class="form-label">STR</label><input class="form-control" id="compStr" type="number" value="10"></div>
+          <div class="col-4"><label class="form-label">DEX</label><input class="form-control" id="compDex" type="number" value="10"></div>
+          <div class="col-4"><label class="form-label">CON</label><input class="form-control" id="compCon" type="number" value="10"></div>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-4"><label class="form-label">INT</label><input class="form-control" id="compInt" type="number" value="10"></div>
+          <div class="col-4"><label class="form-label">WIS</label><input class="form-control" id="compWis" type="number" value="10"></div>
+          <div class="col-4"><label class="form-label">CHA</label><input class="form-control" id="compCha" type="number" value="10"></div>
+        </div>
+        <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="compDesc" rows="3"></textarea></div>`;
     default:
       return `
         <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="compName"></div>
@@ -246,6 +269,19 @@ function getCompFields(type: string): string {
     entry.description = (document.getElementById('compDesc') as HTMLTextAreaElement).value;
     entry.speed = +(document.getElementById('compSpeed') as HTMLInputElement).value || 30;
     entry.size = (document.getElementById('compSize') as HTMLInputElement).value || 'Medium';
+  } else if (type === 'monsters') {
+    entry.type = (document.getElementById('compTypeMonster') as HTMLInputElement).value;
+    entry.size = (document.getElementById('compSizeMonster') as HTMLInputElement).value || 'Medium';
+    entry.ac = +(document.getElementById('compAC') as HTMLInputElement).value || 10;
+    entry.hp = +(document.getElementById('compHP') as HTMLInputElement).value || 10;
+    entry.cr = (document.getElementById('compCR') as HTMLInputElement).value || '0';
+    entry.str = +(document.getElementById('compStr') as HTMLInputElement).value || 10;
+    entry.dex = +(document.getElementById('compDex') as HTMLInputElement).value || 10;
+    entry.con = +(document.getElementById('compCon') as HTMLInputElement).value || 10;
+    entry.int = +(document.getElementById('compInt') as HTMLInputElement).value || 10;
+    entry.wis = +(document.getElementById('compWis') as HTMLInputElement).value || 10;
+    entry.cha = +(document.getElementById('compCha') as HTMLInputElement).value || 10;
+    entry.description = (document.getElementById('compDesc') as HTMLTextAreaElement).value;
   } else {
     entry.description = (document.getElementById('compDesc') as HTMLTextAreaElement).value;
   }
