@@ -1,3 +1,10 @@
+## [2.9.1](https://github.com/martynvdijke/dnd/compare/v2.9.0...v2.9.1) (2026-06-04)
+
+
+### Bug Fixes
+
+* show actual error reasons in AI endpoint, fix JSON import schema change hiding preview, improve GitHub fetch error messages ([3a7c562](https://github.com/martynvdijke/dnd/commit/3a7c562af7e700a179c43f8e55d498d90a3ff2fa))
+
 # [2.9.0](https://github.com/martynvdijke/dnd/compare/v2.8.1...v2.9.0) (2026-06-04)
 
 
