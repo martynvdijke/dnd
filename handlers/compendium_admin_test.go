@@ -639,6 +639,138 @@ func TestCompendiumAdminDetectFields(t *testing.T) {
 	})
 }
 
+func TestCompendiumAdminBatchOps(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	SeedCompendiumSchemas()
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.GET("/admin/compendium-schemas", ListCompendiumSchemas)
+		auth.POST("/admin/compendium-schemas/:id/entries", CreateCompendiumEntry)
+		auth.GET("/admin/compendium-entries/:id", GetCompendiumEntry)
+		auth.POST("/admin/compendium-entries/batch-delete", BatchDeleteCompendiumEntries)
+		auth.POST("/admin/compendium-entries/batch-update", BatchUpdateCompendiumEntries)
+	})
+
+	// Get race schema id
+	var raceID float64
+	{
+		w := testutil.Get(t, r, "/api/admin/compendium-schemas")
+		var schemas []map[string]any
+		testutil.ParseJSON(t, w, &schemas)
+		for _, s := range schemas {
+			if s["type_name"] == "race" {
+				raceID = s["id"].(float64)
+				break
+			}
+		}
+		if raceID == 0 {
+			t.Fatal("race schema not found")
+		}
+	}
+
+	// Create 2 entries for batch ops
+	var id1, id2 float64
+	testutil.PostJSON(t, r, "/api/admin/compendium-schemas/"+formatInt(raceID)+"/entries", map[string]any{
+		"data": map[string]any{"name": "BatchDel1", "description": "To delete", "speed": 30, "size": "Medium"},
+	})
+	w1 := testutil.PostJSON(t, r, "/api/admin/compendium-schemas/"+formatInt(raceID)+"/entries", map[string]any{
+		"data": map[string]any{"name": "BatchDel2", "description": "Also delete", "speed": 25, "size": "Small"},
+	})
+	var r1 map[string]any
+	testutil.ParseJSON(t, w1, &r1)
+	id1 = r1["id"].(float64)
+
+	w2 := testutil.PostJSON(t, r, "/api/admin/compendium-schemas/"+formatInt(raceID)+"/entries", map[string]any{
+		"data": map[string]any{"name": "BatchUpd1", "description": "To update", "speed": 30, "size": "Medium"},
+	})
+	var r2 map[string]any
+	testutil.ParseJSON(t, w2, &r2)
+	id2 = r2["id"].(float64)
+
+	t.Run("batch delete removes entries", func(t *testing.T) {
+		w := testutil.PostJSON(t, r, "/api/admin/compendium-entries/batch-delete", map[string]any{
+			"ids": []float64{id1},
+		})
+		testutil.AssertStatus(t, w, 200)
+		// Verify deletion
+		w2 := testutil.Get(t, r, "/api/admin/compendium-entries/"+formatInt(id1))
+		testutil.AssertStatus(t, w2, 404)
+	})
+
+	t.Run("batch update modifies entries", func(t *testing.T) {
+		w := testutil.PostJSON(t, r, "/api/admin/compendium-entries/batch-update", map[string]any{
+			"ids":  []float64{id2},
+			"data": map[string]any{"source": "batch_updated"},
+		})
+		testutil.AssertStatus(t, w, 200)
+		// Verify update
+		w2 := testutil.Get(t, r, "/api/admin/compendium-entries/"+formatInt(id2))
+		var entry map[string]any
+		testutil.ParseJSON(t, w2, &entry)
+		data := entry["data"].(map[string]any)
+		if data["source"] != "batch_updated" {
+			t.Fatalf("expected source 'batch_updated', got %v", data["source"])
+		}
+	})
+}
+
+func TestCompendiumAdminMonsterLibrary(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	SeedCompendiumSchemas()
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.POST("/admin/compendium/:type", AdminCreateCompendiumEntry)
+		auth.PUT("/admin/compendium/:type/:id", AdminUpdateCompendiumEntry)
+		auth.DELETE("/admin/compendium/:type/:id", AdminDeleteCompendiumEntry)
+	})
+
+	var monsterID float64
+
+	t.Run("create monster entry returns 201", func(t *testing.T) {
+		w := testutil.PostJSON(t, r, "/api/admin/compendium/monsters", map[string]any{
+			"name": "Test Dragon",
+			"type": "dragon",
+			"cr":   "12",
+			"ac":   18,
+			"hp":   200,
+		})
+		testutil.AssertStatus(t, w, 201)
+		var result map[string]any
+		testutil.ParseJSON(t, w, &result)
+		id, ok := result["id"].(float64)
+		if !ok {
+			t.Fatal("response missing id")
+		}
+		monsterID = id
+	})
+
+	t.Run("update monster entry returns 200", func(t *testing.T) {
+		if monsterID == 0 {
+			t.Skip("no monster id")
+		}
+		w := testutil.PutJSON(t, r, "/api/admin/compendium/monsters/"+formatInt(monsterID), map[string]any{
+			"name": "Updated Dragon",
+			"type": "dragon",
+			"cr":   "15",
+			"ac":   20,
+			"hp":   250,
+		})
+		testutil.AssertStatus(t, w, 200)
+	})
+
+	t.Run("delete monster entry returns 200", func(t *testing.T) {
+		if monsterID == 0 {
+			t.Skip("no monster id")
+		}
+		w := testutil.Delete(t, r, "/api/admin/compendium/monsters/"+formatInt(monsterID))
+		testutil.AssertStatus(t, w, 200)
+	})
+}
+
 // formatInt formats a float64 as an integer string (no decimals)
 func formatInt(v float64) string {
 	return strconv.FormatInt(int64(v), 10)

@@ -179,6 +179,48 @@ func TestCampaignUnassignsCharacters(t *testing.T) {
 	})
 }
 
+func TestCampaignMonsterRoster(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCampaign(t, 1, "Roster Campaign", "Tester Party", 1)
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.GET("/htmx/campaigns/:id/monster-roster", HtmxCampaignMonsterRoster)
+		auth.POST("/htmx/campaigns/:id/monster-roster", HtmxAddCampaignMonster)
+		auth.DELETE("/htmx/campaigns/:id/monster-roster/:rid", HtmxRemoveCampaignMonster)
+	})
+
+	t.Run("list roster returns 200", func(t *testing.T) {
+		w := testutil.Get(t, r, "/api/htmx/campaigns/1/monster-roster")
+		testutil.AssertStatus(t, w, 200)
+		if len(w.Body.String()) == 0 {
+			t.Fatal("expected non-empty HTML response")
+		}
+	})
+
+	t.Run("add monster returns 200", func(t *testing.T) {
+		// HTMX handler uses PostForm, so send URL-encoded form data
+		// compendium_monster_id is NOT NULL in the schema, so use a seeded compendium monster
+		w := testutil.PostForm(t, r, "/api/htmx/campaigns/1/monster-roster", map[string]string{
+			"compendium_monster_id": "1",
+		})
+		testutil.AssertStatus(t, w, 200)
+	})
+
+	t.Run("remove monster returns 200", func(t *testing.T) {
+		// Seed a roster entry directly
+		// Need to provide compendium_monster_id since it's NOT NULL
+		_, err := db.DB.Exec(`INSERT INTO campaign_monster_roster(id, campaign_id, compendium_monster_id, name)
+			VALUES(2, 1, 1, 'Test Monster')`)
+		if err != nil {
+			t.Fatalf("seed roster: %v", err)
+		}
+		w := testutil.Delete(t, r, "/api/htmx/campaigns/1/monster-roster/2")
+		testutil.AssertStatus(t, w, 200)
+	})
+}
+
 func TestCampaignAuthorization(t *testing.T) {
 	testutil.NewDB(t)
 	defer testutil.CloseDB(t)

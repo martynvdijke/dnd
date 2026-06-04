@@ -274,6 +274,304 @@ func TestActNPCEdgeCases(t *testing.T) {
 	})
 }
 
+func TestSessionPacing(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCharacter(t, 1, 1, "PacingChar", "Human", "Fighter")
+	testutil.SeedOneShot(t, 1, 1, "Pacing Adventure")
+	testutil.SeedOneShotAct(t, 1, 1, "Act One", 1)
+	testutil.SeedOneShotScene(t, 1, 1, "Scene One", 1)
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.POST("/oneshot-adventures/:id/pacing/start", StartPacingSession)
+		auth.GET("/oneshot-adventures/:id/pacing", GetPacingSession)
+		auth.POST("/session-pacing/:id/pause", PausePacingSession)
+		auth.POST("/session-pacing/:id/resume", ResumePacingSession)
+		auth.POST("/session-pacing/:id/complete", CompletePacingSession)
+		auth.POST("/session-pacing/:id/next-scene", AdvanceToNextScene)
+		auth.POST("/session-pacing/:id/tick", UpdatePacingTimers)
+	})
+
+	var pacingID float64
+
+	t.Run("start pacing returns 201", func(t *testing.T) {
+		w := testutil.PostJSON(t, r, "/api/oneshot-adventures/1/pacing/start", map[string]any{
+			"current_act_id": 1, "current_scene_id": 1,
+		})
+		testutil.AssertStatus(t, w, 201)
+		var result map[string]any
+		testutil.ParseJSON(t, w, &result)
+		id, ok := result["id"].(float64)
+		if !ok {
+			t.Fatal("start pacing response missing id")
+		}
+		pacingID = id
+	})
+
+	t.Run("get pacing returns 200", func(t *testing.T) {
+		if pacingID == 0 {
+			t.Skip("no pacing session")
+		}
+		w := testutil.Get(t, r, "/api/oneshot-adventures/1/pacing")
+		testutil.AssertStatus(t, w, 200)
+		var result map[string]any
+		testutil.ParseJSON(t, w, &result)
+		if result["status"] != "running" {
+			t.Fatalf("expected status running, got %v", result["status"])
+		}
+	})
+
+	t.Run("pause pacing returns 200", func(t *testing.T) {
+		if pacingID == 0 {
+			t.Skip("no pacing session")
+		}
+		w := testutil.PostJSON(t, r, "/api/session-pacing/"+formatInt(pacingID)+"/pause", nil)
+		testutil.AssertStatus(t, w, 200)
+	})
+
+	t.Run("resume pacing returns 200", func(t *testing.T) {
+		if pacingID == 0 {
+			t.Skip("no pacing session")
+		}
+		w := testutil.PostJSON(t, r, "/api/session-pacing/"+formatInt(pacingID)+"/resume", nil)
+		testutil.AssertStatus(t, w, 200)
+	})
+
+	t.Run("advance to next scene returns 200", func(t *testing.T) {
+		if pacingID == 0 {
+			t.Skip("no pacing session")
+		}
+		// Seed a second scene to advance to
+		testutil.SeedOneShotScene(t, 2, 1, "Scene Two", 2)
+		// Need to set current_scene_id to scene 1 first via DB
+		db.DB.Exec("UPDATE session_pacing SET current_scene_id = 1 WHERE id = ?", int64(pacingID))
+
+		w := testutil.PostJSON(t, r, "/api/session-pacing/"+formatInt(pacingID)+"/next-scene", nil)
+		testutil.AssertStatus(t, w, 200)
+	})
+
+	t.Run("update pacing timers returns 200", func(t *testing.T) {
+		if pacingID == 0 {
+			t.Skip("no pacing session")
+		}
+		w := testutil.PostJSON(t, r, "/api/session-pacing/"+formatInt(pacingID)+"/tick", map[string]any{
+			"elapsed_seconds": 60,
+		})
+		testutil.AssertStatus(t, w, 200)
+	})
+
+	t.Run("complete pacing returns 200", func(t *testing.T) {
+		if pacingID == 0 {
+			t.Skip("no pacing session")
+		}
+		w := testutil.PostJSON(t, r, "/api/session-pacing/"+formatInt(pacingID)+"/complete", nil)
+		testutil.AssertStatus(t, w, 200)
+	})
+}
+
+func TestClueTrackerCRUD(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedOneShot(t, 1, 1, "Clue Adventure")
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.GET("/oneshot-adventures/:id/clues", ListClues)
+		auth.POST("/oneshot-adventures/:id/clues", CreateClue)
+		auth.PUT("/clues/:id", UpdateClue)
+		auth.DELETE("/clues/:id", DeleteClue)
+	})
+
+	var clueID float64
+
+	t.Run("list clues returns 200 empty", func(t *testing.T) {
+		w := testutil.Get(t, r, "/api/oneshot-adventures/1/clues")
+		testutil.AssertStatus(t, w, 200)
+		var clues []any
+		testutil.ParseJSON(t, w, &clues)
+		if len(clues) != 0 {
+			t.Fatalf("expected empty list, got %d", len(clues))
+		}
+	})
+
+	t.Run("create clue returns 201", func(t *testing.T) {
+		w := testutil.PostJSON(t, r, "/api/oneshot-adventures/1/clues", map[string]any{
+			"title":       "Secret Passage",
+			"description": "A hidden door behind the bookshelf",
+			"clue_type":   "location",
+		})
+		testutil.AssertStatus(t, w, 201)
+		var result map[string]any
+		testutil.ParseJSON(t, w, &result)
+		id, ok := result["id"].(float64)
+		if !ok {
+			t.Fatal("create clue response missing id")
+		}
+		clueID = id
+	})
+
+	t.Run("update clue returns 200", func(t *testing.T) {
+		if clueID == 0 {
+			t.Skip("no clue id")
+		}
+		w := testutil.PutJSON(t, r, "/api/clues/"+formatInt(clueID), map[string]any{
+			"title":       "Secret Passage Updated",
+			"description": "Updated description",
+			"clue_type":   "location",
+		})
+		testutil.AssertStatus(t, w, 200)
+	})
+
+	t.Run("list after create returns 1 item", func(t *testing.T) {
+		w := testutil.Get(t, r, "/api/oneshot-adventures/1/clues")
+		testutil.AssertStatus(t, w, 200)
+		var clues []any
+		testutil.ParseJSON(t, w, &clues)
+		if len(clues) != 1 {
+			t.Fatalf("expected 1 clue, got %d", len(clues))
+		}
+	})
+
+	t.Run("delete clue returns 200", func(t *testing.T) {
+		if clueID == 0 {
+			t.Skip("no clue id")
+		}
+		w := testutil.Delete(t, r, "/api/clues/"+formatInt(clueID))
+		testutil.AssertStatus(t, w, 200)
+	})
+}
+
+func TestPrepChecklistCRUD(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedOneShot(t, 1, 1, "Checklist Adventure")
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.GET("/oneshot-adventures/:id/checklist", ListPrepChecklist)
+		auth.POST("/oneshot-adventures/:id/checklist", CreatePrepChecklistItem)
+		auth.PUT("/prep-checklist/:cid", UpdatePrepChecklistItem)
+		auth.DELETE("/prep-checklist/:cid", DeletePrepChecklistItem)
+	})
+
+	var itemID float64
+
+	t.Run("create checklist item returns 201", func(t *testing.T) {
+		w := testutil.PostJSON(t, r, "/api/oneshot-adventures/1/checklist", map[string]any{
+			"item":     "Prepare battle map",
+			"category": "setup",
+		})
+		testutil.AssertStatus(t, w, 201)
+		var result map[string]any
+		testutil.ParseJSON(t, w, &result)
+		id, ok := result["id"].(float64)
+		if !ok {
+			t.Fatal("create item response missing id")
+		}
+		itemID = id
+	})
+
+	t.Run("list checklist returns 200", func(t *testing.T) {
+		w := testutil.Get(t, r, "/api/oneshot-adventures/1/checklist")
+		testutil.AssertStatus(t, w, 200)
+		var items []any
+		testutil.ParseJSON(t, w, &items)
+		if len(items) < 1 {
+			t.Fatal("expected at least 1 item")
+		}
+	})
+
+	t.Run("update checklist item returns 200", func(t *testing.T) {
+		if itemID == 0 {
+			t.Skip("no item id")
+		}
+		w := testutil.PutJSON(t, r, "/api/prep-checklist/"+formatInt(itemID), map[string]any{
+			"item": "Prepare battle map and minis",
+			"is_checked": true,
+		})
+		testutil.AssertStatus(t, w, 200)
+	})
+
+	t.Run("delete checklist item returns 200", func(t *testing.T) {
+		if itemID == 0 {
+			t.Skip("no item id")
+		}
+		w := testutil.Delete(t, r, "/api/prep-checklist/"+formatInt(itemID))
+		testutil.AssertStatus(t, w, 200)
+	})
+}
+
+func TestDMNotesCRUD(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedOneShot(t, 1, 1, "DM Notes Adventure")
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.GET("/oneshot-adventures/:id/notes", ListDmNotes)
+		auth.POST("/oneshot-adventures/:id/notes", CreateDmNote)
+		auth.PUT("/dm-notes/:nid", UpdateDmNote)
+		auth.DELETE("/oneshot-adventures/:id/notes/:nid", DeleteDmNote)
+	})
+
+	var noteID float64
+
+	t.Run("list notes returns 200 empty", func(t *testing.T) {
+		w := testutil.Get(t, r, "/api/oneshot-adventures/1/notes")
+		testutil.AssertStatus(t, w, 200)
+		var notes []any
+		testutil.ParseJSON(t, w, &notes)
+		if len(notes) != 0 {
+			t.Fatalf("expected empty list, got %d", len(notes))
+		}
+	})
+
+	t.Run("create note returns 201", func(t *testing.T) {
+		w := testutil.PostJSON(t, r, "/api/oneshot-adventures/1/notes", map[string]any{
+			"title":   "DM Session Notes",
+			"content": "Players discovered the secret passage",
+		})
+		testutil.AssertStatus(t, w, 201)
+		var result map[string]any
+		testutil.ParseJSON(t, w, &result)
+		id, ok := result["id"].(float64)
+		if !ok {
+			t.Fatal("create note response missing id")
+		}
+		noteID = id
+	})
+
+	t.Run("list notes returns 1 item", func(t *testing.T) {
+		w := testutil.Get(t, r, "/api/oneshot-adventures/1/notes")
+		testutil.AssertStatus(t, w, 200)
+		var notes []any
+		testutil.ParseJSON(t, w, &notes)
+		if len(notes) != 1 {
+			t.Fatalf("expected 1 note, got %d", len(notes))
+		}
+	})
+
+	t.Run("update note returns 200", func(t *testing.T) {
+		if noteID == 0 {
+			t.Skip("no note id")
+		}
+		w := testutil.PutJSON(t, r, "/api/dm-notes/"+formatInt(noteID), map[string]any{
+			"title":   "Updated DM Notes",
+			"content": "Updated with more details",
+		})
+		testutil.AssertStatus(t, w, 200)
+	})
+
+	t.Run("delete note returns 200", func(t *testing.T) {
+		if noteID == 0 {
+			t.Skip("no note id")
+		}
+		w := testutil.Delete(t, r, "/api/oneshot-adventures/1/notes/"+formatInt(noteID))
+		testutil.AssertStatus(t, w, 200)
+	})
+}
+
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && searchString(s, substr)
 }

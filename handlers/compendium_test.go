@@ -143,6 +143,83 @@ func TestCompendiumFilters(t *testing.T) {
 	})
 }
 
+func TestPlayerCompendiumAccess(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	SeedCompendiumSchemas()
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.GET("/compendium/schemas", ListCompendiumSchemas)
+		auth.GET("/compendium/schemas/:id/entries", ListCompendiumEntries)
+		auth.GET("/compendium/schemas/:id/entries/:eid", GetCompendiumEntry)
+		auth.GET("/compendium/search", SearchCompendium)
+	})
+
+	t.Run("list schemas returns 200", func(t *testing.T) {
+		w := testutil.Get(t, r, "/api/compendium/schemas")
+		testutil.AssertStatus(t, w, 200)
+		var schemas []any
+		testutil.ParseJSON(t, w, &schemas)
+		if len(schemas) < 7 {
+			t.Fatalf("expected at least 7 schemas, got %d", len(schemas))
+		}
+	})
+
+	t.Run("list entries for race schema returns 200", func(t *testing.T) {
+		w := testutil.Get(t, r, "/api/compendium/schemas")
+		var schemas []map[string]any
+		testutil.ParseJSON(t, w, &schemas)
+		var raceID float64
+		for _, s := range schemas {
+			if s["type_name"] == "race" {
+				raceID = s["id"].(float64)
+				break
+			}
+		}
+		if raceID == 0 {
+			t.Fatal("race schema not found")
+		}
+		w2 := testutil.Get(t, r, "/api/compendium/schemas/"+formatInt(raceID)+"/entries")
+		testutil.AssertStatus(t, w2, 200)
+	})
+
+	t.Run("search returns 200", func(t *testing.T) {
+		w := testutil.Get(t, r, "/api/compendium/search?q=fire")
+		testutil.AssertStatus(t, w, 200)
+	})
+}
+
+func TestHandleEnabledAIEndpoints(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.GET("/ai/endpoints", HandleListEnabledAIEndpoints)
+	})
+
+	t.Run("list text endpoints returns 200", func(t *testing.T) {
+		w := testutil.Get(t, r, "/api/ai/endpoints?type=text")
+		testutil.AssertStatus(t, w, 200)
+	})
+
+	t.Run("list image endpoints returns 200", func(t *testing.T) {
+		w := testutil.Get(t, r, "/api/ai/endpoints?type=image")
+		testutil.AssertStatus(t, w, 200)
+	})
+
+	t.Run("list without type returns 400", func(t *testing.T) {
+		w := testutil.Get(t, r, "/api/ai/endpoints")
+		testutil.AssertStatus(t, w, 400)
+	})
+
+	t.Run("list with invalid type returns 400", func(t *testing.T) {
+		w := testutil.Get(t, r, "/api/ai/endpoints?type=video")
+		testutil.AssertStatus(t, w, 400)
+	})
+}
+
 func FuzzCompendiumSearch(f *testing.F) {
 	f.Add("fire")
 	f.Add("heal")
