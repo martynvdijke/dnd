@@ -455,24 +455,41 @@ function getSchemaFieldHtml(field: any, index: number): string {
   try {
     const entries = await api('GET', `/api/admin/compendium-entries?schema_id=${schemaId}&limit=50`);
     const el = document.getElementById('schemaEntryBrowser')!;
+    entryModalSchemaId = schemaId;
+    selectedEntryIds.clear();
     if (!entries || entries.length === 0) {
-      el.innerHTML = `<p class="text-muted">No entries in <strong>${esc(schemaName)}</strong></p>`;
+      el.innerHTML = `<div class="mt-2">
+        <button class="btn btn-success btn-sm mb-2" onclick="createSchemaEntry(${schemaId})"><i class="fa-solid fa-plus me-1"></i>Add Entry</button>
+        <p class="text-muted">No entries in <strong>${esc(schemaName)}</strong></p>
+      </div>`;
       return;
     }
     const fields = Object.keys(entries[0].data || {});
     const previewFields = fields.slice(0, 3);
     el.innerHTML = `
       <div class="card mt-2">
-        <div class="card-header py-2"><strong>${esc(schemaName)}</strong> — ${entries.length} entries</div>
+        <div class="card-header py-2 d-flex justify-content-between align-items-center">
+          <span><strong>${esc(schemaName)}</strong> — ${entries.length} entries</span>
+          <button class="btn btn-success btn-sm" onclick="createSchemaEntry(${schemaId})"><i class="fa-solid fa-plus me-1"></i>Add Entry</button>
+        </div>
+        <div id="bulkActions" class="px-3 py-2 bg-light border-bottom" style="display:none"></div>
         <div class="table-responsive">
           <table class="table table-sm table-hover mb-0">
-            <thead><tr><th>Name</th>${previewFields.map(f => `<th>${esc(f)}</th>`).join('')}${fields.length > 3 ? '<th>...</th>' : ''}<th style="width:60px"></th></tr></thead>
+            <thead><tr>
+              <th style="width:40px"><input class="form-check-input" type="checkbox" id="selectAllEntries" onchange="toggleSelectAll(${schemaId})"></th>
+              <th>Name</th>${previewFields.map(f => `<th>${esc(f)}</th>`).join('')}${fields.length > 3 ? '<th>...</th>' : ''}
+              <th style="width:100px"></th>
+            </tr></thead>
             <tbody>${entries.map((e: any) => `
               <tr>
+                <td><input class="form-check-input entry-select-cb" type="checkbox" data-entry-id="${e.id}" onchange="toggleEntrySelect(${e.id})"></td>
                 <td>${esc(e.name)}</td>
                 ${previewFields.map(f => `<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(String(e.data?.[f] || ''))}</td>`).join('')}
                 ${fields.length > 3 ? '<td>…</td>' : ''}
-                <td><button class="btn btn-outline-danger btn-sm py-0" onclick="deleteSchemaEntryById(${e.id})" title="Delete"><i class="fa-solid fa-trash"></i></button></td>
+                <td class="text-nowrap">
+                  <button class="btn btn-outline-primary btn-sm py-0" onclick="editSchemaEntry(${e.id},${schemaId})" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                  <button class="btn btn-outline-danger btn-sm py-0" onclick="deleteSchemaEntryById(${e.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                </td>
               </tr>
             `).join('')}</tbody>
           </table>
@@ -488,6 +505,203 @@ function getSchemaFieldHtml(field: any, index: number): string {
   try {
     await api('DELETE', `/api/admin/compendium-entries/${entryId}`);
     toast('Entry deleted');
+    loadSchemas();
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+// ─── Entry Create/Edit Modal ───
+
+let entryModalSchemaId = 0;
+let entryModalSchemaFields: any[] = [];
+let entryModalEditId: number | null = null;
+
+(window as any).createSchemaEntry = async function (schemaId: number) {
+  const schemas = await api('GET', '/api/admin/compendium-schemas');
+  const schema = schemas.find((s: any) => s.id === schemaId);
+  if (!schema) { toast('Schema not found', true); return; }
+  entryModalSchemaId = schemaId;
+  entryModalSchemaFields = schema.fields || [];
+  entryModalEditId = null;
+  showModal('Create Entry', getEntryFormHtml(null));
+};
+
+(window as any).editSchemaEntry = async function (entryId: number, schemaId: number) {
+  const [schemas, entry] = await Promise.all([
+    api('GET', '/api/admin/compendium-schemas'),
+    api('GET', `/api/admin/compendium-entries/${entryId}`)
+  ]);
+  const schema = schemas.find((s: any) => s.id === schemaId);
+  if (!schema) { toast('Schema not found', true); return; }
+  entryModalSchemaId = schemaId;
+  entryModalSchemaFields = schema.fields || [];
+  entryModalEditId = entryId;
+  showModal('Edit Entry', getEntryFormHtml(entry.data || entry));
+};
+
+function getEntryFormHtml(data: any): string {
+  const fields = entryModalSchemaFields;
+  if (!fields || fields.length === 0) {
+    return `<div class="text-muted">No fields defined for this schema.</div>`;
+  }
+  return fields.map((f: any) => {
+    const val = data ? String(data[f.name] ?? '') : '';
+    const requiredAttr = f.required ? 'required' : '';
+    const requiredMark = f.required ? ' <span class="text-danger">*</span>' : '';
+    let input = '';
+
+    if (f.type === 'textarea') {
+      input = `<textarea class="form-control" id="ef_${esc(f.name)}" ${requiredAttr}>${esc(val)}</textarea>`;
+    } else if (f.type === 'checkbox') {
+      const checked = data && data[f.name] ? 'checked' : '';
+      input = `<div class="form-check"><input class="form-check-input" type="checkbox" id="ef_${esc(f.name)}" ${checked}></div>`;
+    } else if (f.type === 'number') {
+      input = `<input class="form-control" type="number" id="ef_${esc(f.name)}" value="${esc(val)}" ${requiredAttr}>`;
+    } else {
+      input = `<input class="form-control" type="text" id="ef_${esc(f.name)}" value="${esc(val)}" ${requiredAttr}>`;
+    }
+
+    return `<div class="mb-2">
+      <label class="form-label">${esc(f.label || f.name)}${requiredMark}</label>
+      ${input}
+    </div>`;
+  }).join('') + `
+    <div class="mt-3">
+      <button class="btn btn-primary" onclick="saveEntry()"><i class="fa-solid fa-floppy-disk me-1"></i>Save</button>
+      <button class="btn btn-secondary" onclick="hideModal()">Cancel</button>
+    </div>`;
+}
+
+(window as any).saveEntry = async function () {
+  const data: Record<string, any> = {};
+  let valid = true;
+
+  for (const f of entryModalSchemaFields) {
+    const el = document.getElementById('ef_' + f.name) as HTMLInputElement | HTMLTextAreaElement;
+    if (!el) continue;
+    let val: any;
+    if (f.type === 'checkbox') {
+      val = (el as HTMLInputElement).checked;
+    } else if (f.type === 'number') {
+      val = el.value ? parseFloat(el.value) : null;
+    } else {
+      val = el.value;
+    }
+
+    if (f.required && (val === null || val === '' || val === undefined)) {
+      el.classList.add('is-invalid');
+      valid = false;
+    } else {
+      el.classList.remove('is-invalid');
+    }
+    data[f.name] = val;
+  }
+
+  if (!valid) { toast('Please fill in all required fields', true); return; }
+
+  try {
+    if (entryModalEditId) {
+      await api('PUT', `/api/admin/compendium-entries/${entryModalEditId}`, { data });
+      toast('Entry updated');
+    } else {
+      await api('POST', `/api/admin/compendium-schemas/${entryModalSchemaId}/entries`, { data });
+      toast('Entry created');
+    }
+    hideModal();
+    loadSchemas();
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+// ─── Entry Bulk Operations ───
+
+let selectedEntryIds: Set<number> = new Set();
+
+(window as any).toggleEntrySelect = function (id: number) {
+  if (selectedEntryIds.has(id)) selectedEntryIds.delete(id);
+  else selectedEntryIds.add(id);
+  updateBulkActions();
+};
+
+(window as any).toggleSelectAll = function (schemaId: number) {
+  const cb = document.getElementById('selectAllEntries') as HTMLInputElement;
+  const checkboxes = document.querySelectorAll<HTMLInputElement>('.entry-select-cb');
+  checkboxes.forEach(c => {
+    c.checked = cb.checked;
+    const eid = parseInt(c.dataset.entryId || '0', 10);
+    if (cb.checked) selectedEntryIds.add(eid);
+    else selectedEntryIds.delete(eid);
+  });
+  updateBulkActions();
+};
+
+function updateBulkActions() {
+  const count = selectedEntryIds.size;
+  const el = document.getElementById('bulkActions')!;
+  if (count === 0) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.innerHTML = `<span class="me-2 fw-bold">${count} selected</span>
+    <button class="btn btn-outline-danger btn-sm me-1" onclick="batchDeleteEntries()"><i class="fa-solid fa-trash me-1"></i>Delete Selected</button>
+    <button class="btn btn-outline-primary btn-sm" onclick="batchEditEntries(${count})"><i class="fa-solid fa-pen me-1"></i>Edit Selected</button>`;
+}
+
+(window as any).batchDeleteEntries = async function () {
+  const ids = Array.from(selectedEntryIds);
+  if (!confirm('Delete ' + ids.length + ' entries? This cannot be undone.')) return;
+  try {
+    const res = await api('POST', '/api/admin/compendium-entries/batch-delete', { ids });
+    toast('Deleted ' + res.deleted + ' entries');
+    selectedEntryIds.clear();
+    loadSchemas();
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+(window as any).batchEditEntries = async function (count: number) {
+  const ids = Array.from(selectedEntryIds);
+  // Get schema fields from the first entry's schema
+  const schemas = await api('GET', '/api/admin/compendium-schemas');
+  const firstEntry = await api('GET', `/api/admin/compendium-entries/${ids[0]}`);
+  // Find schema that contains this entry (iterate schemas)
+  const schema = schemas.find((s: any) => s.id === entryModalSchemaId) || schemas[0];
+  const fields = schema?.fields || [];
+
+  const fieldOpts = fields.map((f: any) =>
+    `<option value="${esc(f.name)}">${esc(f.label || f.name)}</option>`
+  ).join('');
+
+  showModal('Bulk Edit ' + count + ' Entries', `
+    <p>Set a field value for all ${count} selected entries.</p>
+    <div class="mb-2">
+      <label class="form-label">Field</label>
+      <select class="form-select" id="bulkField">${fieldOpts}</select>
+    </div>
+    <div class="mb-2">
+      <label class="form-label">Value</label>
+      <input class="form-control" id="bulkValue" type="text">
+    </div>
+    <button class="btn btn-primary" onclick="saveBatchEdit()"><i class="fa-solid fa-floppy-disk me-1"></i>Update All</button>
+    <button class="btn btn-secondary" onclick="hideModal()">Cancel</button>
+  `);
+};
+
+(window as any).saveBatchEdit = async function () {
+  const field = (document.getElementById('bulkField') as HTMLSelectElement).value;
+  const value = (document.getElementById('bulkValue') as HTMLInputElement).value;
+  if (!field) { toast('Select a field', true); return; }
+
+  const ids = Array.from(selectedEntryIds);
+  try {
+    const res = await api('POST', '/api/admin/compendium-entries/batch-update', {
+      ids,
+      data: { [field]: value }
+    });
+    toast('Updated ' + res.updated + ' entries');
+    hideModal();
+    selectedEntryIds.clear();
     loadSchemas();
   } catch (e: any) {
     toast(e.message, true);

@@ -671,6 +671,10 @@ func main() {
 		admin.PUT("/compendium-entries/:id", handlers.UpdateCompendiumEntry)
 		admin.DELETE("/compendium-entries/:id", handlers.DeleteCompendiumEntry)
 
+		// Compendium Bulk Operations
+		admin.POST("/compendium-entries/batch-delete", handlers.BatchDeleteCompendiumEntries)
+		admin.POST("/compendium-entries/batch-update", handlers.BatchUpdateCompendiumEntries)
+
 		// Compendium Search (cross-type FTS5)
 		admin.GET("/compendium-search", handlers.SearchCompendiumEntries)
 

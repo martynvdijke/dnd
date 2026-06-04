@@ -379,6 +379,90 @@ func DeleteCompendiumEntry(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
+func BatchDeleteCompendiumEntries(c *gin.Context) {
+	var req struct {
+		IDs []int64 `json:"ids" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request: " + err.Error()})
+		return
+	}
+	if len(req.IDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no ids provided"})
+		return
+	}
+
+	// Build placeholders for the IN clause
+	placeholders := make([]string, len(req.IDs))
+	args := make([]interface{}, len(req.IDs))
+	for i, id := range req.IDs {
+		placeholders[i] = "?"
+		args[i] = id
+	}
+
+	result, err := db.DB.Exec("DELETE FROM compendium_entries WHERE id IN ("+strings.Join(placeholders, ",")+")", args...)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	deleted, _ := result.RowsAffected()
+
+	c.JSON(http.StatusOK, gin.H{"deleted": deleted})
+}
+
+func BatchUpdateCompendiumEntries(c *gin.Context) {
+	var req struct {
+		IDs  []int64                `json:"ids" binding:"required"`
+		Data map[string]interface{} `json:"data" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request: " + err.Error()})
+		return
+	}
+	if len(req.IDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no ids provided"})
+		return
+	}
+	if len(req.Data) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no data provided"})
+		return
+	}
+
+	updated := int64(0)
+	var errs []map[string]interface{}
+
+	for _, id := range req.IDs {
+		// Fetch current data
+		var dataJSON string
+		err := db.DB.QueryRow("SELECT data FROM compendium_entries WHERE id=?", id).Scan(&dataJSON)
+		if err != nil {
+			errs = append(errs, map[string]interface{}{"id": id, "error": "not found"})
+			continue
+		}
+
+		// Merge update into existing data
+		var entryData map[string]interface{}
+		json.Unmarshal([]byte(dataJSON), &entryData)
+		for k, v := range req.Data {
+			entryData[k] = v
+		}
+
+		newJSON, _ := json.Marshal(entryData)
+		_, err = db.DB.Exec("UPDATE compendium_entries SET data=?, updated_at=datetime('now') WHERE id=?", string(newJSON), id)
+		if err != nil {
+			errs = append(errs, map[string]interface{}{"id": id, "error": err.Error()})
+			continue
+		}
+		updated++
+	}
+
+	resp := gin.H{"updated": updated}
+	if len(errs) > 0 {
+		resp["errors"] = errs
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
 // ─── Search (Cross-type FTS5) ───
 
 func SearchCompendiumEntries(c *gin.Context) {
