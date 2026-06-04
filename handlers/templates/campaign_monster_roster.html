@@ -1,0 +1,34 @@
+{{define "campaign_monster_roster"}}
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <strong><i class="fa-solid fa-dragon me-1"></i>Monster Roster</strong>
+  {{if .CanAdd}}
+  <button class="btn btn-sm btn-outline-primary" onclick="showAddMonsterToRoster({{.CampaignID}})">
+    <i class="fa-solid fa-plus me-1"></i>Add Monster
+  </button>
+  {{end}}
+</div>
+{{if .Monsters}}
+<div class="list-group list-group-flush" id="campaignRosterList">
+  {{range .Monsters}}
+  <div class="list-group-item px-2 py-1 d-flex justify-content-between align-items-center">
+    <div class="d-flex align-items-center gap-2">
+      <strong>{{.Name}}</strong>
+      <span class="badge bg-secondary">CR {{.CR}}</span>
+      <span class="text-muted small">AC {{.AC}} HP {{.HP}}</span>
+      <span class="badge bg-light text-dark small">{{.Source}}</span>
+    </div>
+    <div class="d-flex gap-1">
+      <button class="btn btn-sm btn-outline-danger"
+        hx-delete="/htmx/campaigns/{{.CampaignID}}/monster-roster/{{.ID}}"
+        hx-target="#campaignRosterSection"
+        hx-confirm="Remove {{.Name}} from roster?">
+        <i class="fa-solid fa-trash"></i>
+      </button>
+    </div>
+  </div>
+  {{end}}
+</div>
+{{else}}
+<div class="text-muted small fst-italic py-2">No monsters in campaign roster yet.</div>
+{{end}}
+{{end}}

@@ -1,4 +1,5 @@
 {{define "compendium_monster_detail"}}
+<div id="compendiumCloneForm"></div>
 {{with .Monster}}
 <div class="card">
   <div class="card-header d-flex justify-content-between align-items-center py-2">
@@ -14,6 +15,18 @@
         <i class="fa-solid fa-plus me-1"></i>Add to One-Shot
       </button>
       {{end}}
+      {{if $.CampaignID}}
+      <button class="btn btn-sm btn-outline-success"
+        hx-post="/htmx/campaigns/{{$.CampaignID}}/monster-roster"
+        hx-vals='{"compendium_monster_id":"{{.ID}}"}'
+        hx-target="#campaignRosterSection"
+        hx-swap="innerHTML">
+        <i class="fa-solid fa-bookmark me-1"></i>Roster
+      </button>
+      {{end}}
+      <button class="btn btn-sm btn-outline-info" hx-get="/htmx/monster-library/new?compendium_id={{.ID}}" hx-target="#compendiumCloneForm" hx-swap="innerHTML">
+        <i class="fa-solid fa-clone me-1"></i>Clone to Library
+      </button>
       <button class="btn btn-sm btn-outline-secondary" onclick="hideCompendiumDetail()"><i class="fa-solid fa-times"></i></button>
     </div>
   </div>

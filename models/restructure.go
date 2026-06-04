@@ -138,6 +138,39 @@ type CompendiumMonster struct {
 	Description           string `json:"description"`
 }
 
+type CampaignMonsterRoster struct {
+	ID                    int64   `json:"id"`
+	CampaignID            int64   `json:"campaign_id"`
+	CompendiumMonsterID   *int64  `json:"compendium_monster_id,omitempty"`
+	LibraryMonsterID      *int64  `json:"library_monster_id,omitempty"`
+	Name                  string  `json:"name"`
+	AC                    int     `json:"ac"`
+	HP                    int     `json:"hp"`
+	Str                   int     `json:"str"`
+	Dex                   int     `json:"dex"`
+	Con                   int     `json:"con"`
+	Int                   int     `json:"int"`
+	Wis                   int     `json:"wis"`
+	Cha                   int     `json:"cha"`
+	CR                    string  `json:"cr"`
+	IsFull                bool    `json:"is_full"`
+	Saves                 string  `json:"saves"`
+	Skills                string  `json:"skills"`
+	DamageVulnerabilities string  `json:"damage_vulnerabilities"`
+	DamageResistances     string  `json:"damage_resistances"`
+	DamageImmunities      string  `json:"damage_immunities"`
+	ConditionImmunities   string  `json:"condition_immunities"`
+	Senses                string  `json:"senses"`
+	Languages             string  `json:"languages"`
+	SpecialAbilities      string  `json:"special_abilities"`
+	Actions               string  `json:"actions"`
+	LegendaryActions      string  `json:"legendary_actions"`
+	Description           string  `json:"description"`
+	Source                string  `json:"source"`
+	Notes                 string  `json:"notes"`
+	CreatedAt             string  `json:"created_at"`
+}
+
 type CampaignNPC struct {
 	ID         int64  `json:"id"`
 	CampaignID int64  `json:"campaign_id"`

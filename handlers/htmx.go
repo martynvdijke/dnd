@@ -1574,6 +1574,11 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"DELETE", "/htmx/encounters/:eid/monsters/:mid", HtmxDeleteEncounterMonster},
 		{"POST", "/htmx/encounters/:eid/import-compendium", HtmxImportCompendiumMonsterToEncounter},
 
+		// Campaign Monster Roster (HTMX)
+		{"GET", "/htmx/campaigns/:id/monster-roster", HtmxCampaignMonsterRoster},
+		{"POST", "/htmx/campaigns/:id/monster-roster", HtmxAddCampaignMonster},
+		{"DELETE", "/htmx/campaigns/:id/monster-roster/:rid", HtmxRemoveCampaignMonster},
+
 		// Compendium Monsters (HTMX)
 		{"GET", "/htmx/compendium-monsters", HtmxCompendiumMonsterBrowser},
 		{"GET", "/htmx/compendium-monsters/search", HtmxCompendiumMonsterSearch},
@@ -1586,6 +1591,14 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 
 		// Import Compendium Monster to One-Shot (HTMX)
 		{"POST", "/htmx/oneshot-adventures/:id/import-compendium", HtmxImportCompendiumMonsterToOneShot},
+
+		// Monster Library (HTMX)
+		{"GET", "/htmx/monster-library", HtmxListMonsterLibrary},
+		{"GET", "/htmx/monster-library/new", HtmxMonsterLibraryForm},
+		{"GET", "/htmx/monster-library/section", HtmxMonsterLibrarySection},
+		{"POST", "/htmx/monster-library", HtmxCreateMonsterLibrary},
+		{"PUT", "/htmx/monster-library/:id", HtmxUpdateMonsterLibrary},
+		{"DELETE", "/htmx/monster-library/:id", HtmxDeleteMonsterLibrary},
 	}
 	for _, rt := range routes {
 		r.Handle(rt.method, rt.path, rt.handler)

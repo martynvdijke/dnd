@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -421,6 +422,148 @@ func HtmxImportCompendiumMonsterToOneShot(c *gin.Context) {
 
 	// Re-render the monsters section
 	HtmxOneShotMonsters(c)
+}
+
+// ─── Campaign Monster Roster (HTMX) ───
+
+type htmxCampaignRosterData struct {
+	CampaignID int64
+	Monsters   []models.CampaignMonsterRoster
+	CanAdd     bool
+}
+
+type htmxCampaignRosterAddData struct {
+	CampaignID        int64
+	CompendiumMonster models.CompendiumMonster
+}
+
+// HtmxCampaignMonsterRoster lists all monsters in a campaign's roster
+func HtmxCampaignMonsterRoster(c *gin.Context) {
+	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	rows, err := db.DB.Query(`
+		SELECT id, campaign_id, COALESCE(compendium_monster_id,0), COALESCE(library_monster_id,0),
+		       name, ac, hp, str, dex, con, int_, wis, cha, cr, is_full,
+		       saves, skills, damage_vulnerabilities, damage_resistances, damage_immunities,
+		       condition_immunities, senses, languages, special_abilities, actions, legendary_actions,
+		       description, source, notes, created_at
+		FROM campaign_monster_roster
+		WHERE campaign_id=? ORDER BY name`, campaignID)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "query error")
+		return
+	}
+	defer rows.Close()
+
+	out := make([]models.CampaignMonsterRoster, 0)
+	for rows.Next() {
+		var m models.CampaignMonsterRoster
+		var isFull int
+		rows.Scan(&m.ID, &m.CampaignID, &m.CompendiumMonsterID, &m.LibraryMonsterID,
+			&m.Name, &m.AC, &m.HP, &m.Str, &m.Dex, &m.Con, &m.Int, &m.Wis, &m.Cha,
+			&m.CR, &isFull,
+			&m.Saves, &m.Skills, &m.DamageVulnerabilities, &m.DamageResistances, &m.DamageImmunities,
+			&m.ConditionImmunities, &m.Senses, &m.Languages, &m.SpecialAbilities, &m.Actions, &m.LegendaryActions,
+			&m.Description, &m.Source, &m.Notes, &m.CreatedAt)
+		m.IsFull = isFull == 1
+		if m.CompendiumMonsterID != nil && *m.CompendiumMonsterID == 0 {
+			m.CompendiumMonsterID = nil
+		}
+		if m.LibraryMonsterID != nil && *m.LibraryMonsterID == 0 {
+			m.LibraryMonsterID = nil
+		}
+		out = append(out, m)
+	}
+
+	renderTemplate(c, "campaign_monster_roster.html", htmxCampaignRosterData{
+		CampaignID: campaignID,
+		Monsters:   out,
+		CanAdd:     true,
+	})
+}
+
+// HtmxAddCampaignMonster adds a compendium or library monster to the campaign roster
+func HtmxAddCampaignMonster(c *gin.Context) {
+	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	compendiumID, _ := strconv.ParseInt(c.PostForm("compendium_monster_id"), 10, 64)
+	libraryID, _ := strconv.ParseInt(c.PostForm("library_monster_id"), 10, 64)
+
+	var table, idCol string
+	var id int64
+	if compendiumID > 0 {
+		table = "compendium_monsters"
+		idCol = "id"
+		id = compendiumID
+	} else if libraryID > 0 {
+		table = "monster_library"
+		idCol = "id"
+		id = libraryID
+	} else {
+		c.String(http.StatusBadRequest, "must provide compendium_monster_id or library_monster_id")
+		return
+	}
+
+	// Fetch monster fields
+	var name, cr, source, saves, skills, dv, dr, di, ci, senses, lang, sa, actions, la, desc string
+	var ac, hp, str, dex, con, int_, wis, cha, isFull int
+	err := db.DB.QueryRow(fmt.Sprintf(`
+		SELECT name, ac, hp, str, dex, con, int_, wis, cha, cr, source, is_full,
+		       saves, skills, damage_vulnerabilities, damage_resistances, damage_immunities,
+		       condition_immunities, senses, languages, special_abilities, actions, legendary_actions, description
+		FROM %s WHERE %s=?`, table, idCol), id).
+		Scan(&name, &ac, &hp, &str, &dex, &con, &int_, &wis, &cha,
+			&cr, &source, &isFull,
+			&saves, &skills, &dv, &dr, &di, &ci,
+			&senses, &lang, &sa, &actions, &la, &desc)
+	if err != nil {
+		c.String(http.StatusNotFound, "monster not found")
+		return
+	}
+
+	var libMonID interface{}
+	if libraryID > 0 {
+		libMonID = libraryID
+	} else {
+		libMonID = nil
+	}
+
+	var compMonID interface{}
+	if compendiumID > 0 {
+		compMonID = compendiumID
+	} else {
+		compMonID = nil
+	}
+
+	_, err = db.DB.Exec(`
+		INSERT INTO campaign_monster_roster(campaign_id, compendium_monster_id, library_monster_id,
+			name, ac, hp, str, dex, con, int_, wis, cha, cr, is_full,
+			saves, skills, damage_vulnerabilities, damage_resistances, damage_immunities,
+			condition_immunities, senses, languages, special_abilities, actions, legendary_actions,
+			description, source, notes)
+		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,'')`,
+		campaignID, compMonID, libMonID,
+		name, ac, hp, str, dex, con, int_, wis, cha, cr, isFull,
+		saves, skills, dv, dr, di, ci,
+		senses, lang, sa, actions, la, desc, source)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	HtmxCampaignMonsterRoster(c)
+}
+
+// HtmxRemoveCampaignMonster removes a monster from the campaign roster
+func HtmxRemoveCampaignMonster(c *gin.Context) {
+	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	rosterID, _ := strconv.ParseInt(c.Param("rid"), 10, 64)
+
+	_, err := db.DB.Exec("DELETE FROM campaign_monster_roster WHERE id=? AND campaign_id=?", rosterID, campaignID)
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	HtmxCampaignMonsterRoster(c)
 }
 
 // NullInt64 helper

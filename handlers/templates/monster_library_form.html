@@ -1,0 +1,142 @@
+{{define "monster_library_form"}}
+<div class="card border-primary mb-3">
+  <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+    <span><i class="fa-solid fa-pen me-2"></i>{{if .Monster}}Edit Monster{{else if .CompMonster}}Clone from Compendium{{else}}New Custom Monster{{end}}</span>
+    <button class="btn btn-sm btn-outline-light" onclick="this.closest('.card').remove()"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="card-body">
+    <form hx-post="{{if .Monster}}/htmx/monster-library/{{.Monster.ID}}{{else}}/htmx/monster-library{{end}}"
+          hx-target="#monsterLibraryList" hx-swap="innerHTML"
+          {{if .Monster}}hx-put="true"{{end}}>
+      <input type="hidden" name="is_full" value="1">
+
+      <div class="row g-2 mb-2">
+        <div class="col-md-6">
+          <label class="form-label small">Name *</label>
+          <input type="text" name="name" class="form-control form-control-sm" required
+                 value="{{if .Monster}}{{.Monster.Name}}{{else if .CompMonster}}{{.CompMonster.Name}} (Variant){{end}}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small">AC</label>
+          <input type="number" name="ac" class="form-control form-control-sm" min="0" max="99" value="{{if .Monster}}{{.Monster.AC}}{{else if .CompMonster}}{{.CompMonster.AC}}{{else}}10{{end}}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small">HP</label>
+          <input type="number" name="hp" class="form-control form-control-sm" min="1" max="9999" value="{{if .Monster}}{{.Monster.HP}}{{else if .CompMonster}}{{.CompMonster.HP}}{{else}}1{{end}}">
+        </div>
+      </div>
+
+      <div class="row g-2 mb-2">
+        <div class="col-md-2">
+          <label class="form-label small">STR</label>
+          <input type="number" name="str" class="form-control form-control-sm" min="1" max="30" value="{{if .Monster}}{{.Monster.Str}}{{else if .CompMonster}}{{.CompMonster.Str}}{{else}}10{{end}}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small">DEX</label>
+          <input type="number" name="dex" class="form-control form-control-sm" min="1" max="30" value="{{if .Monster}}{{.Monster.Dex}}{{else if .CompMonster}}{{.CompMonster.Dex}}{{else}}10{{end}}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small">CON</label>
+          <input type="number" name="con" class="form-control form-control-sm" min="1" max="30" value="{{if .Monster}}{{.Monster.Con}}{{else if .CompMonster}}{{.CompMonster.Con}}{{else}}10{{end}}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small">INT</label>
+          <input type="number" name="int" class="form-control form-control-sm" min="1" max="30" value="{{if .Monster}}{{.Monster.Int}}{{else if .CompMonster}}{{.CompMonster.Int}}{{else}}10{{end}}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small">WIS</label>
+          <input type="number" name="wis" class="form-control form-control-sm" min="1" max="30" value="{{if .Monster}}{{.Monster.Wis}}{{else if .CompMonster}}{{.CompMonster.Wis}}{{else}}10{{end}}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small">CHA</label>
+          <input type="number" name="cha" class="form-control form-control-sm" min="1" max="30" value="{{if .Monster}}{{.Monster.Cha}}{{else if .CompMonster}}{{.CompMonster.Cha}}{{else}}10{{end}}">
+        </div>
+      </div>
+
+      <div class="row g-2 mb-2">
+        <div class="col-md-3">
+          <label class="form-label small">CR</label>
+          <input type="text" name="cr" class="form-control form-control-sm" placeholder="e.g. 1/4, 5"
+                 value="{{if .Monster}}{{.Monster.CR}}{{else if .CompMonster}}{{.CompMonster.CR}}{{else}}0{{end}}">
+        </div>
+      </div>
+
+      <div class="row g-2 mb-2">
+        <div class="col-md-6">
+          <label class="form-label small">Saves</label>
+          <input type="text" name="saves" class="form-control form-control-sm" placeholder="e.g. Str +5, Dex +3"
+                 value="{{if .Monster}}{{.Monster.Saves}}{{else if .CompMonster}}{{.CompMonster.Saves}}{{end}}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small">Skills</label>
+          <input type="text" name="skills" class="form-control form-control-sm" placeholder="e.g. Perception +5, Stealth +3"
+                 value="{{if .Monster}}{{.Monster.Skills}}{{else if .CompMonster}}{{.CompMonster.Skills}}{{end}}">
+        </div>
+      </div>
+
+      <div class="row g-2 mb-2">
+        <div class="col-md-4">
+          <label class="form-label small">Damage Vulnerabilities</label>
+          <input type="text" name="damage_vulnerabilities" class="form-control form-control-sm"
+                 value="{{if .Monster}}{{.Monster.DamageVulnerabilities}}{{else if .CompMonster}}{{.CompMonster.DamageVulnerabilities}}{{end}}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small">Damage Resistances</label>
+          <input type="text" name="damage_resistances" class="form-control form-control-sm"
+                 value="{{if .Monster}}{{.Monster.DamageResistances}}{{else if .CompMonster}}{{.CompMonster.DamageResistances}}{{end}}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small">Damage Immunities</label>
+          <input type="text" name="damage_immunities" class="form-control form-control-sm"
+                 value="{{if .Monster}}{{.Monster.DamageImmunities}}{{else if .CompMonster}}{{.CompMonster.DamageImmunities}}{{end}}">
+        </div>
+      </div>
+
+      <div class="row g-2 mb-2">
+        <div class="col-md-6">
+          <label class="form-label small">Condition Immunities</label>
+          <input type="text" name="condition_immunities" class="form-control form-control-sm"
+                 value="{{if .Monster}}{{.Monster.ConditionImmunities}}{{else if .CompMonster}}{{.CompMonster.ConditionImmunities}}{{end}}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small">Senses</label>
+          <input type="text" name="senses" class="form-control form-control-sm" placeholder="e.g. darkvision 60ft, passive Perception 10"
+                 value="{{if .Monster}}{{.Monster.Senses}}{{else if .CompMonster}}{{.CompMonster.Senses}}{{end}}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small">Languages</label>
+          <input type="text" name="languages" class="form-control form-control-sm"
+                 value="{{if .Monster}}{{.Monster.Languages}}{{else if .CompMonster}}{{.CompMonster.Languages}}{{end}}">
+        </div>
+      </div>
+
+      <div class="mb-2">
+        <label class="form-label small">Special Abilities</label>
+        <textarea name="special_abilities" class="form-control form-control-sm" rows="3">{{if .Monster}}{{.Monster.SpecialAbilities}}{{else if .CompMonster}}{{.CompMonster.SpecialAbilities}}{{end}}</textarea>
+      </div>
+
+      <div class="mb-2">
+        <label class="form-label small">Actions</label>
+        <textarea name="actions" class="form-control form-control-sm" rows="3">{{if .Monster}}{{.Monster.Actions}}{{else if .CompMonster}}{{.CompMonster.Actions}}{{end}}</textarea>
+      </div>
+
+      <div class="mb-2">
+        <label class="form-label small">Legendary Actions</label>
+        <textarea name="legendary_actions" class="form-control form-control-sm" rows="2">{{if .Monster}}{{.Monster.LegendaryActions}}{{else if .CompMonster}}{{.CompMonster.LegendaryActions}}{{end}}</textarea>
+      </div>
+
+      <div class="mb-2">
+        <label class="form-label small">Description / Notes</label>
+        <textarea name="description" class="form-control form-control-sm" rows="2">{{if .Monster}}{{.Monster.Description}}{{else if .CompMonster}}{{.CompMonster.Description}}{{end}}</textarea>
+      </div>
+
+      <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-sm btn-primary">
+          <i class="fa-solid fa-floppy-disk me-1"></i>{{if .Monster}}Save Changes{{else}}Create Monster{{end}}
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="this.closest('.card').remove()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+{{end}}
