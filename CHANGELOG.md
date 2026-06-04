@@ -1,3 +1,11 @@
+# [2.8.0](https://github.com/martynvdijke/dnd/compare/v2.7.0...v2.8.0) (2026-06-04)
+
+
+### Features
+
+* add custom monster creator, campaign monster roster, and wire into UI ([e5993df](https://github.com/martynvdijke/dnd/commit/e5993df98b4e488fc4d8e0b14df8dacbf520a676))
+* add JSON monster seed (147 SRD monsters) and API import from dnd5eapi.co ([f0be5a0](https://github.com/martynvdijke/dnd/commit/f0be5a092896d2d2eeef1d2e65c1fe5b71a9d0c5))
+
 # [2.7.0](https://github.com/martynvdijke/dnd/compare/v2.6.0...v2.7.0) (2026-06-04)
 
 
