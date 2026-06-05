@@ -1,3 +1,11 @@
+## [2.9.5](https://github.com/martynvdijke/dnd/compare/v2.9.4...v2.9.5) (2026-06-05)
+
+
+### Bug Fixes
+
+* handle omitempty null/undefined and uniqueName scope in e2e tests ([024499c](https://github.com/martynvdijke/dnd/commit/024499c9e40fbeeb6a2d1bb06baeb57be5aa5106))
+* use unique filenames in upload tests to prevent duplicate collision in parallel runs ([2e1e221](https://github.com/martynvdijke/dnd/commit/2e1e221d5a6d623a20fb7dc4df4490d971bac57d))
+
 ## [2.9.4](https://github.com/martynvdijke/dnd/compare/v2.9.3...v2.9.4) (2026-06-04)
 
 
