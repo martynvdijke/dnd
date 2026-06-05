@@ -1,3 +1,10 @@
+# [2.10.0](https://github.com/martynvdijke/dnd/compare/v2.9.6...v2.10.0) (2026-06-05)
+
+
+### Features
+
+* add OpenTelemetry tracing and metrics support ([f40cfef](https://github.com/martynvdijke/dnd/commit/f40cfefbd4a62058c2e5c1f9433ca825adf15d79))
+
 ## [2.9.6](https://github.com/martynvdijke/dnd/compare/v2.9.5...v2.9.6) (2026-06-05)
 
 
