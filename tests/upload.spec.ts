@@ -35,11 +35,12 @@ test.describe('File upload and media gallery', () => {
   test('upload API works and returns valid response', async ({ page }) => {
     const pngBytes = makeTestPNG();
     const csrf = await getCSRFToken(page);
+    const filename = `test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.png`;
 
     const resp = await page.request.post('/api/upload', {
       multipart: {
         image: {
-          name: 'test.png',
+          name: filename,
           mimeType: 'image/png',
           buffer: pngBytes,
         },
@@ -58,12 +59,13 @@ test.describe('File upload and media gallery', () => {
   test('upload-links API works', async ({ page }) => {
     const pngBytes = makeTestPNG();
     const csrf = await getCSRFToken(page);
+    const filename2 = `test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.png`;
 
     // Upload an image
     const uploadResp = await page.request.post('/api/upload', {
       multipart: {
         image: {
-          name: 'test.png',
+          name: filename2,
           mimeType: 'image/png',
           buffer: pngBytes,
         },
