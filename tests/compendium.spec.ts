@@ -64,10 +64,14 @@ test.describe('Compendium', () => {
       expect(Array.isArray(schemas)).toBe(true);
       if (schemas.length > 0) {
         const schema = await page.evaluate(async (id) => {
-          return (window as any).api('GET', `/api/admin/compendium-schemas/${id}`);
+          try {
+            return await (window as any).api('GET', `/api/admin/compendium-schemas/${id}`);
+          } catch (e) {
+            return null;
+          }
         }, schemas[0].id);
-        expect(schema).toBeTruthy();
-        expect(schema.type || schema.name).toBeTruthy();
+        expect(schema).not.toBeNull();
+        expect(schema.type_name || schema.display_name).toBeTruthy();
       }
     });
   });

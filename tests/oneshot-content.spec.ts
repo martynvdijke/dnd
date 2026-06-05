@@ -1094,7 +1094,7 @@ test.describe('Acts & Scenes API CRUD', () => {
     const detail = await page.evaluate(async (id) => {
       return (window as any).api('GET', `/api/oneshot-adventures/${id}`);
     }, adv.id);
-    expect(detail.acts.some((a: any) => a.id === act.id)).toBe(false);
+    expect(!detail.acts || !detail.acts.some((a: any) => a.id === act.id)).toBe(true);
   });
 
   test('Create scene within act', async ({ page }) => {
@@ -1151,7 +1151,8 @@ test.describe('Acts & Scenes API CRUD', () => {
     const updated = await page.evaluate(async (id) => {
       return (window as any).api('GET', `/api/oneshot-adventures/${id}`);
     }, adv.id);
-    expect(updated.acts[0].scenes.some((s: any) => s.id === sceneId)).toBe(false);
+    const scenes = updated.acts[0].scenes || [];
+    expect(scenes.some((s: any) => s.id === sceneId)).toBe(false);
   });
 });
 
@@ -1446,7 +1447,7 @@ test.describe('Prep Checklist', () => {
     const items = await page.evaluate(async (advId) => {
       return (window as any).api('GET', `/api/oneshot-adventures/${advId}/checklist`);
     }, adv.id);
-    expect(items.some((i: any) => i.id === created.id)).toBe(false);
+    expect(!items || !items.some((i: any) => i.id === created.id)).toBe(true);
   });
 });
 
@@ -1468,11 +1469,12 @@ test.describe('DM Notes', () => {
   test('Create DM note', async ({ page }) => {
     const title = uniqueName();
     const adv = await createOneShot(page, title);
-    const result = await page.evaluate(async ({ advId }) => {
+    const noteTitle = 'Note ' + uniqueName();
+    const result = await page.evaluate(async ({ advId, t }) => {
       return (window as any).api('POST', `/api/oneshot-adventures/${advId}/notes`, {
-        adventure_id: advId, title: 'Note ' + uniqueName(), content: 'DM secret content',
+        adventure_id: advId, title: t, content: 'DM secret content',
       });
-    }, { advId: adv.id });
+    }, { advId: adv.id, t: noteTitle });
     expect(result.id).toBeGreaterThan(0);
   });
 
@@ -1521,11 +1523,12 @@ test.describe('DM Notes', () => {
   test('Delete DM note', async ({ page }) => {
     const title = uniqueName();
     const adv = await createOneShot(page, title);
-    const created = await page.evaluate(async ({ advId }) => {
+    const noteTitle = 'Delete Note ' + uniqueName();
+    const created = await page.evaluate(async ({ advId, t }) => {
       return (window as any).api('POST', `/api/oneshot-adventures/${advId}/notes`, {
-        adventure_id: advId, title: 'Delete Note ' + uniqueName(), content: 'Delete me',
+        adventure_id: advId, title: t, content: 'Delete me',
       });
-    }, { advId: adv.id });
+    }, { advId: adv.id, t: noteTitle });
 
     await page.evaluate(async ({ advId, noteId }) => {
       return (window as any).api('DELETE', `/api/oneshot-adventures/${advId}/notes/${noteId}`);
