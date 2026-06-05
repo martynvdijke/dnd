@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"embed"
 	"io/fs"
 	"log"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"villum/db"
 	"villum/handlers"
@@ -69,17 +69,21 @@ func main() {
 	r.Use(gin.Logger(), gin.Recovery())
 	r.Use(middleware.SecurityHeaders())
 
-	tp, err := initTelemetry()
+	tp, promExporter, err := initTelemetry()
 	if err != nil {
-		log.Printf("Failed to initialize telemetry: %v", err)
-	} else {
-		r.Use(metricsMiddleware())
+		log.Printf("Warning: telemetry init failed (%v), running without OTel", err)
+	}
+	if tp != nil {
+		// otelgin creates spans for all incoming requests
+		r.Use(otelgin.Middleware("villum"))
 		defer func() {
-			if err := tp.Shutdown(context.Background()); err != nil {
-				log.Printf("Error shutting down tracer provider: %v", err)
-			}
+			shutdownTelemetry(tp)
 		}()
 	}
+	// Initialize OTel metrics middleware (records both Prometheus and OTel metrics)
+	om := initOTelMetrics()
+	r.Use(newOTelMetricsMiddleware(om))
+	_ = promExporter // OTel Prometheus exporter is registered with the metrics pipeline
 
 	// Public routes
 	r.GET("/healthz", handlers.HandleHealth)

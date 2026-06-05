@@ -4,6 +4,7 @@ openspec/
 villum-server
 vellum-server
 villum
+dnd-server
 villum.db*
 vellum.db*
 backups/

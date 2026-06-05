@@ -6,14 +6,54 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 
 	"villum/ent"
 )
+
+var tracer trace.Tracer
+
+const tracerName = "villum.db"
+
+func init() {
+	tracer = otel.Tracer(tracerName)
+}
+
+// TraceQuery wraps a database query with an OTel span.
+// Use it to instrument ad-hoc SQL queries.
+func TraceQuery(ctx context.Context, operation string, fn func(context.Context) error) error {
+	_, span := tracer.Start(ctx, operation,
+		trace.WithAttributes(
+			attribute.String("db.operation", operation),
+			attribute.String("db.system", "sqlite"),
+		),
+	)
+	defer span.End()
+
+	start := time.Now()
+	err := fn(ctx)
+	elapsed := time.Since(start).Seconds()
+
+	span.SetAttributes(attribute.Float64("db.duration_ms", elapsed*1000))
+
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+	} else {
+		span.SetStatus(codes.Ok, "")
+	}
+
+	return err
+}
 
 var DB *sql.DB
 var Client *ent.Client
