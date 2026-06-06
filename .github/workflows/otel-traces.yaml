@@ -1,0 +1,28 @@
+name: OpenTelemetry Traces
+
+on:
+  workflow_run:
+    workflows:
+      - CI checks
+      - Release
+      - Renovate
+    types:
+      - completed
+
+jobs:
+  export-traces:
+    name: Export OpenTelemetry Trace
+    runs-on: ubuntu-latest
+    steps:
+      - name: Export Workflow Trace
+        uses: corentinmusard/otel-cicd-action@v4
+        with:
+          otlpEndpoint: ${{ secrets.OTEL_EXPORTER_OTLP_ENDPOINT }}
+          otlpHeaders: ${{ secrets.OTEL_EXPORTER_OTLP_HEADERS }}
+          otelServiceName: github-actions
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          runId: ${{ github.event.workflow_run.id }}
+          extraAttributes: >
+            repository=${{ github.repository }},
+            workflow=${{ github.event.workflow_run.name }},
+            run_attempt=${{ github.event.workflow_run.run_attempt }}
