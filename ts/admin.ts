@@ -54,7 +54,7 @@ async function init() {
 function showAdminTab(tab: string) {
   document.querySelectorAll('#adminTabs .nav-link').forEach(el => el.classList.remove('active'));
   document.getElementById('tab' + capitalize(tab) + 'Btn')?.classList.add('active');
-  const tabs = ['users', 'schemas', 'compendium', 'backup', 'email', 'ai-endpoints', 'import'];
+  const tabs = ['users', 'schemas', 'compendium', 'backup', 'email', 'ai-endpoints', 'analytics', 'import'];
   tabs.forEach(s => {
     const id = 'admin' + s.split('-').map((p, i) => i === 0 ? capitalize(p) : capitalize(p)).join('');
     document.getElementById(id)!.style.display = s === tab ? 'block' : 'none';
@@ -64,6 +64,7 @@ function showAdminTab(tab: string) {
   if (tab === 'backup') { loadBackupSettings(); loadBackupList(); }
   if (tab === 'email') loadEmailSettings();
   if (tab === 'ai-endpoints') loadAIEndpoints();
+  if (tab === 'analytics') loadUmamiSettings();
   if (tab === 'import') { loadImportSchemas(); loadImportLogs(); }
 }
 (window as any).showAdminTab = showAdminTab;
@@ -798,6 +799,34 @@ async function loadEmailSettings() {
       test: true,
     });
     toast('Test email sent! Check your inbox.');
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+// ─── Umami Analytics ───
+
+async function loadUmamiSettings() {
+  try {
+    const s = await api('GET', '/api/admin/umami-settings');
+    (document.getElementById('umamiEnabled') as HTMLInputElement).checked = s.enabled;
+    (document.getElementById('umamiHostname') as HTMLInputElement).value = s.tracker_hostname || '';
+    (document.getElementById('umamiWebsiteID') as HTMLInputElement).value = s.website_id || '';
+    (document.getElementById('umamiShareData') as HTMLInputElement).checked = s.share_data;
+    (document.getElementById('umamiAdminTracking') as HTMLInputElement).checked = s.enable_admin_tracking;
+  } catch {}
+}
+
+(window as any).saveUmamiSettings = async function () {
+  try {
+    await api('POST', '/api/admin/umami-settings', {
+      enabled: (document.getElementById('umamiEnabled') as HTMLInputElement).checked,
+      tracker_hostname: (document.getElementById('umamiHostname') as HTMLInputElement).value,
+      website_id: (document.getElementById('umamiWebsiteID') as HTMLInputElement).value,
+      share_data: (document.getElementById('umamiShareData') as HTMLInputElement).checked,
+      enable_admin_tracking: (document.getElementById('umamiAdminTracking') as HTMLInputElement).checked,
+    });
+    toast('Analytics settings saved');
   } catch (e: any) {
     toast(e.message, true);
   }
