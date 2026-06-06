@@ -1,3 +1,10 @@
+## [2.12.1](https://github.com/martynvdijke/dnd/compare/v2.12.0...v2.12.1) (2026-06-06)
+
+
+### Bug Fixes
+
+* wire OTel settings tab in admin panel frontend ([3de94b4](https://github.com/martynvdijke/dnd/commit/3de94b445128ea93aeab96aa600fef85cb73ab5b))
+
 # [2.12.0](https://github.com/martynvdijke/dnd/compare/v2.11.0...v2.12.0) (2026-06-06)
 
 
