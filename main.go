@@ -69,6 +69,13 @@ func main() {
 	r.Use(gin.Logger(), gin.Recovery())
 	r.Use(middleware.SecurityHeaders())
 
+	// Initialize structured application logger
+	middleware.InitAppLoggerFromEnv()
+	handlers.InitLogSettings()
+	if middleware.AppLog != nil {
+		middleware.AppLog.Info("system", "AppLogger initialized")
+	}
+
 	tp, promExporter, err := initTelemetry()
 	if err != nil {
 		log.Printf("Warning: telemetry init failed (%v), running without OTel", err)
@@ -79,6 +86,14 @@ func main() {
 		defer func() {
 			shutdownTelemetry(tp)
 		}()
+
+		// Wire OTel log export — sends structured logs to the same OTLP endpoint
+		if middleware.AppLog != nil {
+			if exportFn := newOTelLogExportFn(); exportFn != nil {
+				middleware.AppLog.Handler().SetExportFn(exportFn)
+				middleware.AppLog.Info("system", "OTel log export enabled")
+			}
+		}
 	}
 	// Initialize OTel metrics middleware (records both Prometheus and OTel metrics)
 	om := initOTelMetrics()
@@ -697,6 +712,11 @@ func main() {
 		// Import Logs
 		admin.GET("/compendium-import-logs", handlers.ListCompendiumImportLogs)
 		admin.POST("/compendium-import-logs/:id/rollback", handlers.RollbackCompendiumImport)
+
+		// Central Application Logs
+		admin.GET("/logs", handlers.ListLogs)
+		admin.GET("/log-level", handlers.GetLogLevel)
+		admin.PUT("/log-level", handlers.SetLogLevel)
 	}
 
 	// Serve uploaded media files
