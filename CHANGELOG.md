@@ -1,3 +1,10 @@
+# [2.11.0](https://github.com/martynvdijke/dnd/compare/v2.10.0...v2.11.0) (2026-06-06)
+
+
+### Features
+
+* add self-hosted Umami analytics integration ([66e2e09](https://github.com/martynvdijke/dnd/commit/66e2e09133c0c439b4ab789de05d8a3232c5eb7a))
+
 # [2.10.0](https://github.com/martynvdijke/dnd/compare/v2.9.6...v2.10.0) (2026-06-05)
 
 
