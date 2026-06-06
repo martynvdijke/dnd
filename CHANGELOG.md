@@ -1,3 +1,16 @@
+# [2.12.0](https://github.com/martynvdijke/dnd/compare/v2.11.0...v2.12.0) (2026-06-06)
+
+
+### Bug Fixes
+
+* resolve 46 E2E test failures across chromium, firefox, and mobile-chrome ([6337d3a](https://github.com/martynvdijke/dnd/commit/6337d3abbc1f7493ca89067b6aec5eb7088bd0aa))
+
+
+### Features
+
+* add OTel endpoint admin configuration with DB-backed settings ([4dbe09a](https://github.com/martynvdijke/dnd/commit/4dbe09a3bd522847666e4985e9246a130f1f0759))
+* central admin logging with OTel export ([5bd9b09](https://github.com/martynvdijke/dnd/commit/5bd9b09712717c6433f67cd8e0569893fe226080))
+
 # [2.11.0](https://github.com/martynvdijke/dnd/compare/v2.10.0...v2.11.0) (2026-06-06)
 
 
