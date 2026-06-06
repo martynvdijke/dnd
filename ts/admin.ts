@@ -51,6 +51,8 @@ async function init() {
   }
 }
 
+let logRefreshInterval: any = null;
+
 function showAdminTab(tab: string) {
   document.querySelectorAll('#adminTabs .nav-link').forEach(el => el.classList.remove('active'));
   document.getElementById('tab' + capitalize(tab) + 'Btn')?.classList.add('active');
@@ -66,8 +68,92 @@ function showAdminTab(tab: string) {
   if (tab === 'ai-endpoints') loadAIEndpoints();
   if (tab === 'analytics') loadUmamiSettings();
   if (tab === 'import') { loadImportSchemas(); loadImportLogs(); }
+  if (tab === 'logs') { startLogAutoRefresh(); }
+  else { stopLogAutoRefresh(); }
 }
 (window as any).showAdminTab = showAdminTab;
+
+// ─── Logs ───
+
+function startLogAutoRefresh() {
+  loadLogLevel();
+  loadLogs();
+  if (logRefreshInterval) clearInterval(logRefreshInterval);
+  logRefreshInterval = setInterval(() => {
+    loadLogLevel();
+    loadLogs();
+  }, 5000);
+}
+
+function stopLogAutoRefresh() {
+  if (logRefreshInterval) {
+    clearInterval(logRefreshInterval);
+    logRefreshInterval = null;
+  }
+}
+
+async function loadLogs() {
+  try {
+    const levelFilter = (document.getElementById('logSourceFilter') as HTMLSelectElement)?.value || '';
+    let url = '/api/admin/logs?limit=200';
+    if (levelFilter) url += '&source=' + encodeURIComponent(levelFilter);
+    const logs = await api('GET', url);
+    const tbody = document.getElementById('logBody')!;
+    if (!logs || logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-muted text-center">No log entries</td></tr>';
+      document.getElementById('logCount')!.textContent = '0 entries';
+      return;
+    }
+    const levelBadge: Record<string, string> = {
+      debug: 'bg-secondary',
+      info: 'bg-info text-dark',
+      warn: 'bg-warning text-dark',
+      error: 'bg-danger',
+    };
+    tbody.innerHTML = logs.map((l: any) => {
+      const badge = levelBadge[l.level] || 'bg-secondary';
+      const ts = l.timestamp ? new Date(l.timestamp).toLocaleString() : '-';
+      const attrs = l.attributes && Object.keys(l.attributes).length > 0
+        ? Object.entries(l.attributes).map(([k, v]) => `<span class="badge bg-light text-dark me-1" title="${esc(k)}">${esc(k)}=${esc(String(v))}</span>`).join('')
+        : '';
+      return `<tr>
+        <td><span class="badge ${badge}">${esc(l.level)}</span></td>
+        <td class="small">${esc(ts)}</td>
+        <td><code class="small">${esc(l.source || '-')}</code></td>
+        <td>${esc(l.message)}</td>
+        <td class="small" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${attrs}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('logCount')!.textContent = logs.length + ' entries';
+  } catch (e: any) {
+    document.getElementById('logBody')!.innerHTML = '<tr><td colspan="5" class="text-danger text-center">Failed to load logs</td></tr>';
+  }
+}
+
+async function loadLogLevel() {
+  try {
+    const res = await api('GET', '/api/admin/log-level');
+    const sel = document.getElementById('logLevelSelect') as HTMLSelectElement;
+    if (sel && res.level) sel.value = res.level;
+  } catch {}
+}
+
+async function setLogLevel(level: string) {
+  try {
+    await api('PUT', '/api/admin/log-level', { level });
+    loadLogs();
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+}
+(window as any).setLogLevel = setLogLevel;
+
+function clearLogFilters() {
+  const levelFilter = document.getElementById('logSourceFilter') as HTMLSelectElement;
+  if (levelFilter) levelFilter.value = '';
+  loadLogs();
+}
+(window as any).clearLogFilters = clearLogFilters;
 
 // ─── Users ───
 

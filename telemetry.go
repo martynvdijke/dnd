@@ -1,10 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
+	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -268,6 +273,200 @@ func parseRatio(s string) (float64, error) {
 		return 0, fmt.Errorf("ratio %f out of range [0,1]", ratio)
 	}
 	return ratio, nil
+}
+
+// ─── OTel Log Export ───
+
+// otelLogHTTPClient is a reusable HTTP client for OTLP log export.
+var otelLogHTTPClient = &http.Client{Timeout: 5 * time.Second}
+
+// otlpLogEndpoint returns the OTLP logs endpoint URL derived from
+// OTEL_EXPORTER_OTLP_ENDPOINT. It appends /v1/logs to the base URL,
+// stripping trailing slashes and handling path components.
+func otlpLogEndpoint() string {
+	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	if endpoint == "" {
+		return ""
+	}
+	// Normalize: strip trailing slash, then append /v1/logs
+	endpoint = strings.TrimRight(endpoint, "/")
+	// If the endpoint already has a path component (e.g. from an OTel collector),
+	// replace or append appropriately
+	if strings.Contains(endpoint, "/v1/") {
+		return endpoint // already has a path
+	}
+	return endpoint + "/v1/logs"
+}
+
+// otlpLogHeaders returns OTLP headers parsed from OTEL_EXPORTER_OTLP_HEADERS.
+func otlpLogHeaders() map[string]string {
+	headers := os.Getenv("OTEL_EXPORTER_OTLP_HEADERS")
+	if headers == "" {
+		return nil
+	}
+	result := make(map[string]string)
+	for _, part := range strings.Split(headers, ",") {
+		part = strings.TrimSpace(part)
+		if idx := strings.Index(part, "="); idx > 0 {
+			result[part[:idx]] = strings.TrimSpace(part[idx+1:])
+		}
+	}
+	return result
+}
+
+// otlpLogSeverity maps slog.Level to OTLP severity number.
+// See: https://opentelemetry.io/docs/specs/otel/logs/data-model/#field-severitynumber
+func otlpLogSeverity(level slog.Level) int {
+	switch {
+	case level < slog.LevelInfo:
+		return 5 // DEBUG
+	case level < slog.LevelWarn:
+		return 9 // INFO
+	case level < slog.LevelError:
+		return 13 // WARN
+	default:
+		return 17 // ERROR
+	}
+}
+
+// otlpLogSeverityText maps slog.Level to OTLP severity text.
+func otlpLogSeverityText(level slog.Level) string {
+	switch {
+	case level < slog.LevelInfo:
+		return "DEBUG"
+	case level < slog.LevelWarn:
+		return "INFO"
+	case level < slog.LevelError:
+		return "WARN"
+	default:
+		return "ERROR"
+	}
+}
+
+// otlpLogRecord represents a single OTLP log record in JSON format.
+type otlpLogRecord struct {
+	TimeUnixNano   string              `json:"timeUnixNano"`
+	SeverityNumber int                 `json:"severityNumber"`
+	SeverityText   string              `json:"severityText"`
+	Body           otlpLogValue        `json:"body"`
+	Attributes     []otlpLogAttribute  `json:"attributes,omitempty"`
+}
+
+type otlpLogValue struct {
+	StringValue string `json:"stringValue"`
+}
+
+type otlpLogAttribute struct {
+	Key   string       `json:"key"`
+	Value otlpLogValue `json:"value"`
+}
+
+// otlpLogPayload is the top-level OTLP logs request body.
+type otlpLogPayload struct {
+	ResourceLogs []otlpResourceLogs `json:"resourceLogs"`
+}
+
+type otlpResourceLogs struct {
+	Resource  otlpResource   `json:"resource"`
+	ScopeLogs []otlpScopeLog `json:"scopeLogs"`
+}
+
+type otlpResource struct {
+	Attributes []otlpLogAttribute `json:"attributes"`
+}
+
+type otlpScopeLog struct {
+	Scope       otlpScope       `json:"scope"`
+	LogRecords  []otlpLogRecord `json:"logRecords"`
+}
+
+type otlpScope struct {
+	Name string `json:"name"`
+}
+
+// newOTelLogExportFn creates a function suitable for logHandler.SetExportFn
+// that sends log records to the configured OTLP endpoint asynchronously.
+// Returns nil if OTel log export is not configured.
+func newOTelLogExportFn() func(ctx context.Context, r slog.Record) {
+	endpoint := otlpLogEndpoint()
+	if endpoint == "" {
+		return nil
+	}
+	headers := otlpLogHeaders()
+	serviceName := os.Getenv("OTEL_SERVICE_NAME")
+	if serviceName == "" {
+		serviceName = "villum"
+	}
+
+	return func(ctx context.Context, r slog.Record) {
+		// Collect attributes from the record
+		var attrs []otlpLogAttribute
+		source := ""
+		r.Attrs(func(a slog.Attr) bool {
+			if a.Key == "source" {
+				source = a.Value.String()
+			} else {
+				attrs = append(attrs, otlpLogAttribute{
+					Key:   a.Key,
+					Value: otlpLogValue{StringValue: fmt.Sprintf("%v", a.Value.Any())},
+				})
+			}
+			return true
+		})
+		if source != "" {
+			attrs = append(attrs, otlpLogAttribute{
+				Key:   "source",
+				Value: otlpLogValue{StringValue: source},
+			})
+		}
+
+		payload := otlpLogPayload{
+			ResourceLogs: []otlpResourceLogs{
+				{
+					Resource: otlpResource{
+						Attributes: []otlpLogAttribute{
+							{Key: "service.name", Value: otlpLogValue{StringValue: serviceName}},
+						},
+					},
+					ScopeLogs: []otlpScopeLog{
+						{
+							Scope: otlpScope{Name: "villum.logger"},
+							LogRecords: []otlpLogRecord{
+								{
+									TimeUnixNano:   fmt.Sprintf("%d", r.Time.UnixNano()),
+									SeverityNumber: otlpLogSeverity(r.Level),
+									SeverityText:   otlpLogSeverityText(r.Level),
+									Body:           otlpLogValue{StringValue: r.Message},
+									Attributes:     attrs,
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		body, err := json.Marshal(payload)
+		if err != nil {
+			return
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+		if err != nil {
+			return
+		}
+		req.Header.Set("Content-Type", "application/json")
+		for k, v := range headers {
+			req.Header.Set(k, v)
+		}
+
+		resp, err := otelLogHTTPClient.Do(req)
+		if err != nil {
+			// Silently drop — OTel export is best-effort
+			return
+		}
+		resp.Body.Close()
+	}
 }
 
 // shutdownTelemetry flushes and shuts down the tracer provider gracefully.
