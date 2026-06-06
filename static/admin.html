@@ -37,6 +37,7 @@
   <li class="nav-item"><button class="nav-link" id="tabBackupBtn" onclick="showAdminTab('backup')"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Backup</button></li>
   <li class="nav-item"><button class="nav-link" id="tabEmailBtn" onclick="showAdminTab('email')"><i class="fa-solid fa-envelope me-1" aria-hidden="true"></i>Email</button></li>
   <li class="nav-item"><button class="nav-link" id="tabAIEndpointsBtn" onclick="showAdminTab('ai-endpoints')"><i class="fa-solid fa-robot me-1" aria-hidden="true"></i>AI Endpoints</button></li>
+  <li class="nav-item"><button class="nav-link" id="tabAnalyticsBtn" onclick="showAdminTab('analytics')"><i class="fa-solid fa-chart-line me-1" aria-hidden="true"></i>Analytics</button></li>
   <li class="nav-item"><button class="nav-link" id="tabImportBtn" onclick="showAdminTab('import')"><i class="fa-solid fa-upload me-1" aria-hidden="true"></i>Import</button></li>
   <li class="nav-item"><button class="nav-link" id="tabLogsBtn" onclick="showAdminTab('logs')"><i class="fa-solid fa-list me-1" aria-hidden="true"></i>Logs</button></li>
 </ul>
@@ -192,6 +193,47 @@
           <tbody></tbody>
         </table>
       </div>
+    </div>
+  </div>
+</div>
+
+<div id="adminAnalytics" style="display:none">
+  <div class="card">
+    <div class="card-header"><i class="fa-solid fa-chart-line me-2" aria-hidden="true"></i>Umami Analytics Settings</div>
+    <div class="card-body">
+      <div class="mb-3">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="umamiEnabled">
+          <label class="form-check-label" for="umamiEnabled">Enable Umami analytics tracking</label>
+        </div>
+      </div>
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label" for="umamiHostname">Tracker Hostname</label>
+          <input type="text" id="umamiHostname" class="form-control" placeholder="https://umami.example.com">
+          <small class="text-muted">The URL of your self-hosted Umami instance</small>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="umamiWebsiteID">Website ID</label>
+          <input type="text" id="umamiWebsiteID" class="form-control" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+          <small class="text-muted">The tracking ID from your Umami dashboard</small>
+        </div>
+      </div>
+      <div class="mb-3">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="umamiShareData">
+          <label class="form-check-label" for="umamiShareData">Enable share-data attribute</label>
+          <small class="d-block text-muted">Sends broader data including query params and referrer</small>
+        </div>
+      </div>
+      <div class="mb-3">
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="umamiAdminTracking">
+          <label class="form-check-label" for="umamiAdminTracking">Enable tracking on admin pages</label>
+          <small class="d-block text-muted">By default, analytics only track the public app pages</small>
+        </div>
+      </div>
+      <button class="btn btn-gold" onclick="saveUmamiSettings()"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Save Analytics Settings</button>
     </div>
   </div>
 </div>

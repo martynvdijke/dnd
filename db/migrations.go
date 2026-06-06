@@ -1551,6 +1551,21 @@ CREATE INDEX IF NOT EXISTS idx_compendium_import_logs_user ON compendium_import_
 CREATE INDEX IF NOT EXISTS idx_compendium_import_logs_status ON compendium_import_logs(status);
 `,
 	},
+	{
+		version: 35,
+		sql: `
+CREATE TABLE IF NOT EXISTS umami_settings (
+    id INTEGER PRIMARY KEY,
+    enabled INTEGER NOT NULL DEFAULT 0,
+    tracker_hostname TEXT NOT NULL DEFAULT '',
+    website_id TEXT NOT NULL DEFAULT '',
+    share_data INTEGER NOT NULL DEFAULT 0,
+    enable_admin_tracking INTEGER NOT NULL DEFAULT 0
+);
+
+INSERT OR IGNORE INTO umami_settings (id, enabled) VALUES (1, 0);
+`,
+	},
 }
 
 func Migrate() error {

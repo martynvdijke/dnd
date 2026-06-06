@@ -21,7 +21,7 @@ import (
 //go:embed static/*.html static/*.css static/style.css static/js/*.js static/sw.js static/manifest.json
 var staticFiles embed.FS
 
-const Version = "2.9.6"
+const Version = "2.11.0"
 
 func main() {
 	dbPath := os.Getenv("DB_PATH")
@@ -663,6 +663,10 @@ func main() {
 		admin.POST("/shops/:id/items", handlers.CreateShopItem)
 		admin.DELETE("/shop-items/:id", handlers.DeleteShopItem)
 
+		// Umami analytics settings
+		admin.GET("/umami-settings", handlers.GetUmamiSettings)
+		admin.POST("/umami-settings", handlers.SaveUmamiSettings)
+
 		// AI Endpoint management
 		admin.GET("/ai-endpoints", handlers.ListAIEndpoints)
 		admin.GET("/ai-endpoints/:id", handlers.GetAIEndpoint)
@@ -726,8 +730,8 @@ func main() {
 	staticFS, _ := fs.Sub(staticFiles, "static")
 	r.StaticFS("/static", http.FS(staticFS))
 
-	// Serve HTML pages with version substitution
-	serveHTML := func(path, fileName string) {
+	// Serve HTML pages with version substitution and optional analytics injection
+	serveHTML := func(path, fileName string, pageType string) {
 		r.GET(path, func(c *gin.Context) {
 			data, err := fs.ReadFile(staticFS, fileName)
 			if err != nil {
@@ -735,14 +739,33 @@ func main() {
 				return
 			}
 			content := strings.ReplaceAll(string(data), "{{VERSION}}", Version)
+
+			// Conditionally inject Umami analytics script
+			if pageType == "app" || pageType == "login" || pageType == "admin" {
+				script := handlers.InjectUmamiScript()
+				if script != "" {
+					// For admin pages, skip if admin tracking is disabled
+					if pageType == "admin" {
+						var enableAdminTracking int
+						db.DB.QueryRow("SELECT COALESCE(enable_admin_tracking, 0) FROM umami_settings WHERE id = 1").Scan(&enableAdminTracking)
+						if enableAdminTracking != 1 {
+							script = ""
+						}
+					}
+					if script != "" {
+						content = strings.ReplaceAll(content, "</head>", script+"\n</head>")
+					}
+				}
+			}
+
 			c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(content))
 		})
 	}
 
-	serveHTML("/", "app.html")
-	serveHTML("/login", "login.html")
-	serveHTML("/setup", "setup.html")
-	serveHTML("/admin", "admin.html")
+	serveHTML("/", "app.html", "app")
+	serveHTML("/login", "login.html", "login")
+	serveHTML("/setup", "setup.html", "setup")
+	serveHTML("/admin", "admin.html", "admin")
 
 	// Redirect /app to / for backward compatibility
 	r.GET("/app", func(c *gin.Context) {
