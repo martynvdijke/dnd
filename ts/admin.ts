@@ -56,7 +56,7 @@ let logRefreshInterval: any = null;
 function showAdminTab(tab: string) {
   document.querySelectorAll('#adminTabs .nav-link').forEach(el => el.classList.remove('active'));
   document.getElementById('tab' + capitalize(tab) + 'Btn')?.classList.add('active');
-  const tabs = ['users', 'schemas', 'compendium', 'backup', 'email', 'ai-endpoints', 'analytics', 'import'];
+  const tabs = ['users', 'schemas', 'compendium', 'backup', 'email', 'ai-endpoints', 'analytics', 'telemetry', 'import'];
   tabs.forEach(s => {
     const id = 'admin' + s.split('-').map((p, i) => i === 0 ? capitalize(p) : capitalize(p)).join('');
     document.getElementById(id)!.style.display = s === tab ? 'block' : 'none';
@@ -67,6 +67,7 @@ function showAdminTab(tab: string) {
   if (tab === 'email') loadEmailSettings();
   if (tab === 'ai-endpoints') loadAIEndpoints();
   if (tab === 'analytics') loadUmamiSettings();
+  if (tab === 'telemetry') loadOTelSettings();
   if (tab === 'import') { loadImportSchemas(); loadImportLogs(); }
   if (tab === 'logs') { startLogAutoRefresh(); }
   else { stopLogAutoRefresh(); }
@@ -913,6 +914,28 @@ async function loadUmamiSettings() {
       enable_admin_tracking: (document.getElementById('umamiAdminTracking') as HTMLInputElement).checked,
     });
     toast('Analytics settings saved');
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+// ─── OpenTelemetry ───
+
+async function loadOTelSettings() {
+  try {
+    const s = await api('GET', '/api/admin/otel-settings');
+    (document.getElementById('otelEnabled') as HTMLInputElement).checked = s.enabled;
+    (document.getElementById('otelEndpoint') as HTMLInputElement).value = s.endpoint || '';
+  } catch {}
+}
+
+(window as any).saveOTelSettings = async function () {
+  try {
+    await api('POST', '/api/admin/otel-settings', {
+      enabled: (document.getElementById('otelEnabled') as HTMLInputElement).checked,
+      endpoint: (document.getElementById('otelEndpoint') as HTMLInputElement).value,
+    });
+    toast('Telemetry settings saved');
   } catch (e: any) {
     toast(e.message, true);
   }
