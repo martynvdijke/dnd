@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"villum/db"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel"
@@ -122,13 +123,22 @@ func newOTelMetricsMiddleware(om *otelMetrics) gin.HandlerFunc {
 }
 
 // initTelemetry initializes OpenTelemetry tracing and metrics.
-// It selects the trace exporter based on environment variables:
-//   - If OTEL_EXPORTER_OTLP_ENDPOINT is set, uses OTLP gRPC (default) or HTTP
+// It reads the OTel endpoint from the database first, falling back
+// to OTEL_EXPORTER_OTLP_ENDPOINT env var.
+//   - If an endpoint is configured, uses OTLP gRPC (default) or HTTP
 //   - Otherwise, falls back to stdout exporter
 //
 // Returns the tracer provider, Prometheus exporter, and any initialization error.
 // A nil tracer provider on error means graceful degradation to no-op tracing.
 func initTelemetry() (*sdktrace.TracerProvider, *otelprom.Exporter, error) {
+	// Read OTel endpoint from database, fall back to env var
+	var dbEndpoint string
+	var dbEnabled int
+	err := db.DB.QueryRow("SELECT COALESCE(endpoint, ''), COALESCE(enabled, 0) FROM otel_settings WHERE id = 1").
+		Scan(&dbEndpoint, &dbEnabled)
+	if err == nil && dbEnabled == 1 && dbEndpoint != "" {
+		os.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", dbEndpoint)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), defaultExportTimeout)
 	defer cancel()
 

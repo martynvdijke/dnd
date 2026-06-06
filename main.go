@@ -667,6 +667,10 @@ func main() {
 		admin.GET("/umami-settings", handlers.GetUmamiSettings)
 		admin.POST("/umami-settings", handlers.SaveUmamiSettings)
 
+		// OTel telemetry settings
+		admin.GET("/otel-settings", handlers.GetOTelSettings)
+		admin.POST("/otel-settings", handlers.SaveOTelSettings)
+
 		// AI Endpoint management
 		admin.GET("/ai-endpoints", handlers.ListAIEndpoints)
 		admin.GET("/ai-endpoints/:id", handlers.GetAIEndpoint)
