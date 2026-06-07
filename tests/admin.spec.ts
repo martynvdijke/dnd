@@ -50,18 +50,40 @@ test.describe('Admin panel', () => {
   test('admin can manage compendium', async ({ page }) => {
     const uniqueEntry = `Test Race ${Date.now()}`;
     await goToAdmin(page);
+
+    // Open the unified Compendium tab
     await page.click('#adminTabs button:has-text("Compendium")');
 
-    await expect(page.locator('#adminCompendium .card-header')).toContainText('Compendium Management');
+    // Wait for schema list to load
+    await expect(page.locator('#unifiedSchemaBody')).not.toContainText('Loading');
+    await expect(page.locator('#schemaCount')).not.toContainText('Loading');
 
-    await page.click('#adminCompendium button:has-text("Add Entry")');
-    await page.fill('#compName', uniqueEntry);
-    await page.fill('#compDesc', 'A test race for testing');
-    await page.fill('#compSpeed', '30');
-    await page.fill('#compSize', 'Medium');
-    await page.getByRole('button', { name: 'Create' }).click();
+    // Find the Races schema row and click Browse Entries
+    const racesRow = page.locator('#unifiedSchemaBody tr').filter({ hasText: 'Races' });
+    await expect(racesRow).toBeVisible();
+    await racesRow.locator('button[title="Browse entries"]').click();
 
-    await expect(page.locator('#compEntries')).toContainText(uniqueEntry);
+    // Wait for entry browser to appear
+    await expect(page.locator('#unifiedEntryBrowser')).toBeVisible();
+
+    // Click Add Entry
+    await page.click('#addEntryBtn');
+
+    // Fill in the modal form (schema-aware fields use #ef_name, #ef_description etc.)
+    await page.waitForSelector('#ef_name', { timeout: 5000 });
+    await page.fill('#ef_name', uniqueEntry);
+    await page.fill('#ef_description', 'A test race for testing');
+    await page.fill('#ef_speed', '30');
+
+    // Select size from the dropdown
+    const sizeSelect = page.locator('#ef_size');
+    await sizeSelect.selectOption('Medium');
+
+    // Save
+    await page.getByRole('button', { name: 'Save' }).click();
+
+    // Verify the entry appears in the table
+    await expect(page.locator('#entryTable')).toContainText(uniqueEntry);
   });
 
   test('backup tab works', async ({ page }) => {
