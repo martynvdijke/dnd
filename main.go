@@ -66,7 +66,7 @@ func main() {
 	}
 
 	r := gin.New()
-	r.Use(gin.Logger(), gin.Recovery())
+	r.Use(middleware.RequestLogger(), gin.Recovery())
 	r.Use(middleware.SecurityHeaders())
 
 	// Initialize structured application logger

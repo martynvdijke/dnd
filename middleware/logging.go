@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/http"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 // LogEntry represents a single structured log entry for the in-memory buffer.
@@ -324,4 +327,51 @@ func InitAppLoggerFromEnv() *AppLogger {
 	cap := 5000
 	minLvl := slog.LevelWarn
 	return InitAppLogger(cap, minLvl)
+}
+
+// RequestLogger returns a Gin middleware that logs HTTP requests to AppLog.
+// Uses the package-level AppLog singleton; no-ops silently if nil.
+// Logs at info for 2xx, warn for 4xx, error for 5xx.
+func RequestLogger() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Skip logging for WebSocket upgrades
+		if c.Request.Header.Get("Upgrade") == "websocket" {
+			c.Next()
+			return
+		}
+
+		start := time.Now()
+		path := c.Request.URL.Path
+		method := c.Request.Method
+
+		c.Next()
+
+		latency := time.Since(start)
+		status := c.Writer.Status()
+		clientIP := c.ClientIP()
+		userAgent := c.Request.UserAgent()
+
+		if AppLog == nil {
+			return
+		}
+
+		msg := fmt.Sprintf("%s %s %d (%s)", method, path, status, latency)
+		attrs := []any{
+			"method", method,
+			"path", path,
+			"status", status,
+			"latency", latency.String(),
+			"ip", clientIP,
+			"user_agent", userAgent,
+		}
+
+		switch {
+		case status >= http.StatusInternalServerError:
+			AppLog.Error("http", msg, attrs...)
+		case status >= http.StatusBadRequest:
+			AppLog.Warn("http", msg, attrs...)
+		default:
+			AppLog.Info("http", msg, attrs...)
+		}
+	}
 }
