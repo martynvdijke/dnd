@@ -1,0 +1,40 @@
+{{define "compendium_entry_editor"}}
+{{$data := .Data}}
+{{range .Schema.Fields}}
+{{$val := index $data .Name}}
+<div class="mb-2">
+  <label class="form-label">{{.Label}}{{if .Required}} <span class="text-danger">*</span>{{end}}</label>
+  {{if eq .Type "text"}}
+    <textarea class="form-control" id="ef_{{.Name}}" rows="3">{{if $val}}{{$val}}{{end}}</textarea>
+  {{else if eq .Type "textarea"}}
+    <textarea class="form-control" id="ef_{{.Name}}" rows="3">{{if $val}}{{$val}}{{end}}</textarea>
+  {{else if eq .Type "integer"}}
+    <input class="form-control" type="number" step="1" id="ef_{{.Name}}" value="{{if $val}}{{$val}}{{end}}">
+  {{else if eq .Type "float"}}
+    <input class="form-control" type="number" step="0.01" id="ef_{{.Name}}" value="{{if $val}}{{$val}}{{end}}">
+  {{else if eq .Type "boolean"}}
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" id="ef_{{.Name}}"{{if $val}} checked{{end}}>
+    </div>
+  {{else if eq .Type "select"}}
+    <select class="form-select" id="ef_{{.Name}}">
+      <option value="">— Select —</option>
+      {{range .Options}}
+      <option value="{{.}}"{{if eq $val .}} selected{{end}}>{{.}}</option>
+      {{end}}
+    </select>
+  {{else if eq .Type "multi-select"}}
+    <select class="form-select" multiple id="ef_{{.Name}}">
+      {{range .Options}}
+      <option value="{{.}}">{{.}}</option>
+      {{end}}
+    </select>
+  {{else if eq .Type "json"}}
+    <textarea class="form-control font-monospace" id="ef_{{.Name}}" rows="4" placeholder="Enter JSON...">{{if $val}}{{$val}}{{end}}</textarea>
+    <small class="text-muted">Must be valid JSON</small>
+  {{else}}
+    <input class="form-control" type="text" id="ef_{{.Name}}" value="{{if $val}}{{$val}}{{end}}">
+  {{end}}
+</div>
+{{end}}
+{{end}}

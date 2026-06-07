@@ -1,0 +1,68 @@
+{{define "compendium_entry_table"}}
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <div>
+    <button class="btn btn-sm btn-outline-secondary me-2" onclick="backToSchemaList()"><i class="fa-solid fa-arrow-left me-1"></i>Back</button>
+    <strong>{{.Schema.DisplayName}}</strong>
+    <small class="text-muted ms-2">{{.Total}} entries</small>
+  </div>
+</div>
+{{if .Entries}}
+<div class="table-responsive">
+  <table class="table table-sm table-hover mb-0">
+    <thead>
+      <tr>
+        <th style="width:36px"><input class="form-check-input" type="checkbox" id="selectAllEntries" onchange="toggleSelectAll()"></th>
+        {{$previewFields := .Schema.Fields}}
+        {{range $i, $f := $previewFields}}{{if lt $i 5}}<th>{{$f.Label}}</th>{{end}}{{end}}
+        {{if gt (len $previewFields) 5}}<th style="width:30px">…</th>{{end}}
+        <th style="width:160px">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{$fields := .Schema.Fields}}
+      {{$page := .Page}}{{$pages := .Pages}}
+      {{range .Entries}}
+      <tr>
+        <td><input class="form-check-input entry-select-cb" type="checkbox" data-entry-id="{{.ID}}" onchange="toggleEntrySelect({{.ID}})"></td>
+        {{$data := .Data}}
+        {{range $i, $f := $fields}}{{if lt $i 5}}
+          {{$val := index $data $f.Name}}
+          <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+            {{if eq $f.Type "boolean"}}
+              {{if $val}}✓{{else}}—{{end}}
+            {{else}}
+              {{if $val}}{{$val}}{{else}}-{{end}}
+            {{end}}
+          </td>
+        {{end}}{{end}}
+        {{if gt (len $fields) 5}}<td title="{{range $i, $f := $fields}}{{if ge $i 5}}{{$f.Label}}: {{index $data $f.Name}} | {{end}}{{end}}">…</td>{{end}}
+        <td class="text-nowrap">
+          <button class="btn btn-outline-primary btn-sm py-0" onclick="editSchemaEntryById({{.ID}},{{.SchemaID}})" title="Edit"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-outline-info btn-sm py-0" onclick="viewSchemaEntry({{.ID}})" title="View"><i class="fa-solid fa-eye"></i></button>
+          <button class="btn btn-outline-secondary btn-sm py-0" onclick="duplicateSchemaEntry({{.ID}},{{.SchemaID}})" title="Duplicate"><i class="fa-solid fa-copy"></i></button>
+          <button class="btn btn-outline-danger btn-sm py-0" onclick="deleteSchemaEntryById({{.ID}})" title="Delete"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+<div class="d-flex justify-content-between align-items-center mt-2">
+  <small class="text-muted">Page {{.Page}} of {{.Pages}}</small>
+  <nav>
+    <ul class="pagination pagination-sm mb-0">
+      {{if gt .Page 1}}<li class="page-item"><button class="page-link" onclick="goToPage({{sub .Page 1}})">«</button></li>{{end}}
+      {{$cp := .Page}}{{$tp := .Pages}}
+      {{range $p := seq 1 $tp}}
+        {{if and (ge $p (sub $cp 2)) (le $p (add $cp 2))}}
+          <li class="page-item{{if eq $p $cp}} active{{end}}"><button class="page-link" onclick="goToPage({{$p}})">{{$p}}</button></li>
+        {{end}}
+      {{end}}
+      {{if lt .Page .Pages}}<li class="page-item"><button class="page-link" onclick="goToPage({{add .Page 1}})">»</button></li>{{end}}
+    </ul>
+  </nav>
+</div>
+{{else}}
+<p class="text-muted text-center py-3">No entries found</p>
+{{end}}
+{{end}}

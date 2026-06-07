@@ -55,13 +55,17 @@ let logRefreshInterval: any = null;
 
 function showAdminTab(tab: string) {
   document.querySelectorAll('#adminTabs .nav-link').forEach(el => el.classList.remove('active'));
-  document.getElementById('tab' + capitalize(tab) + 'Btn')?.classList.add('active');
-  const tabs = ['users', 'schemas', 'compendium', 'backup', 'email', 'ai-endpoints', 'analytics', 'telemetry', 'import'];
-  tabs.forEach(s => {
-    const id = 'admin' + s.split('-').map((p, i) => i === 0 ? capitalize(p) : capitalize(p)).join('');
-    document.getElementById(id)!.style.display = s === tab ? 'block' : 'none';
+  const tabBtn = document.getElementById('tab' + capitalize(tab) + 'Btn');
+  if (tabBtn) tabBtn.classList.add('active');
+  const allTabs = ['users', 'unified-compendium', 'schemas', 'compendium', 'backup', 'email', 'ai-endpoints', 'analytics', 'telemetry', 'import', 'logs'];
+  allTabs.forEach(s => {
+    const parts = s.split('-').map((p, i) => i === 0 ? capitalize(p) : capitalize(p));
+    const id = 'admin' + parts.join('');
+    const el = document.getElementById(id);
+    if (el) el.style.display = s === tab ? 'block' : 'none';
   });
   if (tab === 'users') loadUsers();
+  if (tab === 'unified-compendium') { loadUnifiedCompendium(); checkLegacyMigrationStatus(); }
   if (tab === 'schemas') loadSchemas();
   if (tab === 'backup') { loadBackupSettings(); loadBackupList(); }
   if (tab === 'email') loadEmailSettings();
@@ -73,6 +77,668 @@ function showAdminTab(tab: string) {
   else { stopLogAutoRefresh(); }
 }
 (window as any).showAdminTab = showAdminTab;
+
+// ─── Unified Compendium ───
+
+let currentSchemaId: number = 0;
+let currentSchemaFields: any[] = [];
+let currentSchemaPage: number = 1;
+let currentSchemaQuery: string = '';
+let currentSchemaName: string = '';
+let selectedEntryIds: Set<number> = new Set();
+let entryModalSchemaId = 0;
+let entryModalSchemaFields: any[] = [];
+let entryModalEditId: number | null = null;
+
+async function loadUnifiedCompendium() {
+  const tbody = document.getElementById('unifiedSchemaBody')!;
+  try {
+    const schemas = await api('GET', '/api/admin/compendium-schemas');
+    document.getElementById('schemaCount')!.textContent = schemas.length + ' schemas';
+    tbody.innerHTML = schemas.map((s: any) => {
+      const icon = s.type_name === 'monster' ? '🐉' : s.type_name === 'spell' ? '🔮' : s.type_name === 'race' ? '🧝' : s.type_name === 'class' ? '⚔️' : s.type_name === 'equipment' ? '🛡️' : s.type_name === 'feat' ? '💪' : s.type_name === 'background' ? '📜' : '📖';
+      return `<tr>
+        <td style="font-size:1.2rem">${icon}</td>
+        <td><strong>${esc(s.display_name)}</strong></td>
+        <td><code>${esc(s.type_name)}</code></td>
+        <td>${s.fields ? s.fields.length : 0}</td>
+        <td><span class="badge badge-primary">${s.entry_count || 0}</span></td>
+        <td class="text-nowrap">
+          <button class="btn btn-outline-primary btn-sm py-0" onclick="browseSchema(${s.id},'${esc(s.display_name)}')" title="Browse entries"><i class="fa-solid fa-list"></i></button>
+          <button class="btn btn-outline-info btn-sm py-0" onclick="editSchema(${s.id})" title="Edit schema"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-outline-warning btn-sm py-0" onclick="openImportForSchemaId(${s.id})" title="Import"><i class="fa-solid fa-upload"></i></button>
+          <button class="btn btn-outline-danger btn-sm py-0" onclick="deleteSchema(${s.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch (e: any) {
+    tbody.innerHTML = '<tr><td colspan="6" class="text-danger text-center">Failed to load schemas: ' + esc(e.message) + '</td></tr>';
+  }
+}
+
+(window as any).loadUnifiedCompendium = loadUnifiedCompendium;
+
+// ─── Global Cross-Schema Search ───
+
+let globalSearchTimeout: any = null;
+
+function onGlobalSearchInput(value: string) {
+  clearTimeout(globalSearchTimeout);
+  const q = value.trim();
+  if (q.length < 2) {
+    document.getElementById('globalSearchResults')!.style.display = 'none';
+    document.getElementById('unifiedSchemaListView')!.style.display = 'block';
+    document.getElementById('unifiedEntryBrowser')!.style.display = 'none';
+    return;
+  }
+  globalSearchTimeout = setTimeout(() => doGlobalSearch(q), 300);
+}
+(window as any).onGlobalSearchInput = onGlobalSearchInput;
+
+async function doGlobalSearch(q: string) {
+  try {
+    document.getElementById('unifiedSchemaListView')!.style.display = 'none';
+    document.getElementById('unifiedEntryBrowser')!.style.display = 'none';
+    const results = await api('GET', '/api/admin/compendium-search?q=' + encodeURIComponent(q));
+    const container = document.getElementById('globalSearchResults')!;
+    container.style.display = 'block';
+    if (!results || results.length === 0) {
+      document.getElementById('globalSearchEmpty')!.style.display = 'block';
+      document.getElementById('globalSearchResultGroups')!.innerHTML = '';
+      return;
+    }
+    document.getElementById('globalSearchEmpty')!.style.display = 'none';
+    // Group by type_name
+    const groups: Record<string, any[]> = {};
+    for (const r of results) {
+      const key = r.type_name || r.type || 'Other';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(r);
+    }
+    const groupsHtml = Object.entries(groups).map(([typeName, items]) => `
+      <div class="mb-2">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="badge bg-secondary">${esc(typeName)}</span>
+          <small class="text-muted">${items.length} result${items.length > 1 ? 's' : ''}</small>
+        </div>
+        <div class="list-group list-group-flush small">
+          ${items.map((r: any) => `
+            <button class="list-group-item list-group-item-action py-1 d-flex align-items-center gap-2" onclick="openEntryFromSearch(${r.id},${r.type || 0})">
+              <i class="fa-solid fa-file-lines text-muted" style="font-size:0.75rem"></i>
+              <span>${esc(r.name || '(unnamed)')}</span>
+              <small class="text-muted ms-auto">${r.snippet ? esc(r.snippet.slice(0, 60)) : ''}</small>
+            </button>
+          `).join('')}
+        </div>
+      </div>
+    `).join('');
+    document.getElementById('globalSearchResultGroups')!.innerHTML = groupsHtml;
+  } catch (e: any) {
+    toast('Search failed: ' + e.message, true);
+  }
+}
+
+function openEntryFromSearch(entryId: number, typeId: number) {
+  // We need to figure out the schema ID. The search doesn't return it directly.
+  // Fetch the entry to get schema_id
+  api('GET', '/api/admin/compendium-entries/' + entryId).then(entry => {
+    if (entry && entry.schema_id) {
+      editSchemaEntryById(entryId, entry.schema_id);
+    }
+  }).catch(() => {
+    toast('Could not open entry', true);
+  });
+}
+(window as any).openEntryFromSearch = openEntryFromSearch;
+
+function clearGlobalSearch() {
+  (document.getElementById('compendiumGlobalSearch') as HTMLInputElement).value = '';
+  document.getElementById('globalSearchResults')!.style.display = 'none';
+  document.getElementById('unifiedSchemaListView')!.style.display = 'block';
+  document.getElementById('unifiedEntryBrowser')!.style.display = 'none';
+}
+(window as any).clearGlobalSearch = clearGlobalSearch;
+
+// ─── Entry Browser ───
+
+function browseSchema(schemaId: number, schemaName: string) {
+  currentSchemaId = schemaId;
+  currentSchemaName = schemaName;
+  currentSchemaPage = 1;
+  currentSchemaQuery = '';
+  selectedEntryIds.clear();
+  document.getElementById('unifiedSchemaListView')!.style.display = 'none';
+  document.getElementById('globalSearchResults')!.style.display = 'none';
+  document.getElementById('unifiedEntryBrowser')!.style.display = 'block';
+  document.getElementById('entryBrowserTitle')!.textContent = schemaName + ' Entries';
+  loadSchemaEntries();
+}
+(window as any).browseSchema = browseSchema;
+
+function backToSchemaList() {
+  document.getElementById('unifiedEntryBrowser')!.style.display = 'none';
+  document.getElementById('unifiedSchemaListView')!.style.display = 'block';
+  currentSchemaId = 0;
+}
+(window as any).backToSchemaList = backToSchemaList;
+
+async function loadSchemaEntries() {
+  const schemaId = currentSchemaId;
+  if (!schemaId) return;
+  const page = currentSchemaPage;
+  const q = currentSchemaQuery;
+  const tbody = document.getElementById('entryTableBody')!;
+  const thead = document.getElementById('entryTableHead')!;
+  try {
+    const params = new URLSearchParams({ page: String(page), page_size: '50' });
+    if (q) params.set('q', q);
+    const result = await api('GET', '/api/admin/compendium-schemas/' + schemaId + '/entries?' + params.toString());
+    const entries = result.entries || result || [];
+    const total = result.total || entries.length;
+    const totalPages = result.total_pages || Math.max(1, Math.ceil(total / 50));
+
+    // Get schema fields for column headers
+    const schemas = await api('GET', '/api/admin/compendium-schemas');
+    const schema = schemas.find((s: any) => s.id === schemaId);
+    const fields = schema?.fields || [];
+    currentSchemaFields = fields;
+
+    // Build header - first 5 fields
+    const previewFields = fields.slice(0, 5);
+    thead.innerHTML = '<tr>' +
+      '<th style="width:36px"><input class="form-check-input" type="checkbox" id="selectAllEntries" onchange="toggleSelectAll()"></th>' +
+      previewFields.map((f: any) => `<th>${esc(f.label || f.name)}</th>`).join('') +
+      (fields.length > 5 ? '<th style="width:30px">…</th>' : '') +
+      '<th style="width:160px">Actions</th>' +
+    '</tr>';
+
+    if (!entries || entries.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="' + (previewFields.length + 3) + '" class="text-muted text-center py-3">No entries found</td></tr>';
+      document.getElementById('entryCountInfo')!.textContent = '0 entries';
+      document.getElementById('entryPagination')!.style.display = 'none';
+      updateBulkActionsToolbar();
+      return;
+    }
+
+    tbody.innerHTML = entries.map((e: any) => {
+      const data = e.data || {};
+      return '<tr>' +
+        '<td><input class="form-check-input entry-select-cb" type="checkbox" data-entry-id="' + e.id + '" onchange="toggleEntrySelect(' + e.id + ')" ' + (selectedEntryIds.has(e.id) ? 'checked' : '') + '></td>' +
+        previewFields.map((f: any) => {
+          let val = data[f.name];
+          if (val === null || val === undefined) val = '';
+          if (f.type === 'boolean') val = val ? '✓' : '—';
+          else if (typeof val === 'object') val = JSON.stringify(val).slice(0, 50) + '…';
+          else val = String(val).slice(0, 80);
+          return '<td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(val) + '</td>';
+        }).join('') +
+        (fields.length > 5 ? '<td title="' + fields.slice(5).map((f: any) => esc(f.label || f.name) + ': ' + esc(String(data[f.name] ?? ''))).join(' | ') + '">…</td>' : '') +
+        '<td class="text-nowrap">' +
+          '<button class="btn btn-outline-primary btn-sm py-0" onclick="editSchemaEntryById(' + e.id + ',' + schemaId + ')" title="Edit"><i class="fa-solid fa-pen"></i></button> ' +
+          '<button class="btn btn-outline-info btn-sm py-0" onclick="viewSchemaEntry(' + e.id + ')" title="View"><i class="fa-solid fa-eye"></i></button> ' +
+          '<button class="btn btn-outline-secondary btn-sm py-0" onclick="duplicateSchemaEntry(' + e.id + ',' + schemaId + ')" title="Duplicate"><i class="fa-solid fa-copy"></i></button> ' +
+          '<button class="btn btn-outline-danger btn-sm py-0" onclick="deleteSchemaEntryById(' + e.id + ')" title="Delete"><i class="fa-solid fa-trash"></i></button>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+
+    document.getElementById('entryCountInfo')!.textContent = total + ' entries (page ' + page + ' of ' + totalPages + ')';
+    // Pagination
+    const paginationEl = document.getElementById('entryPagination')!;
+    if (totalPages <= 1) {
+      paginationEl.style.display = 'none';
+    } else {
+      paginationEl.style.display = 'block';
+      const ul = document.getElementById('entryPaginationUl')!;
+      let pagHtml = '';
+      if (page > 1) pagHtml += '<li class="page-item"><button class="page-link" onclick="goToPage(' + (page - 1) + ')">«</button></li>';
+      for (let p = Math.max(1, page - 2); p <= Math.min(totalPages, page + 2); p++) {
+        pagHtml += '<li class="page-item' + (p === page ? ' active' : '') + '"><button class="page-link" onclick="goToPage(' + p + ')">' + p + '</button></li>';
+      }
+      if (page < totalPages) pagHtml += '<li class="page-item"><button class="page-link" onclick="goToPage(' + (page + 1) + ')">»</button></li>';
+      ul.innerHTML = pagHtml;
+    }
+    updateBulkActionsToolbar();
+  } catch (e: any) {
+    tbody.innerHTML = '<tr><td colspan="10" class="text-danger text-center">Failed: ' + esc(e.message) + '</td></tr>';
+  }
+}
+
+function goToPage(page: number) {
+  currentSchemaPage = page;
+  loadSchemaEntries();
+}
+(window as any).goToPage = goToPage;
+
+let entrySearchTimeout: any = null;
+function onEntrySearchInput(value: string) {
+  clearTimeout(entrySearchTimeout);
+  currentSchemaQuery = value.trim();
+  currentSchemaPage = 1;
+  entrySearchTimeout = setTimeout(() => loadSchemaEntries(), 300);
+}
+(window as any).onEntrySearchInput = onEntrySearchInput;
+
+function addEntryCurrentSchema() {
+  if (currentSchemaId) createSchemaEntry(currentSchemaId);
+}
+(window as any).addEntryCurrentSchema = addEntryCurrentSchema;
+
+// ─── Entry Selection / Bulk Ops ───
+
+function toggleEntrySelect(id: number) {
+  if (selectedEntryIds.has(id)) selectedEntryIds.delete(id);
+  else selectedEntryIds.add(id);
+  updateBulkActionsToolbar();
+}
+(window as any).toggleEntrySelect = toggleEntrySelect;
+
+function toggleSelectAll() {
+  const cb = document.getElementById('selectAllEntries') as HTMLInputElement;
+  const checkboxes = document.querySelectorAll<HTMLInputElement>('.entry-select-cb');
+  checkboxes.forEach(c => {
+    c.checked = cb.checked;
+    const eid = parseInt(c.dataset.entryId || '0', 10);
+    if (cb.checked) selectedEntryIds.add(eid);
+    else selectedEntryIds.delete(eid);
+  });
+  updateBulkActionsToolbar();
+}
+(window as any).toggleSelectAll = toggleSelectAll;
+
+function updateBulkActionsToolbar() {
+  const count = selectedEntryIds.size;
+  const el = document.getElementById('bulkActionsToolbar')!;
+  if (count === 0) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  document.getElementById('bulkSelectedCount')!.textContent = count + ' selected';
+}
+
+function clearEntrySelection() {
+  selectedEntryIds.clear();
+  document.querySelectorAll<HTMLInputElement>('.entry-select-cb').forEach(c => c.checked = false);
+  const selAll = document.getElementById('selectAllEntries') as HTMLInputElement;
+  if (selAll) selAll.checked = false;
+  updateBulkActionsToolbar();
+}
+(window as any).clearEntrySelection = clearEntrySelection;
+
+async function batchDeleteEntries() {
+  const ids = Array.from(selectedEntryIds);
+  if (ids.length === 0) return;
+  if (!confirm('Delete ' + ids.length + ' entries? This cannot be undone.')) return;
+  try {
+    const res = await api('POST', '/api/admin/compendium-entries/batch-delete', { ids });
+    toast('Deleted ' + res.deleted + ' entries');
+    selectedEntryIds.clear();
+    loadSchemaEntries();
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+}
+(window as any).batchDeleteEntries = batchDeleteEntries;
+
+async function batchEditEntries() {
+  const ids = Array.from(selectedEntryIds);
+  if (ids.length === 0) return;
+  const schemas = await api('GET', '/api/admin/compendium-schemas');
+  const schema = schemas.find((s: any) => s.id === currentSchemaId) || schemas[0];
+  const fields = schema?.fields || [];
+  const fieldOpts = fields.map((f: any) =>
+    `<option value="${esc(f.name)}">${esc(f.label || f.name)}</option>`
+  ).join('');
+  showModal('Bulk Edit ' + ids.length + ' Entries', `
+    <p>Set a field value for all ${ids.length} selected entries.</p>
+    <div class="mb-2">
+      <label class="form-label">Field</label>
+      <select class="form-select" id="bulkField">${fieldOpts}</select>
+    </div>
+    <div class="mb-2">
+      <label class="form-label">Value</label>
+      <input class="form-control" id="bulkValue" type="text">
+    </div>
+    <button class="btn btn-primary" onclick="saveBatchEdit()"><i class="fa-solid fa-floppy-disk me-1"></i>Update All</button>
+    <button class="btn btn-secondary" onclick="hideModal()">Cancel</button>
+  `);
+}
+(window as any).batchEditEntries = batchEditEntries;
+
+async function saveBatchEdit() {
+  const field = (document.getElementById('bulkField') as HTMLSelectElement).value;
+  const value = (document.getElementById('bulkValue') as HTMLInputElement).value;
+  if (!field) { toast('Select a field', true); return; }
+  const ids = Array.from(selectedEntryIds);
+  try {
+    const res = await api('POST', '/api/admin/compendium-entries/batch-update', { ids, data: { [field]: value } });
+    toast('Updated ' + res.updated + ' entries');
+    hideModal();
+    selectedEntryIds.clear();
+    loadSchemaEntries();
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+}
+(window as any).saveBatchEdit = saveBatchEdit;
+
+async function batchExportEntries() {
+  const ids = Array.from(selectedEntryIds);
+  if (ids.length === 0) return;
+  try {
+    const entries: any[] = [];
+    for (const id of ids) {
+      const entry = await api('GET', '/api/admin/compendium-entries/' + id);
+      if (entry) entries.push(entry);
+    }
+    const blob = new Blob([JSON.stringify({ schema_id: currentSchemaId, entries: entries }, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = currentSchemaName.replace(/\s+/g, '-').toLowerCase() + '-export.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('Exported ' + entries.length + ' entries');
+  } catch (e: any) {
+    toast('Export failed: ' + e.message, true);
+  }
+}
+(window as any).batchExportEntries = batchExportEntries;
+
+// ─── Entry CRUD ───
+
+function createSchemaEntry(schemaId: number) {
+  api('GET', '/api/admin/compendium-schemas').then((schemas: any[]) => {
+    const schema = schemas.find((s: any) => s.id === schemaId);
+    if (!schema) { toast('Schema not found', true); return; }
+    entryModalSchemaId = schemaId;
+    entryModalSchemaFields = schema.fields || [];
+    entryModalEditId = null;
+    showModal('Create Entry in ' + esc(schema.display_name), getEntryFormHtml(null));
+  }).catch((e: any) => toast(e.message, true));
+}
+(window as any).createSchemaEntry = createSchemaEntry;
+
+function editSchemaEntryById(entryId: number, schemaId: number) {
+  Promise.all([
+    api('GET', '/api/admin/compendium-schemas'),
+    api('GET', '/api/admin/compendium-entries/' + entryId)
+  ]).then(([schemas, entry]) => {
+    const schema = schemas.find((s: any) => s.id === schemaId);
+    if (!schema) { toast('Schema not found', true); return; }
+    entryModalSchemaId = schemaId;
+    entryModalSchemaFields = schema.fields || [];
+    entryModalEditId = entryId;
+    showModal('Edit Entry', getEntryFormHtml(entry.data || entry));
+  }).catch((e: any) => toast(e.message, true));
+}
+(window as any).editSchemaEntryById = editSchemaEntryById;
+
+function viewSchemaEntry(entryId: number) {
+  api('GET', '/api/admin/compendium-entries/' + entryId).then(entry => {
+    if (!entry) { toast('Entry not found', true); return; }
+    const data = entry.data || {};
+    const schemaId = entry.schema_id;
+    api('GET', '/api/admin/compendium-schemas').then((schemas: any[]) => {
+      const schema = schemas.find((s: any) => s.id === schemaId);
+      const fields = schema?.fields || [];
+      const bodyHtml = fields.map((f: any) => {
+        let val = data[f.name];
+        if (val === null || val === undefined) val = '';
+        if (f.type === 'boolean') {
+          val = val ? '<span class="text-success"><i class="fa-solid fa-check-circle me-1"></i>Yes</span>' : '<span class="text-muted"><i class="fa-solid fa-circle-xmark me-1"></i>No</span>';
+        } else if (f.type === 'json' && val) {
+          try {
+            const formatted = typeof val === 'string' ? JSON.stringify(JSON.parse(val), null, 2) : JSON.stringify(val, null, 2);
+            val = '<pre class="mb-0" style="max-height:200px;overflow:auto"><code>' + esc(formatted) + '</code></pre>';
+          } catch { val = esc(String(val)); }
+        } else if (typeof val === 'object') {
+          val = '<pre class="mb-0" style="max-height:200px;overflow:auto"><code>' + esc(JSON.stringify(val, null, 2)) + '</code></pre>';
+        } else {
+          val = esc(String(val));
+        }
+        return `<div class="mb-2">
+          <label class="form-label text-muted small mb-0">${esc(f.label || f.name)}</label>
+          <div class="p-2 bg-light rounded">${val}</div>
+        </div>`;
+      }).join('');
+      showModal('View: ' + esc(data.name || data.Name || 'Entry'), bodyHtml + `
+        <div class="mt-3">
+          <button class="btn btn-primary" onclick="hideModal();editSchemaEntryById(${entry.id},${schemaId})"><i class="fa-solid fa-pen me-1"></i>Edit</button>
+          <button class="btn btn-secondary" onclick="hideModal()">Close</button>
+        </div>
+      `);
+    });
+  }).catch((e: any) => toast(e.message, true));
+}
+(window as any).viewSchemaEntry = viewSchemaEntry;
+
+async function duplicateSchemaEntry(entryId: number, schemaId: number) {
+  try {
+    const entry = await api('GET', '/api/admin/compendium-entries/' + entryId);
+    if (!entry) { toast('Entry not found', true); return; }
+    const data = entry.data || {};
+    const name = data.name || data.Name || '';
+    if (name) data.name = name + ' (copy)';
+    await api('POST', '/api/admin/compendium-schemas/' + schemaId + '/entries', { data });
+    toast('Entry duplicated');
+    loadSchemaEntries();
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+}
+(window as any).duplicateSchemaEntry = duplicateSchemaEntry;
+
+function deleteSchemaEntryById(entryId: number) {
+  if (!confirm('Delete this entry?')) return;
+  api('DELETE', '/api/admin/compendium-entries/' + entryId).then(() => {
+    toast('Entry deleted');
+    selectedEntryIds.delete(entryId);
+    loadSchemaEntries();
+  }).catch((e: any) => toast(e.message, true));
+}
+(window as any).deleteSchemaEntryById = deleteSchemaEntryById;
+
+// ─── Schema-Aware Entry Editor ───
+
+function getEntryFormHtml(data: any): string {
+  const fields = entryModalSchemaFields;
+  if (!fields || fields.length === 0) {
+    return '<div class="text-muted">No fields defined for this schema.</div>';
+  }
+  return fields.map((f: any) => {
+    const val = data ? data[f.name] : undefined;
+    const requiredAttr = f.required ? 'required' : '';
+    const requiredMark = f.required ? ' <span class="text-danger">*</span>' : '';
+    let input = '';
+
+    switch (f.type) {
+      case 'text':
+      case 'textarea':
+        input = `<textarea class="form-control" id="ef_${esc(f.name)}" rows="3" ${requiredAttr}>${esc(String(val ?? ''))}</textarea>`;
+        break;
+      case 'integer':
+        input = `<input class="form-control" type="number" step="1" id="ef_${esc(f.name)}" value="${esc(String(val ?? ''))}" ${requiredAttr}>`;
+        break;
+      case 'float':
+        input = `<input class="form-control" type="number" step="0.01" id="ef_${esc(f.name)}" value="${esc(String(val ?? ''))}" ${requiredAttr}>`;
+        break;
+      case 'boolean':
+        const checked = val ? 'checked' : '';
+        input = `<div class="form-check"><input class="form-check-input" type="checkbox" id="ef_${esc(f.name)}" ${checked}></div>`;
+        break;
+      case 'select':
+        const options = (f.options || []).map((o: string) =>
+          `<option value="${esc(o)}" ${String(val) === o ? 'selected' : ''}>${esc(o)}</option>`
+        ).join('');
+        input = `<select class="form-select" id="ef_${esc(f.name)}" ${requiredAttr}>${options}</select>`;
+        break;
+      case 'multi-select':
+        const selectedVals = Array.isArray(val) ? val : (val ? String(val).split(',') : []);
+        const multiOpts = (f.options || []).map((o: string) =>
+          `<option value="${esc(o)}" ${selectedVals.includes(o) ? 'selected' : ''}>${esc(o)}</option>`
+        ).join('');
+        input = `<select class="form-select" multiple id="ef_${esc(f.name)}" ${requiredAttr}>${multiOpts}</select>`;
+        break;
+      case 'json':
+        let jsonVal = '';
+        if (val) {
+          try { jsonVal = typeof val === 'string' ? val : JSON.stringify(val, null, 2); }
+          catch { jsonVal = String(val); }
+        }
+        input = `<textarea class="form-control font-monospace" id="ef_${esc(f.name)}" rows="4" ${requiredAttr} placeholder="Enter JSON...">${esc(jsonVal)}</textarea>`;
+        break;
+      default:
+        input = `<input class="form-control" type="text" id="ef_${esc(f.name)}" value="${esc(String(val ?? ''))}" ${requiredAttr}>`;
+    }
+
+    return `<div class="mb-2">
+      <label class="form-label">${esc(f.label || f.name)}${requiredMark}</label>
+      ${input}
+      ${f.type === 'json' ? '<small class="text-muted">Must be valid JSON</small>' : ''}
+    </div>`;
+  }).join('') + `
+    <div class="mt-3">
+      <button class="btn btn-primary" onclick="saveEntry()"><i class="fa-solid fa-floppy-disk me-1"></i>Save</button>
+      <button class="btn btn-secondary" onclick="hideModal()">Cancel</button>
+    </div>`;
+}
+
+(window as any).saveEntry = async function () {
+  const data: Record<string, any> = {};
+  let valid = true;
+
+  for (const f of entryModalSchemaFields) {
+    const el = document.getElementById('ef_' + f.name) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+    if (!el) continue;
+    let val: any;
+
+    switch (f.type) {
+      case 'boolean':
+        val = (el as HTMLInputElement).checked;
+        break;
+      case 'integer':
+        val = el.value ? parseInt(el.value, 10) : null;
+        if (val !== null && isNaN(val)) { val = null; }
+        break;
+      case 'float':
+        val = el.value ? parseFloat(el.value) : null;
+        if (val !== null && isNaN(val)) { val = null; }
+        break;
+      case 'multi-select':
+        val = Array.from((el as HTMLSelectElement).selectedOptions).map(opt => opt.value);
+        if (val.length === 0) val = null;
+        break;
+      case 'json':
+        if (el.value.trim()) {
+          try {
+            val = JSON.parse(el.value);
+          } catch {
+            el.classList.add('is-invalid');
+            valid = false;
+            continue;
+          }
+        } else {
+          val = null;
+        }
+        break;
+      case 'select':
+        val = (el as HTMLSelectElement).value;
+        break;
+      default:
+        val = el.value;
+    }
+
+    if (f.required && (val === null || val === '' || val === undefined)) {
+      el.classList.add('is-invalid');
+      valid = false;
+    } else {
+      el.classList.remove('is-invalid');
+    }
+    data[f.name] = val;
+  }
+
+  if (!valid) { toast('Please fill in all required fields', true); return; }
+
+  try {
+    if (entryModalEditId) {
+      await api('PUT', '/api/admin/compendium-entries/' + entryModalEditId, { data });
+      toast('Entry updated');
+    } else {
+      await api('POST', '/api/admin/compendium-schemas/' + entryModalSchemaId + '/entries', { data });
+      toast('Entry created');
+    }
+    hideModal();
+    loadSchemaEntries();
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+// ─── Import Integration ───
+
+function openImportForSchema() {
+  if (currentSchemaId) openImportForSchemaId(currentSchemaId);
+}
+(window as any).openImportForSchema = openImportForSchema;
+
+function openImportForSchemaId(schemaId: number) {
+  // Show the import tab with the schema pre-selected
+  showAdminTab('import');
+  const sel = document.getElementById('importSchema') as HTMLSelectElement;
+  // Wait for schemas to load
+  setTimeout(() => {
+    sel.value = String(schemaId);
+    if (sel.value) {
+      const event = new Event('change');
+      sel.dispatchEvent(event);
+      toast('Schema pre-selected for import');
+    }
+  }, 500);
+}
+(window as any).openImportForSchemaId = openImportForSchemaId;
+
+// ─── Legacy Migration ───
+
+async function checkLegacyMigrationStatus() {
+  const banner = document.getElementById('legacyMigrationBanner')!;
+  try {
+    // Check if legacy tables have data by fetching a count
+    const res = await fetch('/api/compendium/races', { credentials: 'include' });
+    const races = await res.json();
+    // If we have legacy races but schemas exist, suggest migration
+    const schemas = await api('GET', '/api/admin/compendium-schemas');
+    const raceSchema = schemas.find((s: any) => s.type_name === 'race');
+    if (raceSchema && raceSchema.entry_count === 0 && Array.isArray(races) && races.length > 0) {
+      banner.style.display = 'flex';
+    } else {
+      banner.style.display = 'none';
+    }
+  } catch {
+    banner.style.display = 'none';
+  }
+}
+
+function dismissLegacyBanner() {
+  document.getElementById('legacyMigrationBanner')!.style.display = 'none';
+}
+(window as any).dismissLegacyBanner = dismissLegacyBanner;
+
+async function runLegacyMigration() {
+  if (!confirm('Migrate legacy compendium data to the new schema system?')) return;
+  const btn = document.querySelector('#legacyMigrationBanner .alert-link') as HTMLElement;
+  if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Migrating...';
+  try {
+    const res = await api('POST', '/api/admin/compendium/migrate-legacy');
+    toast('Migration complete: ' + (res.total_migrated || 0) + ' entries migrated');
+    document.getElementById('legacyMigrationBanner')!.style.display = 'none';
+    loadUnifiedCompendium();
+  } catch (e: any) {
+    toast('Migration failed: ' + e.message, true);
+  }
+  if (btn) btn.innerHTML = 'Migrate now';
+}
+(window as any).runLegacyMigration = runLegacyMigration;
 
 // ─── Logs ───
 
@@ -539,262 +1205,7 @@ function getSchemaFieldHtml(field: any, index: number): string {
   }
 };
 
-(window as any).browseSchemaEntries = async function (schemaId: number, schemaName: string) {
-  try {
-    const entries = await api('GET', `/api/admin/compendium-entries?schema_id=${schemaId}&limit=50`);
-    const el = document.getElementById('schemaEntryBrowser')!;
-    entryModalSchemaId = schemaId;
-    selectedEntryIds.clear();
-    if (!entries || entries.length === 0) {
-      el.innerHTML = `<div class="mt-2">
-        <button class="btn btn-success btn-sm mb-2" onclick="createSchemaEntry(${schemaId})"><i class="fa-solid fa-plus me-1"></i>Add Entry</button>
-        <p class="text-muted">No entries in <strong>${esc(schemaName)}</strong></p>
-      </div>`;
-      return;
-    }
-    const fields = Object.keys(entries[0].data || {});
-    const previewFields = fields.slice(0, 3);
-    el.innerHTML = `
-      <div class="card mt-2">
-        <div class="card-header py-2 d-flex justify-content-between align-items-center">
-          <span><strong>${esc(schemaName)}</strong> — ${entries.length} entries</span>
-          <button class="btn btn-success btn-sm" onclick="createSchemaEntry(${schemaId})"><i class="fa-solid fa-plus me-1"></i>Add Entry</button>
-        </div>
-        <div id="bulkActions" class="px-3 py-2 bg-light border-bottom" style="display:none"></div>
-        <div class="table-responsive">
-          <table class="table table-sm table-hover mb-0">
-            <thead><tr>
-              <th style="width:40px"><input class="form-check-input" type="checkbox" id="selectAllEntries" onchange="toggleSelectAll(${schemaId})"></th>
-              <th>Name</th>${previewFields.map(f => `<th>${esc(f)}</th>`).join('')}${fields.length > 3 ? '<th>...</th>' : ''}
-              <th style="width:100px"></th>
-            </tr></thead>
-            <tbody>${entries.map((e: any) => `
-              <tr>
-                <td><input class="form-check-input entry-select-cb" type="checkbox" data-entry-id="${e.id}" onchange="toggleEntrySelect(${e.id})"></td>
-                <td>${esc(e.name)}</td>
-                ${previewFields.map(f => `<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(String(e.data?.[f] || ''))}</td>`).join('')}
-                ${fields.length > 3 ? '<td>…</td>' : ''}
-                <td class="text-nowrap">
-                  <button class="btn btn-outline-primary btn-sm py-0" onclick="editSchemaEntry(${e.id},${schemaId})" title="Edit"><i class="fa-solid fa-pen"></i></button>
-                  <button class="btn btn-outline-danger btn-sm py-0" onclick="deleteSchemaEntryById(${e.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>
-                </td>
-              </tr>
-            `).join('')}</tbody>
-          </table>
-        </div>
-      </div>`;
-  } catch (e: any) {
-    toast(e.message, true);
-  }
-};
-
-(window as any).deleteSchemaEntryById = async function (entryId: number) {
-  if (!confirm('Delete this entry?')) return;
-  try {
-    await api('DELETE', `/api/admin/compendium-entries/${entryId}`);
-    toast('Entry deleted');
-    loadSchemas();
-  } catch (e: any) {
-    toast(e.message, true);
-  }
-};
-
-// ─── Entry Create/Edit Modal ───
-
-let entryModalSchemaId = 0;
-let entryModalSchemaFields: any[] = [];
-let entryModalEditId: number | null = null;
-
-(window as any).createSchemaEntry = async function (schemaId: number) {
-  const schemas = await api('GET', '/api/admin/compendium-schemas');
-  const schema = schemas.find((s: any) => s.id === schemaId);
-  if (!schema) { toast('Schema not found', true); return; }
-  entryModalSchemaId = schemaId;
-  entryModalSchemaFields = schema.fields || [];
-  entryModalEditId = null;
-  showModal('Create Entry', getEntryFormHtml(null));
-};
-
-(window as any).editSchemaEntry = async function (entryId: number, schemaId: number) {
-  const [schemas, entry] = await Promise.all([
-    api('GET', '/api/admin/compendium-schemas'),
-    api('GET', `/api/admin/compendium-entries/${entryId}`)
-  ]);
-  const schema = schemas.find((s: any) => s.id === schemaId);
-  if (!schema) { toast('Schema not found', true); return; }
-  entryModalSchemaId = schemaId;
-  entryModalSchemaFields = schema.fields || [];
-  entryModalEditId = entryId;
-  showModal('Edit Entry', getEntryFormHtml(entry.data || entry));
-};
-
-function getEntryFormHtml(data: any): string {
-  const fields = entryModalSchemaFields;
-  if (!fields || fields.length === 0) {
-    return `<div class="text-muted">No fields defined for this schema.</div>`;
-  }
-  return fields.map((f: any) => {
-    const val = data ? String(data[f.name] ?? '') : '';
-    const requiredAttr = f.required ? 'required' : '';
-    const requiredMark = f.required ? ' <span class="text-danger">*</span>' : '';
-    let input = '';
-
-    if (f.type === 'textarea') {
-      input = `<textarea class="form-control" id="ef_${esc(f.name)}" ${requiredAttr}>${esc(val)}</textarea>`;
-    } else if (f.type === 'checkbox') {
-      const checked = data && data[f.name] ? 'checked' : '';
-      input = `<div class="form-check"><input class="form-check-input" type="checkbox" id="ef_${esc(f.name)}" ${checked}></div>`;
-    } else if (f.type === 'number') {
-      input = `<input class="form-control" type="number" id="ef_${esc(f.name)}" value="${esc(val)}" ${requiredAttr}>`;
-    } else {
-      input = `<input class="form-control" type="text" id="ef_${esc(f.name)}" value="${esc(val)}" ${requiredAttr}>`;
-    }
-
-    return `<div class="mb-2">
-      <label class="form-label">${esc(f.label || f.name)}${requiredMark}</label>
-      ${input}
-    </div>`;
-  }).join('') + `
-    <div class="mt-3">
-      <button class="btn btn-primary" onclick="saveEntry()"><i class="fa-solid fa-floppy-disk me-1"></i>Save</button>
-      <button class="btn btn-secondary" onclick="hideModal()">Cancel</button>
-    </div>`;
-}
-
-(window as any).saveEntry = async function () {
-  const data: Record<string, any> = {};
-  let valid = true;
-
-  for (const f of entryModalSchemaFields) {
-    const el = document.getElementById('ef_' + f.name) as HTMLInputElement | HTMLTextAreaElement;
-    if (!el) continue;
-    let val: any;
-    if (f.type === 'checkbox') {
-      val = (el as HTMLInputElement).checked;
-    } else if (f.type === 'number') {
-      val = el.value ? parseFloat(el.value) : null;
-    } else {
-      val = el.value;
-    }
-
-    if (f.required && (val === null || val === '' || val === undefined)) {
-      el.classList.add('is-invalid');
-      valid = false;
-    } else {
-      el.classList.remove('is-invalid');
-    }
-    data[f.name] = val;
-  }
-
-  if (!valid) { toast('Please fill in all required fields', true); return; }
-
-  try {
-    if (entryModalEditId) {
-      await api('PUT', `/api/admin/compendium-entries/${entryModalEditId}`, { data });
-      toast('Entry updated');
-    } else {
-      await api('POST', `/api/admin/compendium-schemas/${entryModalSchemaId}/entries`, { data });
-      toast('Entry created');
-    }
-    hideModal();
-    loadSchemas();
-  } catch (e: any) {
-    toast(e.message, true);
-  }
-};
-
-// ─── Entry Bulk Operations ───
-
-let selectedEntryIds: Set<number> = new Set();
-
-(window as any).toggleEntrySelect = function (id: number) {
-  if (selectedEntryIds.has(id)) selectedEntryIds.delete(id);
-  else selectedEntryIds.add(id);
-  updateBulkActions();
-};
-
-(window as any).toggleSelectAll = function (schemaId: number) {
-  const cb = document.getElementById('selectAllEntries') as HTMLInputElement;
-  const checkboxes = document.querySelectorAll<HTMLInputElement>('.entry-select-cb');
-  checkboxes.forEach(c => {
-    c.checked = cb.checked;
-    const eid = parseInt(c.dataset.entryId || '0', 10);
-    if (cb.checked) selectedEntryIds.add(eid);
-    else selectedEntryIds.delete(eid);
-  });
-  updateBulkActions();
-};
-
-function updateBulkActions() {
-  const count = selectedEntryIds.size;
-  const el = document.getElementById('bulkActions')!;
-  if (count === 0) { el.style.display = 'none'; return; }
-  el.style.display = 'block';
-  el.innerHTML = `<span class="me-2 fw-bold">${count} selected</span>
-    <button class="btn btn-outline-danger btn-sm me-1" onclick="batchDeleteEntries()"><i class="fa-solid fa-trash me-1"></i>Delete Selected</button>
-    <button class="btn btn-outline-primary btn-sm" onclick="batchEditEntries(${count})"><i class="fa-solid fa-pen me-1"></i>Edit Selected</button>`;
-}
-
-(window as any).batchDeleteEntries = async function () {
-  const ids = Array.from(selectedEntryIds);
-  if (!confirm('Delete ' + ids.length + ' entries? This cannot be undone.')) return;
-  try {
-    const res = await api('POST', '/api/admin/compendium-entries/batch-delete', { ids });
-    toast('Deleted ' + res.deleted + ' entries');
-    selectedEntryIds.clear();
-    loadSchemas();
-  } catch (e: any) {
-    toast(e.message, true);
-  }
-};
-
-(window as any).batchEditEntries = async function (count: number) {
-  const ids = Array.from(selectedEntryIds);
-  // Get schema fields from the first entry's schema
-  const schemas = await api('GET', '/api/admin/compendium-schemas');
-  const firstEntry = await api('GET', `/api/admin/compendium-entries/${ids[0]}`);
-  // Find schema that contains this entry (iterate schemas)
-  const schema = schemas.find((s: any) => s.id === entryModalSchemaId) || schemas[0];
-  const fields = schema?.fields || [];
-
-  const fieldOpts = fields.map((f: any) =>
-    `<option value="${esc(f.name)}">${esc(f.label || f.name)}</option>`
-  ).join('');
-
-  showModal('Bulk Edit ' + count + ' Entries', `
-    <p>Set a field value for all ${count} selected entries.</p>
-    <div class="mb-2">
-      <label class="form-label">Field</label>
-      <select class="form-select" id="bulkField">${fieldOpts}</select>
-    </div>
-    <div class="mb-2">
-      <label class="form-label">Value</label>
-      <input class="form-control" id="bulkValue" type="text">
-    </div>
-    <button class="btn btn-primary" onclick="saveBatchEdit()"><i class="fa-solid fa-floppy-disk me-1"></i>Update All</button>
-    <button class="btn btn-secondary" onclick="hideModal()">Cancel</button>
-  `);
-};
-
-(window as any).saveBatchEdit = async function () {
-  const field = (document.getElementById('bulkField') as HTMLSelectElement).value;
-  const value = (document.getElementById('bulkValue') as HTMLInputElement).value;
-  if (!field) { toast('Select a field', true); return; }
-
-  const ids = Array.from(selectedEntryIds);
-  try {
-    const res = await api('POST', '/api/admin/compendium-entries/batch-update', {
-      ids,
-      data: { [field]: value }
-    });
-    toast('Updated ' + res.updated + ' entries');
-    hideModal();
-    selectedEntryIds.clear();
-    loadSchemas();
-  } catch (e: any) {
-    toast(e.message, true);
-  }
-};
+// ─── (Old entry editor & bulk ops removed — consolidated in unified compendium above) ───
 
 // ─── Backup ───
 

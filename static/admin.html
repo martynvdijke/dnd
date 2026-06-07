@@ -32,8 +32,7 @@
 
 <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
   <li class="nav-item"><button class="nav-link active" id="tabUsersBtn" onclick="showAdminTab('users')"><i class="fa-solid fa-users me-1" aria-hidden="true"></i>Users</button></li>
-  <li class="nav-item"><button class="nav-link" id="tabSchemasBtn" onclick="showAdminTab('schemas')"><i class="fa-solid fa-sitemap me-1" aria-hidden="true"></i>Schemas</button></li>
-  <li class="nav-item"><button class="nav-link" id="tabCompendiumBtn" onclick="showAdminTab('compendium')"><i class="fa-solid fa-book me-1" aria-hidden="true"></i>Compendium</button></li>
+  <li class="nav-item"><button class="nav-link" id="tabUnifiedCompendiumBtn" onclick="showAdminTab('unified-compendium')"><i class="fa-solid fa-book me-1" aria-hidden="true"></i>Compendium</button></li>
   <li class="nav-item"><button class="nav-link" id="tabBackupBtn" onclick="showAdminTab('backup')"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Backup</button></li>
   <li class="nav-item"><button class="nav-link" id="tabEmailBtn" onclick="showAdminTab('email')"><i class="fa-solid fa-envelope me-1" aria-hidden="true"></i>Email</button></li>
   <li class="nav-item"><button class="nav-link" id="tabAIEndpointsBtn" onclick="showAdminTab('ai-endpoints')"><i class="fa-solid fa-robot me-1" aria-hidden="true"></i>AI Endpoints</button></li>
@@ -41,6 +40,8 @@
   <li class="nav-item"><button class="nav-link" id="tabTelemetryBtn" onclick="showAdminTab('telemetry')"><i class="fa-solid fa-microchip me-1" aria-hidden="true"></i>Telemetry</button></li>
   <li class="nav-item"><button class="nav-link" id="tabImportBtn" onclick="showAdminTab('import')"><i class="fa-solid fa-upload me-1" aria-hidden="true"></i>Import</button></li>
   <li class="nav-item"><button class="nav-link" id="tabLogsBtn" onclick="showAdminTab('logs')"><i class="fa-solid fa-list me-1" aria-hidden="true"></i>Logs</button></li>
+  <li class="nav-item"><button class="nav-link" id="tabSchemasBtn" onclick="showAdminTab('schemas')" style="opacity:0.5"><i class="fa-solid fa-sitemap me-1" aria-hidden="true"></i>Schemas <sup style="font-size:0.6rem;opacity:0.7">deprecated</sup></button></li>
+  <li class="nav-item"><button class="nav-link" id="tabCompendiumBtn" onclick="showAdminTab('compendium')" style="opacity:0.5"><i class="fa-solid fa-book me-1" aria-hidden="true"></i>Legacy Comp <sup style="font-size:0.6rem;opacity:0.7">deprecated</sup></button></li>
 </ul>
 
 <div id="adminUsers">
@@ -82,6 +83,111 @@
         </div>
       </div>
       <div id="compEntries"><p class="text-muted">Select a type to view entries</p></div>
+    </div>
+  </div>
+</div>
+
+<div id="adminUnifiedCompendium" style="display:none">
+  <div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="fa-solid fa-book me-2" aria-hidden="true"></i>Compendium</span>
+      <div>
+        <button class="btn btn-sm btn-outline-primary me-1" onclick="showAddSchema()"><i class="fa-solid fa-plus me-1"></i>New Schema</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <!-- Global cross-schema search -->
+      <div class="mb-3">
+        <div class="input-group">
+          <span class="input-group-text"><i class="fa-solid fa-search" aria-hidden="true"></i></span>
+          <input type="text" id="compendiumGlobalSearch" class="form-control" placeholder="Search across all compendium entries..." oninput="onGlobalSearchInput(this.value)">
+          <button class="btn btn-outline-secondary" onclick="clearGlobalSearch()" title="Clear"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+
+      <!-- Legacy migration banner -->
+      <div id="legacyMigrationBanner" class="alert alert-warning d-flex align-items-center justify-content-between py-2 mb-3" style="display:none">
+        <span><i class="fa-solid fa-triangle-exclamation me-2"></i>Legacy compendium data may not be fully migrated. <a href="#" onclick="runLegacyMigration();return false" class="alert-link">Migrate now</a></span>
+        <button type="button" class="btn-close" onclick="dismissLegacyBanner()"></button>
+      </div>
+
+      <!-- Schema list -->
+      <div id="unifiedSchemaListView">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="mb-0 fw-bold">Schemas</h6>
+          <small class="text-muted" id="schemaCount">Loading...</small>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-hover mb-0" id="unifiedSchemaTable">
+            <thead><tr>
+              <th style="width:30px"></th>
+              <th>Name</th>
+              <th>Slug</th>
+              <th>Fields</th>
+              <th>Entries</th>
+              <th style="width:280px">Actions</th>
+            </tr></thead>
+            <tbody id="unifiedSchemaBody">
+              <tr><td colspan="6" class="text-muted text-center py-3"><i class="fa-solid fa-spinner fa-spin me-2"></i>Loading schemas...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Entry browser (shown when a schema is selected) -->
+      <div id="unifiedEntryBrowser" style="display:none">
+        <hr>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div>
+            <button class="btn btn-sm btn-outline-secondary me-2" onclick="backToSchemaList()"><i class="fa-solid fa-arrow-left me-1"></i>Back</button>
+            <h6 class="mb-0 d-inline fw-bold" id="entryBrowserTitle">Entries</h6>
+          </div>
+          <div>
+            <button class="btn btn-success btn-sm" id="addEntryBtn" onclick="addEntryCurrentSchema()"><i class="fa-solid fa-plus me-1"></i>Add Entry</button>
+            <button class="btn btn-outline-info btn-sm ms-1" id="importEntriesBtn" onclick="openImportForSchema()"><i class="fa-solid fa-upload me-1"></i>Import</button>
+          </div>
+        </div>
+        <!-- Schema-scoped search -->
+        <div class="input-group mb-2" style="max-width:400px">
+          <span class="input-group-text"><i class="fa-solid fa-filter" aria-hidden="true"></i></span>
+          <input type="text" id="entrySearchInput" class="form-control form-control-sm" placeholder="Search entries..." oninput="onEntrySearchInput(this.value)">
+        </div>
+        <!-- Entry table -->
+        <div class="table-responsive">
+          <table class="table table-sm table-hover mb-0" id="entryTable">
+            <thead><tr id="entryTableHead"></tr></thead>
+            <tbody id="entryTableBody">
+              <tr><td colspan="10" class="text-muted text-center py-3"><i class="fa-solid fa-spinner fa-spin me-2"></i>Loading entries...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- Pagination -->
+        <div class="d-flex justify-content-between align-items-center mt-2">
+          <small class="text-muted" id="entryCountInfo"></small>
+          <nav id="entryPagination" style="display:none">
+            <ul class="pagination pagination-sm mb-0" id="entryPaginationUl"></ul>
+          </nav>
+        </div>
+        <!-- Bulk actions toolbar -->
+        <div id="bulkActionsToolbar" class="d-flex align-items-center gap-2 mt-2 p-2 bg-light rounded border" style="display:none">
+          <span class="fw-bold me-1" id="bulkSelectedCount">0 selected</span>
+          <button class="btn btn-outline-danger btn-sm" onclick="batchDeleteEntries()"><i class="fa-solid fa-trash me-1"></i>Delete</button>
+          <button class="btn btn-outline-primary btn-sm" onclick="batchEditEntries()"><i class="fa-solid fa-pen me-1"></i>Edit</button>
+          <button class="btn btn-outline-secondary btn-sm" onclick="batchExportEntries()"><i class="fa-solid fa-download me-1"></i>Export</button>
+          <button class="btn btn-outline-warning btn-sm ms-auto" onclick="clearEntrySelection()"><i class="fa-solid fa-xmark me-1"></i>Clear</button>
+        </div>
+      </div>
+
+      <!-- Cross-schema search results -->
+      <div id="globalSearchResults" style="display:none">
+        <hr>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="mb-0 fw-bold">Search Results</h6>
+          <button class="btn btn-sm btn-outline-secondary" onclick="clearGlobalSearch()"><i class="fa-solid fa-xmark me-1"></i>Close</button>
+        </div>
+        <div id="globalSearchResultGroups"></div>
+        <div id="globalSearchEmpty" class="text-muted text-center py-3" style="display:none">No results found</div>
+      </div>
     </div>
   </div>
 </div>

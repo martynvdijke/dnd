@@ -1,0 +1,20 @@
+{{define "compendium_entry_detail"}}
+{{$data := .Data}}
+{{range .Schema.Fields}}
+{{$val := index $data .Name}}
+<div class="mb-2">
+  <label class="form-label text-muted small mb-0">{{.Label}}</label>
+  <div class="p-2 bg-light rounded">
+    {{if eq .Type "boolean"}}
+      {{if $val}}<span class="text-success"><i class="fa-solid fa-check-circle me-1"></i>Yes</span>{{else}}<span class="text-muted"><i class="fa-solid fa-circle-xmark me-1"></i>No</span>{{end}}
+    {{else if eq .Type "json"}}
+      {{if $val}}
+      <pre class="mb-0" style="max-height:200px;overflow:auto"><code>{{$val}}</code></pre>
+      {{else}}<span class="text-muted">—</span>{{end}}
+    {{else}}
+      {{if $val}}{{$val}}{{else}}<span class="text-muted">—</span>{{end}}
+    {{end}}
+  </div>
+</div>
+{{end}}
+{{end}}

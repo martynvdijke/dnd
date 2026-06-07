@@ -1599,6 +1599,12 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"POST", "/htmx/monster-library", HtmxCreateMonsterLibrary},
 		{"PUT", "/htmx/monster-library/:id", HtmxUpdateMonsterLibrary},
 		{"DELETE", "/htmx/monster-library/:id", HtmxDeleteMonsterLibrary},
+
+		// Compendium Admin UI (HTMX)
+		{"GET", "/htmx/admin/compendium/entries/:schemaId", HtmxCompendiumEntryTable},
+		{"GET", "/htmx/admin/compendium/entry/:id", HtmxCompendiumEntryEditor},
+		{"GET", "/htmx/admin/compendium/entry/detail/:id", HtmxCompendiumEntryDetail},
+		{"POST", "/htmx/admin/compendium/entries/:schemaId/duplicate/:id", HtmxCompendiumDuplicateEntry},
 	}
 	for _, rt := range routes {
 		r.Handle(rt.method, rt.path, rt.handler)

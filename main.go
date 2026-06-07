@@ -721,6 +721,9 @@ func main() {
 		admin.GET("/compendium-import-logs", handlers.ListCompendiumImportLogs)
 		admin.POST("/compendium-import-logs/:id/rollback", handlers.RollbackCompendiumImport)
 
+		// Legacy Migration Status
+		admin.GET("/compendium/migration-status", handlers.CheckLegacyMigrationStatus)
+
 		// Central Application Logs
 		admin.GET("/logs", handlers.ListLogs)
 		admin.GET("/log-level", handlers.GetLogLevel)

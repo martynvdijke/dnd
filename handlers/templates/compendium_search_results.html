@@ -1,0 +1,15 @@
+{{define "compendium_search_results"}}
+{{if .Results}}
+  {{range .Results}}
+  <div class="mb-1">
+    <button class="list-group-item list-group-item-action py-1 d-flex align-items-center gap-2" onclick="openEntryFromSearch({{.ID}}, 0)">
+      <i class="fa-solid fa-file-lines text-muted" style="font-size:0.75rem"></i>
+      <span>{{if .Name}}{{.Name}}{{else}}(unnamed){{end}}</span>
+      {{if .Snippet}}<small class="text-muted ms-auto">{{truncate .Snippet 60}}</small>{{end}}
+    </button>
+  </div>
+  {{end}}
+{{else}}
+  <p class="text-muted text-center py-3">No results found</p>
+{{end}}
+{{end}}
