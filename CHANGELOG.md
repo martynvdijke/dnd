@@ -1,3 +1,15 @@
+# [2.13.0](https://github.com/martynvdijke/dnd/compare/v2.12.1...v2.13.0) (2026-06-07)
+
+
+### Bug Fixes
+
+* update admin compendium E2E test for unified UI ([72dc4dc](https://github.com/martynvdijke/dnd/commit/72dc4dcc2a2d9ab78f1fa5c1a443024a688cf4cb))
+
+
+### Features
+
+* unified compendium CRUD interface ([4a8311f](https://github.com/martynvdijke/dnd/commit/4a8311fee6fe329f87f44704f6c97a269510982d))
+
 ## [2.12.1](https://github.com/martynvdijke/dnd/compare/v2.12.0...v2.12.1) (2026-06-06)
 
 
