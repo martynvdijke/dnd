@@ -595,10 +595,17 @@ func main() {
 		dm.GET("/compendium-monsters", handlers.ListCompendiumMonsters)
 		dm.GET("/compendium-monsters/:id", handlers.GetCompendiumMonster)
 
+		// Compendium Search (DM-scoped)
+		dm.GET("/compendium-search", handlers.SearchCompendiumEntries)
+
 		// Monster Import
 		dm.POST("/oneshot-adventures/:id/import/compendium", handlers.ImportCompendiumMonsterToOneShot)
 		dm.POST("/encounters/:id/import/compendium", handlers.ImportCompendiumMonsterToEncounter)
 		dm.POST("/oneshot-adventures/:id/import/library", handlers.ImportLibraryMonsterToOneShot)
+
+		// Compendium Entry Import (new schema-based system)
+		dm.POST("/encounters/:id/import/compendium-entry", handlers.ImportCompendiumEntryToEncounter)
+		dm.POST("/oneshot-adventures/:id/import/compendium-entry", handlers.ImportCompendiumEntryToOneShot)
 
 		// Campaign NPCs
 		dm.GET("/campaigns/:id/npcs", handlers.ListCampaignNPCs)
@@ -688,11 +695,6 @@ func main() {
 		admin.DELETE("/ai-endpoints/:id", handlers.DeleteAIEndpoint)
 		admin.POST("/ai-endpoints/:id/test", handlers.TestAIEndpoint)
 
-		// Compendium CRUD (legacy)
-		admin.POST("/compendium/:type", handlers.AdminCreateCompendiumEntry)
-		admin.PUT("/compendium/:type/:id", handlers.AdminUpdateCompendiumEntry)
-		admin.DELETE("/compendium/:type/:id", handlers.AdminDeleteCompendiumEntry)
-
 		// Compendium Schema System (dynamic types)
 		admin.GET("/compendium-schemas", handlers.ListCompendiumSchemas)
 		admin.POST("/compendium-schemas", handlers.CreateCompendiumSchema)
@@ -720,18 +722,12 @@ func main() {
 		admin.POST("/compendium-schemas/:id/import/detect", handlers.DetectImportFields)
 		admin.GET("/compendium-schemas/:id/export", handlers.ExportCompendiumEntries)
 
-		// Legacy Migration
-		admin.POST("/compendium/migrate-legacy", handlers.HandleMigrateLegacy)
-
 		// Frontend batch import (flat route matching admin.ts POST)
 		admin.POST("/compendium-import", handlers.ImportCompendiumBatchJSON)
 
 		// Import Logs
 		admin.GET("/compendium-import-logs", handlers.ListCompendiumImportLogs)
 		admin.POST("/compendium-import-logs/:id/rollback", handlers.RollbackCompendiumImport)
-
-		// Legacy Migration Status
-		admin.GET("/compendium/migration-status", handlers.CheckLegacyMigrationStatus)
 
 		// Central Application Logs
 		admin.GET("/logs", handlers.ListLogs)

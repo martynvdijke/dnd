@@ -1683,6 +1683,13 @@ func ApplySafeAlters() error {
 		"ALTER TABLE compendium_spells ADD COLUMN publisher TEXT NOT NULL DEFAULT ''",
 		// Shop location support
 		"ALTER TABLE shops ADD COLUMN location_id INTEGER REFERENCES locations(id) ON DELETE SET NULL",
+		// Compendium entry linking
+		"ALTER TABLE encounter_monsters ADD COLUMN compendium_entry_id INTEGER REFERENCES compendium_entries(id) ON DELETE SET NULL",
+		"ALTER TABLE oneshot_monsters ADD COLUMN compendium_entry_id INTEGER REFERENCES compendium_entries(id) ON DELETE SET NULL",
+		"ALTER TABLE spells ADD COLUMN compendium_entry_id INTEGER REFERENCES compendium_entries(id) ON DELETE SET NULL",
+		"ALTER TABLE inventory ADD COLUMN compendium_entry_id INTEGER REFERENCES compendium_entries(id) ON DELETE SET NULL",
+		"ALTER TABLE oneshot_items ADD COLUMN compendium_entry_id INTEGER REFERENCES compendium_entries(id) ON DELETE SET NULL",
+		"ALTER TABLE character_features ADD COLUMN compendium_entry_id INTEGER REFERENCES compendium_entries(id) ON DELETE SET NULL",
 	}
 	for _, stmt := range alterStatements {
 		log.Printf("ALTER: %s", stmt)

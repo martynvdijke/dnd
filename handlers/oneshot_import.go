@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -126,4 +127,76 @@ func ImportLibraryMonsterToOneShot(c *gin.Context) {
 		"scene_id":     req.SceneID,
 		"monster":      m,
 	})
+}
+
+// ImportCompendiumEntryToEncounter imports a compendium entry (schema-based) to an encounter.
+func ImportCompendiumEntryToEncounter(c *gin.Context) {
+	encounterID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var req struct {
+		CompendiumEntryID int64 `json:"compendium_entry_id"`
+		Count             int   `json:"count"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if req.Count < 1 {
+		req.Count = 1
+	}
+	var dataJSON string
+	err := db.DB.QueryRow("SELECT data FROM compendium_entries WHERE id=?", req.CompendiumEntryID).Scan(&dataJSON)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "compendium entry not found"})
+		return
+	}
+	name := "Unknown"
+	var data map[string]interface{}
+	if json.Unmarshal([]byte(dataJSON), &data) == nil {
+		if n, ok := data["name"].(string); ok && n != "" {
+			name = n
+		}
+	}
+	result, err := db.DB.Exec(`INSERT INTO encounter_monsters(encounter_id, name, count, cr, ac, hp, source, notes, compendium_entry_id) VALUES(?,?,?,?,?,?,?,?,?)`,
+		encounterID, name, req.Count, "0", 10, 1, "compendium", "", req.CompendiumEntryID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+// ImportCompendiumEntryToOneShot imports a compendium entry to a one-shot adventure.
+func ImportCompendiumEntryToOneShot(c *gin.Context) {
+	var req struct {
+		CompendiumEntryID int64  `json:"compendium_entry_id"`
+		AdventureID       int64  `json:"adventure_id"`
+		ActID             *int64 `json:"act_id,omitempty"`
+		SceneID           *int64 `json:"scene_id,omitempty"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	var dataJSON string
+	err := db.DB.QueryRow("SELECT data FROM compendium_entries WHERE id=?", req.CompendiumEntryID).Scan(&dataJSON)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "compendium entry not found"})
+		return
+	}
+	name := "Unknown"
+	var data map[string]interface{}
+	if json.Unmarshal([]byte(dataJSON), &data) == nil {
+		if n, ok := data["name"].(string); ok && n != "" {
+			name = n
+		}
+	}
+	result, err := db.DB.Exec(`INSERT INTO oneshot_monsters(adventure_id, act_id, scene_id, name, ac, hp, cr, source, compendium_entry_id) VALUES(?,?,?,?,?,?,?,?,?)`,
+		req.AdventureID, req.ActID, req.SceneID, name, 10, 1, "0", "compendium", req.CompendiumEntryID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	c.JSON(http.StatusCreated, gin.H{"id": id})
 }
