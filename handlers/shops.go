@@ -11,38 +11,68 @@ import (
 )
 
 type Shop struct {
-	ID             int64   `json:"id"`
-	UserID         int64   `json:"user_id"`
-	CampaignID     *int64  `json:"campaign_id,omitempty"`
-	Name           string  `json:"name"`
-	Description    string  `json:"description"`
-	MarkupPercent  float64 `json:"markup_percent"`
+	ID               int64   `json:"id"`
+	UserID           int64   `json:"user_id"`
+	CampaignID       *int64  `json:"campaign_id,omitempty"`
+	Name             string  `json:"name"`
+	Description      string  `json:"description"`
+	MarkupPercent    float64 `json:"markup_percent"`
 	MarkupBuyPercent float64 `json:"markup_buy_percent"`
-	CreatedAt      string  `json:"created_at"`
+	LocationID       *int64  `json:"location_id,omitempty"`
+	LocationName     string  `json:"location_name,omitempty"`
+	CreatedAt        string  `json:"created_at"`
 }
 
 type ShopItem struct {
-	ID                int64   `json:"id"`
-	ShopID            int64   `json:"shop_id"`
-	ItemName          string  `json:"item_name"`
-	Category          string  `json:"category"`
-	PriceGP           float64 `json:"price_gp"`
-	QuantityAvailable int     `json:"quantity_available"`
-	Description       string  `json:"description"`
-	IsMagical         bool    `json:"is_magical"`
-	AttunementRequired bool   `json:"attunement_required"`
-	Notes             string  `json:"notes"`
+	ID                 int64   `json:"id"`
+	ShopID             int64   `json:"shop_id"`
+	ItemName           string  `json:"item_name"`
+	Category           string  `json:"category"`
+	PriceGP            float64 `json:"price_gp"`
+	QuantityAvailable  int     `json:"quantity_available"`
+	Description        string  `json:"description"`
+	IsMagical          bool    `json:"is_magical"`
+	AttunementRequired bool    `json:"attunement_required"`
+	Notes              string  `json:"notes"`
 }
 
 type ShopTransaction struct {
-	ID              int64   `json:"id"`
-	ShopID          int64   `json:"shop_id"`
-	CharacterID     int64   `json:"character_id"`
-	ItemName        string  `json:"item_name"`
-	Quantity        int     `json:"quantity"`
+	ID              int64  `json:"id"`
+	ShopID          int64  `json:"shop_id"`
+	CharacterID     int64  `json:"character_id"`
+	ItemName        string `json:"item_name"`
+	Quantity        int    `json:"quantity"`
 	PriceGP         float64 `json:"price_gp"`
-	TransactionType string  `json:"transaction_type"`
-	Timestamp       string  `json:"timestamp"`
+	TransactionType string `json:"transaction_type"`
+	Timestamp       string `json:"timestamp"`
+}
+
+// isDMOfCampaign checks if the current user is a DM or admin for the given campaign.
+func isDMOfCampaign(c *gin.Context, campaignID int64) bool {
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+	if role == "admin" {
+		return true
+	}
+	uid, ok := userID.(int64)
+	if !ok {
+		return false
+	}
+	var count int
+	err := db.DB.QueryRow("SELECT COUNT(*) FROM campaign_members WHERE campaign_id=? AND user_id=? AND role='dm'", campaignID, uid).Scan(&count)
+	return err == nil && count > 0
+}
+
+// shopScopes returns the SELECT column list and scan args for a shop row, including location.
+const shopColumns = "s.id,s.user_id,s.campaign_id,s.name,s.description,s.markup_percent,s.markup_buy_percent,s.location_id,COALESCE(l.name,''),s.created_at"
+const shopFrom = "FROM shops s LEFT JOIN locations l ON l.id = s.location_id"
+
+func scanShop(scanner interface {
+	Scan(dest ...interface{}) error
+}) (Shop, error) {
+	var s Shop
+	err := scanner.Scan(&s.ID, &s.UserID, &s.CampaignID, &s.Name, &s.Description, &s.MarkupPercent, &s.MarkupBuyPercent, &s.LocationID, &s.LocationName, &s.CreatedAt)
+	return s, err
 }
 
 func ListShops(c *gin.Context) {
@@ -50,9 +80,9 @@ func ListShops(c *gin.Context) {
 	var rows *sql.Rows
 	var err error
 	if campaignID != "" {
-		rows, err = db.DB.Query("SELECT id,user_id,campaign_id,name,description,markup_percent,markup_buy_percent,created_at FROM shops WHERE campaign_id=? ORDER BY name", campaignID)
+		rows, err = db.DB.Query("SELECT "+shopColumns+" "+shopFrom+" WHERE s.campaign_id=? ORDER BY s.name", campaignID)
 	} else {
-		rows, err = db.DB.Query("SELECT id,user_id,campaign_id,name,description,markup_percent,markup_buy_percent,created_at FROM shops ORDER BY name")
+		rows, err = db.DB.Query("SELECT "+shopColumns+" "+shopFrom+" ORDER BY s.name")
 	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -61,8 +91,10 @@ func ListShops(c *gin.Context) {
 	defer rows.Close()
 	shops := make([]Shop, 0)
 	for rows.Next() {
-		var s Shop
-		rows.Scan(&s.ID, &s.UserID, &s.CampaignID, &s.Name, &s.Description, &s.MarkupPercent, &s.MarkupBuyPercent, &s.CreatedAt)
+		s, err := scanShop(rows)
+		if err != nil {
+			continue
+		}
 		shops = append(shops, s)
 	}
 	c.JSON(http.StatusOK, shops)
@@ -75,8 +107,8 @@ func CreateShop(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	_, err := db.DB.Exec("INSERT INTO shops(user_id,campaign_id,name,description,markup_percent,markup_buy_percent) VALUES(?,?,?,?,?,?)",
-		userID, s.CampaignID, s.Name, s.Description, s.MarkupPercent, s.MarkupBuyPercent)
+	_, err := db.DB.Exec("INSERT INTO shops(user_id,campaign_id,name,description,markup_percent,markup_buy_percent,location_id) VALUES(?,?,?,?,?,?,?)",
+		userID, s.CampaignID, s.Name, s.Description, s.MarkupPercent, s.MarkupBuyPercent, s.LocationID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -91,12 +123,32 @@ func UpdateShop(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	db.DB.Exec("UPDATE shops SET name=?,description=?,markup_percent=?,markup_buy_percent=? WHERE id=?", s.Name, s.Description, s.MarkupPercent, s.MarkupBuyPercent, id)
+	db.DB.Exec("UPDATE shops SET name=?,description=?,markup_percent=?,markup_buy_percent=?,location_id=? WHERE id=?",
+		s.Name, s.Description, s.MarkupPercent, s.MarkupBuyPercent, s.LocationID, id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 func DeleteShop(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	userID, _ := c.Get("user_id")
+	role, _ := c.Get("role")
+
+	if role != "admin" {
+		var campaignID int64
+		err := db.DB.QueryRow("SELECT COALESCE(campaign_id,0) FROM shops WHERE id=?", id).Scan(&campaignID)
+		if err != nil || campaignID == 0 {
+			c.JSON(http.StatusNotFound, gin.H{"error": "shop not found"})
+			return
+		}
+		uid, _ := userID.(int64)
+		var count int
+		db.DB.QueryRow("SELECT COUNT(*) FROM campaign_members WHERE campaign_id=? AND user_id=? AND role='dm'", campaignID, uid).Scan(&count)
+		if count == 0 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+			return
+		}
+	}
+
 	db.DB.Exec("DELETE FROM shops WHERE id=?", id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
@@ -157,6 +209,30 @@ func CreateShopItem(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"ok": true})
 }
 
+func UpdateShopItem(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var it ShopItem
+	if err := c.ShouldBindJSON(&it); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	isMag := 0
+	if it.IsMagical {
+		isMag = 1
+	}
+	att := 0
+	if it.AttunementRequired {
+		att = 1
+	}
+	_, err := db.DB.Exec("UPDATE shop_items SET item_name=?,category=?,price_gp=?,quantity_available=?,description=?,is_magical=?,attunement_required=?,notes=? WHERE id=?",
+		it.ItemName, it.Category, it.PriceGP, it.QuantityAvailable, it.Description, isMag, att, it.Notes, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
 func DeleteShopItem(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	db.DB.Exec("DELETE FROM shop_items WHERE id=?", id)
@@ -166,9 +242,9 @@ func DeleteShopItem(c *gin.Context) {
 func BuyItem(c *gin.Context) {
 	shopID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var req struct {
-		ItemID    int64 `json:"item_id"`
+		ItemID      int64 `json:"item_id"`
 		CharacterID int64 `json:"character_id"`
-		Quantity  int   `json:"quantity"`
+		Quantity    int   `json:"quantity"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -193,7 +269,14 @@ func BuyItem(c *gin.Context) {
 		return
 	}
 
-	totalPrice := priceGP * float64(req.Quantity)
+	// Get shop markup and apply to price
+	var markupPercent float64
+	db.DB.QueryRow("SELECT markup_percent FROM shops WHERE id=?", shopID).Scan(&markupPercent)
+	if markupPercent == 0 {
+		markupPercent = 100
+	}
+	adjustedPrice := priceGP * (markupPercent / 100.0)
+	totalPrice := adjustedPrice * float64(req.Quantity)
 
 	// Deduct character gold
 	var currentGP float64

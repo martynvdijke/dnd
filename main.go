@@ -623,6 +623,14 @@ func main() {
 
 		// Scene Dialogs
 		dm.PUT("/oneshot-scenes/:id/dialogs/reorder", handlers.ReorderDialogs)
+
+		// DM Shop Management (campaign-scoped)
+		dm.POST("/campaigns/:id/shops", handlers.CreateShop)
+		dm.PUT("/shops/:id", handlers.UpdateShop)
+		dm.DELETE("/shops/:id", handlers.DeleteShop)
+		dm.POST("/shops/:id/items", handlers.CreateShopItem)
+		dm.PUT("/shop-items/:id", handlers.UpdateShopItem)
+		dm.DELETE("/shop-items/:id", handlers.DeleteShopItem)
 	}
 
 	// htmx endpoints (separate group, outside /api, with auth + CSRF)
@@ -656,11 +664,12 @@ func main() {
 		admin.POST("/test-email", handlers.TestEmail)
 		admin.POST("/campaign-highlights", handlers.SendCampaignHighlights)
 
-		// Shop management (admin only)
+		// Shop management (admin only — global access)
 		admin.POST("/shops", handlers.CreateShop)
 		admin.PUT("/shops/:id", handlers.UpdateShop)
 		admin.DELETE("/shops/:id", handlers.DeleteShop)
 		admin.POST("/shops/:id/items", handlers.CreateShopItem)
+		admin.PUT("/shop-items/:id", handlers.UpdateShopItem)
 		admin.DELETE("/shop-items/:id", handlers.DeleteShopItem)
 
 		// Umami analytics settings

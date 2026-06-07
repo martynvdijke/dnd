@@ -714,6 +714,7 @@ CREATE TABLE IF NOT EXISTS shops (
     description TEXT NOT NULL DEFAULT '',
     markup_percent REAL NOT NULL DEFAULT 100,
     markup_buy_percent REAL NOT NULL DEFAULT 50,
+    location_id INTEGER REFERENCES locations(id) ON DELETE SET NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -1680,6 +1681,8 @@ func ApplySafeAlters() error {
 		"ALTER TABLE compendium_races ADD COLUMN expansion TEXT NOT NULL DEFAULT ''",
 		"ALTER TABLE compendium_races ADD COLUMN publisher TEXT NOT NULL DEFAULT ''",
 		"ALTER TABLE compendium_spells ADD COLUMN publisher TEXT NOT NULL DEFAULT ''",
+		// Shop location support
+		"ALTER TABLE shops ADD COLUMN location_id INTEGER REFERENCES locations(id) ON DELETE SET NULL",
 	}
 	for _, stmt := range alterStatements {
 		log.Printf("ALTER: %s", stmt)
