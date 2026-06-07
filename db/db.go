@@ -4,11 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -64,8 +66,28 @@ func Init(dbPath string) error {
 		return fmt.Errorf("create db dir: %w", err)
 	}
 
+	// Read mmap_size from env (default 256MB) before constructing DSN
+	mmapSize := int64(268435456)
+	if v := os.Getenv("SQLITE_MMAP_SIZE"); v != "" {
+		if parsed, err := strconv.ParseInt(v, 10, 64); err == nil {
+			mmapSize = parsed
+		}
+	}
+
+	// Build DSN with connection-level PRAGMAs via modernc _pragma query params.
+	// Each _pragma value is run as "PRAGMA <value>" on every new connection
+	// from the pool, not just the initial one. busy_timeout is sorted first
+	// by the driver to ensure the busy handler registers before other ops.
+	dsn := dbPath + "?" +
+		"_pragma=busy_timeout(10000)" +
+		"&_pragma=synchronous(NORMAL)" +
+		"&_pragma=cache_size(-64000)" +
+		"&_pragma=temp_store(MEMORY)" +
+		"&_pragma=mmap_size(" + strconv.FormatInt(mmapSize, 10) + ")" +
+		"&_pragma=foreign_keys(ON)"
+
 	var err error
-	DB, err = sql.Open("sqlite3", dbPath+"?_journal_mode=WAL&_busy_timeout=5000")
+	DB, err = sql.Open("sqlite", dsn)
 	if err != nil {
 		return fmt.Errorf("open db: %w", err)
 	}
@@ -76,13 +98,37 @@ func Init(dbPath string) error {
 		return fmt.Errorf("ping db: %w", err)
 	}
 
-	// Enable WAL and foreign keys
-	if _, err := DB.Exec("PRAGMA journal_mode=WAL"); err != nil {
-		return fmt.Errorf("enable wal: %w", err)
+	// Database-level PRAGMAs (stored in the DB file, not per-connection).
+	// These only need to run once per DB lifecycle.
+	dbPragmas := []string{
+		"PRAGMA journal_mode=WAL",
+		"PRAGMA auto_vacuum=INCREMENTAL",
 	}
-	if _, err := DB.Exec("PRAGMA foreign_keys=ON"); err != nil {
-		return fmt.Errorf("enable fk: %w", err)
+	for _, p := range dbPragmas {
+		if _, err := DB.Exec(p); err != nil {
+			return fmt.Errorf("execute %s: %w", p, err)
+		}
 	}
+
+	// Log DB page statistics
+	var pageCount, freeListCount, pageSize int
+	DB.QueryRow("PRAGMA page_count").Scan(&pageCount)
+	DB.QueryRow("PRAGMA freelist_count").Scan(&freeListCount)
+	DB.QueryRow("PRAGMA page_size").Scan(&pageSize)
+	log.Printf("db: page_count=%d freelist_count=%d page_size=%d mmap_size=%d",
+		pageCount, freeListCount, pageSize, mmapSize)
+
+	// Start background PRAGMA optimize every 60 minutes
+	go func() {
+		for {
+			time.Sleep(60 * time.Minute)
+			if _, err := DB.Exec("PRAGMA optimize"); err != nil {
+				log.Printf("db: PRAGMA optimize error: %v", err)
+			} else {
+				log.Printf("db: PRAGMA optimize completed")
+			}
+		}
+	}()
 
 	// Initialize ent client
 	drv := entsql.OpenDB(dialect.SQLite, DB)

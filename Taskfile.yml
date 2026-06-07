@@ -20,7 +20,7 @@ tasks:
   test:
     desc: Run Go unit tests
     cmds:
-      - go test -v -tags fts5 ./...
+      - go test -v ./...
 
   test:e2e:
     desc: Run Playwright end-to-end tests
@@ -38,12 +38,12 @@ tasks:
     desc: Build Go binary
     cmds:
       - task: build:ts
-      - go build -tags fts5 -o villum-server .
+      - go build -o villum-server .
 
   run:
     desc: Run the application
     cmds:
-      - go run -tags fts5 main.go
+      - go run main.go
 
   dev:
     desc: Run with hot-reload

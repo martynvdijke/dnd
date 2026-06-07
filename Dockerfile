@@ -7,16 +7,15 @@ COPY ts/ ts/
 RUN npm run build:ts
 
 FROM golang:1.26.4-alpine AS builder
-RUN apk add --no-cache gcc musl-dev sqlite-dev
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=ts-builder /app/static/js ./static/js
-RUN CGO_ENABLED=1 GOOS=linux go build -tags fts5 -o villum-server .
+RUN CGO_ENABLED=0 GOOS=linux go build -o villum-server .
 
 FROM alpine:latest
-RUN apk add --no-cache sqlite-libs ca-certificates
+RUN apk add --no-cache ca-certificates
 WORKDIR /app
 ENV DOCKER=true
 COPY --from=builder /app/villum-server .
