@@ -58,8 +58,8 @@ jobs:
       - name: Build server binary
         run: CGO_ENABLED=1 go build -tags fts5 -o villum-server .
 
-      - name: Run Playwright tests
-        run: npx playwright test --project=chromium
+      - name: Run Playwright tests (desktop + mobile)
+        run: npx playwright test --project=chromium --project=mobile-chrome
         env:
           CI: true
 

@@ -38,7 +38,7 @@ test.describe('Shops & Trading', () => {
     await ensureNavOpen(page);
     await page.locator('#appSidebar button[data-nav="shops"]').click();
     await page.waitForTimeout(500);
-    await expect(page.locator('#shopSelect')).toContainText(shopName);
+    await expect(page.locator('#shopsGrid')).toContainText(shopName);
   });
 
   test('adds items to shop and views them', async ({ page }) => {
@@ -57,6 +57,6 @@ test.describe('Shops & Trading', () => {
     await ensureNavOpen(page);
     await page.locator('#appSidebar button[data-nav="shops"]').click();
     await page.waitForTimeout(500);
-    await expect(page.locator('#shopSelect')).toContainText(shopName);
+    await expect(page.locator('#shopsGrid')).toContainText(shopName);
   });
 });

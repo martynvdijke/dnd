@@ -29,5 +29,5 @@ services:
     command: >
       sh -c "
         npm ci &&
-        npx playwright test --project=chromium
+        npx playwright test --project=chromium --project=mobile-chrome
       "

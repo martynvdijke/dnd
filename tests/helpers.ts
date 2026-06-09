@@ -37,8 +37,12 @@ export async function waitModalClosed(page: Page) {
 }
 
 export async function isMobile(page: Page): Promise<boolean> {
-  const navbar = page.locator('.navbar');
-  return !(await navbar.isVisible());
+  const viewport = page.viewportSize();
+  // Use viewport width as a deterministic check (<768px = Bootstrap's md breakpoint)
+  // Falls back to navbar-toggler visibility for runtime DOM checks
+  if (viewport) return viewport.width < 768;
+  const toggler = page.locator('.navbar-toggler');
+  return await toggler.isVisible().catch(() => false);
 }
 
 export async function clickNavItem(page: Page, text: string, bottomNav?: string) {

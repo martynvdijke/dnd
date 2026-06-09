@@ -3331,7 +3331,7 @@ async function loadCompendiumMonsters() {
     await api('DELETE', `/api/characters/${currentChar.id}`);
     currentChar = null;
     showView('characters');
-    loadCharacters();
+    await loadCharacters();
     toast('Character deleted');
   } catch (e: any) {
     toast(e.message, true);

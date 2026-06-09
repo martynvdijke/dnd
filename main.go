@@ -709,6 +709,11 @@ func main() {
 		admin.PUT("/compendium-entries/:id", handlers.UpdateCompendiumEntry)
 		admin.DELETE("/compendium-entries/:id", handlers.DeleteCompendiumEntry)
 
+		// Legacy compendium CRUD (direct table access for spells, monsters, etc.)
+		admin.POST("/compendium/:type", handlers.AdminCreateCompendiumEntry)
+		admin.PUT("/compendium/:type/:id", handlers.AdminUpdateCompendiumEntry)
+		admin.DELETE("/compendium/:type/:id", handlers.AdminDeleteCompendiumEntry)
+
 		// Compendium Bulk Operations
 		admin.POST("/compendium-entries/batch-delete", handlers.BatchDeleteCompendiumEntries)
 		admin.POST("/compendium-entries/batch-update", handlers.BatchUpdateCompendiumEntries)

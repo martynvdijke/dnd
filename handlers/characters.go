@@ -443,7 +443,14 @@ func DeleteCharacter(c *gin.Context) {
 		return
 	}
 
-	db.Client.Character.DeleteOneID(id).Exec(c.Request.Context())
+	// Delete child records first (Ent auto-migration creates FK constraints with NoAction,
+	// so we must delete children manually before the parent character record).
+	db.Client.CharacterCurrency.Delete().Where(charactercurrency.CharacterID(id)).Exec(c.Request.Context())
+	db.Client.CharacterClass.Delete().Where(characterclass.CharacterID(id)).Exec(c.Request.Context())
+	if err := db.Client.Character.DeleteOneID(id).Exec(c.Request.Context()); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
