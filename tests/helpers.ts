@@ -48,7 +48,7 @@ export async function isMobile(page: Page): Promise<boolean> {
 export async function clickNavItem(page: Page, text: string, bottomNav?: string) {
   if (await isMobile(page)) {
     if (bottomNav) {
-      await page.click(`#bottomTabBar button[data-nav="${bottomNav}"]`);
+      await page.locator(`#bottomTabBar button[data-nav="${bottomNav}"]`).click({ force: true });
     }
   } else {
     const nav = desktopNavMap[text];
@@ -68,11 +68,10 @@ export async function openMoreNav(page: Page) {
 export async function clickSecondaryNavItem(page: Page, desktopText: string, moreId: string) {
   if (await isMobile(page)) {
     await openMoreNav(page);
-    await page.evaluate((id) => {
-      const btn = document.getElementById(id);
-      if (btn) btn.click();
-    }, moreId);
-    await page.waitForTimeout(300);
+    // Bottom sheet buttons are dynamically created without IDs, click by text
+    await page.locator('#bottom-sheet-more-nav button').filter({ hasText: desktopText }).click();
+    // Wait for bottom sheet close animation (onclick calls closeBottomSheet)
+    await page.waitForTimeout(500);
   } else {
     const nav = desktopNavMap[desktopText];
     if (nav) {

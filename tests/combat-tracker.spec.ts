@@ -5,10 +5,8 @@ async function openCombat(page: Page) {
   if (await isMobile(page)) {
     await page.click('#moreTabBtn');
     await page.waitForTimeout(300);
-    await page.evaluate(() => {
-      const btn = document.getElementById('moreNavCombat');
-      if (btn) btn.click();
-    });
+    // Bottom sheet buttons are dynamically created without IDs, click by text
+    await page.locator('#bottom-sheet-more-nav button').filter({ hasText: 'Combat' }).click();
   } else {
     await ensureNavOpen(page);
     await page.locator('#appSidebar button[data-nav="combat"]').click();

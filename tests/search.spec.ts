@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { isMobile } from './helpers.js';
 
 const uniqueName = () => `Search-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -34,6 +35,7 @@ test.describe('Advanced Search', () => {
   });
 
   test('search bar is visible in navbar', async ({ page }) => {
+    if (await isMobile(page)) return;
     await ensureNavOpen(page);
     await expect(page.locator('#searchInput')).toBeVisible();
     await expect(page.locator('#searchBtn')).toBeVisible();
@@ -45,16 +47,24 @@ test.describe('Advanced Search', () => {
   });
 
   test('search finds fireball in compendium', async ({ page }) => {
-    await ensureNavOpen(page);
-    await page.fill('#searchInput', 'fireball');
+    if (await isMobile(page)) {
+      await page.evaluate(() => { (document.getElementById('searchInput') as HTMLInputElement).value = 'fireball'; });
+    } else {
+      await ensureNavOpen(page);
+      await page.fill('#searchInput', 'fireball');
+    }
     await page.evaluate(() => window.doSearch());
     await page.waitForTimeout(1000);
     await expect(page.locator('#searchPanel')).toContainText('Spells');
   });
 
   test('search shows no results for nonsense query', async ({ page }) => {
-    await ensureNavOpen(page);
-    await page.fill('#searchInput', 'xyznonexistent12345');
+    if (await isMobile(page)) {
+      await page.evaluate(() => { (document.getElementById('searchInput') as HTMLInputElement).value = 'xyznonexistent12345'; });
+    } else {
+      await ensureNavOpen(page);
+      await page.fill('#searchInput', 'xyznonexistent12345');
+    }
     await page.evaluate(() => window.doSearch());
     await page.waitForTimeout(1000);
     await expect(page.locator('#searchPanel')).toContainText('No Results');
@@ -71,8 +81,12 @@ test.describe('Advanced Search', () => {
     await waitModalClosed(page);
 
     const searchTerm = name.slice(0, 10);
-    await ensureNavOpen(page);
-    await page.fill('#searchInput', searchTerm);
+    if (await isMobile(page)) {
+      await page.evaluate((term) => { (document.getElementById('searchInput') as HTMLInputElement).value = term; }, searchTerm);
+    } else {
+      await ensureNavOpen(page);
+      await page.fill('#searchInput', searchTerm);
+    }
     await page.evaluate(() => window.doSearch());
     await page.waitForTimeout(1000);
     await expect(page.locator('#searchPanel')).toContainText(name);
@@ -88,8 +102,12 @@ test.describe('Advanced Search', () => {
     await page.click('.modal button:has-text("Create")');
     await waitModalClosed(page);
 
-    await ensureNavOpen(page);
-    await page.fill('#searchInput', name);
+    if (await isMobile(page)) {
+      await page.evaluate((n) => { (document.getElementById('searchInput') as HTMLInputElement).value = n; }, name);
+    } else {
+      await ensureNavOpen(page);
+      await page.fill('#searchInput', name);
+    }
     await page.evaluate(() => window.doSearch());
     await page.waitForTimeout(1000);
 

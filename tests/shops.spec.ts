@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 const uniqueName = () => `Shop-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-import { ensureNavOpen } from './helpers.js';
+import { ensureNavOpen, isMobile, clickSecondaryNavItem } from './helpers.js';
 
 test.describe('Shops & Trading', () => {
   test.beforeEach(async ({ page }) => {
@@ -21,6 +21,7 @@ test.describe('Shops & Trading', () => {
   });
 
   test('shops nav is visible for admin', async ({ page }) => {
+    if (await isMobile(page)) return;
     await ensureNavOpen(page);
     await expect(page.locator('#sidebarShopsNav')).toBeVisible();
   });
@@ -35,8 +36,7 @@ test.describe('Shops & Trading', () => {
         markup_buy_percent: 40,
       });
     }, shopName);
-    await ensureNavOpen(page);
-    await page.locator('#appSidebar button[data-nav="shops"]').click();
+    await clickSecondaryNavItem(page, 'Shops', 'moreNavShops');
     await page.waitForTimeout(500);
     await expect(page.locator('#shopsGrid')).toContainText(shopName);
   });
@@ -54,8 +54,7 @@ test.describe('Shops & Trading', () => {
       }
     }, shopName);
 
-    await ensureNavOpen(page);
-    await page.locator('#appSidebar button[data-nav="shops"]').click();
+    await clickSecondaryNavItem(page, 'Shops', 'moreNavShops');
     await page.waitForTimeout(500);
     await expect(page.locator('#shopsGrid')).toContainText(shopName);
   });

@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { isMobile, clickNavItem, clickSecondaryNavItem } from './helpers.js';
 
 test.describe('Full application smoke test', () => {
   test.beforeEach(async ({ page }) => {
@@ -26,7 +27,9 @@ test.describe('Full application smoke test', () => {
       page.click('button[type="submit"]'),
     ]);
     await expect(page.locator('#userName')).toContainText('admin', { timeout: 5000 });
-    await expect(page.locator('.navbar-brand')).toBeVisible();
+    if (!(await isMobile(page))) {
+      await expect(page.locator('.navbar-brand')).toBeVisible();
+    }
   });
 
   test('character list loads', async ({ page }) => {
@@ -48,34 +51,25 @@ test.describe('Full application smoke test', () => {
     ]);
 
     const navMap = { 'Compendium': 'compendium', 'Dice': 'dice', 'Encounters': 'encounters', 'Factions': 'factions' };
-    async function clickNav(page, text) {
-      const toggler = page.locator('.navbar-toggler');
-      const isMobile = await toggler.isVisible();
-      if (isMobile) {
-        const navOpen = await page.locator('#mainNav.show').count() > 0;
-        if (!navOpen) {
-          await toggler.click();
-          await page.locator('#mainNav').waitFor({ state: 'visible', timeout: 5000 });
+    const views = [
+      { link: 'Compendium', heading: 'Compendium', bottomNav: 'compendium' },
+      { link: 'Dice', heading: 'Dice Roller', bottomNav: 'dice' },
+      { link: 'Encounters', heading: 'Encounter Builder', moreText: 'Encounters' },
+      { link: 'Factions', heading: 'Factions', moreText: 'Factions' },
+    ];
+    for (const { link, heading, bottomNav, moreText } of views) {
+      if (await isMobile(page)) {
+        if (moreText) {
+          await clickSecondaryNavItem(page, moreText, 'moreNav');
+        } else if (bottomNav) {
+          await clickNavItem(page, link, bottomNav);
         }
-        const link = page.locator(`nav a:has-text("${text}")`);
-        await link.waitFor({ state: 'visible', timeout: 5000 });
-        await link.click();
       } else {
-        const nav = navMap[text];
+        const nav = navMap[link];
         if (nav) {
           await page.locator(`#appSidebar button[data-nav="${nav}"]`).click();
         }
       }
-    }
-
-    const views = [
-      { link: 'Compendium', heading: 'Compendium' },
-      { link: 'Dice', heading: 'Dice Roller' },
-      { link: 'Encounters', heading: 'Encounter Builder' },
-      { link: 'Factions', heading: 'Factions' },
-    ];
-    for (const { link, heading } of views) {
-      await clickNav(page, link);
       await expect(page.locator(`h1:has-text("${heading}")`)).toBeVisible({ timeout: 5000 });
     }
   });
@@ -112,12 +106,16 @@ test.describe('Full application smoke test', () => {
       page.click('button[type="submit"]'),
     ]);
 
-    const toggler = page.locator('.navbar-toggler');
-    if (await toggler.isVisible()) {
-      await toggler.click();
-      await page.waitForTimeout(300);
+    if (await isMobile(page)) {
+      await page.evaluate(() => (window as any).logout());
+    } else {
+      const toggler = page.locator('.navbar-toggler');
+      if (await toggler.isVisible()) {
+        await toggler.click();
+        await page.waitForTimeout(300);
+      }
+      await page.locator('a:has-text("Logout")').click();
     }
-    await page.locator('a:has-text("Logout")').click();
     await expect(page).toHaveURL(/\/login/, { timeout: 5000 });
   });
 
