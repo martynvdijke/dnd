@@ -1,3 +1,24 @@
+# [2.14.0](https://github.com/martynvdijke/dnd/compare/v2.13.0...v2.14.0) (2026-06-09)
+
+
+### Bug Fixes
+
+* add actions:read and checks:read perms to ci job for otel in reusable workflow ([8a85b57](https://github.com/martynvdijke/dnd/commit/8a85b57225eec290fb535120bcd247500cb5067e))
+* delete child records before character to satisfy FK constraints, add legacy admin compendium routes ([b268d05](https://github.com/martynvdijke/dnd/commit/b268d05dc7a9b1c6ae7a99d16deecbfb146e1e06)), closes [#shopsGrid](https://github.com/martynvdijke/dnd/issues/shopsGrid) [#shopSelect](https://github.com/martynvdijke/dnd/issues/shopSelect)
+* make test PNG content unique to avoid dedup hash collision ([ab57ded](https://github.com/martynvdijke/dnd/commit/ab57dedf1e7e3a84e568352ef29b5d31892b8140))
+* rename githubToken to otelToken for otel-cicd-action@v4 ([dcfb0c6](https://github.com/martynvdijke/dnd/commit/dcfb0c6f1c1a940b95d7d61518e1cda8bdb85c29))
+* replace gin.Logger() with RequestLogger() middleware that logs to AppLog ([31b3b64](https://github.com/martynvdijke/dnd/commit/31b3b642ae2f07ce2a5f963b594c22a5bcb33498))
+* use ESM import for zlib instead of require in Playwright test ([c15f136](https://github.com/martynvdijke/dnd/commit/c15f136b5bfd79c5d67d2db0e787be49da2a75e7))
+* use githubToken instead of otelToken for otel-cicd-action@v4 ([6737297](https://github.com/martynvdijke/dnd/commit/6737297e2e182de09eaddc3d528cef0940c03582))
+* use githubToken instead of otelToken for otel-cicd-action@v4 input ([db6d091](https://github.com/martynvdijke/dnd/commit/db6d0919b6a6c981e7e1af721498bb4de4e8ac33))
+
+
+### Features
+
+* add otlpAuthorization input for Bearer auth ([f214d3a](https://github.com/martynvdijke/dnd/commit/f214d3a973d0bf125c25d003a7033fcaa90b7427))
+* **compendium:** add DM-scoped search, linking handlers, and remove legacy admin routes ([e69d6ab](https://github.com/martynvdijke/dnd/commit/e69d6abf9c82e2dbca99510a6e29ef70405bbcd4))
+* full shop system with DM management and trading UI ([b139d98](https://github.com/martynvdijke/dnd/commit/b139d984a75566dc7938cf5c890e4c619f643297))
+
 # [2.13.0](https://github.com/martynvdijke/dnd/compare/v2.12.1...v2.13.0) (2026-06-07)
 
 
