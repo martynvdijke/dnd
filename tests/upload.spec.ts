@@ -1,13 +1,13 @@
 import { test, expect } from '@playwright/test';
+import { deflateSync } from 'zlib';
 
 function makeTestPNG(): Buffer {
   // Valid PNG with unique content to avoid dedup hash collision
-  const zlib = require('zlib');
   const seed = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   const r = seed.split('').reduce((acc, c) => ((acc << 5) - acc) + c.charCodeAt(0), 0) & 0xFF;
   // 1x1 RGB pixel (filter byte 0 + R, G, B)
   const raw = Buffer.from([0x00, r, 0x00, 0x00]);
-  const compressed = zlib.deflateSync(raw);
+  const compressed = deflateSync(raw);
   // PNG chunk helpers
   const U32BE = (n: number) => { const b = Buffer.alloc(4); b.writeUInt32BE(n); return b; };
   const crc32 = (data: Buffer): number => {
