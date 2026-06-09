@@ -1,11 +1,39 @@
 import { test, expect } from '@playwright/test';
 
 function makeTestPNG(): Buffer {
-  // Minimal valid 1x1 red PNG
-  return Buffer.from(
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-    'base64'
-  );
+  // Valid PNG with unique content to avoid dedup hash collision
+  const zlib = require('zlib');
+  const seed = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  const r = seed.split('').reduce((acc, c) => ((acc << 5) - acc) + c.charCodeAt(0), 0) & 0xFF;
+  // 1x1 RGB pixel (filter byte 0 + R, G, B)
+  const raw = Buffer.from([0x00, r, 0x00, 0x00]);
+  const compressed = zlib.deflateSync(raw);
+  // PNG chunk helpers
+  const U32BE = (n: number) => { const b = Buffer.alloc(4); b.writeUInt32BE(n); return b; };
+  const crc32 = (data: Buffer): number => {
+    let c = 0xFFFFFFFF;
+    const table = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let cv = n;
+      for (let k = 0; k < 8; k++) cv = (cv & 1) ? (0xEDB88320 ^ (cv >>> 1)) : (cv >>> 1);
+      table[n] = cv;
+    }
+    for (let i = 0; i < data.length; i++) c = table[(c ^ data[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  };
+  const chunk = (type: string, data: Buffer) =>
+    Buffer.concat([U32BE(data.length), Buffer.from(type), data, U32BE(crc32(Buffer.concat([Buffer.from(type), data])))]);
+
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(1, 0); ihdr.writeUInt32BE(1, 4);
+  ihdr[8] = 8; ihdr[9] = 2; // 8-bit RGB
+
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), // PNG signature
+    chunk('IHDR', ihdr),
+    chunk('IDAT', compressed),
+    chunk('IEND', Buffer.alloc(0)),
+  ]);
 }
 
 async function getCSRFToken(page: { request: { get: (url: string) => Promise<{ json: () => Promise<Record<string, string>> }> } }): Promise<string> {
