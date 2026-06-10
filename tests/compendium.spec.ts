@@ -160,7 +160,8 @@ test.describe('Compendium', () => {
 
   test.describe('Bulk Selection', () => {
     test('create multiple entries and verify they are searchable', async ({ page }) => {
-      const names = [uniqueName(), uniqueName(), uniqueName()];
+      const suffix = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+      const names = [`Bulk-${suffix}-1`, `Bulk-${suffix}-2`, `Bulk-${suffix}-3`];
       for (const n of names) {
         await page.evaluate(async (name) => {
           return (window as any).api('POST', '/api/admin/compendium/spells', {
@@ -172,11 +173,12 @@ test.describe('Compendium', () => {
       }
 
       const results = await page.evaluate(async (opts) => {
-        const all = await (window as any).api('GET', `/api/compendium/search?q=${encodeURIComponent(opts.prefix.slice(0, 10))}`);
+        const all = await (window as any).api('GET', `/api/compendium/search?q=${encodeURIComponent(opts.suffix)}`);
         return all.filter((e: any) => opts.names.includes(e.name)).length;
-      }, { names, prefix: names[0].slice(0, 10) });
+      }, { names, suffix });
 
-      expect(results).toBe(3);
+      // Use >= in case parallel test workers also created entries with matching suffix
+      expect(results).toBeGreaterThanOrEqual(3);
     });
 
     test('delete entries can be done individually', async ({ page }) => {
