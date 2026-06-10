@@ -74,7 +74,7 @@ test.describe('Character management', () => {
 
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
-    const abilityValues = await page.locator('.ability-box .abil-value-input').allTextContents();
+    const abilityValues = await page.locator('.ability-box .stepper-value').allTextContents();
     expect(abilityValues.length).toBeGreaterThanOrEqual(6);
   });
 });

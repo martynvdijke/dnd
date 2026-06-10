@@ -633,10 +633,19 @@ test.describe('Auto-save', () => {
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
-    const firstInput = page.locator('.abil-value-input').first();
-    await firstInput.click();
-    await firstInput.fill('18');
-    await page.waitForTimeout(1200);
+    // Tap the first stepper value to enter inline edit mode
+    const firstValue = page.locator('.stepper-value').first();
+    await firstValue.click();
+    // The editStepperValue function replaces the span with an input
+    const inlineInput = page.locator('.stepper-inline-input').first();
+    await expect(inlineInput).toBeVisible({ timeout: 5000 });
+    await inlineInput.fill('18');
+    // Press Enter to trigger save, then wait for the API call to complete
+    const responsePromise = page.waitForResponse(resp =>
+      resp.url().includes('/api/characters/') && resp.request().method() === 'PUT'
+    );
+    await inlineInput.press('Enter');
+    await responsePromise;
 
     await page.reload();
     await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
@@ -644,7 +653,8 @@ test.describe('Auto-save', () => {
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
-    await expect(page.locator('.abil-value-input').first()).toHaveValue('18');
+    // Verify the stepper value shows '18' after reload
+    await expect(page.locator('.stepper-value').first()).toHaveText('18');
   });
 });
 
