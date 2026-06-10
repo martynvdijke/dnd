@@ -225,7 +225,12 @@ test.describe('Campaign Wiki', () => {
     await page.evaluate((cid) => window.showWiki(cid), result.campId);
     await page.waitForTimeout(500);
     await page.evaluate((pid) => window.loadWikiPage(pid), result.pageId);
-    await page.waitForTimeout(500);
+
+    // Wait for wiki content to be rendered (may take longer on mobile with DB contention)
+    await page.waitForFunction(() => {
+      const el = document.querySelector('#wikiPageContent .wiki-content');
+      return el && el.textContent && el.textContent.length > 0;
+    }, { timeout: 15000 });
 
     await expect(page.locator('#wikiPageContent .wiki-content')).toContainText('Special', { timeout: 5000 });
     await expect(page.locator('#wikiPageContent .wiki-content')).toContainText('D&D 5e', { timeout: 5000 });
