@@ -617,6 +617,78 @@ function autoSaveField(field: string, el: HTMLElement) {
 }
 (window as any).autoSaveField = autoSaveField;
 
+// ─── Stepper Utility ───
+
+(window as any).stepperField = function (field: string, delta: number, min?: number, max?: number) {
+  if (!currentChar) return;
+  let val = currentChar[field] ?? 0;
+  val += delta;
+  if (min !== undefined) val = Math.max(min, val);
+  if (max !== undefined) val = Math.min(max, val);
+  currentChar[field] = val;
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = window.setTimeout(async () => {
+    try { await api('PUT', `/api/characters/${currentChar.id}`, currentChar); } catch (e: any) { toast(e.message, true); }
+  }, 800);
+  renderSheet();
+};
+
+(window as any).editStepperValue = function (field: string, el: HTMLElement) {
+  if (!currentChar) return;
+  const current = currentChar[field] ?? 0;
+  el.innerHTML = `<input type="number" class="form-control stepper-inline-input" value="${current}">`;
+  const input = el.querySelector('input')!;
+  input.focus();
+  input.select();
+  const save = () => {
+    const parsed = parseInt(input.value);
+    if (!isNaN(parsed)) {
+      currentChar[field] = parsed;
+      if (autoSaveTimer) clearTimeout(autoSaveTimer);
+      autoSaveTimer = window.setTimeout(async () => {
+        try { await api('PUT', `/api/characters/${currentChar.id}`, currentChar); } catch (e: any) { toast(e.message, true); }
+      }, 800);
+    }
+    renderSheet();
+  };
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); save(); }
+    if (e.key === 'Escape') { renderSheet(); }
+  });
+};
+
+// ─── Coin Stepper ───
+
+(window as any).coinStepper = async function (coin: string, delta: number) {
+  if (!currentChar) return;
+  const currency = currentChar.currency || {};
+  const current = currency[coin] || 0;
+  const newVal = Math.max(0, current + delta);
+  currency[coin] = newVal;
+  currentChar.currency = currency;
+  const updates: Record<string, number> = {};
+  ['cp','sp','ep','gp','pp'].forEach(c => { updates[c] = currency[c] || 0; });
+  try {
+    await api('PUT', `/api/characters/${currentChar.id}/currency`, updates);
+    toast(`${coin.toUpperCase()} ${delta > 0 ? '+' : ''}${delta}`);
+  } catch (e: any) { toast(e.message, true); }
+  renderSheet();
+};
+
+// ─── Helper: Render a stepper control ───
+
+function renderStepper(field: string, value: number, delta: number, min?: number, max?: number, label?: string, size?: string): string {
+  const sizeClass = size === 'lg' ? 'stepper-lg' : size === 'sm' ? 'currency-stepper' : '';
+  const ariaInc = label ? `Increase ${label}` : `Increase ${field}`;
+  const ariaDec = label ? `Decrease ${label}` : `Decrease ${field}`;
+  return `<span class="stepper ${sizeClass}">
+    <button class="stepper-btn" onclick="stepperField('${field}', -${Math.abs(delta)}, ${min ?? 'undefined'}, ${max ?? 'undefined'})" aria-label="${ariaDec}">−</button>
+    <span class="stepper-value" onclick="editStepperValue('${field}', this)">${value}</span>
+    <button class="stepper-btn" onclick="stepperField('${field}', ${Math.abs(delta)}, ${min ?? 'undefined'}, ${max ?? 'undefined'})" aria-label="${ariaInc}">+</button>
+  </span>`;
+}
+
 async function updateField(field: string, value: any) {
   if (!currentChar) return;
   currentChar[field] = value;
@@ -637,15 +709,15 @@ function renderStats() {
   const el = document.getElementById('statsSection')!;
   const abils = ['str','dex','con','int','wis','cha'].map((k, i) => ({ key: k, label: k.toUpperCase(), desc: ['Strength','Dexterity','Constitution','Intelligence','Wisdom','Charisma'][i], skills: ['Athletics','Acrobatics, Sleight of Hand, Stealth','','Arcana, History, Investigation, Nature, Religion','Animal Handling, Insight, Medicine, Perception, Survival','Deception, Intimidation, Performance, Persuasion'][i] }));
   el.innerHTML = `
-    <div class="row g-3">
+    <div class="stats-grid row g-3">
       ${abils.map(a => {
         const val = (c as any)[a.key];
         const mod = (c as any)[`${a.key}_mod`];
         const cls = mod > 0 ? 'text-success' : mod < 0 ? 'text-danger' : 'text-muted';
-        return `<div class="col-4 col-md-2">
+        return `<div class="ability-column col-6 col-md-4 col-lg-2">
           <div class="ability-box" title="${a.desc} (${a.label})\nModifier: ${mod >= 0 ? '+' : ''}${mod}\nSkills: ${a.skills || 'None'}">
             <div class="abil-label" onclick="rollCheck('check','${a.key}','normal')" style="cursor:pointer">${a.label}</div>
-            <input type="number" class="form-control form-control-sm text-center abil-value-input" value="${val}" oninput="autoSaveField('${a.key}',this)" onfocus="this.select()">
+            ${renderStepper(a.key, val, 1, 1, 30, a.label)}
             <div class="abil-mod ${cls}">${mod >= 0 ? '+' : ''}${mod}</div>
           </div>
         </div>`;
@@ -657,10 +729,10 @@ function renderStats() {
     </div>
     <div class="ornament my-2">✧</div>
     <div class="row g-3 mt-2">
-      <div class="col-6 col-md-3"><label class="form-label">Proficiency</label><input type="number" class="form-control form-control-sm" value="${c.proficiency_bonus}" oninput="autoSaveField('proficiency_bonus',this)"></div>
-      <div class="col-6 col-md-3"><label class="form-label">Inspiration</label><input type="number" class="form-control form-control-sm" value="${c.inspiration}" oninput="autoSaveField('inspiration',this)"></div>
-      <div class="col-6 col-md-3"><label class="form-label">Passive Percep.</label><input type="number" class="form-control form-control-sm" value="${c.passive_perception}" oninput="autoSaveField('passive_perception',this)"></div>
-      <div class="col-6 col-md-3"><label class="form-label">XP</label><input type="number" class="form-control form-control-sm" value="${c.xp}" oninput="autoSaveField('xp',this);updateXPBar()"></div>
+      <div class="col-6 col-md-3"><label class="form-label">Proficiency</label>${renderStepper('proficiency_bonus', c.proficiency_bonus, 1, 1, 10, 'Proficiency Bonus')}</div>
+      <div class="col-6 col-md-3"><label class="form-label">Inspiration</label>${renderStepper('inspiration', c.inspiration, 1, 0, undefined, 'Inspiration')}</div>
+      <div class="col-6 col-md-3"><label class="form-label">Passive Percep.</label><input type="number" class="form-control form-control-sm" value="${c.passive_perception}" oninput="autoSaveField('passive_perception',this)" style="min-height:44px;font-size:1.1rem"></div>
+      <div class="col-6 col-md-3"><label class="form-label">XP</label>${renderStepper('xp', c.xp, 1, 0, undefined, 'XP')}</div>
     </div>
     <div class="mt-2" id="xpBarContainer">${renderXPBar(c)}</div>
     <!-- Passive Investigation & Insight -->
@@ -687,15 +759,15 @@ function renderStats() {
             <div class="exhaustion-effect">${['-','Disadvantage on ability checks','Speed halved','Disadvantage on attacks & saves','HP max halved','Speed reduced to 0','Death'][c.exhaustion_level||0]||''}</div>
           </div>
           <div class="ms-auto d-flex gap-1">
-            <button class="exhaustion-btn" onclick="adjustExhaustion(-1)" title="Reduce exhaustion">−</button>
-            <button class="exhaustion-btn" onclick="adjustExhaustion(1)" title="Increase exhaustion">+</button>
+            <button class="exhaustion-btn" onclick="adjustExhaustion(-1)" title="Reduce exhaustion" style="min-width:44px;min-height:44px">−</button>
+            <button class="exhaustion-btn" onclick="adjustExhaustion(1)" title="Increase exhaustion" style="min-width:44px;min-height:44px">+</button>
           </div>
         </div>
       </div>
     </div>
     </div>
     <h5 class="mt-3">Skills <small class="text-muted fw-normal">(click to roll)</small></h5>
-    <div id="skillsArea">${renderSkills(c)}</div>
+    <div id="skillsArea"><div class="skills-grid">${renderSkills(c)}</div></div>
     <h5 class="mt-3">Proficiencies</h5>
     <div id="profsArea">${(c.proficiencies||[]).map((p:any) =>
       `<span class="badge badge-blood me-1 mb-1">${esc(p.name)} (${p.type}) <a href="#" onclick="deleteProf(${p.id});return false" class="text-white text-decoration-none">×</a></span>`
@@ -1334,13 +1406,16 @@ function renderDetails() {
     `).join('')}
     <div class="mb-3"><label class="form-label">Backstory</label>
     <textarea class="form-control form-control-sm" rows="4" oninput="autoSaveField('backstory',this)">${esc(c.backstory)}</textarea></div>
-    <h5 class="mt-4">Currency</h5>
+    <h5 class="mt-4">Currency <small class="text-muted fw-normal">(tap +/− to adjust)</small></h5>
     <div class="row g-3">
       ${['cp','sp','ep','gp','pp'].map(coin => `
         <div class="col-4 col-md-2"><label class="form-label small">${coin.toUpperCase()}</label>
-        <input class="form-control form-control-sm" id="coin${coin}" value="${c.currency?.[coin]||0}" type="number"></div>
+        <div class="currency-stepper">
+          <button class="stepper-btn" onclick="coinStepper('${coin}', -1)" aria-label="Decrease ${coin.toUpperCase()}">−</button>
+          <span class="stepper-value" id="coin${coin}">${c.currency?.[coin]||0}</span>
+          <button class="stepper-btn" onclick="coinStepper('${coin}', 1)" aria-label="Increase ${coin.toUpperCase()}">+</button>
+        </div></div>
       `).join('')}
-      <div class="col-4 col-md-2 d-flex align-items-end"><button class="btn btn-gold btn-sm w-100" onclick="updateCurrency()">Save</button></div>
     </div>
     <div class="mt-3">
       <button class="btn btn-outline-primary btn-sm" onclick="shareCharacter()"><i class="fa-solid fa-share-nodes me-1"></i>Share Character</button>
@@ -4766,10 +4841,10 @@ function renderCombat() {
   const el = document.getElementById('combatSection')!;
   const pct = c.hp_max > 0 ? Math.round((c.hp_current / c.hp_max) * 100) : 0;
   el.innerHTML = `
-    <div class="row g-3">
-      <div class="col-4"><div class="combat-stat" title="Armor Class"><div class="stat-label">AC</div><div class="stat-value">${c.ac}</div></div></div>
-      <div class="col-4"><div class="combat-stat" title="Initiative modifier"><div class="stat-label">Initiative</div><div class="stat-value">${c.initiative >= 0 ? '+' : ''}${c.initiative}</div></div></div>
-      <div class="col-4"><div class="combat-stat" title="Movement speed"><div class="stat-label">Speed</div><div class="stat-value">${c.speed}</div></div></div>
+    <div class="combat-stack row g-3">
+      <div class="combat-stat-row col-4"><div class="combat-stat" title="Armor Class"><div class="stat-label">AC</div><div class="stat-value">${renderStepper('ac', c.ac, 1, 0, undefined, 'AC')}</div></div></div>
+      <div class="combat-stat-row col-4"><div class="combat-stat" title="Initiative modifier"><div class="stat-label">Initiative</div><div class="stat-value">${renderStepper('initiative', c.initiative, 1, undefined, undefined, 'Initiative')}</div></div></div>
+      <div class="combat-stat-row col-4"><div class="combat-stat" title="Movement speed"><div class="stat-label">Speed</div><div class="stat-value">${renderStepper('speed', c.speed, 5, 0, undefined, 'Speed')}</div></div></div>
     </div>
     <h5 class="mt-3">Hit Points</h5>
     <div class="hp-bar position-relative mb-2" title="${c.hp_current} / ${c.hp_max} HP${c.temp_hp > 0 ? ' (+' + c.temp_hp + ' temporary)' : ''}">
@@ -4777,9 +4852,9 @@ function renderCombat() {
       <div class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center text-white small fw-bold" style="font-size:0.8rem">${c.hp_current} / ${c.hp_max}${c.temp_hp > 0 ? ' (+' + c.temp_hp + ' temp)' : ''}</div>
     </div>
     <div class="row g-2">
-      <div class="col-4"><label class="form-label small">HP Max</label><input type="number" class="form-control form-control-sm" value="${c.hp_max}" oninput="autoSaveField('hp_max',this)"></div>
-      <div class="col-4"><label class="form-label small">Current</label><input type="number" class="form-control form-control-sm" value="${c.hp_current}" oninput="autoSaveField('hp_current',this)"></div>
-      <div class="col-4"><label class="form-label small">Temp HP</label><input type="number" class="form-control form-control-sm" value="${c.temp_hp}" oninput="autoSaveField('temp_hp',this)"></div>
+      <div class="col-4"><label class="form-label small">HP Max</label>${renderStepper('hp_max', c.hp_max, 1, 1, undefined, 'HP Max', 'lg')}</div>
+      <div class="col-4"><label class="form-label small">Current</label>${renderStepper('hp_current', c.hp_current, 1, 0, undefined, 'HP Current', 'lg')}</div>
+      <div class="col-4"><label class="form-label small">Temp HP</label>${renderStepper('temp_hp', c.temp_hp, 1, 0, undefined, 'Temp HP', 'lg')}</div>
     </div>
     <div class="row g-2 mt-2">
       <div class="col-6">
@@ -4791,7 +4866,7 @@ function renderCombat() {
         <div class="input-group input-group-sm"><input type="number" class="form-control" id="healInput" value="0"><button class="btn btn-success" onclick="applyHeal()">Apply</button></div>
       </div>
     </div>
-    <div class="d-flex gap-2 mt-3">
+    <div class="d-flex gap-2 mt-3 flex-wrap">
       <button class="btn btn-sm btn-outline-primary" onclick="doRest('short')"><i class="fa-solid fa-campground me-1"></i>Short Rest</button>
       <button class="btn btn-sm btn-outline-primary" onclick="doRest('long')"><i class="fa-solid fa-moon me-1"></i>Long Rest</button>
       <button class="btn btn-sm btn-gold" onclick="doLevelUp()"><i class="fa-solid fa-arrow-up me-1"></i>Level Up</button>
@@ -4812,24 +4887,24 @@ function renderCombat() {
         const mod = (c as any)[`${a}_mod`];
         const total = c.proficiency_bonus + mod;
         const sign = total >= 0 ? '+' : '';
-        return `<span class="badge badge-gold" style="cursor:pointer" onclick="rollCheck('save','${a}','normal')">${a.toUpperCase()} ${sign}${total}</span>`;
+        return `<span class="badge badge-gold" style="cursor:pointer;font-size:0.85rem;padding:0.4rem 0.6rem" onclick="rollCheck('save','${a}','normal')">${a.toUpperCase()} ${sign}${total}</span>`;
       }).join('')}
     </div>
     <h5 class="mt-3">Death Saves</h5>
     <div class="row g-2">
-      <div class="col-6"><label class="form-label small">Successes</label><input type="number" class="form-control form-control-sm" value="${c.death_saves_successes}" oninput="autoSaveField('death_saves_successes',this)" min="0" max="3"></div>
-      <div class="col-6"><label class="form-label small">Failures</label><input type="number" class="form-control form-control-sm" value="${c.death_saves_failures}" oninput="autoSaveField('death_saves_failures',this)" min="0" max="3"></div>
+      <div class="col-6"><label class="form-label small">Successes</label>${renderStepper('death_saves_successes', c.death_saves_successes, 1, 0, 3, 'Death Save Successes')}</div>
+      <div class="col-6"><label class="form-label small">Failures</label>${renderStepper('death_saves_failures', c.death_saves_failures, 1, 0, 3, 'Death Save Failures')}</div>
     </div>
     <h5 class="mt-3">Concentration</h5>
     <div class="form-check"><input type="checkbox" class="form-check-input" id="concentrationCb" ${c.concentrating ? 'checked' : ''} onchange="autoSaveField('concentrating',this)"><label class="form-check-label" for="concentrationCb">Concentrating on a spell</label></div>
     <div class="mt-2">
       <label class="form-label small">Concentrating On</label>
-      <input class="form-control form-control-sm" value="${esc(c.concentrating_on)}" oninput="autoSaveField('concentrating_on',this)" placeholder="e.g. Hunter's Mark">
+      <input class="form-control form-control-sm" value="${esc(c.concentrating_on)}" oninput="autoSaveField('concentrating_on',this)" placeholder="e.g. Hunter's Mark" style="min-height:44px;font-size:1rem">
     </div>
     <h5 class="mt-3">Hit Dice</h5>
     <div class="row g-2">
-      <div class="col-6"><label class="form-label small">Total</label><input type="number" class="form-control form-control-sm" value="${c.hit_dice_total}" oninput="autoSaveField('hit_dice_total',this)"></div>
-      <div class="col-6"><label class="form-label small">Used</label><input type="number" class="form-control form-control-sm" value="${c.hit_dice_used}" oninput="autoSaveField('hit_dice_used',this)"></div>
+      <div class="col-6"><label class="form-label small">Total</label>${renderStepper('hit_dice_total', c.hit_dice_total, 1, 0, undefined, 'Hit Dice Total')}</div>
+      <div class="col-6"><label class="form-label small">Used</label>${renderStepper('hit_dice_used', c.hit_dice_used, 1, 0, undefined, 'Hit Dice Used')}</div>
     </div>`;
   // Load condition badges async
   loadConditionBadges();

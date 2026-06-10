@@ -103,7 +103,7 @@ test.describe('Responsive design', () => {
     await expect(page.locator('#adminUsers .card-header')).toContainText('Users');
 
     await page.click('#adminTabs button:has-text("Compendium")');
-    await expect(page.locator('#adminCompendium .card-header')).toContainText('Compendium Management');
+    await expect(page.locator('#adminUnifiedCompendium .card-header')).toContainText('Compendium');
 
     await page.click('#adminTabs button:has-text("Backup")');
     await expect(page.locator('#adminBackup .card-header').first()).toContainText('Backup Settings');

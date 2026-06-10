@@ -737,6 +737,7 @@ kbd {
   .character-grid { grid-template-columns: 1fr !important; }
   .nav-tabs { flex-wrap: nowrap !important; overflow-x: auto !important; }
   .nav-tabs .nav-link { white-space: nowrap !important; }
+  #tabBar { position: sticky; top: 56px; z-index: 10; background: var(--parchment-light); margin-bottom: 0; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
 }
 
 @media (max-width: 576px) {
@@ -2834,6 +2835,236 @@ body.sidebar-collapsed .container {
 
 [data-theme="light"] body.session-mode {
   background: var(--parchment) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Mobile Character Sheet — Stepper & Card Styles
+   Added by revamp-character-sheets-mobile change
+   ══════════════════════════════════════════════════════════════ */
+
+/* ─── Stepper Controls ─── */
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.stepper-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--parchment-light);
+  color: var(--ink);
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  line-height: 1;
+}
+
+.stepper-btn:hover {
+  background: var(--parchment-dark);
+}
+
+.stepper-btn:active {
+  transform: scale(0.92);
+  background: var(--parchment-dark);
+}
+
+.stepper-btn:active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  animation: stepperPulse 0.15s ease-out;
+}
+
+@keyframes stepperPulse {
+  0% { box-shadow: 0 0 0 0 rgba(184,150,62,0.5); }
+  100% { box-shadow: 0 0 0 8px rgba(184,150,62,0); }
+}
+
+.stepper-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 1.4rem;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--ink);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+  padding: 0 4px;
+}
+
+.stepper-value:hover {
+  background: rgba(184,150,62,0.1);
+}
+
+.stepper-inline-input {
+  font-size: 1.2rem !important;
+  font-weight: 700 !important;
+  font-family: var(--font-display) !important;
+  text-align: center !important;
+  width: 4rem !important;
+  min-height: 44px !important;
+  border: 1px solid var(--gold) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* ─── Stat Cards (Mobile Layout) ─── */
+
+.stat-card {
+  background: var(--parchment);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 0.75rem;
+}
+
+[data-theme="dark"] .stat-card {
+  background: var(--parchment-dark);
+}
+
+.stat-card .stat-card-heading {
+  font-family: var(--font-display);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink-light);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 0.35rem;
+}
+
+/* ─── HP Stepper (Large Variant) ─── */
+
+.stepper-lg .stepper-btn {
+  min-width: 52px;
+  min-height: 52px;
+  font-size: 1.5rem;
+}
+
+.stepper-lg .stepper-value {
+  min-width: 52px;
+  min-height: 52px;
+  font-size: 1.6rem;
+}
+
+/* ─── Currency Inline Stepper ─── */
+
+.currency-stepper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.currency-stepper .stepper-btn {
+  min-width: 36px;
+  min-height: 36px;
+  font-size: 1rem;
+}
+
+.currency-stepper .stepper-value {
+  min-width: 36px;
+  min-height: 36px;
+  font-size: 1rem;
+}
+
+/* ─── Mobile responsive column overrides for stats section ─── */
+
+@media (max-width: 767.98px) {
+  .stats-grid .ability-column {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .stats-grid .ability-column {
+    flex: 0 0 33.333%;
+    max-width: 33.333%;
+  }
+}
+
+@media (min-width: 992px) {
+  .stats-grid .ability-column {
+    flex: 0 0 16.667%;
+    max-width: 16.667%;
+  }
+}
+
+/* ─── Mobile responsive typography & spacing ─── */
+
+@media (max-width: 767.98px) {
+  .ability-box .abil-value,
+  .stepper-value {
+    font-size: 1.25rem !important;
+  }
+  .ability-box .abil-label,
+  .stat-label {
+    font-size: 0.75rem !important;
+  }
+  .stat-card {
+    padding: 0.6rem;
+  }
+  .skills-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+  }
+  .combat-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .combat-stack > .combat-stat-row {
+    width: 100%;
+  }
+  .combat-stack .col-4 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}
+
+@media (min-width: 768px) {
+  .skills-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 2px;
+  }
+}
+
+/* ─── Stepper value visible feedback on tap ─── */
+
+.stepper-value-update {
+  animation: valueFlash 0.2s ease-out;
+}
+
+@keyframes valueFlash {
+  0% { color: var(--gold); transform: scale(1.1); }
+  100% { color: var(--ink); transform: scale(1); }
+}
+
+/* ─── Print: hide stepper buttons ─── */
+
+@media print {
+  .stepper-btn {
+    display: none !important;
+  }
 }
 
 /* ─── Print: hide new UI elements ─── */
