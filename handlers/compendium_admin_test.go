@@ -9,6 +9,11 @@ import (
 	"villum/handlers/testutil"
 )
 
+// formatInt formats a float64 as an integer string (no decimals)
+func formatInt(v float64) string {
+	return strconv.FormatInt(int64(v), 10)
+}
+
 func TestCompendiumAdminSchemaCRUD(t *testing.T) {
 	testutil.NewDB(t)
 	defer testutil.CloseDB(t)
@@ -714,64 +719,4 @@ func TestCompendiumAdminBatchOps(t *testing.T) {
 			t.Fatalf("expected source 'batch_updated', got %v", data["source"])
 		}
 	})
-}
-
-func TestCompendiumAdminMonsterLibrary(t *testing.T) {
-	testutil.NewDB(t)
-	defer testutil.CloseDB(t)
-	testutil.SeedUser(t, 1, "admin", "admin")
-	SeedCompendiumSchemas()
-
-	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
-		auth.POST("/admin/compendium/:type", AdminCreateCompendiumEntry)
-		auth.PUT("/admin/compendium/:type/:id", AdminUpdateCompendiumEntry)
-		auth.DELETE("/admin/compendium/:type/:id", AdminDeleteCompendiumEntry)
-	})
-
-	var monsterID float64
-
-	t.Run("create monster entry returns 201", func(t *testing.T) {
-		w := testutil.PostJSON(t, r, "/api/admin/compendium/monsters", map[string]any{
-			"name": "Test Dragon",
-			"type": "dragon",
-			"cr":   "12",
-			"ac":   18,
-			"hp":   200,
-		})
-		testutil.AssertStatus(t, w, 201)
-		var result map[string]any
-		testutil.ParseJSON(t, w, &result)
-		id, ok := result["id"].(float64)
-		if !ok {
-			t.Fatal("response missing id")
-		}
-		monsterID = id
-	})
-
-	t.Run("update monster entry returns 200", func(t *testing.T) {
-		if monsterID == 0 {
-			t.Skip("no monster id")
-		}
-		w := testutil.PutJSON(t, r, "/api/admin/compendium/monsters/"+formatInt(monsterID), map[string]any{
-			"name": "Updated Dragon",
-			"type": "dragon",
-			"cr":   "15",
-			"ac":   20,
-			"hp":   250,
-		})
-		testutil.AssertStatus(t, w, 200)
-	})
-
-	t.Run("delete monster entry returns 200", func(t *testing.T) {
-		if monsterID == 0 {
-			t.Skip("no monster id")
-		}
-		w := testutil.Delete(t, r, "/api/admin/compendium/monsters/"+formatInt(monsterID))
-		testutil.AssertStatus(t, w, 200)
-	})
-}
-
-// formatInt formats a float64 as an integer string (no decimals)
-func formatInt(v float64) string {
-	return strconv.FormatInt(int64(v), 10)
 }

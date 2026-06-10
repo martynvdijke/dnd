@@ -57,7 +57,7 @@ function showAdminTab(tab: string) {
   document.querySelectorAll('#adminTabs .nav-link').forEach(el => el.classList.remove('active'));
   const tabBtn = document.getElementById('tab' + capitalize(tab) + 'Btn');
   if (tabBtn) tabBtn.classList.add('active');
-  const allTabs = ['users', 'unified-compendium', 'schemas', 'compendium', 'backup', 'email', 'ai-endpoints', 'analytics', 'telemetry', 'import', 'logs'];
+  const allTabs = ['users', 'unified-compendium', 'backup', 'email', 'ai-endpoints', 'analytics', 'telemetry', 'import', 'logs'];
   allTabs.forEach(s => {
     const parts = s.split('-').map((p, i) => i === 0 ? capitalize(p) : capitalize(p));
     const id = 'admin' + parts.join('');
@@ -66,7 +66,6 @@ function showAdminTab(tab: string) {
   });
   if (tab === 'users') loadUsers();
   if (tab === 'unified-compendium') { loadUnifiedCompendium(); checkLegacyMigrationStatus(); }
-  if (tab === 'schemas') loadSchemas();
   if (tab === 'backup') { loadBackupSettings(); loadBackupList(); }
   if (tab === 'email') loadEmailSettings();
   if (tab === 'ai-endpoints') loadAIEndpoints();
@@ -938,155 +937,7 @@ async function loadUsers() {
   }
 };
 
-// ─── Compendium ───
-
-async function loadCompEntries() {
-  const type = (document.getElementById('compType') as HTMLSelectElement).value;
-  const el = document.getElementById('compEntries')!;
-  try {
-    const entries = await api('GET', `/api/compendium/${type}`);
-    el.innerHTML = `<table class="table table-hover mb-0"><thead><tr><th>Name</th><th style="width:100px">Actions</th></tr></thead><tbody>
-      ${entries.map((e: any) => `<tr>
-        <td>${esc(e.name)}</td>
-        <td>
-          <button class="btn btn-outline-danger btn-sm" onclick="deleteCompEntry('${type}', ${e.id})"><i class="fa-solid fa-trash"></i></button>
-        </td>
-      </tr>`).join('')}
-    </tbody></table>`;
-  } catch {
-    el.innerHTML = '<p style="color:var(--text-muted)">Failed to load entries</p>';
-  }
-}
-(window as any).loadCompEntries = loadCompEntries;
-
-(window as any).showAddCompEntry = function () {
-  const type = (document.getElementById('compType') as HTMLSelectElement).value;
-  const fields = getCompFields(type);
-  showModal(`Add ${capitalize(type)}`, fields + `<button class="btn btn-primary w-100 mt-3" onclick="saveCompEntry('${type}')">Create</button>`);
-};
-
-function getCompFields(type: string): string {
-  switch (type) {
-    case 'spells':
-      return `
-        <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="compName"></div>
-        <div class="row g-3 mb-3">
-          <div class="col-6"><label class="form-label">Level</label><input class="form-control" id="compLevel" type="number" value="0"></div>
-          <div class="col-6"><label class="form-label">School</label><input class="form-control" id="compSchool"></div>
-        </div>
-        <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="compDesc" rows="3"></textarea></div>`;
-    case 'races':
-      return `
-        <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="compName"></div>
-        <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="compDesc" rows="3"></textarea></div>
-        <div class="row g-3 mb-3">
-          <div class="col-6"><label class="form-label">Speed</label><input class="form-control" id="compSpeed" type="number" value="30"></div>
-          <div class="col-6"><label class="form-label">Size</label><input class="form-control" id="compSize" value="Medium"></div>
-        </div>`;
-    case 'monsters':
-      return `
-        <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="compName"></div>
-        <div class="row g-3 mb-3">
-          <div class="col-6"><label class="form-label">Type</label><input class="form-control" id="compTypeMonster" placeholder="e.g. beast, humanoid"></div>
-          <div class="col-6"><label class="form-label">Size</label><input class="form-control" id="compSizeMonster" value="Medium"></div>
-        </div>
-        <div class="row g-3 mb-3">
-          <div class="col-4"><label class="form-label">AC</label><input class="form-control" id="compAC" type="number" value="10"></div>
-          <div class="col-4"><label class="form-label">HP</label><input class="form-control" id="compHP" type="number" value="10"></div>
-          <div class="col-4"><label class="form-label">CR</label><input class="form-control" id="compCR" value="0"></div>
-        </div>
-        <div class="row g-3 mb-3">
-          <div class="col-4"><label class="form-label">STR</label><input class="form-control" id="compStr" type="number" value="10"></div>
-          <div class="col-4"><label class="form-label">DEX</label><input class="form-control" id="compDex" type="number" value="10"></div>
-          <div class="col-4"><label class="form-label">CON</label><input class="form-control" id="compCon" type="number" value="10"></div>
-        </div>
-        <div class="row g-3 mb-3">
-          <div class="col-4"><label class="form-label">INT</label><input class="form-control" id="compInt" type="number" value="10"></div>
-          <div class="col-4"><label class="form-label">WIS</label><input class="form-control" id="compWis" type="number" value="10"></div>
-          <div class="col-4"><label class="form-label">CHA</label><input class="form-control" id="compCha" type="number" value="10"></div>
-        </div>
-        <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="compDesc" rows="3"></textarea></div>`;
-    default:
-      return `
-        <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="compName"></div>
-        <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="compDesc" rows="3"></textarea></div>`;
-  }
-}
-
-(window as any).saveCompEntry = async function (type: string) {
-  const entry: any = { name: (document.getElementById('compName') as HTMLInputElement).value };
-  if (type === 'spells') {
-    entry.level = +(document.getElementById('compLevel') as HTMLInputElement).value || 0;
-    entry.school = (document.getElementById('compSchool') as HTMLInputElement).value;
-    entry.description = (document.getElementById('compDesc') as HTMLTextAreaElement).value;
-  } else if (type === 'races') {
-    entry.description = (document.getElementById('compDesc') as HTMLTextAreaElement).value;
-    entry.speed = +(document.getElementById('compSpeed') as HTMLInputElement).value || 30;
-    entry.size = (document.getElementById('compSize') as HTMLInputElement).value || 'Medium';
-  } else if (type === 'monsters') {
-    entry.type = (document.getElementById('compTypeMonster') as HTMLInputElement).value;
-    entry.size = (document.getElementById('compSizeMonster') as HTMLInputElement).value || 'Medium';
-    entry.ac = +(document.getElementById('compAC') as HTMLInputElement).value || 10;
-    entry.hp = +(document.getElementById('compHP') as HTMLInputElement).value || 10;
-    entry.cr = (document.getElementById('compCR') as HTMLInputElement).value || '0';
-    entry.str = +(document.getElementById('compStr') as HTMLInputElement).value || 10;
-    entry.dex = +(document.getElementById('compDex') as HTMLInputElement).value || 10;
-    entry.con = +(document.getElementById('compCon') as HTMLInputElement).value || 10;
-    entry.int = +(document.getElementById('compInt') as HTMLInputElement).value || 10;
-    entry.wis = +(document.getElementById('compWis') as HTMLInputElement).value || 10;
-    entry.cha = +(document.getElementById('compCha') as HTMLInputElement).value || 10;
-    entry.description = (document.getElementById('compDesc') as HTMLTextAreaElement).value;
-  } else {
-    entry.description = (document.getElementById('compDesc') as HTMLTextAreaElement).value;
-  }
-  try {
-    await api('POST', `/api/admin/compendium/${type}`, entry);
-    hideModal();
-    loadCompEntries();
-    toast('Entry created');
-  } catch (e: any) {
-    toast(e.message, true);
-  }
-};
-
-(window as any).deleteCompEntry = async function (type: string, id: number) {
-  if (!confirm('Delete this entry?')) return;
-  try {
-    await api('DELETE', `/api/admin/compendium/${type}/${id}`);
-    loadCompEntries();
-    toast('Deleted');
-  } catch (e: any) {
-    toast(e.message, true);
-  }
-};
-
 // ─── Schemas ───
-
-async function loadSchemas() {
-  try {
-    const schemas = await api('GET', '/api/admin/compendium-schemas');
-    const tbody = document.querySelector('#schemaTable tbody')!;
-    tbody.innerHTML = schemas.map((s: any) => `
-      <tr>
-        <td style="font-size:1.3rem">📖</td>
-        <td><strong>${esc(s.display_name)}</strong></td>
-        <td><code>${esc(s.type_name)}</code></td>
-        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(s.display_name || '')}"></td>
-        <td>${s.fields ? s.fields.length : 0}</td>
-        <td><span class="badge badge-primary">${s.entry_count || 0}</span></td>
-        <td>-</td>
-        <td>
-          <button class="btn btn-outline-primary btn-sm" onclick="editSchema(${s.id})" title="Edit"><i class="fa-solid fa-pen"></i></button>
-          <button class="btn btn-outline-info btn-sm" onclick="browseSchemaEntries(${s.id},'${esc(s.display_name)}')" title="Entries"><i class="fa-solid fa-list"></i></button>
-          <button class="btn btn-outline-danger btn-sm" onclick="deleteSchema(${s.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>
-        </td>
-      </tr>
-    `).join('');
-  } catch (e: any) {
-    toast(e.message, true);
-  }
-}
-(window as any).loadSchemas = loadSchemas;
 
 let schemaEditId: number | null = null;
 
@@ -1188,7 +1039,7 @@ function getSchemaFieldHtml(field: any, index: number): string {
       toast('Schema created');
     }
     hideModal();
-    loadSchemas();
+    loadUnifiedCompendium();
   } catch (e: any) {
     toast(e.message, true);
   }
@@ -1198,14 +1049,12 @@ function getSchemaFieldHtml(field: any, index: number): string {
   if (!confirm('Delete this schema? This cannot be undone.')) return;
   try {
     await api('DELETE', `/api/admin/compendium-schemas/${id}`);
-    loadSchemas();
+    loadUnifiedCompendium();
     toast('Schema deleted');
   } catch (e: any) {
     toast(e.message, true);
   }
 };
-
-// ─── (Old entry editor & bulk ops removed — consolidated in unified compendium above) ───
 
 // ─── Backup ───
 

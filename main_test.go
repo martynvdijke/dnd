@@ -402,9 +402,6 @@ func buildRouter() *gin.Engine {
 		admin.POST("/email-settings", handlers.SaveEmailSettings)
 		admin.POST("/test-email", handlers.TestEmail)
 		admin.POST("/campaign-highlights", handlers.SendCampaignHighlights)
-		admin.POST("/compendium/:type", handlers.AdminCreateCompendiumEntry)
-		admin.PUT("/compendium/:type/:id", handlers.AdminUpdateCompendiumEntry)
-		admin.DELETE("/compendium/:type/:id", handlers.AdminDeleteCompendiumEntry)
 	}
 
 	// Static file serving for non-API routes
@@ -1385,35 +1382,6 @@ func TestAdminUsers(t *testing.T) {
 	}
 }
 
-func TestAdminCompendiumCRUD(t *testing.T) {
-	tc := newTestClient()
-	setupAdmin(t, tc)
-
-	// Create
-	resp := tc.post("/api/admin/compendium/races", map[string]any{
-		"name": "Test Race", "description": "Custom race", "speed": 30, "size": "Medium",
-	})
-	if resp.Code != 201 {
-		t.Fatalf("create failed: %d - %s", resp.Code, resp.Body.String())
-	}
-	var entry map[string]any
-	readJSON(resp, &entry)
-	eid := int(entry["id"].(float64))
-
-	// Update
-	resp = tc.put(fmt.Sprintf("/api/admin/compendium/races/%d", eid), map[string]any{
-		"name": "Test Race Updated", "description": "Updated", "speed": 35, "size": "Large",
-	})
-	if resp.Code != 200 {
-		t.Fatalf("update failed: %d", resp.Code)
-	}
-
-	// Delete
-	resp = tc.del(fmt.Sprintf("/api/admin/compendium/races/%d", eid), nil)
-	if resp.Code != 200 {
-		t.Fatalf("delete failed: %d", resp.Code)
-	}
-}
 
 func TestCompendiumMonsters(t *testing.T) {
 	tc := newTestClient()
@@ -1853,45 +1821,6 @@ func TestCompendiumSearchEmptyQuery(t *testing.T) {
 	}
 }
 
-func TestAdminCompendiumAllTypesCRUD(t *testing.T) {
-	tc := newTestClient()
-	setupAdmin(t, tc)
-
-	// Test all 6 types
-	tests := []struct {
-		typ  string
-		body map[string]any
-		upd  map[string]any
-	}{
-		{"races", map[string]any{"name": "Custom Race", "description": "T", "speed": 30, "size": "M"}, map[string]any{"name": "Custom Race v2", "description": "U", "speed": 35, "size": "L"}},
-		{"classes", map[string]any{"name": "Custom Class", "description": "T", "hit_die": 8, "primary_ability": "str"}, map[string]any{"name": "Custom Class v2", "description": "U", "hit_die": 10, "primary_ability": "dex"}},
-		{"spells", map[string]any{"name": "Custom Spell", "level": 1, "school": "Evocation"}, map[string]any{"name": "Custom Spell v2", "level": 2, "school": "Abjuration"}},
-		{"feats", map[string]any{"name": "Custom Feat", "description": "T"}, map[string]any{"name": "Custom Feat v2", "description": "U"}},
-		{"backgrounds", map[string]any{"name": "Custom BG", "description": "T"}, map[string]any{"name": "Custom BG v2", "description": "U"}},
-		{"equipment", map[string]any{"name": "Custom Item", "category": "Gear", "cost": "{}", "weight": 1.0}, map[string]any{"name": "Custom Item v2", "category": "Weapon", "cost": "{}", "weight": 2.0}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.typ, func(t *testing.T) {
-			resp := tc.post(fmt.Sprintf("/api/admin/compendium/%s", tt.typ), tt.body)
-			if resp.Code != 201 {
-				t.Fatalf("create %s failed: %d - %s", tt.typ, resp.Code, resp.Body.String())
-			}
-			var entry map[string]any
-			readJSON(resp, &entry)
-			eid := int(entry["id"].(float64))
-
-			resp = tc.put(fmt.Sprintf("/api/admin/compendium/%s/%d", tt.typ, eid), tt.upd)
-			if resp.Code != 200 {
-				t.Fatalf("update %s failed: %d", tt.typ, resp.Code)
-			}
-
-			resp = tc.del(fmt.Sprintf("/api/admin/compendium/%s/%d", tt.typ, eid), nil)
-			if resp.Code != 200 {
-				t.Fatalf("delete %s failed: %d", tt.typ, resp.Code)
-			}
-		})
-	}
-}
 
 func TestCampaignAuthorization(t *testing.T) {
 	tc := newTestClient()
@@ -3815,34 +3744,6 @@ func TestCharacterComparison(t *testing.T) {
 	t.Logf("Comparison: %s (INT %v) vs %s (STR %v)", c1["name"], c1["int"], c2["name"], c2["str"])
 }
 
-func TestCompendiumSystemFilter(t *testing.T) {
-	tc := newTestClient()
-	setupAdmin(t, tc)
-
-	// Create a custom compendium entry with a different system
-	resp := tc.post("/api/admin/compendium/races", map[string]any{
-		"name": "Test Race PF2e", "description": "A PF2e test race",
-		"speed": 25, "size": "Medium", "system": "pf2e", "source": "custom",
-	})
-	if resp.Code != 201 {
-		t.Fatalf("create pf2e race failed: %d", resp.Code)
-	}
-
-	// Verify it appears in the listing
-	resp = tc.get("/api/compendium/races", nil)
-	var races []map[string]any
-	readJSON(resp, &races)
-	found := false
-	for _, r := range races {
-		if r["system"] == "pf2e" {
-			found = true
-			break
-		}
-	}
-	if !found {
-		t.Error("expected pf2e race in listing, but none found")
-	}
-}
 
 func TestFeatUpdate(t *testing.T) {
 	tc := newTestClient()

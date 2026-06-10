@@ -40,8 +40,6 @@
   <li class="nav-item"><button class="nav-link" id="tabTelemetryBtn" onclick="showAdminTab('telemetry')"><i class="fa-solid fa-microchip me-1" aria-hidden="true"></i>Telemetry</button></li>
   <li class="nav-item"><button class="nav-link" id="tabImportBtn" onclick="showAdminTab('import')"><i class="fa-solid fa-upload me-1" aria-hidden="true"></i>Import</button></li>
   <li class="nav-item"><button class="nav-link" id="tabLogsBtn" onclick="showAdminTab('logs')"><i class="fa-solid fa-list me-1" aria-hidden="true"></i>Logs</button></li>
-  <li class="nav-item"><button class="nav-link" id="tabSchemasBtn" onclick="showAdminTab('schemas')" style="opacity:0.5"><i class="fa-solid fa-sitemap me-1" aria-hidden="true"></i>Schemas <sup style="font-size:0.6rem;opacity:0.7">deprecated</sup></button></li>
-  <li class="nav-item"><button class="nav-link" id="tabCompendiumBtn" onclick="showAdminTab('compendium')" style="opacity:0.5"><i class="fa-solid fa-book me-1" aria-hidden="true"></i>Legacy Comp <sup style="font-size:0.6rem;opacity:0.7">deprecated</sup></button></li>
 </ul>
 
 <div id="adminUsers">
@@ -57,32 +55,6 @@
           <tbody></tbody>
         </table>
       </div>
-    </div>
-  </div>
-</div>
-
-<div id="adminCompendium" style="display:none">
-  <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <span><i class="fa-solid fa-book me-2" aria-hidden="true"></i>Compendium Management</span>
-      <button class="btn btn-primary btn-sm" onclick="showAddCompEntry()"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i>Add Entry</button>
-    </div>
-    <div class="card-body">
-      <div class="row g-3 mb-3">
-        <div class="col-auto">
-          <label class="form-label">Type</label>
-          <select id="compType" class="form-select" onchange="loadCompEntries()">
-            <option value="races">Races</option>
-            <option value="classes">Classes</option>
-            <option value="spells">Spells</option>
-            <option value="feats">Feats</option>
-            <option value="backgrounds">Backgrounds</option>
-            <option value="equipment">Equipment</option>
-            <option value="monsters">Monsters</option>
-          </select>
-        </div>
-      </div>
-      <div id="compEntries"><p class="text-muted">Select a type to view entries</p></div>
     </div>
   </div>
 </div>
@@ -188,27 +160,6 @@
         <div id="globalSearchResultGroups"></div>
         <div id="globalSearchEmpty" class="text-muted text-center py-3" style="display:none">No results found</div>
       </div>
-    </div>
-  </div>
-</div>
-
-<div id="adminSchemas" style="display:none">
-  <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-      <span><i class="fa-solid fa-sitemap me-2" aria-hidden="true"></i>Compendium Schemas</span>
-      <button class="btn btn-primary btn-sm" onclick="showAddSchema()"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i>New Schema</button>
-    </div>
-    <div class="card-body p-0">
-      <div class="table-responsive">
-        <table class="table table-hover mb-0" id="schemaTable">
-          <thead><tr><th>Icon</th><th>Name</th><th>Slug</th><th>Description</th><th>Fields</th><th>Entries</th><th>Built-in</th><th style="width:180px">Actions</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-    <div class="card-footer">
-      <button class="btn btn-outline-secondary btn-sm" onclick="loadSchemaEntries()"><i class="fa-solid fa-list me-1"></i>Browse Entries by Schema</button>
-      <span id="schemaEntryBrowser" class="ms-3"></span>
     </div>
   </div>
 </div>

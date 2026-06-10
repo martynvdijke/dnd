@@ -113,55 +113,6 @@ func TestAdminBackupSettings(t *testing.T) {
 	})
 }
 
-func TestAdminCompendiumLegacyCRUD(t *testing.T) {
-	testutil.NewDB(t)
-	defer testutil.CloseDB(t)
-	testutil.SeedUser(t, 1, "admin", "admin")
-
-	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
-		auth.POST("/admin/compendium/:type", AdminCreateCompendiumEntry)
-		auth.PUT("/admin/compendium/:type/:id", AdminUpdateCompendiumEntry)
-		auth.DELETE("/admin/compendium/:type/:id", AdminDeleteCompendiumEntry)
-	})
-
-	t.Run("create compendium race returns 201", func(t *testing.T) {
-		w := testutil.PostJSON(t, r, "/api/admin/compendium/races", map[string]any{
-			"name": "Test Race Legacy", "description": "A test",
-			"speed": 30, "size": "Medium", "system": "dnd5e", "source": "srd",
-		})
-		testutil.AssertStatus(t, w, 201)
-	})
-
-	t.Run("update compendium entry returns 200", func(t *testing.T) {
-		w := testutil.PutJSON(t, r, "/api/admin/compendium/races/1", map[string]any{
-			"name": "Updated Race Legacy",
-		})
-		testutil.AssertStatus(t, w, 200)
-	})
-
-	t.Run("delete compendium entry returns 200", func(t *testing.T) {
-		w := testutil.Delete(t, r, "/api/admin/compendium/races/1")
-		testutil.AssertStatus(t, w, 200)
-	})
-
-	t.Run("create compendium spell returns 201", func(t *testing.T) {
-		w := testutil.PostJSON(t, r, "/api/admin/compendium/spells", map[string]any{
-			"name": "Test Spell", "description": "A test spell",
-			"level": 1, "school": "Evocation", "system": "dnd5e", "source": "srd",
-		})
-		testutil.AssertStatus(t, w, 201)
-	})
-
-	t.Run("create with invalid type returns 400", func(t *testing.T) {
-		w := testutil.PostJSON(t, r, "/api/admin/compendium/invalid", map[string]any{
-			"name": "Bad",
-		})
-		if w.Code != 400 && w.Code != 404 {
-			t.Fatalf("expected 400 or 404 for invalid type, got %d", w.Code)
-		}
-	})
-}
-
 func TestAdminBackupOps(t *testing.T) {
 	testutil.NewDB(t)
 	defer testutil.CloseDB(t)
