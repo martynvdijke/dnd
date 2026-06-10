@@ -1,3 +1,11 @@
+## [2.14.3](https://github.com/martynvdijke/dnd/compare/v2.14.2...v2.14.3) (2026-06-10)
+
+
+### Bug Fixes
+
+* update tests to use new stepper selectors after sheet revamp ([d4882c3](https://github.com/martynvdijke/dnd/commit/d4882c349ec3f3177b825c0da07893d7b23abf3f))
+* update tests to use unified compendium API and fix admin panel navigation ([e497416](https://github.com/martynvdijke/dnd/commit/e497416390037afb01f7ed691997ac5c22c19d28))
+
 ## [2.14.2](https://github.com/martynvdijke/dnd/compare/v2.14.1...v2.14.2) (2026-06-10)
 
 
