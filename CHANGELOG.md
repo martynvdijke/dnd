@@ -1,3 +1,11 @@
+## [2.14.1](https://github.com/martynvdijke/dnd/compare/v2.14.0...v2.14.1) (2026-06-10)
+
+
+### Bug Fixes
+
+* flaky 3D dice test and compendium bulk selection on mobile ([e589d93](https://github.com/martynvdijke/dnd/commit/e589d93ffdd228159b0aecddde35977a4b360b88))
+* reduce CI workers, fix combat tracker mobile, fix wiki mobile tests ([b32ad80](https://github.com/martynvdijke/dnd/commit/b32ad80b50ef4bf1bb6be011ea8636d1d64bf9f7))
+
 # [2.14.0](https://github.com/martynvdijke/dnd/compare/v2.13.0...v2.14.0) (2026-06-09)
 
 
