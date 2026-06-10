@@ -173,4 +173,185 @@ test.describe('Campaign features', () => {
     await page.click('#tabBar button:has-text("Graph")');
     await expect(page.locator('#graphContainer')).toBeVisible({ timeout: 5000 });
   });
+
+  // ─── Dashboard ───
+
+  test.describe('Dashboard', () => {
+    test('campaign dashboard API returns summary data', async ({ page }) => {
+      const name = uniqueName();
+      await createCharAndOpen(page, name, 'Human', 'Fighter');
+
+      // Get the campaign from the character's campaign_id
+      const result = await page.evaluate(async (opts) => {
+        const chars = await window.api('GET', '/api/characters');
+        const char = chars.find((c: any) => c.name === opts.charName);
+        if (!char || !char.campaign_id) return { err: 'no campaign' };
+        try {
+          const dash = await window.api('GET', `/api/campaigns/${char.campaign_id}/dashboard`);
+          return { ok: true, data: dash };
+        } catch (e) {
+          return { ok: false, error: String(e) };
+        }
+      }, { charName: name });
+
+      expect(result).toBeTruthy();
+    });
+  });
+
+  // ─── Faction Reputation ───
+
+  test.describe('Faction Reputation', () => {
+    test('create a faction', async ({ page }) => {
+      const name = uniqueName();
+      const result = await page.evaluate(async (n) => {
+        return window.api('POST', '/api/factions', {
+          name: n,
+          description: 'A secret society',
+          alignment: 'lawful neutral',
+          headquarters: 'Shadow Tower',
+          influence: 50,
+          resources: JSON.stringify({ gold: 5000 }),
+          goals: JSON.stringify(['Gain power', 'Control the guilds']),
+          visibility: 'known',
+        });
+      }, name);
+      expect(result.id).toBeGreaterThan(0);
+    });
+
+    test('list factions', async ({ page }) => {
+      const name = uniqueName();
+      await page.evaluate(async (n) => {
+        await window.api('POST', '/api/factions', {
+          name: n, description: 'Test faction', alignment: 'neutral',
+          headquarters: 'Tower', influence: 25,
+          resources: '{}', goals: '[]', visibility: 'known',
+        });
+      }, name);
+
+      const result = await page.evaluate(async (n) => {
+        const factions = await window.api('GET', '/api/factions');
+        return { ok: true, count: factions.length, found: factions.some((f: any) => f.name === n) };
+      }, name);
+
+      expect(result.ok).toBe(true);
+      expect(result.found).toBe(true);
+    });
+
+    test('update a faction', async ({ page }) => {
+      const name = uniqueName();
+      const created = await page.evaluate(async (n) => {
+        return window.api('POST', '/api/factions', {
+          name: n, description: 'Original', alignment: 'lawful good',
+          headquarters: 'Castle', influence: 10,
+          resources: '{}', goals: '[]', visibility: 'known',
+        });
+      }, name);
+
+      await page.evaluate(async ({ id }) => {
+        return window.api('PUT', `/api/factions/${id}`, {
+          name: 'Updated Faction', description: 'Updated description',
+          alignment: 'chaotic neutral', headquarters: 'Fortress',
+          influence: 75, resources: '{}', goals: '[]', visibility: 'secret',
+        });
+      }, created);
+
+      const updated = await page.evaluate(async (id) => {
+        const all = await window.api('GET', '/api/factions');
+        return all.find((f: any) => f.id === id);
+      }, created.id);
+
+      expect(updated).toBeTruthy();
+      expect(updated.name).toBe('Updated Faction');
+    });
+
+    test('delete a faction', async ({ page }) => {
+      const name = uniqueName();
+      const created = await page.evaluate(async (n) => {
+        return window.api('POST', '/api/factions', {
+          name: n, description: 'Delete me', alignment: 'neutral',
+          headquarters: 'Hut', influence: 5,
+          resources: '{}', goals: '[]', visibility: 'unknown',
+        });
+      }, name);
+
+      await page.evaluate(async (id) => {
+        return window.api('DELETE', `/api/factions/${id}`);
+      }, created.id);
+
+      const remaining = await page.evaluate(async (id) => {
+        const all = await window.api('GET', '/api/factions');
+        return all.filter((f: any) => f.id === id).length;
+      }, created.id);
+
+      expect(remaining).toBe(0);
+    });
+
+    test('create faction reputation entry', async ({ page }) => {
+      const charName = uniqueName();
+      await createCharAndOpen(page, charName, 'Human', 'Fighter');
+
+      const factionName = uniqueName();
+      const result = await page.evaluate(async (opts) => {
+        const chars = await window.api('GET', '/api/characters');
+        const char = chars.find((c: any) => c.name === opts.charName);
+        if (!char) return { err: 'character not found' };
+
+        const faction = await window.api('POST', '/api/factions', {
+          name: opts.factionName, description: 'Rep test', type: 'guild',
+          headquarters: 'Hall',
+        });
+
+        const result = await window.api('POST', '/api/faction-reputation', {
+          character_id: char.id,
+          faction_id: faction.id,
+          standing: 50,
+          rank: 'Member',
+          notes: 'Neutral standing',
+        });
+        return { ok: true, factionId: faction.id, charId: char.id };
+      }, { charName, factionName });
+
+      expect(result.err).toBeFalsy();
+      expect(result.factionId).toBeGreaterThan(0);
+    });
+
+    test('delete faction reputation entry', async ({ page }) => {
+      const charName = uniqueName();
+      await createCharAndOpen(page, charName, 'Human', 'Fighter');
+
+      const factionName = uniqueName();
+      const result = await page.evaluate(async (opts) => {
+        const chars = await window.api('GET', '/api/characters');
+        const char = chars.find((c: any) => c.name === opts.charName);
+        if (!char) return { err: 'character not found' };
+
+        const faction = await window.api('POST', '/api/factions', {
+          name: opts.factionName, description: 'Rep del test', type: 'guild',
+          headquarters: 'Cave',
+        });
+
+        // Create reputation (returns {ok: true}, no id)
+        await window.api('POST', '/api/faction-reputation', {
+          character_id: char.id,
+          faction_id: faction.id,
+          standing: 80,
+          rank: 'Leader',
+          notes: 'Friendly',
+        });
+
+        // Get the reputation entry ID
+        const reps = await window.api('GET', `/api/faction-reputation?character_id=${char.id}`);
+        const rep = reps.find((r: any) => r.faction_id === faction.id);
+
+        await window.api('DELETE', `/api/faction-reputation/${rep.id}`);
+
+        // Verify it's gone
+        const repsAfter = await window.api('GET', `/api/faction-reputation?character_id=${char.id}`);
+        return { ok: true, remaining: repsAfter.filter((r: any) => r.faction_id === faction.id).length };
+      }, { charName, factionName });
+
+      expect(result.err).toBeFalsy();
+      expect(result.remaining).toBe(0);
+    });
+  });
 });

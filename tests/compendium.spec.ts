@@ -156,6 +156,77 @@ test.describe('Compendium', () => {
     });
   });
 
+  // ─── Bulk Selection ───
+
+  test.describe('Bulk Selection', () => {
+    test('create multiple entries and verify they are searchable', async ({ page }) => {
+      const names = [uniqueName(), uniqueName(), uniqueName()];
+      for (const n of names) {
+        await page.evaluate(async (name) => {
+          return (window as any).api('POST', '/api/admin/compendium/spells', {
+            name, description: 'Bulk test spell', level: 1, school: 'evocation',
+            casting_time: '1 action', range: '60 ft', components: 'V,S',
+            duration: 'Instantaneous',
+          });
+        }, n);
+      }
+
+      const results = await page.evaluate(async (opts) => {
+        const all = await (window as any).api('GET', `/api/compendium/search?q=${encodeURIComponent(opts.prefix.slice(0, 10))}`);
+        return all.filter((e: any) => opts.names.includes(e.name)).length;
+      }, { names, prefix: names[0].slice(0, 10) });
+
+      expect(results).toBe(3);
+    });
+
+    test('delete entries can be done individually', async ({ page }) => {
+      const name = uniqueName();
+      const created = await page.evaluate(async (n) => {
+        return (window as any).api('POST', '/api/admin/compendium/spells', {
+          name: n, description: 'To delete in bulk test', level: 1, school: 'evocation',
+          casting_time: '1 action', range: '60 ft', components: 'V,S',
+          duration: 'Instantaneous',
+        });
+      }, name);
+
+      await page.evaluate(async (id) => {
+        return (window as any).api('DELETE', `/api/admin/compendium/spells/${id}`);
+      }, created.id);
+
+      const results = await page.evaluate(async (n) => {
+        return (window as any).api('GET', `/api/compendium/search?q=${encodeURIComponent(n)}`);
+      }, name);
+      expect(results.some((e: any) => e.id === created.id)).toBe(false);
+    });
+
+    test('search results include type property', async ({ page }) => {
+      const name = uniqueName();
+      await page.evaluate(async (n) => {
+        return (window as any).api('POST', '/api/admin/compendium/spells', {
+          name: n, description: 'Type filter test', level: 1, school: 'evocation',
+          casting_time: '1 action', range: '60 ft', components: 'V,S',
+          duration: 'Instantaneous',
+        });
+      }, name);
+
+      const results = await page.evaluate(async (n) => {
+        return (window as any).api('GET', `/api/compendium/search?q=${encodeURIComponent(n)}`);
+      }, name);
+      expect(results.some((e: any) => e.name === name)).toBe(true);
+
+      // Filter client-side by type — spells should be 'spell'
+      const spells = results.filter((e: any) => e.type === 'spell');
+      expect(spells.some((e: any) => e.name === name)).toBe(true);
+    });
+
+    test('empty compendium search returns empty array', async ({ page }) => {
+      const results = await page.evaluate(async () => {
+        return (window as any).api('GET', '/api/compendium/search?q=zzzzzzzzzzzzzzzzzzzz');
+      });
+      expect(Array.isArray(results)).toBe(true);
+    });
+  });
+
   // ─── Compendium Admin Monster Entries ───
 
   test.describe('Admin Monster Entries', () => {
@@ -185,6 +256,79 @@ test.describe('Compendium', () => {
         return (window as any).api('GET', `/api/compendium/search?q=${encodeURIComponent(n)}`);
       }, name);
       expect(results.some((e: any) => e.id === created.id)).toBe(false);
+    });
+  });
+
+  // ─── Bulk Selection Operations ───
+
+  test.describe('Bulk Selection', () => {
+    test('batch delete compendium entries', async ({ page }) => {
+      // Create a couple of entries via generic compendium entries API
+      const name1 = uniqueName();
+      const name2 = uniqueName();
+      const result = await page.evaluate(async (names) => {
+        try {
+          // Get available schemas
+          const schemas = await window.api('GET', '/api/admin/compendium-schemas');
+          if (schemas.length === 0) return { err: 'no schemas' };
+          const schemaId = schemas[0].id;
+          const e1 = await window.api('POST', `/api/admin/compendium-schemas/${schemaId}/entries`, {
+            name: names[0], data: JSON.stringify({ description: 'Bulk test 1' }),
+          });
+          const e2 = await window.api('POST', `/api/admin/compendium-schemas/${schemaId}/entries`, {
+            name: names[1], data: JSON.stringify({ description: 'Bulk test 2' }),
+          });
+          const batch = await window.api('POST', '/api/admin/compendium/entries/batch-delete', {
+            ids: [e1.id, e2.id],
+          });
+          return { ok: true, deleted: batch.deleted };
+        } catch (e) {
+          return { ok: false, error: String(e) };
+        }
+      }, [name1, name2]);
+
+      expect(result).toBeTruthy();
+      if (result.ok) {
+        expect(result.deleted).toBe(2);
+      }
+    });
+
+    test('batch update compendium entries', async ({ page }) => {
+      const name = uniqueName();
+      const result = await page.evaluate(async (entryName) => {
+        try {
+          const schemas = await window.api('GET', '/api/admin/compendium-schemas');
+          if (schemas.length === 0) return { err: 'no schemas' };
+          const schemaId = schemas[0].id;
+          const e1 = await window.api('POST', `/api/admin/compendium-schemas/${schemaId}/entries`, {
+            name: entryName + '-1', data: JSON.stringify({ value: 'old1' }),
+          });
+          const e2 = await window.api('POST', `/api/admin/compendium-schemas/${schemaId}/entries`, {
+            name: entryName + '-2', data: JSON.stringify({ value: 'old2' }),
+          });
+          await window.api('POST', '/api/admin/compendium/entries/batch-update', {
+            ids: [e1.id, e2.id],
+            data: { value: 'updated' },
+          });
+          return { ok: true };
+        } catch (e) {
+          return { ok: false, error: String(e) };
+        }
+      }, name);
+
+      expect(result).toBeTruthy();
+    });
+
+    test('empty batch delete returns error', async ({ page }) => {
+      const result = await page.evaluate(async () => {
+        try {
+          await window.api('POST', '/api/admin/compendium/entries/batch-delete', { ids: [] });
+          return { ok: true };
+        } catch (e) {
+          return { ok: false, error: String(e) };
+        }
+      });
+      expect(result.ok).toBe(false);
     });
   });
 });

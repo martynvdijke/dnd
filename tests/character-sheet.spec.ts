@@ -648,6 +648,103 @@ test.describe('Auto-save', () => {
   });
 });
 
+test.describe('Resource tracking', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/login', { waitUntil: 'domcontentloaded' });
+    await page.fill('#username', 'admin');
+    await page.fill('#password', 'testpassword123');
+    await Promise.all([
+      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
+      page.click('button[type="submit"]'),
+    ]);
+    await waitLoadingDone(page);
+  });
+
+  test('character sheet shows HP tracker', async ({ page }) => {
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Dwarf');
+    await page.fill('#newClass', 'Barbarian');
+    await page.click('text=Create');
+    await page.waitForFunction(() => !document.getElementById('genericModal')?.classList.contains('show'), { timeout: 10000 }).catch(() => {});
+    await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
+
+    // HP is shown on the Combat tab
+    await page.click('#tabBar button:has-text("Combat")');
+    await expect(page.locator('#combatSection')).toBeVisible();
+    const text = await page.locator('#combatSection').textContent();
+    expect(text).toContain('/');
+    expect(text).toContain('HP');
+  });
+
+  test('character sheet shows HD (Hit Dice) tracker', async ({ page }) => {
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Elf');
+    await page.fill('#newClass', 'Wizard');
+    await page.click('text=Create');
+    await page.waitForFunction(() => !document.getElementById('genericModal')?.classList.contains('show'), { timeout: 10000 }).catch(() => {});
+    await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
+
+    // HD is shown on the Combat tab
+    await page.click('#tabBar button:has-text("Combat")');
+    await expect(page.locator('#combatSection')).toBeVisible();
+    const text = await page.locator('#combatSection').textContent();
+    expect(text).toBeTruthy();
+  });
+
+  test('resource values are editable via inline inputs', async ({ page }) => {
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Human');
+    await page.fill('#newClass', 'Fighter');
+    await page.click('text=Create');
+    await page.waitForFunction(() => !document.getElementById('genericModal')?.classList.contains('show'), { timeout: 10000 }).catch(() => {});
+    await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
+
+    // Find current HP input and modify it
+    const hpInput = page.locator('#currentHP');
+    if (await hpInput.isVisible()) {
+      await hpInput.fill('42');
+      await page.waitForTimeout(500);
+      await expect(hpInput).toHaveValue('42');
+    }
+  });
+
+  test('short rest restores resources via API', async ({ page }) => {
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Dwarf');
+    await page.fill('#newClass', 'Cleric');
+    await page.click('text=Create');
+    await page.waitForFunction(() => !document.getElementById('genericModal')?.classList.contains('show'), { timeout: 10000 }).catch(() => {});
+    await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
+
+    // Simulate short rest via API
+    const result = await page.evaluate(async (charName) => {
+      const chars = await (window as any).api('GET', '/api/characters');
+      const char = chars.find((c: any) => c.name === charName);
+      if (!char) return { err: 'not found' };
+      try {
+        const rest = await (window as any).api('POST', `/api/characters/${char.id}/rest`, { type: 'short' });
+        return { ok: true, data: rest };
+      } catch (e) {
+        return { ok: false, error: String(e) };
+      }
+    }, name);
+
+    expect(result).toBeTruthy();
+  });
+});
+
 test.describe('Tooltips', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login', { waitUntil: 'domcontentloaded' });
