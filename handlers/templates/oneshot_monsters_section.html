@@ -7,6 +7,7 @@
         <strong>{{.Name}}</strong>
         <span class="badge bg-danger ms-1">CR {{.CR}}</span>
         <span class="text-muted small ms-2">AC {{.AC}} · HP {{.HP}}</span>
+        {{if .CompendiumMonsterID}}<span class="badge bg-info ms-1"><i class="fa-solid fa-book me-1"></i>Compendium</span>{{end}}
         <div class="small text-muted mt-1">
           STR {{.Str}} DEX {{.Dex}} CON {{.Con}} INT {{.Int}} WIS {{.Wis}} CHA {{.Cha}}
         </div>
@@ -27,7 +28,12 @@
         {{end}}
       </div>
       <div class="d-flex gap-1 flex-shrink-0">
+        {{if .CompendiumMonsterID}}
+        <button class="btn btn-sm btn-outline-info" hx-get="/compendium/card/monster/{{.CompendiumMonsterID}}" hx-target="#cardContainer" hx-swap="beforeend"><i class="fa-solid fa-eye"></i></button>
+        <button class="btn btn-sm btn-outline-danger" hx-delete="/api/oneshots/monsters/{{.ID}}/link" hx-target="closest .list-group-item" hx-swap="outerHTML" hx-confirm="Remove this linked monster?"><i class="fa-solid fa-unlink"></i></button>
+        {{else}}
         <button class="btn btn-sm btn-outline-danger" onclick="deleteOneShotMonster({{.ID}})"><i class="fa-solid fa-trash"></i></button>
+        {{end}}
       </div>
     </div>
   </div>

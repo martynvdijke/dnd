@@ -660,3 +660,139 @@ func HtmxMonsterLibrarySection(c *gin.Context) {
 	}
 	renderTemplate(c, "monster_library_section.html", htmxMonsterLibraryData{Monsters: monsters})
 }
+
+// ─── Compendium Spell Picker (HTMX) ───
+
+type htmxCompendiumSpellPickerData struct {
+	CharacterID int64
+	Query       string
+	Spells      []models.CompendiumSpell
+}
+
+func HtmxCompendiumSpellPicker(c *gin.Context) {
+	charID, _ := strconv.ParseInt(c.Query("character_id"), 10, 64)
+	q := strings.TrimSpace(c.Query("q"))
+
+	data := htmxCompendiumSpellPickerData{
+		CharacterID: charID,
+		Query:       q,
+	}
+
+	if q != "" {
+		rows, err := db.DB.Query(`SELECT id, name, level, school, casting_time, "range", components, duration,
+			description, higher_levels, classes, source_page,
+			COALESCE(system,''), COALESCE(source,''), COALESCE(publisher,'')
+			FROM compendium_spells WHERE name LIKE ? ORDER BY level, name LIMIT 20`, "%"+q+"%")
+		if err == nil && rows != nil {
+			defer rows.Close()
+			for rows.Next() {
+				var s models.CompendiumSpell
+				rows.Scan(&s.ID, &s.Name, &s.Level, &s.School, &s.CastingTime, &s.Range, &s.Components, &s.Duration,
+					&s.Description, &s.HigherLevels, &s.Classes, &s.SourcePage,
+					&s.System, &s.Source, &s.Publisher)
+				data.Spells = append(data.Spells, s)
+			}
+		}
+	}
+
+	renderTemplate(c, "compendium_spell_picker", data)
+}
+
+// ─── Compendium Equipment Picker (HTMX) ───
+
+type htmxCompendiumEquipmentPickerData struct {
+	CharacterID int64
+	Query       string
+	Items       []models.CompendiumEquipment
+}
+
+func HtmxCompendiumEquipmentPicker(c *gin.Context) {
+	charID, _ := strconv.ParseInt(c.Query("character_id"), 10, 64)
+	q := strings.TrimSpace(c.Query("q"))
+
+	data := htmxCompendiumEquipmentPickerData{
+		CharacterID: charID,
+		Query:       q,
+	}
+
+	if q != "" {
+		rows, err := db.DB.Query(`SELECT id, name, category, cost, weight, description, source_page,
+			COALESCE(system,''), COALESCE(source,''), COALESCE(item_type,''), COALESCE(item_rarity,''), COALESCE(publisher,'')
+			FROM compendium_equipment WHERE name LIKE ? ORDER BY name LIMIT 20`, "%"+q+"%")
+		if err == nil && rows != nil {
+			defer rows.Close()
+			for rows.Next() {
+				var e models.CompendiumEquipment
+				rows.Scan(&e.ID, &e.Name, &e.Category, &e.Cost, &e.Weight, &e.Description, &e.SourcePage,
+					&e.System, &e.Source, &e.ItemType, &e.ItemRarity, &e.Publisher)
+				data.Items = append(data.Items, e)
+			}
+		}
+	}
+
+	renderTemplate(c, "compendium_equipment_picker", data)
+}
+
+// ─── Compendium Card (HTMX partial) ───
+
+func HtmxCompendiumCard(c *gin.Context) {
+	entityType := c.Param("type")
+	entityIDStr := c.Param("id")
+	entityID, err := strconv.ParseInt(entityIDStr, 10, 64)
+	if err != nil {
+		renderTemplate(c, "compendium_card_not_found", nil)
+		return
+	}
+
+	switch entityType {
+	case "spell":
+		var s models.CompendiumSpell
+		err := db.DB.QueryRow(`SELECT id, name, level, school, casting_time, "range", components, duration,
+			description, higher_levels, classes, source_page,
+			COALESCE(system,''), COALESCE(source,''), COALESCE(publisher,'')
+			FROM compendium_spells WHERE id=?`, entityID).Scan(
+			&s.ID, &s.Name, &s.Level, &s.School, &s.CastingTime, &s.Range, &s.Components, &s.Duration,
+			&s.Description, &s.HigherLevels, &s.Classes, &s.SourcePage,
+			&s.System, &s.Source, &s.Publisher)
+		if err != nil {
+			renderTemplate(c, "compendium_card_not_found", nil)
+			return
+		}
+		renderTemplate(c, "compendium_spell_card", s)
+
+	case "equipment":
+		var e models.CompendiumEquipment
+		err := db.DB.QueryRow(`SELECT id, name, category, cost, weight, description, source_page,
+			COALESCE(system,''), COALESCE(source,''), COALESCE(item_type,''), COALESCE(item_rarity,''), COALESCE(publisher,'')
+			FROM compendium_equipment WHERE id=?`, entityID).Scan(
+			&e.ID, &e.Name, &e.Category, &e.Cost, &e.Weight, &e.Description, &e.SourcePage,
+			&e.System, &e.Source, &e.ItemType, &e.ItemRarity, &e.Publisher)
+		if err != nil {
+			renderTemplate(c, "compendium_card_not_found", nil)
+			return
+		}
+		renderTemplate(c, "compendium_equipment_card", e)
+
+	case "monster":
+		var m models.CompendiumMonster
+		var isFull int
+		err := db.DB.QueryRow(`SELECT id, name, type, size, ac, hp, str, dex, con, int_, wis, cha, cr,
+			source, is_full, saves, skills, damage_vulnerabilities, damage_resistances, damage_immunities,
+			condition_immunities, senses, languages, special_abilities, actions, legendary_actions, description,
+			COALESCE(alignment,''), COALESCE(expansion,''), COALESCE(publisher,'')
+			FROM compendium_monsters WHERE id=?`, entityID).Scan(
+			&m.ID, &m.Name, &m.Type, &m.Size, &m.AC, &m.HP, &m.Str, &m.Dex, &m.Con, &m.Int, &m.Wis, &m.Cha, &m.CR,
+			&m.Source, &isFull, &m.Saves, &m.Skills, &m.DamageVulnerabilities, &m.DamageResistances, &m.DamageImmunities,
+			&m.ConditionImmunities, &m.Senses, &m.Languages, &m.SpecialAbilities, &m.Actions, &m.LegendaryActions, &m.Description,
+			&m.Alignment, &m.Expansion, &m.Publisher)
+		if err != nil {
+			renderTemplate(c, "compendium_card_not_found", nil)
+			return
+		}
+		m.IsFull = isFull == 1
+		renderTemplate(c, "compendium_monster_card", m)
+
+	default:
+		renderTemplate(c, "compendium_card_not_found", nil)
+	}
+}

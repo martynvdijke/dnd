@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 	"testing"
 	"testing/quick"
@@ -511,4 +512,240 @@ func FuzzCharacterImport(f *testing.F) {
 		})
 		_ = w.Code
 	})
+}
+
+func TestLinkCompendiumSpell(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCharacter(t, 1, 1, "Test Hero", "Elf", "Wizard")
+
+	// Use first seeded compendium spell
+	var spellID int64
+	var spellName string
+	db.DB.QueryRow("SELECT id, name FROM compendium_spells ORDER BY id LIMIT 1").Scan(&spellID, &spellName)
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.POST("/characters/:id/spells/link", LinkCompendiumSpell)
+	})
+
+	t.Run("links spell successfully", func(t *testing.T) {
+		w := testutil.PostForm(t, r, "/api/characters/1/spells/link", map[string]string{
+			"compendium_spell_id": fmt.Sprintf("%d", spellID),
+		})
+		testutil.AssertStatus(t, w, 201)
+		var data map[string]any
+		testutil.ParseJSON(t, w, &data)
+		testutil.AssertField(t, data, "status", "linked")
+		if testutil.CountRows(t, "spells") != 1 {
+			t.Fatal("expected 1 spell row")
+		}
+	})
+
+	t.Run("missing compendium_spell_id returns 400", func(t *testing.T) {
+		w := testutil.PostForm(t, r, "/api/characters/1/spells/link", map[string]string{})
+		testutil.AssertStatus(t, w, 400)
+	})
+}
+
+func TestLinkCompendiumEquipment(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCharacter(t, 1, 1, "Test Hero", "Elf", "Wizard")
+	var equipID int64
+	db.DB.QueryRow("SELECT id FROM compendium_equipment ORDER BY id LIMIT 1").Scan(&equipID)
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.POST("/characters/:id/inventory/link", LinkCompendiumEquipment)
+	})
+
+	t.Run("links equipment successfully", func(t *testing.T) {
+		w := testutil.PostForm(t, r, "/api/characters/1/inventory/link", map[string]string{
+			"compendium_equipment_id": fmt.Sprintf("%d", equipID),
+		})
+		testutil.AssertStatus(t, w, 201)
+		var data map[string]any
+		testutil.ParseJSON(t, w, &data)
+		testutil.AssertField(t, data, "status", "linked")
+		if testutil.CountRows(t, "inventory") != 1 {
+			t.Fatal("expected 1 inventory row")
+		}
+	})
+
+	t.Run("missing compendium_equipment_id returns 400", func(t *testing.T) {
+		w := testutil.PostForm(t, r, "/api/characters/1/inventory/link", map[string]string{})
+		testutil.AssertStatus(t, w, 400)
+	})
+}
+
+func TestUnlinkCompendiumSpell(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCharacter(t, 1, 1, "Test Hero", "Elf", "Wizard")
+
+	var spellID int64
+	var spellName string
+	db.DB.QueryRow("SELECT id, name FROM compendium_spells ORDER BY id LIMIT 1").Scan(&spellID, &spellName)
+
+	_, err := db.DB.Exec(`INSERT INTO spells(id, character_id, name, level, school, compendium_spell_id)
+		VALUES(1, 1, ?, 1, 'Evocation', ?)`, spellName, spellID)
+	if err != nil {
+		t.Fatalf("seed linked spell: %v", err)
+	}
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.DELETE("/characters/:id/spells/:spellId/link", UnlinkCompendiumSpell)
+	})
+
+	w := testutil.Delete(t, r, "/api/characters/1/spells/1/link")
+	testutil.AssertStatus(t, w, 200)
+	var data map[string]any
+	testutil.ParseJSON(t, w, &data)
+	testutil.AssertField(t, data, "status", "unlinked")
+	if testutil.CountRows(t, "spells") != 0 {
+		t.Fatal("expected 0 spell rows after unlink")
+	}
+}
+
+func TestUnlinkCompendiumEquipment(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCharacter(t, 1, 1, "Test Hero", "Elf", "Wizard")
+	var eID int64
+	var eName string
+	db.DB.QueryRow("SELECT id, name FROM compendium_equipment ORDER BY id LIMIT 1").Scan(&eID, &eName)
+
+	_, err := db.DB.Exec(`INSERT INTO inventory(id, character_id, name, quantity, weight, compendium_equipment_id)
+		VALUES(1, 1, ?, 1, 2.0, ?)`, eName, eID)
+	if err != nil {
+		t.Fatalf("seed linked item: %v", err)
+	}
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.DELETE("/characters/:id/inventory/:itemId/link", UnlinkCompendiumEquipment)
+	})
+
+	w := testutil.Delete(t, r, "/api/characters/1/inventory/1/link")
+	testutil.AssertStatus(t, w, 200)
+	var data map[string]any
+	testutil.ParseJSON(t, w, &data)
+	testutil.AssertField(t, data, "status", "unlinked")
+	if testutil.CountRows(t, "inventory") != 0 {
+		t.Fatal("expected 0 inventory rows after unlink")
+	}
+}
+
+func TestSearchCompendiumTypeFilter(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.GET("/compendium/search", SearchCompendium)
+	})
+
+	t.Run("filters by type=spell", func(t *testing.T) {
+		w := testutil.Get(t, r, "/api/compendium/search?q=acid&type=spell")
+		testutil.AssertStatus(t, w, 200)
+		var results []map[string]any
+		testutil.ParseJSON(t, w, &results)
+		// Seed data has spells matching "acid" (e.g. Acid Splash, Melf's Acid Arrow)
+		if len(results) == 0 {
+			t.Fatalf("expected at least 1 spell result, got 0")
+		}
+		for _, r := range results {
+			if r["type"] != "spell" {
+				t.Fatalf("expected all results to be type 'spell', got %v", r["type"])
+			}
+		}
+	})
+
+	t.Run("filters by type=equipment", func(t *testing.T) {
+		w := testutil.Get(t, r, "/api/compendium/search?q=pot&type=equipment")
+		testutil.AssertStatus(t, w, 200)
+		var results []map[string]any
+		testutil.ParseJSON(t, w, &results)
+		// Seed data has "Potion of Healing"
+		if len(results) == 0 {
+			t.Fatalf("expected at least 1 equipment result, got 0")
+		}
+		for _, r := range results {
+			if r["type"] != "equipment" {
+				t.Fatalf("expected all results to be type 'equipment', got %v", r["type"])
+			}
+		}
+	})
+
+	t.Run("returns all types when no type filter", func(t *testing.T) {
+		w := testutil.Get(t, r, "/api/compendium/search?q=acid")
+		testutil.AssertStatus(t, w, 200)
+		var results []map[string]any
+		testutil.ParseJSON(t, w, &results)
+		if len(results) < 1 {
+			t.Fatalf("expected at least 1 result without type filter, got %d", len(results))
+		}
+	})
+}
+
+func TestCompendiumCardSpell(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+
+	// Find first seeded spell ID
+	var spellID int64
+	var spellName string
+	db.DB.QueryRow("SELECT id, name FROM compendium_spells ORDER BY id LIMIT 1").Scan(&spellID, &spellName)
+
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("user_id", int64(1))
+		c.Set("role", "admin")
+	})
+	r.GET("/htmx/compendium/card/:type/:id", HtmxCompendiumCard)
+
+	t.Run("returns spell card", func(t *testing.T) {
+		w := testutil.Get(t, r, fmt.Sprintf("/htmx/compendium/card/spell/%d", spellID))
+		testutil.AssertStatus(t, w, 200)
+		if !strings.Contains(w.Body.String(), spellName) {
+			t.Fatalf("expected spell name %q in card response: %s", spellName, w.Body.String())
+		}
+	})
+
+	t.Run("returns card for missing entity", func(t *testing.T) {
+		w := testutil.Get(t, r, "/htmx/compendium/card/spell/999999")
+		testutil.AssertStatus(t, w, 200)
+		if !strings.Contains(w.Body.String(), "not found") {
+			t.Fatalf("expected not-found message: %s", w.Body.String())
+		}
+	})
+}
+
+func TestLinkCompendiumMonsterToAct(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedOneShot(t, 1, 1, "Test One-Shot")
+	testutil.SeedOneShotAct(t, 1, 1, "Act 1", 1)
+
+	var monsterID int64
+	db.DB.QueryRow("SELECT id FROM compendium_monsters ORDER BY id LIMIT 1").Scan(&monsterID)
+
+	r := testutil.NewRouterWithUser(func(auth *gin.RouterGroup) {
+		auth.POST("/oneshot-adventures/:adventureId/acts/:actId/monsters/link", LinkCompendiumMonsterToAct)
+	}, 1, "dm")
+
+	w := testutil.PostForm(t, r, "/api/oneshot-adventures/1/acts/1/monsters/link", map[string]string{
+		"compendium_monster_id": fmt.Sprintf("%d", monsterID),
+	})
+	testutil.AssertStatus(t, w, 201)
+	var data map[string]any
+	testutil.ParseJSON(t, w, &data)
+	testutil.AssertField(t, data, "status", "linked")
+	if testutil.CountRows(t, "oneshot_monsters") != 1 {
+		t.Fatal("expected 1 oneshot_monster row")
+	}
 }

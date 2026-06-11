@@ -406,6 +406,45 @@ func SeedFactionReputation(t *testing.T, id, charID, factionID int64, standing i
 	}
 }
 
+// SeedCompendiumSpell inserts a compendium spell fixture.
+func SeedCompendiumSpell(t *testing.T, id int64, name string) {
+	t.Helper()
+	_, err := db.DB.Exec(
+		`INSERT OR IGNORE INTO compendium_spells(id, name, level, school, casting_time, "range", components, duration, description, classes)
+		 VALUES(?, ?, 1, 'Evocation', '1 action', '60 feet', 'V,S', 'Instantaneous', 'Test spell description.', '["Wizard"]')`,
+		id, name,
+	)
+	if err != nil {
+		t.Fatalf("seed compendium spell: %v", err)
+	}
+}
+
+// SeedCompendiumEquipment inserts a compendium equipment fixture.
+func SeedCompendiumEquipment(t *testing.T, id int64, name string) {
+	t.Helper()
+	_, err := db.DB.Exec(
+		`INSERT OR IGNORE INTO compendium_equipment(id, name, category, cost, weight, description)
+		 VALUES(?, ?, 'Adventuring Gear', '{"gp":5}', 2.0, 'Test equipment description.')`,
+		id, name,
+	)
+	if err != nil {
+		t.Fatalf("seed compendium equipment: %v", err)
+	}
+}
+
+// SeedCompendiumMonster inserts a compendium monster fixture.
+func SeedCompendiumMonster(t *testing.T, id int64, name string) {
+	t.Helper()
+	_, err := db.DB.Exec(
+		`INSERT OR IGNORE INTO compendium_monsters(id, name, type, size, ac, hp, str, dex, con, int_, wis, cha, cr, source)
+		 VALUES(?, ?, 'beast', 'Medium', 12, 20, 14, 12, 13, 2, 10, 8, '1', 'SRD')`,
+		id, name,
+	)
+	if err != nil {
+		t.Fatalf("seed compendium monster: %v", err)
+	}
+}
+
 // SeedWikiPage inserts a wiki page in a campaign.
 func SeedWikiPage(t *testing.T, id, campaignID int64, title string) {
 	t.Helper()

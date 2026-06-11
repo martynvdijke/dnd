@@ -1,0 +1,34 @@
+{{define "compendium_spell_card"}}
+<div class="compendium-card">
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center py-2">
+      <h5 class="mb-0">{{.Name}} <span class="badge bg-secondary">Level {{.Level}} {{.School}}</span></h5>
+      <button class="btn btn-sm btn-outline-secondary" onclick="this.closest('.compendium-card').remove()">&times;</button>
+    </div>
+    <div class="card-body small">
+      <div class="row g-1 mb-2">
+        <div class="col-6"><strong>Casting Time:</strong> {{.CastingTime}}</div>
+        <div class="col-6"><strong>Range:</strong> {{.Range}}</div>
+        <div class="col-6"><strong>Components:</strong> {{.Components}}</div>
+        <div class="col-6"><strong>Duration:</strong> {{.Duration}}</div>
+      </div>
+      <hr class="my-2">
+      <div><strong>Description:</strong></div>
+      <div style="white-space:pre-line">{{.Description}}</div>
+      {{if .HigherLevels}}
+      <hr class="my-2">
+      <div><strong>At Higher Levels:</strong></div>
+      <div style="white-space:pre-line">{{.HigherLevels}}</div>
+      {{end}}
+      {{if .Classes}}
+      <hr class="my-2">
+      <div><strong>Classes:</strong> {{.Classes}}</div>
+      {{end}}
+      {{if .SourcePage}}
+      <hr class="my-2">
+      <div class="text-muted fst-italic">Source: {{.SourcePage}}{{if .Source}} ({{.Source}}){{end}}</div>
+      {{end}}
+    </div>
+  </div>
+</div>
+{{end}}

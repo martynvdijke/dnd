@@ -135,11 +135,15 @@ func main() {
 		auth.POST("/characters/:id/inventory", handlers.CreateInventory)
 		auth.PUT("/inventory/:iid", handlers.UpdateInventory)
 		auth.DELETE("/inventory/:iid", handlers.DeleteInventory)
+		auth.POST("/characters/:id/inventory/link", handlers.LinkCompendiumEquipment)
+		auth.DELETE("/characters/:id/inventory/:itemId/link", handlers.UnlinkCompendiumEquipment)
 
 		// Spells sub-resource
 		auth.POST("/characters/:id/spells", handlers.CreateSpell)
 		auth.PUT("/spells/:sid", handlers.UpdateSpell)
 		auth.DELETE("/spells/:sid", handlers.DeleteSpell)
+		auth.POST("/characters/:id/spells/link", handlers.LinkCompendiumSpell)
+		auth.DELETE("/characters/:id/spells/:spellId/link", handlers.UnlinkCompendiumSpell)
 
 		// Features sub-resource
 		auth.POST("/characters/:id/features", handlers.CreateFeature)
@@ -579,6 +583,9 @@ func main() {
 		dm.DELETE("/oneshot-monsters/:id", handlers.DeleteOneShotMonster)
 		dm.GET("/oneshot-scenes/:id/monsters", handlers.ListSceneMonsters)
 		dm.POST("/oneshot-scenes/:id/monsters", handlers.CreateSceneMonster)
+		dm.POST("/oneshot-adventures/:adventureId/acts/:actId/monsters/link", handlers.LinkCompendiumMonsterToAct)
+		dm.POST("/oneshot-adventures/:adventureId/scenes/:sceneId/monsters/link", handlers.LinkCompendiumMonsterToScene)
+		dm.DELETE("/oneshot-monsters/:monsterId/link", handlers.UnlinkCompendiumMonster)
 
 		// AI Generation
 		dm.GET("/ai/endpoints", handlers.HandleListEnabledAIEndpoints)

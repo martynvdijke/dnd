@@ -1,0 +1,48 @@
+{{define "compendium_spell_picker"}}
+<div class="modal fade" id="compendiumSpellPickerModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Spell from Compendium</h5>
+        <button class="btn btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <input type="text" class="form-control" id="compendiumSpellSearch" placeholder="Search spells..." value="{{.Query}}"
+            hx-get="/htmx/compendium/spells/picker?character_id={{.CharacterID}}"
+            hx-trigger="keyup changed delay:300ms"
+            hx-target="#compendiumSpellResults"
+            hx-swap="innerHTML"
+            name="q">
+        </div>
+        <div id="compendiumSpellResults">
+          {{if .Spells}}
+            {{range .Spells}}
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+              <div>
+                <span class="fw-bold">{{.Name}}</span>
+                <span class="badge badge-blood ms-1">Level {{.Level}}</span>
+                {{if .School}}<span class="badge badge-gold ms-1">{{.School}}</span>{{end}}
+                <p class="mb-0 small text-muted">{{truncate .Description 120}}</p>
+              </div>
+              <button class="btn btn-sm btn-success ms-2"
+                hx-post="/api/characters/{{$.CharacterID}}/spells/link"
+                hx-vals='{"compendium_spell_id":"{{.ID}}"}'
+                hx-target="#spellsSection"
+                hx-swap="innerHTML"
+                hx-on:click="bootstrap.Modal.getOrCreateInstance(document.getElementById('compendiumSpellPickerModal')).hide()">
+                <i class="fa-solid fa-plus"></i>
+              </button>
+            </div>
+            {{end}}
+          {{else if .Query}}
+            <div class="text-center text-muted py-4">No spells found for "{{.Query}}"</div>
+          {{else}}
+            <div class="text-center text-muted py-4">Type a spell name to search</div>
+          {{end}}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{{end}}

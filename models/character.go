@@ -113,40 +113,42 @@ type Spellcasting struct {
 }
 
 type Spell struct {
-	ID             int64  `json:"id"`
-	CharacterID    int64  `json:"character_id"`
-	Name           string `json:"name"`
-	Level          int    `json:"level"`
-	School         string `json:"school"`
-	CastingTime    string `json:"casting_time"`
-	Range          string `json:"range"`
-	Components     string `json:"components"`
-	Duration       string `json:"duration"`
-	Description    string `json:"description"`
-	Prepared       bool   `json:"prepared"`
-	AlwaysPrepared bool   `json:"always_prepared"`
-	Source         string `json:"source"`
-	Notes          string `json:"notes"`
+	ID               int64  `json:"id"`
+	CharacterID      int64  `json:"character_id"`
+	Name             string `json:"name"`
+	Level            int    `json:"level"`
+	School           string `json:"school"`
+	CastingTime      string `json:"casting_time"`
+	Range            string `json:"range"`
+	Components       string `json:"components"`
+	Duration         string `json:"duration"`
+	Description      string `json:"description"`
+	Prepared         bool   `json:"prepared"`
+	AlwaysPrepared   bool   `json:"always_prepared"`
+	Source           string `json:"source"`
+	Notes            string `json:"notes"`
+	CompendiumSpellID *int64 `json:"compendium_spell_id,omitempty"`
 }
 
 type InventoryItem struct {
-	ID               int64   `json:"id"`
-	CharacterID      int64   `json:"character_id"`
-	Name             string  `json:"name"`
-	Quantity         int     `json:"quantity"`
-	Weight           float64 `json:"weight"`
-	Category         string  `json:"category"`
-	DamageDice       string  `json:"damage_dice"`
-	DamageType       string  `json:"damage_type"`
-	WeaponProperties string  `json:"weapon_properties"`
-	ACBonus          int     `json:"ac_bonus"`
-	ArmorType        string  `json:"armor_type"`
-	Description      string  `json:"description"`
-	IsEquipped       bool    `json:"is_equipped"`
-	IsMagical        bool    `json:"is_magical"`
-	Attunement       bool    `json:"attunement"`
-	IsIdentified     bool    `json:"is_identified"`
-	Notes            string  `json:"notes"`
+	ID                  int64   `json:"id"`
+	CharacterID         int64   `json:"character_id"`
+	Name                string  `json:"name"`
+	Quantity            int     `json:"quantity"`
+	Weight              float64 `json:"weight"`
+	Category            string  `json:"category"`
+	DamageDice          string  `json:"damage_dice"`
+	DamageType          string  `json:"damage_type"`
+	WeaponProperties    string  `json:"weapon_properties"`
+	ACBonus             int     `json:"ac_bonus"`
+	ArmorType           string  `json:"armor_type"`
+	Description         string  `json:"description"`
+	IsEquipped          bool    `json:"is_equipped"`
+	IsMagical           bool    `json:"is_magical"`
+	Attunement          bool    `json:"attunement"`
+	IsIdentified        bool    `json:"is_identified"`
+	Notes               string  `json:"notes"`
+	CompendiumEquipmentID *int64 `json:"compendium_equipment_id,omitempty"`
 }
 
 type DiceRoll struct {

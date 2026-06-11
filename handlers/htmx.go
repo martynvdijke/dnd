@@ -590,7 +590,7 @@ func HtmxListInventory(c *gin.Context) {
 		c.String(http.StatusBadRequest, "character_id required")
 		return
 	}
-	rows, err := db.DB.Query("SELECT id, character_id, name, quantity, weight, category, description, is_equipped, is_magical, attunement FROM inventory WHERE character_id=? ORDER BY category, name", charID)
+	rows, err := db.DB.Query("SELECT id, character_id, name, quantity, weight, category, description, is_equipped, is_magical, attunement, COALESCE(compendium_equipment_id,0) FROM inventory WHERE character_id=? ORDER BY category, name", charID)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -599,7 +599,11 @@ func HtmxListInventory(c *gin.Context) {
 	var items []models.InventoryItem
 	for rows.Next() {
 		var i models.InventoryItem
-		rows.Scan(&i.ID, &i.CharacterID, &i.Name, &i.Quantity, &i.Weight, &i.Category, &i.Description, &i.IsEquipped, &i.IsMagical, &i.Attunement)
+		var compID int64
+		rows.Scan(&i.ID, &i.CharacterID, &i.Name, &i.Quantity, &i.Weight, &i.Category, &i.Description, &i.IsEquipped, &i.IsMagical, &i.Attunement, &compID)
+		if compID > 0 {
+			i.CompendiumEquipmentID = &compID
+		}
 		items = append(items, i)
 	}
 	cid, _ := strconv.ParseInt(charID, 10, 64)
@@ -664,7 +668,7 @@ func HtmxListSpells(c *gin.Context) {
 		c.String(http.StatusBadRequest, "character_id required")
 		return
 	}
-	rows, err := db.DB.Query("SELECT id, character_id, name, level, school, casting_time, range, components, duration, description, prepared, always_prepared, source, notes FROM spells WHERE character_id=? ORDER BY level, name", charID)
+	rows, err := db.DB.Query("SELECT id, character_id, name, level, school, casting_time, range, components, duration, description, prepared, always_prepared, source, notes, COALESCE(compendium_spell_id,0) FROM spells WHERE character_id=? ORDER BY level, name", charID)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -673,7 +677,11 @@ func HtmxListSpells(c *gin.Context) {
 	var spells []models.Spell
 	for rows.Next() {
 		var s models.Spell
-		rows.Scan(&s.ID, &s.CharacterID, &s.Name, &s.Level, &s.School, &s.CastingTime, &s.Range, &s.Components, &s.Duration, &s.Description, &s.Prepared, &s.AlwaysPrepared, &s.Source, &s.Notes)
+		var compID int64
+		rows.Scan(&s.ID, &s.CharacterID, &s.Name, &s.Level, &s.School, &s.CastingTime, &s.Range, &s.Components, &s.Duration, &s.Description, &s.Prepared, &s.AlwaysPrepared, &s.Source, &s.Notes, &compID)
+		if compID > 0 {
+			s.CompendiumSpellID = &compID
+		}
 		spells = append(spells, s)
 	}
 	cid, _ := strconv.ParseInt(charID, 10, 64)
@@ -1605,6 +1613,13 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"GET", "/htmx/admin/compendium/entry/:id", HtmxCompendiumEntryEditor},
 		{"GET", "/htmx/admin/compendium/entry/detail/:id", HtmxCompendiumEntryDetail},
 		{"POST", "/htmx/admin/compendium/entries/:schemaId/duplicate/:id", HtmxCompendiumDuplicateEntry},
+
+		// Compendium Linking Pickers (HTMX)
+		{"GET", "/htmx/compendium/spells/picker", HtmxCompendiumSpellPicker},
+		{"GET", "/htmx/compendium/equipment/picker", HtmxCompendiumEquipmentPicker},
+
+		// Compendium Card (HTMX partial)
+		{"GET", "/htmx/compendium/card/:type/:id", HtmxCompendiumCard},
 	}
 	for _, rt := range routes {
 		r.Handle(rt.method, rt.path, rt.handler)

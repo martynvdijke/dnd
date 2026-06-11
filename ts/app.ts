@@ -5888,6 +5888,10 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
   if (monstersCard) htmx.trigger(monstersCard, 'load');
 };
 
+(window as any).showCompendiumMonsterPickerForOneShot = function (adventureId: number) {
+  showModal('Monster Compendium', `<div id="compendiumMonsterPickerContent" hx-get="/htmx/compendium-monsters/oneshot/${adventureId}" hx-trigger="load" hx-swap="innerHTML"><div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div></div>`);
+};
+
 // ─── One-Shot NPC Linking ───
 
 (window as any).showOneShotNPCLinkForm = async function (adventureId: number) {

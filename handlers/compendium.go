@@ -217,55 +217,110 @@ func SearchCompendium(c *gin.Context) {
 	}
 
 	type SearchResult struct {
-		Type string `json:"type"`
-		ID   int64  `json:"id"`
-		Name string `json:"name"`
+		Type    string `json:"type"`
+		ID      int64  `json:"id"`
+		Name    string `json:"name"`
+		Subtype string `json:"subtype,omitempty"`
+		CR      string `json:"cr,omitempty"`
+		Level   int    `json:"level,omitempty"`
 	}
 
+	typeFilter := strings.TrimSpace(c.Query("type"))
 	results := []SearchResult{}
 
-	rows, _ := db.DB.Query("SELECT id, name FROM compendium_spells WHERE name LIKE ? LIMIT 10", "%"+q+"%")
-	if rows != nil {
-		for rows.Next() {
-			var r SearchResult
-			rows.Scan(&r.ID, &r.Name)
-			r.Type = "spell"
-			results = append(results, r)
+	if typeFilter == "" || typeFilter == "spell" {
+		extra := ""
+		args := []interface{}{}
+		if cls := c.Query("class"); cls != "" {
+			extra += " AND classes LIKE ?"
+			args = append(args, "%\""+cls+"\"%")
 		}
-		rows.Close()
+		if lvl := c.Query("level"); lvl != "" {
+			extra += " AND level=?"
+			args = append(args, lvl)
+		}
+		if school := c.Query("school"); school != "" {
+			extra += " AND school=?"
+			args = append(args, school)
+		}
+		rows, _ := db.DB.Query("SELECT id, name, level, school FROM compendium_spells WHERE name LIKE ?"+extra+" ORDER BY level, name LIMIT 20", append([]interface{}{"%" + q + "%"}, args...)...)
+		if rows != nil {
+			for rows.Next() {
+				var r SearchResult
+				r.Type = "spell"
+				rows.Scan(&r.ID, &r.Name, &r.Level, &r.Subtype)
+				results = append(results, r)
+			}
+			rows.Close()
+		}
 	}
 
-	rows, _ = db.DB.Query("SELECT id, name FROM compendium_equipment WHERE name LIKE ? LIMIT 10", "%"+q+"%")
-	if rows != nil {
-		for rows.Next() {
-			var r SearchResult
-			rows.Scan(&r.ID, &r.Name)
-			r.Type = "equipment"
-			results = append(results, r)
+	if typeFilter == "" || typeFilter == "equipment" {
+		extra := ""
+		args := []interface{}{}
+		if cat := c.Query("category"); cat != "" {
+			extra += " AND category=?"
+			args = append(args, cat)
 		}
-		rows.Close()
+		rows, _ := db.DB.Query("SELECT id, name, category FROM compendium_equipment WHERE name LIKE ?"+extra+" ORDER BY name LIMIT 20", append([]interface{}{"%" + q + "%"}, args...)...)
+		if rows != nil {
+			for rows.Next() {
+				var r SearchResult
+				r.Type = "equipment"
+				rows.Scan(&r.ID, &r.Name, &r.Subtype)
+				results = append(results, r)
+			}
+			rows.Close()
+		}
 	}
 
-	rows, _ = db.DB.Query("SELECT id, name FROM compendium_races WHERE name LIKE ? LIMIT 5", "%"+q+"%")
-	if rows != nil {
-		for rows.Next() {
-			var r SearchResult
-			rows.Scan(&r.ID, &r.Name)
-			r.Type = "race"
-			results = append(results, r)
+	if typeFilter == "" || typeFilter == "monster" {
+		extra := ""
+		args := []interface{}{}
+		if cr := c.Query("cr"); cr != "" {
+			extra += " AND cr=?"
+			args = append(args, cr)
 		}
-		rows.Close()
+		if t := c.Query("monster_type"); t != "" {
+			extra += " AND type LIKE ?"
+			args = append(args, "%"+t+"%")
+		}
+		rows, _ := db.DB.Query("SELECT id, name, cr, type FROM compendium_monsters WHERE name LIKE ?"+extra+" ORDER BY name LIMIT 20", append([]interface{}{"%" + q + "%"}, args...)...)
+		if rows != nil {
+			for rows.Next() {
+				var r SearchResult
+				r.Type = "monster"
+				rows.Scan(&r.ID, &r.Name, &r.CR, &r.Subtype)
+				results = append(results, r)
+			}
+			rows.Close()
+		}
 	}
 
-	rows, _ = db.DB.Query("SELECT id, name FROM compendium_feats WHERE name LIKE ? LIMIT 5", "%"+q+"%")
-	if rows != nil {
-		for rows.Next() {
-			var r SearchResult
-			rows.Scan(&r.ID, &r.Name)
-			r.Type = "feat"
-			results = append(results, r)
+	if typeFilter == "" || typeFilter == "race" {
+		rows, _ := db.DB.Query("SELECT id, name FROM compendium_races WHERE name LIKE ? ORDER BY name LIMIT 5", "%"+q+"%")
+		if rows != nil {
+			for rows.Next() {
+				var r SearchResult
+				rows.Scan(&r.ID, &r.Name)
+				r.Type = "race"
+				results = append(results, r)
+			}
+			rows.Close()
 		}
-		rows.Close()
+	}
+
+	if typeFilter == "" || typeFilter == "feat" {
+		rows, _ := db.DB.Query("SELECT id, name FROM compendium_feats WHERE name LIKE ? ORDER BY name LIMIT 5", "%"+q+"%")
+		if rows != nil {
+			for rows.Next() {
+				var r SearchResult
+				rows.Scan(&r.ID, &r.Name)
+				r.Type = "feat"
+				results = append(results, r)
+			}
+			rows.Close()
+		}
 	}
 
 	c.JSON(http.StatusOK, results)

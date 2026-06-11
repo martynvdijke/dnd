@@ -1683,6 +1683,9 @@ func ApplySafeAlters() error {
 		"ALTER TABLE compendium_spells ADD COLUMN publisher TEXT NOT NULL DEFAULT ''",
 		// Shop location support
 		"ALTER TABLE shops ADD COLUMN location_id INTEGER REFERENCES locations(id) ON DELETE SET NULL",
+		// Compendium legacy table linking
+		"ALTER TABLE spells ADD COLUMN compendium_spell_id INTEGER REFERENCES compendium_spells(id) ON DELETE SET NULL",
+		"ALTER TABLE inventory ADD COLUMN compendium_equipment_id INTEGER REFERENCES compendium_equipment(id) ON DELETE SET NULL",
 		// Compendium entry linking
 		"ALTER TABLE encounter_monsters ADD COLUMN compendium_entry_id INTEGER REFERENCES compendium_entries(id) ON DELETE SET NULL",
 		"ALTER TABLE oneshot_monsters ADD COLUMN compendium_entry_id INTEGER REFERENCES compendium_entries(id) ON DELETE SET NULL",
@@ -1690,6 +1693,10 @@ func ApplySafeAlters() error {
 		"ALTER TABLE inventory ADD COLUMN compendium_entry_id INTEGER REFERENCES compendium_entries(id) ON DELETE SET NULL",
 		"ALTER TABLE oneshot_items ADD COLUMN compendium_entry_id INTEGER REFERENCES compendium_entries(id) ON DELETE SET NULL",
 		"ALTER TABLE character_features ADD COLUMN compendium_entry_id INTEGER REFERENCES compendium_entries(id) ON DELETE SET NULL",
+		// Indexes for compendium reference columns
+		"CREATE INDEX IF NOT EXISTS idx_spells_compendium_spell_id ON spells(compendium_spell_id)",
+		"CREATE INDEX IF NOT EXISTS idx_inventory_compendium_equipment_id ON inventory(compendium_equipment_id)",
+		"CREATE INDEX IF NOT EXISTS idx_oneshot_monsters_compendium_monster_id ON oneshot_monsters(compendium_monster_id)",
 	}
 	for _, stmt := range alterStatements {
 		log.Printf("ALTER: %s", stmt)
