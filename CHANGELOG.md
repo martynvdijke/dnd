@@ -1,3 +1,10 @@
+## [2.15.1](https://github.com/martynvdijke/dnd/compare/v2.15.0...v2.15.1) (2026-06-11)
+
+
+### Bug Fixes
+
+* **ui:** render compendium pickers as modal body, not nested modal ([862675e](https://github.com/martynvdijke/dnd/commit/862675e014b87def564234b6f9bdd7b3d5c8864a)), closes [#genericModalBody](https://github.com/martynvdijke/dnd/issues/genericModalBody)
+
 # [2.15.0](https://github.com/martynvdijke/dnd/compare/v2.14.3...v2.15.0) (2026-06-11)
 
 
