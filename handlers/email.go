@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
+	"villum/middleware"
 	"villum/models"
 )
 
@@ -83,6 +84,7 @@ func sendEmail(settings *models.EmailSettings, to, subject, body string) error {
 func TestEmail(c *gin.Context) {
 	settings, err := getEmailSettings()
 	if err != nil {
+		middleware.LogError("email", "test email failed to load settings", "error", err)
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -98,10 +100,12 @@ func TestEmail(c *gin.Context) {
 	body := fmt.Sprintf(`<h2>Test Email</h2><p>This is a test email from your Villum instance.</p><p>If you received this, your email settings are configured correctly.</p>`)
 
 	if err := sendEmail(settings, to, subject, body); err != nil {
+		middleware.LogError("email", "test email send failed", "error", err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("email send failed: %v", err)})
 		return
 	}
 
+	middleware.LogInfo("email", "test email sent", "to", to)
 	c.JSON(http.StatusOK, gin.H{"status": "ok", "message": "Test email sent successfully"})
 }
 
@@ -263,12 +267,15 @@ func SendCampaignHighlights(c *gin.Context) {
 	}
 
 	if sentCount == 0 && len(errors) > 0 {
+		middleware.LogError("email", "campaign highlights all sends failed", "campaign_id", req.CampaignID, "errors", strings.Join(errors, "; "))
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("all sends failed: %s", strings.Join(errors, "; "))})
 		return
 	}
 
+	middleware.LogInfo("email", "campaign highlights sent", "campaign_id", req.CampaignID, "recipient_count", sentCount)
 	resp := gin.H{"status": "ok", "sent": sentCount}
 	if len(errors) > 0 {
+		middleware.LogWarn("email", "campaign highlights partial failures", "campaign_id", req.CampaignID, "errors", strings.Join(errors, "; "))
 		resp["errors"] = errors
 	}
 	c.JSON(http.StatusOK, resp)

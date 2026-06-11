@@ -2,14 +2,13 @@ package handlers
 
 import (
 	"database/sql"
-	"log"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
+	"villum/middleware"
 )
 
 type CraftingRecipe struct {
@@ -220,10 +219,9 @@ func SeedCraftingRecipes() {
 		_, err := db.DB.Exec(`INSERT INTO crafting_recipes(user_id,name,description,category,difficulty_dc,crafting_time_hours,required_tools,required_materials,result_item_name,result_item_category,result_quantity,result_description,notes,created_at) VALUES(NULL,?,?,?,?,?,?,?,?,?,?,?,'',datetime('now'))`,
 			r.name, r.desc, r.category, r.dc, r.hours, r.tools, r.materials, r.resultName, r.resultCat, r.resultQty, r.resultDesc)
 		if err != nil {
-			log.Printf("Failed to seed recipe %s: %v", r.name, err)
+			middleware.LogError("crafting", "failed to seed recipe", "recipe_name", r.name, "error", err)
 		}
 	}
 
-	logger := log.New(os.Stdout, "", log.LstdFlags)
-	logger.Printf("Seeded %d crafting recipes", len(recipes))
+	middleware.LogInfo("crafting", "seeded crafting recipes", "count", len(recipes))
 }

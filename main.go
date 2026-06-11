@@ -738,6 +738,7 @@ func main() {
 
 		// Central Application Logs
 		admin.GET("/logs", handlers.ListLogs)
+		admin.GET("/log-sources", handlers.ListLogSources)
 		admin.GET("/log-level", handlers.GetLogLevel)
 		admin.PUT("/log-level", handlers.SetLogLevel)
 	}

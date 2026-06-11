@@ -743,6 +743,7 @@ async function runLegacyMigration() {
 
 function startLogAutoRefresh() {
   loadLogLevel();
+  loadLogSources();
   loadLogs();
   if (logRefreshInterval) clearInterval(logRefreshInterval);
   logRefreshInterval = setInterval(() => {
@@ -758,11 +759,40 @@ function stopLogAutoRefresh() {
   }
 }
 
+async function loadLogSources() {
+  try {
+    const sources: string[] = await api('GET', '/api/admin/log-sources');
+    const sel = document.getElementById('logSourceFilter') as HTMLSelectElement;
+    if (!sel) return;
+    const current = sel.value;
+    // Keep the "All" option, rebuild the rest
+    sel.innerHTML = '<option value="">All</option>';
+    const seen = new Set<string>();
+    for (const s of sources) {
+      if (!s || seen.has(s)) continue;
+      seen.add(s);
+      const opt = document.createElement('option');
+      opt.value = s;
+      opt.textContent = s.charAt(0).toUpperCase() + s.slice(1);
+      sel.appendChild(opt);
+    }
+    if (current && [...sel.options].some(o => o.value === current)) {
+      sel.value = current;
+    }
+  } catch { /* silently degrade to hardcoded options */ }
+}
+
 async function loadLogs() {
   try {
-    const levelFilter = (document.getElementById('logSourceFilter') as HTMLSelectElement)?.value || '';
+    const sourceFilter = (document.getElementById('logSourceFilter') as HTMLSelectElement)?.value || '';
     let url = '/api/admin/logs?limit=200';
-    if (levelFilter) url += '&source=' + encodeURIComponent(levelFilter);
+    if (sourceFilter) url += '&source=' + encodeURIComponent(sourceFilter);
+
+    const tableContainer = document.getElementById('adminLogs')?.querySelector('.table-responsive');
+    const wasAtBottom = tableContainer
+      ? tableContainer.scrollHeight - tableContainer.scrollTop - tableContainer.clientHeight < 50
+      : false;
+
     const logs = await api('GET', url);
     const tbody = document.getElementById('logBody')!;
     if (!logs || logs.length === 0) {
@@ -776,25 +806,51 @@ async function loadLogs() {
       warn: 'bg-warning text-dark',
       error: 'bg-danger',
     };
-    tbody.innerHTML = logs.map((l: any) => {
+    tbody.innerHTML = logs.map((l: any, idx: number) => {
       const badge = levelBadge[l.level] || 'bg-secondary';
       const ts = l.timestamp ? new Date(l.timestamp).toLocaleString() : '-';
-      const attrs = l.attributes && Object.keys(l.attributes).length > 0
-        ? Object.entries(l.attributes).map(([k, v]) => `<span class="badge bg-light text-dark me-1" title="${esc(k)}">${esc(k)}=${esc(String(v))}</span>`).join('')
+      const hasAttrs = l.attributes && Object.keys(l.attributes).length > 0;
+      const attrSummary = hasAttrs
+        ? Object.entries(l.attributes).map(([k, v]) => `<span class="badge bg-light text-dark me-1">${esc(k)}=${esc(String(v)).substring(0, 30)}</span>`).join('')
         : '';
-      return `<tr>
+      const detailId = `logDetail_${idx}`;
+      const attrsHtml = hasAttrs
+        ? '<dl class="log-detail-attrs mb-0">' +
+          Object.entries(l.attributes).map(([k, v]) => `<dt>${esc(k)}</dt><dd><code>${esc(JSON.stringify(v))}</code></dd>`).join('') +
+          '</dl>'
+        : '<span class="text-muted">No attributes</span>';
+      return `<tr class="log-row" style="cursor:pointer" onclick="toggleLogDetail('${detailId}')">
         <td><span class="badge ${badge}">${esc(l.level)}</span></td>
         <td class="small">${esc(ts)}</td>
         <td><code class="small">${esc(l.source || '-')}</code></td>
         <td>${esc(l.message)}</td>
-        <td class="small" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${attrs}</td>
+        <td class="small" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${attrSummary}</td>
+      </tr>
+      <tr id="${detailId}" class="log-detail-row" style="display:none">
+        <td colspan="5">${attrsHtml}</td>
       </tr>`;
     }).join('');
-    document.getElementById('logCount')!.textContent = logs.length + ' entries';
+
+    const entryCount = logs.length;
+    const totalCount = (logs[0] as any)._total !== undefined ? (logs[0] as any)._total : entryCount;
+    document.getElementById('logCount')!.textContent = entryCount + ' entries' + (totalCount > entryCount ? ` (showing last ${entryCount})` : '');
+
+    // Auto-scroll if user was at bottom
+    if (wasAtBottom && tableContainer) {
+      tableContainer.scrollTop = tableContainer.scrollHeight;
+    }
   } catch (e: any) {
     document.getElementById('logBody')!.innerHTML = '<tr><td colspan="5" class="text-danger text-center">Failed to load logs</td></tr>';
   }
 }
+
+function toggleLogDetail(detailId: string) {
+  const detailRow = document.getElementById(detailId);
+  if (!detailRow) return;
+  const isVisible = detailRow.style.display !== 'none';
+  detailRow.style.display = isVisible ? 'none' : 'table-row';
+}
+(window as any).toggleLogDetail = toggleLogDetail;
 
 async function loadLogLevel() {
   try {
@@ -815,8 +871,8 @@ async function setLogLevel(level: string) {
 (window as any).setLogLevel = setLogLevel;
 
 function clearLogFilters() {
-  const levelFilter = document.getElementById('logSourceFilter') as HTMLSelectElement;
-  if (levelFilter) levelFilter.value = '';
+  const sourceFilter = document.getElementById('logSourceFilter') as HTMLSelectElement;
+  if (sourceFilter) sourceFilter.value = '';
   loadLogs();
 }
 (window as any).clearLogFilters = clearLogFilters;

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -154,7 +153,7 @@ func HandleWebSocket(c *gin.Context) {
 
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		log.Printf("WS upgrade error: %v", err)
+		middleware.LogWarn("ws", "websocket upgrade error", "error", err)
 		return
 	}
 

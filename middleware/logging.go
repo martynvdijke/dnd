@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"sort"
 	"sync"
 	"time"
 
@@ -25,13 +26,14 @@ type LogEntry struct {
 
 // LogBuffer is a concurrent-safe ring buffer for log entries.
 type LogBuffer struct {
-	mu     sync.RWMutex
-	buffer []LogEntry
-	head   int
-	tail   int
-	count  int
-	cap    int
-	nextID int64
+	mu      sync.RWMutex
+	buffer  []LogEntry
+	head    int
+	tail    int
+	count   int
+	cap     int
+	nextID  int64
+	sources map[string]struct{}
 }
 
 // NewLogBuffer creates a ring buffer with the given capacity.
@@ -40,8 +42,9 @@ func NewLogBuffer(capacity int) *LogBuffer {
 		capacity = 5000
 	}
 	return &LogBuffer{
-		buffer: make([]LogEntry, capacity),
-		cap:    capacity,
+		buffer:  make([]LogEntry, capacity),
+		cap:     capacity,
+		sources: make(map[string]struct{}),
 	}
 }
 
@@ -52,6 +55,9 @@ func (lb *LogBuffer) Append(entry LogEntry) {
 	entry.ID = lb.nextID
 	lb.nextID++
 	entry.Timestamp = time.Now()
+	if entry.Source != "" {
+		lb.sources[entry.Source] = struct{}{}
+	}
 	lb.buffer[lb.head] = entry
 	lb.head = (lb.head + 1) % lb.cap
 	if lb.count < lb.cap {
@@ -69,6 +75,7 @@ func (lb *LogBuffer) Clear() {
 	lb.tail = 0
 	lb.count = 0
 	lb.nextID = 0
+	lb.sources = make(map[string]struct{})
 }
 
 // Query returns log entries matching filters, newest first.
@@ -112,6 +119,21 @@ func (lb *LogBuffer) Len() int {
 
 // Cap returns the configured capacity.
 func (lb *LogBuffer) Cap() int { return lb.cap }
+
+// Sources returns the distinct source names observed, sorted alphabetically.
+func (lb *LogBuffer) Sources() []string {
+	lb.mu.RLock()
+	defer lb.mu.RUnlock()
+	if len(lb.sources) == 0 {
+		return nil
+	}
+	result := make([]string, 0, len(lb.sources))
+	for s := range lb.sources {
+		result = append(result, s)
+	}
+	sort.Strings(result)
+	return result
+}
 
 // ─── Log level helpers ───
 
@@ -327,6 +349,37 @@ func InitAppLoggerFromEnv() *AppLogger {
 	cap := 5000
 	minLvl := slog.LevelWarn
 	return InitAppLogger(cap, minLvl)
+}
+
+// ─── Nil-safe convenience wrappers ───
+// These functions safely no-op when AppLog is nil (e.g., in test contexts).
+
+// LogDebug emits a debug-level log entry via AppLog, no-op if AppLog is nil.
+func LogDebug(source, msg string, args ...any) {
+	if AppLog != nil {
+		AppLog.Debug(source, msg, args...)
+	}
+}
+
+// LogInfo emits an info-level log entry via AppLog, no-op if AppLog is nil.
+func LogInfo(source, msg string, args ...any) {
+	if AppLog != nil {
+		AppLog.Info(source, msg, args...)
+	}
+}
+
+// LogWarn emits a warning-level log entry via AppLog, no-op if AppLog is nil.
+func LogWarn(source, msg string, args ...any) {
+	if AppLog != nil {
+		AppLog.Warn(source, msg, args...)
+	}
+}
+
+// LogError emits an error-level log entry via AppLog, no-op if AppLog is nil.
+func LogError(source, msg string, args ...any) {
+	if AppLog != nil {
+		AppLog.Error(source, msg, args...)
+	}
 }
 
 // RequestLogger returns a Gin middleware that logs HTTP requests to AppLog.

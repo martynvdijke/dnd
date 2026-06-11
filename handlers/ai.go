@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,6 +14,7 @@ import (
 
 	"villum/crypto"
 	"villum/db"
+	"villum/middleware"
 	"villum/models"
 )
 
@@ -108,7 +108,7 @@ func CreateAIEndpoint(c *gin.Context) {
 
 	encryptedKey, err := crypto.Encrypt(req.APIKey)
 	if err != nil {
-		log.Printf("[ai] failed to encrypt API key: %v", err)
+		middleware.LogError("ai", "failed to encrypt API key", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store API key securely"})
 		return
 	}
@@ -131,7 +131,7 @@ func CreateAIEndpoint(c *gin.Context) {
 
 	created, err := db.CreateAIEndpoint(c.Request.Context(), endpoint)
 	if err != nil {
-		log.Printf("[ai] failed to create endpoint: %v", err)
+		middleware.LogError("ai", "failed to create endpoint", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create AI endpoint"})
 		return
 	}
@@ -184,7 +184,7 @@ func UpdateAIEndpoint(c *gin.Context) {
 	if req.APIKey != "" {
 		encryptedKey, err = crypto.Encrypt(req.APIKey)
 		if err != nil {
-			log.Printf("[ai] failed to encrypt API key: %v", err)
+			middleware.LogError("ai", "failed to encrypt API key", "error", err)
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store API key securely"})
 			return
 		}
@@ -207,7 +207,7 @@ func UpdateAIEndpoint(c *gin.Context) {
 
 	updated, err := db.UpdateAIEndpoint(c.Request.Context(), id, endpoint)
 	if err != nil {
-		log.Printf("[ai] failed to update endpoint %d: %v", id, err)
+		middleware.LogError("ai", "failed to update endpoint", "endpoint_id", id, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update AI endpoint"})
 		return
 	}
@@ -244,10 +244,12 @@ func TestAIEndpoint(c *gin.Context) {
 
 	apiKey, err := crypto.Decrypt(endpoint.EncryptedAPIKey)
 	if err != nil {
-		log.Printf("[ai] failed to decrypt API key for endpoint %d: %v", id, err)
+		middleware.LogError("ai", "failed to decrypt API key", "endpoint_id", id, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to test endpoint"})
 		return
 	}
+
+	middleware.LogDebug("ai", "ai endpoint test start", "endpoint_id", id, "model", endpoint.Model, "type", endpoint.Type)
 
 	client := &http.Client{Timeout: 30 * time.Second}
 
@@ -266,6 +268,7 @@ func TestAIEndpoint(c *gin.Context) {
 
 		resp, err := client.Do(req)
 		if err != nil {
+			middleware.LogWarn("ai", "ai endpoint test connection failed", "endpoint_id", id, "type", "text", "error", sanitizeError(err))
 			c.JSON(http.StatusOK, gin.H{"success": false, "message": fmt.Sprintf("Connection failed: %s", sanitizeError(err))})
 			return
 		}
@@ -273,8 +276,10 @@ func TestAIEndpoint(c *gin.Context) {
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			middleware.LogInfo("ai", "ai endpoint test succeeded", "endpoint_id", id, "type", "text")
 			c.JSON(http.StatusOK, gin.H{"success": true, "message": "Endpoint responded successfully"})
 		} else {
+			middleware.LogWarn("ai", "ai endpoint test returned non-2xx", "endpoint_id", id, "type", "text", "status", resp.StatusCode)
 			c.JSON(http.StatusOK, gin.H{"success": false, "message": fmt.Sprintf("HTTP %d: %s", resp.StatusCode, truncateResponse(string(respBody)))})
 		}
 	} else {
@@ -294,6 +299,7 @@ func TestAIEndpoint(c *gin.Context) {
 
 		resp, err := client.Do(req)
 		if err != nil {
+			middleware.LogWarn("ai", "ai endpoint test connection failed", "endpoint_id", id, "type", "image", "error", sanitizeError(err))
 			c.JSON(http.StatusOK, gin.H{"success": false, "message": fmt.Sprintf("Connection failed: %s", sanitizeError(err))})
 			return
 		}
@@ -301,8 +307,10 @@ func TestAIEndpoint(c *gin.Context) {
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+			middleware.LogInfo("ai", "ai endpoint test succeeded", "endpoint_id", id, "type", "image")
 			c.JSON(http.StatusOK, gin.H{"success": true, "message": "Endpoint responded successfully"})
 		} else {
+			middleware.LogWarn("ai", "ai endpoint test returned non-2xx", "endpoint_id", id, "type", "image", "status", resp.StatusCode)
 			c.JSON(http.StatusOK, gin.H{"success": false, "message": fmt.Sprintf("HTTP %d: %s", resp.StatusCode, truncateResponse(string(respBody)))})
 		}
 	}
@@ -349,6 +357,8 @@ func HandleTextGeneration(c *gin.Context) {
 		return
 	}
 
+	middleware.LogDebug("ai", "text generation start", "endpoint_id", req.EndpointID, "model", endpoint.Model, "prompt_length", len(req.Prompt))
+
 	// Decrypt API key from the full DB record
 	fullEndpoint, err := db.GetAIEndpoint(c.Request.Context(), req.EndpointID)
 	if err != nil {
@@ -358,7 +368,7 @@ func HandleTextGeneration(c *gin.Context) {
 
 	apiKey, err := crypto.Decrypt(fullEndpoint.EncryptedAPIKey)
 	if err != nil {
-		log.Printf("[ai] failed to decrypt API key: %v", err)
+		middleware.LogError("ai", "failed to decrypt API key", "endpoint_id", req.EndpointID, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to authenticate with AI provider: %s", sanitizeError(err))})
 		return
 	}
@@ -394,7 +404,7 @@ func HandleTextGeneration(c *gin.Context) {
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		errMsg := fmt.Sprintf("AI provider request failed: %s", sanitizeError(err))
-		log.Printf("[ai] text generation request failed: %v", err)
+		middleware.LogError("ai", "text generation request failed", "endpoint_id", endpoint.ID, "model", endpoint.Model, "error", err)
 		c.JSON(http.StatusBadGateway, gin.H{"error": errMsg})
 		return
 	}
@@ -404,7 +414,7 @@ func HandleTextGeneration(c *gin.Context) {
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		errMsg := fmt.Sprintf("AI provider returned HTTP %d: %s", resp.StatusCode, truncateResponse(string(respBody)))
-		log.Printf("[ai] text generation returned HTTP %d: %s", resp.StatusCode, truncateResponse(string(respBody)))
+		middleware.LogError("ai", "text generation returned non-2xx", "status", resp.StatusCode, "response_preview", truncateResponse(string(respBody)))
 		c.JSON(http.StatusBadGateway, gin.H{"error": errMsg})
 		return
 	}
@@ -418,7 +428,7 @@ func HandleTextGeneration(c *gin.Context) {
 		} `json:"choices"`
 	}
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		log.Printf("[ai] failed to parse text response: %v", err)
+		middleware.LogError("ai", "failed to parse text response", "endpoint_id", endpoint.ID, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to parse AI response"})
 		return
 	}
@@ -427,6 +437,8 @@ func HandleTextGeneration(c *gin.Context) {
 		c.JSON(http.StatusOK, textGenResponse{Text: "", Finish: "no_choices"})
 		return
 	}
+
+	middleware.LogInfo("ai", "text generation succeeded", "endpoint_id", endpoint.ID, "model", endpoint.Model, "finish_reason", result.Choices[0].FinishReason)
 
 	c.JSON(http.StatusOK, textGenResponse{
 		Text:   result.Choices[0].Message.Content,
@@ -480,6 +492,8 @@ func HandleImageGeneration(c *gin.Context) {
 		return
 	}
 
+	middleware.LogDebug("ai", "image generation start", "endpoint_id", req.EndpointID, "model", endpoint.Model, "prompt_length", len(req.Prompt))
+
 	fullEndpoint, err := db.GetAIEndpoint(c.Request.Context(), req.EndpointID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get endpoint"})
@@ -488,7 +502,7 @@ func HandleImageGeneration(c *gin.Context) {
 
 	apiKey, err := crypto.Decrypt(fullEndpoint.EncryptedAPIKey)
 	if err != nil {
-		log.Printf("[ai] failed to decrypt API key: %v", err)
+		middleware.LogError("ai", "failed to decrypt API key", "endpoint_id", req.EndpointID, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to authenticate with AI provider: %s", sanitizeError(err))})
 		return
 	}
@@ -521,7 +535,7 @@ func HandleImageGeneration(c *gin.Context) {
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		errMsg := fmt.Sprintf("AI provider request failed: %s", sanitizeError(err))
-		log.Printf("[ai] image generation request failed: %v", err)
+		middleware.LogError("ai", "image generation request failed", "endpoint_id", endpoint.ID, "model", endpoint.Model, "error", err)
 		c.JSON(http.StatusBadGateway, gin.H{"error": errMsg})
 		return
 	}
@@ -531,7 +545,7 @@ func HandleImageGeneration(c *gin.Context) {
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		errMsg := fmt.Sprintf("AI provider returned HTTP %d: %s", resp.StatusCode, truncateResponse(string(respBody)))
-		log.Printf("[ai] image generation returned HTTP %d: %s", resp.StatusCode, truncateResponse(string(respBody)))
+		middleware.LogError("ai", "image generation returned non-2xx", "status", resp.StatusCode, "response_preview", truncateResponse(string(respBody)))
 		c.JSON(http.StatusBadGateway, gin.H{"error": errMsg})
 		return
 	}
@@ -542,7 +556,7 @@ func HandleImageGeneration(c *gin.Context) {
 		} `json:"data"`
 	}
 	if err := json.Unmarshal(respBody, &result); err != nil {
-		log.Printf("[ai] failed to parse image response: %v", err)
+		middleware.LogError("ai", "failed to parse image response", "endpoint_id", endpoint.ID, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to parse AI response"})
 		return
 	}
@@ -553,6 +567,8 @@ func HandleImageGeneration(c *gin.Context) {
 			images = append(images, d.URL)
 		}
 	}
+
+	middleware.LogInfo("ai", "image generation succeeded", "endpoint_id", endpoint.ID, "model", endpoint.Model, "image_count", len(images))
 
 	c.JSON(http.StatusOK, imageGenResponse{Images: images})
 }

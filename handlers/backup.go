@@ -3,7 +3,6 @@ package handlers
 import (
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"sort"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	"villum/db"
+	"villum/middleware"
 )
 
 func getBackupDir() string {
@@ -130,12 +130,12 @@ func checkAndBackup() {
 	if shouldBackup {
 		path, err := CreateBackup()
 		if err != nil {
-			log.Printf("Auto backup failed: %v", err)
+			middleware.LogError("backup", "auto backup failed", "error", err)
 			return
 		}
 		now := time.Now().Format("2006-01-02 15:04:05")
 		db.DB.Exec("UPDATE backup_settings SET last_backup=? WHERE id=1", now)
-		log.Printf("Auto backup created: %s", path)
+		middleware.LogInfo("backup", "auto backup created", "path", path)
 		PruneBackups()
 	}
 }
@@ -181,6 +181,6 @@ func PruneBackups() {
 		}
 	}
 	if removed > 0 {
-		log.Printf("Pruned %d old backup(s), keeping last %d", removed, keepCount)
+		middleware.LogInfo("backup", "pruned old backups", "removed", removed, "keep_count", keepCount)
 	}
 }

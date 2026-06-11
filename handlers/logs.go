@@ -47,6 +47,21 @@ func ListLogs(c *gin.Context) {
 	c.JSON(http.StatusOK, entries)
 }
 
+// ─── Log Sources ───
+
+// ListLogSources returns the distinct set of source names from the ring buffer.
+func ListLogSources(c *gin.Context) {
+	if middleware.AppLog == nil || middleware.AppLog.Buffer() == nil {
+		c.JSON(http.StatusOK, []string{})
+		return
+	}
+	sources := middleware.AppLog.Buffer().Sources()
+	if sources == nil {
+		sources = []string{}
+	}
+	c.JSON(http.StatusOK, sources)
+}
+
 // ─── Log Level ───
 
 // logLevelResponse is the JSON response for log level queries.

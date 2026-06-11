@@ -3067,6 +3067,38 @@ body.sidebar-collapsed .container {
   }
 }
 
+/* ─── Log detail rows ─── */
+
+.log-detail-row td {
+  padding: 0.5rem 0.75rem !important;
+  background: var(--bs-tertiary-bg, #f8f9fa);
+  border-top: none !important;
+}
+
+.log-detail-row td code {
+  font-size: 0.8rem;
+  word-break: break-all;
+  white-space: pre-wrap;
+}
+
+.log-detail-attrs {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.2rem 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.8rem;
+}
+
+.log-detail-attrs dt {
+  color: var(--bs-secondary-color, #6c757d);
+  font-weight: 600;
+}
+
+.log-detail-attrs dd {
+  margin-bottom: 0;
+  word-break: break-all;
+}
+
 /* ─── Print: hide new UI elements ─── */
 
 @media print {
