@@ -735,7 +735,7 @@ func TestLinkCompendiumMonsterToAct(t *testing.T) {
 	db.DB.QueryRow("SELECT id FROM compendium_monsters ORDER BY id LIMIT 1").Scan(&monsterID)
 
 	r := testutil.NewRouterWithUser(func(auth *gin.RouterGroup) {
-		auth.POST("/oneshot-adventures/:adventureId/acts/:actId/monsters/link", LinkCompendiumMonsterToAct)
+		auth.POST("/oneshot-adventures/:id/acts/:aid/monsters/link", LinkCompendiumMonsterToAct)
 	}, 1, "dm")
 
 	w := testutil.PostForm(t, r, "/api/oneshot-adventures/1/acts/1/monsters/link", map[string]string{

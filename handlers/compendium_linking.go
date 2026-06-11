@@ -157,12 +157,12 @@ func UnlinkCompendiumEquipment(c *gin.Context) {
 // LinkCompendiumMonsterToAct creates a monster linked to a compendium monster under an act.
 // POST /api/oneshots/:adventureId/acts/:actId/monsters/link
 func LinkCompendiumMonsterToAct(c *gin.Context) {
-	adventureID, err := strconv.ParseInt(c.Param("adventureId"), 10, 64)
+	adventureID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid adventure id"})
 		return
 	}
-	actID, err := strconv.ParseInt(c.Param("actId"), 10, 64)
+	actID, err := strconv.ParseInt(c.Param("aid"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid act id"})
 		return
@@ -209,12 +209,12 @@ func LinkCompendiumMonsterToAct(c *gin.Context) {
 // LinkCompendiumMonsterToScene creates a monster linked to a compendium monster under a scene.
 // POST /api/oneshots/:adventureId/scenes/:sceneId/monsters/link
 func LinkCompendiumMonsterToScene(c *gin.Context) {
-	adventureID, err := strconv.ParseInt(c.Param("adventureId"), 10, 64)
+	adventureID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid adventure id"})
 		return
 	}
-	sceneID, err := strconv.ParseInt(c.Param("sceneId"), 10, 64)
+	sceneID, err := strconv.ParseInt(c.Param("sid"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid scene id"})
 		return
@@ -265,7 +265,7 @@ func LinkCompendiumMonsterToScene(c *gin.Context) {
 // UnlinkCompendiumMonster unlinks (and deletes) a monster linked from the compendium.
 // DELETE /api/oneshots/monsters/:monsterId/link
 func UnlinkCompendiumMonster(c *gin.Context) {
-	monsterID, err := strconv.ParseInt(c.Param("monsterId"), 10, 64)
+	monsterID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid monster id"})
 		return
