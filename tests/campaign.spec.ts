@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { login } from './helpers.js';
 
 const uniqueName = () => `Camp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -30,14 +31,7 @@ async function createCharAndOpen(page, name, race, cls) {
 
 test.describe('Campaign features', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
-      page.click('button[type="submit"]'),
-    ]);
-    await waitLoadingDone(page);
+    await login(page);
   });
 
   test('Locations tab exists and can link a location', async ({ page }) => {

@@ -22,11 +22,29 @@ export async function ensureNavOpen(page: Page) {
   }
 }
 
-export async function waitLoadingDone(page: Page) {
+export async function waitLoadingDone(page: Page, timeout: number = 15000) {
+  // First ensure the SPA has initialized and the API module is available
+  await page.waitForFunction(() => typeof (window as any).api !== 'undefined', { timeout });
+  // Then wait for the loading overlay to disappear
   await page.waitForFunction(() => {
     const o = document.getElementById('loadingOverlay');
     return o && o.classList.contains('d-none');
-  }, { timeout: 5000 }).catch(() => {});
+  }, { timeout });
+}
+
+/**
+ * Log in as admin user and wait for the SPA to fully initialize.
+ * Prefer this over inline login to avoid test flakiness on slower runtimes (mobile-chrome in CI).
+ */
+export async function login(page: Page) {
+  await page.goto('/login', { waitUntil: 'domcontentloaded' });
+  await page.fill('#username', 'admin');
+  await page.fill('#password', 'testpassword123');
+  await Promise.all([
+    page.waitForURL('/', { timeout: 15000 }),
+    page.click('button[type="submit"]'),
+  ]);
+  await waitLoadingDone(page);
 }
 
 export async function waitModalClosed(page: Page) {

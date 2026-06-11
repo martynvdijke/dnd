@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { login } from './helpers.js';
 
 const uniqueName = () => `CEX-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -17,15 +18,7 @@ async function createCampaign(page, name) {
 
 test.describe('Campaign Extended Features', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { waitUntil: 'domcontentloaded', timeout: 10000 }),
-      page.click('button[type="submit"]'),
-    ]);
-    await waitLoadingDone(page);
-    await page.waitForTimeout(200);
+    await login(page);
   });
 
   // ─── Campaign Recaps ───

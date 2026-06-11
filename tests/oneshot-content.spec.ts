@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { waitLoadingDone, clickSecondaryNavItem } from './helpers.js';
+import { waitLoadingDone, clickSecondaryNavItem, login } from './helpers.js';
 
 const uniqueName = () => `OSC-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -39,15 +39,7 @@ async function createGeneratedOneShot(page, title: string) {
 
 test.describe('One-Shot Content Features', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { waitUntil: 'domcontentloaded', timeout: 10000 }),
-      page.click('button[type="submit"]'),
-    ]);
-    await waitLoadingDone(page);
-    await page.waitForTimeout(300);
+    await login(page);
   });
 
   // ─── One-Shot Items ───
@@ -1023,14 +1015,7 @@ test.describe('One-Shot Content Features', () => {
 
 test.describe('Acts & Scenes API CRUD', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { waitUntil: 'domcontentloaded', timeout: 10000 }),
-      page.click('button[type="submit"]'),
-    ]);
-    await waitLoadingDone(page);
+    await login(page);
     await page.waitForTimeout(200);
   });
 
@@ -1160,14 +1145,7 @@ test.describe('Acts & Scenes API CRUD', () => {
 
 test.describe('Session Pacing', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { waitUntil: 'domcontentloaded', timeout: 10000 }),
-      page.click('button[type="submit"]'),
-    ]);
-    await waitLoadingDone(page);
+    await login(page);
     await page.waitForTimeout(200);
   });
 
@@ -1255,14 +1233,7 @@ test.describe('Session Pacing', () => {
 
 test.describe('Clues', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { waitUntil: 'domcontentloaded', timeout: 10000 }),
-      page.click('button[type="submit"]'),
-    ]);
-    await waitLoadingDone(page);
+    await login(page);
     await page.waitForTimeout(200);
   });
 
@@ -1370,14 +1341,7 @@ test.describe('Clues', () => {
 
 test.describe('Prep Checklist', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { waitUntil: 'domcontentloaded', timeout: 10000 }),
-      page.click('button[type="submit"]'),
-    ]);
-    await waitLoadingDone(page);
+    await login(page);
     await page.waitForTimeout(200);
   });
 
@@ -1455,14 +1419,7 @@ test.describe('Prep Checklist', () => {
 
 test.describe('DM Notes', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { waitUntil: 'domcontentloaded', timeout: 10000 }),
-      page.click('button[type="submit"]'),
-    ]);
-    await waitLoadingDone(page);
+    await login(page);
     await page.waitForTimeout(200);
   });
 

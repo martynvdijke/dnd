@@ -1,25 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { clickNavItem } from './helpers.js';
+import { clickNavItem, login } from './helpers.js';
 
 const uniqueName = () => `Party-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-async function waitLoadingDone(page) {
-  await page.waitForFunction(() => {
-    const o = document.getElementById('loadingOverlay');
-    return o && o.classList.contains('d-none');
-  }, { timeout: 5000 }).catch(() => {});
-}
-
 test.describe('Party Management', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { waitUntil: 'domcontentloaded', timeout: 10000 }),
-      page.click('button[type="submit"]'),
-    ]);
-    await waitLoadingDone(page);
+    await login(page);
     await page.waitForTimeout(300);
   });
 

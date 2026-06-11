@@ -1,18 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { ensureNavOpen, waitLoadingDone, waitModalClosed, clickNavItem } from './helpers.js';
+import { ensureNavOpen, waitLoadingDone, waitModalClosed, clickNavItem, login } from './helpers.js';
 
 const uniqueName = () => `FT-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 test.describe('Full feature coverage', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
-      page.click('button[type="submit"]'),
-    ]);
-    await waitLoadingDone(page);
+    await login(page);
   });
 
   test('campaign lifecycle: create, assign character, delete', async ({ page }) => {

@@ -1,16 +1,9 @@
 import { test, expect } from '@playwright/test';
-import { ensureNavOpen, waitLoadingDone, clickNavItem } from './helpers.js';
+import { ensureNavOpen, waitLoadingDone, clickNavItem, login } from './helpers.js';
 
 test.describe('Dice rolling', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
-      page.click('button[type="submit"]'),
-    ]);
-    await waitLoadingDone(page);
+    await login(page);
   });
 
   test('dice roller works', async ({ page }) => {

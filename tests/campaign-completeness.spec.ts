@@ -1,26 +1,13 @@
 import { test, expect } from '@playwright/test';
+import { login } from './helpers.js';
 
 const uniqueName = () => `CampaignTest-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-
-async function waitLoadingDone(page) {
-  await page.waitForFunction(() => {
-    const o = document.getElementById('loadingOverlay');
-    return o && o.classList.contains('d-none');
-  }, { timeout: 5000 }).catch(() => {});
-}
 
 test.describe('Campaign Completeness', () => {
   let campaignId: number;
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { waitUntil: 'domcontentloaded', timeout: 10000 }),
-      page.click('button[type="submit"]'),
-    ]);
-    await waitLoadingDone(page);
+    await login(page);
 
     // Create a campaign and character for testing
     const name = uniqueName();

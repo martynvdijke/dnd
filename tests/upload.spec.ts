@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { login } from './helpers.js';
 import { deflateSync } from 'zlib';
 
 function makeTestPNG(): Buffer {
@@ -44,13 +45,7 @@ async function getCSRFToken(page: { request: { get: (url: string) => Promise<{ j
 
 test.describe('File upload and media gallery', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login');
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { timeout: 10000 }),
-      page.click('button[type="submit"]'),
-    ]);
+    await login(page);
   });
 
   test('empty media gallery shows empty state', async ({ page }) => {

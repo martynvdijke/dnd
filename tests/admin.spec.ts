@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { ensureNavOpen, waitLoadingDone, isMobile } from './helpers.js';
+import { ensureNavOpen, waitLoadingDone, isMobile, login } from './helpers.js';
 
 async function goToAdmin(page: Page) {
   await page.waitForTimeout(300);
@@ -8,14 +8,7 @@ async function goToAdmin(page: Page) {
 
 test.describe('Admin panel', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
-      page.click('button[type="submit"]'),
-    ]);
-    await waitLoadingDone(page);
+    await login(page);
   });
 
   test('admin link is visible for admin users', async ({ page }) => {

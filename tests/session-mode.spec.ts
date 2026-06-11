@@ -1,22 +1,9 @@
 import { test, expect } from '@playwright/test';
-
-async function waitLoadingDone(page: import('@playwright/test').Page) {
-  await page.waitForFunction(() => {
-    const o = document.getElementById('loadingOverlay');
-    return o && o.classList.contains('d-none');
-  }, { timeout: 5000 }).catch(() => {});
-}
+import { login } from './helpers.js';
 
 test.describe('Session Mode', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
-      page.click('button[type="submit"]'),
-    ]);
-    await waitLoadingDone(page);
+    await login(page);
   });
 
   test('session mode topbar element exists in DOM', async ({ page }) => {

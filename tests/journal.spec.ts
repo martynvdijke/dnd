@@ -1,32 +1,11 @@
 import { test, expect } from '@playwright/test';
+import { login, waitLoadingDone, waitModalClosed } from './helpers.js';
 
 const uniqueName = () => `J-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-async function waitLoadingDone(page) {
-  await page.waitForFunction(() => {
-    const o = document.getElementById('loadingOverlay');
-    return o && o.classList.contains('d-none');
-  }, { timeout: 5000 }).catch(() => {});
-}
-
-async function waitModalClosed(page) {
-  await page.waitForFunction(() => {
-    const modal = document.getElementById('genericModal');
-    return !modal || !modal.classList.contains('show');
-  }, { timeout: 10000 }).catch(() => {});
-}
-
 test.describe('Character Journal', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { waitUntil: 'domcontentloaded', timeout: 10000 }),
-      page.click('button[type="submit"]'),
-    ]);
-    await waitLoadingDone(page);
-    await page.waitForTimeout(200);
+    await login(page);
   });
 
   test('creates and displays journal entry via API', async ({ page }) => {

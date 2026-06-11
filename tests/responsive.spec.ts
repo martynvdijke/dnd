@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { login, waitLoadingDone } from './helpers.js';
 
 const uniqueName = () => `Resp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -10,13 +11,6 @@ async function ensureNavOpen(page) {
   }
 }
 
-async function waitLoadingDone(page) {
-  await page.waitForFunction(() => {
-    const o = document.getElementById('loadingOverlay');
-    return o && o.classList.contains('d-none');
-  }, { timeout: 5000 }).catch(() => {});
-}
-
 async function waitModalClosed(page) {
   await page.waitForFunction(() => {
     const modal = document.getElementById('genericModal');
@@ -26,14 +20,7 @@ async function waitModalClosed(page) {
 
 test.describe('Responsive design', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
-      page.click('button[type="submit"]'),
-    ]);
-    await waitLoadingDone(page);
+    await login(page);
   });
 
   test('desktop layout works at 1280x720', async ({ page }) => {

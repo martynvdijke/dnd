@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { waitLoadingDone, waitModalClosed, clickSecondaryNavItem } from './helpers.js';
+import { waitLoadingDone, waitModalClosed, clickSecondaryNavItem, login } from './helpers.js';
 
 const uniqueName = () => `OS-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -64,14 +64,7 @@ async function submitOneShotForm(page, { title, template, difficulty, minutes })
 
 test.describe('One-Shot Adventure Features', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { waitUntil: 'domcontentloaded' }),
-      page.click('button[type="submit"]'),
-    ]);
-    await waitLoadingDone(page);
+    await login(page);
   });
 
   test('One-Shots nav item is visible and loads the list', async ({ page }) => {

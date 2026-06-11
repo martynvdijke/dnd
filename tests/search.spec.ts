@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { isMobile } from './helpers.js';
+import { isMobile, login } from './helpers.js';
 
 const uniqueName = () => `Search-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -20,17 +20,7 @@ async function waitModalClosed(page) {
 
 test.describe('Advanced Search', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { waitUntil: 'domcontentloaded', timeout: 10000 }),
-      page.click('button[type="submit"]'),
-    ]);
-    await page.waitForFunction(() => {
-      const o = document.getElementById('loadingOverlay');
-      return o && o.classList.contains('d-none');
-    }, { timeout: 5000 }).catch(() => {});
+    await login(page);
     await page.waitForTimeout(300);
   });
 
