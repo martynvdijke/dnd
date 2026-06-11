@@ -1,3 +1,15 @@
+# [2.15.0](https://github.com/martynvdijke/dnd/compare/v2.14.3...v2.15.0) (2026-06-11)
+
+
+### Bug Fixes
+
+* use consistent Gin route param names to avoid panic ([23bdfcb](https://github.com/martynvdijke/dnd/commit/23bdfcb1e668e82b89415192edfe81450545fa15))
+
+
+### Features
+
+* compendium linking for spells, items, monsters ([f94fbf5](https://github.com/martynvdijke/dnd/commit/f94fbf500cbccc1157e8ec5ccb27dcd36a530aaf))
+
 ## [2.14.3](https://github.com/martynvdijke/dnd/compare/v2.14.2...v2.14.3) (2026-06-10)
 
 
