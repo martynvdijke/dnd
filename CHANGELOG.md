@@ -1,3 +1,15 @@
+# [2.16.0](https://github.com/martynvdijke/dnd/compare/v2.15.1...v2.16.0) (2026-06-11)
+
+
+### Bug Fixes
+
+* reduce flaky e2e tests by improving login wait reliability ([19991ac](https://github.com/martynvdijke/dnd/commit/19991acb6aa7192143f9fb1872f57e533af11104))
+
+
+### Features
+
+* add structured logging to external dependency handlers ([72c0427](https://github.com/martynvdijke/dnd/commit/72c042759b17853945a6a7b4cab8ad066ea413bc)), closes [#external-dependency-logging](https://github.com/martynvdijke/dnd/issues/external-dependency-logging)
+
 ## [2.15.1](https://github.com/martynvdijke/dnd/compare/v2.15.0...v2.15.1) (2026-06-11)
 
 
