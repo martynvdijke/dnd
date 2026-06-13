@@ -1,0 +1,15 @@
+﻿2026-06-13T21:40:08.4687120Z ##[group]Run npx playwright test --project=chromium --project=mobile-chrome
+2026-06-13T21:40:08.4687722Z [36;1mnpx playwright test --project=chromium --project=mobile-chrome[0m
+2026-06-13T21:40:08.4719237Z shell: /usr/bin/bash -e {0}
+2026-06-13T21:40:08.4719520Z env:
+2026-06-13T21:40:08.4719736Z   GOTOOLCHAIN: local
+2026-06-13T21:40:08.4720084Z   CI: true
+2026-06-13T21:40:08.4720293Z ##[endgroup]
+2026-06-13T21:40:10.1038382Z [WebServer] flag provided but not defined: -count
+2026-06-13T21:40:10.1039545Z [WebServer] usage: go run [build flags] [-exec xprog] package [arguments...]
+2026-06-13T21:40:10.1040520Z [WebServer] Run 'go help run' for details.
+2026-06-13T21:40:10.1200452Z 
+2026-06-13T21:40:10.1201675Z Error: Process from config.webServer was not able to start. Exit code: 2
+2026-06-13T21:40:10.1209838Z 
+2026-06-13T21:40:10.1215617Z 
+2026-06-13T21:40:10.1618460Z ##[error]Process completed with exit code 1.
