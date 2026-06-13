@@ -36,9 +36,10 @@ export async function applyHeal() {
   } catch (e: any) { toast(e.message, true); }
 }
 
-async function loadOpenChar(id: number) {
-  const m = await import('./list');
-  m.openChar(id);
+function loadOpenChar(id: number) {
+  // openChar is still in app.ts, accessible via window
+  const fn = (window as any).openChar;
+  if (fn) fn(id);
 }
 
 export async function doRest(type: string) {

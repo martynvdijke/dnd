@@ -44,9 +44,11 @@ export async function applyHeal() {
         toast(e.message, true);
     }
 }
-async function loadOpenChar(id) {
-    const m = await import('./list');
-    m.openChar(id);
+function loadOpenChar(id) {
+    // openChar is still in app.ts, accessible via window
+    const fn = window.openChar;
+    if (fn)
+        fn(id);
 }
 export async function doRest(type) {
     const c = currentChar;

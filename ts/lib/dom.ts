@@ -1,3 +1,4 @@
+// @ts-ignore — bootstrap has no type declarations, used for modal handling
 import * as bootstrap from 'bootstrap';
 
 let modalEl: HTMLElement | null = null;
