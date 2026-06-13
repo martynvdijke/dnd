@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"villum/db"
+	"villum/ent/user"
 )
 
 // RegisterPublicRoutes registers non-authenticated routes.
@@ -141,7 +142,27 @@ func RegisterStaticRoutes(r *gin.Engine, embedFS embed.FS, mediaPath string, Ver
 	}
 
 	serveHTML("/", "app.html", "app")
-	serveHTML("/login", "login.html", "login")
+
+	// Login page: redirect to /setup if no admin user exists
+	r.GET("/login", func(c *gin.Context) {
+		count, err := db.Client.User.Query().Where(user.Role("admin")).Count(c.Request.Context())
+		if err == nil && count == 0 {
+			c.Redirect(http.StatusTemporaryRedirect, "/setup")
+			return
+		}
+		data, err := fs.ReadFile(staticFS, "login.html")
+		if err != nil {
+			c.String(http.StatusNotFound, "not found")
+			return
+		}
+		content := strings.ReplaceAll(string(data), "{{VERSION}}", Version)
+		script := InjectUmamiScript()
+		if script != "" {
+			content = strings.ReplaceAll(content, "</head>", script+"\n</head>")
+		}
+		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(content))
+	})
+
 	serveHTML("/setup", "setup.html", "setup")
 	serveHTML("/admin", "admin.html", "admin")
 
