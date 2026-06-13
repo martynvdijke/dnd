@@ -20,16 +20,11 @@ function initTheme() {
 
 async function init() {
   initTheme();
-  const res = await fetch('/api/check-setup');
-  const data = await res.json();
-  if (data.setup) {
-    window.location.href = '/login';
-    return;
-  }
 
   const form = document.getElementById('setupForm') as HTMLFormElement;
   const errorDiv = document.getElementById('error') as HTMLDivElement;
 
+  // Attach handler immediately (before async check) to avoid race condition
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     errorDiv.classList.add('d-none');
@@ -67,11 +62,13 @@ async function init() {
         credentials: 'include',
       });
 
+      console.log('Setup POST response:', res.status, res.statusText);
       if (res.ok) {
         window.location.href = '/';
       } else {
-        const err = await res.json();
-        errorDiv.textContent = err.error || 'Setup failed';
+        const text = await res.text();
+        console.error('Setup POST failed:', res.status, text);
+        errorDiv.textContent = text || 'Setup failed';
         errorDiv.classList.remove('d-none');
       }
     } finally {
@@ -79,6 +76,14 @@ async function init() {
       submitBtn.innerHTML = origHtml;
     }
   });
+
+  // Then check if setup already done (redirect if so)
+  const res = await fetch('/api/check-setup');
+  const data = await res.json();
+  if (data.setup) {
+    window.location.href = '/login';
+    return;
+  }
 }
 
 init();

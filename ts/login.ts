@@ -20,22 +20,11 @@ function initTheme() {
 
 async function init() {
   initTheme();
-  const res = await fetch('/api/check-setup');
-  const data = await res.json();
-  if (!data.setup) {
-    window.location.href = '/setup';
-    return;
-  }
-
-  const res2 = await fetch('/api/user/me', { credentials: 'include' });
-  if (res2.ok) {
-    window.location.href = '/';
-    return;
-  }
 
   const form = document.getElementById('loginForm') as HTMLFormElement;
   const errorDiv = document.getElementById('error') as HTMLDivElement;
 
+  // Attach handler immediately (before async checks) to avoid race conditions
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     errorDiv.classList.add('d-none');
@@ -68,6 +57,19 @@ async function init() {
       submitBtn.innerHTML = origHtml;
     }
   });
+
+  const res = await fetch('/api/check-setup');
+  const data = await res.json();
+  if (!data.setup) {
+    window.location.href = '/setup';
+    return;
+  }
+
+  const res2 = await fetch('/api/user/me', { credentials: 'include' });
+  if (res2.ok) {
+    window.location.href = '/';
+    return;
+  }
 }
 
 init();
