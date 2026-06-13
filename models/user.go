@@ -13,9 +13,11 @@ type User struct {
 }
 
 type AuthSession struct {
-	UserID    int64
-	Username  string
-	Role      string
-	ExpiresAt time.Time
-	IP        string
+	ID        string    `json:"id"`
+	UserID    int64     `json:"user_id"`
+	Username  string    `json:"username"`
+	Role      string    `json:"role"`
+	IP        string    `json:"ip"`
+	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
 }

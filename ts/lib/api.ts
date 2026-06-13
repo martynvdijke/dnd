@@ -1,0 +1,29 @@
+import { showLoading, hideLoading } from './dom';
+
+let csrfToken = '';
+
+export function setCsrfToken(token: string): void {
+  csrfToken = token;
+}
+
+export function getCsrfToken(): string {
+  return csrfToken;
+}
+
+export async function api(method: string, path: string, body?: any): Promise<any> {
+  showLoading();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+  const opts: RequestInit = { method, headers, credentials: 'include' };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+  try {
+    const res = await fetch(path, opts);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(err.error || 'Request failed');
+    }
+    return res.json();
+  } finally {
+    hideLoading();
+  }
+}

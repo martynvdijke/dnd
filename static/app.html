@@ -17,6 +17,11 @@
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
 </head>
 <body>
+<!-- Offline Indicator -->
+<div id="offlineBanner" class="offline-banner" style="display:none">
+  <i class="fa-solid fa-wifi-slash me-1" aria-hidden="true"></i>
+  You are offline — some features may be unavailable
+</div>
 
 <nav class="navbar navbar-expand-md sticky-top">
   <div class="container">
@@ -317,6 +322,18 @@
 
 <script src="/static/js/pwa.js"></script>
 <script>document.getElementById('sidebarUserLabel').textContent = document.getElementById('userName')?.textContent || '';</script>
+<script>
+// Offline indicator
+(function() {
+  const banner = document.getElementById('offlineBanner');
+  function updateOnlineStatus() {
+    if (banner) banner.style.display = navigator.onLine ? 'none' : 'block';
+  }
+  window.addEventListener('online', updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+  updateOnlineStatus();
+})();
+</script>
 <script src="/static/js/app.js"></script>
 
 <!-- PDF Viewer Modal -->

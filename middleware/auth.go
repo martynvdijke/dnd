@@ -1,75 +1,17 @@
 package middleware
 
 import (
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"villum/models"
 )
 
-type SessionStore struct {
-	mu       sync.RWMutex
-	sessions map[string]*models.AuthSession
-}
-
-var Store = &SessionStore{
-	sessions: make(map[string]*models.AuthSession),
-}
-
-func generateSessionID() string {
-	b := make([]byte, 32)
-	rand.Read(b)
-	return hex.EncodeToString(b)
-}
-
-func (s *SessionStore) Create(userID int64, username, role, ip string) string {
-	id := generateSessionID()
-	s.mu.Lock()
-	s.sessions[id] = &models.AuthSession{
-		UserID:    userID,
-		Username:  username,
-		Role:      role,
-		ExpiresAt: time.Now().Add(24 * time.Hour),
-		IP:        ip,
-	}
-	s.mu.Unlock()
-	return id
-}
-
-func (s *SessionStore) Get(sessionID string) *models.AuthSession {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	sess, ok := s.sessions[sessionID]
-	if !ok {
-		return nil
-	}
-	if time.Now().After(sess.ExpiresAt) {
-		return nil
-	}
-	return sess
-}
-
-func (s *SessionStore) Delete(sessionID string) {
-	s.mu.Lock()
-	delete(s.sessions, sessionID)
-	s.mu.Unlock()
-}
-
-func (s *SessionStore) Cleanup() {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	now := time.Now()
-	for id, sess := range s.sessions {
-		if now.After(sess.ExpiresAt) {
-			delete(s.sessions, id)
-		}
-	}
-}
+// Store is the global session store. Defaults to MemoryStore.
+// Replace with DBSessionStore after DB is initialized for persistence.
+var Store SessionStore = NewMemoryStore()
 
 func StartCleanupTask() {
 	go func() {

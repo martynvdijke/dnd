@@ -9,27 +9,23 @@ import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { showView, setCurrentView, getCurrentView } from './navigation';
 import { toggleFabMenu, updateFabForView } from './fab';
+import { initBridge } from './lib/bridge';
+import { esc, capitalize, showModal, hideModal, toast } from './lib/dom';
+import { initTheme } from './lib/theme';
+import { api, setCsrfToken, getCsrfToken } from './lib/api';
+import { initShortcuts, showShortcutsHelp, getSections } from './lib/shortcuts';
+import { renderDiceTab } from './dice';
 
 declare const htmx: any;
 
-let csrfToken = '';
-let currentUser: { id: number; username: string; role: string } | null = null;
-let currentChar: any = null;
+export let currentUser: { id: number; username: string; role: string } | null = null;
+export let currentChar: any = null;
 let currentTab = 'stats';
 let allLocations: any[] = [];
 let allNPCs: any[] = [];
-let loadingCount = 0;
 
-// ─── Utilities ───
-
-function esc(s: string | null | undefined): string {
-  if (!s) return '';
-  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
-}
-
-function capitalize(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
-}
+// Re-exported for extracted modules to import
+export { allLocations, allNPCs, currentTab };
 
 // ─── FAB ───
 // (moved to ts/fab.ts)
@@ -51,169 +47,10 @@ function sortList(key: string, order: 'asc' | 'desc' = 'asc') {
 }
 (window as any).sortList = sortList;
 
-// ─── Keyboard Shortcuts ───
+// Keyboard Shortcuts handled via import from ./lib/shortcuts
 
-function initShortcuts() {
-  document.addEventListener('keydown', (e) => {
-    const target = e.target as HTMLElement;
-    const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
-
-    if (e.key === 'Escape') {
-      hideModal();
-      return;
-    }
-
-    if (isInput) return;
-
-    if (e.key === '?') {
-      showShortcutsHelp();
-      return;
-    }
-
-    if (e.key === 't' || e.key === 'T') {
-      toggleTheme();
-      return;
-    }
-
-    if (e.key === 'n' && getCurrentView() === 'characters') {
-      (window as any).newChar();
-      return;
-    }
-
-    if (e.key === 'd' && getCurrentView() !== 'sheet') {
-      showView('dice');
-      renderDiceTab();
-      setTimeout(() => {
-        const input = document.getElementById('diceExpr');
-        if (input) input.focus();
-      }, 100);
-      return;
-    }
-
-    if (e.key === 'p') {
-      (window as any).showParty();
-      return;
-    }
-
-    if (e.key === 'c') {
-      (window as any).showCompendium();
-      return;
-    }
-
-    if (e.key === '/' && getCurrentView() === 'characters') {
-      e.preventDefault();
-      const search = document.querySelector<HTMLInputElement>('#charSearch');
-      if (search) search.focus();
-      return;
-    }
-
-    if (getCurrentView() === 'sheet') {
-      const num = parseInt(e.key);
-      if (num >= 1 && num <= 9) {
-        const idx = num - 1;
-        if (idx < sections.length) {
-          switchTab(sections[idx]);
-        }
-      }
-    }
-  });
-}
-
-function showShortcutsHelp() {
-  showModal('Keyboard Shortcuts', `
-    <div class="shortcut-grid">
-      <div class="d-flex justify-content-between py-1"><span><kbd>n</kbd> New Character</span></div>
-      <div class="d-flex justify-content-between py-1"><span><kbd>d</kbd> Dice Roller</span></div>
-      <div class="d-flex justify-content-between py-1"><span><kbd>p</kbd> Party View</span></div>
-      <div class="d-flex justify-content-between py-1"><span><kbd>c</kbd> Compendium</span></div>
-      <div class="d-flex justify-content-between py-1"><span><kbd>/</kbd> Search Characters</span></div>
-      <div class="d-flex justify-content-between py-1"><span><kbd>1</kbd>-<kbd>9</kbd> Sheet Tabs</span></div>
-      <div class="d-flex justify-content-between py-1"><span><kbd>Esc</kbd> Close Modal</span></div>
-      <div class="d-flex justify-content-between py-1"><span><kbd>?</kbd> This Help</span></div>
-      <div class="d-flex justify-content-between py-1"><span><kbd>T</kbd> Toggle Theme</span></div>
-    </div>
-  `);
-}
-(window as any).showShortcutsHelp = showShortcutsHelp;
-
-// ─── Global Search ───
-
-function showSearchOverlay() {
-  let overlay = document.getElementById('searchOverlay');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'searchOverlay';
-    overlay.className = 'search-overlay';
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) hideSearchOverlay(); });
-    document.body.appendChild(overlay);
-    const panel = document.createElement('div');
-    panel.id = 'searchPanel';
-    panel.className = 'search-panel';
-    overlay.appendChild(panel);
-  }
-  overlay.style.display = 'flex';
-}
-
-function hideSearchOverlay() {
-  const overlay = document.getElementById('searchOverlay');
-  if (overlay) overlay.style.display = 'none';
-}
-(window as any).hideSearchOverlay = hideSearchOverlay;
-
-async function doSearch() {
-  const q = (document.getElementById('searchInput') as HTMLInputElement)?.value?.trim();
-  if (!q) return;
-  try {
-    const results = await api('GET', '/api/search?q=' + encodeURIComponent(q));
-    let html = '';
-    let total = 0;
-    const sections: Record<string, { label: string; icon: string; items: any[] }> = {
-      characters:  { label: 'Characters',  icon: 'fa-users',     items: results.characters },
-      npcs:        { label: 'NPCs',         icon: 'fa-user-group', items: results.npcs },
-      notes:       { label: 'Notes',        icon: 'fa-note-sticky', items: results.notes },
-      quests:      { label: 'Quests',       icon: 'fa-scroll',    items: results.quests },
-      journal:     { label: 'Journal',      icon: 'fa-book-open', items: results.journal },
-      sessions:    { label: 'Sessions',     icon: 'fa-calendar',  items: results.sessions },
-      campaigns:   { label: 'Campaigns',    icon: 'fa-flag',      items: results.campaigns },
-      spells:      { label: 'Spells',       icon: 'fa-wand-sparkles', items: results.spells },
-      equipment:   { label: 'Equipment',    icon: 'fa-backpack',  items: results.equipment },
-      races:       { label: 'Races',        icon: 'fa-person',    items: results.races },
-      classes:     { label: 'Classes',      icon: 'fa-graduation-cap', items: results.classes },
-      feats:       { label: 'Feats',        icon: 'fa-star',      items: results.feats },
-      backgrounds: { label: 'Backgrounds',  icon: 'fa-address-card', items: results.backgrounds },
-    };
-    for (const [key, sec] of Object.entries(sections)) {
-      if (sec.items.length === 0) continue;
-      total += sec.items.length;
-      html += `<h6 class="mt-3 mb-2"><i class="fa-solid ${sec.icon} me-2 text-muted"></i>${sec.label} (${sec.items.length})</h6>`;
-      for (const item of sec.items) {
-        html += `<div class="search-result-item" onclick="navigateSearchResult('${key}',${item.id},'${esc(item.name)}');hideSearchOverlay()">
-          <div class="fw-bold small">${esc(item.name)}</div>
-          ${item.snippet ? `<div class="text-muted small">${item.snippet}</div>` : ''}
-        </div>`;
-      }
-    }
-    if (total === 0) {
-      html = `<div class="empty-state"><i class="fa-solid fa-search fa-2x mb-2 d-block text-muted"></i><p class="fw-bold">No Results</p><p class="small text-muted">No matches found for "${esc(q)}".</p></div>`;
-    }
-    showSearchOverlay();
-    const panel = document.getElementById('searchPanel');
-    if (panel) {
-      panel.innerHTML = `<div class="d-flex justify-content-between align-items-center mb-2"><h5 class="mb-0">Search Results${total > 0 ? ` (${total})` : ''}</h5><button class="btn btn-sm btn-outline-secondary" onclick="hideSearchOverlay()"><i class="fa-solid fa-xmark"></i></button></div>${html}`;
-    }
-  } catch (e: any) {
-    toast(e.message, true);
-  }
-};
-function initSearch() {
-  const input = document.getElementById('searchInput');
-  if (!input) return;
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') doSearch();
-  });
-  const btn = document.getElementById('searchBtn');
-  if (btn) btn.addEventListener('click', doSearch);
-}
+// Global Search → extracted to ts/search.ts
+import { showSearchOverlay, hideSearchOverlay, doSearch, initSearch } from './search';
 
 (window as any).navigateSearchResult = function (type: string, id: number, name: string) {
   if (type === 'characters') {
@@ -231,110 +68,8 @@ function initSearch() {
     toast(name);
   }
 };
-(window as any).doSearch = doSearch;
 
-// ─── Loading ───
-
-function showLoading() {
-  loadingCount++;
-  const overlay = document.getElementById('loadingOverlay');
-  if (overlay) overlay.classList.remove('d-none');
-}
-function hideLoading() {
-  loadingCount = Math.max(0, loadingCount - 1);
-  const overlay = document.getElementById('loadingOverlay');
-  if (overlay && loadingCount === 0) overlay.classList.add('d-none');
-}
-
-// ─── API ───
-
-async function api(method: string, path: string, body?: any): Promise<any> {
-  showLoading();
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
-  const opts: RequestInit = { method, headers, credentials: 'include' };
-  if (body !== undefined) opts.body = JSON.stringify(body);
-  try {
-    const res = await fetch(path, opts);
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ error: res.statusText }));
-      throw new Error(err.error || 'Request failed');
-    }
-    return res.json();
-  } finally {
-    hideLoading();
-  }
-}
-(window as any).api = api;
-
-// ─── Theme ───
-
-function toggleTheme() {
-  const html = document.documentElement;
-  const isDark = html.getAttribute('data-theme') === 'dark';
-  const newTheme = isDark ? 'light' : 'dark';
-  html.setAttribute('data-theme', newTheme);
-  localStorage.setItem('villum-theme', newTheme);
-  updateThemeIcon();
-}
-(window as any).toggleTheme = toggleTheme;
-
-function updateThemeIcon() {
-  const icon = document.getElementById('themeIcon');
-  if (!icon) return;
-  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-  icon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-}
-
-function initTheme() {
-  const saved = localStorage.getItem('villum-theme') || 'light';
-  document.documentElement.setAttribute('data-theme', saved);
-  updateThemeIcon();
-}
-
-// ─── Bootstrap Modal ───
-
-let modalEl: HTMLElement | null = null;
-function getModal(): any {
-  if (!modalEl) modalEl = document.getElementById('genericModal');
-  let inst = bootstrap.Modal.getInstance(modalEl);
-  if (!inst) inst = new bootstrap.Modal(modalEl, { backdrop: true, keyboard: true });
-  return inst;
-}
-
-function showModal(title: string, bodyHtml: string) {
-  const modal = getModal();
-  document.getElementById('genericModalTitle')!.textContent = title;
-  document.getElementById('genericModalBody')!.innerHTML = bodyHtml;
-  modal.show();
-}
-(window as any).showModal = showModal;
-
-function hideModal() {
-  getModal().hide();
-  document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-  document.body.classList.remove('modal-open');
-  document.body.style.removeProperty('padding-right');
-}
-(window as any).hideModal = hideModal;
-
-// ─── Bootstrap Toast ───
-
-function toast(msg: string, isError = false) {
-  const container = document.getElementById('toastContainer')!;
-  const id = 'toast-' + Date.now();
-  const bg = isError ? 'bg-danger' : 'bg-success';
-  container.innerHTML += `
-    <div class="toast align-items-center text-white ${bg} border-0 mb-2" id="${id}" role="alert">
-      <div class="d-flex">
-        <div class="toast-body">${esc(msg)}</div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-      </div>
-    </div>`;
-  const el = document.getElementById(id)!;
-  new bootstrap.Toast(el, { autohide: true, delay: 5000 }).show();
-  setTimeout(() => el.remove(), 6000);
-}
+// Loading, API, Theme, Modal, Toast → imported from ./lib/{dom,api,theme}
 
 // ─── WebSocket ───
 
@@ -366,17 +101,20 @@ function connectWS() {
 // ─── Init ───
 
 async function init() {
+  initBridge();
   initTheme();
   initShortcuts();
   initSearch();
+  initAIClickHandler();
+  initPdfViewerCleanup();
   try {
     const user = await api('GET', '/api/user/me');
     currentUser = user;
     const tokenRes = await api('GET', '/api/csrf-token');
-    csrfToken = tokenRes.token;
-    document.querySelector('meta[name="csrf-token"]')?.setAttribute('content', csrfToken);
+    setCsrfToken(tokenRes.token);
+    document.querySelector('meta[name="csrf-token"]')?.setAttribute('content', getCsrfToken());
     document.body.addEventListener('htmx:configRequest', (e: any) => {
-      e.detail.headers['X-CSRF-Token'] = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || csrfToken;
+      e.detail.headers['X-CSRF-Token'] = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || getCsrfToken();
     });
     document.getElementById('userName')!.textContent = user.username;
 
@@ -405,8 +143,6 @@ async function init() {
     window.location.href = '/login';
   }
 }
-
-(window as any).showView = showView;
 
 // ─── Character List ───
 
@@ -2360,465 +2096,6 @@ async function renderAnalytics() {
   }
 }
 
-// ─── 3D Dice ───
-
-// ─── Dice Constants ───
-
-const DICE_PRESETS = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100'];
-const DICE_NOTATION_PRESETS = [
-  { label: 'd20', expr: '1d20' },
-  { label: 'Advantage', expr: '2d20kh1', icon: 'fa-solid fa-angles-up' },
-  { label: 'Disadvantage', expr: '2d20kl1', icon: 'fa-solid fa-angles-down' },
-  { label: 'd6', expr: '1d6' },
-  { label: '2d6', expr: '2d6' },
-  { label: '3d6', expr: '3d6' },
-  { label: '4d6kh3', expr: '4d6kh3', sub: 'stats' },
-  { label: 'd8', expr: '1d8' },
-  { label: 'd10', expr: '1d10' },
-  { label: 'd12', expr: '1d12' },
-  { label: 'd100', expr: '1d100' },
-  { label: 'd4', expr: '1d4' },
-];
-
-// Pip positions for d6 faces (1-6)
-const D6_PIPS: Record<number, Array<{top: string; left: string}>> = {
-  1: [{top:'50%',left:'50%'}],
-  2: [{top:'25%',left:'25%'},{top:'75%',left:'75%'}],
-  3: [{top:'25%',left:'25%'},{top:'50%',left:'50%'},{top:'75%',left:'75%'}],
-  4: [{top:'25%',left:'25%'},{top:'25%',left:'75%'},{top:'75%',left:'25%'},{top:'75%',left:'75%'}],
-  5: [{top:'25%',left:'25%'},{top:'25%',left:'75%'},{top:'50%',left:'50%'},{top:'75%',left:'25%'},{top:'75%',left:'75%'}],
-  6: [{top:'25%',left:'25%'},{top:'25%',left:'75%'},{top:'50%',left:'25%'},{top:'50%',left:'75%'},{top:'75%',left:'25%'},{top:'75%',left:'75%'}],
-};
-
-// ─── 3D Geometry Helpers ───
-
-/** Generate N evenly-distributed points on a sphere (Fibonacci sphere algorithm). */
-function fibonacciSphere(n: number, radius: number): Array<{x: number; y: number; z: number}> {
-  if (n <= 1) return [{ x: 0, y: 0, z: radius }];
-  const points: Array<{x: number; y: number; z: number}> = [];
-  const phi = Math.PI * (3 - Math.sqrt(5));
-  for (let i = 0; i < n; i++) {
-    const y = 1 - (i / (n - 1)) * 2;
-    const r = Math.sqrt(1 - y * y);
-    const theta = phi * i;
-    points.push({ x: r * Math.cos(theta) * radius, y: y * radius, z: r * Math.sin(theta) * radius });
-  }
-  return points;
-}
-
-/** Compute CSS rotation angles to make (nx, ny, nz) face the viewer (+Z). */
-function normalToRotation(nx: number, ny: number, nz: number): { rx: number; ry: number } {
-  // Angle around Y axis
-  const ry = Math.atan2(nx, nz) * (180 / Math.PI);
-  // Angle around X axis
-  const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
-  const rx = Math.asin(-ny / len) * (180 / Math.PI);
-  return { rx, ry };
-}
-
-/** Get pre-calculated face transforms for a given die type. */
-function getFaceTransforms(sides: number): Array<{ rx: number; ry: number; rz: number }> {
-  const radius = 36; // half the die size
-  if (sides === 6) {
-    // Cube: 6 faces at cardinal positions
-    return [
-      { rx: 0,   ry: 0,   rz: 0 },   // front (face 1)
-      { rx: 0,   ry: 180, rz: 0 },   // back  (face 6, opposite to front)
-      { rx: 0,   ry: 90,  rz: 0 },   // right (face 3)
-      { rx: 0,   ry: -90, rz: 0 },   // left  (face 4)
-      { rx: -90, ry: 0,   rz: 0 },   // top   (face 2)
-      { rx: 90,  ry: 0,   rz: 0 },   // bottom (face 5)
-    ];
-  }
-
-  // For other polyhedra, distribute faces evenly on sphere
-  const points = fibonacciSphere(sides, radius);
-
-  // For tetrahedron (d4), d4 has special face-value mapping
-  if (sides === 4) {
-    // Use the 4 points of a tetrahedron for face positions
-    const t = Math.sqrt(1 / 3);
-    const tetraVerts = [
-      { x:  t * radius, y:  t * radius, z:  t * radius },
-      { x: -t * radius, y: -t * radius, z:  t * radius },
-      { x: -t * radius, y:  t * radius, z: -t * radius },
-      { x:  t * radius, y: -t * radius, z: -t * radius },
-    ];
-    return tetraVerts.map(p => {
-      const norm = normalToRotation(p.x, p.y, p.z);
-      return { rx: norm.rx, ry: norm.ry, rz: 0 };
-    });
-  }
-
-  return points.map(p => {
-    const norm = normalToRotation(p.x, p.y, p.z);
-    return { rx: norm.rx, ry: norm.ry, rz: 0 };
-  });
-}
-
-/** Compute die rotation string to show a specific face value. */
-function rotateDieToShow(sides: number, value: number): string {
-  const faceIdx = Math.max(0, Math.min(sides - 1, value - 1));
-  const transforms = FACE_TRANSFORMS[sides as keyof typeof FACE_TRANSFORMS]
-    || getFaceTransforms(sides);
-
-  if (faceIdx < transforms.length) {
-    const t = transforms[faceIdx];
-    return `rotateX(${-t.rx}deg) rotateY(${-t.ry}deg)`;
-  }
-  return '';
-}
-
-/** Compute the rolling animation class for a die type. */
-function rollingClass(sides: number): string {
-  if (sides === 4) return 'rolling-d4';
-  if (sides === 6) return 'rolling';
-  if (sides === 8) return 'rolling-d8';
-  if (sides === 10) return 'rolling-d10';
-  if (sides === 12) return 'rolling-d12';
-  if (sides === 20) return 'rolling-d20';
-  return 'rolling';
-}
-
-/** Face shape class for the polyhedron type. */
-function faceShapeClass(sides: number): string {
-  if (sides === 4 || sides === 8 || sides === 20) return 'tri-face';
-  if (sides === 10) return 'kite-face';
-  if (sides === 12) return 'pent-face';
-  return ''; // cube uses square faces (default)
-}
-
-// Cache pre-computed face transforms
-const FACE_TRANSFORMS: Record<number, Array<{ rx: number; ry: number; rz: number }>> = {};
-[4, 6, 8, 10, 12, 20].forEach(s => { FACE_TRANSFORMS[s] = getFaceTransforms(s); });
-
-// ─── Build 3D Die HTML ───
-
-function build3DDie(value: number, sides: number, dieLabel: string): string {
-  const maxSides = sides >= 100 ? 100 : sides;
-  const dieClass = 'd' + (maxSides >= 100 ? 100 : maxSides);
-  const transforms = FACE_TRANSFORMS[maxSides as keyof typeof FACE_TRANSFORMS]
-    || getFaceTransforms(maxSides);
-  const shapeCls = faceShapeClass(maxSides);
-  const dieRot = rotateDieToShow(maxSides, value);
-
-  const facesHtml = transforms.map((t, i) => {
-    const faceValue = i + 1; // face index → value
-    const displayVal = maxSides === 100
-      ? (faceValue === 10 ? '00' : String(faceValue * 10))
-      : String(faceValue);
-
-    // d6 uses pips instead of numerals
-    if (maxSides === 6 && faceValue >= 1 && faceValue <= 6) {
-      const pips = D6_PIPS[faceValue] || [];
-      const pipHtml = pips.map(p =>
-        `<span class="pip" style="top:${p.top};left:${p.left};transform:translate(-50%,-50%)"></span>`
-      ).join('');
-      return `<div class="dice-3d-face ${shapeCls}" style="transform:rotateX(${t.rx}deg) rotateY(${t.ry}deg) translateZ(36px)">${pipHtml}</div>`;
-    }
-
-    return `<div class="dice-3d-face ${shapeCls}" style="transform:rotateX(${t.rx}deg) rotateY(${t.ry}deg) translateZ(36px)">${displayVal}</div>`;
-  }).join('');
-
-  return `<div class="dice-3d-die ${dieClass}" data-sides="${maxSides}" data-value="${value}" style="transform:${dieRot}">${facesHtml}</div>`;
-}
-
-// ─── Die Value Helpers ───
-
-/** Extract the numeric value from a breakdown roll entry (DieRollDetail or plain number). */
-function rollValue(r: any): number {
-  return typeof r === 'number' ? r : (r.value ?? 0);
-}
-
-/** Check if a die roll detail should be displayed normally (useInTotal). */
-function rollUsed(r: any): boolean {
-  return typeof r === 'number' ? true : (r.useInTotal !== false);
-}
-
-/** Get modifier flags for a die roll (e.g., "dropped", "exploded"). */
-function rollFlags(r: any): string {
-  return typeof r === 'number' ? '' : (r.modifierFlags || '');
-}
-
-/** Parse sides from a die label like "d20" or "+3" (returns 0 for modifiers). */
-function parseSides(dieLabel: string): number {
-  const m = dieLabel.match(/^d(\d+)$/i);
-  return m ? parseInt(m[1]) : 0;
-}
-
-// ─── Dice Expression / Quick Roll ───
-
-function setDiceExpr(expr: string) {
-  const input = document.getElementById('diceExpr') as HTMLInputElement;
-  input.value = expr;
-  doRoll();
-}
-(window as any).setDiceExpr = setDiceExpr;
-
-async function rollWithAdvantage(isAdv: boolean) {
-  const input = document.getElementById('diceExpr') as HTMLInputElement;
-  const expr = input.value.trim();
-  if (!expr.match(/^\d*d\d+/)) return;
-  try {
-    const result = await api('POST', '/api/roll', {
-      expression: expr,
-      character_id: currentChar?.id,
-      advantage: isAdv ? 'advantage' : 'disadvantage',
-    });
-    const container = document.getElementById('dice3dContainer');
-    const resultDiv = document.getElementById('diceResult');
-    if (container) container.innerHTML = '';
-    if (resultDiv) {
-      const rolls = result.breakdown?.[0]?.rolls || [];
-      const chosen = result.total;
-      let badge = '';
-      // Check for 20/1 on d20 in the FIRST breakdown group's rolls
-      const d20Rolls = result.breakdown?.filter((b: any) => b.die === 'd20' && b.rolls) || [];
-      for (const bg of d20Rolls) {
-        for (const r of bg.rolls) {
-          const v = rollValue(r);
-          if (v === 20) badge = '<span class="badge bg-success ms-2">Critical Hit!</span>';
-          else if (v === 1) badge = '<span class="badge bg-danger ms-2">Critical Fail!</span>';
-        }
-      }
-      resultDiv.style.display = 'block';
-      resultDiv.innerHTML = `
-        <div class="dice-result-box text-center">
-          <div class="roll-expression">${esc(result.expression)} (${isAdv ? 'advantage' : 'disadvantage'})</div>
-          <div class="d-flex justify-content-center gap-3 mb-2">
-            ${rolls.map((r: any, i: number) => {
-              const v = rollValue(r);
-              const used = rollUsed(r);
-              const style = used ? 'border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)' : 'opacity:0.4';
-              return `<span class="die-face${used ? '' : ' die-dropped'}" style="${style}">${v}</span>`;
-            }).join('')}
-          </div>
-          <div class="roll-total-anim">${chosen}</div>
-          ${badge}
-          <div class="roll-text text-muted">${esc(result.text)}</div>
-        </div>`;
-      animateDiceRoll(result.breakdown);
-    }
-  } catch (e: any) {
-    toast(e.message, true);
-  }
-}
-(window as any).rollWithAdvantage = rollWithAdvantage;
-
-// ─── Render Dice Tab ───
-
-function renderDiceTab() {
-  const targetId = getCurrentView() === 'dice' ? 'diceViewSection' : 'diceSection';
-  const el = document.getElementById(targetId);
-  if (!el) return;
-  el.innerHTML = `
-    <div class="text-center dice-roller">
-      <h5>Dice Roller</h5>
-      <div class="row justify-content-center mb-2">
-        <div class="col-md-8">
-          <label class="form-label">Expression</label>
-          <input class="form-control text-center" id="diceExpr" value="1d20" placeholder="e.g. 2d6+3, 4d6kh3, 1d20!" style="font-size:1.3rem;font-weight:700">
-        </div>
-      </div>
-      <div class="dice-quick-btns mb-3">
-        ${DICE_NOTATION_PRESETS.map(p =>
-          `<button class="btn btn-sm dice-btn" onclick="setDiceExpr('${esc(p.expr)}')" title="${p.sub ? p.sub : p.expr}">
-            ${p.icon ? `<i class="${p.icon} me-1"></i>` : ''}${esc(p.label)}
-          </button>`
-        ).join('')}
-      </div>
-      <div id="dice3dContainer" class="dice-3d-container"></div>
-      <div id="diceResult" class="mb-3" style="display:none"></div>
-      <button class="btn btn-gold" onclick="doRoll()"><i class="fa-solid fa-dice me-2"></i>Roll the Bones</button>
-      <div class="ornament my-3">✧</div>
-      <h5>Recent Rolls</h5>
-      <div id="diceHistory"></div>
-    </div>`;
-  const input = document.getElementById('diceExpr') as HTMLInputElement;
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') doRoll(); });
-  loadDiceHistory();
-}
-(window as any).renderDiceTab = renderDiceTab;
-
-// ─── Rolling Animation ───
-
-function animateDiceRoll(breakdown: any[]) {
-  const container = document.getElementById('dice3dContainer');
-  if (!container) return;
-
-  // Build dice placeholder with rolling animation
-  container.innerHTML = breakdown.map((b: any) => {
-    if (!b.rolls || b.rolls.length === 0) return '';
-    const sides = parseSides(b.die);
-    if (sides === 0) return ''; // skip modifiers
-    const dieLabel = b.die;
-    const rollCls = rollingClass(sides);
-    const transforms = FACE_TRANSFORMS[sides as keyof typeof FACE_TRANSFORMS]
-      || getFaceTransforms(sides);
-    const shapeCls = faceShapeClass(sides);
-
-    return b.rolls.map((r: any) => {
-      // Create a rolling die HTML placeholder (all faces, no rotation)
-      const facesHtml = transforms.map((t, i) => {
-        const displayVal = sides >= 100
-          ? (i + 1 === 10 ? '00' : String((i + 1) * 10))
-          : String(i + 1);
-        if (sides === 6) {
-          const pips = D6_PIPS[i + 1] || [];
-          const pipHtml = pips.map(p =>
-            `<span class="pip" style="top:${p.top};left:${p.left};transform:translate(-50%,-50%)"></span>`
-          ).join('');
-          return `<div class="dice-3d-face ${shapeCls}" style="transform:rotateX(${t.rx}deg) rotateY(${t.ry}deg) translateZ(36px)">${pipHtml}</div>`;
-        }
-        return `<div class="dice-3d-face ${shapeCls}" style="transform:rotateX(${t.rx}deg) rotateY(${t.ry}deg) translateZ(36px)">${displayVal}</div>`;
-      }).join('');
-      const dieHtml = `<div class="dice-3d-die ${b.die} ${rollCls}" data-sides="${sides}" data-value="0">${facesHtml}</div>`;
-      return `<div class="dice-3d-wrapper"><span class="dice-3d-label">${dieLabel}</span>${dieHtml}</div>`;
-    }).join('');
-  }).join('');
-}
-
-// ─── Settle Dice (Final Result) ───
-
-function settleDice(breakdown: any[]) {
-  const container = document.getElementById('dice3dContainer');
-  if (!container) return;
-
-  setTimeout(() => {
-    container.innerHTML = breakdown.map((b: any) => {
-      if (!b.rolls || b.rolls.length === 0) return '';
-      const sides = parseSides(b.die);
-      if (sides === 0) return ''; // skip modifiers
-      const dieLabel = b.die;
-
-      return b.rolls.map((r: any) => {
-        const v = rollValue(r);
-        const dieHtml = build3DDie(v, sides, dieLabel);
-
-        // Check for crits on d20
-        let extraClass = '';
-        if (sides === 20) {
-          if (v === 20) extraClass = ' dice-crit-success';
-          else if (v === 1) extraClass = ' dice-crit-fail';
-        }
-
-        const wrapper = document.createElement('div');
-        wrapper.className = 'dice-3d-wrapper' + extraClass;
-        wrapper.innerHTML = `<span class="dice-3d-label">${dieLabel}</span>${dieHtml}`;
-        return wrapper.outerHTML;
-      }).join('');
-    }).join('');
-  }, 900);
-}
-
-// ─── Main Roll Handler ───
-
-async function doRoll() {
-  const expr = (document.getElementById('diceExpr') as HTMLInputElement).value;
-  if (!expr) return;
-
-  // Show rolling animation immediately
-  const resultEl = document.getElementById('diceResult')!;
-  resultEl.style.display = 'none';
-  const container = document.getElementById('dice3dContainer');
-  if (container) {
-    // Parse basic die patterns to create placeholder dice
-    const m = expr.match(/(\d+)d(\d+)/gi);
-    if (m) {
-      const parts = m.map(s => {
-        const [, count, sides] = s.match(/(\d+)d(\d+)/i)!;
-        return { die: 'd' + sides, count: parseInt(count || '1'), sides: parseInt(sides) };
-      });
-      const breakdown = parts.flatMap(p =>
-        Array.from({ length: p.count }, () => ({ die: p.die, rolls: [1], total: 0 }))
-      );
-      animateDiceRoll(breakdown);
-    } else {
-      // Fallback: try to extract any d-something
-      const m2 = expr.match(/d(\d+)/i);
-      if (m2) {
-        const sides = parseInt(m2[1]);
-        animateDiceRoll([{ die: 'd' + sides, rolls: [1], total: 0 }]);
-      }
-    }
-  }
-
-  try {
-    const result = await api('POST', '/api/roll', { expression: expr, character_id: currentChar?.id });
-    resultEl.style.display = 'block';
-
-    // Settle dice with actual results
-    if (result.breakdown) {
-      settleDice(result.breakdown);
-    }
-
-    // Build breakdown text (skipping modifier groups)
-    let facesHtml = '';
-    if (result.breakdown) {
-      facesHtml = result.breakdown.map((b: any) => {
-        if (!b.rolls || b.rolls.length === 0) return ''; // skip modifier-only groups
-        const dieLabel = b.die;
-        const sides = parseSides(dieLabel);
-        if (sides === 0) return '';
-        const rolls = b.rolls.map((r: any) => {
-          const v = rollValue(r);
-          const used = rollUsed(r);
-          const flags = rollFlags(r);
-          // Kept/dropped indicator
-          const itemClass = used ? 'die-face die-kept' : 'die-face die-dropped';
-          const flagText = flags ? ` data-flags="${esc(flags)}"` : '';
-          return `<span class="${itemClass}"${flagText}>${v}${flags === 'dropped' ? '✕' : ''}</span>`;
-        }).join('');
-        return `<div class="die-group"><span class="die-label">${dieLabel}:</span> <span class="die-faces">${rolls}</span></div>`;
-      }).filter((h: string) => h).join('');
-    }
-
-    // Check for crits on d20
-    let critBadge = '';
-    if (result.breakdown) {
-      for (const b of result.breakdown) {
-        if (b.die === 'd20' && b.rolls) {
-          for (const r of b.rolls) {
-            const v = rollValue(r);
-            if (v === 20) critBadge = '<span class="badge bg-success ms-2"><i class="fa-solid fa-bolt me-1"></i>Critical Hit!</span>';
-            else if (v === 1) critBadge = '<span class="badge bg-danger ms-2"><i class="fa-solid fa-skull me-1"></i>Critical Fail!</span>';
-          }
-        }
-      }
-    }
-
-    // Delay result text to sync with dice animation
-    setTimeout(() => {
-      resultEl.innerHTML = `
-        <div class="dice-result-box">
-          <div class="roll-total-anim">${result.total} ${critBadge}</div>
-          <div class="roll-expression">${esc(result.expression)}</div>
-          <div class="roll-breakdown">${facesHtml}</div>
-          <div class="roll-text text-muted small">${esc(result.text)}</div>
-        </div>`;
-    }, 500);
-    loadDiceHistory();
-  } catch (e: any) {
-    toast(e.message, true);
-  }
-}
-(window as any).doRoll = doRoll;
-
-async function loadDiceHistory() {
-  const el = document.getElementById('diceHistory');
-  if (!el) return;
-  try {
-    const rolls = await api('GET', '/api/dice-rolls' + (currentChar ? `?character_id=${currentChar.id}` : ''));
-    el.innerHTML = rolls.slice(0, 20).map((r:any) =>
-      `<div class="d-flex justify-content-between py-1 border-bottom dice-history-item">
-        <span class="small">${esc(r.expression)}</span>
-        <span><strong>${r.total}</strong> <span class="text-muted small">${esc(r.result)}</span></span>
-      </div>`
-    ).join('') || '<div class="text-center text-muted py-3">No rolls yet</div>';
-  } catch {}
-}
-(window as any).loadDiceHistory = loadDiceHistory;
-
 // ─── New Character ───
 
 (window as any).newChar = function () {
@@ -2872,7 +2149,7 @@ async function loadDiceHistory() {
     if (fileEl.files && fileEl.files[0]) {
       const form = new FormData();
       form.append('file', fileEl.files[0]);
-      const res = await fetch('/api/characters/import', { method: 'POST', headers: { 'X-CSRF-Token': csrfToken }, credentials: 'include', body: form });
+      const res = await fetch('/api/characters/import', { method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken() }, credentials: 'include', body: form });
       result = await res.json();
     } else if (jsonEl.value.trim()) {
       result = await api('POST', '/api/characters/import', JSON.parse(jsonEl.value));
@@ -2910,7 +2187,7 @@ async function loadDiceHistory() {
   if (!currentChar) return;
   try {
     const res = await fetch(`/api/characters/${currentChar.id}/print`, {
-      headers: { 'X-CSRF-Token': csrfToken }, credentials: 'include',
+      headers: { 'X-CSRF-Token': getCsrfToken() }, credentials: 'include',
     });
     const text = await res.text();
     const win = window.open('', '_blank');
@@ -3429,7 +2706,7 @@ async function loadCompendiumMonsters() {
   form.append('image', input.files[0]);
   try {
     const res = await fetch('/api/upload', {
-      method: 'POST', headers: { 'X-CSRF-Token': csrfToken }, credentials: 'include', body: form,
+      method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken() }, credentials: 'include', body: form,
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Upload failed');
@@ -6299,7 +5576,7 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
   form.append('owner_id', String(ownerId));
   try {
     const res = await fetch('/api/upload', { method: 'POST', body: form,
-      headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || csrfToken }
+      headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || getCsrfToken() }
     });
     if (!res.ok) throw new Error((await res.json()).error || 'Upload failed');
     hideModal();
@@ -6795,343 +6072,15 @@ function rollDice(dice: string): number {
   `;
 };
 
-// ─── AI Generation ───
+// AI Generation → extracted to ts/ai.ts
+import { initAIClickHandler } from './ai';
 
-const AI_DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant for a D&D website called villum. You help DMs create compelling narratives, NPCs, locations, items, and other TTRPG content. Be creative and concise.';
+// PDF Viewer → extracted to ts/pdf-viewer.ts
+import { initPdfViewerCleanup } from './pdf-viewer';
 
-let aiGenLastResult: string | null = null;
-let aiGenLastImageUrl: string | null = null;
-
-/**
- * Open the AI generation modal.
- * @param mode 'text' | 'image'
- * @param targetId ID of the textarea/field to insert/replace into
- * @param promptHint Optional pre-fill for the prompt
- * @param title Optional modal title
- */
-(window as any).openAIGenModal = function (mode: string, targetId: string, promptHint?: string, title?: string) {
-  aiGenLastResult = null;
-  aiGenLastImageUrl = null;
-  document.getElementById('aiGenResult')!.style.display = 'none';
-
-  (document.getElementById('aiGenTargetId') as HTMLInputElement).value = targetId;
-  (document.getElementById('aiGenMode') as HTMLInputElement).value = mode;
-  (document.getElementById('aiGenModal') as any).querySelector('.modal-title')!.textContent = title || (mode === 'image' ? 'Generate Image with AI' : 'Generate Text with AI');
-
-  const promptEl = document.getElementById('aiGenPrompt') as HTMLTextAreaElement;
-  if (promptHint) promptEl.value = promptHint;
-
-  // Pre-fill system prompt with default if empty
-  const systemEl = document.getElementById('aiGenSystem') as HTMLTextAreaElement;
-  if (!systemEl.value.trim()) {
-    systemEl.value = AI_DEFAULT_SYSTEM_PROMPT;
-  }
-
-  // Show/hide fields based on mode
-  document.getElementById('aiGenSystemField')!.style.display = mode === 'text' ? 'block' : 'none';
-  document.getElementById('aiGenInsertBtn')!.style.display = mode === 'text' ? 'inline-block' : 'none';
-  document.getElementById('aiGenReplaceBtn')!.style.display = mode === 'text' ? 'inline-block' : 'none';
-
-  const modal = new (window as any).bootstrap.Modal(document.getElementById('aiGenModal')!);
-  modal.show();
-
-  // Fetch endpoints for this mode
-  fetchAIEndpoints(mode);
-};
-
-async function fetchAIEndpoints(type: string) {
-  const select = document.getElementById('aiGenEndpoint') as HTMLSelectElement;
-  try {
-    const eps = await api('GET', '/api/ai/endpoints?type=' + encodeURIComponent(type));
-    if (!eps || eps.length === 0) {
-      select.innerHTML = '<option value="">No enabled endpoints available</option>';
-      return;
-    }
-    select.innerHTML = eps.map((ep: any) =>
-      `<option value="${ep.id}">${esc(ep.name)} (${ep.model})</option>`
-    ).join('');
-  } catch {
-    select.innerHTML = '<option value="">Failed to load endpoints</option>';
-  }
-}
-
-// ─── Inline AI generation triggers ───
-
-document.addEventListener('click', function (e: MouseEvent) {
-  const btn = (e.target as HTMLElement).closest('.ai-generate-btn') as HTMLElement;
-  if (!btn) return;
-  e.preventDefault();
-  const mode = btn.getAttribute('data-ai-mode') || 'text';
-  const targetId = btn.getAttribute('data-ai-target') || '';
-  const hint = btn.getAttribute('data-ai-hint') || '';
-  const title = btn.getAttribute('data-ai-title') || undefined;
-  (window as any).openAIGenModal(mode, targetId, hint, title);
-});
-
-(window as any).generateWithAI = async function () {
-  const endpointId = parseInt((document.getElementById('aiGenEndpoint') as HTMLSelectElement).value);
-  const prompt = (document.getElementById('aiGenPrompt') as HTMLTextAreaElement).value.trim();
-  const mode = (document.getElementById('aiGenMode') as HTMLInputElement).value;
-
-  if (!endpointId) { toast('Please select an AI endpoint', true); return; }
-  if (!prompt) { toast('Please enter a prompt', true); return; }
-
-  const btn = document.getElementById('aiGenGenerateBtn') as HTMLButtonElement;
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i>'
-    + (mode === 'image' ? 'Generating image...' : 'Generating...');
-
-  try {
-    if (mode === 'text') {
-      const system = (document.getElementById('aiGenSystem') as HTMLTextAreaElement).value.trim();
-      const result: any = await api('POST', '/api/ai/generate/text', {
-        endpoint_id: endpointId,
-        prompt: prompt,
-        system: system || undefined,
-      });
-      aiGenLastResult = result.text;
-      document.getElementById('aiGenResultText')!.textContent = result.text;
-      document.getElementById('aiGenResultText')!.style.display = 'block';
-      document.getElementById('aiGenResultImage')!.style.display = 'none';
-    } else {
-      const result: any = await api('POST', '/api/ai/generate/image', {
-        endpoint_id: endpointId,
-        prompt: prompt,
-      });
-      const imageUrl = result.images?.[0] || result.image_url || '';
-      aiGenLastImageUrl = imageUrl;
-      const img = document.getElementById('aiGenResultImage') as HTMLImageElement;
-      img.src = imageUrl;
-      img.style.display = 'block';
-      document.getElementById('aiGenResultText')!.style.display = 'none';
-      if (!imageUrl) {
-        toast('Image generated but no URL returned', true);
-      }
-    }
-    document.getElementById('aiGenResult')!.style.display = 'block';
-  } catch (e: any) {
-    toast(e.message || 'Generation failed', true);
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles me-1"></i>'
-      + (mode === 'image' ? 'Generate Image' : 'Generate');
-  }
-};
-
-(window as any).regenerateWithAI = function () {
-  (window as any).generateWithAI();
-};
-
-(window as any).insertAIGenResult = function () {
-  const targetId = (document.getElementById('aiGenTargetId') as HTMLInputElement).value;
-  if (!targetId || !aiGenLastResult) return;
-  const target = document.getElementById(targetId) as HTMLTextAreaElement | HTMLInputElement;
-  if (target) {
-    target.value += (target.value ? '\n' : '') + aiGenLastResult;
-    const modal = (window as any).bootstrap.Modal.getInstance(document.getElementById('aiGenModal')!);
-    if (modal) modal.hide();
-    toast('Text inserted');
-  }
-};
-
-(window as any).replaceAIGenResult = function () {
-  const targetId = (document.getElementById('aiGenTargetId') as HTMLInputElement).value;
-  if (!targetId || !aiGenLastResult) return;
-  const target = document.getElementById(targetId) as HTMLTextAreaElement | HTMLInputElement;
-  if (target) {
-    target.value = aiGenLastResult;
-    const modal = (window as any).bootstrap.Modal.getInstance(document.getElementById('aiGenModal')!);
-    if (modal) modal.hide();
-    toast('Text replaced');
-  }
-};
-
-// ─── Add Dashboard button to campaign cards ───
-// (patched into showParty directly, but helper here for when called from manage modal)
-
+// These are called from inline HTML onclick — register at window level
 (window as any).openCampaignDashboard = function (campaignId: number, name: string) {
   (window as any).showCampaignDashboard(campaignId, name);
 };
-
-// ─── PDF Viewer ───
-
-let pdfViewerDoc: any = null;
-let pdfViewerPage = 1;
-let pdfViewerScale = 1.5;
-let pdfViewerUrl = '';
-let pdfViewerTitle = '';
-let pdfViewerLoaded = false;
-let pdfViewerLoading = false;
-const pdfViewerQueue: Array<() => void> = [];
-
-function pdfViewerLoadLib(callback: () => void) {
-  if (pdfViewerLoaded) { callback(); return; }
-  if (pdfViewerLoading) { pdfViewerQueue.push(callback); return; }
-  pdfViewerLoading = true;
-  const s = document.createElement('script');
-  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-  s.onload = () => {
-    (window as any).pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    pdfViewerLoaded = true;
-    pdfViewerLoading = false;
-    callback();
-    pdfViewerQueue.forEach(fn => fn());
-    pdfViewerQueue.length = 0;
-  };
-  s.onerror = () => {
-    pdfViewerLoading = false;
-    const errEl = document.getElementById('pdfViewerError');
-    if (errEl) { errEl.textContent = 'Failed to load PDF viewer library. Check your internet connection.'; errEl.style.display = 'block'; }
-    const loading = document.getElementById('pdfViewerLoading');
-    if (loading) loading.style.display = 'none';
-    pdfViewerQueue.length = 0;
-  };
-  document.head.appendChild(s);
-}
-
-function pdfViewerRenderPage(num: number) {
-  const doc = pdfViewerDoc;
-  if (!doc) return;
-  const canvas = document.getElementById('pdfViewerCanvas') as HTMLCanvasElement;
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-  doc.getPage(num).then((page: any) => {
-    const viewport = page.getViewport({ scale: pdfViewerScale });
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-    canvas.style.display = 'block';
-    const loading = document.getElementById('pdfViewerLoading');
-    if (loading) loading.style.display = 'none';
-    const err = document.getElementById('pdfViewerError');
-    if (err) err.style.display = 'none';
-    page.render({ canvasContext: ctx, viewport: viewport });
-    const info = document.getElementById('pdfViewerPageInfo');
-    if (info) info.textContent = num + ' / ' + doc.numPages;
-    const prev = document.getElementById('pdfViewerPrevBtn') as HTMLButtonElement;
-    const next = document.getElementById('pdfViewerNextBtn') as HTMLButtonElement;
-    if (prev) prev.disabled = num <= 1;
-    if (next) next.disabled = num >= doc.numPages;
-    const zoom = document.getElementById('pdfViewerZoomLevel');
-    if (zoom) zoom.textContent = Math.round(pdfViewerScale * 100) + '%';
-  });
-}
-
-function pdfViewerShowError(msg: string) {
-  const el = document.getElementById('pdfViewerError');
-  if (el) { el.textContent = msg; el.style.display = 'block'; }
-  const loading = document.getElementById('pdfViewerLoading');
-  if (loading) loading.style.display = 'none';
-}
-
-function pdfViewerFilenameFromUrl(url: string): string {
-  const parts = url.split('/');
-  const last = parts[parts.length - 1] || 'document.pdf';
-  return decodeURIComponent(last);
-}
-
-(window as any).openPdfViewer = function (url: string, title?: string) {
-  pdfViewerUrl = url;
-  pdfViewerTitle = title || pdfViewerFilenameFromUrl(url);
-  const modalEl = document.getElementById('pdfViewerModal');
-  if (!modalEl) return;
-  document.getElementById('pdfViewerTitle')!.textContent = pdfViewerTitle;
-  const loading = document.getElementById('pdfViewerLoading');
-  if (loading) {
-    loading.style.display = 'block';
-    loading.innerHTML = '<div class="spinner-border text-light mb-2" role="status"></div><p class="mb-0">Loading PDF...</p>';
-  }
-  const canvas = document.getElementById('pdfViewerCanvas') as HTMLCanvasElement;
-  if (canvas) canvas.style.display = 'none';
-  const err = document.getElementById('pdfViewerError');
-  if (err) err.style.display = 'none';
-  const info = document.getElementById('pdfViewerPageInfo');
-  if (info) info.textContent = '- / -';
-  const prev = document.getElementById('pdfViewerPrevBtn') as HTMLButtonElement;
-  const next = document.getElementById('pdfViewerNextBtn') as HTMLButtonElement;
-  if (prev) prev.disabled = true;
-  if (next) next.disabled = true;
-  const zoom = document.getElementById('pdfViewerZoomLevel');
-  if (zoom) zoom.textContent = '100%';
-  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-  modal.show();
-  pdfViewerScale = 1.5;
-  pdfViewerPage = 1;
-  if (pdfViewerDoc) { pdfViewerDoc.destroy(); pdfViewerDoc = null; }
-  pdfViewerLoadLib(() => {
-    (window as any).pdfjsLib.getDocument(url).promise.then((doc: any) => {
-      pdfViewerDoc = doc;
-      pdfViewerRenderPage(1);
-    }).catch((err: any) => {
-      pdfViewerShowError('Failed to load PDF: ' + (err.message || 'Unknown error'));
-    });
-  });
-};
-
-(window as any).pdfViewerPrevPage = function () {
-  if (!pdfViewerDoc || pdfViewerPage <= 1) return;
-  pdfViewerPage--;
-  pdfViewerRenderPage(pdfViewerPage);
-};
-
-(window as any).pdfViewerNextPage = function () {
-  if (!pdfViewerDoc || pdfViewerPage >= pdfViewerDoc.numPages) return;
-  pdfViewerPage++;
-  pdfViewerRenderPage(pdfViewerPage);
-};
-
-(window as any).pdfViewerZoomIn = function () {
-  pdfViewerScale = Math.min(pdfViewerScale * 1.25, 5);
-  if (pdfViewerDoc) pdfViewerRenderPage(pdfViewerPage);
-};
-
-(window as any).pdfViewerZoomOut = function () {
-  pdfViewerScale = Math.max(pdfViewerScale / 1.25, 0.25);
-  if (pdfViewerDoc) pdfViewerRenderPage(pdfViewerPage);
-};
-
-(window as any).pdfViewerFitToWidth = function () {
-  if (!pdfViewerDoc) return;
-  const canvas = document.getElementById('pdfViewerCanvas') as HTMLCanvasElement;
-  if (!canvas) return;
-  const container = canvas.parentElement;
-  if (!container) return;
-  const cw = container.clientWidth - 40;
-  pdfViewerDoc.getPage(pdfViewerPage).then((page: any) => {
-    const ov = page.getViewport({ scale: 1 });
-    pdfViewerScale = cw / ov.width;
-    pdfViewerRenderPage(pdfViewerPage);
-  });
-};
-
-(window as any).pdfViewerDownload = function () {
-  if (pdfViewerUrl) {
-    const a = document.createElement('a');
-    a.href = pdfViewerUrl;
-    a.download = pdfViewerTitle.replace(/[^a-zA-Z0-9._-]/g, '_') + '.pdf';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
-};
-
-// Cleanup on modal close
-document.addEventListener('hidden.bs.modal', function (e: Event) {
-  const target = e.target as HTMLElement;
-  if (target && target.id === 'pdfViewerModal') {
-    if (pdfViewerDoc) { pdfViewerDoc.destroy(); pdfViewerDoc = null; }
-    pdfViewerPage = 1;
-    pdfViewerScale = 1.5;
-  }
-});
-
-// Keyboard navigation
-document.addEventListener('keydown', function (e: KeyboardEvent) {
-  const modalEl = document.getElementById('pdfViewerModal');
-  if (modalEl && modalEl.classList.contains('show')) {
-    if (e.key === 'ArrowLeft') { (window as any).pdfViewerPrevPage(); e.preventDefault(); }
-    else if (e.key === 'ArrowRight') { (window as any).pdfViewerNextPage(); e.preventDefault(); }
-  }
-});
 
 init();

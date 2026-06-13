@@ -1,4 +1,15 @@
 const CACHE_NAME = 'villum-v1';
+const CDN_CACHE = 'villum-cdn-v1';
+
+// CDN origins to cache-first
+const CDN_ORIGINS = [
+  'cdn.jsdelivr.net',
+  'cdnjs.cloudflare.com',
+  'fonts.googleapis.com',
+  'fonts.gstatic.com',
+  'unpkg.com',
+];
+
 const APP_SHELL = [
   '/static/style.css',
   '/static/js/app.js',
@@ -18,7 +29,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) => {
       return Promise.all(
         keys
-          .filter((k) => k !== CACHE_NAME)
+          .filter((k) => k !== CACHE_NAME && k !== CDN_CACHE)
           .map((k) => caches.delete(k))
       );
     })
@@ -28,9 +39,26 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-
   if (event.request.method !== 'GET') return;
 
+  // CDN cache-first: try cache, fetch & update, fallback to stale
+  if (CDN_ORIGINS.some(o => url.hostname === o)) {
+    event.respondWith(
+      caches.open(CDN_CACHE).then((cache) => {
+        return cache.match(event.request).then((cached) => {
+          const fetchPromise = fetch(event.request).then((response) => {
+            if (response.ok) cache.put(event.request, response.clone());
+            return response;
+          }).catch(() => cached);
+          // Return cached immediately if available, else wait for fetch
+          return cached || fetchPromise;
+        });
+      })
+    );
+    return;
+  }
+
+  // Character detail: network-first with cache fallback
   if (url.pathname.startsWith('/api/characters/') && url.pathname.match(/^\/api\/characters\/\d+$/)) {
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) => {
@@ -52,6 +80,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Static assets + app shell: cache-first
   if (url.pathname.startsWith('/static/') || url.pathname === '/app' || url.pathname === '/') {
     event.respondWith(
       caches.match(event.request).then((cached) => {
@@ -68,6 +97,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Everything else: network-only
   event.respondWith(fetch(event.request).catch(() => {
     return new Response('Offline', { status: 503 });
   }));
