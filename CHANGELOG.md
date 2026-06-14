@@ -1,3 +1,13 @@
+## [2.16.4](https://github.com/martynvdijke/dnd/compare/v2.16.3...v2.16.4) (2026-06-14)
+
+
+### Bug Fixes
+
+* expose api() on window so E2E tests can find and wait for SPA initialization ([6a1d83e](https://github.com/martynvdijke/dnd/commit/6a1d83e3a210f8a5eb98398206445cc46758ec23))
+* increase Playwright test timeout to 30 min (15 min was too short) ([284edfc](https://github.com/martynvdijke/dnd/commit/284edfc595ea83547694f1b7345bf7ebaae69c63))
+* restore window.getCurrentView/setCurrentView for keyboard shortcuts, fix responsive test breakpoint ([727ad1f](https://github.com/martynvdijke/dnd/commit/727ad1f13e54997dee668e3765d54e504b488e72))
+* run full chromium test suite in CI with 15-min timeout ([19407ee](https://github.com/martynvdijke/dnd/commit/19407ee18a81546ec53315de64418d660d9fa88f))
+
 ## [2.16.3](https://github.com/martynvdijke/dnd/compare/v2.16.2...v2.16.3) (2026-06-14)
 
 
