@@ -55,8 +55,9 @@ jobs:
       - name: Build server binary
         run: go build -tags sqlite_fts5 -o villum-server .
 
-      - name: Run Playwright tests (setup only)
-        run: npx playwright test tests/setup.spec.ts
+      - name: Run Playwright tests
+        run: npx playwright test --project=chromium
+        timeout-minutes: 15
         env:
           CI: true
 
