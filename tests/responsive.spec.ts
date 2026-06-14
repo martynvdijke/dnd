@@ -29,8 +29,8 @@ test.describe('Responsive design', () => {
     await expect(page.locator('.container').first()).toBeVisible();
   });
 
-  test('tablet layout works at 768x1024', async ({ page }) => {
-    await page.setViewportSize({ width: 768, height: 1024 });
+  test('mobile layout works at 767x1024', async ({ page }) => {
+    await page.setViewportSize({ width: 767, height: 1024 });
     await waitLoadingDone(page);
     await expect(page.locator('.bottom-tab-bar')).toBeVisible();
     await expect(page.locator('#charGrid')).toBeVisible();

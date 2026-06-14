@@ -58,6 +58,8 @@ export function updateActiveTab(view: ViewState): void {
 }
 
 (window as any).showView = showView;
+(window as any).getCurrentView = getCurrentView;
+(window as any).setCurrentView = setCurrentView;
 
 export function toggleSidebar(): void {
   const sidebar = document.getElementById('appSidebar');
