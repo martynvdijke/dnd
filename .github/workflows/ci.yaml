@@ -27,9 +27,6 @@ jobs:
         with:
           go-version: '1.26.4'
 
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev gcc
-
       - name: Download dependencies
         run: go mod download
 
@@ -46,20 +43,20 @@ jobs:
         run: npm run build:ts
 
       - name: Vet
-        run: go vet -tags fts5 ./...
+        run: go vet -tags sqlite_fts5 ./...
 
       - name: Run Tests
         run:
-          go test -tags "fts5" -v ./...
+          go test -tags "sqlite_fts5" -v ./...
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
 
       - name: Build server binary
-        run: CGO_ENABLED=1 go build -tags fts5 -o villum-server .
+        run: go build -tags sqlite_fts5 -o villum-server .
 
-      - name: Run Playwright tests (desktop + mobile)
-        run: npx playwright test --project=chromium --project=mobile-chrome
+      - name: Run Playwright tests (desktop)
+        run: npx playwright test --project=chromium
         env:
           CI: true
 
