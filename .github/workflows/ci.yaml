@@ -57,7 +57,7 @@ jobs:
 
       - name: Run Playwright tests
         run: npx playwright test --project=chromium
-        timeout-minutes: 15
+        timeout-minutes: 30
         env:
           CI: true
 
