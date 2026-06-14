@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -133,18 +134,28 @@ func HandleCheckRoll(c *gin.Context) {
 		adv = "normal"
 	}
 
+	// Use the dice engine for the d20 roll
+	rollD20 := func() int {
+		result, err := getDicePool().Roll("1d20")
+		if err != nil {
+			return 1
+		}
+		v, _ := strconv.Atoi(string(result.Total))
+		return v
+	}
+
 	rolls := make([]int, 1)
-	d20, _ := randInt(1, 20)
+	d20 := rollD20()
 	rolls[0] = d20
 
 	if adv == "advantage" {
-		d20b, _ := randInt(1, 20)
+		d20b := rollD20()
 		rolls = append(rolls, d20b)
 		if d20b > d20 {
 			d20 = d20b
 		}
 	} else if adv == "disadvantage" {
-		d20b, _ := randInt(1, 20)
+		d20b := rollD20()
 		rolls = append(rolls, d20b)
 		if d20b < d20 {
 			d20 = d20b

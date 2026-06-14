@@ -4977,16 +4977,13 @@ const MAGIC_ITEMS: Record<string, string[]> = {
   'very rare': ['Belt of Fire Giant Strength', 'Ring of Spell Turning', 'Cloak of Invisibility', 'Staff of the Magi', 'Potion of Supreme Healing'],
 };
 
-function rollDice(dice: string): number {
-  const m = dice.match(/^(\d+)d(\d+)$/);
-  if (!m) return 0;
-  const count = parseInt(m[1]);
-  const sides = parseInt(m[2]);
-  let total = 0;
-  for (let i = 0; i < count; i++) {
-    total += Math.floor(Math.random() * sides) + 1;
+async function rollDice(dice: string): Promise<number> {
+  try {
+    const result = await api('POST', '/api/roll', { expression: dice });
+    return result.total || 0;
+  } catch {
+    return 0;
   }
-  return total;
 }
 
 (window as any).showTreasureGenerator = function () {
@@ -5018,7 +5015,7 @@ function rollDice(dice: string): number {
   `);
 };
 
-(window as any).generateTreasure = function () {
+(window as any).generateTreasure = async function () {
   const lvl = parseInt((document.getElementById('tgLevel') as HTMLSelectElement).value) || 5;
   const diff = (document.getElementById('tgDifficulty') as HTMLSelectElement).value;
   const resultEl = document.getElementById('tgResult');
@@ -5029,7 +5026,7 @@ function rollDice(dice: string): number {
   let totalGp = 0;
 
   for (const entry of table) {
-    const rolled = rollDice(entry.dice);
+    const rolled = await rollDice(entry.dice);
     const amount = rolled * entry.multiplier;
     const line = `${rolled} × ${entry.multiplier} = ${amount.toLocaleString()} ${entry.coin}`;
     lines.push(line);

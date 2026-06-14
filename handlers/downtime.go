@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -103,7 +104,11 @@ func AdvanceDowntimeDay(c *gin.Context) {
 
 	newCompleted := a.DaysCompleted + 1
 	newStatus := "in-progress"
-	skillCheck, _ := randInt(1, 20)
+	result, err := getDicePool().Roll("1d20")
+	skillCheck := 1
+	if err == nil {
+		fmt.Sscanf(string(result.Total), "%d", &skillCheck)
+	}
 	success := skillCheck >= a.DC
 
 	if newCompleted >= a.DaysRequired {

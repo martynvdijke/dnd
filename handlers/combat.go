@@ -118,7 +118,11 @@ func RollInitiative(c *gin.Context) {
 	}
 
 	initMod := abilityMod(dex) + initiative
-	d20, _ := randInt(1, 20)
+	result, err := getDicePool().Roll("1d20")
+	d20 := 0
+	if err == nil {
+		d20, _ = strconv.Atoi(string(result.Total))
+	}
 	roll := d20 + initMod
 
 	c.JSON(http.StatusOK, gin.H{

@@ -143,7 +143,8 @@ async function findCombatEntry(id: number): Promise<any> {
   try {
     const entries = await api('GET', '/api/combat');
     for (const e of entries) {
-      const roll = Math.floor(Math.random() * 20) + 1 + (e.initiative_mod || 0);
+      const result = await api('POST', '/api/roll', { expression: '1d20' });
+      const roll = (result.total || 0) + (e.initiative_mod || 0);
       e.initiative_roll = roll;
       try { await api('PUT', '/api/combat/' + e.id, e); } catch {}
     }
