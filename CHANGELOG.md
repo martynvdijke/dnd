@@ -1,3 +1,12 @@
+## [2.16.5](https://github.com/martynvdijke/dnd/compare/v2.16.4...v2.16.5) (2026-06-14)
+
+
+### Bug Fixes
+
+* extracted modules not imported, state split between app.ts and state.ts ([504df81](https://github.com/martynvdijke/dnd/commit/504df81c00e03739527857d50c8e1465f5cc615c))
+* missing currentUser/currentChar imports in party.ts, fix campaign.go indent ([e52f742](https://github.com/martynvdijke/dnd/commit/e52f742299f6c5926dfa08b8ff6ab308208da69c))
+* replace hand-rolled dice with @dice-roller/rpg-dice-roller via API ([36ef409](https://github.com/martynvdijke/dnd/commit/36ef409ef8eee3b0735bd1e3b1de85bca919d870))
+
 ## [2.16.4](https://github.com/martynvdijke/dnd/compare/v2.16.3...v2.16.4) (2026-06-14)
 
 
