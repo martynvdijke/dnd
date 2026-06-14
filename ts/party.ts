@@ -2,6 +2,7 @@
 import { showView } from './navigation';
 import { esc, showModal, hideModal, toast } from './lib/dom';
 import { api } from './lib/api';
+import { currentUser, currentChar } from './app';
 
 // ─── Party View & Campaign Management ───
 

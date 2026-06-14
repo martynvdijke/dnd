@@ -1705,19 +1705,19 @@ func DoRest(c *gin.Context) {
 				hitDieSize = d
 			}
 		}
-	conMod := abilityMod(char.Con)
-	for i := 0; i < count; i++ {
-		result, err := getDicePool().Roll(fmt.Sprintf("1d%d", hitDieSize))
-		roll := 1
-		if err == nil {
-			fmt.Sscanf(string(result.Total), "%d", &roll)
+		conMod := abilityMod(char.Con)
+		for i := 0; i < count; i++ {
+			result, err := getDicePool().Roll(fmt.Sprintf("1d%d", hitDieSize))
+			roll := 1
+			if err == nil {
+				fmt.Sscanf(string(result.Total), "%d", &roll)
+			}
+			heal := roll + conMod
+			if heal < 1 {
+				heal = 1
+			}
+			hpHealed += heal
 		}
-		heal := roll + conMod
-		if heal < 1 {
-			heal = 1
-		}
-		hpHealed += heal
-	}
 		newHp := char.HpCurrent + hpHealed
 		if newHp > char.HpMax {
 			newHp = char.HpMax
