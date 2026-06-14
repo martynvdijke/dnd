@@ -14,7 +14,7 @@ import (
 
 func seedOneShotAct(t *testing.T, adventureID, actID int64) {
 	t.Helper()
-	_, err := 	db.DB.Exec(
+	_, err := db.DB.Exec(
 		"INSERT OR IGNORE INTO oneshot_acts(id, adventure_id, number, title, description, estimated_minutes, notes) VALUES(?,?,1,?,?,30,'')",
 		actID, adventureID, "Act One", "First act",
 	)
@@ -53,7 +53,7 @@ func TestActNPCCRUD(t *testing.T) {
 
 	// Seed a oneshot adventure
 	var advID int64 = 1
-	_, err := 	db.DB.Exec(
+	_, err := db.DB.Exec(
 		"INSERT OR IGNORE INTO oneshot_adventures(id, user_id, title, premise, hook, template, estimated_minutes, difficulty) VALUES(?,?,'Test Adventure','Premise','Hook','custom',60,'medium')",
 		advID, 1,
 	)
@@ -83,8 +83,8 @@ func TestActNPCCRUD(t *testing.T) {
 
 	t.Run("create inline act npc returns 201", func(t *testing.T) {
 		w := testutil.PostJSON(t, r, "/api/oneshot-acts/1/npcs", map[string]any{
-			"name": "Goblin Guard",
-			"role": "guard",
+			"name":  "Goblin Guard",
+			"role":  "guard",
 			"notes": "At the entrance",
 		})
 		testutil.AssertStatus(t, w, 201)
@@ -145,7 +145,7 @@ func TestActNotes(t *testing.T) {
 	testutil.SeedUser(t, 1, "admin", "admin")
 	testutil.SeedCharacter(t, 1, 1, "NoteChar", "Human", "Fighter")
 
-	_, err := 	db.DB.Exec(
+	_, err := db.DB.Exec(
 		"INSERT OR IGNORE INTO oneshot_adventures(id, user_id, title) VALUES(?,?,'Note Adventure')",
 		1, 1,
 	)
@@ -194,7 +194,7 @@ func TestActDetailsHTMX(t *testing.T) {
 	testutil.SeedUser(t, 1, "admin", "admin")
 	testutil.SeedCharacter(t, 1, 1, "DetailChar", "Human", "Fighter")
 
-	_, err := 	db.DB.Exec(
+	_, err := db.DB.Exec(
 		"INSERT OR IGNORE INTO oneshot_adventures(id, user_id, title) VALUES(?,?,'Detail Adventure')",
 		1, 1,
 	)
@@ -487,7 +487,7 @@ func TestPrepChecklistCRUD(t *testing.T) {
 			t.Skip("no item id")
 		}
 		w := testutil.PutJSON(t, r, "/api/prep-checklist/"+formatInt(itemID), map[string]any{
-			"item": "Prepare battle map and minis",
+			"item":       "Prepare battle map and minis",
 			"is_checked": true,
 		})
 		testutil.AssertStatus(t, w, 200)
@@ -693,7 +693,7 @@ func TestSceneSortOrder(t *testing.T) {
 	sortOrders := []int{3, 1, 2}
 	titles := []string{"Scene C", "Scene A", "Scene B"}
 	sceneIDs := make([]int64, 3)
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		w := testutil.PostJSON(t, r, "/api/oneshot-acts/1/scenes", map[string]any{
 			"title": titles[i], "description": "Test",
 			"number": i + 1, "sort_order": sortOrders[i], "scene_type": "roleplay",

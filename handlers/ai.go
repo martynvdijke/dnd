@@ -254,7 +254,7 @@ func TestAIEndpoint(c *gin.Context) {
 	client := &http.Client{Timeout: 30 * time.Second}
 
 	if endpoint.Type == "text" {
-		payload := map[string]interface{}{
+		payload := map[string]any{
 			"model": endpoint.Model,
 			"messages": []map[string]string{
 				{"role": "user", "content": "Say hello in one word."},
@@ -283,7 +283,7 @@ func TestAIEndpoint(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{"success": false, "message": fmt.Sprintf("HTTP %d: %s", resp.StatusCode, truncateResponse(string(respBody)))})
 		}
 	} else {
-		payload := map[string]interface{}{
+		payload := map[string]any{
 			"model":  endpoint.Model,
 			"prompt": "A red dragon flying over a castle",
 			"n":      1,
@@ -383,7 +383,7 @@ func HandleTextGeneration(c *gin.Context) {
 		{"role": "user", "content": req.Prompt},
 	}
 
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"model":    endpoint.Model,
 		"messages": messages,
 	}
@@ -515,7 +515,7 @@ func HandleImageGeneration(c *gin.Context) {
 		imgSize = "1024x1024"
 	}
 
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"model":  endpoint.Model,
 		"prompt": req.Prompt,
 		"n":      req.N,

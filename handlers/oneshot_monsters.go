@@ -41,7 +41,9 @@ func CreateMonsterLibraryEntry(c *gin.Context) {
 		return
 	}
 	isFull := 0
-	if m.IsFull { isFull = 1 }
+	if m.IsFull {
+		isFull = 1
+	}
 	result, err := db.DB.Exec(`INSERT INTO monster_library(user_id, name, ac, hp, str, dex, con, int_, wis, cha, cr, source, is_full,
 		saves, skills, damage_vulnerabilities, damage_resistances, damage_immunities, condition_immunities, senses, languages,
 		special_abilities, actions, legendary_actions, description) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
@@ -69,7 +71,9 @@ func UpdateMonsterLibraryEntry(c *gin.Context) {
 		return
 	}
 	isFull := 0
-	if m.IsFull { isFull = 1 }
+	if m.IsFull {
+		isFull = 1
+	}
 	_, err := db.DB.Exec(`UPDATE monster_library SET name=?, ac=?, hp=?, str=?, dex=?, con=?, int_=?, wis=?, cha=?, cr=?, source=?, is_full=?,
 		saves=?, skills=?, damage_vulnerabilities=?, damage_resistances=?, damage_immunities=?, condition_immunities=?, senses=?, languages=?,
 		special_abilities=?, actions=?, legendary_actions=?, description=? WHERE id=?`,
@@ -91,7 +95,7 @@ func DeleteMonsterLibraryEntry(c *gin.Context) {
 
 // ─── Act/Scene Monsters ───
 
-func scanMonster(rows interface{ Scan(...interface{}) error }) (models.OneShotMonster, error) {
+func scanMonster(rows interface{ Scan(...any) error }) (models.OneShotMonster, error) {
 	var m models.OneShotMonster
 	var isFull int
 	err := rows.Scan(&m.ID, &m.AdventureID, &m.ActID, &m.SceneID, &m.Name, &m.AC, &m.HP,
@@ -118,7 +122,9 @@ func ListActMonsters(c *gin.Context) {
 	out := make([]models.OneShotMonster, 0)
 	for rows.Next() {
 		m, err := scanMonster(rows)
-		if err != nil { continue }
+		if err != nil {
+			continue
+		}
 		out = append(out, m)
 	}
 	c.JSON(http.StatusOK, out)
@@ -127,38 +133,40 @@ func ListActMonsters(c *gin.Context) {
 func CreateActMonster(c *gin.Context) {
 	actID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var req struct {
-		AdventureID int64  `json:"adventure_id"`
-		LibraryID   *int64 `json:"library_id,omitempty"`
-		Name        string `json:"name"`
-		AC          int    `json:"ac"`
-		HP          int    `json:"hp"`
-		Str         int    `json:"str"`
-		Dex         int    `json:"dex"`
-		Con         int    `json:"con"`
-		Int         int    `json:"int"`
-		Wis         int    `json:"wis"`
-		Cha         int    `json:"cha"`
-		CR          string `json:"cr"`
-		Source      string `json:"source"`
-		IsFull      bool   `json:"is_full"`
-		Saves       string `json:"saves"`
-		Skills      string `json:"skills"`
+		AdventureID           int64  `json:"adventure_id"`
+		LibraryID             *int64 `json:"library_id,omitempty"`
+		Name                  string `json:"name"`
+		AC                    int    `json:"ac"`
+		HP                    int    `json:"hp"`
+		Str                   int    `json:"str"`
+		Dex                   int    `json:"dex"`
+		Con                   int    `json:"con"`
+		Int                   int    `json:"int"`
+		Wis                   int    `json:"wis"`
+		Cha                   int    `json:"cha"`
+		CR                    string `json:"cr"`
+		Source                string `json:"source"`
+		IsFull                bool   `json:"is_full"`
+		Saves                 string `json:"saves"`
+		Skills                string `json:"skills"`
 		DamageVulnerabilities string `json:"damage_vulnerabilities"`
 		DamageResistances     string `json:"damage_resistances"`
 		DamageImmunities      string `json:"damage_immunities"`
 		ConditionImmunities   string `json:"condition_immunities"`
-		Senses      string `json:"senses"`
-		Languages   string `json:"languages"`
-		SpecialAbilities string `json:"special_abilities"`
-		Actions     string `json:"actions"`
-		LegendaryActions string `json:"legendary_actions"`
+		Senses                string `json:"senses"`
+		Languages             string `json:"languages"`
+		SpecialAbilities      string `json:"special_abilities"`
+		Actions               string `json:"actions"`
+		LegendaryActions      string `json:"legendary_actions"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	isFull := 0
-	if req.IsFull { isFull = 1 }
+	if req.IsFull {
+		isFull = 1
+	}
 	adventureID := req.AdventureID
 	if adventureID == 0 {
 		db.DB.QueryRow("SELECT adventure_id FROM oneshot_acts WHERE id=?", actID).Scan(&adventureID)
@@ -187,36 +195,38 @@ func CreateActMonster(c *gin.Context) {
 func UpdateOneShotMonster(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var req struct {
-		Name        string `json:"name"`
-		AC          int    `json:"ac"`
-		HP          int    `json:"hp"`
-		Str         int    `json:"str"`
-		Dex         int    `json:"dex"`
-		Con         int    `json:"con"`
-		Int         int    `json:"int"`
-		Wis         int    `json:"wis"`
-		Cha         int    `json:"cha"`
-		CR          string `json:"cr"`
-		Source      string `json:"source"`
-		IsFull      bool   `json:"is_full"`
-		Saves       string `json:"saves"`
-		Skills      string `json:"skills"`
+		Name                  string `json:"name"`
+		AC                    int    `json:"ac"`
+		HP                    int    `json:"hp"`
+		Str                   int    `json:"str"`
+		Dex                   int    `json:"dex"`
+		Con                   int    `json:"con"`
+		Int                   int    `json:"int"`
+		Wis                   int    `json:"wis"`
+		Cha                   int    `json:"cha"`
+		CR                    string `json:"cr"`
+		Source                string `json:"source"`
+		IsFull                bool   `json:"is_full"`
+		Saves                 string `json:"saves"`
+		Skills                string `json:"skills"`
 		DamageVulnerabilities string `json:"damage_vulnerabilities"`
 		DamageResistances     string `json:"damage_resistances"`
 		DamageImmunities      string `json:"damage_immunities"`
 		ConditionImmunities   string `json:"condition_immunities"`
-		Senses      string `json:"senses"`
-		Languages   string `json:"languages"`
-		SpecialAbilities string `json:"special_abilities"`
-		Actions     string `json:"actions"`
-		LegendaryActions string `json:"legendary_actions"`
+		Senses                string `json:"senses"`
+		Languages             string `json:"languages"`
+		SpecialAbilities      string `json:"special_abilities"`
+		Actions               string `json:"actions"`
+		LegendaryActions      string `json:"legendary_actions"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	isFull := 0
-	if req.IsFull { isFull = 1 }
+	if req.IsFull {
+		isFull = 1
+	}
 	_, err := db.DB.Exec(`UPDATE oneshot_monsters SET name=?, ac=?, hp=?, str=?, dex=?, con=?, int_=?, wis=?, cha=?, cr=?, source=?, is_full=?,
 		saves=?, skills=?, damage_vulnerabilities=?, damage_resistances=?, damage_immunities=?, condition_immunities=?, senses=?, languages=?,
 		special_abilities=?, actions=?, legendary_actions=? WHERE id=?`,
@@ -247,7 +257,9 @@ func ListSceneMonsters(c *gin.Context) {
 	out := make([]models.OneShotMonster, 0)
 	for rows.Next() {
 		m, err := scanMonster(rows)
-		if err != nil { continue }
+		if err != nil {
+			continue
+		}
 		out = append(out, m)
 	}
 	c.JSON(http.StatusOK, out)
@@ -256,38 +268,40 @@ func ListSceneMonsters(c *gin.Context) {
 func CreateSceneMonster(c *gin.Context) {
 	sceneID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var req struct {
-		AdventureID int64  `json:"adventure_id"`
-		LibraryID   *int64 `json:"library_id,omitempty"`
-		Name        string `json:"name"`
-		AC          int    `json:"ac"`
-		HP          int    `json:"hp"`
-		Str         int    `json:"str"`
-		Dex         int    `json:"dex"`
-		Con         int    `json:"con"`
-		Int         int    `json:"int"`
-		Wis         int    `json:"wis"`
-		Cha         int    `json:"cha"`
-		CR          string `json:"cr"`
-		Source      string `json:"source"`
-		IsFull      bool   `json:"is_full"`
-		Saves       string `json:"saves"`
-		Skills      string `json:"skills"`
+		AdventureID           int64  `json:"adventure_id"`
+		LibraryID             *int64 `json:"library_id,omitempty"`
+		Name                  string `json:"name"`
+		AC                    int    `json:"ac"`
+		HP                    int    `json:"hp"`
+		Str                   int    `json:"str"`
+		Dex                   int    `json:"dex"`
+		Con                   int    `json:"con"`
+		Int                   int    `json:"int"`
+		Wis                   int    `json:"wis"`
+		Cha                   int    `json:"cha"`
+		CR                    string `json:"cr"`
+		Source                string `json:"source"`
+		IsFull                bool   `json:"is_full"`
+		Saves                 string `json:"saves"`
+		Skills                string `json:"skills"`
 		DamageVulnerabilities string `json:"damage_vulnerabilities"`
 		DamageResistances     string `json:"damage_resistances"`
 		DamageImmunities      string `json:"damage_immunities"`
 		ConditionImmunities   string `json:"condition_immunities"`
-		Senses      string `json:"senses"`
-		Languages   string `json:"languages"`
-		SpecialAbilities string `json:"special_abilities"`
-		Actions     string `json:"actions"`
-		LegendaryActions string `json:"legendary_actions"`
+		Senses                string `json:"senses"`
+		Languages             string `json:"languages"`
+		SpecialAbilities      string `json:"special_abilities"`
+		Actions               string `json:"actions"`
+		LegendaryActions      string `json:"legendary_actions"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	isFull := 0
-	if req.IsFull { isFull = 1 }
+	if req.IsFull {
+		isFull = 1
+	}
 	result, err := db.DB.Exec(`INSERT INTO oneshot_monsters(adventure_id, scene_id, name, ac, hp, str, dex, con, int_, wis, cha, cr, source, is_full,
 		saves, skills, damage_vulnerabilities, damage_resistances, damage_immunities, condition_immunities, senses, languages,
 		special_abilities, actions, legendary_actions, library_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,

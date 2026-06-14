@@ -34,7 +34,7 @@ func TestNewLogBuffer(t *testing.T) {
 func TestLogBufferAppendAndLen(t *testing.T) {
 	lb := NewLogBuffer(5)
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		lb.Append(LogEntry{Source: "test", Message: "msg"})
 	}
 	if lb.Len() != 3 {
@@ -42,7 +42,7 @@ func TestLogBufferAppendAndLen(t *testing.T) {
 	}
 
 	// Fill beyond capacity
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		lb.Append(LogEntry{Source: "test", Message: "msg"})
 	}
 	if lb.Len() != 5 {

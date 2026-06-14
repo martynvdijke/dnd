@@ -127,17 +127,17 @@ var roomDebris = []string{
 
 func HandleGenerateDungeonDressing(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"room_type":    roomTypes[rand.Intn(len(roomTypes))],
-		"size":         roomSizes[rand.Intn(len(roomSizes))],
-		"shape":        roomShapes[rand.Intn(len(roomShapes))],
-		"floor":        roomFloors[rand.Intn(len(roomFloors))],
-		"walls":        roomWalls[rand.Intn(len(roomWalls))],
-		"ceiling":      roomCeilings[rand.Intn(len(roomCeilings))],
-		"sound":        roomSounds[rand.Intn(len(roomSounds))],
-		"smell":        roomSmells[rand.Intn(len(roomSmells))],
-		"light":        roomLights[rand.Intn(len(roomLights))],
-		"temperature":  roomTemperatures[rand.Intn(len(roomTemperatures))],
-		"debris":       roomDebris[rand.Intn(len(roomDebris))],
+		"room_type":   roomTypes[rand.Intn(len(roomTypes))],
+		"size":        roomSizes[rand.Intn(len(roomSizes))],
+		"shape":       roomShapes[rand.Intn(len(roomShapes))],
+		"floor":       roomFloors[rand.Intn(len(roomFloors))],
+		"walls":       roomWalls[rand.Intn(len(roomWalls))],
+		"ceiling":     roomCeilings[rand.Intn(len(roomCeilings))],
+		"sound":       roomSounds[rand.Intn(len(roomSounds))],
+		"smell":       roomSmells[rand.Intn(len(roomSmells))],
+		"light":       roomLights[rand.Intn(len(roomLights))],
+		"temperature": roomTemperatures[rand.Intn(len(roomTemperatures))],
+		"debris":      roomDebris[rand.Intn(len(roomDebris))],
 	})
 }
 
@@ -211,24 +211,24 @@ func HandleGenerateTavern(c *gin.Context) {
 	copy(selected, tavernRumors[0:nRumors])
 	// shuffle index for variety
 	start := rand.Intn(len(tavernRumors) - nRumors)
-	for i := 0; i < nRumors; i++ {
+	for i := range nRumors {
 		selected[i] = tavernRumors[(start+i)%len(tavernRumors)]
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"name":          name,
-		"proprietor":    proprietorNames[rand.Intn(len(proprietorNames))],
+		"name":             name,
+		"proprietor":       proprietorNames[rand.Intn(len(proprietorNames))],
 		"proprietor_trait": proprietorTraits[rand.Intn(len(proprietorTraits))],
 		"clientele": []string{
 			tavernClientele[rand.Intn(len(tavernClientele))],
 			tavernClientele[rand.Intn(len(tavernClientele))],
 			tavernClientele[rand.Intn(len(tavernClientele))],
 		},
-		"specialty_drink": specialtyDrinkNames[rand.Intn(len(specialtyDrinkNames))],
+		"specialty_drink":   specialtyDrinkNames[rand.Intn(len(specialtyDrinkNames))],
 		"drink_description": specialtyDesc[rand.Intn(len(specialtyDesc))],
-		"atmosphere":    tavernAtmospheres[rand.Intn(len(tavernAtmospheres))],
-		"prices":        tavernPrices[rand.Intn(len(tavernPrices))],
-		"rumors":        selected,
+		"atmosphere":        tavernAtmospheres[rand.Intn(len(tavernAtmospheres))],
+		"prices":            tavernPrices[rand.Intn(len(tavernPrices))],
+		"rumors":            selected,
 	})
 }
 
@@ -283,10 +283,10 @@ var urbanResolutions = []string{
 
 func HandleGenerateUrbanEncounter(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"theme":              urbanThemes[rand.Intn(len(urbanThemes))],
-		"npc":                urbanNPCs[rand.Intn(len(urbanNPCs))],
-		"description":        urbanDescriptions[rand.Intn(len(urbanDescriptions))],
-		"complication":       urbanComplications[rand.Intn(len(urbanComplications))],
+		"theme":               urbanThemes[rand.Intn(len(urbanThemes))],
+		"npc":                 urbanNPCs[rand.Intn(len(urbanNPCs))],
+		"description":         urbanDescriptions[rand.Intn(len(urbanDescriptions))],
+		"complication":        urbanComplications[rand.Intn(len(urbanComplications))],
 		"possible_resolution": urbanResolutions[rand.Intn(len(urbanResolutions))],
 	})
 }
@@ -340,11 +340,11 @@ var roadComplications = []string{
 
 func HandleGenerateRoadEncounter(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"terrain":       roadTerrainTypes[rand.Intn(len(roadTerrainTypes))],
+		"terrain":        roadTerrainTypes[rand.Intn(len(roadTerrainTypes))],
 		"encounter_type": roadEncounterTypes[rand.Intn(len(roadEncounterTypes))],
-		"description":   roadDescriptions[rand.Intn(len(roadDescriptions))],
-		"creatures":     roadCreatures[rand.Intn(len(roadCreatures))],
-		"loot_hint":     roadLootHints[rand.Intn(len(roadLootHints))],
-		"complication":  roadComplications[rand.Intn(len(roadComplications))],
+		"description":    roadDescriptions[rand.Intn(len(roadDescriptions))],
+		"creatures":      roadCreatures[rand.Intn(len(roadCreatures))],
+		"loot_hint":      roadLootHints[rand.Intn(len(roadLootHints))],
+		"complication":   roadComplications[rand.Intn(len(roadComplications))],
 	})
 }

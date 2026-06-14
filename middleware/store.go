@@ -166,7 +166,7 @@ func (s *DBSessionStore) Cleanup() {
 	}
 
 	// Remove expired from cache
-	s.cache.Range(func(key, value interface{}) bool {
+	s.cache.Range(func(key, value any) bool {
 		sess := value.(*models.AuthSession)
 		if time.Now().After(sess.ExpiresAt) {
 			s.cache.Delete(key)

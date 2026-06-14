@@ -55,7 +55,7 @@ func TestCampaignPartyItemsCRUD(t *testing.T) {
 		if w.Code != http.StatusOK {
 			t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 		}
-		var items []map[string]interface{}
+		var items []map[string]any
 		if err := json.Unmarshal(w.Body.Bytes(), &items); err != nil {
 			t.Fatalf("failed to parse: %v", err)
 		}
@@ -66,7 +66,7 @@ func TestCampaignPartyItemsCRUD(t *testing.T) {
 
 	t.Run("Create party item returns 201", func(t *testing.T) {
 		w := httptest.NewRecorder()
-		body, _ := json.Marshal(map[string]interface{}{
+		body, _ := json.Marshal(map[string]any{
 			"name":     "Potion of Healing",
 			"quantity": 5,
 			"notes":    "Found in dungeon",
@@ -78,7 +78,7 @@ func TestCampaignPartyItemsCRUD(t *testing.T) {
 		if w.Code != http.StatusCreated {
 			t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
 		}
-		var resp map[string]interface{}
+		var resp map[string]any
 		if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
 			t.Fatalf("failed to parse: %v", err)
 		}
@@ -96,7 +96,7 @@ func TestCampaignPartyItemsCRUD(t *testing.T) {
 		if w.Code != http.StatusOK {
 			t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 		}
-		var items []map[string]interface{}
+		var items []map[string]any
 		if err := json.Unmarshal(w.Body.Bytes(), &items); err != nil {
 			t.Fatalf("failed to parse: %v", err)
 		}
@@ -116,7 +116,7 @@ func TestCampaignPartyItemsCRUD(t *testing.T) {
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest("GET", "/api/campaigns/1/party-items", nil)
 		r.ServeHTTP(w, req)
-		var items []map[string]interface{}
+		var items []map[string]any
 		json.Unmarshal(w.Body.Bytes(), &items)
 		if len(items) == 0 {
 			t.Fatal("no items to delete")
@@ -137,7 +137,7 @@ func TestCampaignPartyItemsCRUD(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/api/campaigns/1/party-items", nil)
 		r.ServeHTTP(w, req)
 
-		var items []map[string]interface{}
+		var items []map[string]any
 		json.Unmarshal(w.Body.Bytes(), &items)
 		if len(items) != 0 {
 			t.Errorf("expected empty list after delete, got %d items", len(items))
@@ -188,7 +188,7 @@ func TestCampaignSessionPlansCRUD(t *testing.T) {
 		if w.Code != http.StatusOK {
 			t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 		}
-		var plans []map[string]interface{}
+		var plans []map[string]any
 		if err := json.Unmarshal(w.Body.Bytes(), &plans); err != nil {
 			t.Fatalf("failed to parse: %v", err)
 		}
@@ -199,11 +199,11 @@ func TestCampaignSessionPlansCRUD(t *testing.T) {
 
 	t.Run("Create session plan", func(t *testing.T) {
 		w := httptest.NewRecorder()
-		body, _ := json.Marshal(map[string]interface{}{
-			"title":       "Session 1",
+		body, _ := json.Marshal(map[string]any{
+			"title":        "Session 1",
 			"session_date": "2025-06-01",
-			"status":      "planned",
-			"dm_notes":    "Prepare dragon encounter",
+			"status":       "planned",
+			"dm_notes":     "Prepare dragon encounter",
 		})
 		req, _ := http.NewRequest("POST", "/api/campaigns/1/session-plans", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -212,7 +212,7 @@ func TestCampaignSessionPlansCRUD(t *testing.T) {
 		if w.Code != http.StatusCreated {
 			t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
 		}
-		var resp map[string]interface{}
+		var resp map[string]any
 		if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
 			t.Fatalf("failed to parse: %v", err)
 		}
@@ -231,7 +231,7 @@ func TestCampaignSessionPlansCRUD(t *testing.T) {
 		if w.Code != http.StatusOK {
 			t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 		}
-		var plans []map[string]interface{}
+		var plans []map[string]any
 		if err := json.Unmarshal(w.Body.Bytes(), &plans); err != nil {
 			t.Fatalf("failed to parse: %v", err)
 		}
@@ -248,10 +248,10 @@ func TestCampaignSessionPlansCRUD(t *testing.T) {
 			t.Fatal("no plan ID from create step")
 		}
 		w := httptest.NewRecorder()
-		body, _ := json.Marshal(map[string]interface{}{
-			"title":       "Session 1 - Updated",
+		body, _ := json.Marshal(map[string]any{
+			"title":        "Session 1 - Updated",
 			"session_date": "2025-06-01",
-			"status":      "completed",
+			"status":       "completed",
 		})
 		req, _ := http.NewRequest("PUT", fmt.Sprintf("/api/session-plans/%d", int(createdID)), bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
@@ -265,7 +265,7 @@ func TestCampaignSessionPlansCRUD(t *testing.T) {
 		w2 := httptest.NewRecorder()
 		req2, _ := http.NewRequest("GET", "/api/campaigns/1/session-plans", nil)
 		r.ServeHTTP(w2, req2)
-		var plans []map[string]interface{}
+		var plans []map[string]any
 		json.Unmarshal(w2.Body.Bytes(), &plans)
 		if len(plans) > 0 && plans[0]["title"] != "Session 1 - Updated" {
 			t.Errorf("expected updated title, got '%v'", plans[0]["title"])
@@ -287,7 +287,7 @@ func TestCampaignSessionPlansCRUD(t *testing.T) {
 		w2 := httptest.NewRecorder()
 		req2, _ := http.NewRequest("GET", "/api/campaigns/1/session-plans", nil)
 		r.ServeHTTP(w2, req2)
-		var plans []map[string]interface{}
+		var plans []map[string]any
 		json.Unmarshal(w2.Body.Bytes(), &plans)
 		if len(plans) != 0 {
 			t.Errorf("expected empty list after delete, got %d", len(plans))
@@ -336,7 +336,7 @@ func TestCampaignDashboard(t *testing.T) {
 			t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 		}
 
-		var dash map[string]interface{}
+		var dash map[string]any
 		if err := json.Unmarshal(w.Body.Bytes(), &dash); err != nil {
 			t.Fatalf("failed to parse dashboard: %v", err)
 		}
@@ -348,14 +348,14 @@ func TestCampaignDashboard(t *testing.T) {
 			t.Errorf("expected party name, got '%v'", dash["party_name"])
 		}
 
-		chars, ok := dash["characters"].([]interface{})
+		chars, ok := dash["characters"].([]any)
 		if !ok {
 			t.Fatal("expected characters array")
 		}
 		if len(chars) != 1 {
 			t.Fatalf("expected 1 character, got %d", len(chars))
 		}
-		char := chars[0].(map[string]interface{})
+		char := chars[0].(map[string]any)
 		if char["name"] != "Hero" {
 			t.Errorf("expected character name 'Hero', got '%v'", char["name"])
 		}
@@ -399,7 +399,7 @@ func TestExhaustionAPI(t *testing.T) {
 
 	t.Run("Set exhaustion to 3", func(t *testing.T) {
 		w := httptest.NewRecorder()
-		body, _ := json.Marshal(map[string]interface{}{
+		body, _ := json.Marshal(map[string]any{
 			"level": 3,
 		})
 		req, _ := http.NewRequest("PATCH", "/api/characters/1/exhaustion", bytes.NewReader(body))
@@ -413,7 +413,7 @@ func TestExhaustionAPI(t *testing.T) {
 
 	t.Run("Invalid level 7 returns 400", func(t *testing.T) {
 		w := httptest.NewRecorder()
-		body, _ := json.Marshal(map[string]interface{}{
+		body, _ := json.Marshal(map[string]any{
 			"level": 7,
 		})
 		req, _ := http.NewRequest("PATCH", "/api/characters/1/exhaustion", bytes.NewReader(body))
@@ -427,7 +427,7 @@ func TestExhaustionAPI(t *testing.T) {
 
 	t.Run("Negative level returns 400", func(t *testing.T) {
 		w := httptest.NewRecorder()
-		body, _ := json.Marshal(map[string]interface{}{
+		body, _ := json.Marshal(map[string]any{
 			"level": -1,
 		})
 		req, _ := http.NewRequest("PATCH", "/api/characters/1/exhaustion", bytes.NewReader(body))
@@ -441,7 +441,7 @@ func TestExhaustionAPI(t *testing.T) {
 
 	t.Run("Reset exhaustion to 0", func(t *testing.T) {
 		w := httptest.NewRecorder()
-		body, _ := json.Marshal(map[string]interface{}{
+		body, _ := json.Marshal(map[string]any{
 			"level": 0,
 		})
 		req, _ := http.NewRequest("PATCH", "/api/characters/1/exhaustion", bytes.NewReader(body))
@@ -490,7 +490,7 @@ func TestBatchSpellPrep(t *testing.T) {
 
 	t.Run("Unprepares all spells when empty list", func(t *testing.T) {
 		w := httptest.NewRecorder()
-		body, _ := json.Marshal(map[string]interface{}{
+		body, _ := json.Marshal(map[string]any{
 			"spell_ids": []int64{},
 		})
 		req, _ := http.NewRequest("PUT", "/api/characters/1/spells/prepare", bytes.NewReader(body))
@@ -511,7 +511,7 @@ func TestBatchSpellPrep(t *testing.T) {
 
 	t.Run("Prepares specific spells", func(t *testing.T) {
 		w := httptest.NewRecorder()
-		body, _ := json.Marshal(map[string]interface{}{
+		body, _ := json.Marshal(map[string]any{
 			"spell_ids": []int64{1},
 		})
 		req, _ := http.NewRequest("PUT", "/api/characters/1/spells/prepare", bytes.NewReader(body))
@@ -572,7 +572,7 @@ func TestDashboardNonExistentCampaign(t *testing.T) {
 			t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 		}
 
-		var dash map[string]interface{}
+		var dash map[string]any
 		if err := json.Unmarshal(w.Body.Bytes(), &dash); err != nil {
 			t.Fatalf("failed to parse: %v", err)
 		}

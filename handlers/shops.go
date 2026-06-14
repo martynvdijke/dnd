@@ -37,14 +37,14 @@ type ShopItem struct {
 }
 
 type ShopTransaction struct {
-	ID              int64  `json:"id"`
-	ShopID          int64  `json:"shop_id"`
-	CharacterID     int64  `json:"character_id"`
-	ItemName        string `json:"item_name"`
-	Quantity        int    `json:"quantity"`
+	ID              int64   `json:"id"`
+	ShopID          int64   `json:"shop_id"`
+	CharacterID     int64   `json:"character_id"`
+	ItemName        string  `json:"item_name"`
+	Quantity        int     `json:"quantity"`
 	PriceGP         float64 `json:"price_gp"`
-	TransactionType string `json:"transaction_type"`
-	Timestamp       string `json:"timestamp"`
+	TransactionType string  `json:"transaction_type"`
+	Timestamp       string  `json:"timestamp"`
 }
 
 // isDMOfCampaign checks if the current user is a DM or admin for the given campaign.
@@ -68,7 +68,7 @@ const shopColumns = "s.id,s.user_id,s.campaign_id,s.name,s.description,s.markup_
 const shopFrom = "FROM shops s LEFT JOIN locations l ON l.id = s.location_id"
 
 func scanShop(scanner interface {
-	Scan(dest ...interface{}) error
+	Scan(dest ...any) error
 }) (Shop, error) {
 	var s Shop
 	err := scanner.Scan(&s.ID, &s.UserID, &s.CampaignID, &s.Name, &s.Description, &s.MarkupPercent, &s.MarkupBuyPercent, &s.LocationID, &s.LocationName, &s.CreatedAt)
@@ -82,7 +82,7 @@ func ListShops(c *gin.Context) {
 	if campaignID != "" {
 		rows, err = db.DB.Query("SELECT "+shopColumns+" "+shopFrom+" WHERE s.campaign_id=? ORDER BY s.name", campaignID)
 	} else {
-		rows, err = db.DB.Query("SELECT "+shopColumns+" "+shopFrom+" ORDER BY s.name")
+		rows, err = db.DB.Query("SELECT " + shopColumns + " " + shopFrom + " ORDER BY s.name")
 	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -162,16 +162,16 @@ func ListShopItems(c *gin.Context) {
 	}
 	defer rows.Close()
 	type SI struct {
-		ID                int64   `json:"id"`
-		ShopID            int64   `json:"shop_id"`
-		ItemName          string  `json:"item_name"`
-		Category          string  `json:"category"`
-		PriceGP           float64 `json:"price_gp"`
-		QuantityAvailable int     `json:"quantity_available"`
-		Description       string  `json:"description"`
-		IsMagical         bool    `json:"is_magical"`
-		AttunementRequired bool   `json:"attunement_required"`
-		Notes             string  `json:"notes"`
+		ID                 int64   `json:"id"`
+		ShopID             int64   `json:"shop_id"`
+		ItemName           string  `json:"item_name"`
+		Category           string  `json:"category"`
+		PriceGP            float64 `json:"price_gp"`
+		QuantityAvailable  int     `json:"quantity_available"`
+		Description        string  `json:"description"`
+		IsMagical          bool    `json:"is_magical"`
+		AttunementRequired bool    `json:"attunement_required"`
+		Notes              string  `json:"notes"`
 	}
 	var items []SI
 	for rows.Next() {

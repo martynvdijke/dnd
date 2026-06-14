@@ -93,7 +93,7 @@ func TestAIEndpointCRUD(t *testing.T) {
 		if w.Code != 200 {
 			t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 		}
-		var eps []interface{}
+		var eps []any
 		json.Unmarshal(w.Body.Bytes(), &eps)
 		if len(eps) != 0 {
 			t.Fatalf("expected empty list, got %d items", len(eps))
@@ -109,7 +109,7 @@ func TestAIEndpointCRUD(t *testing.T) {
 		if w.Code != 201 {
 			t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
 		}
-		var ep map[string]interface{}
+		var ep map[string]any
 		json.Unmarshal(w.Body.Bytes(), &ep)
 		if ep["name"] != "test-openai" {
 			t.Fatalf("expected name test-openai, got %v", ep["name"])
@@ -126,7 +126,7 @@ func TestAIEndpointCRUD(t *testing.T) {
 		if w.Code != 200 {
 			t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 		}
-		var eps []interface{}
+		var eps []any
 		json.Unmarshal(w.Body.Bytes(), &eps)
 		if len(eps) != 1 {
 			t.Fatalf("expected 1 endpoint, got %d", len(eps))
@@ -140,7 +140,7 @@ func TestAIEndpointCRUD(t *testing.T) {
 		if w.Code != 200 {
 			t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 		}
-		var ep map[string]interface{}
+		var ep map[string]any
 		json.Unmarshal(w.Body.Bytes(), &ep)
 		if ep["id"] != float64(1) {
 			t.Fatalf("expected id 1, got %v", ep["id"])
@@ -178,7 +178,7 @@ func TestAIEndpointCRUD(t *testing.T) {
 		if w.Code != 200 {
 			t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 		}
-		var ep map[string]interface{}
+		var ep map[string]any
 		json.Unmarshal(w.Body.Bytes(), &ep)
 		if ep["name"] != "test-openai-updated" {
 			t.Fatalf("expected name test-openai-updated, got %v", ep["name"])
@@ -217,9 +217,9 @@ func TestAIEndpointCRUD(t *testing.T) {
 		if w.Code != 201 {
 			t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
 		}
-		var ep map[string]interface{}
+		var ep map[string]any
 		json.Unmarshal(w.Body.Bytes(), &ep)
-		tags, ok := ep["tags"].([]interface{})
+		tags, ok := ep["tags"].([]any)
 		if !ok || len(tags) != 3 {
 			t.Fatalf("expected 3 tags, got %v", ep["tags"])
 		}
@@ -273,7 +273,7 @@ func TestAIEndpointCRUD(t *testing.T) {
 		if w.Code != 200 {
 			t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
 		}
-		var result map[string]interface{}
+		var result map[string]any
 		json.Unmarshal(w.Body.Bytes(), &result)
 		if result["success"] != false {
 			t.Fatalf("expected success=false for invalid URL, got %v", result["success"])
@@ -337,11 +337,11 @@ func TestTruncateResponse(t *testing.T) {
 }
 
 func repeatStr(s string, n int) string {
-	result := ""
-	for i := 0; i < n; i++ {
-		result += s
+	var result strings.Builder
+	for range n {
+		result.WriteString(s)
 	}
-	return result
+	return result.String()
 }
 
 // TestAIErrorMessagesFormat verifies that AI endpoint error responses include

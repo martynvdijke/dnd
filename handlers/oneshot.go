@@ -47,8 +47,14 @@ func entActToModel(e *ent.OneShotAct) models.OneShotAct {
 				Title: s.Title, Description: s.Description, SceneType: s.SceneType,
 				EstimatedMinutes: s.EstimatedMinutes, Notes: s.Notes,
 			}
-			if s.LocationID != 0 { lid := s.LocationID; ms.LocationID = &lid }
-			if s.EncounterID != 0 { eid := s.EncounterID; ms.EncounterID = &eid }
+			if s.LocationID != 0 {
+				lid := s.LocationID
+				ms.LocationID = &lid
+			}
+			if s.EncounterID != 0 {
+				eid := s.EncounterID
+				ms.EncounterID = &eid
+			}
 			m.Scenes = append(m.Scenes, ms)
 		}
 	}
@@ -61,7 +67,10 @@ func entActToModel(e *ent.OneShotAct) models.OneShotAct {
 				Weight: it.Weight, PriceGP: it.PriceGp, IsMagical: it.IsMagical,
 				Attunement: it.Attunement, Notes: it.Notes, CreatedAt: it.CreatedAt,
 			}
-			if it.ActID != 0 { aid := it.ActID; mi.ActID = &aid }
+			if it.ActID != 0 {
+				aid := it.ActID
+				mi.ActID = &aid
+			}
 			m.Items = append(m.Items, mi)
 		}
 	}
@@ -71,7 +80,10 @@ func entActToModel(e *ent.OneShotAct) models.OneShotAct {
 			me := models.OneShotAdventureEncounter{
 				ID: enc.ID, AdventureID: enc.AdventureID, EncounterID: enc.EncounterID,
 			}
-			if enc.ActID != 0 { aid := enc.ActID; me.ActID = &aid }
+			if enc.ActID != 0 {
+				aid := enc.ActID
+				me.ActID = &aid
+			}
 			m.Encounters = append(m.Encounters, me)
 		}
 	}
@@ -84,7 +96,10 @@ func entAdventureToModel(e *ent.OneShotAdventure) models.OneShotAdventure {
 		Template: e.Template, EstimatedMinutes: e.EstimatedMinutes, Difficulty: e.Difficulty,
 		Notes: e.Notes, CreatedAt: e.CreatedAt, UpdatedAt: e.UpdatedAt,
 	}
-	if e.CampaignID != 0 { cid := e.CampaignID; m.CampaignID = &cid }
+	if e.CampaignID != 0 {
+		cid := e.CampaignID
+		m.CampaignID = &cid
+	}
 	return m
 }
 
@@ -99,7 +114,9 @@ func sortActsBySortOrder(acts *[]models.OneShotAct) {
 
 func loadAdventureNPCs(adventureID int64) []models.OneShotAdventureNPC {
 	rows, err := db.DB.Query("SELECT oan.id, oan.adventure_id, oan.npc_id, oan.role, oan.story_hook, oan.combat_ready, COALESCE(n.name,'') FROM oneshot_adventure_npcs oan LEFT JOIN npcs n ON oan.npc_id=n.id WHERE oan.adventure_id=?", adventureID)
-	if err != nil { return nil }
+	if err != nil {
+		return nil
+	}
 	defer rows.Close()
 	out := make([]models.OneShotAdventureNPC, 0)
 	for rows.Next() {
@@ -114,7 +131,9 @@ func loadAdventureNPCs(adventureID int64) []models.OneShotAdventureNPC {
 
 func loadAdventureLocations(adventureID int64) []models.OneShotAdventureLocation {
 	rows, err := db.DB.Query("SELECT oal.id, oal.adventure_id, oal.location_id, COALESCE(l.name,'') FROM oneshot_adventure_locations oal LEFT JOIN locations l ON oal.location_id=l.id WHERE oal.adventure_id=?", adventureID)
-	if err != nil { return nil }
+	if err != nil {
+		return nil
+	}
 	defer rows.Close()
 	out := make([]models.OneShotAdventureLocation, 0)
 	for rows.Next() {
@@ -127,7 +146,9 @@ func loadAdventureLocations(adventureID int64) []models.OneShotAdventureLocation
 
 func loadAdventureEncounters(adventureID int64) []models.OneShotAdventureEncounter {
 	rows, err := db.DB.Query("SELECT oae.id, oae.adventure_id, oae.encounter_id, COALESCE(e.name,'') FROM oneshot_adventure_encounters oae LEFT JOIN encounter_templates e ON oae.encounter_id=e.id WHERE oae.adventure_id=?", adventureID)
-	if err != nil { return nil }
+	if err != nil {
+		return nil
+	}
 	defer rows.Close()
 	out := make([]models.OneShotAdventureEncounter, 0)
 	for rows.Next() {
@@ -140,15 +161,21 @@ func loadAdventureEncounters(adventureID int64) []models.OneShotAdventureEncount
 
 func loadAdventureShops(adventureID int64) []models.OneShotShop {
 	rows, err := db.DB.Query("SELECT id, user_id, campaign_id, oneshot_adventure_id, act_id, name, description, markup_percent, markup_buy_percent, created_at FROM shops WHERE oneshot_adventure_id=? ORDER BY name", adventureID)
-	if err != nil { return nil }
+	if err != nil {
+		return nil
+	}
 	defer rows.Close()
 	out := make([]models.OneShotShop, 0)
 	for rows.Next() {
 		var s models.OneShotShop
 		var campID, aID sql.NullInt64
 		rows.Scan(&s.ID, &s.UserID, &campID, &s.OneshotAdventureID, &aID, &s.Name, &s.Description, &s.MarkupPercent, &s.MarkupBuyPercent, &s.CreatedAt)
-		if campID.Valid { s.CampaignID = &campID.Int64 }
-		if aID.Valid { s.ActID = &aID.Int64 }
+		if campID.Valid {
+			s.CampaignID = &campID.Int64
+		}
+		if aID.Valid {
+			s.ActID = &aID.Int64
+		}
 		out = append(out, s)
 	}
 	return out
@@ -156,7 +183,9 @@ func loadAdventureShops(adventureID int64) []models.OneShotShop {
 
 func loadAdventureItems(adventureID int64) []models.OneShotItem {
 	rows, err := db.DB.Query("SELECT id, adventure_id, act_id, name, description, category, quantity, weight, price_gp, is_magical, attunement, notes, created_at FROM oneshot_items WHERE adventure_id=? ORDER BY name", adventureID)
-	if err != nil { return nil }
+	if err != nil {
+		return nil
+	}
 	defer rows.Close()
 	out := make([]models.OneShotItem, 0)
 	for rows.Next() {
@@ -166,7 +195,9 @@ func loadAdventureItems(adventureID int64) []models.OneShotItem {
 		rows.Scan(&it.ID, &it.AdventureID, &aID, &it.Name, &it.Description, &it.Category, &it.Quantity, &it.Weight, &it.PriceGP, &isMag, &att, &it.Notes, &it.CreatedAt)
 		it.IsMagical = isMag == 1
 		it.Attunement = att == 1
-		if aID.Valid { it.ActID = &aID.Int64 }
+		if aID.Valid {
+			it.ActID = &aID.Int64
+		}
 		out = append(out, it)
 	}
 	return out
@@ -498,7 +529,9 @@ func LinkOneShotNPC(c *gin.Context) {
 		return
 	}
 	combatReady := 0
-	if link.CombatReady { combatReady = 1 }
+	if link.CombatReady {
+		combatReady = 1
+	}
 	_, err := db.DB.Exec("INSERT OR REPLACE INTO oneshot_adventure_npcs(adventure_id, npc_id, role, story_hook, combat_ready) VALUES(?,?,?,?,?)",
 		adventureID, link.NPCID, link.Role, link.StoryHook, combatReady)
 	if err != nil {
@@ -604,11 +637,11 @@ func UnlinkOneShotEncounter(c *gin.Context) {
 // ─── Template Generation ───
 
 type GenerateRequest struct {
-	Template     string `json:"template"`
-	Title        string `json:"title"`
-	Difficulty   string `json:"difficulty"`
-	Minutes      int    `json:"estimated_minutes"`
-	CampaignID   *int64 `json:"campaign_id,omitempty"`
+	Template   string `json:"template"`
+	Title      string `json:"title"`
+	Difficulty string `json:"difficulty"`
+	Minutes    int    `json:"estimated_minutes"`
+	CampaignID *int64 `json:"campaign_id,omitempty"`
 }
 
 func GenerateOneShotFromTemplate(c *gin.Context) {
@@ -839,19 +872,19 @@ func generateDefaultStructure(adventureID int64) {
 // ─── HTMX Handlers ───
 
 type htmxOneShotData struct {
-	Adventure   *models.OneShotAdventure
-	Adventures  []models.OneShotAdventure
-	NPCs        []models.NPC
-	Locations   []models.Location
-	Encounters  []models.EncounterTemplate
-	Act         *models.OneShotAct
-	Scene       *models.OneShotScene
-	SceneTypes  []string
-	Templates   []string
+	Adventure    *models.OneShotAdventure
+	Adventures   []models.OneShotAdventure
+	NPCs         []models.NPC
+	Locations    []models.Location
+	Encounters   []models.EncounterTemplate
+	Act          *models.OneShotAct
+	Scene        *models.OneShotScene
+	SceneTypes   []string
+	Templates    []string
 	Difficulties []string
-	Acts        []models.OneShotAct
-	Dialogs     []models.OneShotSceneDialog
-	Dialog      *models.OneShotSceneDialog
+	Acts         []models.OneShotAct
+	Dialogs      []models.OneShotSceneDialog
+	Dialog       *models.OneShotSceneDialog
 }
 
 func HtmxListOneShots(c *gin.Context) {
@@ -1313,7 +1346,7 @@ func HtmxDeleteScene(c *gin.Context) {
 func HtmxNewDialogForm(c *gin.Context) {
 	sceneID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	data := htmxOneShotData{
-		Scene: &models.OneShotScene{ID: sceneID},
+		Scene:  &models.OneShotScene{ID: sceneID},
 		Dialog: &models.OneShotSceneDialog{SceneID: sceneID},
 	}
 	renderTemplate(c, "oneshot_dialog_form.html", data)
@@ -1976,10 +2009,7 @@ func computePace(estimatedMin int, timings []models.SceneTiming) (class string, 
 		if t.Status == "active" {
 			elapsedMin := t.ElapsedSeconds / 60
 			ratio := float64(elapsedMin) / float64(estimatedMin)
-			pct := int(ratio * 100)
-			if pct > 100 {
-				pct = 100
-			}
+			pct := min(int(ratio*100), 100)
 			if ratio >= 1.0 {
 				return "bg-danger", pct, "Over Time!"
 			} else if ratio >= 0.8 {
@@ -2283,7 +2313,7 @@ func HtmxListClues(c *gin.Context) {
 	}
 
 	renderTemplate(c, "oneshot_clues.html", gin.H{
-		"Clues": clues,
+		"Clues":       clues,
 		"AdventureID": adventureID,
 	})
 }
@@ -2418,30 +2448,30 @@ func ListPregens(c *gin.Context) {
 func CreatePregen(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	var input struct {
-		Name       string `json:"name"`
-		Race       string `json:"race"`
-		Class      string `json:"class"`
-		Subclass   string `json:"subclass"`
-		Level      int    `json:"level"`
-		Background string `json:"background"`
-		Alignment  string `json:"alignment"`
-		Str        int    `json:"str"`
-		Dex        int    `json:"dex"`
-		Con        int    `json:"con"`
-		Int        int    `json:"int"`
-		Wis        int    `json:"wis"`
-		Cha        int    `json:"cha"`
-		HP         int    `json:"hp"`
-		AC         int    `json:"ac"`
-		Speed      int    `json:"speed"`
-		Skills     string `json:"skills"`
-		Equipment  string `json:"equipment"`
-		Spells     string `json:"spells"`
-		Features   string `json:"features"`
+		Name        string `json:"name"`
+		Race        string `json:"race"`
+		Class       string `json:"class"`
+		Subclass    string `json:"subclass"`
+		Level       int    `json:"level"`
+		Background  string `json:"background"`
+		Alignment   string `json:"alignment"`
+		Str         int    `json:"str"`
+		Dex         int    `json:"dex"`
+		Con         int    `json:"con"`
+		Int         int    `json:"int"`
+		Wis         int    `json:"wis"`
+		Cha         int    `json:"cha"`
+		HP          int    `json:"hp"`
+		AC          int    `json:"ac"`
+		Speed       int    `json:"speed"`
+		Skills      string `json:"skills"`
+		Equipment   string `json:"equipment"`
+		Spells      string `json:"spells"`
+		Features    string `json:"features"`
 		Personality string `json:"personality"`
-		Backstory  string `json:"backstory"`
+		Backstory   string `json:"backstory"`
 		PortraitURL string `json:"portrait_url"`
-		Notes      string `json:"notes"`
+		Notes       string `json:"notes"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -2487,30 +2517,30 @@ func GetPregen(c *gin.Context) {
 func UpdatePregen(c *gin.Context) {
 	id := c.Param("id")
 	var input struct {
-		Name       string `json:"name"`
-		Race       string `json:"race"`
-		Class      string `json:"class"`
-		Subclass   string `json:"subclass"`
-		Level      int    `json:"level"`
-		Background string `json:"background"`
-		Alignment  string `json:"alignment"`
-		Str        int    `json:"str"`
-		Dex        int    `json:"dex"`
-		Con        int    `json:"con"`
-		Int        int    `json:"int"`
-		Wis        int    `json:"wis"`
-		Cha        int    `json:"cha"`
-		HP         int    `json:"hp"`
-		AC         int    `json:"ac"`
-		Speed      int    `json:"speed"`
-		Skills     string `json:"skills"`
-		Equipment  string `json:"equipment"`
-		Spells     string `json:"spells"`
-		Features   string `json:"features"`
+		Name        string `json:"name"`
+		Race        string `json:"race"`
+		Class       string `json:"class"`
+		Subclass    string `json:"subclass"`
+		Level       int    `json:"level"`
+		Background  string `json:"background"`
+		Alignment   string `json:"alignment"`
+		Str         int    `json:"str"`
+		Dex         int    `json:"dex"`
+		Con         int    `json:"con"`
+		Int         int    `json:"int"`
+		Wis         int    `json:"wis"`
+		Cha         int    `json:"cha"`
+		HP          int    `json:"hp"`
+		AC          int    `json:"ac"`
+		Speed       int    `json:"speed"`
+		Skills      string `json:"skills"`
+		Equipment   string `json:"equipment"`
+		Spells      string `json:"spells"`
+		Features    string `json:"features"`
 		Personality string `json:"personality"`
-		Backstory  string `json:"backstory"`
+		Backstory   string `json:"backstory"`
 		PortraitURL string `json:"portrait_url"`
-		Notes      string `json:"notes"`
+		Notes       string `json:"notes"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -2538,19 +2568,19 @@ func DeletePregen(c *gin.Context) {
 
 // Class role assignments for party balance
 var classRoles = map[string][]string{
-	"barbarian":  {"tank"},
-	"fighter":    {"tank", "damage"},
-	"paladin":    {"tank", "healer"},
-	"cleric":     {"healer"},
-	"druid":      {"healer", "support"},
-	"wizard":     {"damage", "support"},
-	"sorcerer":   {"damage"},
-	"warlock":    {"damage"},
-	"bard":       {"support", "healer"},
-	"rogue":      {"damage", "skill"},
-	"monk":       {"damage"},
-	"ranger":     {"damage", "skill"},
-	"artificer":  {"support"},
+	"barbarian": {"tank"},
+	"fighter":   {"tank", "damage"},
+	"paladin":   {"tank", "healer"},
+	"cleric":    {"healer"},
+	"druid":     {"healer", "support"},
+	"wizard":    {"damage", "support"},
+	"sorcerer":  {"damage"},
+	"warlock":   {"damage"},
+	"bard":      {"support", "healer"},
+	"rogue":     {"damage", "skill"},
+	"monk":      {"damage"},
+	"ranger":    {"damage", "skill"},
+	"artificer": {"support"},
 }
 
 var allRoles = []string{"tank", "healer", "damage", "support", "skill"}
@@ -3497,9 +3527,15 @@ func HtmxOneShotMonsters(c *gin.Context) {
 		var m models.OneShotMonster
 		var actID, sceneID, libID int64
 		rows.Scan(&m.ID, &m.AdventureID, &actID, &sceneID, &m.Name, &m.AC, &m.HP, &m.Str, &m.Dex, &m.Con, &m.Int, &m.Wis, &m.Cha, &m.CR, &m.Source, &m.IsFull, &m.Saves, &m.Skills, &m.DamageVulnerabilities, &m.DamageResistances, &m.DamageImmunities, &m.ConditionImmunities, &m.Senses, &m.Languages, &m.SpecialAbilities, &m.Actions, &m.LegendaryActions, &libID, &m.CreatedAt)
-		if actID > 0 { m.ActID = &actID }
-		if sceneID > 0 { m.SceneID = &sceneID }
-		if libID > 0 { m.LibraryID = &libID }
+		if actID > 0 {
+			m.ActID = &actID
+		}
+		if sceneID > 0 {
+			m.SceneID = &sceneID
+		}
+		if libID > 0 {
+			m.LibraryID = &libID
+		}
 		out = append(out, m)
 	}
 	renderTemplate(c, "oneshot_monsters_section.html", monstersSectionData{Monsters: out, AdventureID: id})
@@ -3542,7 +3578,7 @@ type itemsSectionData struct {
 }
 
 type shopsSectionData struct {
-	Shops       interface{}
+	Shops       any
 	AdventureID int64
 }
 
@@ -3596,10 +3632,10 @@ func CreateActNPC(c *gin.Context) {
 		return
 	}
 	var input struct {
-		NpcID  *int64 `json:"npc_id,omitempty"`
-		Name   string `json:"name"`
-		Role   string `json:"role"`
-		Notes  string `json:"notes"`
+		NpcID *int64 `json:"npc_id,omitempty"`
+		Name  string `json:"name"`
+		Role  string `json:"role"`
+		Notes string `json:"notes"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -3708,9 +3744,9 @@ func CreateActNote(c *gin.Context) {
 // ─── HTMX Act Details ───
 
 type actDetailsData struct {
-	Act     models.OneShotAct
-	NPCs    []models.OneShotActNPC
-	Notes   []models.DmNote
+	Act   models.OneShotAct
+	NPCs  []models.OneShotActNPC
+	Notes []models.DmNote
 }
 
 func HtmxActDetails(c *gin.Context) {

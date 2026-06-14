@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -1382,7 +1383,6 @@ func TestAdminUsers(t *testing.T) {
 	}
 }
 
-
 func TestCompendiumMonsters(t *testing.T) {
 	tc := newTestClient()
 	setupAdmin(t, tc)
@@ -1820,7 +1820,6 @@ func TestCompendiumSearchEmptyQuery(t *testing.T) {
 		t.Fatalf("expected 400 for empty query, got %d", resp.Code)
 	}
 }
-
 
 func TestCampaignAuthorization(t *testing.T) {
 	tc := newTestClient()
@@ -3744,7 +3743,6 @@ func TestCharacterComparison(t *testing.T) {
 	t.Logf("Comparison: %s (INT %v) vs %s (STR %v)", c1["name"], c1["int"], c2["name"], c2["str"])
 }
 
-
 func TestFeatUpdate(t *testing.T) {
 	tc := newTestClient()
 	setupAdmin(t, tc)
@@ -3867,7 +3865,7 @@ func TestProficiencyBonusOnLevelUp(t *testing.T) {
 	cid := int(char["id"].(float64))
 
 	// Level up from 1 to 5 (should go from PB=2 to PB=3)
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		resp = tc.post(fmt.Sprintf("/api/characters/%d/levelup", cid), nil)
 		if resp.Code != 200 {
 			t.Fatalf("levelup failed at iteration %d: %d", i, resp.Code)
@@ -3918,7 +3916,7 @@ func TestShareLinks(t *testing.T) {
 	tc.put(fmt.Sprintf("/api/characters/%d", cid), map[string]any{
 		"name": "Shareable Hero", "race": "Elf", "class": "Ranger", "level": 3,
 		"campaign_id": campaignID,
-		"str": 12, "dex": 16, "con": 14, "int": 10, "wis": 14, "cha": 8,
+		"str":         12, "dex": 16, "con": 14, "int": 10, "wis": 14, "cha": 8,
 		"hp_max": 28, "hp_current": 22, "ac": 15, "initiative": 3, "speed": 30,
 	})
 
@@ -5053,13 +5051,7 @@ func TestLevelUpPlannerEdgeCases(t *testing.T) {
 	t.Logf("ASI suggestion levels: %v", asiLevels)
 	expectedASIs := []int{4, 8, 12, 16, 19}
 	for _, exp := range expectedASIs {
-		found := false
-		for _, l := range asiLevels {
-			if l == exp {
-				found = true
-				break
-			}
-		}
+		found := slices.Contains(asiLevels, exp)
 		if !found {
 			t.Fatalf("expected ASI at level %d, got levels %v", exp, asiLevels)
 		}
@@ -5191,13 +5183,13 @@ func TestOneShotAdventureCRUD(t *testing.T) {
 
 	// Create a one-shot adventure
 	resp := tc.post("/api/oneshot-adventures", map[string]any{
-		"title":            "The Lost Temple",
-		"premise":          "An ancient temple has been discovered in the jungle.",
-		"hook":             "The party is hired by a historian to explore the ruins.",
-		"template":         "custom",
+		"title":             "The Lost Temple",
+		"premise":           "An ancient temple has been discovered in the jungle.",
+		"hook":              "The party is hired by a historian to explore the ruins.",
+		"template":          "custom",
 		"estimated_minutes": 180,
-		"difficulty":       "medium",
-		"notes":            "Prepare jungle encounters",
+		"difficulty":        "medium",
+		"notes":             "Prepare jungle encounters",
 	})
 	if resp.Code != 201 {
 		t.Fatalf("create oneshot failed: %d - %s", resp.Code, resp.Body.String())
@@ -5222,13 +5214,13 @@ func TestOneShotAdventureCRUD(t *testing.T) {
 
 	// Update the one-shot adventure
 	resp = tc.put("/api/oneshot-adventures/"+strconv.Itoa(aid), map[string]any{
-		"title":            "The Lost Temple - Updated",
-		"premise":          "Updated premise",
-		"hook":             "Updated hook",
-		"template":         "five_room_dungeon",
+		"title":             "The Lost Temple - Updated",
+		"premise":           "Updated premise",
+		"hook":              "Updated hook",
+		"template":          "five_room_dungeon",
 		"estimated_minutes": 240,
-		"difficulty":       "hard",
-		"notes":            "Updated notes",
+		"difficulty":        "hard",
+		"notes":             "Updated notes",
 	})
 	if resp.Code != 200 {
 		t.Fatalf("update oneshot failed: %d - %s", resp.Code, resp.Body.String())
@@ -5254,10 +5246,10 @@ func TestOneShotAdventureCRUD(t *testing.T) {
 
 	// Add an act
 	resp = tc.post("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/acts", map[string]any{
-		"title":            "Act 1: Discovery",
-		"description":      "The party arrives at the temple.",
+		"title":             "Act 1: Discovery",
+		"description":       "The party arrives at the temple.",
 		"estimated_minutes": 60,
-		"number":           1,
+		"number":            1,
 	})
 	if resp.Code != 201 {
 		t.Fatalf("create act failed: %d - %s", resp.Code, resp.Body.String())
@@ -5271,22 +5263,22 @@ func TestOneShotAdventureCRUD(t *testing.T) {
 
 	// Add scenes to act
 	resp = tc.post("/api/oneshot-acts/"+strconv.Itoa(actID)+"/scenes", map[string]any{
-		"title":            "Scene 1: The Entrance",
-		"description":      "The party approaches the temple entrance.",
-		"scene_type":       "exploration",
+		"title":             "Scene 1: The Entrance",
+		"description":       "The party approaches the temple entrance.",
+		"scene_type":        "exploration",
 		"estimated_minutes": 20,
-		"number":           1,
+		"number":            1,
 	})
 	if resp.Code != 201 {
 		t.Fatalf("create scene failed: %d - %s", resp.Code, resp.Body.String())
 	}
 
 	resp = tc.post("/api/oneshot-acts/"+strconv.Itoa(actID)+"/scenes", map[string]any{
-		"title":            "Scene 2: Temple Guardians",
-		"description":      "Golem guardians awaken.",
-		"scene_type":       "combat",
+		"title":             "Scene 2: Temple Guardians",
+		"description":       "Golem guardians awaken.",
+		"scene_type":        "combat",
 		"estimated_minutes": 30,
-		"number":           2,
+		"number":            2,
 	})
 	if resp.Code != 201 {
 		t.Fatalf("create scene 2 failed: %d - %s", resp.Code, resp.Body.String())
@@ -5310,10 +5302,10 @@ func TestOneShotAdventureCRUD(t *testing.T) {
 
 	// Update act
 	resp = tc.put("/api/oneshot-acts/"+strconv.Itoa(actID), map[string]any{
-		"title":            "Act 1: Discovery (Updated)",
-		"description":      "Updated description",
+		"title":             "Act 1: Discovery (Updated)",
+		"description":       "Updated description",
 		"estimated_minutes": 90,
-		"number":           1,
+		"number":            1,
 	})
 	if resp.Code != 200 {
 		t.Fatalf("update act failed: %d", resp.Code)
@@ -5365,9 +5357,9 @@ func TestOneShotAdventureGeneration(t *testing.T) {
 
 	// Generate a 5-room dungeon
 	resp := tc.post("/api/oneshot-adventures/generate", map[string]any{
-		"title":            "Generated Dungeon",
-		"template":         "five_room_dungeon",
-		"difficulty":       "medium",
+		"title":             "Generated Dungeon",
+		"template":          "five_room_dungeon",
+		"difficulty":        "medium",
 		"estimated_minutes": 120,
 	})
 	if resp.Code != 201 {
@@ -5450,9 +5442,9 @@ func TestOneShotAdventureLinks(t *testing.T) {
 
 	// Create a one-shot linked to the campaign
 	resp = tc.post("/api/oneshot-adventures", map[string]any{
-		"title":            "Linked Adventure",
-		"campaign_id":      campaignID,
-		"template":         "custom",
+		"title":             "Linked Adventure",
+		"campaign_id":       campaignID,
+		"template":          "custom",
 		"estimated_minutes": 180,
 	})
 	if resp.Code != 201 {
@@ -5602,9 +5594,9 @@ func TestSessionPacingLifecycle(t *testing.T) {
 
 	// Create an adventure first
 	resp := tc.post("/api/oneshot-adventures", map[string]any{
-		"title":            "Pacing Test Adventure",
-		"template":         "five_room_dungeon",
-		"difficulty":       "medium",
+		"title":             "Pacing Test Adventure",
+		"template":          "five_room_dungeon",
+		"difficulty":        "medium",
 		"estimated_minutes": 120,
 	})
 	if resp.Code != 201 {
@@ -5694,9 +5686,9 @@ func TestSessionPacingSceneAdvance(t *testing.T) {
 
 	// Create adventure with acts and scenes
 	resp := tc.post("/api/oneshot-adventures", map[string]any{
-		"title":            "Multi-Act Adventure",
-		"template":         "five_room_dungeon",
-		"difficulty":       "easy",
+		"title":             "Multi-Act Adventure",
+		"template":          "five_room_dungeon",
+		"difficulty":        "easy",
 		"estimated_minutes": 180,
 	})
 	if resp.Code != 201 {
@@ -5728,7 +5720,7 @@ func TestSessionPacingSceneAdvance(t *testing.T) {
 	_ = sceneTimings
 
 	// Advance through scenes
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		// Check session detail before advancing to see what we have
 		resp = tc.get("/api/session-pacing/"+strconv.Itoa(sessionID), nil)
 		readJSON(resp, &session)
@@ -5771,9 +5763,9 @@ func TestSessionPacingResumeExisting(t *testing.T) {
 
 	// Create adventure
 	resp := tc.post("/api/oneshot-adventures", map[string]any{
-		"title":            "Resume Test",
-		"template":         "five_room_dungeon",
-		"difficulty":       "medium",
+		"title":             "Resume Test",
+		"template":          "five_room_dungeon",
+		"difficulty":        "medium",
 		"estimated_minutes": 90,
 	})
 	if resp.Code != 201 {
@@ -5819,9 +5811,9 @@ func TestClueCRUD(t *testing.T) {
 
 	// Create adventure
 	resp := tc.post("/api/oneshot-adventures", map[string]any{
-		"title":            "Mystery Adventure",
-		"template":         "custom",
-		"difficulty":       "medium",
+		"title":             "Mystery Adventure",
+		"template":          "custom",
+		"difficulty":        "medium",
 		"estimated_minutes": 120,
 	})
 	if resp.Code != 201 {
@@ -5862,12 +5854,12 @@ func TestClueCRUD(t *testing.T) {
 
 	// Update clue
 	resp = tc.put("/api/clues/"+strconv.Itoa(clueID), map[string]any{
-		"title":       "Bloodstained Dagger (Updated)",
-		"description": "Updated description",
-		"clue_type":   "object",
+		"title":          "Bloodstained Dagger (Updated)",
+		"description":    "Updated description",
+		"clue_type":      "object",
 		"is_red_herring": true,
-		"sort_order":  2,
-		"notes":       "Updated notes",
+		"sort_order":     2,
+		"notes":          "Updated notes",
 	})
 	if resp.Code != 200 {
 		t.Fatalf("update clue failed: %d", resp.Code)
@@ -5912,9 +5904,9 @@ func TestClueRevealHide(t *testing.T) {
 	setupAdmin(t, tc)
 
 	resp := tc.post("/api/oneshot-adventures", map[string]any{
-		"title":            "Reveal Test",
-		"template":         "custom",
-		"difficulty":       "easy",
+		"title":             "Reveal Test",
+		"template":          "custom",
+		"difficulty":        "easy",
 		"estimated_minutes": 60,
 	})
 	if resp.Code != 201 {
@@ -5977,9 +5969,9 @@ func TestClueDependencies(t *testing.T) {
 	setupAdmin(t, tc)
 
 	resp := tc.post("/api/oneshot-adventures", map[string]any{
-		"title":            "Dependency Test",
-		"template":         "custom",
-		"difficulty":       "hard",
+		"title":             "Dependency Test",
+		"template":          "custom",
+		"difficulty":        "hard",
 		"estimated_minutes": 180,
 	})
 	if resp.Code != 201 {
@@ -6073,9 +6065,9 @@ func TestClueNPCLocationLinks(t *testing.T) {
 
 	// Create entities
 	resp := tc.post("/api/oneshot-adventures", map[string]any{
-		"title":            "Linked Clues",
-		"template":         "custom",
-		"difficulty":       "medium",
+		"title":             "Linked Clues",
+		"template":          "custom",
+		"difficulty":        "medium",
 		"estimated_minutes": 90,
 	})
 	if resp.Code != 201 {
@@ -6345,8 +6337,8 @@ func TestPrepChecklistCRUD(t *testing.T) {
 
 	// Create an adventure for the checklist
 	resp := tc.post("/api/oneshot-adventures", map[string]any{
-		"title":            "Prep Test Adventure",
-		"template":         "custom",
+		"title":             "Prep Test Adventure",
+		"template":          "custom",
 		"estimated_minutes": 120,
 	})
 	if resp.Code != 201 {
@@ -6372,8 +6364,8 @@ func TestPrepChecklistCRUD(t *testing.T) {
 	var itemIDs []int
 	for _, title := range itemTitles {
 		resp = tc.post("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/checklist", map[string]any{
-			"item":      title,
-			"category":  "general",
+			"item":       title,
+			"category":   "general",
 			"sort_order": len(itemIDs) + 1,
 		})
 		if resp.Code != 201 {
@@ -6424,13 +6416,13 @@ func TestPrepDashboardDataLoad(t *testing.T) {
 
 	// Create an adventure with acts and scenes
 	resp := tc.post("/api/oneshot-adventures", map[string]any{
-		"title":            "Dashboard Test",
-		"premise":          "Test premise",
-		"hook":             "Test hook",
-		"template":         "five_room_dungeon",
-		"difficulty":       "medium",
+		"title":             "Dashboard Test",
+		"premise":           "Test premise",
+		"hook":              "Test hook",
+		"template":          "five_room_dungeon",
+		"difficulty":        "medium",
 		"estimated_minutes": 180,
-		"notes":            "Test notes",
+		"notes":             "Test notes",
 	})
 	if resp.Code != 201 {
 		t.Fatalf("create adventure failed: %d", resp.Code)
@@ -6441,8 +6433,8 @@ func TestPrepDashboardDataLoad(t *testing.T) {
 
 	// Add checklist items
 	tc.post("/api/oneshot-adventures/"+strconv.Itoa(aid)+"/checklist", map[string]any{
-		"item":      "Test prep item",
-		"category":  "general",
+		"item":       "Test prep item",
+		"category":   "general",
 		"sort_order": 1,
 	})
 
@@ -6460,8 +6452,8 @@ func TestDmNoteCRUD(t *testing.T) {
 
 	// Create an adventure
 	resp := tc.post("/api/oneshot-adventures", map[string]any{
-		"title":            "DM Note Test Adventure",
-		"template":         "custom",
+		"title":             "DM Note Test Adventure",
+		"template":          "custom",
 		"estimated_minutes": 60,
 	})
 	if resp.Code != 201 {
@@ -6531,9 +6523,9 @@ func TestDmScreenData(t *testing.T) {
 
 	// Create an adventure
 	resp := tc.post("/api/oneshot-adventures", map[string]any{
-		"title":            "DM Screen Test",
-		"premise":          "A test adventure for DM screen",
-		"template":         "three_act_structure",
+		"title":             "DM Screen Test",
+		"premise":           "A test adventure for DM screen",
+		"template":          "three_act_structure",
 		"estimated_minutes": 120,
 	})
 	if resp.Code != 201 {

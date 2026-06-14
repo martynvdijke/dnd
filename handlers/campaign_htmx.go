@@ -519,14 +519,14 @@ func HtmxAddCampaignMonster(c *gin.Context) {
 		return
 	}
 
-	var libMonID interface{}
+	var libMonID any
 	if libraryID > 0 {
 		libMonID = libraryID
 	} else {
 		libMonID = nil
 	}
 
-	var compMonID interface{}
+	var compMonID any
 	if compendiumID > 0 {
 		compMonID = compendiumID
 	} else {

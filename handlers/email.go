@@ -41,8 +41,8 @@ func getEmailSettings() (*models.EmailSettings, error) {
 func sendEmail(settings *models.EmailSettings, to, subject, body string) error {
 	auth := smtp.PlainAuth("", settings.Username, settings.Password, settings.SMTPHost)
 
-	msg := []byte(fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=\"UTF-8\"\r\n\r\n%s",
-		settings.FromAddr, to, subject, body))
+	msg := fmt.Appendf(nil, "From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=\"UTF-8\"\r\n\r\n%s",
+		settings.FromAddr, to, subject, body)
 
 	addr := fmt.Sprintf("%s:%d", settings.SMTPHost, settings.SMTPPort)
 
@@ -215,10 +215,10 @@ func SendCampaignHighlights(c *gin.Context) {
 
 	shareURL := fmt.Sprintf("%s/api/share/party/%d", c.Request.Host, req.CampaignID)
 
-	charHTML := ""
+	var charHTML strings.Builder
 	for _, ch := range chars {
-		charHTML += fmt.Sprintf(`<tr><td>%s</td><td>%s %s</td><td>Lvl %s</td><td>%s</td><td>%s</td><td>%s</td></tr>`,
-			ch["name"], ch["race"], ch["class"], ch["level"], ch["hp"], ch["status"], ch["owner"])
+		charHTML.WriteString(fmt.Sprintf(`<tr><td>%s</td><td>%s %s</td><td>Lvl %s</td><td>%s</td><td>%s</td><td>%s</td></tr>`,
+			ch["name"], ch["race"], ch["class"], ch["level"], ch["hp"], ch["status"], ch["owner"]))
 	}
 	sessHTML := ""
 	for _, s := range sessions {
@@ -250,7 +250,7 @@ func SendCampaignHighlights(c *gin.Context) {
 <ul>%s</ul>
 <p><a href="%s">View Party Online</a></p>
 <hr><p style="color:#888;">Sent from your Villum campaign manager</p>`,
-		campaignName, partyName, charHTML, sessHTML, questHTML, shareURL)
+		campaignName, partyName, charHTML.String(), sessHTML, questHTML, shareURL)
 
 	sentCount := 0
 	var errors []string

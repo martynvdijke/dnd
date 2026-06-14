@@ -23,10 +23,10 @@ type DiceRequest struct {
 
 // HandlerResult is the response format sent to the frontend.
 type HandlerResult struct {
-	Expression string              `json:"expression"`
-	Total      int                 `json:"total"`
+	Expression string                `json:"expression"`
+	Total      int                   `json:"total"`
 	Breakdown  []dice.BreakdownGroup `json:"breakdown"`
-	Text       string              `json:"text"`
+	Text       string                `json:"text"`
 }
 
 var (
@@ -187,11 +187,11 @@ func splitDieAndMod(expr string) (diePart, modPart string, ok bool) {
 func GetDiceRolls(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	query := "SELECT id, user_id, character_id, expression, result, total, timestamp FROM dice_rolls WHERE user_id=? ORDER BY timestamp DESC LIMIT 50"
-	args := []interface{}{userID}
+	args := []any{userID}
 
 	if charID := c.Query("character_id"); charID != "" {
 		query = "SELECT id, user_id, character_id, expression, result, total, timestamp FROM dice_rolls WHERE character_id=? ORDER BY timestamp DESC LIMIT 50"
-		args = []interface{}{charID}
+		args = []any{charID}
 	}
 
 	rows, err := db.DB.Query(query, args...)

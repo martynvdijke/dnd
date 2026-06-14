@@ -13,7 +13,7 @@ import (
 func ListFactions(c *gin.Context) {
 	campaignID := c.Query("campaign_id")
 	query := "SELECT id, campaign_id, name, description, type, headquarters FROM factions"
-	args := []interface{}{}
+	args := []any{}
 	if campaignID != "" {
 		query += " WHERE campaign_id=?"
 		args = append(args, campaignID)

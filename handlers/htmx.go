@@ -20,35 +20,63 @@ var htmxTemplates *template.Template
 
 func init() {
 	funcMap := template.FuncMap{
-		"title":   strings.Title,
-		"lower":   strings.ToLower,
-		"seq":     seq,
-		"mul":     func(a, b int) int { return a * b },
-		"div":     func(a, b int) int { if b == 0 { return 0 }; return a / b },
-		"sub":     func(a, b int) int { return a - b },
-		"add":     func(a, b int) int { return a + b },
-		"truncate": truncate,
+		"title": strings.Title,
+		"lower": strings.ToLower,
+		"seq":   seq,
+		"mul":   func(a, b int) int { return a * b },
+		"div": func(a, b int) int {
+			if b == 0 {
+				return 0
+			}
+			return a / b
+		},
+		"sub":        func(a, b int) int { return a - b },
+		"add":        func(a, b int) int { return a + b },
+		"truncate":   truncate,
 		"capitalize": strings.Title,
-		"sign": func(n int) string { if n >= 0 { return "+" + strconv.Itoa(n) }; return strconv.Itoa(n) },
-		"countRevealed": func(clues interface{}) int {
+		"sign": func(n int) string {
+			if n >= 0 {
+				return "+" + strconv.Itoa(n)
+			}
+			return strconv.Itoa(n)
+		},
+		"countRevealed": func(clues any) int {
 			cls, ok := clues.([]models.Clue)
-			if !ok { return 0 }
+			if !ok {
+				return 0
+			}
 			n := 0
-			for _, c := range cls { if c.IsRevealed { n++ } }
+			for _, c := range cls {
+				if c.IsRevealed {
+					n++
+				}
+			}
 			return n
 		},
-		"countHidden": func(clues interface{}) int {
+		"countHidden": func(clues any) int {
 			cls, ok := clues.([]models.Clue)
-			if !ok { return 0 }
+			if !ok {
+				return 0
+			}
 			n := 0
-			for _, c := range cls { if !c.IsRevealed { n++ } }
+			for _, c := range cls {
+				if !c.IsRevealed {
+					n++
+				}
+			}
 			return n
 		},
-		"countRedHerrings": func(clues interface{}) int {
+		"countRedHerrings": func(clues any) int {
 			cls, ok := clues.([]models.Clue)
-			if !ok { return 0 }
+			if !ok {
+				return 0
+			}
 			n := 0
-			for _, c := range cls { if c.IsRedHerring { n++ } }
+			for _, c := range cls {
+				if c.IsRedHerring {
+					n++
+				}
+			}
 			return n
 		},
 	}
@@ -70,7 +98,7 @@ func truncate(s string, n int) string {
 	return s[:n] + "..."
 }
 
-func renderTemplate(c *gin.Context, name string, data interface{}) {
+func renderTemplate(c *gin.Context, name string, data any) {
 	c.Header("Content-Type", "text/html; charset=utf-8")
 	if err := htmxTemplates.ExecuteTemplate(c.Writer, name, data); err != nil {
 		c.String(http.StatusInternalServerError, "template error: %v", err)
@@ -154,7 +182,9 @@ func HtmxListNotes(c *gin.Context) {
 	}
 	for _, n := range notes {
 		cat := n.Category
-		if cat == "" { cat = "general" }
+		if cat == "" {
+			cat = "general"
+		}
 		if _, ok := grouped[cat]; ok {
 			grouped[cat] = append(grouped[cat], n)
 		} else {
@@ -185,7 +215,7 @@ func HtmxEditNoteForm(c *gin.Context) {
 	}
 	renderTemplate(c, "notes_form.html", htmxNoteData{
 		CharacterID: n.CharacterID,
-		Note:       &n,
+		Note:        &n,
 	})
 }
 
@@ -355,10 +385,7 @@ func HtmxCreateCondition(c *gin.Context) {
 		c.String(http.StatusBadRequest, "name required")
 		return
 	}
-	duration := getIntParam(c, "duration", 0)
-	if duration < 0 {
-		duration = 0
-	}
+	duration := max(getIntParam(c, "duration", 0), 0)
 	db.DB.Exec("INSERT INTO character_conditions(character_id,name,type,source,duration,duration_type,saving_throw,save_dc,description) VALUES(?,?,?,?,?,?,?,?,?)",
 		charID, name, c.PostForm("type"), c.PostForm("source"), duration, c.PostForm("duration_type"), c.PostForm("saving_throw"), getIntParam(c, "save_dc", 0), c.PostForm("description"))
 	c.Request.URL.RawQuery = "character_id=" + charID
@@ -489,8 +516,8 @@ func HtmxDeleteCompanion(c *gin.Context) {
 // ─── Features ───
 
 type htmxFeatureData struct {
-	CharacterID  int64
-	Features     []models.Feature
+	CharacterID   int64
+	Features      []models.Feature
 	Proficiencies []models.Proficiency
 }
 
@@ -848,8 +875,8 @@ func HtmxUnlinkNPC(c *gin.Context) {
 // ─── Locations (linked to character) ───
 
 type htmxLocationData struct {
-	CharacterID int64
-	Locations   []locLink
+	CharacterID  int64
+	Locations    []locLink
 	AllLocations []models.Location
 }
 
@@ -916,7 +943,9 @@ func HtmxCreateLocation(c *gin.Context) {
 	charID := c.PostForm("character_id")
 	userID, _ := c.Get("user_id")
 	name := c.PostForm("name")
-	if name == "" { return }
+	if name == "" {
+		return
+	}
 	result, err := db.DB.Exec("INSERT INTO locations(user_id,name,type,description) VALUES(?,?,?,?)", userID, name, c.PostForm("type"), c.PostForm("description"))
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
@@ -1187,7 +1216,7 @@ type htmxTimelineData struct {
 func HtmxListTimeline(c *gin.Context) {
 	oneshotID := c.Query("oneshot_adventure_id")
 	query := "SELECT id, campaign_id, title, description, event_date, event_type, importance, icon, linked_entity_type, linked_entity_id, created_at FROM campaign_timeline_events" + " WHERE 1=1"
-	var args []interface{}
+	var args []any
 	if oneshotID != "" {
 		query += " AND oneshot_adventure_id=?"
 		args = append(args, oneshotID)
@@ -1253,7 +1282,7 @@ type htmxFactionData struct {
 func HtmxListFactions(c *gin.Context) {
 	oneshotID := c.Query("oneshot_adventure_id")
 	query := "SELECT id, campaign_id, name, description, type, headquarters FROM factions WHERE 1=1"
-	var args []interface{}
+	var args []any
 	if oneshotID != "" {
 		query += " AND oneshot_adventure_id=?"
 		args = append(args, oneshotID)
@@ -1319,8 +1348,8 @@ type htmxMediaGalleryData struct {
 
 type mediaUploadItem struct {
 	models.Upload
-	LinkID  int64  `json:"link_id"`
-	IsPDF   bool   `json:"is_pdf"`
+	LinkID int64 `json:"link_id"`
+	IsPDF  bool  `json:"is_pdf"`
 }
 
 func HtmxMediaGallery(c *gin.Context) {
@@ -1375,7 +1404,10 @@ func HtmxMediaGallery(c *gin.Context) {
 // ─── Settings export for use in main.go ───
 
 func HtmxRegisterRoutes(r *gin.RouterGroup) {
-	routes := []struct{ method, path string; handler gin.HandlerFunc }{
+	routes := []struct {
+		method, path string
+		handler      gin.HandlerFunc
+	}{
 		// Notes
 		{"GET", "/htmx/notes", HtmxListNotes},
 		{"GET", "/htmx/notes/new", HtmxNewNoteForm},

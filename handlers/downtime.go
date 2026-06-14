@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -55,13 +56,7 @@ func CreateDowntimeActivity(c *gin.Context) {
 	if a.Status == "" {
 		a.Status = "in-progress"
 	}
-	validType := false
-	for _, t := range downtimeTypes {
-		if a.ActivityType == t {
-			validType = true
-			break
-		}
-	}
+	validType := slices.Contains(downtimeTypes, a.ActivityType)
 	if !validType {
 		a.ActivityType = "other"
 	}
@@ -121,11 +116,11 @@ func AdvanceDowntimeDay(c *gin.Context) {
 
 	db.DB.Exec("UPDATE downtime_activities SET days_completed=?, status=?, updated_at=datetime('now') WHERE id=?", newCompleted, newStatus, id)
 	c.JSON(http.StatusOK, gin.H{
-		"ok":            true,
+		"ok":             true,
 		"days_completed": newCompleted,
-		"status":        newStatus,
-		"skill_check":   skillCheck,
-		"success":       success,
+		"status":         newStatus,
+		"skill_check":    skillCheck,
+		"success":        success,
 	})
 }
 

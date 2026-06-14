@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"strconv"
 	"strings"
@@ -69,8 +70,8 @@ func GetCompendiumSchema(c *gin.Context) {
 
 func CreateCompendiumSchema(c *gin.Context) {
 	var req struct {
-		TypeName    string              `json:"type_name" binding:"required"`
-		DisplayName string              `json:"display_name" binding:"required"`
+		TypeName    string               `json:"type_name" binding:"required"`
+		DisplayName string               `json:"display_name" binding:"required"`
 		Fields      []models.SchemaField `json:"fields" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -106,7 +107,7 @@ func UpdateCompendiumSchema(c *gin.Context) {
 	}
 
 	var req struct {
-		DisplayName string              `json:"display_name"`
+		DisplayName string               `json:"display_name"`
 		Fields      []models.SchemaField `json:"fields"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -116,7 +117,7 @@ func UpdateCompendiumSchema(c *gin.Context) {
 
 	// Build UPDATE dynamically
 	setClauses := []string{}
-	args := []interface{}{}
+	args := []any{}
 
 	if req.DisplayName != "" {
 		setClauses = append(setClauses, "display_name=?")
@@ -220,10 +221,7 @@ func ListCompendiumEntries(c *gin.Context) {
 		entries = scanEntries(rows)
 	}
 
-	totalPages := (total + pageSize - 1) / pageSize
-	if totalPages < 1 {
-		totalPages = 1
-	}
+	totalPages := max((total+pageSize-1)/pageSize, 1)
 
 	c.JSON(http.StatusOK, models.CompendiumEntryList{
 		Entries:    entries,
@@ -234,11 +232,11 @@ func ListCompendiumEntries(c *gin.Context) {
 	})
 }
 
-func scanEntries(rows interface{ Scan(...interface{}) error }) []models.CompendiumEntry {
+func scanEntries(rows interface{ Scan(...any) error }) []models.CompendiumEntry {
 	out := make([]models.CompendiumEntry, 0)
 	// rows is a *sql.Rows but we use duck typing
 	type rowScanner interface {
-		Scan(...interface{}) error
+		Scan(...any) error
 		Next() bool
 		Close() error
 	}
@@ -253,7 +251,7 @@ func scanEntries(rows interface{ Scan(...interface{}) error }) []models.Compendi
 		if err := rs.Scan(&e.ID, &e.SchemaID, &dataJSON, &createdAt, &updatedAt); err != nil {
 			continue
 		}
-		e.Data = make(map[string]interface{})
+		e.Data = make(map[string]any)
 		json.Unmarshal([]byte(dataJSON), &e.Data)
 		e.CreatedAt = createdAt
 		e.UpdatedAt = updatedAt
@@ -277,7 +275,7 @@ func GetCompendiumEntry(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "entry not found"})
 		return
 	}
-	e.Data = make(map[string]interface{})
+	e.Data = make(map[string]any)
 	json.Unmarshal([]byte(dataJSON), &e.Data)
 	e.CreatedAt = createdAt
 	e.UpdatedAt = updatedAt
@@ -300,7 +298,7 @@ func CreateCompendiumEntry(c *gin.Context) {
 	}
 
 	var req struct {
-		Data map[string]interface{} `json:"data" binding:"required"`
+		Data map[string]any `json:"data" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -334,7 +332,7 @@ func UpdateCompendiumEntry(c *gin.Context) {
 	}
 
 	var req struct {
-		Data map[string]interface{} `json:"data" binding:"required"`
+		Data map[string]any `json:"data" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -394,7 +392,7 @@ func BatchDeleteCompendiumEntries(c *gin.Context) {
 
 	// Build placeholders for the IN clause
 	placeholders := make([]string, len(req.IDs))
-	args := make([]interface{}, len(req.IDs))
+	args := make([]any, len(req.IDs))
 	for i, id := range req.IDs {
 		placeholders[i] = "?"
 		args[i] = id
@@ -412,8 +410,8 @@ func BatchDeleteCompendiumEntries(c *gin.Context) {
 
 func BatchUpdateCompendiumEntries(c *gin.Context) {
 	var req struct {
-		IDs  []int64                `json:"ids" binding:"required"`
-		Data map[string]interface{} `json:"data" binding:"required"`
+		IDs  []int64        `json:"ids" binding:"required"`
+		Data map[string]any `json:"data" binding:"required"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request: " + err.Error()})
@@ -429,28 +427,26 @@ func BatchUpdateCompendiumEntries(c *gin.Context) {
 	}
 
 	updated := int64(0)
-	var errs []map[string]interface{}
+	var errs []map[string]any
 
 	for _, id := range req.IDs {
 		// Fetch current data
 		var dataJSON string
 		err := db.DB.QueryRow("SELECT data FROM compendium_entries WHERE id=?", id).Scan(&dataJSON)
 		if err != nil {
-			errs = append(errs, map[string]interface{}{"id": id, "error": "not found"})
+			errs = append(errs, map[string]any{"id": id, "error": "not found"})
 			continue
 		}
 
 		// Merge update into existing data
-		var entryData map[string]interface{}
+		var entryData map[string]any
 		json.Unmarshal([]byte(dataJSON), &entryData)
-		for k, v := range req.Data {
-			entryData[k] = v
-		}
+		maps.Copy(entryData, req.Data)
 
 		newJSON, _ := json.Marshal(entryData)
 		_, err = db.DB.Exec("UPDATE compendium_entries SET data=?, updated_at=datetime('now') WHERE id=?", string(newJSON), id)
 		if err != nil {
-			errs = append(errs, map[string]interface{}{"id": id, "error": err.Error()})
+			errs = append(errs, map[string]any{"id": id, "error": err.Error()})
 			continue
 		}
 		updated++
@@ -479,7 +475,7 @@ func SearchCompendiumEntries(c *gin.Context) {
 		JOIN compendium_entries_fts f ON e.id = f.rowid
 		JOIN compendium_schemas cs ON e.schema_id = cs.id
 		WHERE compendium_entries_fts MATCH ?`
-	args := []interface{}{q}
+	args := []any{q}
 
 	if schemaFilter != "" {
 		query += " AND e.schema_id=?"
@@ -503,7 +499,7 @@ func SearchCompendiumEntries(c *gin.Context) {
 		}
 		r.TypeName = displayName
 		// Extract name from data JSON
-		var data map[string]interface{}
+		var data map[string]any
 		if json.Unmarshal([]byte(dataJSON), &data) == nil {
 			if name, ok := data["name"].(string); ok {
 				r.Name = name
@@ -533,7 +529,7 @@ func ImportCompendiumEntries(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 
 	// Read uploaded file or JSON body
-	var entries []map[string]interface{}
+	var entries []map[string]any
 
 	// Try multipart form first
 	file, _, err := c.Request.FormFile("file")
@@ -558,12 +554,12 @@ func ImportCompendiumEntries(c *gin.Context) {
 		}
 		if err := json.Unmarshal(body, &entries); err != nil {
 			// Try single object
-			var single map[string]interface{}
+			var single map[string]any
 			if err2 := json.Unmarshal(body, &single); err2 != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"error": "expected JSON array or object"})
 				return
 			}
-			entries = []map[string]interface{}{single}
+			entries = []map[string]any{single}
 		}
 	}
 
@@ -647,7 +643,7 @@ func ImportCompendiumEntries(c *gin.Context) {
 	}
 
 	duplicates := []models.CompendiumImportDuplicate{}
-	cleanEntries := []map[string]interface{}{}
+	cleanEntries := []map[string]any{}
 	skipCount := 0
 
 	for i, entry := range entries {
@@ -663,7 +659,7 @@ func ImportCompendiumEntries(c *gin.Context) {
 			db.DB.QueryRow(`SELECT id, data FROM compendium_entries WHERE schema_id=? AND json_extract(data, '$.name')=?`,
 				schemaID, entryName).Scan(&existingID, &existingData)
 
-			existingMap := make(map[string]interface{})
+			existingMap := make(map[string]any)
 			if existingData != "" {
 				json.Unmarshal([]byte(existingData), &existingMap)
 			}
@@ -692,10 +688,10 @@ func ImportCompendiumEntries(c *gin.Context) {
 	}
 
 	// Log import
-	filesJSON, _ := json.Marshal([]map[string]interface{}{
+	filesJSON, _ := json.Marshal([]map[string]any{
 		{"filename": "upload", "entries": len(entries)},
 	})
-	summary := map[string]interface{}{
+	summary := map[string]any{
 		"total":      len(entries),
 		"inserted":   inserted,
 		"duplicates": skipCount,
@@ -743,7 +739,11 @@ func ExportCompendiumEntries(c *gin.Context) {
 	format := c.DefaultQuery("format", "json")
 	filter := c.Query("q")
 
-	var rows interface{ Scan(...interface{}) error; Close() error; Next() bool }
+	var rows interface {
+		Scan(...any) error
+		Close() error
+		Next() bool
+	}
 
 	if filter != "" {
 		r, err := db.DB.Query(`SELECT e.id, e.data, e.created_at
@@ -767,9 +767,9 @@ func ExportCompendiumEntries(c *gin.Context) {
 	defer rows.Close()
 
 	type exportEntry struct {
-		ID        int64                  `json:"id"`
-		Data      map[string]interface{} `json:"data"`
-		CreatedAt string                 `json:"created_at"`
+		ID        int64          `json:"id"`
+		Data      map[string]any `json:"data"`
+		CreatedAt string         `json:"created_at"`
 	}
 
 	entries := make([]exportEntry, 0)
@@ -779,7 +779,7 @@ func ExportCompendiumEntries(c *gin.Context) {
 		if err := rows.Scan(&e.ID, &dataJSON, &createdAt); err != nil {
 			continue
 		}
-		e.Data = make(map[string]interface{})
+		e.Data = make(map[string]any)
 		json.Unmarshal([]byte(dataJSON), &e.Data)
 		e.CreatedAt = createdAt
 		entries = append(entries, e)
@@ -790,11 +790,11 @@ func ExportCompendiumEntries(c *gin.Context) {
 		c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s-export.json"`, schemaType))
 		c.Header("Content-Type", "application/json")
 		c.JSON(http.StatusOK, gin.H{
-			"schema":  schemaType,
-			"name":    displayName,
+			"schema":   schemaType,
+			"name":     displayName,
 			"exported": time.Now().UTC().Format(time.RFC3339),
-			"count":   len(entries),
-			"entries": entries,
+			"count":    len(entries),
+			"entries":  entries,
 		})
 	default:
 		c.JSON(http.StatusOK, gin.H{
@@ -1023,7 +1023,7 @@ func SeedCompendiumSchemas() {
 
 // AutoSyncCompendiumEntry is called when syncing a legacy entry into the generic system.
 // For now it's a no-op placeholder; full sync happens in Phase 2.
-func AutoSyncCompendiumEntry(schemaID, entryID int64, data map[string]interface{}) {
+func AutoSyncCompendiumEntry(schemaID, entryID int64, data map[string]any) {
 	// Reserved for future use — writes metadata or triggers cross-system sync
 }
 
@@ -1033,8 +1033,8 @@ func AutoSyncCompendiumEntry(schemaID, entryID int64, data map[string]interface{
 // into the new compendium_entries table. Safe to call multiple times — skips
 // entries whose name already exists in the target schema.
 // Returns a summary of what was migrated.
-func MigrateLegacyCompendiumData() map[string]interface{} {
-	result := map[string]interface{}{}
+func MigrateLegacyCompendiumData() map[string]any {
+	result := map[string]any{}
 	typeNameToID := map[string]int64{}
 	rows, err := db.DB.Query("SELECT id, type_name FROM compendium_schemas")
 	if err != nil {
@@ -1109,7 +1109,7 @@ func MigrateLegacyCompendiumData() map[string]interface{} {
 		// Build scan targets dynamically
 		colCount := len(lt.Columns)
 		for sqlRows.Next() {
-			scanTargets := make([]interface{}, colCount)
+			scanTargets := make([]any, colCount)
 			scanStrings := make([]string, colCount)
 			for i := range scanTargets {
 				scanTargets[i] = &scanStrings[i]
@@ -1119,7 +1119,7 @@ func MigrateLegacyCompendiumData() map[string]interface{} {
 			}
 
 			// Build data map
-			data := map[string]interface{}{}
+			data := map[string]any{}
 			name := ""
 			for i, col := range lt.Columns {
 				val := strings.TrimSpace(scanStrings[i])
@@ -1193,7 +1193,7 @@ func DetectImportFields(c *gin.Context) {
 	}
 
 	// Read the uploaded data
-	var rawEntries []map[string]interface{}
+	var rawEntries []map[string]any
 	file, _, err := c.Request.FormFile("file")
 	if err == nil {
 		defer file.Close()
@@ -1204,9 +1204,9 @@ func DetectImportFields(c *gin.Context) {
 		json.Unmarshal(body, &rawEntries)
 		// Try single object
 		if len(rawEntries) == 0 {
-			var single map[string]interface{}
+			var single map[string]any
 			if json.Unmarshal(body, &single) == nil {
-				rawEntries = []map[string]interface{}{single}
+				rawEntries = []map[string]any{single}
 			}
 		}
 	}
@@ -1236,18 +1236,18 @@ func DetectImportFields(c *gin.Context) {
 	discoveredFields := discoverJSONFields(rawEntries)
 
 	// Auto-suggest mappings: case-insensitive match + fuzzy
-	suggestions := make([]map[string]interface{}, 0)
+	suggestions := make([]map[string]any, 0)
 	matched := map[string]bool{}
 	for _, sf := range schemaFieldNames {
 		sfLower := strings.ToLower(sf)
 		for _, df := range discoveredFields {
 			dfLower := strings.ToLower(df)
 			if dfLower == sfLower || strings.ReplaceAll(dfLower, "_", "") == strings.ReplaceAll(sfLower, "_", "") {
-				suggestions = append(suggestions, map[string]interface{}{
-					"source":         df,
-					"target":         sf,
-					"auto_matched":   true,
-					"confidence":     "high",
+				suggestions = append(suggestions, map[string]any{
+					"source":       df,
+					"target":       sf,
+					"auto_matched": true,
+					"confidence":   "high",
 				})
 				matched[df] = true
 				break
@@ -1273,11 +1273,11 @@ func DetectImportFields(c *gin.Context) {
 					}
 				}
 			}
-			suggestions = append(suggestions, map[string]interface{}{
-				"source":         df,
-				"target":         bestMatch,
-				"auto_matched":   bestMatch != "",
-				"confidence":     "medium",
+			suggestions = append(suggestions, map[string]any{
+				"source":       df,
+				"target":       bestMatch,
+				"auto_matched": bestMatch != "",
+				"confidence":   "medium",
 			})
 		}
 	}
@@ -1292,7 +1292,7 @@ func DetectImportFields(c *gin.Context) {
 	for _, sf := range schemaFieldNames {
 		if !matchedTargets[sf] {
 			// Check if it has a special field like name which might be in the data
-			suggestions = append(suggestions, map[string]interface{}{
+			suggestions = append(suggestions, map[string]any{
 				"source":       "",
 				"target":       sf,
 				"auto_matched": false,
@@ -1302,22 +1302,19 @@ func DetectImportFields(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"entry_count":    len(rawEntries),
-		"sample_entry":   rawEntries[0],
+		"entry_count":       len(rawEntries),
+		"sample_entry":      rawEntries[0],
 		"discovered_fields": discoveredFields,
-		"suggestions":    suggestions,
-		"schema_fields":  schemaFieldNames,
+		"suggestions":       suggestions,
+		"schema_fields":     schemaFieldNames,
 	})
 }
 
 // discoverJSONFields recursively extracts all keys from a set of JSON objects
 // using dot notation for nested objects (e.g., "properties.Level").
-func discoverJSONFields(entries []map[string]interface{}) []string {
+func discoverJSONFields(entries []map[string]any) []string {
 	fieldSet := map[string]bool{}
-	limit := 5
-	if len(entries) < limit {
-		limit = len(entries)
-	}
+	limit := min(len(entries), 5)
 	for _, entry := range entries[:limit] {
 		flattenKeys("", entry, fieldSet)
 	}
@@ -1328,13 +1325,13 @@ func discoverJSONFields(entries []map[string]interface{}) []string {
 	return fields
 }
 
-func flattenKeys(prefix string, data map[string]interface{}, out map[string]bool) {
+func flattenKeys(prefix string, data map[string]any, out map[string]bool) {
 	for k, v := range data {
 		fullKey := k
 		if prefix != "" {
 			fullKey = prefix + "." + k
 		}
-		if sub, ok := v.(map[string]interface{}); ok {
+		if sub, ok := v.(map[string]any); ok {
 			// Nested object: record the parent key and descend
 			out[fullKey] = true
 			flattenKeys(fullKey, sub, out)
@@ -1345,12 +1342,12 @@ func flattenKeys(prefix string, data map[string]interface{}, out map[string]bool
 }
 
 // getNestedValue retrieves a value from a nested map using dot notation.
-func getNestedValue(data map[string]interface{}, path string) interface{} {
+func getNestedValue(data map[string]any, path string) any {
 	parts := strings.SplitN(path, ".", 2)
 	if len(parts) == 1 {
 		return data[parts[0]]
 	}
-	if sub, ok := data[parts[0]].(map[string]interface{}); ok {
+	if sub, ok := data[parts[0]].(map[string]any); ok {
 		return getNestedValue(sub, parts[1])
 	}
 	return nil
@@ -1367,7 +1364,7 @@ func ImportCompendiumEntriesWithMapping(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 
 	// Parse multipart form
-	var rawEntries []map[string]interface{}
+	var rawEntries []map[string]any
 	var fieldMapping []struct {
 		Source string `json:"source"`
 		Target string `json:"target"`
@@ -1375,7 +1372,7 @@ func ImportCompendiumEntriesWithMapping(c *gin.Context) {
 
 	// Accept JSON body with entries + field_mapping
 	var req struct {
-		Entries      []map[string]interface{} `json:"entries"`
+		Entries      []map[string]any `json:"entries"`
 		FieldMapping []struct {
 			Source string `json:"source"`
 			Target string `json:"target"`
@@ -1435,11 +1432,11 @@ func ImportCompendiumEntriesWithMapping(c *gin.Context) {
 		duplicateAction = c.DefaultQuery("duplicate_action", "skip")
 	}
 
-	mappedEntries := make([]map[string]interface{}, 0, len(rawEntries))
+	mappedEntries := make([]map[string]any, 0, len(rawEntries))
 	fieldErrors := make([]models.CompendiumImportError, 0)
 
 	for i, entry := range rawEntries {
-		mapped := make(map[string]interface{})
+		mapped := make(map[string]any)
 		if len(fieldMapping) > 0 {
 			for _, m := range fieldMapping {
 				if m.Source == "" {
@@ -1457,11 +1454,9 @@ func ImportCompendiumEntriesWithMapping(c *gin.Context) {
 				if k == "publisher" || k == "book" || k == "properties" {
 					continue
 				}
-				if sub, ok := v.(map[string]interface{}); ok {
+				if sub, ok := v.(map[string]any); ok {
 					// Flatten nested objects
-					for sk, sv := range sub {
-						mapped[sk] = sv
-					}
+					maps.Copy(mapped, sub)
 				} else {
 					mapped[k] = v
 				}
@@ -1496,7 +1491,7 @@ func ImportCompendiumEntriesWithMapping(c *gin.Context) {
 
 	// Check duplicates (by name field)
 	duplicates := make([]models.CompendiumImportDuplicate, 0)
-	cleanEntries := make([]map[string]interface{}, 0)
+	cleanEntries := make([]map[string]any, 0)
 	skipCount := 0
 
 	existingNames := loadExistingNames(schemaID)
@@ -1517,7 +1512,7 @@ func ImportCompendiumEntriesWithMapping(c *gin.Context) {
 			db.DB.QueryRow(`SELECT id, data FROM compendium_entries WHERE schema_id=? AND json_extract(data, '$.name')=?`,
 				schemaID, entryName).Scan(&existingID, &existingData)
 
-			existingMap := make(map[string]interface{})
+			existingMap := make(map[string]any)
 			if existingData != "" {
 				json.Unmarshal([]byte(existingData), &existingMap)
 			}
@@ -1561,15 +1556,15 @@ func ImportCompendiumEntriesWithMapping(c *gin.Context) {
 
 	// Log the import
 	totalEntries := len(rawEntries)
-	filesJSON, _ := json.Marshal([]map[string]interface{}{
+	filesJSON, _ := json.Marshal([]map[string]any{
 		{"filename": "upload", "entries": totalEntries},
 	})
-	summary := map[string]interface{}{
-		"total":         totalEntries,
-		"mapped":        len(mappedEntries),
-		"inserted":      inserted,
-		"duplicates":    skipCount,
-		"overwritten":   len(duplicates) - skipCount,
+	summary := map[string]any{
+		"total":             totalEntries,
+		"mapped":            len(mappedEntries),
+		"inserted":          inserted,
+		"duplicates":        skipCount,
+		"overwritten":       len(duplicates) - skipCount,
 		"validation_errors": len(fieldErrors),
 	}
 	summaryJSON, _ := json.Marshal(summary)
@@ -1601,10 +1596,10 @@ func ImportCompendiumEntriesWithMapping(c *gin.Context) {
 // existing /compendium-schemas/:id/import/with-mapping route.
 func ImportCompendiumBatchJSON(c *gin.Context) {
 	var req struct {
-		SchemaID       int64 `json:"schema_id"`
-		Entries        []map[string]interface{} `json:"entries"`
-		DedupAction    string `json:"dedup_action"`
-		FieldMapping   []struct {
+		SchemaID     int64            `json:"schema_id"`
+		Entries      []map[string]any `json:"entries"`
+		DedupAction  string           `json:"dedup_action"`
+		FieldMapping []struct {
 			SourceField string `json:"source_field"`
 			SchemaField string `json:"schema_field"`
 		} `json:"field_mapping"`
@@ -1661,11 +1656,11 @@ func ImportCompendiumBatchJSON(c *gin.Context) {
 	}
 
 	// Apply field mapping to each entry
-	mappedEntries := make([]map[string]interface{}, 0, len(req.Entries))
+	mappedEntries := make([]map[string]any, 0, len(req.Entries))
 	fieldErrors := make([]models.CompendiumImportError, 0)
 
 	for i, entry := range req.Entries {
-		mapped := make(map[string]interface{})
+		mapped := make(map[string]any)
 		if len(fieldMapping) > 0 {
 			for _, m := range fieldMapping {
 				val := getNestedValue(entry, m.Source)
@@ -1678,10 +1673,8 @@ func ImportCompendiumBatchJSON(c *gin.Context) {
 				if k == "publisher" || k == "book" || k == "properties" {
 					continue
 				}
-				if sub, ok := v.(map[string]interface{}); ok {
-					for sk, sv := range sub {
-						mapped[sk] = sv
-					}
+				if sub, ok := v.(map[string]any); ok {
+					maps.Copy(mapped, sub)
 				} else {
 					mapped[k] = v
 				}
@@ -1704,7 +1697,7 @@ func ImportCompendiumBatchJSON(c *gin.Context) {
 
 	// Check duplicates (by name field)
 	skipCount := 0
-	cleanEntries := make([]map[string]interface{}, 0)
+	cleanEntries := make([]map[string]any, 0)
 
 	existingNames := loadExistingNames(req.SchemaID)
 	existingSet := make(map[string]bool, len(existingNames))
@@ -1750,15 +1743,15 @@ func ImportCompendiumBatchJSON(c *gin.Context) {
 
 	// Log the import
 	totalEntries := len(req.Entries)
-	filesJSON, _ := json.Marshal([]map[string]interface{}{
+	filesJSON, _ := json.Marshal([]map[string]any{
 		{"filename": req.Filename, "entries": totalEntries},
 	})
-	summary := map[string]interface{}{
-		"total":             totalEntries,
-		"mapped":            len(mappedEntries),
-		"inserted":          inserted,
+	summary := map[string]any{
+		"total":              totalEntries,
+		"mapped":             len(mappedEntries),
+		"inserted":           inserted,
 		"duplicates_skipped": skipCount,
-		"validation_errors": len(fieldErrors),
+		"validation_errors":  len(fieldErrors),
 	}
 	summaryJSON, _ := json.Marshal(summary)
 

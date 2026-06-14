@@ -222,7 +222,7 @@ func GetUploads(c *gin.Context) {
 	ownerID := c.Query("owner_id")
 
 	query := `SELECT DISTINCT u.id, u.hash, u.ext, u.url, COALESCE(u.resized_url,''), COALESCE(u.thumbnail_url,''), u.owner_type, u.owner_id, COALESCE(u.created_at,'') FROM uploads u`
-	args := []interface{}{}
+	args := []any{}
 	conditions := []string{}
 
 	if entityType != "" && entityIDStr != "" {
@@ -330,10 +330,7 @@ func HandleCropUpload(c *gin.Context) {
 	// Resize to target if specified
 	var final image.Image = cropped
 	if req.TargetWidth > 0 && req.TargetHeight > 0 {
-		maxDim := req.TargetWidth
-		if req.TargetHeight > maxDim {
-			maxDim = req.TargetHeight
-		}
+		maxDim := max(req.TargetHeight, req.TargetWidth)
 		final = resizeImage(cropped, maxDim)
 	}
 

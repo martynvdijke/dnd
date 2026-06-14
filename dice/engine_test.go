@@ -112,7 +112,7 @@ func TestMultipleRolls(t *testing.T) {
 	}
 
 	// Run multiple rolls
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		result, err := p.Roll("1d20")
 		if err != nil {
 			t.Fatalf("roll %d failed: %v", i, err)

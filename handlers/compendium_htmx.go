@@ -35,7 +35,7 @@ func HtmxCompendiumMonsterBrowser(c *gin.Context) {
 
 func HtmxCompendiumMonsterSearch(c *gin.Context) {
 	query := "SELECT id,name,type,size,ac,hp,str,dex,con,int_,wis,cha,cr,source,is_full,saves,skills,damage_vulnerabilities,damage_resistances,damage_immunities,condition_immunities,senses,languages,special_abilities,actions,legendary_actions,description FROM compendium_monsters WHERE 1=1"
-	args := []interface{}{}
+	args := []any{}
 
 	if q := c.Query("q"); q != "" {
 		query += " AND name LIKE ?"
@@ -171,7 +171,7 @@ func HtmxAPIImportSearch(c *gin.Context) {
 	defer resp.Body.Close()
 
 	var searchResult struct {
-		Count   int                `json:"count"`
+		Count   int                 `json:"count"`
 		Results []map[string]string `json:"results"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&searchResult); err != nil {
@@ -241,7 +241,7 @@ func HtmxImportAPIMonster(c *gin.Context) {
 		return
 	}
 
-	var data map[string]interface{}
+	var data map[string]any
 	if err := json.NewDecoder(detailResp.Body).Decode(&data); err != nil {
 		c.String(http.StatusInternalServerError, "Failed to parse monster detail: "+err.Error())
 		return
@@ -256,8 +256,8 @@ func HtmxImportAPIMonster(c *gin.Context) {
 	// AC - API returns array of objects like [{"type":"armor","value":15}]
 	ac := 10
 	if acData, ok := data["armor_class"]; ok {
-		if acArr, ok := acData.([]interface{}); ok && len(acArr) > 0 {
-			if acObj, ok := acArr[0].(map[string]interface{}); ok {
+		if acArr, ok := acData.([]any); ok && len(acArr) > 0 {
+			if acObj, ok := acArr[0].(map[string]any); ok {
 				if val, ok := acObj["value"].(float64); ok {
 					ac = int(val)
 				}
@@ -303,11 +303,11 @@ func HtmxImportAPIMonster(c *gin.Context) {
 
 	// Saves (proficiencies where proficiency.type = "saving-throw")
 	var saves strings.Builder
-	profs, _ := data["proficiencies"].([]interface{})
+	profs, _ := data["proficiencies"].([]any)
 	saveItems := make([]string, 0)
 	for _, p := range profs {
-		if pObj, ok := p.(map[string]interface{}); ok {
-			if profType, ok := pObj["proficiency"].(map[string]interface{}); ok {
+		if pObj, ok := p.(map[string]any); ok {
+			if profType, ok := pObj["proficiency"].(map[string]any); ok {
 				if ref, ok := profType["name"].(string); ok && strings.HasPrefix(ref, "Saving Throw: ") {
 					name := strings.TrimPrefix(ref, "Saving Throw: ")
 					if val, ok := pObj["value"].(float64); ok {
@@ -324,8 +324,8 @@ func HtmxImportAPIMonster(c *gin.Context) {
 	// Skills (proficiencies where proficiency.type starts with "Skill: ")
 	skillItems := make([]string, 0)
 	for _, p := range profs {
-		if pObj, ok := p.(map[string]interface{}); ok {
-			if profType, ok := pObj["proficiency"].(map[string]interface{}); ok {
+		if pObj, ok := p.(map[string]any); ok {
+			if profType, ok := pObj["proficiency"].(map[string]any); ok {
 				if ref, ok := profType["name"].(string); ok && strings.HasPrefix(ref, "Skill: ") {
 					name := strings.TrimPrefix(ref, "Skill: ")
 					if val, ok := pObj["value"].(float64); ok {
@@ -374,7 +374,7 @@ func HtmxImportAPIMonster(c *gin.Context) {
 
 	// Senses
 	var senses string
-	if s, ok := data["senses"].(map[string]interface{}); ok {
+	if s, ok := data["senses"].(map[string]any); ok {
 		senseParts := make([]string, 0, len(s))
 		for k, v := range s {
 			senseParts = append(senseParts, fmt.Sprintf("%s %v", k, v))
@@ -392,7 +392,7 @@ func HtmxImportAPIMonster(c *gin.Context) {
 
 	// Description
 	description := ""
-	if desc, ok := data["desc"].([]interface{}); ok {
+	if desc, ok := data["desc"].([]any); ok {
 		parts := make([]string, 0, len(desc))
 		for _, d := range desc {
 			parts = append(parts, fmt.Sprintf("%v", d))
@@ -421,7 +421,7 @@ func HtmxImportAPIMonster(c *gin.Context) {
 
 // ─── Helpers ───
 
-func getStrFromMap(m map[string]interface{}, key, def string) string {
+func getStrFromMap(m map[string]any, key, def string) string {
 	if v, ok := m[key]; ok && v != nil {
 		if s, ok := v.(string); ok {
 			return s
@@ -445,22 +445,22 @@ func float64ToCR(f float64) string {
 	}
 }
 
-func jsonArrayToString(v interface{}) string {
+func jsonArrayToString(v any) string {
 	if v == nil {
 		return ""
 	}
-	arr, ok := v.([]interface{})
+	arr, ok := v.([]any)
 	if !ok || len(arr) == 0 {
 		return ""
 	}
 	// Build a formatted string representation
 	parts := make([]string, 0, len(arr))
 	for _, item := range arr {
-		if obj, ok := item.(map[string]interface{}); ok {
+		if obj, ok := item.(map[string]any); ok {
 			// Extract name and description
 			name, _ := obj["name"].(string)
 			desc := ""
-			if d, ok := obj["desc"].([]interface{}); ok {
+			if d, ok := obj["desc"].([]any); ok {
 				dparts := make([]string, 0, len(d))
 				for _, dd := range d {
 					dparts = append(dparts, fmt.Sprintf("%v", dd))
@@ -482,8 +482,8 @@ func jsonArrayToString(v interface{}) string {
 // ─── Monster Library (HTMX) ───
 
 type htmxMonsterLibraryData struct {
-	Monsters   []models.MonsterLibraryEntry
-	Monster    *models.MonsterLibraryEntry
+	Monsters    []models.MonsterLibraryEntry
+	Monster     *models.MonsterLibraryEntry
 	CompMonster *models.CompendiumMonster
 }
 

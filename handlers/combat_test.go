@@ -150,7 +150,7 @@ func TestCombatNextTurn(t *testing.T) {
 			"initiative_roll": 10, "hp_max": 7, "hp_current": 7, "ac": 15,
 		})
 
-		for i := 0; i < 3; i++ {
+		for range 3 {
 			w := testutil.PostJSON(t, r, "/api/combat/next-turn", nil)
 			testutil.AssertStatus(t, w, 200)
 		}
@@ -179,9 +179,7 @@ func TestCombatConcurrentSafety(t *testing.T) {
 
 	var wg sync.WaitGroup
 	for range 5 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			rr := testutil.PostJSON(t, r, "/api/combat/next-turn", nil)
 			if rr.Code != 200 {
 				t.Errorf("concurrent next-turn failed: %d", rr.Code)
@@ -190,7 +188,7 @@ func TestCombatConcurrentSafety(t *testing.T) {
 			if rr.Code != 200 {
 				t.Errorf("concurrent list failed: %d", rr.Code)
 			}
-		}()
+		})
 	}
 	wg.Wait()
 }

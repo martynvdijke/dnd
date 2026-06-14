@@ -157,7 +157,7 @@ var backstoryHooks = []string{
 func abilityScoreArray() []int {
 	// 4d6 drop lowest method, 6 times
 	scores := make([]int, 6)
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		rolls := []int{rand.Intn(6) + 1, rand.Intn(6) + 1, rand.Intn(6) + 1, rand.Intn(6) + 1}
 		// Find min and remove it
 		minIdx := 0
@@ -167,7 +167,7 @@ func abilityScoreArray() []int {
 			}
 		}
 		sum := 0
-		for j := 0; j < 4; j++ {
+		for j := range 4 {
 			if j != minIdx {
 				sum += rolls[j]
 			}
@@ -224,20 +224,20 @@ func HandleGenerateRandomCharacter(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"name":              name,
-		"race":              race,
-		"class":             cls,
-		"level":             level,
-		"background":        bg,
-		"alignment":         alignment,
-		"personality":       personality,
-		"quirk":             quirk,
-		"backstory_hook":    hook,
-		"str":               statValues["str"],
-		"dex":               statValues["dex"],
-		"con":               statValues["con"],
-		"int":               statValues["int"],
-		"wis":               statValues["wis"],
-		"cha":               statValues["cha"],
+		"name":           name,
+		"race":           race,
+		"class":          cls,
+		"level":          level,
+		"background":     bg,
+		"alignment":      alignment,
+		"personality":    personality,
+		"quirk":          quirk,
+		"backstory_hook": hook,
+		"str":            statValues["str"],
+		"dex":            statValues["dex"],
+		"con":            statValues["con"],
+		"int":            statValues["int"],
+		"wis":            statValues["wis"],
+		"cha":            statValues["cha"],
 	})
 }

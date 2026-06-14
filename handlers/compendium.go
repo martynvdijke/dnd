@@ -48,7 +48,7 @@ func ListCompendiumClasses(c *gin.Context) {
 
 func ListCompendiumSpells(c *gin.Context) {
 	query := "SELECT id,name,level,school,casting_time,range,components,duration,description,higher_levels,classes,source_page,system,source,publisher FROM compendium_spells WHERE 1=1"
-	args := []interface{}{}
+	args := []any{}
 
 	if cls := c.Query("class"); cls != "" {
 		query += " AND classes LIKE ?"
@@ -117,7 +117,7 @@ func ListCompendiumBackgrounds(c *gin.Context) {
 
 func ListCompendiumEquipment(c *gin.Context) {
 	query := "SELECT id,name,category,cost,weight,description,source_page,system,source,item_type,item_rarity,publisher FROM compendium_equipment WHERE 1=1"
-	args := []interface{}{}
+	args := []any{}
 
 	if cat := c.Query("category"); cat != "" {
 		query += " AND category=?"
@@ -148,7 +148,7 @@ func ListCompendiumEquipment(c *gin.Context) {
 
 func ListCompendiumMonsters(c *gin.Context) {
 	query := "SELECT id,name,type,size,ac,hp,str,dex,con,int_,wis,cha,cr,source,is_full,saves,skills,damage_vulnerabilities,damage_resistances,damage_immunities,condition_immunities,senses,languages,special_abilities,actions,legendary_actions,description,alignment,expansion,publisher FROM compendium_monsters WHERE 1=1"
-	args := []interface{}{}
+	args := []any{}
 
 	if q := c.Query("q"); q != "" {
 		query += " AND name LIKE ?"
@@ -230,7 +230,7 @@ func SearchCompendium(c *gin.Context) {
 
 	if typeFilter == "" || typeFilter == "spell" {
 		extra := ""
-		args := []interface{}{}
+		args := []any{}
 		if cls := c.Query("class"); cls != "" {
 			extra += " AND classes LIKE ?"
 			args = append(args, "%\""+cls+"\"%")
@@ -243,7 +243,7 @@ func SearchCompendium(c *gin.Context) {
 			extra += " AND school=?"
 			args = append(args, school)
 		}
-		rows, _ := db.DB.Query("SELECT id, name, level, school FROM compendium_spells WHERE name LIKE ?"+extra+" ORDER BY level, name LIMIT 20", append([]interface{}{"%" + q + "%"}, args...)...)
+		rows, _ := db.DB.Query("SELECT id, name, level, school FROM compendium_spells WHERE name LIKE ?"+extra+" ORDER BY level, name LIMIT 20", append([]any{"%" + q + "%"}, args...)...)
 		if rows != nil {
 			for rows.Next() {
 				var r SearchResult
@@ -257,12 +257,12 @@ func SearchCompendium(c *gin.Context) {
 
 	if typeFilter == "" || typeFilter == "equipment" {
 		extra := ""
-		args := []interface{}{}
+		args := []any{}
 		if cat := c.Query("category"); cat != "" {
 			extra += " AND category=?"
 			args = append(args, cat)
 		}
-		rows, _ := db.DB.Query("SELECT id, name, category FROM compendium_equipment WHERE name LIKE ?"+extra+" ORDER BY name LIMIT 20", append([]interface{}{"%" + q + "%"}, args...)...)
+		rows, _ := db.DB.Query("SELECT id, name, category FROM compendium_equipment WHERE name LIKE ?"+extra+" ORDER BY name LIMIT 20", append([]any{"%" + q + "%"}, args...)...)
 		if rows != nil {
 			for rows.Next() {
 				var r SearchResult
@@ -276,7 +276,7 @@ func SearchCompendium(c *gin.Context) {
 
 	if typeFilter == "" || typeFilter == "monster" {
 		extra := ""
-		args := []interface{}{}
+		args := []any{}
 		if cr := c.Query("cr"); cr != "" {
 			extra += " AND cr=?"
 			args = append(args, cr)
@@ -285,7 +285,7 @@ func SearchCompendium(c *gin.Context) {
 			extra += " AND type LIKE ?"
 			args = append(args, "%"+t+"%")
 		}
-		rows, _ := db.DB.Query("SELECT id, name, cr, type FROM compendium_monsters WHERE name LIKE ?"+extra+" ORDER BY name LIMIT 20", append([]interface{}{"%" + q + "%"}, args...)...)
+		rows, _ := db.DB.Query("SELECT id, name, cr, type FROM compendium_monsters WHERE name LIKE ?"+extra+" ORDER BY name LIMIT 20", append([]any{"%" + q + "%"}, args...)...)
 		if rows != nil {
 			for rows.Next() {
 				var r SearchResult
@@ -375,8 +375,8 @@ func FetchFromDnDApi(c *gin.Context) {
 
 	// Parse the search results
 	var searchResult struct {
-		Count    int                    `json:"count"`
-		Results  []map[string]string    `json:"results"`
+		Count   int                 `json:"count"`
+		Results []map[string]string `json:"results"`
 	}
 	if err := json.Unmarshal(body, &searchResult); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to parse API response: " + err.Error()})
@@ -390,10 +390,10 @@ func FetchFromDnDApi(c *gin.Context) {
 
 	// For each result, fetch the full details
 	type DetailResult struct {
-		Index string                 `json:"index"`
-		Name  string                 `json:"name"`
-		URL   string                 `json:"url"`
-		Data  map[string]interface{} `json:"data"`
+		Index string         `json:"index"`
+		Name  string         `json:"name"`
+		URL   string         `json:"url"`
+		Data  map[string]any `json:"data"`
 	}
 
 	details := []DetailResult{}
@@ -407,7 +407,7 @@ func FetchFromDnDApi(c *gin.Context) {
 		if err != nil {
 			continue
 		}
-		var data map[string]interface{}
+		var data map[string]any
 		if err := json.NewDecoder(detailResp.Body).Decode(&data); err != nil {
 			detailResp.Body.Close()
 			continue

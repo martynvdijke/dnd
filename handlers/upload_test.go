@@ -24,8 +24,8 @@ func uniqueTestPNG(t *testing.T) []byte {
 	pngCounter++
 	img := image.NewRGBA(image.Rect(0, 0, 10, 10))
 	seed := time.Now().UnixNano() + pngCounter
-	for y := 0; y < 10; y++ {
-		for x := 0; x < 10; x++ {
+	for y := range 10 {
+		for x := range 10 {
 			idx := y*img.Stride + x*4
 			img.Pix[idx+0] = uint8(seed + int64(x))
 			img.Pix[idx+1] = uint8(seed>>8 + int64(y))

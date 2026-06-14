@@ -16,12 +16,12 @@ import (
 // ─── HTMX: Entry Table Partial ───
 
 type htmxEntryTableData struct {
-	Schema   *models.CompendiumSchema
-	Entries  []models.CompendiumEntry
-	Page     int
-	Total    int
-	Pages    int
-	Query    string
+	Schema  *models.CompendiumSchema
+	Entries []models.CompendiumEntry
+	Page    int
+	Total   int
+	Pages   int
+	Query   string
 }
 
 func HtmxCompendiumEntryTable(c *gin.Context) {
@@ -84,10 +84,7 @@ func HtmxCompendiumEntryTable(c *gin.Context) {
 		}
 	}
 
-	totalPages := (total + pageSize - 1) / pageSize
-	if totalPages < 1 {
-		totalPages = 1
-	}
+	totalPages := max((total+pageSize-1)/pageSize, 1)
 
 	renderTemplate(c, "compendium_entry_table", htmxEntryTableData{
 		Schema:  &schema,
@@ -99,7 +96,11 @@ func HtmxCompendiumEntryTable(c *gin.Context) {
 	})
 }
 
-func scanCompendiumEntries(rows interface{ Scan(...interface{}) error; Next() bool; Close() error }) []models.CompendiumEntry {
+func scanCompendiumEntries(rows interface {
+	Scan(...any) error
+	Next() bool
+	Close() error
+}) []models.CompendiumEntry {
 	out := make([]models.CompendiumEntry, 0)
 	for rows.Next() {
 		var e models.CompendiumEntry
@@ -107,7 +108,7 @@ func scanCompendiumEntries(rows interface{ Scan(...interface{}) error; Next() bo
 		if err := rows.Scan(&e.ID, &e.SchemaID, &dataJSON, &createdAt, &updatedAt); err != nil {
 			continue
 		}
-		e.Data = make(map[string]interface{})
+		e.Data = make(map[string]any)
 		json.Unmarshal([]byte(dataJSON), &e.Data)
 		e.CreatedAt = createdAt
 		e.UpdatedAt = updatedAt
@@ -121,14 +122,14 @@ func scanCompendiumEntries(rows interface{ Scan(...interface{}) error; Next() bo
 type htmxEntryEditorData struct {
 	Schema *models.CompendiumSchema
 	Entry  *models.CompendiumEntry
-	Data   map[string]interface{}
+	Data   map[string]any
 }
 
 func HtmxCompendiumEntryEditor(c *gin.Context) {
 	entryIDStr := c.Param("id")
 	schemaIDStr := c.Query("schema_id")
 
-	var data map[string]interface{}
+	var data map[string]any
 	var schema models.CompendiumSchema
 
 	if entryIDStr != "" && entryIDStr != "0" {
@@ -146,7 +147,7 @@ func HtmxCompendiumEntryEditor(c *gin.Context) {
 			c.String(http.StatusNotFound, "entry not found")
 			return
 		}
-		e.Data = make(map[string]interface{})
+		e.Data = make(map[string]any)
 		json.Unmarshal([]byte(dataJSON), &e.Data)
 		e.CreatedAt = createdAt
 		e.UpdatedAt = updatedAt
@@ -172,7 +173,7 @@ func HtmxCompendiumEntryEditor(c *gin.Context) {
 		schema.CreatedAt = created
 		schema.UpdatedAt = updated
 		json.Unmarshal([]byte(fieldsJSON), &schema.Fields)
-		data = make(map[string]interface{})
+		data = make(map[string]any)
 	}
 
 	renderTemplate(c, "compendium_entry_editor", htmxEntryEditorData{
@@ -186,7 +187,7 @@ func HtmxCompendiumEntryEditor(c *gin.Context) {
 type htmxEntryDetailData struct {
 	Schema *models.CompendiumSchema
 	Entry  *models.CompendiumEntry
-	Data   map[string]interface{}
+	Data   map[string]any
 }
 
 func HtmxCompendiumEntryDetail(c *gin.Context) {
@@ -204,7 +205,7 @@ func HtmxCompendiumEntryDetail(c *gin.Context) {
 		c.String(http.StatusNotFound, "entry not found")
 		return
 	}
-	e.Data = make(map[string]interface{})
+	e.Data = make(map[string]any)
 	json.Unmarshal([]byte(dataJSON), &e.Data)
 	e.CreatedAt = createdAt
 	e.UpdatedAt = updatedAt
@@ -247,7 +248,7 @@ func HtmxCompendiumDuplicateEntry(c *gin.Context) {
 		return
 	}
 
-	var data map[string]interface{}
+	var data map[string]any
 	json.Unmarshal([]byte(dataJSON), &data)
 
 	// Append " (copy)" to name field

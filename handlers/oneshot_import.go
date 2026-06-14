@@ -150,7 +150,7 @@ func ImportCompendiumEntryToEncounter(c *gin.Context) {
 		return
 	}
 	name := "Unknown"
-	var data map[string]interface{}
+	var data map[string]any
 	if json.Unmarshal([]byte(dataJSON), &data) == nil {
 		if n, ok := data["name"].(string); ok && n != "" {
 			name = n
@@ -185,7 +185,7 @@ func ImportCompendiumEntryToOneShot(c *gin.Context) {
 		return
 	}
 	name := "Unknown"
-	var data map[string]interface{}
+	var data map[string]any
 	if json.Unmarshal([]byte(dataJSON), &data) == nil {
 		if n, ok := data["name"].(string); ok && n != "" {
 			name = n

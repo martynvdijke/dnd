@@ -1632,14 +1632,8 @@ func DoRest(c *gin.Context) {
 	hpHealed := 0
 	if req.RestType == "long" {
 		hpHealed = char.HpMax - char.HpCurrent
-		recoveredHD := char.Level / 2
-		if recoveredHD < 1 {
-			recoveredHD = 1
-		}
-		newHD := char.HitDiceCurrent + recoveredHD
-		if newHD > char.Level {
-			newHD = char.Level
-		}
+		recoveredHD := max(char.Level/2, 1)
+		newHD := min(char.HitDiceCurrent+recoveredHD, char.Level)
 		db.Client.Character.UpdateOneID(charID).
 			SetHpCurrent(char.HpMax).
 			SetHitDiceCurrent(newHD).
@@ -1685,18 +1679,12 @@ func DoRest(c *gin.Context) {
 				Save(ctx)
 		}
 	} else {
-		count := req.HitDiceCount
-		if count < 0 {
-			count = 0
-		}
+		count := max(req.HitDiceCount, 0)
 		if count > char.HitDiceCurrent {
 			count = char.HitDiceCurrent
 		}
 		if count == 0 && char.HpMax > 0 {
-			count = 1
-			if count > char.HitDiceCurrent {
-				count = char.HitDiceCurrent
-			}
+			count = min(1, char.HitDiceCurrent)
 		}
 		hitDieSize := 10
 		if len(char.HitDice) > 1 {
@@ -1712,16 +1700,10 @@ func DoRest(c *gin.Context) {
 			if err == nil {
 				fmt.Sscanf(string(result.Total), "%d", &roll)
 			}
-			heal := roll + conMod
-			if heal < 1 {
-				heal = 1
-			}
+			heal := max(roll+conMod, 1)
 			hpHealed += heal
 		}
-		newHp := char.HpCurrent + hpHealed
-		if newHp > char.HpMax {
-			newHp = char.HpMax
-		}
+		newHp := min(char.HpCurrent+hpHealed, char.HpMax)
 		hpHealed = newHp - char.HpCurrent
 		db.Client.Character.UpdateOneID(charID).
 			SetHpCurrent(newHp).
@@ -1761,16 +1743,10 @@ func LevelUp(c *gin.Context) {
 		}
 	}
 	conMod := abilityMod(char.Con)
-	hpGain := (hitDieSize/2 + 1) + conMod
-	if hpGain < 1 {
-		hpGain = 1
-	}
+	hpGain := max((hitDieSize/2+1)+conMod, 1)
 
 	newHP := char.HpMax + hpGain
-	newCur := char.HpCurrent + hpGain
-	if newCur > newHP {
-		newCur = newHP
-	}
+	newCur := min(char.HpCurrent+hpGain, newHP)
 	db.Client.Character.UpdateOneID(charID).
 		SetLevel(newLevel).
 		SetHpMax(newHP).

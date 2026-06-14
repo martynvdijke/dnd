@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"villum/db"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel"
@@ -27,6 +26,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
+	"villum/db"
 )
 
 const (
@@ -315,7 +315,7 @@ func otlpLogHeaders() map[string]string {
 		return nil
 	}
 	result := make(map[string]string)
-	for _, part := range strings.Split(headers, ",") {
+	for part := range strings.SplitSeq(headers, ",") {
 		part = strings.TrimSpace(part)
 		if idx := strings.Index(part, "="); idx > 0 {
 			result[part[:idx]] = strings.TrimSpace(part[idx+1:])
@@ -355,11 +355,11 @@ func otlpLogSeverityText(level slog.Level) string {
 
 // otlpLogRecord represents a single OTLP log record in JSON format.
 type otlpLogRecord struct {
-	TimeUnixNano   string              `json:"timeUnixNano"`
-	SeverityNumber int                 `json:"severityNumber"`
-	SeverityText   string              `json:"severityText"`
-	Body           otlpLogValue        `json:"body"`
-	Attributes     []otlpLogAttribute  `json:"attributes,omitempty"`
+	TimeUnixNano   string             `json:"timeUnixNano"`
+	SeverityNumber int                `json:"severityNumber"`
+	SeverityText   string             `json:"severityText"`
+	Body           otlpLogValue       `json:"body"`
+	Attributes     []otlpLogAttribute `json:"attributes,omitempty"`
 }
 
 type otlpLogValue struct {
@@ -386,8 +386,8 @@ type otlpResource struct {
 }
 
 type otlpScopeLog struct {
-	Scope       otlpScope       `json:"scope"`
-	LogRecords  []otlpLogRecord `json:"logRecords"`
+	Scope      otlpScope       `json:"scope"`
+	LogRecords []otlpLogRecord `json:"logRecords"`
 }
 
 type otlpScope struct {

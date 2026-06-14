@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -38,7 +39,7 @@ func ListHomebrewContent(c *gin.Context) {
 	}
 
 	table := homebrewTable(contentType)
-	rows, err := db.DB.Query("SELECT * FROM "+table+" WHERE source='homebrew' ORDER BY name")
+	rows, err := db.DB.Query("SELECT * FROM " + table + " WHERE source='homebrew' ORDER BY name")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -95,23 +96,24 @@ func CreateHomebrewContent(c *gin.Context) {
 		placeholders = append(placeholders, "?")
 	}
 
-	query := "INSERT INTO " + table + "("
+	var query strings.Builder
+	query.WriteString("INSERT INTO " + table + "(")
 	for i, col := range cols {
 		if i > 0 {
-			query += ","
+			query.WriteString(",")
 		}
-		query += col
+		query.WriteString(col)
 	}
-	query += ") VALUES("
+	query.WriteString(") VALUES(")
 	for i := range placeholders {
 		if i > 0 {
-			query += ","
+			query.WriteString(",")
 		}
-		query += "?"
+		query.WriteString("?")
 	}
-	query += ")"
+	query.WriteString(")")
 
-	result, err := db.DB.Exec(query, vals...)
+	result, err := db.DB.Exec(query.String(), vals...)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -144,16 +146,17 @@ func UpdateHomebrewContent(c *gin.Context) {
 	}
 	vals = append(vals, id)
 
-	query := "UPDATE " + table + " SET "
+	var query strings.Builder
+	query.WriteString("UPDATE " + table + " SET ")
 	for i, col := range cols {
 		if i > 0 {
-			query += ", "
+			query.WriteString(", ")
 		}
-		query += col
+		query.WriteString(col)
 	}
-	query += " WHERE id=?"
+	query.WriteString(" WHERE id=?")
 
-	_, err := db.DB.Exec(query, vals...)
+	_, err := db.DB.Exec(query.String(), vals...)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -451,16 +451,14 @@ func TestConcurrentInventoryUpdate(t *testing.T) {
 
 	var wg sync.WaitGroup
 	for range 10 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			rr := testutil.PutJSON(t, r, fmt.Sprintf("/api/inventory/%d", int64(iid)), map[string]any{
 				"quantity": 5,
 			})
 			if rr.Code != 200 {
 				t.Errorf("concurrent update failed: %d", rr.Code)
 			}
-		}()
+		})
 	}
 	wg.Wait()
 }
@@ -481,9 +479,7 @@ func TestConcurrentSpellSlots(t *testing.T) {
 
 	var wg sync.WaitGroup
 	for range 10 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			rr := testutil.PutJSON(t, r, "/api/characters/1/spellcasting", map[string]any{
 				"ability": "int", "save_dc": 15, "attack_bonus": 7,
 				"slots_1_used": 1, "slots_2_used": 1,
@@ -491,7 +487,7 @@ func TestConcurrentSpellSlots(t *testing.T) {
 			if rr.Code != 200 {
 				t.Errorf("concurrent spell update failed: %d", rr.Code)
 			}
-		}()
+		})
 	}
 	wg.Wait()
 }
