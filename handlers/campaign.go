@@ -1267,7 +1267,7 @@ func GetPartyView(c *gin.Context) {
 		}
 	}
 
-	var groups []CampaignGroup
+	groups := make([]CampaignGroup, 0)
 	for cid, members := range campaigns {
 		groups = append(groups, CampaignGroup{ID: cid, Name: campNames[cid], PartyName: campPartyNames[cid], OwnerName: campOwners[cid], Members: members})
 	}

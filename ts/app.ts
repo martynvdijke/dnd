@@ -16,6 +16,13 @@ import { initTheme } from './lib/theme';
 import { api, setCsrfToken, getCsrfToken } from './lib/api';
 import { initShortcuts, showShortcutsHelp, getSections } from './lib/shortcuts';
 import { renderDiceTab } from './dice';
+import './compendium';
+import './combat-tracker';
+import './encounter';
+import './party';
+import './timeline';
+import './factions';
+import './character-sheet';
 
 // Expose API helper globally for E2E tests (window.api check)
 (window as any).api = api;

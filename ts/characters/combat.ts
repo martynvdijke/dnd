@@ -3,7 +3,7 @@
  */
 import { esc, toast } from '../lib/dom';
 import { api } from '../lib/api';
-import { currentChar, currentTab } from '../app';
+import { currentChar, currentTab } from '../lib/state';
 import { XP_TABLE } from './stats';
 
 export let autoSaveTimer: number | null = null;

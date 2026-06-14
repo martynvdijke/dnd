@@ -4,7 +4,7 @@
 import { esc, toast } from './lib/dom';
 import { api } from './lib/api';
 import { getCurrentView } from './navigation';
-import { currentChar } from './app';
+import { currentChar } from './lib/state';
 
 // ─── Dice Constants ───
 
