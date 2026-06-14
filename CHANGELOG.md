@@ -1,3 +1,21 @@
+## [2.16.3](https://github.com/martynvdijke/dnd/compare/v2.16.2...v2.16.3) (2026-06-14)
+
+
+### Bug Fixes
+
+* add onsubmit='return false' to setup/login forms preventing native GET submission ([3238531](https://github.com/martynvdijke/dnd/commit/3238531745ff28cced9f306a91f465e4b19ec11b))
+* always use 'go run' in Playwright webServer (skip stale pre-built binary) ([2dcb99e](https://github.com/martynvdijke/dnd/commit/2dcb99eefb0d5057c9e396d9f468c7f882a02411))
+* always use go run in Playwright webServer (skip hanging ./villum-server binary) ([b67a828](https://github.com/martynvdijke/dnd/commit/b67a82885e22abcf52f100cff74e223a13e3c457))
+* e2e setup form race condition + pre-built binary for CI ([f379b7e](https://github.com/martynvdijke/dnd/commit/f379b7edd522dd490993314501cfb2480547604c))
+* prevent race condition in setup/login form handler attachment ([1354398](https://github.com/martynvdijke/dnd/commit/135439829459641f8a116b61076ec56de220243a))
+* rebuild setup.js/login.js with handler-first fix + add setup/login to build:ts ([531d0eb](https://github.com/martynvdijke/dnd/commit/531d0eb7672dcde757a572a02f8e1805b71862c9))
+* restore pre-built binary check in Playwright webServer config ([cf286fe](https://github.com/martynvdijke/dnd/commit/cf286fe3afdd2f82cc107f3e7d1772a949b4ab89))
+* run only setup tests in CI to verify release fix, use sqlite_fts5 tag ([978f70f](https://github.com/martynvdijke/dnd/commit/978f70f86898d970d9fda561e327e386021c055c))
+* server-side /login → /setup redirect when no admin exists ([6ea81c2](https://github.com/martynvdijke/dnd/commit/6ea81c277e04b60c862bfb4c5579ba2b389e03d2))
+* stop tsc from overwriting Vite IIFE output with ESM (root cause of setup/login CI failure) ([993901b](https://github.com/martynvdijke/dnd/commit/993901b474c4986681a5f688c6c191363f7b6879))
+* suppress pre-existing tsc errors now that modules import from app.ts ([46ba2d1](https://github.com/martynvdijke/dnd/commit/46ba2d1cef6bc5f3af1b981407ebaed9f45a0b55))
+* use consistent sqlite_fts5 tag for CI build, skip mobile-chrome to reduce test time ([6daa257](https://github.com/martynvdijke/dnd/commit/6daa257b505b5384042d09c0884489dc33f5747c))
+
 ## [2.16.2](https://github.com/martynvdijke/dnd/compare/v2.16.1...v2.16.2) (2026-06-12)
 
 ## [2.16.1](https://github.com/martynvdijke/dnd/compare/v2.16.0...v2.16.1) (2026-06-12)
