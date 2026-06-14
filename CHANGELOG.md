@@ -1,3 +1,10 @@
+## [2.16.6](https://github.com/martynvdijke/dnd/compare/v2.16.5...v2.16.6) (2026-06-14)
+
+
+### Bug Fixes
+
+* run go mod tidy to clean up stale dependencies ([a76da9c](https://github.com/martynvdijke/dnd/commit/a76da9c3626e5337f4ebb79b37e5720236ddd4b6))
+
 ## [2.16.5](https://github.com/martynvdijke/dnd/compare/v2.16.4...v2.16.5) (2026-06-14)
 
 
