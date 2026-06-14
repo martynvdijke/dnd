@@ -17,6 +17,9 @@ import { api, setCsrfToken, getCsrfToken } from './lib/api';
 import { initShortcuts, showShortcutsHelp, getSections } from './lib/shortcuts';
 import { renderDiceTab } from './dice';
 
+// Expose API helper globally for E2E tests (window.api check)
+(window as any).api = api;
+
 declare const htmx: any;
 
 export let currentUser: { id: number; username: string; role: string } | null = null;
