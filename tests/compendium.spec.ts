@@ -1,9 +1,9 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 import { login, clickNavItem } from './helpers.js';
 
 const uniqueName = () => `CMP-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-async function waitLoadingDone(page) {
+async function waitLoadingDone(page: Page) {
   await page.waitForFunction(() => {
     const o = document.getElementById('loadingOverlay');
     return o && o.classList.contains('d-none');

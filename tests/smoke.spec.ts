@@ -50,7 +50,7 @@ test.describe('Full application smoke test', () => {
       page.click('button[type="submit"]'),
     ]);
 
-    const navMap = { 'Compendium': 'compendium', 'Dice': 'dice', 'Encounters': 'encounters', 'Factions': 'factions' };
+    const navMap: Record<string, string> = { 'Compendium': 'compendium', 'Dice': 'dice', 'Encounters': 'encounters', 'Factions': 'factions' };
     const views = [
       { link: 'Compendium', heading: 'Compendium', bottomNav: 'compendium' },
       { link: 'Dice', heading: 'Dice Roller', bottomNav: 'dice' },
