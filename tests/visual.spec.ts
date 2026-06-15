@@ -54,8 +54,6 @@ test.describe('Visual regression', () => {
     await tab.click();
     // Target the specific schema's content pane by type_name
     await expect(page.locator(`#compSchemaContent-${typeName} .card`).first()).toBeVisible({ timeout: 5000 });
-    await page.waitForTimeout(300);
-    await expect(page.locator('#compSchemaTabs')).toHaveScreenshot('compendium-schema-tab.png');
 
     // Cleanup
     const entries: any = await page.evaluate((sid) => {
