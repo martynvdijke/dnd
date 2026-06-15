@@ -12,7 +12,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 COPY --from=ts-builder /app/static/js ./static/js
-RUN CGO_ENABLED=0 GOOS=linux go build -o villum-server .
+RUN CGO_ENABLED=0 GOOS=linux go build -tags sqlite_fts5 -o villum-server .
 
 FROM alpine:latest
 RUN apk add --no-cache ca-certificates
