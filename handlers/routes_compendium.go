@@ -13,6 +13,8 @@ func RegisterCompendiumRoutes(r *gin.RouterGroup) {
 	r.GET("/compendium/monsters", ListCompendiumMonsters)
 	r.GET("/compendium/search", SearchCompendium)
 	r.GET("/compendium/api/:category", FetchFromDnDApi)
+	r.GET("/compendium/entries-by-schema", ListUserCompendiumEntriesBySchema)
+	r.GET("/compendium/schemas/:id/entries", ListCompendiumEntries)
 }
 
 // RegisterDMCompendiumRoutes registers DM-scoped compendium routes.

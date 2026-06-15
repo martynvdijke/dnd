@@ -326,6 +326,76 @@ func SearchCompendium(c *gin.Context) {
 	c.JSON(http.StatusOK, results)
 }
 
+// ─── User-Facing Schema-Based Compendium Entries ───
+
+type userCompendiumSchemaEntry struct {
+	ID          int64                 `json:"id"`
+	TypeName    string                `json:"type_name"`
+	DisplayName string                `json:"display_name"`
+	EntryCount  int                   `json:"entry_count"`
+	Entries     []userCompendiumEntry `json:"entries"`
+}
+
+type userCompendiumEntry struct {
+	ID        int64          `json:"id"`
+	Data      map[string]any `json:"data"`
+	CreatedAt string         `json:"created_at"`
+}
+
+// ListUserCompendiumEntriesBySchema returns all schemas with non-zero entry counts
+// and their first 20 entries each. Accessible to any authenticated user.
+func ListUserCompendiumEntriesBySchema(c *gin.Context) {
+	rows, err := db.DB.Query("SELECT id, type_name, display_name FROM compendium_schemas ORDER BY display_name")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	result := make([]userCompendiumSchemaEntry, 0)
+
+	for rows.Next() {
+		var s userCompendiumSchemaEntry
+		if err := rows.Scan(&s.ID, &s.TypeName, &s.DisplayName); err != nil {
+			continue
+		}
+
+		// Count entries for this schema
+		var count int
+		db.DB.QueryRow("SELECT COUNT(*) FROM compendium_entries WHERE schema_id=?", s.ID).Scan(&count)
+		if count == 0 {
+			continue // skip empty schemas
+		}
+		s.EntryCount = count
+
+		// Fetch first 20 entries
+		entryRows, err := db.DB.Query(
+			"SELECT id, data, created_at FROM compendium_entries WHERE schema_id=? ORDER BY created_at DESC LIMIT 20",
+			s.ID)
+		if err != nil {
+			continue
+		}
+
+		s.Entries = make([]userCompendiumEntry, 0)
+		for entryRows.Next() {
+			var e userCompendiumEntry
+			var dataJSON, createdAt string
+			if err := entryRows.Scan(&e.ID, &dataJSON, &createdAt); err != nil {
+				continue
+			}
+			e.Data = make(map[string]any)
+			json.Unmarshal([]byte(dataJSON), &e.Data)
+			e.CreatedAt = createdAt
+			s.Entries = append(s.Entries, e)
+		}
+		entryRows.Close()
+
+		result = append(result, s)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"schemas": result})
+}
+
 // FetchFromDnDApi fetches compendium data from the D&D 5e API as fallback
 func FetchFromDnDApi(c *gin.Context) {
 	category := c.Param("category")

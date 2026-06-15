@@ -9,6 +9,7 @@ import { showView } from './navigation';
 (window as any).showCompendium = function () {
   showView('compendium');
   loadCompendiumMonsters();
+  loadCompendiumSchemaTypes();
 };
 
 (window as any).loadCompendiumTab = function (tab: string) {
@@ -29,6 +30,105 @@ import { showView } from './navigation';
   if (tab === 'equipment') loadCompendiumEquipment();
   if (tab === 'monsters') loadCompendiumMonsters();
 };
+
+// ─── Dynamic Schema Tabs (imported entries) ───
+
+let activeSchemaTab: string | null = null;
+
+async function loadCompendiumSchemaTypes() {
+  try {
+    const resp = await api('GET', '/api/compendium/entries-by-schema');
+    const schemas: any[] = resp.schemas || [];
+    const section = document.getElementById('compSchemaSection');
+    const tabsEl = document.getElementById('compSchemaTabs');
+    const contentEl = document.getElementById('compSchemaContent');
+    if (!section || !tabsEl || !contentEl) return;
+
+    if (schemas.length === 0) {
+      section.style.display = 'none';
+      return;
+    }
+
+    // Build tab buttons
+    tabsEl.innerHTML = schemas.map((s, i) => `
+      <li class="nav-item">
+        <button class="nav-link ${i === 0 ? 'active' : ''}"
+          id="compSchemaTab-${s.type_name}"
+          onclick="loadCompendiumSchemaTab('${s.type_name}')"
+          data-schema-id="${s.id}">
+          ${esc(s.display_name)} <span class="badge bg-secondary">${s.entry_count}</span>
+        </button>
+      </li>`).join('');
+
+    // Build content areas
+    contentEl.innerHTML = schemas.map((s, i) => `
+      <div id="compSchemaContent-${s.type_name}" style="display:${i === 0 ? 'block' : 'none'}">
+        ${renderSchemaEntries(s)}
+      </div>`).join('');
+
+    // Show the section
+    section.style.display = 'block';
+    activeSchemaTab = schemas[0]?.type_name || null;
+  } catch { /* no schema entries — hide section */ }
+}
+
+(window as any).loadCompendiumSchemaTab = function (typeName: string) {
+  const tabsEl = document.getElementById('compSchemaTabs');
+  if (!tabsEl) return;
+  tabsEl.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+  const tab = document.getElementById('compSchemaTab-' + typeName);
+  if (tab) tab.classList.add('active');
+
+  const contentEl = document.getElementById('compSchemaContent');
+  if (!contentEl) return;
+  contentEl.querySelectorAll('[id^="compSchemaContent-"]').forEach(el => {
+    (el as HTMLElement).style.display = 'none';
+  });
+  const pane = document.getElementById('compSchemaContent-' + typeName);
+  if (pane) pane.style.display = 'block';
+  activeSchemaTab = typeName;
+};
+
+function renderSchemaEntries(schema: any): string {
+  const entries = schema.entries || [];
+  return entries.map((e: any) => {
+    const name = esc(e.data?.name || e.data?.Name || 'Unnamed');
+    const preview = entryPreview(e.data, name);
+    return `
+      <div class="card mb-2">
+        <div class="card-body py-2 px-3">
+          <div class="d-flex justify-content-between">
+            <strong>${name}</strong>
+          </div>
+          <p class="mb-0 mt-1 small text-muted">${preview}</p>
+        </div>
+      </div>`;
+  }).join('')
+  + (schema.entry_count > 20
+    ? `<div class="mt-2">
+        <a href="/api/compendium/schemas/${schema.id}/entries"
+           class="btn btn-sm btn-outline-secondary"
+           target="_blank">View All ${schema.entry_count} entries</a>
+       </div>`
+    : '');
+}
+
+function entryPreview(data: any, name: string): string {
+  if (!data) return '';
+  const parts: string[] = [];
+  for (const [key, val] of Object.entries(data)) {
+    if (key.toLowerCase() === 'name' || key.toLowerCase() === 'name') continue;
+    if (typeof val === 'string' && val.length > 0 && val.length < 80) {
+      parts.push(`${key}: ${esc(val)}`);
+    } else if (typeof val === 'number') {
+      parts.push(`${key}: ${val}`);
+    }
+    if (parts.length >= 3) break;
+  }
+  return parts.join(' · ') || '';
+}
+
+// ─── Legacy Tab Loaders ───
 
 async function loadCompendiumRaces() {
   try {

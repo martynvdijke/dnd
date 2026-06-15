@@ -7,7 +7,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"villum/db"
 	"villum/handlers/testutil"
+	"villum/middleware"
 )
 
 func TestCompendiumRaces(t *testing.T) {
@@ -217,6 +219,69 @@ func TestHandleEnabledAIEndpoints(t *testing.T) {
 	t.Run("list with invalid type returns 400", func(t *testing.T) {
 		w := testutil.Get(t, r, "/api/ai/endpoints?type=video")
 		testutil.AssertStatus(t, w, 400)
+	})
+}
+
+func TestListUserCompendiumEntriesBySchema(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "user", "user")
+
+	// Seed a compendium schema with some entries
+	_, err := db.DB.Exec(`INSERT INTO compendium_schemas(id, type_name, display_name, fields)
+		VALUES(100, 'magic-item', 'Magic Item', '[{"name":"name","label":"Name","type":"string","required":true}]')`)
+	if err != nil {
+		t.Fatalf("seed schema: %v", err)
+	}
+	_, err = db.DB.Exec(`INSERT INTO compendium_entries(id, schema_id, data) VALUES(1, 100, '{"name":"Staff of Power"}')`)
+	if err != nil {
+		t.Fatalf("seed entry 1: %v", err)
+	}
+	_, err = db.DB.Exec(`INSERT INTO compendium_entries(id, schema_id, data) VALUES(2, 100, '{"name":"Cloak of Invisibility"}')`)
+	if err != nil {
+		t.Fatalf("seed entry 2: %v", err)
+	}
+
+	// Seed an empty schema (should be excluded from response)
+	_, err = db.DB.Exec(`INSERT INTO compendium_schemas(id, type_name, display_name, fields)
+		VALUES(101, 'empty-type', 'Empty Type', '[{"name":"name","label":"Name","type":"string","required":true}]')`)
+	if err != nil {
+		t.Fatalf("seed empty schema: %v", err)
+	}
+
+	t.Run("authenticated user sees schema entries", func(t *testing.T) {
+		r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+			auth.GET("/compendium/entries-by-schema", ListUserCompendiumEntriesBySchema)
+		})
+		w := testutil.Get(t, r, "/api/compendium/entries-by-schema")
+		testutil.AssertStatus(t, w, 200)
+
+		var resp struct {
+			Schemas []map[string]any `json:"schemas"`
+		}
+		testutil.ParseJSON(t, w, &resp)
+		if len(resp.Schemas) != 1 {
+			t.Fatalf("expected 1 schema (empty excluded), got %d", len(resp.Schemas))
+		}
+		if resp.Schemas[0]["type_name"] != "magic-item" {
+			t.Fatalf("expected type_name 'magic-item', got %v", resp.Schemas[0]["type_name"])
+		}
+		entries := resp.Schemas[0]["entries"].([]any)
+		if len(entries) != 2 {
+			t.Fatalf("expected 2 entries, got %d", len(entries))
+		}
+	})
+
+	t.Run("unauthorized request returns 401", func(t *testing.T) {
+		r := gin.New()
+		r.Use(middleware.SecurityHeaders())
+		noAuth := r.Group("/api")
+		noAuth.Use(middleware.AuthRequired())
+		noAuth.GET("/compendium/entries-by-schema", ListUserCompendiumEntriesBySchema)
+		w := testutil.Get(t, r, "/api/compendium/entries-by-schema")
+		if w.Code != 401 {
+			t.Fatalf("expected 401, got %d", w.Code)
+		}
 	})
 }
 
