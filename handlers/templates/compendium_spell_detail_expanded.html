@@ -1,0 +1,32 @@
+{{define "compendium_spell_detail_expanded"}}
+<div class="px-3 py-2 small">
+  <div class="row g-1 mb-2">
+    <div class="col-6"><strong>Casting Time:</strong> {{.CastingTime}}</div>
+    <div class="col-6"><strong>Range:</strong> {{.Range}}</div>
+    <div class="col-6"><strong>Components:</strong> {{.Components}}</div>
+    <div class="col-6"><strong>Duration:</strong> {{.Duration}}</div>
+    <div class="col-12"><strong>Classes:</strong> {{.Classes}}</div>
+  </div>
+  <hr class="my-2">
+  <div style="white-space:pre-line">{{.Description}}</div>
+  {{if .HigherLevels}}
+    <hr class="my-2">
+    <div><strong>At Higher Levels:</strong></div>
+    <div style="white-space:pre-line">{{.HigherLevels}}</div>
+  {{end}}
+  {{if .SourcePage}}
+    <hr class="my-2">
+    <div class="text-muted fst-italic">Source: {{.SourcePage}}{{if .Source}} ({{.Source}}){{end}}</div>
+  {{end}}
+  <div class="mt-2 text-end">
+    <button class="btn btn-sm btn-outline-secondary"
+      hx-get="/htmx/compendium/spells/{{.ID}}/modal"
+      hx-trigger="click"
+      hx-target="#genericModalBody"
+      hx-swap="innerHTML"
+      hx-on::after-request="document.getElementById('genericModalTitle').textContent='{{.Name}}';new bootstrap.Modal(document.getElementById('genericModal')).show()">
+      <i class="fa-solid fa-expand me-1"></i>View Full
+    </button>
+  </div>
+</div>
+{{end}}

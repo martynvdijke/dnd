@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -419,6 +420,54 @@ func HtmxImportAPIMonster(c *gin.Context) {
 	})
 }
 
+// ─── Compendium Spell Detail (HTMX) ───
+
+func HtmxCompendiumSpellDetail(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid spell id")
+		return
+	}
+
+	var s models.CompendiumSpell
+	err = db.DB.QueryRow(`SELECT id,name,level,school,casting_time,"range",components,duration,
+		description,higher_levels,classes,source_page,
+		COALESCE(system,''),COALESCE(source,''),COALESCE(publisher,'')
+		FROM compendium_spells WHERE id=?`, id).Scan(
+		&s.ID, &s.Name, &s.Level, &s.School, &s.CastingTime, &s.Range,
+		&s.Components, &s.Duration, &s.Description, &s.HigherLevels, &s.Classes,
+		&s.SourcePage, &s.System, &s.Source, &s.Publisher)
+	if err != nil {
+		c.String(http.StatusNotFound, "spell not found")
+		return
+	}
+
+	renderTemplate(c, "compendium_spell_detail_expanded", s)
+}
+
+func HtmxCompendiumSpellModal(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid spell id")
+		return
+	}
+
+	var s models.CompendiumSpell
+	err = db.DB.QueryRow(`SELECT id,name,level,school,casting_time,"range",components,duration,
+		description,higher_levels,classes,source_page,
+		COALESCE(system,''),COALESCE(source,''),COALESCE(publisher,'')
+		FROM compendium_spells WHERE id=?`, id).Scan(
+		&s.ID, &s.Name, &s.Level, &s.School, &s.CastingTime, &s.Range,
+		&s.Components, &s.Duration, &s.Description, &s.HigherLevels, &s.Classes,
+		&s.SourcePage, &s.System, &s.Source, &s.Publisher)
+	if err != nil {
+		c.String(http.StatusNotFound, "spell not found")
+		return
+	}
+
+	renderTemplate(c, "compendium_spell_card", s)
+}
+
 // ─── Helpers ───
 
 func getStrFromMap(m map[string]any, key, def string) string {
@@ -731,6 +780,250 @@ func HtmxCompendiumEquipmentPicker(c *gin.Context) {
 	}
 
 	renderTemplate(c, "compendium_equipment_picker", data)
+}
+
+// ─── Compendium Spell Browse (HTMX) ───
+
+type htmxSpellBrowseData struct {
+	Spells      []models.CompendiumSpell
+	TotalCount  int
+	Page        int
+	PageSize    int
+	TotalPages  int
+	Query       string
+	Class       string
+	Level       string
+	School      string
+	Source      string
+	Classes     []string
+	Schools     []string
+	SourceCount struct {
+		SRD      int
+		Homebrew int
+		Imported int
+	}
+}
+
+func HtmxCompendiumSpellBrowse(c *gin.Context) {
+	q := strings.TrimSpace(c.Query("q"))
+	class := strings.TrimSpace(c.Query("class"))
+	level := strings.TrimSpace(c.Query("level"))
+	school := strings.TrimSpace(c.Query("school"))
+	source := strings.TrimSpace(c.Query("source"))
+	page, _ := strconv.Atoi(c.Query("page"))
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 50
+	}
+	offset := (page - 1) * pageSize
+
+	// Build query
+	baseQuery := `SELECT id,name,level,school,casting_time,"range",components,duration,
+		description,higher_levels,classes,source_page,
+		COALESCE(system,''),COALESCE(source,''),COALESCE(publisher,'') FROM compendium_spells WHERE 1=1`
+	countQuery := "SELECT COUNT(*) FROM compendium_spells WHERE 1=1"
+	args := []any{}
+
+	if q != "" {
+		clause := " AND name LIKE ?"
+		baseQuery += clause
+		countQuery += clause
+		args = append(args, "%"+q+"%")
+	}
+	if class != "" {
+		clause := " AND classes LIKE ?"
+		baseQuery += clause
+		countQuery += clause
+		args = append(args, "%\""+class+"\"%")
+	}
+	if level != "" {
+		// Support comma-separated levels: "1,2,3" or range "1-3"
+		if strings.Contains(level, "-") {
+			parts := strings.SplitN(level, "-", 2)
+			from, err1 := strconv.Atoi(strings.TrimSpace(parts[0]))
+			to, err2 := strconv.Atoi(strings.TrimSpace(parts[1]))
+			if err1 == nil && err2 == nil {
+				clause := " AND level>=? AND level<=?"
+				baseQuery += clause
+				countQuery += clause
+				args = append(args, from, to)
+			}
+		} else {
+			levels := strings.Split(level, ",")
+			placeholders := make([]string, len(levels))
+			for i, l := range levels {
+				lv, err := strconv.Atoi(strings.TrimSpace(l))
+				if err == nil {
+					placeholders[i] = "?"
+					args = append(args, lv)
+				}
+			}
+			validPlaceholders := []string{}
+			for _, p := range placeholders {
+				if p != "" {
+					validPlaceholders = append(validPlaceholders, p)
+				}
+			}
+			if len(validPlaceholders) > 0 {
+				clause := " AND level IN (" + strings.Join(validPlaceholders, ",") + ")"
+				baseQuery += clause
+				countQuery += clause
+			}
+		}
+	}
+	if school != "" {
+		clause := " AND school=?"
+		baseQuery += clause
+		countQuery += clause
+		args = append(args, school)
+	}
+	if source != "" {
+		switch source {
+		case "srd":
+			clause := " AND system='dnd5e' AND source='srd'"
+			baseQuery += clause
+			countQuery += clause
+		case "homebrew":
+			clause := " AND (source='homebrew' OR COALESCE(publisher,'')!='')"
+			baseQuery += clause
+			countQuery += clause
+		case "imported":
+			clause := " AND COALESCE(publisher,'')!='' AND source!='srd'"
+			baseQuery += clause
+			countQuery += clause
+		}
+	}
+
+	// Get total count
+	var totalCount int
+	err := db.DB.QueryRow(countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		totalCount = 0
+	}
+
+	// Get spells for current page
+	baseQuery += " ORDER BY level, name LIMIT ? OFFSET ?"
+	pageArgs := append(args, pageSize, offset)
+
+	rows, err := db.DB.Query(baseQuery, pageArgs...)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "query error: %v", err)
+		return
+	}
+	defer rows.Close()
+
+	spells := make([]models.CompendiumSpell, 0)
+	for rows.Next() {
+		var s models.CompendiumSpell
+		err := rows.Scan(&s.ID, &s.Name, &s.Level, &s.School, &s.CastingTime, &s.Range,
+			&s.Components, &s.Duration, &s.Description, &s.HigherLevels, &s.Classes,
+			&s.SourcePage, &s.System, &s.Source, &s.Publisher)
+		if err != nil {
+			continue
+		}
+		spells = append(spells, s)
+	}
+
+	totalPages := (totalCount + pageSize - 1) / pageSize
+	if totalPages < 1 {
+		totalPages = 1
+	}
+
+	// Fetch distinct classes and schools for filter dropdowns
+	classes := getDistinctSpellClasses()
+	schools := getDistinctSpellSchools()
+
+	// Get source counts
+	srdCount := getSpellCountBySource("srd")
+	homebrewCount := getSpellCountBySource("homebrew")
+	importedCount := getSpellCountBySource("imported")
+
+	data := htmxSpellBrowseData{
+		Spells:     spells,
+		TotalCount: totalCount,
+		Page:       page,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
+		Query:      q,
+		Class:      class,
+		Level:      level,
+		School:     school,
+		Source:     source,
+		Classes:    classes,
+		Schools:    schools,
+	}
+	data.SourceCount.SRD = srdCount
+	data.SourceCount.Homebrew = homebrewCount
+	data.SourceCount.Imported = importedCount
+
+	renderTemplate(c, "compendium_spell_browse", data)
+}
+
+func getDistinctSpellClasses() []string {
+	rows, err := db.DB.Query("SELECT DISTINCT classes FROM compendium_spells WHERE classes != '' ORDER BY classes")
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+
+	classSet := make(map[string]bool)
+	for rows.Next() {
+		var classes string
+		rows.Scan(&classes)
+		// Parse JSON array like ["Artificer","Bard","Cleric"]
+		cls := strings.Trim(classes, "[]")
+		parts := strings.Split(cls, ",")
+		for _, p := range parts {
+			name := strings.Trim(strings.TrimSpace(p), "\"")
+			if name != "" {
+				classSet[name] = true
+			}
+		}
+	}
+
+	result := make([]string, 0, len(classSet))
+	for name := range classSet {
+		result = append(result, name)
+	}
+	sort.Strings(result)
+	return result
+}
+
+func getDistinctSpellSchools() []string {
+	rows, err := db.DB.Query("SELECT DISTINCT school FROM compendium_spells WHERE school != '' ORDER BY school")
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+
+	var schools []string
+	for rows.Next() {
+		var school string
+		rows.Scan(&school)
+		schools = append(schools, school)
+	}
+	return schools
+}
+
+func getSpellCountBySource(sourceType string) int {
+	var query string
+	switch sourceType {
+	case "srd":
+		query = "SELECT COUNT(*) FROM compendium_spells WHERE system='dnd5e' AND source='srd'"
+	case "homebrew":
+		query = "SELECT COUNT(*) FROM compendium_spells WHERE source='homebrew' OR (COALESCE(publisher,'')!='' AND source!='srd')"
+	case "imported":
+		query = "SELECT COUNT(*) FROM compendium_spells WHERE COALESCE(publisher,'')!='' AND source!='srd'"
+	default:
+		return 0
+	}
+	var count int
+	db.DB.QueryRow(query).Scan(&count)
+	return count
 }
 
 // ─── Compendium Card (HTMX partial) ───

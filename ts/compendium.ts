@@ -160,12 +160,15 @@ async function loadCompendiumClasses() {
 
 async function loadCompendiumSpells() {
   try {
-    const spells = await api('GET', '/api/compendium/spells');
-    document.getElementById('compSpells')!.innerHTML = spells.map((s: any) => `
-      <div class="inv-item">
-        <div><span class="fw-bold">${esc(s.name)}</span> <span class="text-muted small">Lv${s.level} ${esc(s.school)}</span></div>
-        <div class="text-muted small">${esc(s.casting_time)} · ${esc(s.range)} · ${esc(s.duration)}</div>
-      </div>`).join('');
+    const resp = await fetch('/htmx/compendium/spells', { credentials: 'include' });
+    const html = await resp.text();
+    const container = document.getElementById('compSpells');
+    if (container) {
+      container.innerHTML = html;
+      if (typeof (window as any).htmx !== 'undefined') {
+        (window as any).htmx.process(container);
+      }
+    }
   } catch {}
 }
 

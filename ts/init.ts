@@ -17,6 +17,7 @@ import { initSearch } from './search';
 import { initAIClickHandler } from './ai';
 import { initPdfViewerCleanup } from './pdf-viewer';
 import { setCurrentUser, setAllLocations, setAllNPCs } from './lib/state';
+import { initSpellCompendium } from './spell-compendium';
 
 // ─── WebSocket ───
 
@@ -54,6 +55,7 @@ export async function init() {
   initSearch();
   initAIClickHandler();
   initPdfViewerCleanup();
+  initSpellCompendium();
   try {
     const user = await api('GET', '/api/user/me');
     setCurrentUser(user);

@@ -1,0 +1,160 @@
+{{define "compendium_spell_browse"}}
+<div class="spell-browse">
+  {{/* Source count summary */}}
+  <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+    <div class="small text-muted source-counts">
+      {{.SourceCount.SRD}} SRD · {{.SourceCount.Homebrew}} Homebrew · {{.SourceCount.Imported}} Imported
+    </div>
+    <div class="small text-muted">{{.TotalCount}} spells found</div>
+  </div>
+
+  {{/* Filter bar */}}
+  <div class="spell-filters mb-3">
+    <div class="row g-2">
+      <div class="col-12 col-md-4">
+        <input type="text" class="form-control form-control-sm spell-search-input" placeholder="Search spells..." name="q" value="{{.Query}}"
+          hx-get="/htmx/compendium/spells"
+          hx-trigger="keyup changed delay:300ms"
+          hx-target="#compendiumSpellResults"
+          hx-swap="innerHTML"
+          hx-include=".spell-filter-input"
+          hx-push-url="false">
+      </div>
+      <div class="col-6 col-md-2">
+        <select class="form-select form-select-sm spell-filter-input" name="class"
+          hx-get="/htmx/compendium/spells"
+          hx-trigger="change"
+          hx-target="#compendiumSpellResults"
+          hx-swap="innerHTML"
+          hx-include=".spell-filter-input">
+          <option value="">All Classes</option>
+          {{range .Classes}}<option value="{{.}}"{{if eq $.Class .}} selected{{end}}>{{.}}</option>{{end}}
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <select class="form-select form-select-sm spell-filter-input" name="school"
+          hx-get="/htmx/compendium/spells"
+          hx-trigger="change"
+          hx-target="#compendiumSpellResults"
+          hx-swap="innerHTML"
+          hx-include=".spell-filter-input">
+          <option value="">All Schools</option>
+          {{range .Schools}}<option value="{{.}}"{{if eq $.School .}} selected{{end}}>{{.}}</option>{{end}}
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <select class="form-select form-select-sm spell-filter-input" name="level"
+          hx-get="/htmx/compendium/spells"
+          hx-trigger="change"
+          hx-target="#compendiumSpellResults"
+          hx-swap="innerHTML"
+          hx-include=".spell-filter-input">
+          <option value="">All Levels</option>
+          <option value="0"{{if eq .Level "0"}} selected{{end}}>Cantrip</option>
+          <option value="1-3"{{if eq .Level "1-3"}} selected{{end}}>1st-3rd</option>
+          <option value="4-6"{{if eq .Level "4-6"}} selected{{end}}>4th-6th</option>
+          <option value="7-9"{{if eq .Level "7-9"}} selected{{end}}>7th-9th</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <select class="form-select form-select-sm spell-filter-input" name="source"
+          hx-get="/htmx/compendium/spells"
+          hx-trigger="change"
+          hx-target="#compendiumSpellResults"
+          hx-swap="innerHTML"
+          hx-include=".spell-filter-input">
+          <option value="">All Sources</option>
+          <option value="srd"{{if eq .Source "srd"}} selected{{end}}>SRD</option>
+          <option value="homebrew"{{if eq .Source "homebrew"}} selected{{end}}>Homebrew</option>
+          <option value="imported"{{if eq .Source "imported"}} selected{{end}}>Imported</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  {{/* Results list */}}
+  <div id="compendiumSpellResults">
+    {{if .Spells}}
+      <div class="spell-list">
+        {{range .Spells}}
+          <div class="spell-entry" data-spell-id="{{.ID}}">
+            <div class="spell-entry-summary d-flex justify-content-between align-items-center py-2 px-2"
+              hx-get="/htmx/compendium/spells/{{.ID}}/detail"
+              hx-trigger="click"
+              hx-target="#spell-detail-{{.ID}}"
+              hx-swap="innerHTML"
+              onclick="document.querySelectorAll('.spell-entry .spell-detail-expanded').forEach(el => el.innerHTML='')"
+              style="cursor:pointer">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="fw-bold">{{.Name}}</span>
+                <span class="badge {{if eq .Level 0}}badge-muted{{else}}badge-blood{{end}}">Lv{{.Level}}</span>
+                {{if .School}}<span class="badge badge-gold">{{.School}}</span>{{end}}
+                {{if eq .Source "srd"}}<span class="badge bg-info text-dark">SRD</span>{{end}}
+                {{if or (eq .Source "homebrew") .Publisher}}<span class="badge" style="background:#6f42c1;color:#fff">{{if .Publisher}}{{.Publisher}}{{else}}Homebrew{{end}}</span>{{end}}
+              </div>
+              <div class="text-muted small">
+                <span class="me-2"><i class="fa-regular fa-clock"></i> {{.CastingTime}}</span>
+                <span class="me-2"><i class="fa-solid fa-bullseye"></i> {{.Range}}</span>
+                <span><i class="fa-regular fa-hourglass"></i> {{.Duration}}</span>
+              </div>
+            </div>
+            <div id="spell-detail-{{.ID}}" class="spell-detail-expanded"></div>
+          </div>
+        {{end}}
+      </div>
+
+      {{/* Pagination */}}
+      {{if gt .TotalPages 1}}
+        <div class="d-flex justify-content-center align-items-center gap-2 mt-3">
+          {{if gt .Page 1}}
+            <button class="btn btn-sm btn-outline-primary pagination-btn"
+              hx-get="/htmx/compendium/spells?page={{sub .Page 1}}&page_size={{.PageSize}}&q={{.Query}}&class={{.Class}}&level={{.Level}}&school={{.School}}&source={{.Source}}"
+              hx-target="#compendiumSpellResults"
+              hx-swap="innerHTML"
+              hx-include=".spell-filter-input">
+              <i class="fa-solid fa-chevron-left"></i> Previous
+            </button>
+          {{end}}
+          <span class="text-muted small">Page {{.Page}} of {{.TotalPages}}</span>
+          {{if lt .Page .TotalPages}}
+            <button class="btn btn-sm btn-outline-primary pagination-btn"
+              hx-get="/htmx/compendium/spells?page={{add .Page 1}}&page_size={{.PageSize}}&q={{.Query}}&class={{.Class}}&level={{.Level}}&school={{.School}}&source={{.Source}}"
+              hx-target="#compendiumSpellResults"
+              hx-swap="innerHTML"
+              hx-include=".spell-filter-input">
+              Next <i class="fa-solid fa-chevron-right"></i>
+            </button>
+          {{end}}
+        </div>
+      {{end}}
+
+    {{else}}
+      <div class="empty-state text-center py-5">
+        <i class="fa-solid fa-wand-magic fa-3x mb-3 d-block text-muted"></i>
+        <p class="fw-bold">No Spells Found</p>
+        <p class="small text-muted">Try adjusting your search or filter criteria.</p>
+        {{if or .Query .Class .Level .School .Source}}
+          <button class="btn btn-sm btn-outline-secondary mt-2"
+            hx-get="/htmx/compendium/spells"
+            hx-target="#compendiumSpellResults"
+            hx-swap="innerHTML">
+            <i class="fa-solid fa-xmark me-1"></i>Clear Filters
+          </button>
+        {{end}}
+      </div>
+    {{end}}
+  </div>
+</div>
+
+<style>
+  .spell-entry { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  .spell-entry:hover { background: var(--parchment-dark); }
+  .spell-entry.loading { opacity: 0.6; }
+  .spell-entry .spell-detail-expanded { border-top: 1px solid var(--border); background: var(--parchment-light); }
+  .source-counts { font-size: 0.8rem; color: var(--text-muted); }
+  .spell-filters .form-select, .spell-filters .form-control { font-size: 0.85rem; }
+  @media (max-width: 576px) {
+    .spell-entry-summary { flex-direction: column; align-items: flex-start !important; gap: 4px; }
+  }
+</style>
+{{end}}
