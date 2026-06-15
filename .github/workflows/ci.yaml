@@ -45,9 +45,28 @@ jobs:
       - name: Vet
         run: go vet -tags sqlite_fts5 ./...
 
-      - name: Run Tests
+      - name: Run Tests with Coverage
         run:
-          go test -tags "sqlite_fts5" -v ./...
+          go test -tags "sqlite_fts5" -v -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Check Coverage Threshold
+        run: |
+          go tool cover -func=coverage.out | tee /dev/stderr | awk '
+            /^total:/ {
+              gsub(/%/, "", $3)
+              if ($3 + 0 < 30) {
+                printf "FAIL: Coverage %.1f%% < 30%% threshold\n", $3
+                exit 1
+              }
+              printf "PASS: Coverage %.1f%% >= 30%% threshold\n", $3
+            }'
+
+      - name: Upload Coverage Artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: go-coverage
+          path: coverage.out
+          retention-days: 30
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium

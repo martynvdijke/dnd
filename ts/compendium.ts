@@ -89,7 +89,7 @@ async function loadCompendiumSchemaTypes() {
   activeSchemaTab = typeName;
 };
 
-function renderSchemaEntries(schema: any): string {
+export function renderSchemaEntries(schema: any): string {
   const entries = schema.entries || [];
   return entries.map((e: any) => {
     const name = esc(e.data?.name || e.data?.Name || 'Unnamed');
@@ -113,7 +113,7 @@ function renderSchemaEntries(schema: any): string {
     : '');
 }
 
-function entryPreview(data: any, name: string): string {
+export function entryPreview(data: any, name: string): string {
   if (!data) return '';
   const parts: string[] = [];
   for (const [key, val] of Object.entries(data)) {

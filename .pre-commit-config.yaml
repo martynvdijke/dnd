@@ -30,3 +30,9 @@ repos:
         language: system
         types_or: [ts, tsx]
         pass_filenames: false
+
+      - id: vitest
+        name: typescript unit tests
+        entry: npx vitest run
+        language: system
+        pass_filenames: false

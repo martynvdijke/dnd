@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test:unit": "npx vitest run",
     "test": "go test -tags fts5 ./...",
     "test:e2e": "npx playwright test",
     "build:ts": "vite build && ENTRY=pwa vite build && ENTRY=admin vite build && ENTRY=setup vite build && ENTRY=login vite build && npx tsc",
@@ -24,7 +25,9 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
+    "happy-dom": "^20.10.3",
     "typescript": "^6.0.0",
-    "vite": "^8.0.0"
+    "vite": "^8.0.0",
+    "vitest": "^4.1.9"
   }
 }

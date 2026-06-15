@@ -3,14 +3,16 @@ import os from 'os';
 
 export default defineConfig({
   testDir: './tests',
-  fullyParallel: true,
+  fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: 1,
   workers: process.env.CI ? Math.max(1, Math.floor(os.cpus().length / 2)) : Math.max(1, Math.floor(os.cpus().length / 4)),
   timeout: 45000,
   expect: {
     timeout: 10000,
+    toHaveScreenshot: { maxDiffPixelRatio: 0.05 },
   },
+  snapshotPathTemplate: 'tests/visual-refs/{arg}{ext}',
   reporter: 'html',
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:6270',
