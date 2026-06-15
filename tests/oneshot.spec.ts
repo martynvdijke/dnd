@@ -109,11 +109,12 @@ test.describe('One-Shot Adventure Features', () => {
     await listItem.click();
 
     // Wait for HTMX detail view to load acts
+    // No explicit timeout — let test.slow()'s extended test timeout apply
     await page.waitForFunction(() => {
       const section = document.getElementById('oneshotSection');
       return section && section.textContent.includes('Act 1');
-    }, { timeout: 30000 });
-    await expect(page.locator('#oneshotSection')).toContainText('Act 5', { timeout: 30000 });
+    });
+    await expect(page.locator('#oneshotSection')).toContainText('Act 5');
   });
 
   test('Prep dashboard loads for generated one-shot', async ({ page }) => {
