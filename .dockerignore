@@ -1,0 +1,11 @@
+.git
+node_modules
+*.md
+.github
+.vscode
+.env*
+backups/
+media/
+db/
+playwright-report/
+test-results/
