@@ -47,7 +47,7 @@ jobs:
 
       - name: Run Tests with Coverage
         run:
-          go test -tags "sqlite_fts5" -v -coverprofile=coverage.out -covermode=atomic ./...
+          go test -tags "sqlite_fts5" -v -coverprofile=coverage.out -covermode=atomic -coverpkg=./handlers/...,./middleware/... ./...
 
       - name: Check Coverage Threshold
         run: |
