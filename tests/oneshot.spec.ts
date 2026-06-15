@@ -104,7 +104,7 @@ test.describe('One-Shot Adventure Features', () => {
     await expect(page.locator('#oneshotSection')).toContainText(title, { timeout: 10000 });
 
     // Click the adventure to view detail and check for acts
-    const listItem = page.locator('#oneshotSection .list-group-item').first();
+    const listItem = page.locator('#oneshotSection .list-group-item').filter({ hasText: title });
     await listItem.waitFor({ state: 'visible', timeout: 5000 });
     await listItem.click();
 

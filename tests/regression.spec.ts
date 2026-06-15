@@ -105,14 +105,15 @@ test.describe('Regression suite', () => {
     await expect(page.locator('#compSchemaTabs')).toBeVisible({ timeout: 8000 });
     await expect(page.locator('#compSchemaTabs .nav-link').first()).toBeVisible({ timeout: 3000 });
 
-    // Find the schema tab — tabs are <button> elements inside #compSchemaTabs
-    const schemaTab = page.locator('#compSchemaTabs button.nav-link').filter({ hasText: 'Lifecycle Test' }).first();
+    // Use type_name to target the correct tab (avoids ambiguity from retry duplicates)
+    const schemaTab = page.locator(`#compSchemaTab-${typeName}`);
     await expect(schemaTab).toBeVisible({ timeout: 8000 });
 
-    // Click tab and verify content
+    // Click tab and verify content in the schema's content pane
     await schemaTab.click();
-    await expect(page.locator('#compSchemaContent')).toBeVisible({ timeout: 3000 });
-    const contentEntry = page.locator('#compSchemaContent .card-body strong').filter({ hasText: `Test-${timestamp}` });
+    const contentPane = page.locator(`#compSchemaContent-${typeName}`);
+    await expect(contentPane).toBeVisible({ timeout: 3000 });
+    const contentEntry = contentPane.locator('.card-body strong').filter({ hasText: `Test-${timestamp}` });
     await expect(contentEntry).toBeVisible({ timeout: 5000 });
 
     // Delete entry and schema
