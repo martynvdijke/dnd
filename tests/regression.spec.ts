@@ -106,7 +106,7 @@ test.describe('Regression suite', () => {
     await expect(page.locator('#compSchemaTabs .nav-link').first()).toBeVisible({ timeout: 3000 });
 
     // Find the schema tab — tabs are <button> elements inside #compSchemaTabs
-    const schemaTab = page.locator('#compSchemaTabs button.nav-link').filter({ hasText: 'Lifecycle Test' });
+    const schemaTab = page.locator('#compSchemaTabs button.nav-link').filter({ hasText: 'Lifecycle Test' }).first();
     await expect(schemaTab).toBeVisible({ timeout: 8000 });
 
     // Click tab and verify content

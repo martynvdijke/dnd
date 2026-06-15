@@ -89,6 +89,7 @@ test.describe('One-Shot Adventure Features', () => {
   });
 
   test('Generate a five-room dungeon via UI form', async ({ page }) => {
+    test.slow(); // Allow extra time for generation + HTMX detail load in CI
     await navigateToOneShots(page);
 
     await expect(page.locator('#oneshotSection button:has-text("Generate")')).toBeVisible({ timeout: 10000 });

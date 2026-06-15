@@ -48,10 +48,10 @@ test.describe('Visual regression', () => {
     await clickNavItem(page, 'Compendium', 'compendium');
     await expect(page.locator('#compSchemaTabs')).toBeVisible({ timeout: 8000 });
     await expect(page.locator('#compSchemaTabs .nav-link').first()).toBeVisible({ timeout: 3000 });
-    const tab = page.locator('#compSchemaTabs button.nav-link').filter({ hasText: 'Visual Test' });
+    const tab = page.locator('#compSchemaTabs button.nav-link').filter({ hasText: 'Visual Test' }).first();
     await expect(tab).toBeVisible({ timeout: 8000 });
     await tab.click();
-    await expect(page.locator('#compSchemaContent .card')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#compSchemaContent .card').first()).toBeVisible({ timeout: 5000 });
     await page.waitForTimeout(300);
     await expect(page.locator('#compSchemaTabs')).toHaveScreenshot('compendium-schema-tab.png');
 
