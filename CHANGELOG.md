@@ -1,3 +1,12 @@
+## [2.17.2](https://github.com/martynvdijke/dnd/compare/v2.17.1...v2.17.2) (2026-06-16)
+
+
+### Bug Fixes
+
+* remove concurrency block from reusable CI workflow [skip ci] ([6c85b0c](https://github.com/martynvdijke/dnd/commit/6c85b0c08b6724186124e8e76486f2396644578f))
+* remove dimension-based 3D dice check and duplicate CI push trigger ([b437928](https://github.com/martynvdijke/dnd/commit/b4379287b20840750cab6bbfd759951f56e34053))
+* trigger release with corrected CI workflow (remove concurrency from reusable workflow) ([ea7d665](https://github.com/martynvdijke/dnd/commit/ea7d665d85c9fb2a9e9715690a37c475a15e2a7f))
+
 ## [2.17.1](https://github.com/martynvdijke/dnd/compare/v2.17.0...v2.17.1) (2026-06-16)
 
 
