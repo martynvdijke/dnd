@@ -36,15 +36,16 @@ export async function waitLoadingDone(page: Page, timeout: number = 15000) {
  * Log in as admin user and wait for the SPA to fully initialize.
  * Prefer this over inline login to avoid test flakiness on slower runtimes (mobile-chrome in CI).
  */
-export async function login(page: Page) {
+export async function login(page: Page, timeout: number = 30000) {
   await page.goto('/login', { waitUntil: 'domcontentloaded' });
   await page.fill('#username', 'admin');
   await page.fill('#password', 'testpassword123');
+  // Use Promise.all to avoid race between click and navigation listener
   await Promise.all([
-    page.waitForURL('/', { timeout: 15000, waitUntil: 'domcontentloaded' }),
+    page.waitForURL('/', { timeout, waitUntil: 'domcontentloaded' }),
     page.click('button[type="submit"]'),
   ]);
-  await waitLoadingDone(page);
+  await waitLoadingDone(page, timeout);
 }
 
 export async function waitModalClosed(page: Page) {

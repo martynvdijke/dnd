@@ -1,8 +1,9 @@
 import { test, expect } from './fixtures.js';
-import { isMobile, clickNavItem, clickSecondaryNavItem } from './helpers.js';
+import { isMobile, clickNavItem, clickSecondaryNavItem, login, waitModalClosed } from './helpers.js';
 
 test.describe('Full application smoke test', () => {
   test.beforeEach(async ({ page }) => {
+    await page.context().clearCookies();
     const resp = await page.goto('/login', { waitUntil: 'domcontentloaded' });
     expect(resp?.status()).toBe(200);
   });
@@ -20,12 +21,7 @@ test.describe('Full application smoke test', () => {
   });
 
   test('login flow works', async ({ page }) => {
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { timeout: 10000 }),
-      page.click('button[type="submit"]'),
-    ]);
+    await login(page);
     await expect(page.locator('#userName')).toContainText('admin', { timeout: 5000 });
     if (!(await isMobile(page))) {
       await expect(page.locator('.navbar-brand')).toBeVisible();
@@ -33,22 +29,12 @@ test.describe('Full application smoke test', () => {
   });
 
   test('character list loads', async ({ page }) => {
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { timeout: 10000 }),
-      page.click('button[type="submit"]'),
-    ]);
-    await expect(page.locator('#charGrid')).toBeVisible({ timeout: 5000 });
+    await login(page);
+    await expect(page.locator('h1:has-text("Character Folio")')).toBeVisible({ timeout: 5000 });
   });
 
   test('navigation between views works', async ({ page }) => {
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { timeout: 10000 }),
-      page.click('button[type="submit"]'),
-    ]);
+    await login(page);
 
     const navMap: Record<string, string> = { 'Compendium': 'compendium', 'Dice': 'dice', 'Encounters': 'encounters', 'Factions': 'factions' };
     const views = [
@@ -75,12 +61,7 @@ test.describe('Full application smoke test', () => {
   });
 
   test('character create and sheet open', async ({ page }) => {
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { timeout: 10000 }),
-      page.click('button[type="submit"]'),
-    ]);
+    await login(page);
 
     const name = `Smoke-${Date.now()}`;
     await page.click('button:has-text("New Character")');
@@ -88,10 +69,7 @@ test.describe('Full application smoke test', () => {
     await page.fill('#newRace', 'Human');
     await page.fill('#newClass', 'Fighter');
     await page.click('.modal button:has-text("Create")');
-    await page.waitForFunction(() => {
-      const modal = document.getElementById('genericModal');
-      return !modal || !modal.classList.contains('show');
-    }, { timeout: 10000 }).catch(() => {});
+    await waitModalClosed(page);
 
     await expect(page.locator('.character-card').filter({ hasText: name })).toBeVisible({ timeout: 5000 });
     await page.locator('.character-card').filter({ hasText: name }).click();
@@ -99,12 +77,7 @@ test.describe('Full application smoke test', () => {
   });
 
   test('logout works', async ({ page }) => {
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { timeout: 10000 }),
-      page.click('button[type="submit"]'),
-    ]);
+    await login(page);
 
     if (await isMobile(page)) {
       await page.evaluate(() => (window as any).logout());
@@ -120,12 +93,7 @@ test.describe('Full application smoke test', () => {
   });
 
   test('app version is displayed', async ({ page }) => {
-    await page.fill('#username', 'admin');
-    await page.fill('#password', 'testpassword123');
-    await Promise.all([
-      page.waitForURL('/', { timeout: 10000 }),
-      page.click('button[type="submit"]'),
-    ]);
+    await login(page);
 
     await expect(page.locator('footer')).toContainText(/v\d+\.\d+\.\d+/, { timeout: 5000 });
   });

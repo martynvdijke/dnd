@@ -6,6 +6,8 @@ node_modules
 .env*
 backups/
 media/
-db/
+db/*.db
+db/*.sqlite*
+db/*.sqlite3
 playwright-report/
 test-results/

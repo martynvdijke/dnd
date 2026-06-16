@@ -1,6 +1,6 @@
 import { test as base, expect } from '@playwright/test';
 import type { Page, BrowserContext } from '@playwright/test';
-import { spawn, type ChildProcess } from 'child_process';
+import { spawn, spawnSync, type ChildProcess } from 'child_process';
 import http from 'http';
 import fs from 'fs';
 
@@ -51,19 +51,13 @@ async function waitForPort(port: number): Promise<void> {
 
 function cleanupServer(proc: ChildProcess | null, dbPath: string) {
   if (proc) {
+    // SIGKILL immediately — test servers have no state worth preserving,
+    // and a delay via setTimeout may not fire before Node exits.
     try {
-      proc.kill('SIGTERM');
+      proc.kill('SIGKILL');
     } catch {
       // already dead
     }
-    // Force-kill after a grace period
-    setTimeout(() => {
-      try {
-        proc.kill('SIGKILL');
-      } catch {
-        // ok
-      }
-    }, 3000);
   }
   // Remove DB files
   for (const ext of ['', '-shm', '-wal']) {
@@ -72,6 +66,22 @@ function cleanupServer(proc: ChildProcess | null, dbPath: string) {
     } catch {
       // file doesn't exist
     }
+  }
+}
+
+/**
+ * Kill any process currently listening on {@link port}.
+ * Handles orphaned server processes left behind when a previous test worker
+ * was killed before its cleanup could run (e.g. on test timeout).
+ */
+function freePort(port: number): void {
+  try {
+    spawnSync('fuser', [`${port}/tcp`, '-k'], {
+      timeout: 3000,
+      stdio: 'ignore',
+    });
+  } catch {
+    // fuser not available — port conflict will surface as EADDRINUSE
   }
 }
 
@@ -87,7 +97,8 @@ export const test = base.extend<{}, { workerData: WorkerData }>({
     async ({}, use, workerInfo) => {
       const port = BASE_PORT + workerInfo.workerIndex;
       const dbPath = `${DB_DIR}/villum-test-${workerInfo.workerIndex}.db`;
-      cleanupServer(null, dbPath); // clean any leftovers from previous runs
+      freePort(port);               // kill orphaned server from a previous aborted run
+      cleanupServer(null, dbPath);  // clean any DB leftovers from previous runs
 
       const proc = spawn(SERVER_BIN, [], {
         env: {

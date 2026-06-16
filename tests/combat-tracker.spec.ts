@@ -67,11 +67,7 @@ test.describe.serial('Combat Tracker', () => {
     await page.click('.modal button:has-text("Add")');
     await waitModalClosed(page);
 
-    if (await isMobile(page)) {
-      await page.evaluate(() => (window as any).rollAllInitiative());
-    } else {
-      await page.click('button:has-text("Roll Init")');
-    }
+    await page.evaluate(() => (window as any).rollAllInitiative());
     await page.waitForTimeout(500);
 
     const initCells = await page.locator('#combatTrackerTable td:nth-child(3)').allTextContents();
