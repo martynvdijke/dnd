@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { login, waitLoadingDone, waitModalClosed } from './helpers.js';
 
 const uniqueName = () => `G-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;

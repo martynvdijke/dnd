@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { login } from './helpers.js';
 import { deflateSync } from 'zlib';
 

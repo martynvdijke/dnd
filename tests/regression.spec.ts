@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { login, clickNavItem, clickSecondaryNavItem, isMobile, waitLoadingDone } from './helpers.js';
 
 // Regression tests — run with: npx playwright test --grep @regression
@@ -124,14 +124,11 @@ test.describe('Regression suite', () => {
       return (window as any).api('DELETE', `/api/admin/compendium-schemas/${sid}`);
     }, schemaId);
 
-    // Refresh compendium view — schema section should be hidden
+    // Refresh compendium view — the deleted schema's tab should be gone
     await navTo(page, 'Compendium', 'compendium');
-    await page.waitForTimeout(1000);
-    // The section should exist but be display:none when no schemas with entries
-    await page.waitForFunction(() => {
-      const el = document.getElementById('compSchemaSection');
-      return el && el.style.display === 'none';
-    }, { timeout: 8000 }).catch(() => {});
+    // Seeds (backgrounds, monsters, etc.) keep the section visible,
+    // so verify the lifecycle tab is absent rather than the whole section
+    await expect(page.locator(`#compSchemaTab-${typeName}`)).not.toBeVisible({ timeout: 8000 });
   });
 
   test('@regression API response times under 2s', async ({ page }) => {

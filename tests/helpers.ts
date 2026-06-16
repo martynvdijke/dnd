@@ -1,4 +1,4 @@
-import { Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
 const desktopNavMap: Record<string, string> = {
   'Characters': 'characters',
@@ -41,7 +41,7 @@ export async function login(page: Page) {
   await page.fill('#username', 'admin');
   await page.fill('#password', 'testpassword123');
   await Promise.all([
-    page.waitForURL('/', { timeout: 15000 }),
+    page.waitForURL('/', { timeout: 15000, waitUntil: 'domcontentloaded' }),
     page.click('button[type="submit"]'),
   ]);
   await waitLoadingDone(page);

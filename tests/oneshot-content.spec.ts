@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { waitLoadingDone, clickSecondaryNavItem, login } from './helpers.js';
 
 const uniqueName = () => `OSC-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;

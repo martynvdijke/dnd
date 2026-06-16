@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures.js';
 import { ensureNavOpen, waitModalClosed, isMobile, login } from './helpers.js';
 
 async function openCombat(page: Page) {

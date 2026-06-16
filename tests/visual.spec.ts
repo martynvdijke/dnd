@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { login, waitLoadingDone, clickNavItem, isMobile } from './helpers.js';
 
 test.describe('Visual regression', () => {

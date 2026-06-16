@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { clickNavItem, login } from './helpers.js';
 
 const uniqueName = () => `Party-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;

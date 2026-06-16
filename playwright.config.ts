@@ -20,33 +20,19 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'setup',
-      testMatch: /setup\.spec\.ts/,
-      use: { ...devices['Desktop Chrome'] },
-    },
-    {
       name: 'chromium',
       testIgnore: /setup\.spec\.ts/,
       use: { ...devices['Desktop Chrome'] },
-      dependencies: ['setup'],
     },
     {
       name: 'firefox',
       testIgnore: /setup\.spec\.ts/,
       use: { ...devices['Desktop Firefox'] },
-      dependencies: ['setup'],
     },
     {
       name: 'mobile-chrome',
       testIgnore: /setup\.spec\.ts/,
       use: { ...devices['Pixel 5'] },
-      dependencies: ['setup'],
     },
   ],
-  webServer: {
-    command: 'rm -f /tmp/villum-test.db /tmp/villum-test.db-shm /tmp/villum-test.db-wal && if [ -f ./villum-server ]; then DB_PATH=/tmp/villum-test.db ./villum-server; else DB_PATH=/tmp/villum-test.db go run -tags sqlite_fts5 .; fi',
-    url: 'http://localhost:6270/api/check-setup',
-    reuseExistingServer: false,
-    timeout: 30000,
-  },
 });

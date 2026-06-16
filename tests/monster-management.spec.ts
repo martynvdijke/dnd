@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { login } from './helpers.js';
 
 const uniqueName = () => `MNG-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;

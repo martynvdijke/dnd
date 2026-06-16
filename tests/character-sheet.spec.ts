@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures.js';
 import { ensureNavOpen, waitLoadingDone, waitModalClosed, isMobile, clickNavItem, login } from './helpers.js';
 
 const uniqueName = () => `Test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;

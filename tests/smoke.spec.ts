@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { isMobile, clickNavItem, clickSecondaryNavItem } from './helpers.js';
 
 test.describe('Full application smoke test', () => {

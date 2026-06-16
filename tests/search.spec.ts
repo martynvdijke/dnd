@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { isMobile, login } from './helpers.js';
 
 const uniqueName = () => `Search-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;

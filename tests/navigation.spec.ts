@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { clickBottomTabForce, login } from './helpers.js';
 
 test.describe('Navigation: Bottom Tab Bar & Sidebar', () => {

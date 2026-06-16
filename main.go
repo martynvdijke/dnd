@@ -1,15 +1,18 @@
 package main
 
 import (
+	"context"
 	"embed"
 	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"villum/db"
+	"villum/ent/user"
 	"villum/handlers"
 	"villum/middleware"
 )
@@ -51,6 +54,29 @@ func main() {
 	db.Seed()
 	handlers.SeedCompendiumSchemas()
 	handlers.SeedCraftingRecipes()
+
+	// AUTO_SETUP=true creates the admin user automatically (used for per-worker Playwright isolation).
+	if os.Getenv("AUTO_SETUP") == "true" {
+		ctx := context.Background()
+		count, err := db.Client.User.Query().Where(user.Role("admin")).Count(ctx)
+		if err == nil && count == 0 {
+			hash, err := bcrypt.GenerateFromPassword([]byte("testpassword123"), bcrypt.DefaultCost)
+			if err == nil {
+				_, err = db.Client.User.Create().
+					SetUsername("admin").
+					SetPassword(string(hash)).
+					SetDisplayName("Admin").
+					SetRole("admin").
+					Save(ctx)
+				if err != nil {
+					log.Printf("Warning: AUTO_SETUP failed to create admin: %v", err)
+				} else {
+					log.Println("AUTO_SETUP: admin user created")
+				}
+			}
+		}
+	}
+
 	handlers.SetDBPath(dbPath)
 
 	// Replace in-memory session store with SQLite-backed persistence

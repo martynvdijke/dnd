@@ -1,4 +1,4 @@
-import { test, expect, Page } from '@playwright/test';
+import { test, expect, type Page } from './fixtures.js';
 import { login, clickNavItem } from './helpers.js';
 
 const uniqueName = () => `CMP-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
