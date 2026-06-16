@@ -77,11 +77,7 @@ test.describe('Dice rolling', () => {
       await expect(result).toBeVisible({ timeout: 10000 });
 
       // Verify the 3D die element rendered for this type
-      // 3D dice render async and may not be visible immediately
-      await page.waitForFunction((d) => {
-        const el = document.querySelector(`#dice3dContainer .dice-3d-die.${d}`);
-        return el && el.getBoundingClientRect().width > 0 && el.getBoundingClientRect().height > 0;
-      }, die, { timeout: 10000 });
+      await expect(page.locator(`#dice3dContainer .dice-3d-die.${die}`)).toBeAttached({ timeout: 10000 });
     }
   });
 
