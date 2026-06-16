@@ -23,7 +23,7 @@ func HandleHealth(c *gin.Context) {
 		"database":   dbStatus,
 		"uptime":     time.Since(startTime).String(),
 		"go_version": runtime.Version(),
-		"version":    "1.0.0",
+		"version":    "2.17.0",
 	})
 }
 

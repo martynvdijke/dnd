@@ -1,3 +1,24 @@
+# [2.17.0](https://github.com/martynvdijke/dnd/compare/v2.16.6...v2.17.0) (2026-06-16)
+
+
+### Bug Fixes
+
+* add .first() selectors and test.slow() for Playwright retry resilience ([78daac4](https://github.com/martynvdijke/dnd/commit/78daac4fcd548ab2433f13a10726683ab1365ef4))
+* add sqlite_fts5 build tag to Dockerfile ([017a3e4](https://github.com/martynvdijke/dnd/commit/017a3e4fb00a874becbb9678045f82ae8ecdca38))
+* add TypeScript type annotations to test files ([4f72ebf](https://github.com/martynvdijke/dnd/commit/4f72ebf07237758dc08f64fe918a306cb50bdb3c))
+* limit coverage measurement to tested packages via -coverpkg ([b326b19](https://github.com/martynvdijke/dnd/commit/b326b1961e1246207f81fa4dc500e5fce7bce216))
+* per-worker DB isolation for parallel Playwright tests ([36469f5](https://github.com/martynvdijke/dnd/commit/36469f59d4938c6e646476826156a35b89ccafae))
+* release sed pattern for health.go whitespace and add .dockerignore ([3a26217](https://github.com/martynvdijke/dnd/commit/3a2621715010c28e8bef5ddeeb17affe65752963))
+* remove explicit timeouts from oneshot waitForFunction/expect — test.slow() handles it ([84faf21](https://github.com/martynvdijke/dnd/commit/84faf21080a3ab3a4785fddbddf7e4d91b3130f8))
+* target specific schema tabs/content by type_name to avoid retry duplicates ([dfde5ec](https://github.com/martynvdijke/dnd/commit/dfde5ec8095cd557d5518ab028438e72e2eaa215))
+* use single worker in CI to prevent parallel DB corruption; remove fragile schema tab screenshot ([4b81f58](https://github.com/martynvdijke/dnd/commit/4b81f58567356cc8dfb844bad0e41c65eee33442))
+
+
+### Features
+
+* show imported schema entries in compendium view ([7c6258c](https://github.com/martynvdijke/dnd/commit/7c6258c80167c33cafbfa8df77a053f4206ea773))
+* spell compendium browse with HTMX filtering, pagination, and detail expansion ([fe44889](https://github.com/martynvdijke/dnd/commit/fe448892383f605b88b203ff7055259134a03879))
+
 ## [2.16.6](https://github.com/martynvdijke/dnd/compare/v2.16.5...v2.16.6) (2026-06-14)
 
 
