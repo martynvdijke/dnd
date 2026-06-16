@@ -1,3 +1,10 @@
+## [2.17.1](https://github.com/martynvdijke/dnd/compare/v2.17.0...v2.17.1) (2026-06-16)
+
+
+### Bug Fixes
+
+* CI stabilization — per-worker port cleanup, login timeout hardening, smoke test race fixes ([aed0854](https://github.com/martynvdijke/dnd/commit/aed0854ae94861cb488559727f6a26c1b70eb736)), closes [#charGrid](https://github.com/martynvdijke/dnd/issues/charGrid)
+
 # [2.17.0](https://github.com/martynvdijke/dnd/compare/v2.16.6...v2.17.0) (2026-06-16)
 
 
