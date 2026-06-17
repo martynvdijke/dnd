@@ -11,8 +11,10 @@ type Party struct {
 type OneShotItem struct {
 	ID          int64   `json:"id"`
 	AdventureID int64   `json:"adventure_id"`
-	ActID       *int64  `json:"act_id,omitempty"`
-	Name        string  `json:"name"`
+	ActID                 *int64 `json:"act_id,omitempty"`
+	SceneID               *int64 `json:"scene_id,omitempty"`
+	CompendiumEquipmentID *int64 `json:"compendium_equipment_id,omitempty"`
+	Name                  string `json:"name"`
 	Description string  `json:"description"`
 	Category    string  `json:"category"`
 	Quantity    int     `json:"quantity"`

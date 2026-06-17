@@ -27,6 +27,7 @@
 {{else}}
 <div class="text-muted small fst-italic">No items yet.</div>
 {{end}}
-<div class="mt-2">
+<div class="mt-2 d-flex gap-1">
   <button class="btn btn-sm btn-outline-primary" onclick="showOneShotItemForm({{.AdventureID}})"><i class="fa-solid fa-plus me-1"></i>Add Item</button>
+  <button class="btn btn-sm btn-outline-warning" onclick="showCompendiumEquipmentPickerForOneShot({{.AdventureID}})"><i class="fa-solid fa-book-open me-1"></i>From Compendium</button>
 </div>

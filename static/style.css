@@ -3205,6 +3205,36 @@ body.sidebar-collapsed .container {
   gap: 1rem;
 }
 
+/* ─── Compendium Global Search Results ─── */
+
+.compendium-global-search-results {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: var(--parchment-light);
+}
+
+.compendium-search-result {
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s ease;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.compendium-search-result:hover {
+  background: var(--parchment-dark);
+}
+
+.compendium-search-result + .compendium-search-result {
+  margin-top: 2px;
+}
+
 /* ─── Print: hide new UI elements ─── */
 
 @media print {

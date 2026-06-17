@@ -1,0 +1,34 @@
+{{define "compendium_equipment_picker_oneshot"}}
+<div class="mb-3">
+  <input type="text" class="form-control" id="compendiumEquipmentSearch" placeholder="Search equipment..." value="{{.Query}}"
+    hx-get="/htmx/compendium/equipment/picker-oneshot/{{.CharacterID}}"
+    hx-trigger="keyup changed delay:300ms"
+    hx-target="#compendiumEquipmentResults"
+    hx-swap="innerHTML"
+    name="q">
+</div>
+<div id="compendiumEquipmentResults">
+  {{if .Items}}
+    {{range .Items}}
+    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+      <div>
+        <span class="fw-bold">{{.Name}}</span>
+        {{if .Category}}<span class="badge badge-muted ms-1">{{.Category}}</span>{{end}}
+        {{if .Cost}}<span class="badge badge-gold ms-1">{{.Cost}}</span>{{end}}
+        <p class="mb-0 small text-muted">{{truncate .Description 120}}</p>
+      </div>
+      <div class="d-flex align-items-center gap-1">
+        <input type="number" class="form-control form-control-sm" style="width:60px" id="qty-{{.ID}}" value="1" min="1">
+        <button class="btn btn-sm btn-success" onclick="importCompendiumEquipmentToOneShot({{.ID}}, {{$.CharacterID}}, document.getElementById('qty-{{.ID}}').value)">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+      </div>
+    </div>
+    {{end}}
+  {{else if .Query}}
+    <div class="text-center text-muted py-4">No equipment found for "{{.Query}}"</div>
+  {{else}}
+    <div class="text-center text-muted py-4">Type an item name to search</div>
+  {{end}}
+</div>
+{{end}}

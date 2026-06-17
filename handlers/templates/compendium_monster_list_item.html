@@ -1,7 +1,7 @@
 {{define "compendium_monster_list_item"}}
 {{range .Monsters}}
 <div class="list-group-item list-group-item-action px-2 py-2"
-     hx-get="/htmx/compendium-monsters/{{.ID}}"
+     hx-get="/htmx/compendium-monsters/{{.ID}}{{if $.AdventureID}}?adventure_id={{$.AdventureID}}{{end}}"
      hx-target="#compendiumDetail"
      hx-swap="innerHTML"
      hx-trigger="click"

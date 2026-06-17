@@ -131,6 +131,7 @@ func RegisterDMOneShotRoutes(r *gin.RouterGroup) {
 	r.POST("/oneshot-adventures/:id/import/library", ImportLibraryMonsterToOneShot)
 	r.POST("/encounters/:id/import/compendium-entry", ImportCompendiumEntryToEncounter)
 	r.POST("/oneshot-adventures/:id/import/compendium-entry", ImportCompendiumEntryToOneShot)
+	r.POST("/oneshot-adventures/:id/import/compendium-equipment", ImportCompendiumEquipmentToOneShot)
 
 	// Linked Player Characters
 	r.GET("/oneshot-adventures/:id/characters", ListLinkedCharacters)

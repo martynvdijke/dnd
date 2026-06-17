@@ -4,6 +4,29 @@ import { esc, capitalize } from './lib/dom';
 import { api } from './lib/api';
 import { showView } from './navigation';
 
+// ─── Compendium Global Search Navigation ───
+
+(window as any).compendiumNavigateToSearchResult = function (type: string, id: number) {
+  const tabMap: Record<string, string> = {
+    spell: 'spells',
+    equipment: 'equipment',
+    monster: 'monsters',
+    race: 'races',
+    class: 'classes',
+    feat: 'feats',
+    background: 'backgrounds',
+  };
+  const tab = tabMap[type];
+  if (tab) {
+    (window as any).loadCompendiumTab(tab);
+  }
+  // Scroll to top of the compendium view for a fresh look
+  const compView = document.getElementById('compendiumView');
+  if (compView) {
+    compView.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+};
+
 // ─── Compendium ───
 
 (window as any).showCompendium = function () {

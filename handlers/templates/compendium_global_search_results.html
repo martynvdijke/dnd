@@ -1,0 +1,97 @@
+{{define "compendium_global_search_results"}}
+{{$q := .Query}}
+{{$hasAny := or (or (or (or (or (or .Spells .Equipment) .Monsters) .Races) .Classes) .Feats) .Backgrounds}}
+{{if not $hasAny}}
+  {{if $q}}
+    <p class="text-muted text-center py-3">No results found for "{{$q}}"</p>
+  {{else}}
+    <p class="text-muted text-center py-2 small">Start typing to search the compendium...</p>
+  {{end}}
+{{else}}
+<div class="compendium-global-search-results">
+  {{if .Spells}}
+  <div class="mb-3">
+    <h6 class="text-muted fw-bold mb-2"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Spells</h6>
+    {{range .Spells}}
+    <div class="compendium-search-result" onclick="compendiumNavigateToSearchResult('spell', {{.ID}})">
+      <span class="fw-medium">{{.Name}}</span>
+      <span class="badge bg-primary-subtle text-primary ms-2">Lvl {{.Level}}</span>
+      <span class="badge bg-secondary-subtle text-secondary">{{.Subtype}}</span>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .Equipment}}
+  <div class="mb-3">
+    <h6 class="text-muted fw-bold mb-2"><i class="fa-solid fa-backpack me-1"></i>Equipment</h6>
+    {{range .Equipment}}
+    <div class="compendium-search-result" onclick="compendiumNavigateToSearchResult('equipment', {{.ID}})">
+      <span class="fw-medium">{{.Name}}</span>
+      {{if .Subtype}}<span class="badge bg-info-subtle text-info ms-2">{{.Subtype}}</span>{{end}}
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .Monsters}}
+  <div class="mb-3">
+    <h6 class="text-muted fw-bold mb-2"><i class="fa-solid fa-dragon me-1"></i>Monsters</h6>
+    {{range .Monsters}}
+    <div class="compendium-search-result" onclick="compendiumNavigateToSearchResult('monster', {{.ID}})">
+      <span class="fw-medium">{{.Name}}</span>
+      {{if .CR}}<span class="badge bg-danger-subtle text-danger ms-2">CR {{.CR}}</span>{{end}}
+      {{if .Subtype}}<span class="badge bg-secondary-subtle text-secondary">{{.Subtype}}</span>{{end}}
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .Races}}
+  <div class="mb-3">
+    <h6 class="text-muted fw-bold mb-2"><i class="fa-solid fa-people-group me-1"></i>Races</h6>
+    {{range .Races}}
+    <div class="compendium-search-result" onclick="compendiumNavigateToSearchResult('race', {{.ID}})">
+      <span class="fw-medium">{{.Name}}</span>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .Classes}}
+  <div class="mb-3">
+    <h6 class="text-muted fw-bold mb-2"><i class="fa-solid fa-hat-wizard me-1"></i>Classes</h6>
+    {{range .Classes}}
+    <div class="compendium-search-result" onclick="compendiumNavigateToSearchResult('class', {{.ID}})">
+      <span class="fw-medium">{{.Name}}</span>
+      {{if .HitDie}}<span class="badge bg-success-subtle text-success ms-2">d{{.HitDie}}</span>{{end}}
+      {{if .PrimaryAbility}}<span class="badge bg-warning-subtle text-warning">{{.PrimaryAbility}}</span>{{end}}
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .Feats}}
+  <div class="mb-3">
+    <h6 class="text-muted fw-bold mb-2"><i class="fa-solid fa-star me-1"></i>Feats</h6>
+    {{range .Feats}}
+    <div class="compendium-search-result" onclick="compendiumNavigateToSearchResult('feat', {{.ID}})">
+      <span class="fw-medium">{{.Name}}</span>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+
+  {{if .Backgrounds}}
+  <div class="mb-3">
+    <h6 class="text-muted fw-bold mb-2"><i class="fa-solid fa-book-open me-1"></i>Backgrounds</h6>
+    {{range .Backgrounds}}
+    <div class="compendium-search-result" onclick="compendiumNavigateToSearchResult('background', {{.ID}})">
+      <span class="fw-medium">{{.Name}}</span>
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+</div>
+{{end}}
+{{end}}

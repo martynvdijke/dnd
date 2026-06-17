@@ -78,7 +78,7 @@
         {{if .EncounterName}}<span class="badge bg-light text-dark" style="font-size:0.65rem"><i class="fa-solid fa-crosshairs"></i> {{.EncounterName}}</span>{{end}}
       </div>
       <div class="d-flex gap-1 flex-shrink-0">
-        <button class="btn btn-sm btn-outline-info" style="font-size:0.7rem;padding:0.1rem 0.4rem" onclick="showActMonsters({{.ID}})" title="Monsters"><i class="fa-solid fa-dragon"></i></button>
+        <button class="btn btn-sm btn-outline-info" style="font-size:0.7rem;padding:0.1rem 0.4rem" onclick="showSceneMonsters({{.ID}})" title="Monsters"><i class="fa-solid fa-dragon"></i></button>
         <button class="btn btn-sm btn-outline-secondary" style="font-size:0.7rem;padding:0.1rem 0.4rem" hx-get="/htmx/oneshot-scenes/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Edit Scene';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()" title="Edit"><i class="fa-solid fa-pen"></i></button>
         <button class="btn btn-sm btn-outline-warning" style="font-size:0.7rem;padding:0.1rem 0.4rem" hx-get="/htmx/oneshot-scenes/{{.ID}}/dialogs" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Scene Dialog';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()" title="Dialogs"><i class="fa-solid fa-comment"></i></button>
         <button class="btn btn-sm btn-outline-danger" style="font-size:0.7rem;padding:0.1rem 0.4rem" hx-delete="/htmx/oneshot-scenes/{{.ID}}" hx-target="#oneshotSection" hx-swap="innerHTML" hx-confirm="Delete this scene?" hx-trigger="click"><i class="fa-solid fa-trash"></i></button>

@@ -1706,11 +1706,13 @@ func ApplySafeAlters() error {
 		"ALTER TABLE spells ADD COLUMN compendium_entry_id INTEGER REFERENCES compendium_entries(id) ON DELETE SET NULL",
 		"ALTER TABLE inventory ADD COLUMN compendium_entry_id INTEGER REFERENCES compendium_entries(id) ON DELETE SET NULL",
 		"ALTER TABLE oneshot_items ADD COLUMN compendium_entry_id INTEGER REFERENCES compendium_entries(id) ON DELETE SET NULL",
+		"ALTER TABLE oneshot_items ADD COLUMN compendium_equipment_id INTEGER REFERENCES compendium_equipment(id) ON DELETE SET NULL",
 		"ALTER TABLE character_features ADD COLUMN compendium_entry_id INTEGER REFERENCES compendium_entries(id) ON DELETE SET NULL",
 		// Indexes for compendium reference columns
 		"CREATE INDEX IF NOT EXISTS idx_spells_compendium_spell_id ON spells(compendium_spell_id)",
 		"CREATE INDEX IF NOT EXISTS idx_inventory_compendium_equipment_id ON inventory(compendium_equipment_id)",
 		"CREATE INDEX IF NOT EXISTS idx_oneshot_monsters_compendium_monster_id ON oneshot_monsters(compendium_monster_id)",
+		"CREATE INDEX IF NOT EXISTS idx_oneshot_items_compendium_equipment_id ON oneshot_items(compendium_equipment_id)",
 	}
 	for _, stmt := range alterStatements {
 		log.Printf("ALTER: %s", stmt)

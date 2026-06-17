@@ -74,11 +74,13 @@ func HtmxCompendiumMonsterSearch(c *gin.Context) {
 
 	encounterID, _ := strconv.ParseInt(c.Query("encounter_id"), 10, 64)
 	campaignID, _ := strconv.ParseInt(c.Query("campaign_id"), 10, 64)
+	adventureID, _ := strconv.ParseInt(c.Query("adventure_id"), 10, 64)
 
 	renderTemplate(c, "compendium_monster_list_item.html", htmxCompendiumMonsterListData{
 		Monsters:    out,
 		EncounterID: encounterID,
 		CampaignID:  campaignID,
+		AdventureID: adventureID,
 	})
 }
 
@@ -782,6 +784,34 @@ func HtmxCompendiumEquipmentPicker(c *gin.Context) {
 	renderTemplate(c, "compendium_equipment_picker", data)
 }
 
+// HtmxCompendiumEquipmentPickerForOneShot renders the compendium equipment picker for one-shot items.
+func HtmxCompendiumEquipmentPickerForOneShot(c *gin.Context) {
+	adventureID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	q := strings.TrimSpace(c.Query("q"))
+
+	data := htmxCompendiumEquipmentPickerData{
+		CharacterID: adventureID,
+		Query:       q,
+	}
+
+	if q != "" {
+		rows, err := db.DB.Query(`SELECT id, name, category, cost, weight, description, source_page,
+			COALESCE(system,''), COALESCE(source,''), COALESCE(item_type,''), COALESCE(item_rarity,''), COALESCE(publisher,'')
+			FROM compendium_equipment WHERE name LIKE ? ORDER BY name LIMIT 20`, "%"+q+"%")
+		if err == nil && rows != nil {
+			defer rows.Close()
+			for rows.Next() {
+				var e models.CompendiumEquipment
+				rows.Scan(&e.ID, &e.Name, &e.Category, &e.Cost, &e.Weight, &e.Description, &e.SourcePage,
+					&e.System, &e.Source, &e.ItemType, &e.ItemRarity, &e.Publisher)
+				data.Items = append(data.Items, e)
+			}
+		}
+	}
+
+	renderTemplate(c, "compendium_equipment_picker_oneshot", data)
+}
+
 // ─── Compendium Spell Browse (HTMX) ───
 
 type htmxSpellBrowseData struct {
@@ -1088,4 +1118,126 @@ func HtmxCompendiumCard(c *gin.Context) {
 	default:
 		renderTemplate(c, "compendium_card_not_found", nil)
 	}
+}
+
+// ─── Compendium Global Search (HTMX) ───
+
+type htmxCompendiumGlobalSearchItem struct {
+	Type           string
+	ID             int64
+	Name           string
+	Subtype        string
+	CR             string
+	Level          int
+	HitDie         int
+	PrimaryAbility string
+}
+
+type htmxCompendiumGlobalSearchData struct {
+	Query       string
+	Spells      []htmxCompendiumGlobalSearchItem
+	Equipment   []htmxCompendiumGlobalSearchItem
+	Monsters    []htmxCompendiumGlobalSearchItem
+	Races       []htmxCompendiumGlobalSearchItem
+	Classes     []htmxCompendiumGlobalSearchItem
+	Feats       []htmxCompendiumGlobalSearchItem
+	Backgrounds []htmxCompendiumGlobalSearchItem
+}
+
+func HtmxCompendiumGlobalSearch(c *gin.Context) {
+	q := strings.TrimSpace(c.Query("q"))
+	data := htmxCompendiumGlobalSearchData{Query: q}
+
+	if q == "" {
+		renderTemplate(c, "compendium_global_search_results", data)
+		return
+	}
+
+	like := "%" + q + "%"
+
+	// Spells
+	rows, _ := db.DB.Query("SELECT id, name, level, school FROM compendium_spells WHERE name LIKE ? ORDER BY level, name LIMIT 10", like)
+	if rows != nil {
+		for rows.Next() {
+			var item htmxCompendiumGlobalSearchItem
+			item.Type = "spell"
+			rows.Scan(&item.ID, &item.Name, &item.Level, &item.Subtype)
+			data.Spells = append(data.Spells, item)
+		}
+		rows.Close()
+	}
+
+	// Equipment
+	rows, _ = db.DB.Query("SELECT id, name, category FROM compendium_equipment WHERE name LIKE ? ORDER BY name LIMIT 10", like)
+	if rows != nil {
+		for rows.Next() {
+			var item htmxCompendiumGlobalSearchItem
+			item.Type = "equipment"
+			rows.Scan(&item.ID, &item.Name, &item.Subtype)
+			data.Equipment = append(data.Equipment, item)
+		}
+		rows.Close()
+	}
+
+	// Monsters
+	rows, _ = db.DB.Query("SELECT id, name, cr, type FROM compendium_monsters WHERE name LIKE ? ORDER BY name LIMIT 10", like)
+	if rows != nil {
+		for rows.Next() {
+			var item htmxCompendiumGlobalSearchItem
+			item.Type = "monster"
+			rows.Scan(&item.ID, &item.Name, &item.CR, &item.Subtype)
+			data.Monsters = append(data.Monsters, item)
+		}
+		rows.Close()
+	}
+
+	// Races
+	rows, _ = db.DB.Query("SELECT id, name FROM compendium_races WHERE name LIKE ? ORDER BY name LIMIT 10", like)
+	if rows != nil {
+		for rows.Next() {
+			var item htmxCompendiumGlobalSearchItem
+			item.Type = "race"
+			rows.Scan(&item.ID, &item.Name)
+			data.Races = append(data.Races, item)
+		}
+		rows.Close()
+	}
+
+	// Classes
+	rows, _ = db.DB.Query("SELECT id, name, hit_die, primary_ability FROM compendium_classes WHERE name LIKE ? ORDER BY name LIMIT 10", like)
+	if rows != nil {
+		for rows.Next() {
+			var item htmxCompendiumGlobalSearchItem
+			item.Type = "class"
+			rows.Scan(&item.ID, &item.Name, &item.HitDie, &item.PrimaryAbility)
+			data.Classes = append(data.Classes, item)
+		}
+		rows.Close()
+	}
+
+	// Feats
+	rows, _ = db.DB.Query("SELECT id, name FROM compendium_feats WHERE name LIKE ? ORDER BY name LIMIT 10", like)
+	if rows != nil {
+		for rows.Next() {
+			var item htmxCompendiumGlobalSearchItem
+			item.Type = "feat"
+			rows.Scan(&item.ID, &item.Name)
+			data.Feats = append(data.Feats, item)
+		}
+		rows.Close()
+	}
+
+	// Backgrounds
+	rows, _ = db.DB.Query("SELECT id, name FROM compendium_backgrounds WHERE name LIKE ? ORDER BY name LIMIT 10", like)
+	if rows != nil {
+		for rows.Next() {
+			var item htmxCompendiumGlobalSearchItem
+			item.Type = "background"
+			rows.Scan(&item.ID, &item.Name)
+			data.Backgrounds = append(data.Backgrounds, item)
+		}
+		rows.Close()
+	}
+
+	renderTemplate(c, "compendium_global_search_results", data)
 }

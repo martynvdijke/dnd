@@ -1654,9 +1654,13 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		// Compendium Linking Pickers (HTMX)
 		{"GET", "/htmx/compendium/spells/picker", HtmxCompendiumSpellPicker},
 		{"GET", "/htmx/compendium/equipment/picker", HtmxCompendiumEquipmentPicker},
+		{"GET", "/htmx/compendium/equipment/picker-oneshot/:id", HtmxCompendiumEquipmentPickerForOneShot},
 
 		// Compendium Card (HTMX partial)
 		{"GET", "/htmx/compendium/card/:type/:id", HtmxCompendiumCard},
+
+		// Compendium Global Search (HTMX)
+		{"GET", "/htmx/compendium/search", HtmxCompendiumGlobalSearch},
 	}
 	for _, rt := range routes {
 		r.Handle(rt.method, rt.path, rt.handler)

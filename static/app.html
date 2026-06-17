@@ -162,6 +162,11 @@
 
 <div id="compendiumView" style="display:none">
   <h1 class="h2 mb-3"><i class="fa-solid fa-book me-2" aria-hidden="true"></i>Compendium</h1>
+  <div class="mb-3">
+    <input type="search" class="form-control" id="compendiumGlobalSearch" placeholder="Search compendium..."
+      hx-get="/htmx/compendium/search" hx-trigger="keyup changed delay:300ms" hx-target="#compendiumGlobalSearchResults" hx-swap="innerHTML">
+    <div id="compendiumGlobalSearchResults" class="mt-2"></div>
+  </div>
   <ul class="nav nav-tabs mb-3" id="compendiumTabs">
     <li class="nav-item"><button class="nav-link active" id="compTabRaces" onclick="loadCompendiumTab('races')">Races</button></li>
     <li class="nav-item"><button class="nav-link" id="compTabClasses" onclick="loadCompendiumTab('classes')">Classes</button></li>

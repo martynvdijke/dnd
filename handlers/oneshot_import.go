@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -193,6 +194,68 @@ func ImportCompendiumEntryToOneShot(c *gin.Context) {
 	}
 	result, err := db.DB.Exec(`INSERT INTO oneshot_monsters(adventure_id, act_id, scene_id, name, ac, hp, cr, source, compendium_entry_id) VALUES(?,?,?,?,?,?,?,?,?)`,
 		req.AdventureID, req.ActID, req.SceneID, name, 10, 1, "0", "compendium", req.CompendiumEntryID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	id, _ := result.LastInsertId()
+	c.JSON(http.StatusCreated, gin.H{"id": id})
+}
+
+// ImportCompendiumEquipmentToOneShot imports compendium equipment to a one-shot item.
+func ImportCompendiumEquipmentToOneShot(c *gin.Context) {
+	var req struct {
+		CompendiumEquipmentID int64  `json:"compendium_equipment_id"`
+		AdventureID           int64  `json:"adventure_id"`
+		ActID                 *int64 `json:"act_id,omitempty"`
+		SceneID               *int64 `json:"scene_id,omitempty"`
+		Quantity              int    `json:"quantity"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if req.Quantity < 1 {
+		req.Quantity = 1
+	}
+
+	var e models.CompendiumEquipment
+	err := db.DB.QueryRow(`SELECT id, name, category, cost, weight, description, source_page,
+		COALESCE(system,''), COALESCE(source,''), COALESCE(item_type,''), COALESCE(item_rarity,''), COALESCE(publisher,'')
+		FROM compendium_equipment WHERE id=?`, req.CompendiumEquipmentID).
+		Scan(&e.ID, &e.Name, &e.Category, &e.Cost, &e.Weight, &e.Description, &e.SourcePage,
+			&e.System, &e.Source, &e.ItemType, &e.ItemRarity, &e.Publisher)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "compendium equipment not found"})
+		return
+	}
+
+	priceGP := 0.0
+	if e.Cost != "" {
+		parts := strings.Fields(e.Cost)
+		if len(parts) > 0 {
+			if val, err := strconv.ParseFloat(parts[0], 64); err == nil {
+				priceGP = val
+				if len(parts) > 1 {
+					switch strings.ToLower(parts[1]) {
+					case "cp":
+						priceGP = priceGP / 100
+					case "sp":
+						priceGP = priceGP / 10
+					case "ep":
+						priceGP = priceGP * 2
+					case "pp":
+						priceGP = priceGP * 10
+					}
+				}
+			}
+		}
+	}
+
+	isMagical := strings.EqualFold(e.ItemRarity, "rare") || strings.EqualFold(e.ItemRarity, "very rare") || strings.EqualFold(e.ItemRarity, "legendary") || strings.EqualFold(e.ItemRarity, "artifact")
+
+	result, err := db.DB.Exec(`INSERT INTO oneshot_items(adventure_id, act_id, scene_id, name, description, category, quantity, weight, price_gp, is_magical, compendium_equipment_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
+		req.AdventureID, req.ActID, req.SceneID, e.Name, e.Description, e.Category, req.Quantity, e.Weight, priceGP, isMagical, req.CompendiumEquipmentID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

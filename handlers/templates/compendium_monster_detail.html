@@ -27,7 +27,7 @@
       <button class="btn btn-sm btn-outline-info" hx-get="/htmx/monster-library/new?compendium_id={{.ID}}" hx-target="#compendiumCloneForm" hx-swap="innerHTML">
         <i class="fa-solid fa-clone me-1"></i>Clone to Library
       </button>
-      <button class="btn btn-sm btn-outline-secondary" onclick="hideCompendiumDetail()"><i class="fa-solid fa-times"></i></button>
+      <button class="btn btn-sm btn-outline-secondary" onclick="bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).hide()"><i class="fa-solid fa-times"></i></button>
     </div>
   </div>
   <div class="card-body p-2">

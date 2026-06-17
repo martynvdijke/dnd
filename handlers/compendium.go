@@ -217,12 +217,14 @@ func SearchCompendium(c *gin.Context) {
 	}
 
 	type SearchResult struct {
-		Type    string `json:"type"`
-		ID      int64  `json:"id"`
-		Name    string `json:"name"`
-		Subtype string `json:"subtype,omitempty"`
-		CR      string `json:"cr,omitempty"`
-		Level   int    `json:"level,omitempty"`
+		Type           string `json:"type"`
+		ID             int64  `json:"id"`
+		Name           string `json:"name"`
+		Subtype        string `json:"subtype,omitempty"`
+		CR             string `json:"cr,omitempty"`
+		Level          int    `json:"level,omitempty"`
+		HitDie         int    `json:"hit_die,omitempty"`
+		PrimaryAbility string `json:"primary_ability,omitempty"`
 	}
 
 	typeFilter := strings.TrimSpace(c.Query("type"))
@@ -243,7 +245,7 @@ func SearchCompendium(c *gin.Context) {
 			extra += " AND school=?"
 			args = append(args, school)
 		}
-		rows, _ := db.DB.Query("SELECT id, name, level, school FROM compendium_spells WHERE name LIKE ?"+extra+" ORDER BY level, name LIMIT 20", append([]any{"%" + q + "%"}, args...)...)
+		rows, _ := db.DB.Query("SELECT id, name, level, school FROM compendium_spells WHERE name LIKE ?"+extra+" ORDER BY level, name LIMIT 10", append([]any{"%" + q + "%"}, args...)...)
 		if rows != nil {
 			for rows.Next() {
 				var r SearchResult
@@ -262,7 +264,7 @@ func SearchCompendium(c *gin.Context) {
 			extra += " AND category=?"
 			args = append(args, cat)
 		}
-		rows, _ := db.DB.Query("SELECT id, name, category FROM compendium_equipment WHERE name LIKE ?"+extra+" ORDER BY name LIMIT 20", append([]any{"%" + q + "%"}, args...)...)
+		rows, _ := db.DB.Query("SELECT id, name, category FROM compendium_equipment WHERE name LIKE ?"+extra+" ORDER BY name LIMIT 10", append([]any{"%" + q + "%"}, args...)...)
 		if rows != nil {
 			for rows.Next() {
 				var r SearchResult
@@ -285,7 +287,7 @@ func SearchCompendium(c *gin.Context) {
 			extra += " AND type LIKE ?"
 			args = append(args, "%"+t+"%")
 		}
-		rows, _ := db.DB.Query("SELECT id, name, cr, type FROM compendium_monsters WHERE name LIKE ?"+extra+" ORDER BY name LIMIT 20", append([]any{"%" + q + "%"}, args...)...)
+		rows, _ := db.DB.Query("SELECT id, name, cr, type FROM compendium_monsters WHERE name LIKE ?"+extra+" ORDER BY name LIMIT 10", append([]any{"%" + q + "%"}, args...)...)
 		if rows != nil {
 			for rows.Next() {
 				var r SearchResult
@@ -298,7 +300,7 @@ func SearchCompendium(c *gin.Context) {
 	}
 
 	if typeFilter == "" || typeFilter == "race" {
-		rows, _ := db.DB.Query("SELECT id, name FROM compendium_races WHERE name LIKE ? ORDER BY name LIMIT 5", "%"+q+"%")
+		rows, _ := db.DB.Query("SELECT id, name FROM compendium_races WHERE name LIKE ? ORDER BY name LIMIT 10", "%"+q+"%")
 		if rows != nil {
 			for rows.Next() {
 				var r SearchResult
@@ -311,12 +313,38 @@ func SearchCompendium(c *gin.Context) {
 	}
 
 	if typeFilter == "" || typeFilter == "feat" {
-		rows, _ := db.DB.Query("SELECT id, name FROM compendium_feats WHERE name LIKE ? ORDER BY name LIMIT 5", "%"+q+"%")
+		rows, _ := db.DB.Query("SELECT id, name FROM compendium_feats WHERE name LIKE ? ORDER BY name LIMIT 10", "%"+q+"%")
 		if rows != nil {
 			for rows.Next() {
 				var r SearchResult
 				rows.Scan(&r.ID, &r.Name)
 				r.Type = "feat"
+				results = append(results, r)
+			}
+			rows.Close()
+		}
+	}
+
+	if typeFilter == "" || typeFilter == "background" {
+		rows, _ := db.DB.Query("SELECT id, name FROM compendium_backgrounds WHERE name LIKE ? ORDER BY name LIMIT 10", "%"+q+"%")
+		if rows != nil {
+			for rows.Next() {
+				var r SearchResult
+				rows.Scan(&r.ID, &r.Name)
+				r.Type = "background"
+				results = append(results, r)
+			}
+			rows.Close()
+		}
+	}
+
+	if typeFilter == "" || typeFilter == "class" {
+		rows, _ := db.DB.Query("SELECT id, name, hit_die, primary_ability FROM compendium_classes WHERE name LIKE ? ORDER BY name LIMIT 10", "%"+q+"%")
+		if rows != nil {
+			for rows.Next() {
+				var r SearchResult
+				rows.Scan(&r.ID, &r.Name, &r.HitDie, &r.PrimaryAbility)
+				r.Type = "class"
 				results = append(results, r)
 			}
 			rows.Close()

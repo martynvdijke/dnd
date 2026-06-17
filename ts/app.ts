@@ -4016,6 +4016,26 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
   if (itemsCard) htmx.trigger(itemsCard, 'load');
 };
 
+// ─── One-Shot Items: Compendium Equipment Picker ───
+
+(window as any).showCompendiumEquipmentPickerForOneShot = function (adventureId: number) {
+  showModal('Equipment Compendium', `<div id="compendiumEquipmentPickerContent" hx-get="/htmx/compendium/equipment/picker-oneshot/${adventureId}" hx-trigger="load" hx-swap="innerHTML"><div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div></div>`);
+};
+
+(window as any).importCompendiumEquipmentToOneShot = async function (equipmentId: number, adventureId: number, quantity: number) {
+  try {
+    await api('POST', `/api/oneshot-adventures/${adventureId}/import/compendium-equipment`, {
+      compendium_equipment_id: equipmentId,
+      adventure_id: adventureId,
+      quantity: quantity || 1,
+    });
+    toast('Equipment added to one-shot');
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).hide();
+    const itemsCard = document.querySelector('[hx-get*="/items"]');
+    if (itemsCard) htmx.trigger(itemsCard, 'load');
+  } catch (e: any) { toast(e.message, true); }
+};
+
 (window as any).editOneShotItem = async function (itemId: number) {
   // Get item data by listing from the adventure context
   showModal('Edit Item', `
@@ -4160,6 +4180,19 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
 
 (window as any).showCompendiumMonsterPickerForOneShot = function (adventureId: number) {
   showModal('Monster Compendium', `<div id="compendiumMonsterPickerContent" hx-get="/htmx/compendium-monsters/oneshot/${adventureId}" hx-trigger="load" hx-swap="innerHTML"><div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div></div>`);
+};
+
+(window as any).importCompendiumMonsterToOneShot = async function (monsterId: number, adventureId: number) {
+  try {
+    await api('POST', `/api/oneshot-adventures/${adventureId}/import/compendium`, {
+      compendium_monster_id: monsterId,
+      adventure_id: adventureId,
+    });
+    toast('Monster imported to one-shot');
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).hide();
+    const monstersCard = document.querySelector('[hx-get*="/monsters"]');
+    if (monstersCard) htmx.trigger(monstersCard, 'load');
+  } catch (e: any) { toast(e.message, true); }
 };
 
 // ─── One-Shot NPC Linking ───
@@ -4459,6 +4492,83 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
   toast('Monster added');
   const monstersCard = document.querySelector('[hx-get*="/monsters"]');
   if (monstersCard) htmx.trigger(monstersCard, 'load');
+};
+
+// Scene-level monster display
+(window as any).showSceneMonsters = async function (sceneId: number) {
+  try {
+    const monsters = await api('GET', `/api/oneshot-scenes/${sceneId}/monsters`);
+    showModal('Scene Monsters', `
+      <div class="mb-2 d-flex gap-1">
+        <button class="btn btn-sm btn-outline-primary" onclick="showAddSceneMonster(${sceneId})"><i class="fa-solid fa-plus me-1"></i>Add Monster</button>
+        <button class="btn btn-sm btn-outline-warning" onclick="showCompendiumMonsterPickerForOneShot(adventureIdForScene(${sceneId}))"><i class="fa-solid fa-book-open me-1"></i>From Compendium</button>
+      </div>
+      ${monsters.length ? monsters.map((m: any) => `
+        <div class="inv-item">
+          <div><strong>${esc(m.name)}</strong> <span class="badge bg-danger">CR ${esc(m.cr || '0')}</span> <span class="text-muted small">AC ${m.ac} · HP ${m.hp}</span></div>
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteOneShotMonster(${m.id})"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      `).join('') : '<div class="text-muted small fst-italic">No monsters in this scene.</div>'}
+    `);
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).showAddSceneMonster = function (sceneId: number) {
+  showModal('Add Monster to Scene', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="sceneMonsterName"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-3"><label class="form-label">AC</label><input class="form-control" id="sceneMonsterAC" type="number" value="10"></div>
+      <div class="col-3"><label class="form-label">HP</label><input class="form-control" id="sceneMonsterHP" type="number" value="10"></div>
+      <div class="col-3"><label class="form-label">CR</label><input class="form-control" id="sceneMonsterCR" placeholder="1/2"></div>
+      <div class="col-3"><label class="form-label">Source</label><input class="form-control" id="sceneMonsterSource" value="custom"></div>
+    </div>
+    <div class="row g-3 mb-3">
+      ${['str','dex','con','int','wis','cha'].map(s => '<div class="col-2"><label class="form-label">' + s.toUpperCase() + '</label><input class="form-control" id="sceneMonster' + s.toUpperCase() + '" type="number" value="10"></div>').join('')}
+    </div>
+    <button class="btn btn-primary w-100" onclick="saveSceneMonster(${sceneId})">Add</button>
+  `);
+};
+
+(window as any).saveSceneMonster = async function (sceneId: number) {
+  const name = (document.getElementById('sceneMonsterName') as HTMLInputElement).value;
+  if (!name) { toast('Name required', true); return; }
+  await api('POST', `/api/oneshot-scenes/${sceneId}/monsters`, {
+    name,
+    ac: parseInt((document.getElementById('sceneMonsterAC') as HTMLInputElement).value) || 10,
+    hp: parseInt((document.getElementById('sceneMonsterHP') as HTMLInputElement).value) || 10,
+    cr: (document.getElementById('sceneMonsterCR') as HTMLInputElement).value || '0',
+    source: (document.getElementById('sceneMonsterSource') as HTMLInputElement).value || 'custom',
+    str: parseInt((document.getElementById('sceneMonsterSTR') as HTMLInputElement).value) || 10,
+    dex: parseInt((document.getElementById('sceneMonsterDEX') as HTMLInputElement).value) || 10,
+    con: parseInt((document.getElementById('sceneMonsterCON') as HTMLInputElement).value) || 10,
+    int_: parseInt((document.getElementById('sceneMonsterINT') as HTMLInputElement).value) || 10,
+    wis: parseInt((document.getElementById('sceneMonsterWIS') as HTMLInputElement).value) || 10,
+    cha: parseInt((document.getElementById('sceneMonsterCHA') as HTMLInputElement).value) || 10,
+    is_full: 1,
+  });
+  hideModal();
+  toast('Monster added');
+  const monstersCard = document.querySelector('[hx-get*="/monsters"]');
+  if (monstersCard) htmx.trigger(monstersCard, 'load');
+};
+
+// Helper to find adventure ID for a scene (from DOM)
+(window as any).adventureIdForScene = function (sceneId: number): number {
+  const tree = document.getElementById('actTree');
+  if (!tree) return 0;
+  // Adventure ID is stored on the oneshotSection or nearby
+  const detail = tree.closest('[hx-get*="/oneshot-adventures/"]');
+  if (detail) {
+    const m = detail.getAttribute('hx-get')?.match(/oneshot-adventures\/(\d+)/);
+    if (m) return parseInt(m[1]);
+  }
+  // Fallback: look for any element with hx-get containing adventure ID
+  const anyEl = document.querySelector('[hx-get*="oneshot-adventures/"][hx-get*="/monsters"]');
+  if (anyEl) {
+    const m = anyEl.getAttribute('hx-get')?.match(/oneshot-adventures\/(\d+)/);
+    if (m) return parseInt(m[1]);
+  }
+  return 0;
 };
 
 // ─── One-Shot Linked Player Characters ───
