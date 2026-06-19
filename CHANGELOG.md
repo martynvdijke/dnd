@@ -1,3 +1,10 @@
+## [2.19.1](https://github.com/martynvdijke/dnd/compare/v2.19.0...v2.19.1) (2026-06-19)
+
+
+### Bug Fixes
+
+* **deps:** update github.com/dop251/goja digest to c9b2ea7 ([#34](https://github.com/martynvdijke/dnd/issues/34)) ([9afc2e7](https://github.com/martynvdijke/dnd/commit/9afc2e7eb48b9385fd74567e2598ec83763cc088))
+
 # [2.19.0](https://github.com/martynvdijke/dnd/compare/v2.18.1...v2.19.0) (2026-06-19)
 
 
