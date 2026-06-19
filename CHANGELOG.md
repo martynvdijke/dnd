@@ -1,3 +1,10 @@
+# [2.19.0](https://github.com/martynvdijke/dnd/compare/v2.18.1...v2.19.0) (2026-06-19)
+
+
+### Features
+
+* add pagination and search for compendium races/classes/equipment/monsters tabs and link pickers ([395371c](https://github.com/martynvdijke/dnd/commit/395371c1ce8c47e333c99a06ee59bb5ec4cf7f8e))
+
 ## [2.18.1](https://github.com/martynvdijke/dnd/compare/v2.18.0...v2.18.1) (2026-06-18)
 
 # [2.18.0](https://github.com/martynvdijke/dnd/compare/v2.17.3...v2.18.0) (2026-06-17)
