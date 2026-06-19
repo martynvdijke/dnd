@@ -68,6 +68,9 @@ import { showSearchOverlay, hideSearchOverlay, doSearch, initSearch } from './se
     toast('Campaign: ' + name);
   } else if (['spells','equipment','races','classes','feats','backgrounds'].includes(type)) {
     (window as any).showCompendium();
+  } else if (type === 'monsters') {
+    (window as any).showCompendium();
+    setTimeout(() => (window as any).loadCompendiumTab('monsters'), 100);
   } else if (type === 'npcs') {
     showView('characters');
     toast('NPC: ' + name);

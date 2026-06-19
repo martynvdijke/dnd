@@ -1646,6 +1646,11 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"GET", "/htmx/admin/compendium/entry/detail/:id", HtmxCompendiumEntryDetail},
 		{"POST", "/htmx/admin/compendium/entries/:schemaId/duplicate/:id", HtmxCompendiumDuplicateEntry},
 
+		// Compendium Browse (HTMX)
+		{"GET", "/htmx/compendium/races", HtmxCompendiumRaceBrowse},
+		{"GET", "/htmx/compendium/classes", HtmxCompendiumClassBrowse},
+		{"GET", "/htmx/compendium/equipment", HtmxCompendiumEquipmentBrowse},
+
 		// Compendium Spell Browse (HTMX)
 		{"GET", "/htmx/compendium/spells", HtmxCompendiumSpellBrowse},
 		{"GET", "/htmx/compendium/spells/:id/detail", HtmxCompendiumSpellDetail},

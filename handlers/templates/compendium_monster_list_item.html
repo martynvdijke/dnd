@@ -1,4 +1,5 @@
 {{define "compendium_monster_list_item"}}
+{{if .Monsters}}
 {{range .Monsters}}
 <div class="list-group-item list-group-item-action px-2 py-2"
      hx-get="/htmx/compendium-monsters/{{.ID}}{{if $.AdventureID}}?adventure_id={{$.AdventureID}}{{end}}"
@@ -19,7 +20,32 @@
   </div>
 </div>
 {{end}}
-{{if not .Monsters}}
+
+{{if gt .TotalPages 1}}
+<div class="d-flex justify-content-center align-items-center gap-2 mt-3">
+  {{if gt .Page 1}}
+  <button class="btn btn-sm btn-outline-primary pagination-btn"
+    hx-get="/htmx/compendium-monsters/search?page={{sub .Page 1}}&page_size={{.PageSize}}&q={{.Query}}&cr={{.CR}}&type={{.MonsterType}}{{if $.EncounterID}}&encounter_id={{$.EncounterID}}{{end}}{{if $.CampaignID}}&campaign_id={{$.CampaignID}}{{end}}{{if $.AdventureID}}&adventure_id={{$.AdventureID}}{{end}}"
+    hx-target="#compendiumResults"
+    hx-swap="innerHTML"
+    hx-include="[name='q'],[name='cr'],[name='type']">
+    <i class="fa-solid fa-chevron-left"></i> Previous
+  </button>
+  {{end}}
+  <span class="text-muted small">Page {{.Page}} of {{.TotalPages}}</span>
+  {{if lt .Page .TotalPages}}
+  <button class="btn btn-sm btn-outline-primary pagination-btn"
+    hx-get="/htmx/compendium-monsters/search?page={{add .Page 1}}&page_size={{.PageSize}}&q={{.Query}}&cr={{.CR}}&type={{.MonsterType}}{{if $.EncounterID}}&encounter_id={{$.EncounterID}}{{end}}{{if $.CampaignID}}&campaign_id={{$.CampaignID}}{{end}}{{if $.AdventureID}}&adventure_id={{$.AdventureID}}{{end}}"
+    hx-target="#compendiumResults"
+    hx-swap="innerHTML"
+    hx-include="[name='q'],[name='cr'],[name='type']">
+    Next <i class="fa-solid fa-chevron-right"></i>
+  </button>
+  {{end}}
+</div>
+{{end}}
+
+{{else}}
 <div class="text-muted small fst-italic py-3 text-center">No monsters found matching your search.</div>
 {{end}}
 {{end}}

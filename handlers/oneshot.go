@@ -20,6 +20,7 @@ import (
 	"villum/ent/oneshotitem"
 	"villum/ent/oneshotscene"
 	"villum/models"
+	"villum/middleware"
 )
 
 // ─── Helper Functions ───
@@ -3516,8 +3517,9 @@ func HtmxOneShotShops(c *gin.Context) {
 
 func HtmxOneShotMonsters(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	rows, err := db.DB.Query("SELECT id, adventure_id, COALESCE(act_id,0), COALESCE(scene_id,0), name, ac, hp, str, dex, con, int, wis, cha, cr, source, is_full, COALESCE(saves,''), COALESCE(skills,''), COALESCE(damage_vulnerabilities,''), COALESCE(damage_resistances,''), COALESCE(damage_immunities,''), COALESCE(condition_immunities,''), COALESCE(senses,''), COALESCE(languages,''), COALESCE(special_abilities,''), COALESCE(actions,''), COALESCE(legendary_actions,''), COALESCE(library_id,0), created_at FROM oneshot_monsters WHERE adventure_id=? ORDER BY name", id)
+	rows, err := db.DB.Query("SELECT id, adventure_id, COALESCE(act_id,0), COALESCE(scene_id,0), name, ac, hp, str, dex, con, int_, wis, cha, cr, source, is_full, COALESCE(saves,''), COALESCE(skills,''), COALESCE(damage_vulnerabilities,''), COALESCE(damage_resistances,''), COALESCE(damage_immunities,''), COALESCE(condition_immunities,''), COALESCE(senses,''), COALESCE(languages,''), COALESCE(special_abilities,''), COALESCE(actions,''), COALESCE(legendary_actions,''), COALESCE(library_id,0), COALESCE(compendium_monster_id,0), created_at FROM oneshot_monsters WHERE adventure_id=? ORDER BY name", id)
 	if err != nil {
+		middleware.LogError("oneshot", "HtmxOneShotMonsters query failed", "adventure_id", id, "error", err)
 		c.String(http.StatusInternalServerError, "query error")
 		return
 	}
@@ -3525,8 +3527,11 @@ func HtmxOneShotMonsters(c *gin.Context) {
 	out := make([]models.OneShotMonster, 0)
 	for rows.Next() {
 		var m models.OneShotMonster
-		var actID, sceneID, libID int64
-		rows.Scan(&m.ID, &m.AdventureID, &actID, &sceneID, &m.Name, &m.AC, &m.HP, &m.Str, &m.Dex, &m.Con, &m.Int, &m.Wis, &m.Cha, &m.CR, &m.Source, &m.IsFull, &m.Saves, &m.Skills, &m.DamageVulnerabilities, &m.DamageResistances, &m.DamageImmunities, &m.ConditionImmunities, &m.Senses, &m.Languages, &m.SpecialAbilities, &m.Actions, &m.LegendaryActions, &libID, &m.CreatedAt)
+		var actID, sceneID, libID, compID int64
+		if err := rows.Scan(&m.ID, &m.AdventureID, &actID, &sceneID, &m.Name, &m.AC, &m.HP, &m.Str, &m.Dex, &m.Con, &m.Int, &m.Wis, &m.Cha, &m.CR, &m.Source, &m.IsFull, &m.Saves, &m.Skills, &m.DamageVulnerabilities, &m.DamageResistances, &m.DamageImmunities, &m.ConditionImmunities, &m.Senses, &m.Languages, &m.SpecialAbilities, &m.Actions, &m.LegendaryActions, &libID, &compID, &m.CreatedAt); err != nil {
+			middleware.LogWarn("oneshot", "HtmxOneShotMonsters scan failed, skipping monster", "adventure_id", id, "error", err)
+			continue
+		}
 		if actID > 0 {
 			m.ActID = &actID
 		}
@@ -3535,6 +3540,9 @@ func HtmxOneShotMonsters(c *gin.Context) {
 		}
 		if libID > 0 {
 			m.LibraryID = &libID
+		}
+		if compID > 0 {
+			m.CompendiumMonsterID = &compID
 		}
 		out = append(out, m)
 	}

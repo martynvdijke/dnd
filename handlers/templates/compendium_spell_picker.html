@@ -27,6 +27,29 @@
       </button>
     </div>
     {{end}}
+
+    {{if gt .TotalPages 1}}
+    <div class="d-flex justify-content-center align-items-center gap-2 mt-3">
+      {{if gt .Page 1}}
+      <button class="btn btn-sm btn-outline-primary pagination-btn"
+        hx-get="/htmx/compendium/spells/picker?character_id={{$.CharacterID}}&page={{sub .Page 1}}&page_size={{.PageSize}}&q={{.Query}}"
+        hx-target="#compendiumSpellResults"
+        hx-swap="innerHTML">
+        <i class="fa-solid fa-chevron-left"></i> Previous
+      </button>
+      {{end}}
+      <span class="text-muted small">Page {{.Page}} of {{.TotalPages}}</span>
+      {{if lt .Page .TotalPages}}
+      <button class="btn btn-sm btn-outline-primary pagination-btn"
+        hx-get="/htmx/compendium/spells/picker?character_id={{$.CharacterID}}&page={{add .Page 1}}&page_size={{.PageSize}}&q={{.Query}}"
+        hx-target="#compendiumSpellResults"
+        hx-swap="innerHTML">
+        Next <i class="fa-solid fa-chevron-right"></i>
+      </button>
+      {{end}}
+    </div>
+    {{end}}
+
   {{else if .Query}}
     <div class="text-center text-muted py-4">No spells found for "{{.Query}}"</div>
   {{else}}

@@ -24,10 +24,10 @@
     </div>
     <div id="compendiumImportModal"></div>
     <div class="input-group mb-3">
-      <input type="text" class="form-control form-control-sm" id="compendiumSearch" placeholder="Search monsters..."
+      <input type="text" class="form-control form-control-sm" id="compendiumSearch" placeholder="Search monsters..." name="q"
         hx-get="/htmx/compendium-monsters/search" hx-trigger="keyup changed delay:300ms" hx-target="#compendiumResults" hx-swap="innerHTML" hx-include="[name='cr'],[name='type'],[name='adventure_id']">
       <select class="form-select form-select-sm" style="max-width:100px" name="cr" id="compendiumCRFilter"
-        hx-get="/htmx/compendium-monsters/search" hx-trigger="change" hx-target="#compendiumResults" hx-swap="innerHTML" hx-include="[name='q'],[name='adventure_id']">
+        hx-get="/htmx/compendium-monsters/search" hx-trigger="change" hx-target="#compendiumResults" hx-swap="innerHTML" hx-include="[name='q'],[name='type'],[name='adventure_id']">
         <option value="">All CR</option>
         <option value="0">0</option>
         <option value="1/8">1/8</option>
@@ -65,7 +65,7 @@
         <option value="30">30</option>
       </select>
       <select class="form-select form-select-sm" style="max-width:130px" name="type" id="compendiumTypeFilter"
-        hx-get="/htmx/compendium-monsters/search" hx-trigger="change" hx-target="#compendiumResults" hx-swap="innerHTML" hx-include="[name='q'],[name='adventure_id']">
+        hx-get="/htmx/compendium-monsters/search" hx-trigger="change" hx-target="#compendiumResults" hx-swap="innerHTML" hx-include="[name='q'],[name='cr'],[name='adventure_id']">
         <option value="">All Types</option>
         <option value="aberration">Aberration</option>
         <option value="beast">Beast</option>
@@ -84,7 +84,7 @@
       </select>
     </div>
     {{if $.AdventureID}}<input type="hidden" name="adventure_id" value="{{$.AdventureID}}">{{end}}
-    <div id="compendiumResults" hx-get="/htmx/compendium-monsters/search{{if $.AdventureID}}?adventure_id={{$.AdventureID}}{{end}}" hx-trigger="load" hx-swap="innerHTML">
+    <div id="compendiumResults" hx-get="/htmx/compendium-monsters/search?page=1&page_size=50{{if $.AdventureID}}&adventure_id={{$.AdventureID}}{{end}}" hx-trigger="load" hx-swap="innerHTML">
       <div class="text-muted small text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading monsters...</div>
     </div>
   </div>

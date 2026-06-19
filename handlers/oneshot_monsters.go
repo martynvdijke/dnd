@@ -8,6 +8,7 @@ import (
 
 	"villum/db"
 	"villum/models"
+	"villum/middleware"
 )
 
 // ─── Monster Library ───
@@ -24,9 +25,12 @@ func ListMonsterLibrary(c *gin.Context) {
 	for rows.Next() {
 		var m models.MonsterLibraryEntry
 		var isFull int
-		rows.Scan(&m.ID, &m.UserID, &m.Name, &m.AC, &m.HP, &m.Str, &m.Dex, &m.Con, &m.Int, &m.Wis, &m.Cha, &m.CR, &m.Source, &isFull,
+		if err := rows.Scan(&m.ID, &m.UserID, &m.Name, &m.AC, &m.HP, &m.Str, &m.Dex, &m.Con, &m.Int, &m.Wis, &m.Cha, &m.CR, &m.Source, &isFull,
 			&m.Saves, &m.Skills, &m.DamageVulnerabilities, &m.DamageResistances, &m.DamageImmunities, &m.ConditionImmunities,
-			&m.Senses, &m.Languages, &m.SpecialAbilities, &m.Actions, &m.LegendaryActions, &m.Description, &m.CreatedAt)
+			&m.Senses, &m.Languages, &m.SpecialAbilities, &m.Actions, &m.LegendaryActions, &m.Description, &m.CreatedAt); err != nil {
+			middleware.LogWarn("oneshot", "scan failed, skipping library monster", "error", err)
+			continue
+		}
 		m.IsFull = isFull == 1
 		out = append(out, m)
 	}
@@ -101,7 +105,7 @@ func scanMonster(rows interface{ Scan(...any) error }) (models.OneShotMonster, e
 	err := rows.Scan(&m.ID, &m.AdventureID, &m.ActID, &m.SceneID, &m.Name, &m.AC, &m.HP,
 		&m.Str, &m.Dex, &m.Con, &m.Int, &m.Wis, &m.Cha, &m.CR, &m.Source, &isFull,
 		&m.Saves, &m.Skills, &m.DamageVulnerabilities, &m.DamageResistances, &m.DamageImmunities, &m.ConditionImmunities,
-		&m.Senses, &m.Languages, &m.SpecialAbilities, &m.Actions, &m.LegendaryActions, &m.LibraryID, &m.CreatedAt)
+		&m.Senses, &m.Languages, &m.SpecialAbilities, &m.Actions, &m.LegendaryActions, &m.LibraryID, &m.CompendiumMonsterID, &m.CreatedAt)
 	if err != nil {
 		return m, err
 	}
@@ -109,7 +113,7 @@ func scanMonster(rows interface{ Scan(...any) error }) (models.OneShotMonster, e
 	return m, nil
 }
 
-const monsterColumns = "id, adventure_id, act_id, scene_id, name, ac, hp, str, dex, con, int_, wis, cha, cr, source, is_full, saves, skills, damage_vulnerabilities, damage_resistances, damage_immunities, condition_immunities, senses, languages, special_abilities, actions, legendary_actions, library_id, created_at"
+const monsterColumns = "id, adventure_id, act_id, scene_id, name, ac, hp, str, dex, con, int_, wis, cha, cr, source, is_full, saves, skills, damage_vulnerabilities, damage_resistances, damage_immunities, condition_immunities, senses, languages, special_abilities, actions, legendary_actions, library_id, compendium_monster_id, created_at"
 
 func ListActMonsters(c *gin.Context) {
 	actID := c.Param("id")
@@ -123,6 +127,7 @@ func ListActMonsters(c *gin.Context) {
 	for rows.Next() {
 		m, err := scanMonster(rows)
 		if err != nil {
+			middleware.LogWarn("oneshot", "scan failed, skipping act monster", "error", err)
 			continue
 		}
 		out = append(out, m)
@@ -258,6 +263,7 @@ func ListSceneMonsters(c *gin.Context) {
 	for rows.Next() {
 		m, err := scanMonster(rows)
 		if err != nil {
+			middleware.LogWarn("oneshot", "scan failed, skipping scene monster", "error", err)
 			continue
 		}
 		out = append(out, m)

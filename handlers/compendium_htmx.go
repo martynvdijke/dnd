@@ -12,6 +12,7 @@ import (
 
 	"villum/db"
 	"villum/models"
+	"villum/middleware"
 )
 
 // ─── Compendium Monster Browser (HTMX) ───
@@ -21,6 +22,13 @@ type htmxCompendiumMonsterListData struct {
 	EncounterID int64
 	CampaignID  int64
 	AdventureID int64
+	TotalCount  int
+	Page        int
+	PageSize    int
+	TotalPages  int
+	Query       string
+	CR          string
+	MonsterType string
 }
 
 type htmxCompendiumMonsterDetailData struct {
@@ -35,24 +43,53 @@ func HtmxCompendiumMonsterBrowser(c *gin.Context) {
 }
 
 func HtmxCompendiumMonsterSearch(c *gin.Context) {
-	query := "SELECT id,name,type,size,ac,hp,str,dex,con,int_,wis,cha,cr,source,is_full,saves,skills,damage_vulnerabilities,damage_resistances,damage_immunities,condition_immunities,senses,languages,special_abilities,actions,legendary_actions,description FROM compendium_monsters WHERE 1=1"
+	q := strings.TrimSpace(c.Query("q"))
+	cr := strings.TrimSpace(c.Query("cr"))
+	monsterType := strings.TrimSpace(c.Query("type"))
+	page, _ := strconv.Atoi(c.Query("page"))
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 50
+	}
+	offset := (page - 1) * pageSize
+
+	baseQuery := `SELECT id,name,type,size,ac,hp,str,dex,con,int_,wis,cha,cr,source,is_full,saves,skills,damage_vulnerabilities,damage_resistances,damage_immunities,condition_immunities,senses,languages,special_abilities,actions,legendary_actions,description FROM compendium_monsters WHERE 1=1`
+	countQuery := `SELECT COUNT(*) FROM compendium_monsters WHERE 1=1`
 	args := []any{}
 
-	if q := c.Query("q"); q != "" {
-		query += " AND name LIKE ?"
+	if q != "" {
+		clause := " AND name LIKE ?"
+		baseQuery += clause
+		countQuery += clause
 		args = append(args, "%"+q+"%")
 	}
-	if cr := c.Query("cr"); cr != "" {
-		query += " AND cr=?"
+	if cr != "" {
+		clause := " AND cr=?"
+		baseQuery += clause
+		countQuery += clause
 		args = append(args, cr)
 	}
-	if t := c.Query("type"); t != "" {
-		query += " AND type LIKE ?"
-		args = append(args, "%"+t+"%")
+	if monsterType != "" {
+		clause := " AND type LIKE ?"
+		baseQuery += clause
+		countQuery += clause
+		args = append(args, "%"+monsterType+"%")
 	}
-	query += " ORDER BY name LIMIT 50"
 
-	rows, err := db.DB.Query(query, args...)
+	var totalCount int
+	err := db.DB.QueryRow(countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		totalCount = 0
+	}
+
+	baseQuery += " ORDER BY name LIMIT ? OFFSET ?"
+	pageArgs := append(args, pageSize, offset)
+
+	rows, err := db.DB.Query(baseQuery, pageArgs...)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "query error")
 		return
@@ -63,24 +100,39 @@ func HtmxCompendiumMonsterSearch(c *gin.Context) {
 	for rows.Next() {
 		var m models.CompendiumMonster
 		var isFull int
-		rows.Scan(&m.ID, &m.Name, &m.Type, &m.Size, &m.AC, &m.HP,
+		if err := rows.Scan(&m.ID, &m.Name, &m.Type, &m.Size, &m.AC, &m.HP,
 			&m.Str, &m.Dex, &m.Con, &m.Int, &m.Wis, &m.Cha,
 			&m.CR, &m.Source, &isFull,
 			&m.Saves, &m.Skills, &m.DamageVulnerabilities, &m.DamageResistances, &m.DamageImmunities, &m.ConditionImmunities,
-			&m.Senses, &m.Languages, &m.SpecialAbilities, &m.Actions, &m.LegendaryActions, &m.Description)
+			&m.Senses, &m.Languages, &m.SpecialAbilities, &m.Actions, &m.LegendaryActions, &m.Description); err != nil {
+			middleware.LogWarn("compendium", "scan failed, skipping monster", "error", err)
+			continue
+		}
 		m.IsFull = isFull == 1
 		out = append(out, m)
+	}
+
+	totalPages := (totalCount + pageSize - 1) / pageSize
+	if totalPages < 1 {
+		totalPages = 1
 	}
 
 	encounterID, _ := strconv.ParseInt(c.Query("encounter_id"), 10, 64)
 	campaignID, _ := strconv.ParseInt(c.Query("campaign_id"), 10, 64)
 	adventureID, _ := strconv.ParseInt(c.Query("adventure_id"), 10, 64)
 
-	renderTemplate(c, "compendium_monster_list_item.html", htmxCompendiumMonsterListData{
+	renderTemplate(c, "compendium_monster_list_item", htmxCompendiumMonsterListData{
 		Monsters:    out,
 		EncounterID: encounterID,
 		CampaignID:  campaignID,
 		AdventureID: adventureID,
+		TotalCount:  totalCount,
+		Page:        page,
+		PageSize:    pageSize,
+		TotalPages:  totalPages,
+		Query:       q,
+		CR:          cr,
+		MonsterType: monsterType,
 	})
 }
 
@@ -718,22 +770,49 @@ type htmxCompendiumSpellPickerData struct {
 	CharacterID int64
 	Query       string
 	Spells      []models.CompendiumSpell
+	Page        int
+	PageSize    int
+	TotalCount  int
+	TotalPages  int
 }
 
 func HtmxCompendiumSpellPicker(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Query("character_id"), 10, 64)
 	q := strings.TrimSpace(c.Query("q"))
+	page, _ := strconv.Atoi(c.Query("page"))
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	offset := (page - 1) * pageSize
 
 	data := htmxCompendiumSpellPickerData{
 		CharacterID: charID,
 		Query:       q,
+		Page:        page,
+		PageSize:    pageSize,
 	}
 
 	if q != "" {
+		var totalCount int
+		err := db.DB.QueryRow(`SELECT COUNT(*) FROM compendium_spells WHERE name LIKE ?`, "%"+q+"%").Scan(&totalCount)
+		if err == nil {
+			data.TotalCount = totalCount
+			totalPages := (totalCount + pageSize - 1) / pageSize
+			if totalPages < 1 {
+				totalPages = 1
+			}
+			data.TotalPages = totalPages
+		}
+
 		rows, err := db.DB.Query(`SELECT id, name, level, school, casting_time, "range", components, duration,
 			description, higher_levels, classes, source_page,
 			COALESCE(system,''), COALESCE(source,''), COALESCE(publisher,'')
-			FROM compendium_spells WHERE name LIKE ? ORDER BY level, name LIMIT 20`, "%"+q+"%")
+			FROM compendium_spells WHERE name LIKE ? ORDER BY level, name LIMIT ? OFFSET ?`, "%"+q+"%", pageSize, offset)
 		if err == nil && rows != nil {
 			defer rows.Close()
 			for rows.Next() {
@@ -755,21 +834,48 @@ type htmxCompendiumEquipmentPickerData struct {
 	CharacterID int64
 	Query       string
 	Items       []models.CompendiumEquipment
+	Page        int
+	PageSize    int
+	TotalCount  int
+	TotalPages  int
 }
 
 func HtmxCompendiumEquipmentPicker(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Query("character_id"), 10, 64)
 	q := strings.TrimSpace(c.Query("q"))
+	page, _ := strconv.Atoi(c.Query("page"))
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	offset := (page - 1) * pageSize
 
 	data := htmxCompendiumEquipmentPickerData{
 		CharacterID: charID,
 		Query:       q,
+		Page:        page,
+		PageSize:    pageSize,
 	}
 
 	if q != "" {
+		var totalCount int
+		err := db.DB.QueryRow(`SELECT COUNT(*) FROM compendium_equipment WHERE name LIKE ?`, "%"+q+"%").Scan(&totalCount)
+		if err == nil {
+			data.TotalCount = totalCount
+			totalPages := (totalCount + pageSize - 1) / pageSize
+			if totalPages < 1 {
+				totalPages = 1
+			}
+			data.TotalPages = totalPages
+		}
+
 		rows, err := db.DB.Query(`SELECT id, name, category, cost, weight, description, source_page,
 			COALESCE(system,''), COALESCE(source,''), COALESCE(item_type,''), COALESCE(item_rarity,''), COALESCE(publisher,'')
-			FROM compendium_equipment WHERE name LIKE ? ORDER BY name LIMIT 20`, "%"+q+"%")
+			FROM compendium_equipment WHERE name LIKE ? ORDER BY name LIMIT ? OFFSET ?`, "%"+q+"%", pageSize, offset)
 		if err == nil && rows != nil {
 			defer rows.Close()
 			for rows.Next() {
@@ -788,16 +894,39 @@ func HtmxCompendiumEquipmentPicker(c *gin.Context) {
 func HtmxCompendiumEquipmentPickerForOneShot(c *gin.Context) {
 	adventureID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	q := strings.TrimSpace(c.Query("q"))
+	page, _ := strconv.Atoi(c.Query("page"))
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	offset := (page - 1) * pageSize
 
 	data := htmxCompendiumEquipmentPickerData{
 		CharacterID: adventureID,
 		Query:       q,
+		Page:        page,
+		PageSize:    pageSize,
 	}
 
 	if q != "" {
+		var totalCount int
+		err := db.DB.QueryRow(`SELECT COUNT(*) FROM compendium_equipment WHERE name LIKE ?`, "%"+q+"%").Scan(&totalCount)
+		if err == nil {
+			data.TotalCount = totalCount
+			totalPages := (totalCount + pageSize - 1) / pageSize
+			if totalPages < 1 {
+				totalPages = 1
+			}
+			data.TotalPages = totalPages
+		}
+
 		rows, err := db.DB.Query(`SELECT id, name, category, cost, weight, description, source_page,
 			COALESCE(system,''), COALESCE(source,''), COALESCE(item_type,''), COALESCE(item_rarity,''), COALESCE(publisher,'')
-			FROM compendium_equipment WHERE name LIKE ? ORDER BY name LIMIT 20`, "%"+q+"%")
+			FROM compendium_equipment WHERE name LIKE ? ORDER BY name LIMIT ? OFFSET ?`, "%"+q+"%", pageSize, offset)
 		if err == nil && rows != nil {
 			defer rows.Close()
 			for rows.Next() {
@@ -1056,6 +1185,262 @@ func getSpellCountBySource(sourceType string) int {
 	return count
 }
 
+// ─── Compendium Race Browse (HTMX) ───
+
+type htmxRaceBrowseData struct {
+	Races      []models.CompendiumRace
+	TotalCount int
+	Page       int
+	PageSize   int
+	TotalPages int
+	Query      string
+}
+
+func HtmxCompendiumRaceBrowse(c *gin.Context) {
+	q := strings.TrimSpace(c.Query("q"))
+	page, _ := strconv.Atoi(c.Query("page"))
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 50
+	}
+	offset := (page - 1) * pageSize
+
+	baseQuery := `SELECT id,name,description,speed,size,ability_bonuses,traits,languages,source_page,system,source,category,expansion,publisher FROM compendium_races WHERE 1=1`
+	countQuery := `SELECT COUNT(*) FROM compendium_races WHERE 1=1`
+	args := []any{}
+
+	if q != "" {
+		clause := " AND name LIKE ?"
+		baseQuery += clause
+		countQuery += clause
+		args = append(args, "%"+q+"%")
+	}
+
+	var totalCount int
+	err := db.DB.QueryRow(countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		totalCount = 0
+	}
+
+	baseQuery += " ORDER BY name LIMIT ? OFFSET ?"
+	pageArgs := append(args, pageSize, offset)
+
+	rows, err := db.DB.Query(baseQuery, pageArgs...)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "query error")
+		return
+	}
+	defer rows.Close()
+
+	races := make([]models.CompendiumRace, 0)
+	for rows.Next() {
+		var r models.CompendiumRace
+		if err := rows.Scan(&r.ID, &r.Name, &r.Description, &r.Speed, &r.Size, &r.AbilityBonuses, &r.Traits, &r.Languages, &r.SourcePage, &r.System, &r.Source, &r.Category, &r.Expansion, &r.Publisher); err != nil {
+			middleware.LogWarn("compendium", "scan failed, skipping race", "error", err)
+			continue
+		}
+		races = append(races, r)
+	}
+
+	totalPages := (totalCount + pageSize - 1) / pageSize
+	if totalPages < 1 {
+		totalPages = 1
+	}
+
+	renderTemplate(c, "compendium_race_browse", htmxRaceBrowseData{
+		Races:      races,
+		TotalCount: totalCount,
+		Page:       page,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
+		Query:      q,
+	})
+}
+
+// ─── Compendium Class Browse (HTMX) ───
+
+type htmxClassBrowseData struct {
+	Classes    []models.CompendiumClass
+	TotalCount int
+	Page       int
+	PageSize   int
+	TotalPages int
+	Query      string
+}
+
+func HtmxCompendiumClassBrowse(c *gin.Context) {
+	q := strings.TrimSpace(c.Query("q"))
+	page, _ := strconv.Atoi(c.Query("page"))
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 50
+	}
+	offset := (page - 1) * pageSize
+
+	baseQuery := `SELECT id,name,description,hit_die,primary_ability,saving_throws,proficiencies,spellcasting_ability,source_page,system,source,category,expansion,publisher FROM compendium_classes WHERE 1=1`
+	countQuery := `SELECT COUNT(*) FROM compendium_classes WHERE 1=1`
+	args := []any{}
+
+	if q != "" {
+		clause := " AND name LIKE ?"
+		baseQuery += clause
+		countQuery += clause
+		args = append(args, "%"+q+"%")
+	}
+
+	var totalCount int
+	err := db.DB.QueryRow(countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		totalCount = 0
+	}
+
+	baseQuery += " ORDER BY name LIMIT ? OFFSET ?"
+	pageArgs := append(args, pageSize, offset)
+
+	rows, err := db.DB.Query(baseQuery, pageArgs...)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "query error")
+		return
+	}
+	defer rows.Close()
+
+	classes := make([]models.CompendiumClass, 0)
+	for rows.Next() {
+		var cl models.CompendiumClass
+		if err := rows.Scan(&cl.ID, &cl.Name, &cl.Description, &cl.HitDie, &cl.PrimaryAbility, &cl.SavingThrows, &cl.Proficiencies, &cl.SpellcastingAbility, &cl.SourcePage, &cl.System, &cl.Source, &cl.Category, &cl.Expansion, &cl.Publisher); err != nil {
+			middleware.LogWarn("compendium", "scan failed, skipping class", "error", err)
+			continue
+		}
+		classes = append(classes, cl)
+	}
+
+	totalPages := (totalCount + pageSize - 1) / pageSize
+	if totalPages < 1 {
+		totalPages = 1
+	}
+
+	renderTemplate(c, "compendium_class_browse", htmxClassBrowseData{
+		Classes:    classes,
+		TotalCount: totalCount,
+		Page:       page,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
+		Query:      q,
+	})
+}
+
+// ─── Compendium Equipment Browse (HTMX) ───
+
+type htmxEquipmentBrowseData struct {
+	Items      []models.CompendiumEquipment
+	TotalCount int
+	Page       int
+	PageSize   int
+	TotalPages int
+	Query      string
+	Category   string
+	Categories []string
+}
+
+func getDistinctEquipmentCategories() []string {
+	rows, err := db.DB.Query("SELECT DISTINCT category FROM compendium_equipment WHERE category != '' ORDER BY category")
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	var categories []string
+	for rows.Next() {
+		var cat string
+		rows.Scan(&cat)
+		categories = append(categories, cat)
+	}
+	return categories
+}
+
+func HtmxCompendiumEquipmentBrowse(c *gin.Context) {
+	q := strings.TrimSpace(c.Query("q"))
+	category := strings.TrimSpace(c.Query("category"))
+	page, _ := strconv.Atoi(c.Query("page"))
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 50
+	}
+	offset := (page - 1) * pageSize
+
+	baseQuery := `SELECT id,name,category,cost,weight,description,source_page,system,source,item_type,item_rarity,publisher FROM compendium_equipment WHERE 1=1`
+	countQuery := `SELECT COUNT(*) FROM compendium_equipment WHERE 1=1`
+	args := []any{}
+
+	if q != "" {
+		clause := " AND name LIKE ?"
+		baseQuery += clause
+		countQuery += clause
+		args = append(args, "%"+q+"%")
+	}
+	if category != "" {
+		clause := " AND category=?"
+		baseQuery += clause
+		countQuery += clause
+		args = append(args, category)
+	}
+
+	var totalCount int
+	err := db.DB.QueryRow(countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		totalCount = 0
+	}
+
+	baseQuery += " ORDER BY name LIMIT ? OFFSET ?"
+	pageArgs := append(args, pageSize, offset)
+
+	rows, err := db.DB.Query(baseQuery, pageArgs...)
+	if err != nil {
+		c.String(http.StatusInternalServerError, "query error")
+		return
+	}
+	defer rows.Close()
+
+	items := make([]models.CompendiumEquipment, 0)
+	for rows.Next() {
+		var e models.CompendiumEquipment
+		if err := rows.Scan(&e.ID, &e.Name, &e.Category, &e.Cost, &e.Weight, &e.Description, &e.SourcePage, &e.System, &e.Source, &e.ItemType, &e.ItemRarity, &e.Publisher); err != nil {
+			middleware.LogWarn("compendium", "scan failed, skipping equipment", "error", err)
+			continue
+		}
+		items = append(items, e)
+	}
+
+	totalPages := (totalCount + pageSize - 1) / pageSize
+	if totalPages < 1 {
+		totalPages = 1
+	}
+
+	categories := getDistinctEquipmentCategories()
+
+	renderTemplate(c, "compendium_equipment_browse", htmxEquipmentBrowseData{
+		Items:      items,
+		TotalCount: totalCount,
+		Page:       page,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
+		Query:      q,
+		Category:   category,
+		Categories: categories,
+	})
+}
+
 // ─── Compendium Card (HTMX partial) ───
 
 func HtmxCompendiumCard(c *gin.Context) {
@@ -1156,84 +1541,119 @@ func HtmxCompendiumGlobalSearch(c *gin.Context) {
 	like := "%" + q + "%"
 
 	// Spells
-	rows, _ := db.DB.Query("SELECT id, name, level, school FROM compendium_spells WHERE name LIKE ? ORDER BY level, name LIMIT 10", like)
-	if rows != nil {
+	rows, qErr := db.DB.Query("SELECT id, name, level, school FROM compendium_spells WHERE name LIKE ? ORDER BY level, name LIMIT 10", like)
+	if qErr != nil {
+		middleware.LogWarn("compendium", "query failed", "type", "spell", "error", qErr)
+	} else {
 		for rows.Next() {
 			var item htmxCompendiumGlobalSearchItem
 			item.Type = "spell"
-			rows.Scan(&item.ID, &item.Name, &item.Level, &item.Subtype)
+			if err := rows.Scan(&item.ID, &item.Name, &item.Level, &item.Subtype); err != nil {
+				middleware.LogWarn("compendium", "scan failed, skipping row", "type", "spell", "error", err)
+				continue
+			}
 			data.Spells = append(data.Spells, item)
 		}
 		rows.Close()
 	}
 
 	// Equipment
-	rows, _ = db.DB.Query("SELECT id, name, category FROM compendium_equipment WHERE name LIKE ? ORDER BY name LIMIT 10", like)
-	if rows != nil {
+	rows, qErr = db.DB.Query("SELECT id, name, category FROM compendium_equipment WHERE name LIKE ? ORDER BY name LIMIT 10", like)
+	if qErr != nil {
+		middleware.LogWarn("compendium", "query failed", "type", "equipment", "error", qErr)
+	} else {
 		for rows.Next() {
 			var item htmxCompendiumGlobalSearchItem
 			item.Type = "equipment"
-			rows.Scan(&item.ID, &item.Name, &item.Subtype)
+			if err := rows.Scan(&item.ID, &item.Name, &item.Subtype); err != nil {
+				middleware.LogWarn("compendium", "scan failed, skipping row", "type", "equipment", "error", err)
+				continue
+			}
 			data.Equipment = append(data.Equipment, item)
 		}
 		rows.Close()
 	}
 
 	// Monsters
-	rows, _ = db.DB.Query("SELECT id, name, cr, type FROM compendium_monsters WHERE name LIKE ? ORDER BY name LIMIT 10", like)
-	if rows != nil {
+	rows, qErr = db.DB.Query("SELECT id, name, cr, type FROM compendium_monsters WHERE name LIKE ? ORDER BY name LIMIT 10", like)
+	if qErr != nil {
+		middleware.LogWarn("compendium", "query failed", "type", "monster", "error", qErr)
+	} else {
 		for rows.Next() {
 			var item htmxCompendiumGlobalSearchItem
 			item.Type = "monster"
-			rows.Scan(&item.ID, &item.Name, &item.CR, &item.Subtype)
+			if err := rows.Scan(&item.ID, &item.Name, &item.CR, &item.Subtype); err != nil {
+				middleware.LogWarn("compendium", "scan failed, skipping row", "type", "monster", "error", err)
+				continue
+			}
 			data.Monsters = append(data.Monsters, item)
 		}
 		rows.Close()
 	}
 
 	// Races
-	rows, _ = db.DB.Query("SELECT id, name FROM compendium_races WHERE name LIKE ? ORDER BY name LIMIT 10", like)
-	if rows != nil {
+	rows, qErr = db.DB.Query("SELECT id, name FROM compendium_races WHERE name LIKE ? ORDER BY name LIMIT 10", like)
+	if qErr != nil {
+		middleware.LogWarn("compendium", "query failed", "type", "race", "error", qErr)
+	} else {
 		for rows.Next() {
 			var item htmxCompendiumGlobalSearchItem
 			item.Type = "race"
-			rows.Scan(&item.ID, &item.Name)
+			if err := rows.Scan(&item.ID, &item.Name); err != nil {
+				middleware.LogWarn("compendium", "scan failed, skipping row", "type", "race", "error", err)
+				continue
+			}
 			data.Races = append(data.Races, item)
 		}
 		rows.Close()
 	}
 
 	// Classes
-	rows, _ = db.DB.Query("SELECT id, name, hit_die, primary_ability FROM compendium_classes WHERE name LIKE ? ORDER BY name LIMIT 10", like)
-	if rows != nil {
+	rows, qErr = db.DB.Query("SELECT id, name, hit_die, primary_ability FROM compendium_classes WHERE name LIKE ? ORDER BY name LIMIT 10", like)
+	if qErr != nil {
+		middleware.LogWarn("compendium", "query failed", "type", "class", "error", qErr)
+	} else {
 		for rows.Next() {
 			var item htmxCompendiumGlobalSearchItem
 			item.Type = "class"
-			rows.Scan(&item.ID, &item.Name, &item.HitDie, &item.PrimaryAbility)
+			if err := rows.Scan(&item.ID, &item.Name, &item.HitDie, &item.PrimaryAbility); err != nil {
+				middleware.LogWarn("compendium", "scan failed, skipping row", "type", "class", "error", err)
+				continue
+			}
 			data.Classes = append(data.Classes, item)
 		}
 		rows.Close()
 	}
 
 	// Feats
-	rows, _ = db.DB.Query("SELECT id, name FROM compendium_feats WHERE name LIKE ? ORDER BY name LIMIT 10", like)
-	if rows != nil {
+	rows, qErr = db.DB.Query("SELECT id, name FROM compendium_feats WHERE name LIKE ? ORDER BY name LIMIT 10", like)
+	if qErr != nil {
+		middleware.LogWarn("compendium", "query failed", "type", "feat", "error", qErr)
+	} else {
 		for rows.Next() {
 			var item htmxCompendiumGlobalSearchItem
 			item.Type = "feat"
-			rows.Scan(&item.ID, &item.Name)
+			if err := rows.Scan(&item.ID, &item.Name); err != nil {
+				middleware.LogWarn("compendium", "scan failed, skipping row", "type", "feat", "error", err)
+				continue
+			}
 			data.Feats = append(data.Feats, item)
 		}
 		rows.Close()
 	}
 
 	// Backgrounds
-	rows, _ = db.DB.Query("SELECT id, name FROM compendium_backgrounds WHERE name LIKE ? ORDER BY name LIMIT 10", like)
-	if rows != nil {
+	rows, qErr = db.DB.Query("SELECT id, name FROM compendium_backgrounds WHERE name LIKE ? ORDER BY name LIMIT 10", like)
+	if qErr != nil {
+		middleware.LogWarn("compendium", "query failed", "type", "background", "error", qErr)
+	} else {
 		for rows.Next() {
 			var item htmxCompendiumGlobalSearchItem
 			item.Type = "background"
-			rows.Scan(&item.ID, &item.Name)
+			if err := rows.Scan(&item.ID, &item.Name); err != nil {
+				middleware.LogWarn("compendium", "scan failed, skipping row", "type", "background", "error", err)
+				continue
+			}
 			data.Backgrounds = append(data.Backgrounds, item)
 		}
 		rows.Close()

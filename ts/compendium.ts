@@ -155,29 +155,29 @@ export function entryPreview(data: any, name: string): string {
 
 async function loadCompendiumRaces() {
   try {
-    const races = await api('GET', '/api/compendium/races');
-    document.getElementById('compRaces')!.innerHTML = races.map((r: any) => `
-      <div class="card mb-2">
-        <div class="card-body py-2 px-3">
-          <div class="d-flex justify-content-between"><strong>${esc(r.name)}</strong>
-            <span><span class="badge badge-gold">${esc(r.size)}</span> Speed: ${r.speed}</span></div>
-          <p class="mb-0 mt-1 small text-muted">${esc(r.description)}</p>
-        </div>
-      </div>`).join('');
+    const resp = await fetch('/htmx/compendium/races', { credentials: 'include' });
+    const html = await resp.text();
+    const container = document.getElementById('compRaces');
+    if (container) {
+      container.innerHTML = html;
+      if (typeof (window as any).htmx !== 'undefined') {
+        (window as any).htmx.process(container);
+      }
+    }
   } catch {}
 }
 
 async function loadCompendiumClasses() {
   try {
-    const cls = await api('GET', '/api/compendium/classes');
-    document.getElementById('compClasses')!.innerHTML = cls.map((c: any) => `
-      <div class="card mb-2">
-        <div class="card-body py-2 px-3">
-          <div class="d-flex justify-content-between"><strong>${esc(c.name)}</strong>
-            <span class="text-muted small">d${c.hit_die} · ${esc(c.primary_ability)}</span></div>
-          <p class="mb-0 mt-1 small text-muted">${esc(c.description)}</p>
-        </div>
-      </div>`).join('');
+    const resp = await fetch('/htmx/compendium/classes', { credentials: 'include' });
+    const html = await resp.text();
+    const container = document.getElementById('compClasses');
+    if (container) {
+      container.innerHTML = html;
+      if (typeof (window as any).htmx !== 'undefined') {
+        (window as any).htmx.process(container);
+      }
+    }
   } catch {}
 }
 
@@ -197,12 +197,15 @@ async function loadCompendiumSpells() {
 
 async function loadCompendiumEquipment() {
   try {
-    const items = await api('GET', '/api/compendium/equipment');
-    document.getElementById('compEquipment')!.innerHTML = items.map((i: any) => `
-      <div class="inv-item">
-        <span class="fw-bold">${esc(i.name)}</span>
-        <span class="text-muted small">${esc(i.category)}${i.weight ? ' · ' + i.weight + 'lb' : ''}</span>
-      </div>`).join('');
+    const resp = await fetch('/htmx/compendium/equipment', { credentials: 'include' });
+    const html = await resp.text();
+    const container = document.getElementById('compEquipment');
+    if (container) {
+      container.innerHTML = html;
+      if (typeof (window as any).htmx !== 'undefined') {
+        (window as any).htmx.process(container);
+      }
+    }
   } catch {}
 }
 

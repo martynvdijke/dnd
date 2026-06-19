@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -175,11 +177,12 @@ func StringFromLogLevel(l slog.Level) string {
 // If exportFn is set, each handled record is also sent to it asynchronously
 // (used for OTel log export).
 type logHandler struct {
-	buffer   *LogBuffer
-	stderr   io.Writer
-	minLevel slog.Level
-	mu       sync.RWMutex
-	exportFn func(ctx context.Context, r slog.Record)
+	buffer      *LogBuffer
+	stderr      io.Writer
+	minLevel    slog.Level
+	mu          sync.RWMutex
+	exportFn    func(ctx context.Context, r slog.Record)
+	presetAttrs []slog.Attr
 }
 
 func newLogHandler(buffer *LogBuffer, minLevel slog.Level) *logHandler {
@@ -223,6 +226,14 @@ func (h *logHandler) Handle(ctx context.Context, r slog.Record) error {
 
 	source := ""
 	attrs := make(map[string]any)
+	// Include any preset attrs from WithAttrs first (so record attrs can override).
+	for _, a := range h.presetAttrs {
+		if a.Key == "source" {
+			source = a.Value.String()
+		} else {
+			attrs[a.Key] = a.Value.Any()
+		}
+	}
 	r.Attrs(func(a slog.Attr) bool {
 		if a.Key == "source" {
 			source = a.Value.String()
@@ -246,7 +257,7 @@ func (h *logHandler) Handle(ctx context.Context, r slog.Record) error {
 	// Write to stderr
 	msg := fmt.Sprintf("[%s] [%-5s] [%s] %s", r.Time.Format(time.RFC3339), level, source, r.Message)
 	if len(attrs) > 0 {
-		msg += fmt.Sprintf(" %v", attrs)
+		msg += " " + formatAttrs(attrs)
 	}
 	msg += "\n"
 	_, _ = h.stderr.Write([]byte(msg))
@@ -265,14 +276,47 @@ func (h *logHandler) Handle(ctx context.Context, r slog.Record) error {
 }
 
 func (h *logHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	return &logHandler{
+	child := &logHandler{
 		buffer:   h.buffer,
 		stderr:   h.stderr,
 		minLevel: h.getMinLevel(),
 	}
+	h.mu.RLock()
+	child.exportFn = h.exportFn
+	h.mu.RUnlock()
+	// Store attrs for child context — appended to each record via WithAttrs semantics.
+	// Since our Handle reads attrs from the record, we wrap the child so that
+	// pre-set attrs are included. slog expects WithAttrs to return a handler
+	// that automatically includes these attrs in every Handle call.
+	if len(attrs) > 0 {
+		child.presetAttrs = append(child.presetAttrs, attrs...)
+	}
+	return child
 }
 
 func (h *logHandler) WithGroup(_ string) slog.Handler { return h }
+
+// formatAttrs renders attributes as key=value pairs for stderr output.
+func formatAttrs(attrs map[string]any) string {
+	if len(attrs) == 0 {
+		return ""
+	}
+	keys := make([]string, 0, len(attrs))
+	for k := range attrs {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	var b strings.Builder
+	for i, k := range keys {
+		if i > 0 {
+			b.WriteByte(' ')
+		}
+		b.WriteString(k)
+		b.WriteByte('=')
+		b.WriteString(fmt.Sprintf("%v", attrs[k]))
+	}
+	return b.String()
+}
 
 // ─── AppLogger ───
 
@@ -347,7 +391,15 @@ func InitAppLogger(capacity int, minLevel slog.Level) *AppLogger {
 //   - LOG_LEVEL: minimum log level (default "warn")
 func InitAppLoggerFromEnv() *AppLogger {
 	cap := 5000
+	if v := os.Getenv("LOG_BUFFER_SIZE"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			cap = n
+		}
+	}
 	minLvl := slog.LevelWarn
+	if v := strings.ToLower(strings.TrimSpace(os.Getenv("LOG_LEVEL"))); v != "" {
+		minLvl = LogLevelFromString(v)
+	}
 	return InitAppLogger(cap, minLvl)
 }
 

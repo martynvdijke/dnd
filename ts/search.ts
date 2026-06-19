@@ -49,6 +49,7 @@ export async function doSearch() {
       classes:     { label: 'Classes',      icon: 'fa-graduation-cap', items: results.classes },
       feats:       { label: 'Feats',        icon: 'fa-star',      items: results.feats },
       backgrounds: { label: 'Backgrounds',  icon: 'fa-address-card', items: results.backgrounds },
+      monsters:    { label: 'Monsters',     icon: 'fa-dragon',    items: results.monsters },
     };
     for (const [key, sec] of Object.entries(sections)) {
       if (sec.items.length === 0) continue;
