@@ -101,6 +101,44 @@ func TestCompendiumPickerTemplatesAreModalBodyContent(t *testing.T) {
 				`<div class="modal fade" id="compendiumEquipmentPickerModal"`,
 			},
 		},
+		{
+			name: "monster picker for one-shot is search-first (no auto-load)",
+			path: "/htmx/compendium-monsters/oneshot/1",
+			mustContain: []string{
+				`Type a monster name to search`,
+				`id="compendiumResults"`,
+				`name="adventure_id" value="1"`,
+			},
+			mustNotHave: []string{
+				// Picker context must NOT auto-load all monsters
+				`hx-trigger="load"`,
+			},
+		},
+		{
+			name: "monster picker for encounter is search-first (no auto-load)",
+			path: "/htmx/compendium-monsters/picker/1",
+			mustContain: []string{
+				`Type a monster name to search`,
+				`id="compendiumResults"`,
+				`name="encounter_id" value="1"`,
+			},
+			mustNotHave: []string{
+				`hx-trigger="load"`,
+			},
+		},
+		{
+			name: "monster compendium tab auto-loads all monsters",
+			path: "/htmx/compendium-monsters",
+			mustContain: []string{
+				`hx-trigger="load"`,
+				`Loading monsters...`,
+				`id="compendiumResults"`,
+			},
+			mustNotHave: []string{
+				// Compendium tab should NOT show the search-first prompt
+				`Type a monster name to search`,
+			},
+		},
 	}
 
 	for _, tc := range cases {

@@ -39,7 +39,7 @@ type htmxCompendiumMonsterDetailData struct {
 }
 
 func HtmxCompendiumMonsterBrowser(c *gin.Context) {
-	renderTemplate(c, "compendium_monster_browser.html", nil)
+	renderTemplate(c, "compendium_monster_browser", htmxCompendiumMonsterListData{})
 }
 
 func HtmxCompendiumMonsterSearch(c *gin.Context) {
@@ -156,7 +156,7 @@ func HtmxCompendiumMonsterDetail(c *gin.Context) {
 	}
 	m.IsFull = isFull == 1
 
-	renderTemplate(c, "compendium_monster_detail.html", htmxCompendiumMonsterDetailData{
+	renderTemplate(c, "compendium_monster_detail", htmxCompendiumMonsterDetailData{
 		Monster:     &m,
 		EncounterID: encounterID,
 		CampaignID:  campaignID,
@@ -169,7 +169,7 @@ func HtmxCompendiumMonsterDetail(c *gin.Context) {
 func HtmxCompendiumMonsterPickerForEncounter(c *gin.Context) {
 	encounterID, _ := strconv.ParseInt(c.Param("eid"), 10, 64)
 	campaignID, _ := strconv.ParseInt(c.Query("campaign_id"), 10, 64)
-	renderTemplate(c, "compendium_monster_browser.html", htmxCompendiumMonsterListData{
+	renderTemplate(c, "compendium_monster_browser", htmxCompendiumMonsterListData{
 		EncounterID: encounterID,
 		CampaignID:  campaignID,
 	})
@@ -177,7 +177,7 @@ func HtmxCompendiumMonsterPickerForEncounter(c *gin.Context) {
 
 func HtmxCompendiumMonsterPickerForOneShot(c *gin.Context) {
 	adventureID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	renderTemplate(c, "compendium_monster_browser.html", htmxCompendiumMonsterListData{
+	renderTemplate(c, "compendium_monster_browser", htmxCompendiumMonsterListData{
 		AdventureID: adventureID,
 	})
 }
@@ -612,7 +612,7 @@ func HtmxListMonsterLibrary(c *gin.Context) {
 		m.IsFull = isFull == 1
 		monsters = append(monsters, m)
 	}
-	renderTemplate(c, "monster_library_list.html", htmxMonsterLibraryData{Monsters: monsters})
+	renderTemplate(c, "monster_library_list", htmxMonsterLibraryData{Monsters: monsters})
 }
 
 func HtmxMonsterLibraryForm(c *gin.Context) {
@@ -637,7 +637,7 @@ func HtmxMonsterLibraryForm(c *gin.Context) {
 			return
 		}
 		m.IsFull = isFull == 1
-		renderTemplate(c, "monster_library_form.html", htmxMonsterLibraryData{Monster: &m})
+		renderTemplate(c, "monster_library_form", htmxMonsterLibraryData{Monster: &m})
 		return
 	}
 
@@ -656,12 +656,12 @@ func HtmxMonsterLibraryForm(c *gin.Context) {
 			c.String(http.StatusNotFound, "compendium monster not found")
 			return
 		}
-		renderTemplate(c, "monster_library_form.html", htmxMonsterLibraryData{CompMonster: &cm})
+		renderTemplate(c, "monster_library_form", htmxMonsterLibraryData{CompMonster: &cm})
 		return
 	}
 
 	// New empty form
-	renderTemplate(c, "monster_library_form.html", htmxMonsterLibraryData{})
+	renderTemplate(c, "monster_library_form", htmxMonsterLibraryData{})
 }
 
 func HtmxCreateMonsterLibrary(c *gin.Context) {
@@ -761,7 +761,7 @@ func HtmxMonsterLibrarySection(c *gin.Context) {
 		m.IsFull = isFull == 1
 		monsters = append(monsters, m)
 	}
-	renderTemplate(c, "monster_library_section.html", htmxMonsterLibraryData{Monsters: monsters})
+	renderTemplate(c, "monster_library_section", htmxMonsterLibraryData{Monsters: monsters})
 }
 
 // ─── Compendium Spell Picker (HTMX) ───

@@ -25,9 +25,9 @@
     <div id="compendiumImportModal"></div>
     <div class="input-group mb-3">
       <input type="text" class="form-control form-control-sm" id="compendiumSearch" placeholder="Search monsters..." name="q"
-        hx-get="/htmx/compendium-monsters/search" hx-trigger="keyup changed delay:300ms" hx-target="#compendiumResults" hx-swap="innerHTML" hx-include="[name='cr'],[name='type'],[name='adventure_id']">
+        hx-get="/htmx/compendium-monsters/search" hx-trigger="keyup changed delay:300ms" hx-target="#compendiumResults" hx-swap="innerHTML" hx-include="[name='cr'],[name='type'],[name='adventure_id'],[name='encounter_id'],[name='campaign_id']">
       <select class="form-select form-select-sm" style="max-width:100px" name="cr" id="compendiumCRFilter"
-        hx-get="/htmx/compendium-monsters/search" hx-trigger="change" hx-target="#compendiumResults" hx-swap="innerHTML" hx-include="[name='q'],[name='type'],[name='adventure_id']">
+        hx-get="/htmx/compendium-monsters/search" hx-trigger="change" hx-target="#compendiumResults" hx-swap="innerHTML" hx-include="[name='q'],[name='type'],[name='adventure_id'],[name='encounter_id'],[name='campaign_id']">
         <option value="">All CR</option>
         <option value="0">0</option>
         <option value="1/8">1/8</option>
@@ -65,7 +65,7 @@
         <option value="30">30</option>
       </select>
       <select class="form-select form-select-sm" style="max-width:130px" name="type" id="compendiumTypeFilter"
-        hx-get="/htmx/compendium-monsters/search" hx-trigger="change" hx-target="#compendiumResults" hx-swap="innerHTML" hx-include="[name='q'],[name='cr'],[name='adventure_id']">
+        hx-get="/htmx/compendium-monsters/search" hx-trigger="change" hx-target="#compendiumResults" hx-swap="innerHTML" hx-include="[name='q'],[name='cr'],[name='adventure_id'],[name='encounter_id'],[name='campaign_id']">
         <option value="">All Types</option>
         <option value="aberration">Aberration</option>
         <option value="beast">Beast</option>
@@ -84,9 +84,19 @@
       </select>
     </div>
     {{if $.AdventureID}}<input type="hidden" name="adventure_id" value="{{$.AdventureID}}">{{end}}
-    <div id="compendiumResults" hx-get="/htmx/compendium-monsters/search?page=1&page_size=50{{if $.AdventureID}}&adventure_id={{$.AdventureID}}{{end}}" hx-trigger="load" hx-swap="innerHTML">
+    {{if $.EncounterID}}<input type="hidden" name="encounter_id" value="{{$.EncounterID}}">{{end}}
+    {{if $.CampaignID}}<input type="hidden" name="campaign_id" value="{{$.CampaignID}}">{{end}}
+    {{if or $.EncounterID $.AdventureID}}
+    {{/* Picker context: search-first, no auto-load */}}
+    <div id="compendiumResults">
+      <div class="text-center text-muted py-4"><i class="fa-solid fa-magnifying-glass fa-2x mb-2 d-block"></i>Type a monster name to search</div>
+    </div>
+    {{else}}
+    {{/* Compendium tab: auto-load all monsters */}}
+    <div id="compendiumResults" hx-get="/htmx/compendium-monsters/search?page=1&page_size=50" hx-trigger="load" hx-swap="innerHTML">
       <div class="text-muted small text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading monsters...</div>
     </div>
+    {{end}}
   </div>
   <div class="tab-pane fade" id="libraryTabContent" role="tabpanel">
     <div class="text-muted small text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading library...</div>
