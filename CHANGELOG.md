@@ -1,3 +1,17 @@
+# [2.20.0](https://github.com/martynvdijke/dnd/compare/v2.19.2...v2.20.0) (2026-06-20)
+
+
+### Bug Fixes
+
+* monster picker search-first behavior + fix template name mismatches ([52a15c4](https://github.com/martynvdijke/dnd/commit/52a15c40d670cd578f1f4a751f02d4c76df4f752))
+* rename duplicate #compendiumTabs ID in monster browser template ([a640c73](https://github.com/martynvdijke/dnd/commit/a640c732b4e9c7bee645ba85fa10315adf8357b7)), closes [#compendiumTabs](https://github.com/martynvdijke/dnd/issues/compendiumTabs) [#compMonsters](https://github.com/martynvdijke/dnd/issues/compMonsters)
+* update Playwright dice tests and CSS for 2D dice rename ([d70c8a2](https://github.com/martynvdijke/dnd/commit/d70c8a2f92f66adae121468543e26ca967636e4a))
+
+
+### Features
+
+* revamp dice roller with clean 2D animation, fix broken 3D polyhedron rendering ([d9eb588](https://github.com/martynvdijke/dnd/commit/d9eb5881f2390d669df2ba08d4f1888ffe54d29b))
+
 ## [2.19.2](https://github.com/martynvdijke/dnd/compare/v2.19.1...v2.19.2) (2026-06-20)
 
 
