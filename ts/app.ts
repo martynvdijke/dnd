@@ -16,6 +16,7 @@ import { initTheme } from './lib/theme';
 import { api, setCsrfToken, getCsrfToken } from './lib/api';
 import { initShortcuts, showShortcutsHelp, getSections } from './lib/shortcuts';
 import { renderDiceTab } from './dice';
+import { animateHpChange } from './lib/animations';
 import './compendium';
 import './combat-tracker';
 import './encounter';
@@ -184,6 +185,7 @@ async function rollCheck(type: string, name: string, adv: string) {
   if (!currentChar) return;
   const dmg = parseInt((document.getElementById('dmgInput') as HTMLInputElement)?.value || '0');
   if (!dmg) return;
+  const oldHp = currentChar.hp_current;
   const newHp = Math.max(0, currentChar.hp_current - dmg);
   await updateField('hp_current', newHp);
   currentChar = await api('GET', `/api/characters/${currentChar.id}`);
@@ -205,24 +207,49 @@ async function rollCheck(type: string, name: string, adv: string) {
     } catch {}
   }
   renderSheet();
+  // Animate HP change after re-render
+  const bar = document.getElementById('charHpBarFill');
+  const hpText = document.getElementById('charHpText');
+  if (bar && hpText) {
+    bar.style.width = Math.max(0, Math.min(100, (oldHp / currentChar.hp_max) * 100)) + '%';
+    animateHpChange(hpText, bar, oldHp, currentChar.hp_current, currentChar.hp_max);
+  }
 };
 
 async function applyHeal() {
   if (!currentChar) return;
   const heal = parseInt((document.getElementById('healInput') as HTMLInputElement)?.value || '0');
   if (!heal) return;
+  const oldHp = currentChar.hp_current;
   const newHp = Math.min(currentChar.hp_max, currentChar.hp_current + heal);
   await updateField('hp_current', newHp);
+  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  renderSheet();
+  // Animate HP change after re-render
+  const bar = document.getElementById('charHpBarFill');
+  const hpText = document.getElementById('charHpText');
+  if (bar && hpText) {
+    bar.style.width = Math.max(0, Math.min(100, (oldHp / currentChar.hp_max) * 100)) + '%';
+    animateHpChange(hpText, bar, oldHp, currentChar.hp_current, currentChar.hp_max);
+  }
 }
 (window as any).applyHeal = applyHeal;
 
 async function doRest(type: string) {
   if (!currentChar) return;
   try {
+    const oldHp = currentChar.hp_current;
     const result = await api('POST', `/api/characters/${currentChar.id}/rest`, { rest_type: type, hit_dice_count: type === 'short' ? 1 : 0 });
     toast(`${type} rest: healed ${result.hp_healed} HP`);
     currentChar = await api('GET', `/api/characters/${currentChar.id}`);
     renderSheet();
+    // Animate HP change after re-render
+    const bar = document.getElementById('charHpBarFill');
+    const hpText = document.getElementById('charHpText');
+    if (bar && hpText && result.hp_healed > 0) {
+      bar.style.width = Math.max(0, Math.min(100, (oldHp / currentChar.hp_max) * 100)) + '%';
+      animateHpChange(hpText, bar, oldHp, currentChar.hp_current, currentChar.hp_max);
+    }
   } catch (e: any) {
     toast(e.message, true);
   }
@@ -3330,8 +3357,8 @@ function renderCombat() {
     </div>
     <h5 class="mt-3">Hit Points</h5>
     <div class="hp-bar position-relative mb-2" title="${c.hp_current} / ${c.hp_max} HP${c.temp_hp > 0 ? ' (+' + c.temp_hp + ' temporary)' : ''}">
-      <div class="hp-bar-fill" style="width:${pct}%"></div>
-      <div class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center text-white small fw-bold" style="font-size:0.8rem">${c.hp_current} / ${c.hp_max}${c.temp_hp > 0 ? ' (+' + c.temp_hp + ' temp)' : ''}</div>
+      <div class="hp-bar-fill" id="charHpBarFill" style="width:${pct}%"></div>
+      <div class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center text-white small fw-bold" id="charHpText" style="font-size:0.8rem">${c.hp_current} / ${c.hp_max}${c.temp_hp > 0 ? ' (+' + c.temp_hp + ' temp)' : ''}</div>
     </div>
     <div class="row g-2">
       <div class="col-4"><label class="form-label small">HP Max</label>${renderStepper('hp_max', c.hp_max, 1, 1, undefined, 'HP Max', 'lg')}</div>

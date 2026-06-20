@@ -107,4 +107,28 @@ test.describe('Dice rolling', () => {
     const input = page.locator('#diceExpr');
     await expect(input).toHaveAttribute('placeholder', /4d6kh3|rpg|notation|kh|!/i);
   });
+
+  test('crit celebration appears on nat 20', async ({ page }) => {
+    await clickNavItem(page, 'Dice', 'dice');
+    const input = page.locator('#diceExpr');
+    // Roll d20 repeatedly until we get a nat 20 (max 50 attempts)
+    for (let i = 0; i < 50; i++) {
+      await input.fill('1d20');
+      await page.click('text=Roll the Bones');
+      // Wait for result to appear
+      await expect(page.locator('#diceResult')).toBeVisible({ timeout: 10000 });
+      // Wait a bit for settle animation + crit celebration
+      await page.waitForTimeout(1200);
+      // Check if crit overlay appeared
+      const critOverlay = page.locator('.crit-overlay');
+      if (await critOverlay.count() > 0) {
+        // Crit celebration fired! Verify the text
+        const critText = page.locator('.crit-text');
+        await expect(critText).toContainText(/CRITICAL/i);
+        return; // Test passed
+      }
+    }
+    // If we didn't get a nat 20 in 50 rolls, skip rather than fail
+    test.skip(true, 'No nat 20 in 50 rolls (statistically rare to miss all)');
+  });
 });

@@ -10,6 +10,7 @@ import { esc, toast } from './lib/dom';
 import { api } from './lib/api';
 import { getCurrentView } from './navigation';
 import { currentChar } from './lib/state';
+import { critCelebration } from './lib/animations';
 
 // ─── Sound Effects (Web Audio API — no asset files needed) ───
 
@@ -325,6 +326,9 @@ function settleDice(breakdown: any[]) {
     rollingTimeouts = [];
 
     let hasCrit = false;
+    let critType: 'success' | 'fail' | null = null;
+    let critDieLabel = '';
+    let critDieEl: HTMLElement | null = null;
     container.innerHTML = breakdown.map((b: any) => {
       if (!b.rolls || b.rolls.length === 0) return '';
       const sides = parseSides(b.die);
@@ -339,15 +343,29 @@ function settleDice(breakdown: any[]) {
         if (crit === 'success') {
           extraClass += ' dice-crit-success';
           hasCrit = true;
+          if (!critType) { critType = 'success'; critDieLabel = b.die; }
         } else if (crit === 'fail') {
           extraClass += ' dice-crit-fail';
           hasCrit = true;
+          if (!critType) { critType = 'fail'; critDieLabel = b.die; }
         }
-        return buildDie(v, sides, b.die, extraClass);
+        const dieHtml = buildDie(v, sides, b.die, extraClass);
+        if (crit && !critDieEl) {
+          // Extract the die element from the HTML to get a reference
+          // We'll find it after innerHTML is set
+        }
+        return dieHtml;
       }).join('');
     }).join('');
 
-    if (hasCrit) playDiceSound(true);
+    if (hasCrit) {
+      playDiceSound(true);
+      // Find the crit die element for particle origin
+      critDieEl = container.querySelector('.dice-crit-success, .dice-crit-fail') as HTMLElement;
+      if (critDieEl && critType) {
+        critCelebration(critType, critDieLabel, critDieEl);
+      }
+    }
   }, 900);
 }
 

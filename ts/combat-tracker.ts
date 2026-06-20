@@ -3,6 +3,7 @@
 import { esc, showModal, hideModal, toast } from './lib/dom';
 import { api } from './lib/api';
 import { showView } from './navigation';
+import { animateHpChange, animateTurnChange } from './lib/animations';
 
 // ─── Combat Tracker ───
 
@@ -102,9 +103,20 @@ async function findCombatEntry(id: number): Promise<any> {
   try {
     const entry = await findCombatEntry(id);
     if (!entry) { toast('Entry not found', true); return; }
+    const oldHp = entry.hp_current;
     entry.hp_current = Math.max(0, entry.hp_current - dmg);
     await api('PUT', '/api/combat/' + id, entry);
-    (window as any).showCombatTracker();
+    await (window as any).showCombatTracker();
+    // Animate HP change after re-render
+    const row = document.getElementById('ce-' + id);
+    if (row) {
+      const bar = row.querySelector('.hp-bar-fill') as HTMLElement;
+      const hpText = row.querySelector('span.small') as HTMLElement;
+      if (bar && hpText) {
+        bar.style.width = Math.max(0, Math.min(100, (oldHp / entry.hp_max) * 100)) + '%';
+        animateHpChange(hpText, bar, oldHp, entry.hp_current, entry.hp_max);
+      }
+    }
   } catch (e: any) { toast(e.message, true); }
 };
 
@@ -115,9 +127,20 @@ async function findCombatEntry(id: number): Promise<any> {
   try {
     const entry = await findCombatEntry(id);
     if (!entry) { toast('Entry not found', true); return; }
+    const oldHp = entry.hp_current;
     entry.hp_current = Math.min(entry.hp_max, entry.hp_current + heal);
     await api('PUT', '/api/combat/' + id, entry);
-    (window as any).showCombatTracker();
+    await (window as any).showCombatTracker();
+    // Animate HP change after re-render
+    const row = document.getElementById('ce-' + id);
+    if (row) {
+      const bar = row.querySelector('.hp-bar-fill') as HTMLElement;
+      const hpText = row.querySelector('span.small') as HTMLElement;
+      if (bar && hpText) {
+        bar.style.width = Math.max(0, Math.min(100, (oldHp / entry.hp_max) * 100)) + '%';
+        animateHpChange(hpText, bar, oldHp, entry.hp_current, entry.hp_max);
+      }
+    }
   } catch (e: any) { toast(e.message, true); }
 };
 
@@ -155,8 +178,16 @@ async function findCombatEntry(id: number): Promise<any> {
 
 (window as any).advanceCombatTurn = async function () {
   try {
+    // Find the currently active row before advancing
+    const prevActiveRow = document.querySelector('tr.table-active') as HTMLElement | null;
     const result = await api('POST', '/api/combat/next-turn');
-    (window as any).showCombatTracker();
+    await (window as any).showCombatTracker();
+    // Animate turn change after re-render
+    const nextActiveRow = document.querySelector('tr.table-active') as HTMLElement | null;
+    if (nextActiveRow) {
+      const isMonster = nextActiveRow.querySelector('.fa-dragon') !== null;
+      animateTurnChange(prevActiveRow, nextActiveRow, isMonster);
+    }
     toast(result.current_entry ? `Turn: ${result.current_entry.name}` : 'Turn advanced');
   } catch (e: any) { toast(e.message, true); }
 };
