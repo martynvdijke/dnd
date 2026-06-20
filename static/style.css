@@ -1011,8 +1011,7 @@ kbd {
     animation-iteration-count: 1;
     transition-duration: 0.01ms;
   }
-  .dice-3d-cube.rolling { animation: none; }
-  .dice-2d.rolling { animation: none; }
+  .die.rolling { animation: none; }
   .loading-overlay { backdrop-filter: none; }
 }
 
@@ -1020,7 +1019,7 @@ kbd {
 
 .character-card { will-change: transform, box-shadow; }
 .skill-row { will-change: background; }
-.dice-3d-cube { will-change: transform; }
+.die { will-change: transform; }
 .die-face { will-change: transform, background, border-color; }
 .slot-dot { will-change: transform, border-color; }
 .fab { will-change: transform; }

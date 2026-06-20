@@ -39,9 +39,9 @@ test.describe('Dice rolling', () => {
     const result = page.locator('#diceResult');
     await expect(result).toBeVisible({ timeout: 10000 });
     await expect(result).toContainText('4d6kh3');
-    // The 3D dice container should have dice elements
+    // The dice container should have die elements
     const diceContainer = page.locator('#dice3dContainer');
-    await expect(diceContainer.locator('.dice-3d-die')).toHaveCount(4, { timeout: 5000 });
+    await expect(diceContainer.locator('.die')).toHaveCount(4, { timeout: 5000 });
   });
 
   test('rpg notation: exploding dice', async ({ page }) => {
@@ -62,12 +62,12 @@ test.describe('Dice rolling', () => {
     const result = page.locator('#diceResult');
     await expect(result).toBeVisible({ timeout: 10000 });
     await expect(result).toContainText('1d100');
-    // d100 should render as a 3D die (not 2D fallback)
+    // d100 should render as a die
     const diceContainer = page.locator('#dice3dContainer');
-    await expect(diceContainer.locator('.dice-3d-die.d100').first()).toBeVisible({ timeout: 5000 });
+    await expect(diceContainer.locator('.die.d100').first()).toBeVisible({ timeout: 5000 });
   });
 
-  test('3D dice renders for all standard polyhedral types', async ({ page }) => {
+  test('dice renders for all standard polyhedral types', async ({ page }) => {
     await clickNavItem(page, 'Dice', 'dice');
     for (const die of ['d4', 'd6', 'd8', 'd10', 'd12', 'd20']) {
       const input = page.locator('#diceExpr');
@@ -76,8 +76,8 @@ test.describe('Dice rolling', () => {
       const result = page.locator('#diceResult');
       await expect(result).toBeVisible({ timeout: 10000 });
 
-      // Verify the 3D die element rendered for this type
-      await expect(page.locator(`#dice3dContainer .dice-3d-die.${die}`)).toBeAttached({ timeout: 10000 });
+      // Verify the die element rendered for this type
+      await expect(page.locator(`#dice3dContainer .die.${die}`)).toBeAttached({ timeout: 10000 });
     }
   });
 
