@@ -11,6 +11,74 @@ import { api } from './lib/api';
 import { getCurrentView } from './navigation';
 import { currentChar } from './lib/state';
 
+// ─── Sound Effects (Web Audio API — no asset files needed) ───
+
+let audioCtx: AudioContext | null = null;
+let soundEnabled = typeof localStorage !== 'undefined' && localStorage.getItem('diceSoundEnabled') !== 'false';
+
+function getAudioCtx(): AudioContext | null {
+  if (!audioCtx) {
+    try {
+      audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    } catch { return null; }
+  }
+  return audioCtx;
+}
+
+/** Synthesized dice clatter sound. Plays a triumphant chord on crits. */
+function playDiceSound(isCrit: boolean = false) {
+  if (!soundEnabled) return;
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
+
+  // Dice clatter: multiple short noise bursts
+  const numClacks = isCrit ? 8 : 5;
+  for (let i = 0; i < numClacks; i++) {
+    const t = ctx.currentTime + i * 0.06 + Math.random() * 0.02;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = 180 + Math.random() * 400;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.12, t + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.05);
+  }
+
+  if (isCrit) {
+    // Triumphant major chord for crits
+    const t = ctx.currentTime + 0.35;
+    [523.25, 659.25, 783.99].forEach((freq) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.08, t + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.6);
+    });
+  }
+}
+
+export function toggleDiceSound() {
+  soundEnabled = !soundEnabled;
+  try { localStorage.setItem('diceSoundEnabled', String(soundEnabled)); } catch { /* ignore */ }
+  const btn = document.getElementById('diceSoundToggle');
+  if (btn) {
+    btn.innerHTML = soundEnabled
+      ? '<i class="fa-solid fa-volume-high"></i>'
+      : '<i class="fa-solid fa-volume-xmark"></i>';
+  }
+}
+
 // ─── Dice Constants ───
 
 const DICE_PRESETS = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100'];
@@ -29,8 +97,8 @@ const DICE_NOTATION_PRESETS = [
   { label: 'd4', expr: '1d4' },
 ];
 
-// Active rolling intervals (cleared on settle)
-let rollingIntervals: number[] = [];
+// Active rolling timeouts (cleared on settle)
+let rollingTimeouts: number[] = [];
 
 // ─── Die Value Helpers ───
 
@@ -50,6 +118,18 @@ export function rollFlags(r: any): string {
 export function parseSides(dieLabel: string): number {
   const m = dieLabel.match(/^d(\d+)$/i);
   return m ? parseInt(m[1]) : 0;
+}
+
+/**
+ * Detect crit success/fail for any die type.
+ * Max roll on a d4+ die = success, nat 1 = fail.
+ * Returns null for non-dice or unused rolls.
+ */
+export function isCritRoll(value: number, sides: number, used: boolean): 'success' | 'fail' | null {
+  if (!used || sides < 4) return null;
+  if (value === sides) return 'success';
+  if (value === 1) return 'fail';
+  return null;
 }
 
 // ─── Build 2D Die HTML ───
@@ -116,8 +196,10 @@ export async function rollWithAdvantage(isAdv: boolean) {
       for (const bg of d20Rolls) {
         for (const r of bg.rolls) {
           const v = rollValue(r);
-          if (v === 20) badge = '<span class="badge bg-success ms-2">Critical Hit!</span>';
-          else if (v === 1) badge = '<span class="badge bg-danger ms-2">Critical Fail!</span>';
+          const used = rollUsed(r);
+          const crit = isCritRoll(v, 20, used);
+          if (crit === 'success') badge = '<span class="badge bg-success ms-2">Critical Hit!</span>';
+          else if (crit === 'fail') badge = '<span class="badge bg-danger ms-2">Critical Fail!</span>';
         }
       }
 
@@ -171,6 +253,9 @@ export function renderDiceTab() {
       <div id="dice3dContainer" class="dice-container"></div>
       <div id="diceResult" class="mb-3" style="display:none"></div>
       <button class="btn btn-gold" onclick="doRoll()"><i class="fa-solid fa-dice me-2"></i>Roll the Bones</button>
+      <button class="btn btn-sm btn-outline-secondary dice-sound-toggle ms-2" id="diceSoundToggle" onclick="toggleDiceSound()" title="Toggle sound effects">
+        <i class="fa-solid fa-${soundEnabled ? 'volume-high' : 'volume-xmark'}"></i>
+      </button>
       <div class="ornament my-3">✧</div>
       <h5>Recent Rolls</h5>
       <div id="diceHistory"></div>
@@ -184,13 +269,14 @@ export function renderDiceTab() {
 
 /**
  * Show tumbling dice with rapidly cycling numbers.
- * Each die gets a CSS tumble animation + a JS interval that cycles
- * the displayed number to simulate the die rolling.
+ * Each die gets a CSS tumble animation + a JS recursive timeout that
+ * cycles the displayed number with deceleration to simulate a real die
+ * settling down.
  */
 function animateDiceRoll(breakdown: any[]) {
-  // Clear any existing intervals
-  rollingIntervals.forEach(id => clearInterval(id));
-  rollingIntervals = [];
+  // Clear any existing timeouts
+  rollingTimeouts.forEach(id => clearTimeout(id));
+  rollingTimeouts = [];
 
   const container = document.getElementById('dice3dContainer');
   if (!container) return;
@@ -202,19 +288,24 @@ function animateDiceRoll(breakdown: any[]) {
     return b.rolls.map(() => buildDie(1, sides, b.die, 'rolling')).join('');
   }).join('');
 
-  // Start number cycling for each rolling die
+  // Start number cycling with deceleration for each rolling die
   const dieElements = container.querySelectorAll('.die.rolling');
   dieElements.forEach((dieEl) => {
     const dieSides = parseInt(dieEl.getAttribute('data-sides') || '6');
     const valueEl = dieEl.querySelector('.die-value');
     if (valueEl) {
-      const intervalId = window.setInterval(() => {
+      const cycle = (delay: number) => {
         const randVal = Math.floor(Math.random() * dieSides) + 1;
         valueEl.textContent = dieSides >= 100 && randVal === 100 ? '00' : String(randVal);
-      }, 80);
-      rollingIntervals.push(intervalId);
+        const nextDelay = Math.min(delay + 6, 180); // decelerate up to 180ms
+        const id = window.setTimeout(() => cycle(nextDelay), nextDelay);
+        rollingTimeouts.push(id);
+      };
+      cycle(50); // start fast at 50ms
     }
   });
+
+  playDiceSound(false);
 }
 
 // ─── Settle Dice (Final Result) ───
@@ -222,16 +313,18 @@ function animateDiceRoll(breakdown: any[]) {
 /**
  * Stop the rolling animation and show final values with a pop-in effect.
  * Called after the server responds with the real roll results.
+ * Detects crits (max roll / nat 1) on any die type d4+.
  */
 function settleDice(breakdown: any[]) {
   const container = document.getElementById('dice3dContainer');
   if (!container) return;
 
   setTimeout(() => {
-    // Clear cycling intervals
-    rollingIntervals.forEach(id => clearInterval(id));
-    rollingIntervals = [];
+    // Clear cycling timeouts
+    rollingTimeouts.forEach(id => clearTimeout(id));
+    rollingTimeouts = [];
 
+    let hasCrit = false;
     container.innerHTML = breakdown.map((b: any) => {
       if (!b.rolls || b.rolls.length === 0) return '';
       const sides = parseSides(b.die);
@@ -242,13 +335,19 @@ function settleDice(breakdown: any[]) {
         const used = rollUsed(r);
         let extraClass = 'settled';
         if (!used) extraClass += ' die-dropped';
-        if (sides === 20) {
-          if (v === 20) extraClass += ' dice-crit-success';
-          else if (v === 1) extraClass += ' dice-crit-fail';
+        const crit = isCritRoll(v, sides, used);
+        if (crit === 'success') {
+          extraClass += ' dice-crit-success';
+          hasCrit = true;
+        } else if (crit === 'fail') {
+          extraClass += ' dice-crit-fail';
+          hasCrit = true;
         }
         return buildDie(v, sides, b.die, extraClass);
       }).join('');
     }).join('');
+
+    if (hasCrit) playDiceSound(true);
   }, 900);
 }
 
@@ -294,30 +393,47 @@ export async function doRoll() {
     let facesHtml = '';
     if (result.breakdown) {
       facesHtml = result.breakdown.map((b: any) => {
-        if (!b.rolls || b.rolls.length === 0) return '';
+        if (!b.rolls || b.rolls.length === 0) {
+          // Modifier entry (no rolls, just a total)
+          return `<span class="die-term">${esc(b.die)} = ${b.total}</span>`;
+        }
         const dieLabel = b.die;
         const sides = parseSides(dieLabel);
-        if (sides === 0) return '';
+        if (sides === 0) {
+          return `<span class="die-term">${esc(b.die)} = ${b.total}</span>`;
+        }
         const rolls = b.rolls.map((r: any) => {
           const v = rollValue(r);
           const used = rollUsed(r);
           const flags = rollFlags(r);
           const itemClass = used ? 'die-face die-kept' : 'die-face die-dropped';
-          const flagText = flags ? ` data-flags="${esc(flags)}"` : '';
-          return `<span class="${itemClass}"${flagText}>${v}${flags === 'dropped' ? '✕' : ''}</span>`;
-        }).join('');
-        return `<div class="die-group"><span class="die-label">${dieLabel}:</span> <span class="die-faces">${rolls}</span></div>`;
+          return `<span class="${itemClass}">${v}${flags === 'dropped' ? '✕' : ''}</span>`;
+        }).join(' + ');
+        return `<div class="die-group"><span class="die-label">${dieLabel}:</span> <span class="die-faces">${rolls}</span> <span class="die-subtotal">= ${b.total}</span></div>`;
       }).filter((h: string) => h).join('');
     }
 
     let critBadge = '';
     if (result.breakdown) {
       for (const b of result.breakdown) {
-        if (b.die === 'd20' && b.rolls) {
-          for (const r of b.rolls) {
-            const v = rollValue(r);
-            if (v === 20) critBadge = '<span class="badge bg-success ms-2"><i class="fa-solid fa-bolt me-1"></i>Critical Hit!</span>';
-            else if (v === 1) critBadge = '<span class="badge bg-danger ms-2"><i class="fa-solid fa-skull me-1"></i>Critical Fail!</span>';
+        if (!b.rolls) continue;
+        const sides = parseSides(b.die);
+        for (const r of b.rolls) {
+          const v = rollValue(r);
+          const used = rollUsed(r);
+          const crit = isCritRoll(v, sides, used);
+          if (crit === 'success') {
+            if (sides === 20) {
+              critBadge = '<span class="badge bg-success ms-2"><i class="fa-solid fa-bolt me-1"></i>Critical Hit!</span>';
+            } else if (!critBadge) {
+              critBadge = `<span class="badge bg-warning ms-2"><i class="fa-solid fa-star me-1"></i>Max on ${b.die}!</span>`;
+            }
+          } else if (crit === 'fail') {
+            if (sides === 20) {
+              critBadge = '<span class="badge bg-danger ms-2"><i class="fa-solid fa-skull me-1"></i>Critical Fail!</span>';
+            } else if (!critBadge) {
+              critBadge = `<span class="badge bg-secondary ms-2"><i class="fa-solid fa-circle-down me-1"></i>Nat 1 on ${b.die}</span>`;
+            }
           }
         }
       }

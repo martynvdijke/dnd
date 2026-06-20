@@ -26,6 +26,7 @@ import {
   renderDiceTab,
   doRoll,
   loadDiceHistory,
+  toggleDiceSound,
 } from '../dice';
 
 import {
@@ -76,6 +77,7 @@ export function initBridge(): void {
   w.renderDiceTab = renderDiceTab;
   w.doRoll = doRoll;
   w.loadDiceHistory = loadDiceHistory;
+  w.toggleDiceSound = toggleDiceSound;
 
   // Search
   w.showSearchOverlay = showSearchOverlay;

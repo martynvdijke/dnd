@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseSides, rollValue, rollUsed, rollFlags, buildDie } from './dice';
+import { parseSides, rollValue, rollUsed, rollFlags, buildDie, isCritRoll } from './dice';
 
 describe('parseSides', () => {
   it('extracts sides from a die label', () => {
@@ -121,5 +121,43 @@ describe('buildDie', () => {
   it('defaults extraClass to empty', () => {
     const html = buildDie(3, 4, 'd4');
     expect(html).toContain('class="die d4 "');
+  });
+});
+
+describe('isCritRoll', () => {
+  it('detects max roll as crit success', () => {
+    expect(isCritRoll(20, 20, true)).toBe('success');
+    expect(isCritRoll(6, 6, true)).toBe('success');
+    expect(isCritRoll(8, 8, true)).toBe('success');
+    expect(isCritRoll(4, 4, true)).toBe('success');
+    expect(isCritRoll(100, 100, true)).toBe('success');
+  });
+
+  it('detects nat 1 as crit fail', () => {
+    expect(isCritRoll(1, 20, true)).toBe('fail');
+    expect(isCritRoll(1, 6, true)).toBe('fail');
+    expect(isCritRoll(1, 4, true)).toBe('fail');
+  });
+
+  it('returns null for non-extreme rolls', () => {
+    expect(isCritRoll(10, 20, true)).toBeNull();
+    expect(isCritRoll(3, 6, true)).toBeNull();
+    expect(isCritRoll(5, 8, true)).toBeNull();
+  });
+
+  it('returns null for unused (dropped) rolls', () => {
+    expect(isCritRoll(20, 20, false)).toBeNull();
+    expect(isCritRoll(1, 20, false)).toBeNull();
+    expect(isCritRoll(6, 6, false)).toBeNull();
+  });
+
+  it('returns null for dice with fewer than 4 sides', () => {
+    expect(isCritRoll(2, 2, true)).toBeNull();
+    expect(isCritRoll(1, 2, true)).toBeNull();
+    expect(isCritRoll(3, 3, true)).toBeNull();
+  });
+
+  it('returns null for invalid sides (0)', () => {
+    expect(isCritRoll(5, 0, true)).toBeNull();
   });
 });
