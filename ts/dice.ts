@@ -1,5 +1,10 @@
 /**
- * Dice rolling module — 3D dice rendering, rolling logic, history.
+ * Dice rolling module — clean 2D dice rendering, rolling animation, history.
+ *
+ * Replaces the broken CSS-3D polyhedron approach (which couldn't properly
+ * render d4/d8/d10/d12/d20 faces) with a polished 2D animation: dice tumble
+ * with CSS keyframes while numbers cycle rapidly via JS, then settle with a
+ * satisfying pop-in when the server result arrives.
  */
 import { esc, toast } from './lib/dom';
 import { api } from './lib/api';
@@ -24,153 +29,47 @@ const DICE_NOTATION_PRESETS = [
   { label: 'd4', expr: '1d4' },
 ];
 
-// Pip positions for d6 faces (1-6)
-const D6_PIPS: Record<number, Array<{ top: string; left: string }>> = {
-  1: [{ top: '50%', left: '50%' }],
-  2: [{ top: '25%', left: '25%' }, { top: '75%', left: '75%' }],
-  3: [{ top: '25%', left: '25%' }, { top: '50%', left: '50%' }, { top: '75%', left: '75%' }],
-  4: [{ top: '25%', left: '25%' }, { top: '25%', left: '75%' }, { top: '75%', left: '25%' }, { top: '75%', left: '75%' }],
-  5: [{ top: '25%', left: '25%' }, { top: '25%', left: '75%' }, { top: '50%', left: '50%' }, { top: '75%', left: '25%' }, { top: '75%', left: '75%' }],
-  6: [{ top: '25%', left: '25%' }, { top: '25%', left: '75%' }, { top: '50%', left: '25%' }, { top: '50%', left: '75%' }, { top: '75%', left: '25%' }, { top: '75%', left: '75%' }],
-};
-
-// Cache pre-computed face transforms
-const FACE_TRANSFORMS: Record<number, Array<{ rx: number; ry: number; rz: number }>> = {};
-[4, 6, 8, 10, 12, 20].forEach(s => { FACE_TRANSFORMS[s] = getFaceTransforms(s); });
-
-// ─── 3D Geometry Helpers ───
-
-/** Generate N evenly-distributed points on a sphere (Fibonacci sphere algorithm). */
-function fibonacciSphere(n: number, radius: number): Array<{ x: number; y: number; z: number }> {
-  if (n <= 1) return [{ x: 0, y: 0, z: radius }];
-  const points: Array<{ x: number; y: number; z: number }> = [];
-  const phi = Math.PI * (3 - Math.sqrt(5));
-  for (let i = 0; i < n; i++) {
-    const y = 1 - (i / (n - 1)) * 2;
-    const r = Math.sqrt(1 - y * y);
-    const theta = phi * i;
-    points.push({ x: r * Math.cos(theta) * radius, y: y * radius, z: r * Math.sin(theta) * radius });
-  }
-  return points;
-}
-
-/** Compute CSS rotation angles to make (nx, ny, nz) face the viewer (+Z). */
-function normalToRotation(nx: number, ny: number, nz: number): { rx: number; ry: number } {
-  const ry = Math.atan2(nx, nz) * (180 / Math.PI);
-  const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
-  const rx = Math.asin(-ny / len) * (180 / Math.PI);
-  return { rx, ry };
-}
-
-/** Get pre-calculated face transforms for a given die type. */
-function getFaceTransforms(sides: number): Array<{ rx: number; ry: number; rz: number }> {
-  const radius = 36;
-  if (sides === 6) {
-    return [
-      { rx: 0, ry: 0, rz: 0 },
-      { rx: 0, ry: 180, rz: 0 },
-      { rx: 0, ry: 90, rz: 0 },
-      { rx: 0, ry: -90, rz: 0 },
-      { rx: -90, ry: 0, rz: 0 },
-      { rx: 90, ry: 0, rz: 0 },
-    ];
-  }
-  const points = fibonacciSphere(sides, radius);
-  if (sides === 4) {
-    const t = Math.sqrt(1 / 3);
-    const tetraVerts = [
-      { x: t * radius, y: t * radius, z: t * radius },
-      { x: -t * radius, y: -t * radius, z: t * radius },
-      { x: -t * radius, y: t * radius, z: -t * radius },
-      { x: t * radius, y: -t * radius, z: -t * radius },
-    ];
-    return tetraVerts.map(p => {
-      const norm = normalToRotation(p.x, p.y, p.z);
-      return { rx: norm.rx, ry: norm.ry, rz: 0 };
-    });
-  }
-  return points.map(p => {
-    const norm = normalToRotation(p.x, p.y, p.z);
-    return { rx: norm.rx, ry: norm.ry, rz: 0 };
-  });
-}
-
-/** Compute die rotation string to show a specific face value. */
-function rotateDieToShow(sides: number, value: number): string {
-  const faceIdx = Math.max(0, Math.min(sides - 1, value - 1));
-  const transforms = FACE_TRANSFORMS[sides as keyof typeof FACE_TRANSFORMS]
-    || getFaceTransforms(sides);
-  if (faceIdx < transforms.length) {
-    const t = transforms[faceIdx];
-    return `rotateX(${-t.rx}deg) rotateY(${-t.ry}deg)`;
-  }
-  return '';
-}
-
-/** Compute the rolling animation class for a die type. */
-function rollingClass(sides: number): string {
-  if (sides === 4) return 'rolling-d4';
-  if (sides === 6) return 'rolling';
-  if (sides === 8) return 'rolling-d8';
-  if (sides === 10) return 'rolling-d10';
-  if (sides === 12) return 'rolling-d12';
-  if (sides === 20) return 'rolling-d20';
-  return 'rolling';
-}
-
-/** Face shape class for the polyhedron type. */
-function faceShapeClass(sides: number): string {
-  if (sides === 4 || sides === 8 || sides === 20) return 'tri-face';
-  if (sides === 10) return 'kite-face';
-  if (sides === 12) return 'pent-face';
-  return '';
-}
-
-// ─── Build 3D Die HTML ───
-
-function build3DDie(value: number, sides: number, dieLabel: string): string {
-  const maxSides = sides >= 100 ? 100 : sides;
-  const dieClass = 'd' + (maxSides >= 100 ? 100 : maxSides);
-  const transforms = FACE_TRANSFORMS[maxSides as keyof typeof FACE_TRANSFORMS]
-    || getFaceTransforms(maxSides);
-  const shapeCls = faceShapeClass(maxSides);
-  const dieRot = rotateDieToShow(maxSides, value);
-
-  const facesHtml = transforms.map((t, i) => {
-    const faceValue = i + 1;
-    const displayVal = maxSides === 100
-      ? (faceValue === 10 ? '00' : String(faceValue * 10))
-      : String(faceValue);
-    if (maxSides === 6 && faceValue >= 1 && faceValue <= 6) {
-      const pips = D6_PIPS[faceValue] || [];
-      const pipHtml = pips.map(p =>
-        `<span class="pip" style="top:${p.top};left:${p.left};transform:translate(-50%,-50%)"></span>`
-      ).join('');
-      return `<div class="dice-3d-face ${shapeCls}" style="transform:rotateX(${t.rx}deg) rotateY(${t.ry}deg) translateZ(36px)">${pipHtml}</div>`;
-    }
-    return `<div class="dice-3d-face ${shapeCls}" style="transform:rotateX(${t.rx}deg) rotateY(${t.ry}deg) translateZ(36px)">${displayVal}</div>`;
-  }).join('');
-
-  return `<div class="dice-3d-die ${dieClass}" data-sides="${maxSides}" data-value="${value}" style="transform:${dieRot}">${facesHtml}</div>`;
-}
+// Active rolling intervals (cleared on settle)
+let rollingIntervals: number[] = [];
 
 // ─── Die Value Helpers ───
 
-function rollValue(r: any): number {
+export function rollValue(r: any): number {
+  if (r == null) return 0;
   return typeof r === 'number' ? r : (r.value ?? 0);
 }
 
-function rollUsed(r: any): boolean {
+export function rollUsed(r: any): boolean {
   return typeof r === 'number' ? true : (r.useInTotal !== false);
 }
 
-function rollFlags(r: any): string {
+export function rollFlags(r: any): string {
   return typeof r === 'number' ? '' : (r.modifierFlags || '');
 }
 
-function parseSides(dieLabel: string): number {
+export function parseSides(dieLabel: string): number {
   const m = dieLabel.match(/^d(\d+)$/i);
   return m ? parseInt(m[1]) : 0;
+}
+
+// ─── Build 2D Die HTML ───
+
+/**
+ * Build a single 2D die element.
+ * @param value    The face value to display.
+ * @param sides    Number of sides (determines color theme + shape).
+ * @param dieLabel Label shown above the die (e.g. "d20").
+ * @param extraClass  Extra CSS classes: 'rolling', 'settled', 'die-dropped', 'dice-crit-success', etc.
+ */
+export function buildDie(value: number, sides: number, dieLabel: string, extraClass: string = ''): string {
+  const dieClass = 'd' + (sides >= 100 ? 100 : sides);
+  const displayVal = sides >= 100 && value === 100 ? '00' : String(value);
+  return `<div class="die-wrapper">
+  <span class="die-label">${dieLabel}</span>
+  <div class="die ${dieClass} ${extraClass}" data-sides="${sides}" data-value="${value}">
+    <span class="die-value">${displayVal}</span>
+  </div>
+</div>`;
 }
 
 // ─── Dice Expression / Quick Roll ───
@@ -185,16 +84,31 @@ export async function rollWithAdvantage(isAdv: boolean) {
   const input = document.getElementById('diceExpr') as HTMLInputElement;
   const expr = input.value.trim();
   if (!expr.match(/^\d*d\d+/)) return;
+
+  const resultEl = document.getElementById('diceResult');
+  if (resultEl) resultEl.style.display = 'none';
+
+  // Start tumbling animation immediately
+  const m = expr.match(/(\d+)d(\d+)/i);
+  if (m) {
+    const count = parseInt(m[1] || '1');
+    const sides = parseInt(m[2]);
+    const fakeBreakdown = [{ die: 'd' + sides, rolls: Array(count).fill(1), total: 0 }];
+    animateDiceRoll(fakeBreakdown);
+  }
+
   try {
     const result = await api('POST', '/api/roll', {
       expression: expr,
       character_id: currentChar?.id,
       advantage: isAdv ? 'advantage' : 'disadvantage',
     });
-    const container = document.getElementById('dice3dContainer');
-    const resultDiv = document.getElementById('diceResult');
-    if (container) container.innerHTML = '';
-    if (resultDiv) {
+
+    if (result.breakdown) {
+      settleDice(result.breakdown);
+    }
+
+    if (resultEl) {
       const rolls = result.breakdown?.[0]?.rolls || [];
       const chosen = result.total;
       let badge = '';
@@ -206,24 +120,27 @@ export async function rollWithAdvantage(isAdv: boolean) {
           else if (v === 1) badge = '<span class="badge bg-danger ms-2">Critical Fail!</span>';
         }
       }
-      resultDiv.style.display = 'block';
-      resultDiv.innerHTML = `
-        <div class="dice-result-box text-center">
-          <div class="roll-expression">${esc(result.expression)} (${isAdv ? 'advantage' : 'disadvantage'})</div>
-          <div class="d-flex justify-content-center gap-3 mb-2">
-            ${rolls.map((r: any, i: number) => {
-              const v = rollValue(r);
-              const used = rollUsed(r);
-              const style = used ? 'border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)' : 'opacity:0.4';
-              return `<span class="die-face${used ? '' : ' die-dropped'}" style="${style}">${v}</span>`;
-            }).join('')}
-          </div>
-          <div class="roll-total-anim">${chosen}</div>
-          ${badge}
-          <div class="roll-text text-muted">${esc(result.text)}</div>
-        </div>`;
-      animateDiceRoll(result.breakdown);
+
+      setTimeout(() => {
+        resultEl.style.display = 'block';
+        resultEl.innerHTML = `
+          <div class="dice-result-box text-center">
+            <div class="roll-expression">${esc(result.expression)} (${isAdv ? 'advantage' : 'disadvantage'})</div>
+            <div class="d-flex justify-content-center gap-3 mb-2">
+              ${rolls.map((r: any, i: number) => {
+                const v = rollValue(r);
+                const used = rollUsed(r);
+                const style = used ? 'border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)' : 'opacity:0.4';
+                return `<span class="die-face${used ? '' : ' die-dropped'}" style="${style}">${v}</span>`;
+              }).join('')}
+            </div>
+            <div class="roll-total-anim">${chosen}</div>
+            ${badge}
+            <div class="roll-text text-muted">${esc(result.text)}</div>
+          </div>`;
+      }, 500);
     }
+    loadDiceHistory();
   } catch (e: any) {
     toast(e.message, true);
   }
@@ -251,7 +168,7 @@ export function renderDiceTab() {
           </button>`
         ).join('')}
       </div>
-      <div id="dice3dContainer" class="dice-3d-container"></div>
+      <div id="dice3dContainer" class="dice-container"></div>
       <div id="diceResult" class="mb-3" style="display:none"></div>
       <button class="btn btn-gold" onclick="doRoll()"><i class="fa-solid fa-dice me-2"></i>Roll the Bones</button>
       <div class="ornament my-3">✧</div>
@@ -265,7 +182,16 @@ export function renderDiceTab() {
 
 // ─── Rolling Animation ───
 
+/**
+ * Show tumbling dice with rapidly cycling numbers.
+ * Each die gets a CSS tumble animation + a JS interval that cycles
+ * the displayed number to simulate the die rolling.
+ */
 function animateDiceRoll(breakdown: any[]) {
+  // Clear any existing intervals
+  rollingIntervals.forEach(id => clearInterval(id));
+  rollingIntervals = [];
+
   const container = document.getElementById('dice3dContainer');
   if (!container) return;
 
@@ -273,59 +199,54 @@ function animateDiceRoll(breakdown: any[]) {
     if (!b.rolls || b.rolls.length === 0) return '';
     const sides = parseSides(b.die);
     if (sides === 0) return '';
-    const dieLabel = b.die;
-    const rollCls = rollingClass(sides);
-    const transforms = FACE_TRANSFORMS[sides as keyof typeof FACE_TRANSFORMS]
-      || getFaceTransforms(sides);
-    const shapeCls = faceShapeClass(sides);
-
-    return b.rolls.map((r: any) => {
-      const facesHtml = transforms.map((t, i) => {
-        const displayVal = sides >= 100
-          ? (i + 1 === 10 ? '00' : String((i + 1) * 10))
-          : String(i + 1);
-        if (sides === 6) {
-          const pips = D6_PIPS[i + 1] || [];
-          const pipHtml = pips.map(p =>
-            `<span class="pip" style="top:${p.top};left:${p.left};transform:translate(-50%,-50%)"></span>`
-          ).join('');
-          return `<div class="dice-3d-face ${shapeCls}" style="transform:rotateX(${t.rx}deg) rotateY(${t.ry}deg) translateZ(36px)">${pipHtml}</div>`;
-        }
-        return `<div class="dice-3d-face ${shapeCls}" style="transform:rotateX(${t.rx}deg) rotateY(${t.ry}deg) translateZ(36px)">${displayVal}</div>`;
-      }).join('');
-      const dieHtml = `<div class="dice-3d-die ${b.die} ${rollCls}" data-sides="${sides}" data-value="0">${facesHtml}</div>`;
-      return `<div class="dice-3d-wrapper"><span class="dice-3d-label">${dieLabel}</span>${dieHtml}</div>`;
-    }).join('');
+    return b.rolls.map(() => buildDie(1, sides, b.die, 'rolling')).join('');
   }).join('');
+
+  // Start number cycling for each rolling die
+  const dieElements = container.querySelectorAll('.die.rolling');
+  dieElements.forEach((dieEl) => {
+    const dieSides = parseInt(dieEl.getAttribute('data-sides') || '6');
+    const valueEl = dieEl.querySelector('.die-value');
+    if (valueEl) {
+      const intervalId = window.setInterval(() => {
+        const randVal = Math.floor(Math.random() * dieSides) + 1;
+        valueEl.textContent = dieSides >= 100 && randVal === 100 ? '00' : String(randVal);
+      }, 80);
+      rollingIntervals.push(intervalId);
+    }
+  });
 }
 
 // ─── Settle Dice (Final Result) ───
 
+/**
+ * Stop the rolling animation and show final values with a pop-in effect.
+ * Called after the server responds with the real roll results.
+ */
 function settleDice(breakdown: any[]) {
   const container = document.getElementById('dice3dContainer');
   if (!container) return;
 
   setTimeout(() => {
+    // Clear cycling intervals
+    rollingIntervals.forEach(id => clearInterval(id));
+    rollingIntervals = [];
+
     container.innerHTML = breakdown.map((b: any) => {
       if (!b.rolls || b.rolls.length === 0) return '';
       const sides = parseSides(b.die);
       if (sides === 0) return '';
-      const dieLabel = b.die;
 
       return b.rolls.map((r: any) => {
         const v = rollValue(r);
-        const dieHtml = build3DDie(v, sides, dieLabel);
-
-        let extraClass = '';
+        const used = rollUsed(r);
+        let extraClass = 'settled';
+        if (!used) extraClass += ' die-dropped';
         if (sides === 20) {
-          if (v === 20) extraClass = ' dice-crit-success';
-          else if (v === 1) extraClass = ' dice-crit-fail';
+          if (v === 20) extraClass += ' dice-crit-success';
+          else if (v === 1) extraClass += ' dice-crit-fail';
         }
-
-        const wrapper = document.createElement('div');
-        wrapper.className = 'dice-3d-wrapper' + extraClass;
-        wrapper.innerHTML = `<span class="dice-3d-label">${dieLabel}</span>${dieHtml}`;
-        return wrapper.outerHTML;
+        return buildDie(v, sides, b.die, extraClass);
       }).join('');
     }).join('');
   }, 900);
@@ -339,6 +260,8 @@ export async function doRoll() {
 
   const resultEl = document.getElementById('diceResult')!;
   resultEl.style.display = 'none';
+
+  // Start tumbling animation immediately with a fake breakdown
   const container = document.getElementById('dice3dContainer');
   if (container) {
     const m = expr.match(/(\d+)d(\d+)/gi);
