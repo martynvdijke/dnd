@@ -99,18 +99,19 @@ test.describe('Responsive design', () => {
   test('character grid adapts to viewport', async ({ page }) => {
     const prefix = uniqueName();
     for (let i = 0; i < 3; i++) {
-      await page.click('text=New Character');
+      await page.click('button:has-text("New Character")');
+      await page.locator('#newName').waitFor({ state: 'visible', timeout: 5000 });
       await page.fill('#newName', `${prefix}-${i}`);
       await page.fill('#newRace', 'Human');
       await page.fill('#newClass', 'Fighter');
-      await page.click('text=Create');
+      await page.click('.modal button:has-text("Create")');
       await waitModalClosed(page);
     }
 
     await page.setViewportSize({ width: 1280, height: 720 });
-    await expect(page.locator('#charGrid')).toContainText(`${prefix}-0`);
+    await expect(page.locator('#charGrid')).toContainText(`${prefix}-0`, { timeout: 5000 });
 
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(page.locator('#charGrid')).toContainText(`${prefix}-0`);
+    await expect(page.locator('#charGrid')).toContainText(`${prefix}-0`, { timeout: 5000 });
   });
 });

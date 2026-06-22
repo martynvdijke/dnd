@@ -99,13 +99,11 @@ test.describe('Advanced Search', () => {
       await page.fill('#searchInput', name);
     }
     await page.evaluate(() => window.doSearch());
-    await page.waitForTimeout(1000);
 
     const result = page.locator('.search-result-item').first();
-    await expect(result).toBeVisible();
+    await expect(result).toBeVisible({ timeout: 5000 });
     await result.click();
-    await page.waitForTimeout(500);
 
-    await expect(page.locator('#sheetName')).toContainText(name);
+    await expect(page.locator('#sheetName')).toContainText(name, { timeout: 10000 });
   });
 });

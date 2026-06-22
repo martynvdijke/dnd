@@ -59,7 +59,13 @@ async function submitOneShotForm(page, { title, template, difficulty, minutes })
   });
   await page.locator('#genericModalBody form button.btn-primary').click();
   await waitModalClosed(page);
-  await page.waitForTimeout(500);
+  // Wait for the adventure to appear in the list instead of a fixed delay
+  await page.waitForFunction(
+    (t) => !!document.querySelector(`#oneshotSection .list-group-item`) &&
+      Array.from(document.querySelectorAll('#oneshotSection .list-group-item')).some(i => i.textContent.includes(t)),
+    title,
+    { timeout: 5000 }
+  ).catch(() => {});
 }
 
 test.describe('One-Shot Adventure Features', () => {

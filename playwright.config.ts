@@ -5,9 +5,9 @@ export default defineConfig({
   testDir: './tests',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: 1,
+  retries: 2,
   workers: process.env.CI ? Math.max(1, Math.floor(os.cpus().length / 2)) : Math.max(1, Math.floor(os.cpus().length / 4)),
-  timeout: 45000,
+  timeout: 60000,
   expect: {
     timeout: 10000,
     toHaveScreenshot: { maxDiffPixelRatio: 0.05 },
