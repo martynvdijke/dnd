@@ -110,25 +110,25 @@ test.describe('Dice rolling', () => {
 
   test('crit celebration appears on nat 20', async ({ page }) => {
     await clickNavItem(page, 'Dice', 'dice');
+    // Mock the roll API to always return a nat 20 — deterministic, no RNG
+    await page.route('**/api/roll', (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          total: 20,
+          expression: '1d20',
+          text: '1d20 (20) = 20',
+          breakdown: [{ die: 'd20', rolls: [{ value: 20, useInTotal: true, modifierFlags: '' }], total: 20 }],
+        }),
+      });
+    });
     const input = page.locator('#diceExpr');
-    // Roll d20 repeatedly until we get a nat 20 (max 50 attempts)
-    for (let i = 0; i < 50; i++) {
-      await input.fill('1d20');
-      await page.click('text=Roll the Bones');
-      // Wait for result to appear
-      await expect(page.locator('#diceResult')).toBeVisible({ timeout: 10000 });
-      // Wait a bit for settle animation + crit celebration
-      await page.waitForTimeout(1200);
-      // Check if crit overlay appeared
-      const critOverlay = page.locator('.crit-overlay');
-      if (await critOverlay.count() > 0) {
-        // Crit celebration fired! Verify the text
-        const critText = page.locator('.crit-text');
-        await expect(critText).toContainText(/CRITICAL/i);
-        return; // Test passed
-      }
-    }
-    // If we didn't get a nat 20 in 50 rolls, skip rather than fail
-    test.skip(true, 'No nat 20 in 50 rolls (statistically rare to miss all)');
+    await input.fill('1d20');
+    await page.click('text=Roll the Bones');
+    // Settle animation takes 900ms, crit overlay appears right after
+    const critOverlay = page.locator('.crit-overlay');
+    await expect(critOverlay).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.crit-text')).toContainText(/CRITICAL/i);
   });
 });
