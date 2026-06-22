@@ -1,3 +1,17 @@
+# [2.21.0](https://github.com/martynvdijke/dnd/compare/v2.20.0...v2.21.0) (2026-06-22)
+
+
+### Bug Fixes
+
+* combat-animations and dice crit tests — click Combat tab, use combatant-row-active selector, mock dice API ([bb28bdd](https://github.com/martynvdijke/dnd/commit/bb28bdd220c6404364aad6ea9a09b892a637e9a4))
+* reduce Playwright test flakiness — more retries, longer timeout, proper waits ([b544902](https://github.com/martynvdijke/dnd/commit/b5449023004d249ae5b143915c72b31c44351d10))
+
+
+### Features
+
+* dice roller shapes, bevel shading, crit glow, Web Audio sounds, deceleration cycling ([4e00666](https://github.com/martynvdijke/dnd/commit/4e006660ee1cfb67837c2237d8acb420818b95cb))
+* GSAP combat animations — crit celebration, HP damage/heal, turn transition ([dfd4efb](https://github.com/martynvdijke/dnd/commit/dfd4efb8da5e9bc51a3d8af99b65407935597912))
+
 # [2.20.0](https://github.com/martynvdijke/dnd/compare/v2.19.2...v2.20.0) (2026-06-20)
 
 
