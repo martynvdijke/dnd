@@ -23,7 +23,15 @@ export function capitalize(s: string): string {
 export function showModal(title: string, bodyHtml: string): void {
   const modal = getModal();
   document.getElementById('genericModalTitle')!.textContent = title;
-  document.getElementById('genericModalBody')!.innerHTML = bodyHtml;
+  const body = document.getElementById('genericModalBody')!;
+  body.innerHTML = bodyHtml;
+  // Process any HTMX attributes (hx-trigger="load", hx-get, etc.) in the
+  // newly inserted content. Without this, HTMX is unaware of elements
+  // added via innerHTML and hx-trigger="load" never fires.
+  const htmx = (window as any).htmx;
+  if (htmx && typeof htmx.process === 'function') {
+    htmx.process(body);
+  }
   modal.show();
 }
 
