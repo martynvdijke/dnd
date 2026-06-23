@@ -1,3 +1,10 @@
+## [2.21.3](https://github.com/martynvdijke/dnd/compare/v2.21.2...v2.21.3) (2026-06-23)
+
+
+### Bug Fixes
+
+* call htmx.process() in showModal so HTMX content in modals activates ([e160dad](https://github.com/martynvdijke/dnd/commit/e160dad82f2dac4c02d7bf01d609469e503ad99f)), closes [#genericModalBody](https://github.com/martynvdijke/dnd/issues/genericModalBody)
+
 ## [2.21.2](https://github.com/martynvdijke/dnd/compare/v2.21.1...v2.21.2) (2026-06-22)
 
 ## [2.21.1](https://github.com/martynvdijke/dnd/compare/v2.21.0...v2.21.1) (2026-06-22)
