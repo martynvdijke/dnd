@@ -1643,11 +1643,13 @@ func HtmxCampaignOverview(c *gin.Context) {
 		tlRows.Close()
 	}
 
-	charRows, _ := db.DB.Query("SELECT id, name, race, class, level, hp_current, hp_max FROM characters WHERE campaign_id=? ORDER BY name", campaignID)
+	charRows, _ := db.DB.Query("SELECT id, name, race, class, level, hp_current, hp_max, COALESCE(portrait_url,'') FROM characters WHERE campaign_id=? ORDER BY name", campaignID)
 	if charRows != nil {
+		raceColors := GetRaceColorMap()
 		for charRows.Next() {
 			var cs CharacterDashSummary
-			charRows.Scan(&cs.ID, &cs.Name, &cs.Race, &cs.Class, &cs.Level, &cs.HPCurrent, &cs.HPMax)
+			charRows.Scan(&cs.ID, &cs.Name, &cs.Race, &cs.Class, &cs.Level, &cs.HPCurrent, &cs.HPMax, &cs.PortraitURL)
+			cs.RaceColor = raceColors[cs.Race]
 			data.Characters = append(data.Characters, cs)
 		}
 		charRows.Close()

@@ -23,6 +23,7 @@ func ListCompanions(c *gin.Context) {
 	}
 	defer rows.Close()
 	var out = make([]models.Companion, 0)
+	raceColors := GetRaceColorMap()
 	for rows.Next() {
 		var comp models.Companion
 		var isAlive int
@@ -30,6 +31,7 @@ func ListCompanions(c *gin.Context) {
 			&comp.Str, &comp.Dex, &comp.Con, &comp.Int, &comp.Wis, &comp.Cha, &comp.Speed,
 			&comp.Abilities, &comp.Notes, &comp.PortraitURL, &isAlive)
 		comp.IsAlive = isAlive == 1
+		comp.RaceColor = raceColors[comp.Race]
 		out = append(out, comp)
 	}
 	c.JSON(http.StatusOK, out)

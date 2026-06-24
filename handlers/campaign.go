@@ -246,6 +246,7 @@ func ListNPCs(c *gin.Context) {
 		return
 	}
 	var out = make([]models.NPC, 0)
+	raceColors := GetRaceColorMap()
 	for _, n := range npcs {
 		out = append(out, models.NPC{
 			ID:          n.ID,
@@ -274,6 +275,7 @@ func ListNPCs(c *gin.Context) {
 			Backstory:   n.Backstory,
 			PortraitURL: n.PortraitURL,
 			CreatedAt:   n.CreatedAt,
+			RaceColor:   raceColors[n.Race],
 		})
 	}
 	c.JSON(http.StatusOK, out)
@@ -441,14 +443,16 @@ func GetCharacterNPCs(c *gin.Context) {
 	}
 	type NPCLink struct {
 		models.CharacterNPC
-		NPCName  string `json:"npc_name"`
-		NPCRace  string `json:"npc_race"`
-		NPCClass string `json:"npc_class"`
-		NPHPMax  int    `json:"npc_hp_max"`
-		NPHPCurr int    `json:"npc_hp_current"`
-		NPCAlive bool   `json:"npc_is_alive"`
+		NPCName     string `json:"npc_name"`
+		NPCRace     string `json:"npc_race"`
+		NPCRaceColor string `json:"npc_race_color,omitempty"`
+		NPCClass     string `json:"npc_class"`
+		NPHPMax      int    `json:"npc_hp_max"`
+		NPHPCurr     int    `json:"npc_hp_current"`
+		NPCAlive     bool   `json:"npc_is_alive"`
 	}
 	var out = make([]NPCLink, 0)
+	raceColors := GetRaceColorMap()
 	for _, cn := range cnpcs {
 		npcEnt := cn.Edges.Npc
 		out = append(out, NPCLink{
@@ -461,12 +465,13 @@ func GetCharacterNPCs(c *gin.Context) {
 				InteractionCount: cn.InteractionCount,
 				LastInteracted:   cn.LastInteracted,
 			},
-			NPCName:  npcEnt.Name,
-			NPCRace:  npcEnt.Race,
-			NPCClass: npcEnt.Class,
-			NPHPMax:  npcEnt.HpMax,
-			NPHPCurr: npcEnt.HpCurrent,
-			NPCAlive: npcEnt.IsAlive,
+			NPCName:      npcEnt.Name,
+			NPCRace:      npcEnt.Race,
+			NPCRaceColor: raceColors[npcEnt.Race],
+			NPCClass:     npcEnt.Class,
+			NPHPMax:      npcEnt.HpMax,
+			NPHPCurr:     npcEnt.HpCurrent,
+			NPCAlive:     npcEnt.IsAlive,
 		})
 	}
 	c.JSON(http.StatusOK, out)
@@ -1142,19 +1147,21 @@ func GetCampaignGraphData(c *gin.Context) {
 // ─── Party View ───
 
 type PartyMember struct {
-	ID         int64  `json:"id"`
-	UserID     int64  `json:"user_id"`
-	OwnerName  string `json:"owner_name"`
-	Name       string `json:"name"`
-	Race       string `json:"race"`
-	Class      string `json:"class"`
-	Level      int    `json:"level"`
-	AC         int    `json:"ac"`
-	HPMax      int    `json:"hp_max"`
-	HPCurrent  int    `json:"hp_current"`
-	TempHP     int    `json:"temp_hp"`
-	Status     string `json:"status"`
-	CampaignID *int64 `json:"campaign_id"`
+	ID          int64  `json:"id"`
+	UserID      int64  `json:"user_id"`
+	OwnerName   string `json:"owner_name"`
+	Name        string `json:"name"`
+	Race        string `json:"race"`
+	RaceColor   string `json:"race_color"`
+	Class       string `json:"class"`
+	Level       int    `json:"level"`
+	AC          int    `json:"ac"`
+	HPMax       int    `json:"hp_max"`
+	HPCurrent   int    `json:"hp_current"`
+	TempHP      int    `json:"temp_hp"`
+	Status      string `json:"status"`
+	PortraitURL string `json:"portrait_url"`
+	CampaignID  *int64 `json:"campaign_id"`
 }
 
 func GetPartyView(c *gin.Context) {
@@ -1163,6 +1170,7 @@ func GetPartyView(c *gin.Context) {
 	role, _ := c.Get("role")
 	ctx := c.Request.Context()
 
+	var rcMap map[string]string
 	var camps []*ent.Campaign
 	var err error
 
@@ -1228,19 +1236,29 @@ func GetPartyView(c *gin.Context) {
 		if ch.Edges.User != nil {
 			ownerName = ch.Edges.User.Username
 		}
+		// Cache race colors for this request
+		var raceColor string
+		if rcMap == nil {
+			rcMap = GetRaceColorMap()
+		}
+		if rc, ok := rcMap[strings.ToLower(strings.TrimSpace(ch.Race))]; ok {
+			raceColor = rc
+		}
 		pm := PartyMember{
-			ID:        ch.ID,
-			UserID:    ch.UserID,
-			OwnerName: ownerName,
-			Name:      ch.Name,
-			Race:      ch.Race,
-			Class:     ch.Class,
-			Level:     ch.Level,
-			AC:        ch.Ac,
-			HPMax:     ch.HpMax,
-			HPCurrent: ch.HpCurrent,
-			TempHP:    ch.TempHp,
-			Status:    "alive",
+			ID:          ch.ID,
+			UserID:      ch.UserID,
+			OwnerName:   ownerName,
+			Name:        ch.Name,
+			Race:        ch.Race,
+			RaceColor:   raceColor,
+			Class:       ch.Class,
+			Level:       ch.Level,
+			AC:          ch.Ac,
+			HPMax:       ch.HpMax,
+			HPCurrent:   ch.HpCurrent,
+			TempHP:      ch.TempHp,
+			Status:      "alive",
+			PortraitURL: ch.PortraitURL,
 		}
 		if pm.HPCurrent <= 0 {
 			pm.Status = "down"

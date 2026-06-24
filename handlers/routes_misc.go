@@ -79,6 +79,10 @@ func RegisterMiscAuthRoutes(r *gin.RouterGroup) {
 	r.GET("/generate/road-encounter", HandleGenerateRoadEncounter)
 	r.GET("/generate/weather", HandleGenerateWeather)
 
+	// Race Colors
+	r.GET("/race-colors", ListRaceColors)
+	r.PUT("/race-colors", UpdateRaceColors)
+
 	// Uploads
 	r.POST("/upload", HandleUpload)
 	r.GET("/uploads", GetUploads)

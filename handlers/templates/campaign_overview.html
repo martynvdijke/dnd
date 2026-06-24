@@ -27,10 +27,11 @@
         <div class="card-body p-2">
           <div class="list-group list-group-flush">
             {{range .Characters}}
-            <div class="list-group-item px-2 py-1 d-flex justify-content-between align-items-center">
+             <div class="list-group-item px-2 py-1 d-flex justify-content-between align-items-center">
               <span>
                 <strong>{{.Name}}</strong>
-                <span class="text-muted small ms-1">{{.Race}} {{.Class}} Lv{{.Level}}</span>
+                {{if .RaceColor}}<span class="badge ms-1" style="background:{{.RaceColor}};color:#fff">{{.Race}}</span>{{else}}<span class="text-muted small ms-1">{{.Race}}</span>{{end}}
+                <span class="text-muted small">{{.Class}} Lv{{.Level}}</span>
               </span>
               <span class="small">
                 <span class="badge bg-danger me-1">HP {{.HPCurrent}}/{{.HPMax}}</span>

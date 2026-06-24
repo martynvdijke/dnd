@@ -177,13 +177,14 @@ type CampaignMonsterRoster struct {
 }
 
 type CampaignNPC struct {
-	ID         int64  `json:"id"`
-	CampaignID int64  `json:"campaign_id"`
-	NPCID      int64  `json:"npc_id"`
-	Role       string `json:"role"`
-	Notes      string `json:"notes"`
-	CreatedAt  string `json:"created_at"`
-	NPCName    string `json:"npc_name,omitempty"`
-	NPCRace    string `json:"npc_race,omitempty"`
-	NPCClass   string `json:"npc_class,omitempty"`
+	ID          int64  `json:"id"`
+	CampaignID  int64  `json:"campaign_id"`
+	NPCID       int64  `json:"npc_id"`
+	Role        string `json:"role"`
+	Notes       string `json:"notes"`
+	CreatedAt   string `json:"created_at"`
+	NPCName     string `json:"npc_name,omitempty"`
+	NPCRace     string `json:"npc_race,omitempty"`
+	NPCRaceColor string `json:"npc_race_color,omitempty"`
+	NPCClass    string `json:"npc_class,omitempty"`
 }

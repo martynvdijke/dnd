@@ -65,22 +65,25 @@ func ListCharacters(c *gin.Context) {
 	role, _ := c.Get("role")
 
 	type CharSummary struct {
-		ID        int64  `json:"id"`
-		UserID    int64  `json:"user_id"`
-		Name      string `json:"name"`
-		Race      string `json:"race"`
-		Class     string `json:"class"`
-		Level     int    `json:"level"`
-		HPMax     int    `json:"hp_max"`
-		HPCurrent int    `json:"hp_current"`
+		ID          int64  `json:"id"`
+		UserID      int64  `json:"user_id"`
+		Name        string `json:"name"`
+		Race        string `json:"race"`
+		Class       string `json:"class"`
+		Level       int    `json:"level"`
+		HPMax       int    `json:"hp_max"`
+		HPCurrent   int    `json:"hp_current"`
+		PortraitURL string `json:"portrait_url,omitempty"`
+		RaceColor   string `json:"race_color,omitempty"`
 	}
 	chars := []CharSummary{}
+	raceColors := GetRaceColorMap()
 
 	if role == "admin" {
 		query := c.DefaultQuery("q", "")
 		if query != "" {
 			rows, err := db.DB.Query(`
-				SELECT c.id, c.user_id, c.name, c.race, c.class, c.level, c.hp_max, c.hp_current
+				SELECT c.id, c.user_id, c.name, c.race, c.class, c.level, c.hp_max, c.hp_current, COALESCE(c.portrait_url,'')
 				FROM characters c JOIN characters_fts fts ON c.id = fts.rowid
 				WHERE characters_fts MATCH ? ORDER BY c.updated_at DESC`, query)
 			if err != nil {
@@ -90,7 +93,8 @@ func ListCharacters(c *gin.Context) {
 			defer rows.Close()
 			for rows.Next() {
 				var ch CharSummary
-				rows.Scan(&ch.ID, &ch.UserID, &ch.Name, &ch.Race, &ch.Class, &ch.Level, &ch.HPMax, &ch.HPCurrent)
+				rows.Scan(&ch.ID, &ch.UserID, &ch.Name, &ch.Race, &ch.Class, &ch.Level, &ch.HPMax, &ch.HPCurrent, &ch.PortraitURL)
+				ch.RaceColor = raceColors[ch.Race]
 				chars = append(chars, ch)
 			}
 		} else {
@@ -100,7 +104,9 @@ func ListCharacters(c *gin.Context) {
 				return
 			}
 			for _, e := range entChars {
-				chars = append(chars, CharSummary{ID: e.ID, UserID: e.UserID, Name: e.Name, Race: e.Race, Class: e.Class, Level: e.Level, HPMax: e.HpMax, HPCurrent: e.HpCurrent})
+				ch := CharSummary{ID: e.ID, UserID: e.UserID, Name: e.Name, Race: e.Race, Class: e.Class, Level: e.Level, HPMax: e.HpMax, HPCurrent: e.HpCurrent, PortraitURL: e.PortraitURL}
+				ch.RaceColor = raceColors[ch.Race]
+				chars = append(chars, ch)
 			}
 		}
 	} else {
@@ -111,7 +117,9 @@ func ListCharacters(c *gin.Context) {
 			return
 		}
 		for _, e := range entChars {
-			chars = append(chars, CharSummary{ID: e.ID, UserID: e.UserID, Name: e.Name, Race: e.Race, Class: e.Class, Level: e.Level, HPMax: e.HpMax, HPCurrent: e.HpCurrent})
+			ch := CharSummary{ID: e.ID, UserID: e.UserID, Name: e.Name, Race: e.Race, Class: e.Class, Level: e.Level, HPMax: e.HpMax, HPCurrent: e.HpCurrent, PortraitURL: e.PortraitURL}
+			ch.RaceColor = raceColors[ch.Race]
+			chars = append(chars, ch)
 		}
 	}
 	c.JSON(http.StatusOK, chars)
@@ -125,20 +133,23 @@ func ListAllCharacters(c *gin.Context) {
 	}
 
 	type CharSummary struct {
-		ID        int64  `json:"id"`
-		UserID    int64  `json:"user_id"`
-		Username  string `json:"username"`
-		Name      string `json:"name"`
-		Race      string `json:"race"`
-		Class     string `json:"class"`
-		Level     int    `json:"level"`
-		HPMax     int    `json:"hp_max"`
-		HPCurrent int    `json:"hp_current"`
+		ID          int64  `json:"id"`
+		UserID      int64  `json:"user_id"`
+		Username    string `json:"username"`
+		Name        string `json:"name"`
+		Race        string `json:"race"`
+		Class       string `json:"class"`
+		Level       int    `json:"level"`
+		HPMax       int    `json:"hp_max"`
+		HPCurrent   int    `json:"hp_current"`
+		PortraitURL string `json:"portrait_url,omitempty"`
+		RaceColor   string `json:"race_color,omitempty"`
 	}
 	chars := make([]CharSummary, 0)
+	raceColors := GetRaceColorMap()
 
 	rows, err := db.DB.Query(`
-		SELECT c.id, c.user_id, u.username, c.name, c.race, c.class, c.level, c.hp_max, c.hp_current
+		SELECT c.id, c.user_id, u.username, c.name, c.race, c.class, c.level, c.hp_max, c.hp_current, COALESCE(c.portrait_url,'')
 		FROM characters c
 		JOIN users u ON c.user_id = u.id
 		ORDER BY c.updated_at DESC`)
@@ -149,7 +160,8 @@ func ListAllCharacters(c *gin.Context) {
 	defer rows.Close()
 	for rows.Next() {
 		var ch CharSummary
-		rows.Scan(&ch.ID, &ch.UserID, &ch.Username, &ch.Name, &ch.Race, &ch.Class, &ch.Level, &ch.HPMax, &ch.HPCurrent)
+		rows.Scan(&ch.ID, &ch.UserID, &ch.Username, &ch.Name, &ch.Race, &ch.Class, &ch.Level, &ch.HPMax, &ch.HPCurrent, &ch.PortraitURL)
+		ch.RaceColor = raceColors[ch.Race]
 		chars = append(chars, ch)
 	}
 	c.JSON(http.StatusOK, chars)

@@ -25,10 +25,12 @@ func ListCampaignNPCs(c *gin.Context) {
 	}
 	defer rows.Close()
 	out := make([]models.CampaignNPC, 0)
+	raceColors := GetRaceColorMap()
 	for rows.Next() {
 		var npc models.CampaignNPC
 		rows.Scan(&npc.ID, &npc.CampaignID, &npc.NPCID, &npc.Role, &npc.Notes, &npc.CreatedAt,
 			&npc.NPCName, &npc.NPCRace, &npc.NPCClass)
+		npc.NPCRaceColor = raceColors[npc.NPCRace]
 		out = append(out, npc)
 	}
 	c.JSON(http.StatusOK, out)

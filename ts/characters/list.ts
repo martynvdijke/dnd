@@ -15,8 +15,14 @@ export async function loadCharacters() {
     grid.innerHTML = chars.map((c: any) => `
       <div class="col-md-6 col-lg-4">
         <div class="character-card" onclick="openChar(${c.id})">
-          <div class="char-name">${esc(c.name)}</div>
-          <div class="char-detail">${esc(c.race)} ${esc(c.class)} · Level ${c.level}</div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            ${c.portrait_url ? `<img src="${esc(c.portrait_url)}" class="character-portrait" style="width:32px;height:32px;object-fit:cover;border-radius:50%" alt="">` : ''}
+            <div class="char-name">${esc(c.name)}</div>
+          </div>
+          <div class="char-detail">
+            ${c.race_color ? `<span class="badge" style="background:${c.race_color};color:#fff">${esc(c.race)}</span>` : esc(c.race)}
+            ${esc(c.class)} · Level ${c.level}
+          </div>
           <div class="char-hp mt-1">HP: ${c.hp_current}/${c.hp_max}</div>
         </div>
       </div>

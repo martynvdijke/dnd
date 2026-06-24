@@ -66,13 +66,15 @@ type TimelineEventSummary struct {
 }
 
 type CharacterDashSummary struct {
-	ID        int64  `json:"id"`
-	Name      string `json:"name"`
-	Race      string `json:"race"`
-	Class     string `json:"class"`
-	Level     int    `json:"level"`
-	HPCurrent int    `json:"hp_current"`
-	HPMax     int    `json:"hp_max"`
+	ID          int64  `json:"id"`
+	Name        string `json:"name"`
+	Race        string `json:"race"`
+	Class       string `json:"class"`
+	Level       int    `json:"level"`
+	HPCurrent   int    `json:"hp_current"`
+	HPMax       int    `json:"hp_max"`
+	PortraitURL string `json:"portrait_url,omitempty"`
+	RaceColor   string `json:"race_color,omitempty"`
 }
 
 func GetCampaignDashboard(c *gin.Context) {
@@ -122,11 +124,13 @@ func GetCampaignDashboard(c *gin.Context) {
 	}
 
 	// Character summaries
-	charRows, _ := db.DB.Query("SELECT id, name, race, class, level, hp_current, hp_max FROM characters WHERE campaign_id=? ORDER BY name", campaignID)
+	charRows, _ := db.DB.Query("SELECT id, name, race, class, level, hp_current, hp_max, COALESCE(portrait_url,'') FROM characters WHERE campaign_id=? ORDER BY name", campaignID)
 	if charRows != nil {
+		raceColors := GetRaceColorMap()
 		for charRows.Next() {
 			var cs CharacterDashSummary
-			charRows.Scan(&cs.ID, &cs.Name, &cs.Race, &cs.Class, &cs.Level, &cs.HPCurrent, &cs.HPMax)
+			charRows.Scan(&cs.ID, &cs.Name, &cs.Race, &cs.Class, &cs.Level, &cs.HPCurrent, &cs.HPMax, &cs.PortraitURL)
+			cs.RaceColor = raceColors[cs.Race]
 			dash.CharacterSummary = append(dash.CharacterSummary, cs)
 		}
 		charRows.Close()

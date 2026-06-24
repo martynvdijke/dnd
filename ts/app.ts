@@ -12,6 +12,7 @@ import { showView, setCurrentView, getCurrentView } from './navigation';
 import { toggleFabMenu, updateFabForView } from './fab';
 import { initBridge } from './lib/bridge';
 import { esc, capitalize, showModal, hideModal, toast } from './lib/dom';
+import { FilePicker } from './file-picker';
 import { initTheme } from './lib/theme';
 import { api, setCsrfToken, getCsrfToken } from './lib/api';
 import { initShortcuts, showShortcutsHelp, getSections } from './lib/shortcuts';
@@ -1038,6 +1039,7 @@ function renderDetails() {
           ${c.portrait_url ? `<img src="${esc(c.portrait_url)}" class="character-portrait-lg me-2" alt="">` : ''}
           <input type="file" class="form-control form-control-sm" id="portraitUpload" accept="image/*">
           <button class="btn btn-primary btn-sm" onclick="uploadPortrait()"><i class="fa-solid fa-upload me-1"></i>Upload</button>
+          <button class="btn btn-outline-info btn-sm" onclick="browsePortrait()"><i class="fa-solid fa-image me-1"></i>Browse</button>
           ${c.portrait_url ? `<button class="btn btn-outline-danger btn-sm" onclick="clearPortrait()"><i class="fa-solid fa-xmark"></i></button>` : ''}
         </div>
       </div>
@@ -1377,7 +1379,8 @@ async function renderNPCs() {
       <div class="mt-2">${links.length ? links.map((n:any) => `
         <div class="inv-item">
           <div><span class="fw-bold">${esc(n.npc_name)}</span>
-            <span class="text-muted small">${esc(n.npc_race)} ${esc(n.npc_class)}</span>
+            ${n.npc_race_color ? `<span class="badge ms-1" style="background:${n.npc_race_color};color:#fff">${esc(n.npc_race)}</span>` : `<span class="text-muted small">${esc(n.npc_race)}</span>`}
+            <span class="text-muted small">${esc(n.npc_class)}</span>
             ${!n.npc_is_alive ? '<span class="badge badge-blood ms-1">Deceased</span>' : ''}</div>
           <div>
             <span class="badge badge-gold">${esc(n.relationship)}</span>
@@ -1394,7 +1397,8 @@ async function renderNPCs() {
       <div class="mt-2">${allNPCs.map((n:any) => `
         <div class="inv-item">
           <div><span class="fw-bold">${esc(n.name)}</span>
-            <span class="text-muted small">${esc(n.race)} ${esc(n.class)}</span></div>
+            ${n.race_color ? `<span class="badge ms-1" style="background:${n.race_color};color:#fff">${esc(n.race)}</span>` : `<span class="text-muted small">${esc(n.race)}</span>`}
+            <span class="text-muted small">${esc(n.class)}</span></div>
           <div class="text-muted small">HP: ${n.hp_current}/${n.hp_max}</div>
         </div>`).join('')}&nbsp;</div>`;
   } catch { el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load NPCs. Try again later.</p></div>'; }
@@ -1440,6 +1444,14 @@ async function renderNPCs() {
 (window as any).showCreateNPC = function () {
   showModal('New NPC', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="newNPCName"></div>
+    <div class="mb-3">
+      <label class="form-label">Portrait</label>
+      <div class="d-flex align-items-center gap-2">
+        <input type="file" class="form-control form-control-sm" id="newNPCPortraitUpload" accept="image/*">
+        <button class="btn btn-primary btn-sm" onclick="uploadNewNPCPortrait()"><i class="fa-solid fa-upload me-1"></i>Upload</button>
+        <button class="btn btn-outline-info btn-sm" onclick="browseNewNPCPortrait()"><i class="fa-solid fa-image me-1"></i>Browse</button>
+      </div>
+    </div>
     <div class="row g-3 mb-3">
       <div class="col-6"><label class="form-label">Race</label><input class="form-control" id="newNPCRace"></div>
       <div class="col-6"><label class="form-label">Class</label><input class="form-control" id="newNPCClass"></div>
@@ -1449,13 +1461,40 @@ async function renderNPCs() {
   `);
 };
 
+let newNPCPortraitUrl = '';
+
+(window as any).uploadNewNPCPortrait = async function () {
+  const input = document.getElementById('newNPCPortraitUpload') as HTMLInputElement;
+  if (!input.files || !input.files[0]) { toast('Select an image', true); return; }
+  const form = new FormData();
+  form.append('image', input.files[0]);
+  try {
+    const res = await fetch('/api/upload', {
+      method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken() }, credentials: 'include', body: form,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    newNPCPortraitUrl = data.url;
+    toast('Image uploaded');
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).browseNewNPCPortrait = async function () {
+  try {
+    newNPCPortraitUrl = await FilePicker.pick();
+    toast('Image selected');
+  } catch (e: any) { toast(e.message, true); }
+};
+
 (window as any).saveNewNPC = async function () {
   await api('POST', '/api/npcs', {
     name: (document.getElementById('newNPCName') as HTMLInputElement).value,
     race: (document.getElementById('newNPCRace') as HTMLInputElement).value,
     class: (document.getElementById('newNPCClass') as HTMLInputElement).value,
     description: (document.getElementById('newNPCDesc') as HTMLTextAreaElement).value,
+    portrait_url: newNPCPortraitUrl,
   });
+  newNPCPortraitUrl = '';
   hideModal();
   allNPCs = await api('GET', '/api/npcs');
   renderNPCs();
@@ -2185,11 +2224,78 @@ import './party';
   } catch (e: any) { toast(e.message, true); }
 };
 
+(window as any).browsePortrait = async function () {
+  try {
+    const url = await FilePicker.pick();
+    await updateField('portrait_url', url);
+    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+    renderSheet();
+    toast('Portrait set');
+  } catch (e: any) { toast(e.message, true); }
+};
+
 (window as any).clearPortrait = async function () {
   await updateField('portrait_url', '');
   currentChar = await api('GET', `/api/characters/${currentChar.id}`);
   renderSheet();
   toast('Portrait removed');
+};
+
+// ─── Race Colors Management ───
+
+(window as any).showRaceColors = async function () {
+  try {
+    const data = await api('GET', '/api/race-colors');
+    const colors = data.colors || {};
+    showModal('Race Colors', `
+      <p class="small text-muted">Set colors for character races. These appear as colored badges on the campaign overview and character lists.</p>
+      <div id="raceColorsList">
+        ${Object.entries(colors).map(([race, color]) => `
+          <div class="row g-2 mb-2 align-items-center">
+            <div class="col-4"><label class="form-label mb-0 small">${esc(race)}</label></div>
+            <div class="col-2"><input type="color" class="form-control form-control-color" value="${esc(color as string)}" data-race="${esc(race)}"></div>
+            <div class="col-6"><input class="form-control form-control-sm" value="${esc(color as string)}" data-race="${esc(race)}" oninput="this.previousElementSibling.value=this.value"><span class="badge ms-1" style="background:${esc(color as string)};color:#fff">Preview</span></div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="mt-3">
+        <div class="row g-2 align-items-center">
+          <div class="col-4"><input class="form-control form-control-sm" id="newRaceColorName" placeholder="New race"></div>
+          <div class="col-2"><input type="color" class="form-control form-control-color" id="newRaceColorPicker" value="#6c757d"></div>
+          <div class="col-3"><input class="form-control form-control-sm" id="newRaceColorValue" value="#6c757d" oninput="document.getElementById('newRaceColorPicker').value=this.value"></div>
+          <div class="col-3"><button class="btn btn-sm btn-outline-primary w-100" onclick="addRaceColor()"><i class="fa-solid fa-plus me-1"></i>Add</button></div>
+        </div>
+      </div>
+      <button class="btn btn-primary w-100 mt-3" onclick="saveRaceColors()"><i class="fa-solid fa-save me-1"></i>Save Changes</button>
+    `);
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).addRaceColor = function () {
+  const name = (document.getElementById('newRaceColorName') as HTMLInputElement).value.trim();
+  const color = (document.getElementById('newRaceColorPicker') as HTMLInputElement).value;
+  if (!name) { toast('Enter a race name', true); return; }
+  const list = document.getElementById('raceColorsList')!;
+  list.insertAdjacentHTML('beforeend', `
+    <div class="row g-2 mb-2 align-items-center">
+      <div class="col-4"><label class="form-label mb-0 small">${esc(name)}</label></div>
+      <div class="col-2"><input type="color" class="form-control form-control-color" value="${color}" data-race="${esc(name)}"></div>
+      <div class="col-6"><input class="form-control form-control-sm" value="${color}" data-race="${esc(name)}" oninput="this.previousElementSibling.value=this.value"></div>
+    </div>
+  `);
+  (document.getElementById('newRaceColorName') as HTMLInputElement).value = '';
+};
+
+(window as any).saveRaceColors = async function () {
+  const colors: Record<string, string> = {};
+  document.querySelectorAll('#raceColorsList input[type="color"]').forEach((el) => {
+    const input = el as HTMLInputElement;
+    const race = input.getAttribute('data-race');
+    if (race) colors[race] = input.value;
+  });
+  await api('PUT', '/api/race-colors', { colors });
+  hideModal();
+  toast('Race colors saved');
 };
 
 // ─── Multi-Class ───
@@ -2462,7 +2568,7 @@ async function renderCompanions() {
                   <div>
                     <span class="fw-bold">${esc(comp.name)}</span>
                     <span class="badge badge-gold ms-1">${esc(comp.type)}</span>
-                    <span class="badge badge-muted ms-1">${esc(comp.race)}</span>
+                    ${comp.race_color ? `<span class="badge ms-1" style="background:${comp.race_color};color:#fff">${esc(comp.race)}</span>` : `<span class="badge badge-muted ms-1">${esc(comp.race)}</span>`}
                     ${!comp.is_alive ? '<span class="badge bg-danger ms-1">Deceased</span>' : ''}
                   </div>
                   <div class="d-flex gap-1">
@@ -2549,6 +2655,16 @@ async function renderCompanions() {
   if (!comp) return;
   showModal('Edit Companion', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="compName" value="${esc(comp.name)}"></div>
+    <div class="mb-3">
+      <label class="form-label">Portrait</label>
+      <div class="d-flex align-items-center gap-2">
+        ${comp.portrait_url ? `<img src="${esc(comp.portrait_url)}" class="character-portrait-lg me-2" alt="">` : ''}
+        <input type="file" class="form-control form-control-sm" id="compPortraitUpload" accept="image/*">
+        <button class="btn btn-primary btn-sm" onclick="uploadCompPortrait(${comp.id})"><i class="fa-solid fa-upload me-1"></i>Upload</button>
+        <button class="btn btn-outline-info btn-sm" onclick="browseCompPortrait(${comp.id})"><i class="fa-solid fa-image me-1"></i>Browse</button>
+        ${comp.portrait_url ? `<button class="btn btn-outline-danger btn-sm" onclick="clearCompPortrait(${comp.id})"><i class="fa-solid fa-xmark"></i></button>` : ''}
+      </div>
+    </div>
     <div class="row g-3 mb-3">
       <div class="col-6"><label class="form-label">Type</label>
         <select class="form-select" id="compType">${['familiar','mount','companion','summoned','pet'].map(t => `<option value="${t}"${t===comp.type?' selected':''}>${capitalize(t)}</option>`).join('')}</select></div>
@@ -2572,7 +2688,44 @@ async function renderCompanions() {
   `);
 };
 
+// ─── Companion Portrait ───
+
+let compPortraitUrl: string = '';
+
+(window as any).uploadCompPortrait = async function (id: number) {
+  const input = document.getElementById('compPortraitUpload') as HTMLInputElement;
+  if (!input.files || !input.files[0]) { toast('Select an image', true); return; }
+  const form = new FormData();
+  form.append('image', input.files[0]);
+  try {
+    const res = await fetch('/api/upload', {
+      method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken() }, credentials: 'include', body: form,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    compPortraitUrl = data.url;
+    hideModal();
+    toast('Portrait uploaded — re-open to confirm');
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).browseCompPortrait = async function (id: number) {
+  try {
+    const url = await FilePicker.pick();
+    compPortraitUrl = url;
+    hideModal();
+    toast('Portrait selected — re-open to confirm');
+  } catch (e: any) { toast(e.message, true); }
+};
+
+(window as any).clearCompPortrait = async function (id: number) {
+  compPortraitUrl = '';
+  hideModal();
+  toast('Portrait cleared');
+};
+
 (window as any).saveEditCompanion = async function (id: number) {
+  const portraitUrl = compPortraitUrl || (document.getElementById('compPortraitUrl') as HTMLInputElement)?.value || '';
   await api('PUT', `/api/companions/${id}`, {
     name: (document.getElementById('compName') as HTMLInputElement).value,
     type: (document.getElementById('compType') as HTMLSelectElement).value,
@@ -2587,10 +2740,12 @@ async function renderCompanions() {
     wis: +(document.getElementById('compWis') as HTMLInputElement).value || 10,
     cha: +(document.getElementById('compCha') as HTMLInputElement).value || 10,
     speed: +(document.getElementById('compSpeed') as HTMLInputElement).value || 30,
+    portrait_url: portraitUrl,
     abilities: (document.getElementById('compAbilities') as HTMLTextAreaElement).value,
     notes: (document.getElementById('compNotes') as HTMLTextAreaElement).value,
     is_alive: true,
   });
+  compPortraitUrl = '';
   hideModal();
   renderCompanions();
   toast('Companion updated');

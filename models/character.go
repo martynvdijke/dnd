@@ -208,6 +208,7 @@ type NPC struct {
 	Backstory   string `json:"backstory"`
 	PortraitURL string `json:"portrait_url"`
 	CreatedAt   string `json:"created_at"`
+	RaceColor   string `json:"race_color,omitempty"`
 }
 
 type CharacterNPC struct {
@@ -400,6 +401,7 @@ type Companion struct {
 	Notes       string `json:"notes"`
 	PortraitURL string `json:"portrait_url"`
 	IsAlive     bool   `json:"is_alive"`
+	RaceColor   string `json:"race_color,omitempty"`
 }
 
 type Faction struct {

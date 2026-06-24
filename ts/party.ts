@@ -95,8 +95,14 @@ import { currentUser, currentChar } from './lib/state';
               const sc = m.status === 'down' ? 'var(--danger)' : m.status === 'injured' ? 'var(--gold)' : 'var(--success)';
               return `<div class="col-md-6 col-lg-4">
                 <div class="character-card" ${canOpen(m.user_id) ? `onclick="openChar(${m.id})"` : ''} style="${canOpen(m.user_id) ? '' : 'cursor:default;opacity:0.75'}">
-                  <div class="char-name">${esc(m.name)}</div>
-                  <div class="char-detail">${esc(m.race)} ${esc(m.class)} · Level ${m.level}</div>
+                  <div class="d-flex align-items-center gap-2 mb-1">
+                    ${m.portrait_url ? `<img src="${esc(m.portrait_url)}" class="character-portrait" style="width:28px;height:28px;object-fit:cover;border-radius:50%" alt="">` : ''}
+                    <div class="char-name" style="font-size:0.95rem">${esc(m.name)}</div>
+                  </div>
+                  <div class="char-detail">
+                    ${m.race_color ? `<span class="badge" style="background:${m.race_color};color:#fff">${esc(m.race)}</span>` : esc(m.race)}
+                    ${esc(m.class)} · Level ${m.level}
+                  </div>
                   ${m.owner_name && m.owner_name !== currentUser?.username ? `<div class="small text-muted"><i class="fa-solid fa-user me-1"></i>${esc(m.owner_name)}</div>` : ''}
                   <div class="d-flex gap-3 mt-1 small text-muted">
                     <span>AC: ${m.ac}</span><span style="color:${sc}">${esc(m.status)}</span>
@@ -117,6 +123,7 @@ import { currentUser, currentChar } from './lib/state';
             <button class="btn btn-sm btn-outline-primary" onclick="showSessionPlanner(${g.id})"><i class="fa-solid fa-calendar me-1"></i>Session Planner</button>
             <button class="btn btn-sm btn-outline-gold" onclick="showEncounterDifficulty()"><i class="fa-solid fa-crosshairs me-1"></i>Difficulty</button>
             <button class="btn btn-sm btn-outline-gold" onclick="showTreasureGenerator()"><i class="fa-solid fa-coins me-1"></i>Treasure</button>
+            <button class="btn btn-sm btn-outline-primary" onclick="showRaceColors()"><i class="fa-solid fa-palette me-1"></i>Race Colors</button>
           </div>
         </div>
         ` : ''}
