@@ -1,3 +1,10 @@
+# [2.22.0](https://github.com/martynvdijke/dnd/compare/v2.21.5...v2.22.0) (2026-06-24)
+
+
+### Features
+
+* file picker for image upload + custom race colors ([4b12bf2](https://github.com/martynvdijke/dnd/commit/4b12bf2b776f7bfca77b301a2be118e984fb427a))
+
 ## [2.21.5](https://github.com/martynvdijke/dnd/compare/v2.21.4...v2.21.5) (2026-06-24)
 
 ## [2.21.4](https://github.com/martynvdijke/dnd/compare/v2.21.3...v2.21.4) (2026-06-23)
