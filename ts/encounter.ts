@@ -86,7 +86,7 @@ import { api } from './lib/api';
           </p>
         </div>
     <div class="d-flex gap-2 flex-wrap">
-      <button class="btn btn-gold btn-sm" onclick="newChar()"><i class="fa-solid fa-plus me-1"></i>New Character</button>
+      <button class="btn btn-gold btn-sm" onclick="showEncounterMonsterPicker(${id})"><i class="fa-solid fa-plus me-1"></i>Add Monster</button>
       <button class="btn btn-outline-primary btn-sm" id="compareBtn" onclick="toggleCompareMode()"><i class="fa-solid fa-arrow-right-arrow-left me-1"></i>Compare</button>
       <button class="btn btn-outline-primary btn-sm" onclick="showImport()"><i class="fa-solid fa-file-import me-1"></i>Import</button>
     </div>
@@ -98,18 +98,20 @@ import { api } from './lib/api';
         ${monsters.length ? monsters.map((m: any) => `
           <div class="inv-item">
             <div>
-              <span class="fw-bold">${esc(m.name)}</span>
+              ${m.compendium_monster_id
+                ? `<a href="javascript:void(0)" onclick="htmx.ajax('GET','/compendium/card/monster/${m.compendium_monster_id}',{target:'#cardContainer',swap:'beforeend'})" class="fw-bold text-decoration-none">${esc(m.name)}</a>`
+                : `<span class="fw-bold">${esc(m.name)}</span>`}
               <span class="badge badge-blood ms-1">x${m.count}</span>
               <span class="badge badge-gold ms-1">CR ${esc(m.cr)}</span>
               <span class="badge badge-muted ms-1">${m.xp} XP</span>
               <span class="text-muted small ms-2">AC ${m.ac} · HP ${m.hp}</span>
             </div>
             <div class="d-flex gap-1">
-              <button class="btn btn-sm btn-outline-primary" onclick="editMonster(${e.id}, ${m.id})"><i class="fa-solid fa-pen"></i></button>
+              ${m.compendium_monster_id ? `<button class="btn btn-sm btn-outline-info" onclick="htmx.ajax('GET','/compendium/card/monster/${m.compendium_monster_id}',{target:'#cardContainer',swap:'beforeend'})" title="View Stats"><i class="fa-solid fa-eye"></i></button>` : ''}
               <button class="btn btn-sm btn-outline-danger" onclick="deleteMonster(${e.id}, ${m.id})"><i class="fa-solid fa-trash"></i></button>
             </div>
           </div>`).join('')
-          : '<div class="empty-state"><i class="fa-solid fa-skull fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">No monsters yet. Add some!</p></div>'}
+          : '<div class="empty-state"><i class="fa-solid fa-skull fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">No monsters yet. Click "Add Monster" to search the compendium.</p></div>'}
       </div>
       <div class="ornament my-2">✧</div>
       <h5>XP Budget</h5>
@@ -137,46 +139,19 @@ import { api } from './lib/api';
   toast('Encounter deleted');
 };
 
-(window as any).addMonster = function (eid: number) {
-  showModal('Add Monster', `
-    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="monName" list="monsterSuggestions">
-      <datalist id="monsterSuggestions">
-        ${['Goblin','Hobgoblin','Bugbear','Orc','Ogre','Troll','Giant Spider','Skeleton','Zombie','Wolf','Dire Wolf','Bandit','Kobold','Gnoll','Owlbear','Harpy','Basilisk','Chimera','Dragon Wyrmling'].map(n => `<option value="${n}">`).join('')}
-      </datalist></div>
-    <div class="row g-3 mb-3">
-      <div class="col-4"><label class="form-label">Count</label><input class="form-control" id="monCount" type="number" value="1" min="1"></div>
-      <div class="col-4"><label class="form-label">CR</label>
-        <select class="form-select" id="monCR">
-          ${['0','1/8','1/4','1/2','1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20'].map(c => `<option value="${c}">${c}</option>`).join('')}
-        </select></div>
-      <div class="col-4"><label class="form-label">XP</label><input class="form-control" id="monXP" type="number" value="0"></div>
-    </div>
-    <div class="row g-3 mb-3">
-      <div class="col-4"><label class="form-label">AC</label><input class="form-control" id="monAC" type="number" value="10"></div>
-      <div class="col-4"><label class="form-label">HP</label><input class="form-control" id="monHP" type="number" value="1"></div>
-      <div class="col-4"><label class="form-label">Init Mod</label><input class="form-control" id="monInit" type="number" value="0"></div>
-    </div>
-    <button class="btn btn-primary w-100" onclick="saveMonster(${eid})"><i class="fa-solid fa-plus me-1"></i>Add</button>
-  `);
+(window as any).showEncounterMonsterPicker = function (eid: number) {
+  showModal('Add Monster from Compendium', `<div hx-get="/htmx/compendium-monsters/picker/${eid}" hx-trigger="load" hx-swap="innerHTML">Loading compendium...</div>`);
 };
 
-(window as any).saveMonster = async function (eid: number) {
-  await api('POST', `/api/encounters/${eid}/monsters`, {
-    name: (document.getElementById('monName') as HTMLInputElement).value,
-    count: +(document.getElementById('monCount') as HTMLInputElement).value || 1,
-    cr: (document.getElementById('monCR') as HTMLSelectElement).value,
-    xp: +(document.getElementById('monXP') as HTMLInputElement).value || 0,
-    ac: +(document.getElementById('monAC') as HTMLInputElement).value || 10,
-    hp: +(document.getElementById('monHP') as HTMLInputElement).value || 1,
-    initiative_mod: +(document.getElementById('monInit') as HTMLInputElement).value || 0,
-  });
-  hideModal();
-  (window as any).showEncounterDetail(eid);
-  toast('Monster added');
-};
-
-(window as any).editMonster = function (eid: number, mid: number) {
-  showModal('Edit Monster', `<p class="text-muted">Edit via encounter detail page.</p>`);
+(window as any).importCompendiumMonsterToEncounter = async function (monsterId: number, encounterId: number, _campaignId?: number) {
+  try {
+    await api('POST', `/api/encounters/${encounterId}/import/compendium`, { compendium_monster_id: monsterId, count: 1 });
+    toast('Monster added to encounter');
+    hideModal();
+    (window as any).showEncounterDetail(encounterId);
+  } catch (e: any) {
+    toast(e.message, true);
+  }
 };
 
 (window as any).deleteMonster = async function (eid: number, mid: number) {

@@ -4310,51 +4310,6 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
 
 // ─── One-Shot Monsters ───
 
-(window as any).showAddMonsterForm = function (adventureId: number) {
-  showModal('Add Monster', `
-    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="monsterName"></div>
-    <div class="row g-3 mb-3">
-      <div class="col-3"><label class="form-label">AC</label><input class="form-control" id="monsterAC" type="number" value="10"></div>
-      <div class="col-3"><label class="form-label">HP</label><input class="form-control" id="monsterHP" type="number" value="10"></div>
-      <div class="col-3"><label class="form-label">CR</label><input class="form-control" id="monsterCR" placeholder="1/2"></div>
-      <div class="col-3"><label class="form-label">Source</label><input class="form-control" id="monsterSource" value="custom"></div>
-    </div>
-    <div class="row g-3 mb-3">
-      ${['str','dex','con','int','wis','cha'].map(s => `<div class="col-2"><label class="form-label">${s.toUpperCase()}</label><input class="form-control" id="monster${s.toUpperCase()}" type="number" value="10"></div>`).join('')}
-    </div>
-    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="monsterDesc" rows="2"></textarea></div>
-    <div class="mb-3"><label class="form-label">Special Abilities</label><textarea class="form-control" id="monsterAbilities" rows="3"></textarea></div>
-    <div class="mb-3"><label class="form-label">Actions</label><textarea class="form-control" id="monsterActions" rows="3"></textarea></div>
-    <button class="btn btn-primary w-100" onclick="saveAdventureMonster(${adventureId})">Add Monster</button>
-  `);
-};
-
-(window as any).saveAdventureMonster = async function (adventureId: number) {
-  const name = (document.getElementById('monsterName') as HTMLInputElement).value;
-  if (!name) { toast('Name required', true); return; }
-  await api('POST', `/api/oneshot-acts/0/monsters`, {
-    name,
-    adventure_id: adventureId,
-    ac: parseInt((document.getElementById('monsterAC') as HTMLInputElement).value) || 10,
-    hp: parseInt((document.getElementById('monsterHP') as HTMLInputElement).value) || 10,
-    cr: (document.getElementById('monsterCR') as HTMLInputElement).value || '0',
-    source: (document.getElementById('monsterSource') as HTMLInputElement).value || 'custom',
-    str: parseInt((document.getElementById('monsterSTR') as HTMLInputElement).value) || 10,
-    dex: parseInt((document.getElementById('monsterDEX') as HTMLInputElement).value) || 10,
-    con: parseInt((document.getElementById('monsterCON') as HTMLInputElement).value) || 10,
-    int_: parseInt((document.getElementById('monsterINT') as HTMLInputElement).value) || 10,
-    wis: parseInt((document.getElementById('monsterWIS') as HTMLInputElement).value) || 10,
-    cha: parseInt((document.getElementById('monsterCHA') as HTMLInputElement).value) || 10,
-    special_abilities: (document.getElementById('monsterAbilities') as HTMLTextAreaElement).value,
-    actions: (document.getElementById('monsterActions') as HTMLTextAreaElement).value,
-    is_full: 1,
-  });
-  hideModal();
-  toast('Monster added');
-  const monstersCard = document.querySelector('[hx-get*="/monsters"]');
-  if (monstersCard) htmx.trigger(monstersCard, 'load');
-};
-
 (window as any).deleteOneShotMonster = async function (monsterId: number) {
   if (!confirm('Delete this monster?')) return;
   await api('DELETE', `/api/oneshot-monsters/${monsterId}`);
@@ -4627,11 +4582,17 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
 (window as any).showActMonsters = async function (actId: number) {
   try {
     const monsters = await api('GET', `/api/oneshot-acts/${actId}/monsters`);
+    const advId = (window as any).adventureIdForAct ? (window as any).adventureIdForAct(actId) : 0;
     showModal('Act Monsters', `
-      <div class="mb-2"><button class="btn btn-sm btn-outline-primary" onclick="showAddActMonster(${actId})"><i class="fa-solid fa-plus me-1"></i>Add Monster</button></div>
+      <div class="mb-2 d-flex gap-1">
+        <button class="btn btn-sm btn-outline-warning" onclick="showCompendiumMonsterPickerForOneShot(${advId})"><i class="fa-solid fa-book-open me-1"></i>From Compendium</button>
+      </div>
       ${monsters.length ? monsters.map((m: any) => `
         <div class="inv-item">
-          <div><strong>${esc(m.name)}</strong> <span class="badge bg-danger">CR ${esc(m.cr)}</span> <span class="text-muted small">AC ${m.ac} · HP ${m.hp}</span></div>
+          <div>${m.compendium_monster_id
+            ? `<a href="javascript:void(0)" onclick="htmx.ajax('GET','/compendium/card/monster/${m.compendium_monster_id}',{target:'#cardContainer',swap:'beforeend'})" class="text-decoration-none"><strong>${esc(m.name)}</strong></a>`
+            : `<strong>${esc(m.name)}</strong>`}
+          <span class="badge bg-danger">CR ${esc(m.cr)}</span> <span class="text-muted small">AC ${m.ac} · HP ${m.hp}</span></div>
           <button class="btn btn-sm btn-outline-danger" onclick="deleteOneShotMonster(${m.id})"><i class="fa-solid fa-trash"></i></button>
         </div>
       `).join('') : '<div class="text-muted small fst-italic">No monsters in this act.</div>'}
@@ -4639,102 +4600,26 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
   } catch (e: any) { toast(e.message, true); }
 };
 
-(window as any).showAddActMonster = function (actId: number) {
-  // Reuse the same monster form but post to act endpoint
-  showModal('Add Monster to Act', `
-    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="actMonsterName"></div>
-    <div class="row g-3 mb-3">
-      <div class="col-3"><label class="form-label">AC</label><input class="form-control" id="actMonsterAC" type="number" value="10"></div>
-      <div class="col-3"><label class="form-label">HP</label><input class="form-control" id="actMonsterHP" type="number" value="10"></div>
-      <div class="col-3"><label class="form-label">CR</label><input class="form-control" id="actMonsterCR" placeholder="1/2"></div>
-      <div class="col-3"><label class="form-label">Source</label><input class="form-control" id="actMonsterSource" value="custom"></div>
-    </div>
-    <div class="row g-3 mb-3">
-      ${['str','dex','con','int','wis','cha'].map(s => `<div class="col-2"><label class="form-label">${s.toUpperCase()}</label><input class="form-control" id="actMonster${s.toUpperCase()}" type="number" value="10"></div>`).join('')}
-    </div>
-    <button class="btn btn-primary w-100" onclick="saveActMonster(${actId})">Add</button>
-  `);
-};
-
-(window as any).saveActMonster = async function (actId: number) {
-  const name = (document.getElementById('actMonsterName') as HTMLInputElement).value;
-  if (!name) { toast('Name required', true); return; }
-  await api('POST', `/api/oneshot-acts/${actId}/monsters`, {
-    name,
-    ac: parseInt((document.getElementById('actMonsterAC') as HTMLInputElement).value) || 10,
-    hp: parseInt((document.getElementById('actMonsterHP') as HTMLInputElement).value) || 10,
-    cr: (document.getElementById('actMonsterCR') as HTMLInputElement).value || '0',
-    source: (document.getElementById('actMonsterSource') as HTMLInputElement).value || 'custom',
-    str: parseInt((document.getElementById('actMonsterSTR') as HTMLInputElement).value) || 10,
-    dex: parseInt((document.getElementById('actMonsterDEX') as HTMLInputElement).value) || 10,
-    con: parseInt((document.getElementById('actMonsterCON') as HTMLInputElement).value) || 10,
-    int_: parseInt((document.getElementById('actMonsterINT') as HTMLInputElement).value) || 10,
-    wis: parseInt((document.getElementById('actMonsterWIS') as HTMLInputElement).value) || 10,
-    cha: parseInt((document.getElementById('actMonsterCHA') as HTMLInputElement).value) || 10,
-    is_full: 1,
-  });
-  hideModal();
-  toast('Monster added');
-  const monstersCard = document.querySelector('[hx-get*="/monsters"]');
-  if (monstersCard) htmx.trigger(monstersCard, 'load');
-};
-
 // Scene-level monster display
 (window as any).showSceneMonsters = async function (sceneId: number) {
   try {
     const monsters = await api('GET', `/api/oneshot-scenes/${sceneId}/monsters`);
+    const advId = (window as any).adventureIdForScene ? (window as any).adventureIdForScene(sceneId) : 0;
     showModal('Scene Monsters', `
       <div class="mb-2 d-flex gap-1">
-        <button class="btn btn-sm btn-outline-primary" onclick="showAddSceneMonster(${sceneId})"><i class="fa-solid fa-plus me-1"></i>Add Monster</button>
-        <button class="btn btn-sm btn-outline-warning" onclick="showCompendiumMonsterPickerForOneShot(adventureIdForScene(${sceneId}))"><i class="fa-solid fa-book-open me-1"></i>From Compendium</button>
+        <button class="btn btn-sm btn-outline-warning" onclick="showCompendiumMonsterPickerForOneShot(${advId})"><i class="fa-solid fa-book-open me-1"></i>From Compendium</button>
       </div>
       ${monsters.length ? monsters.map((m: any) => `
         <div class="inv-item">
-          <div><strong>${esc(m.name)}</strong> <span class="badge bg-danger">CR ${esc(m.cr || '0')}</span> <span class="text-muted small">AC ${m.ac} · HP ${m.hp}</span></div>
+          <div>${m.compendium_monster_id
+            ? `<a href="javascript:void(0)" onclick="htmx.ajax('GET','/compendium/card/monster/${m.compendium_monster_id}',{target:'#cardContainer',swap:'beforeend'})" class="text-decoration-none"><strong>${esc(m.name)}</strong></a>`
+            : `<strong>${esc(m.name)}</strong>`}
+          <span class="badge bg-danger">CR ${esc(m.cr || '0')}</span> <span class="text-muted small">AC ${m.ac} · HP ${m.hp}</span></div>
           <button class="btn btn-sm btn-outline-danger" onclick="deleteOneShotMonster(${m.id})"><i class="fa-solid fa-trash"></i></button>
         </div>
       `).join('') : '<div class="text-muted small fst-italic">No monsters in this scene.</div>'}
     `);
   } catch (e: any) { toast(e.message, true); }
-};
-
-(window as any).showAddSceneMonster = function (sceneId: number) {
-  showModal('Add Monster to Scene', `
-    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="sceneMonsterName"></div>
-    <div class="row g-3 mb-3">
-      <div class="col-3"><label class="form-label">AC</label><input class="form-control" id="sceneMonsterAC" type="number" value="10"></div>
-      <div class="col-3"><label class="form-label">HP</label><input class="form-control" id="sceneMonsterHP" type="number" value="10"></div>
-      <div class="col-3"><label class="form-label">CR</label><input class="form-control" id="sceneMonsterCR" placeholder="1/2"></div>
-      <div class="col-3"><label class="form-label">Source</label><input class="form-control" id="sceneMonsterSource" value="custom"></div>
-    </div>
-    <div class="row g-3 mb-3">
-      ${['str','dex','con','int','wis','cha'].map(s => '<div class="col-2"><label class="form-label">' + s.toUpperCase() + '</label><input class="form-control" id="sceneMonster' + s.toUpperCase() + '" type="number" value="10"></div>').join('')}
-    </div>
-    <button class="btn btn-primary w-100" onclick="saveSceneMonster(${sceneId})">Add</button>
-  `);
-};
-
-(window as any).saveSceneMonster = async function (sceneId: number) {
-  const name = (document.getElementById('sceneMonsterName') as HTMLInputElement).value;
-  if (!name) { toast('Name required', true); return; }
-  await api('POST', `/api/oneshot-scenes/${sceneId}/monsters`, {
-    name,
-    ac: parseInt((document.getElementById('sceneMonsterAC') as HTMLInputElement).value) || 10,
-    hp: parseInt((document.getElementById('sceneMonsterHP') as HTMLInputElement).value) || 10,
-    cr: (document.getElementById('sceneMonsterCR') as HTMLInputElement).value || '0',
-    source: (document.getElementById('sceneMonsterSource') as HTMLInputElement).value || 'custom',
-    str: parseInt((document.getElementById('sceneMonsterSTR') as HTMLInputElement).value) || 10,
-    dex: parseInt((document.getElementById('sceneMonsterDEX') as HTMLInputElement).value) || 10,
-    con: parseInt((document.getElementById('sceneMonsterCON') as HTMLInputElement).value) || 10,
-    int_: parseInt((document.getElementById('sceneMonsterINT') as HTMLInputElement).value) || 10,
-    wis: parseInt((document.getElementById('sceneMonsterWIS') as HTMLInputElement).value) || 10,
-    cha: parseInt((document.getElementById('sceneMonsterCHA') as HTMLInputElement).value) || 10,
-    is_full: 1,
-  });
-  hideModal();
-  toast('Monster added');
-  const monstersCard = document.querySelector('[hx-get*="/monsters"]');
-  if (monstersCard) htmx.trigger(monstersCard, 'load');
 };
 
 // Helper to find adventure ID for a scene (from DOM)
@@ -4754,6 +4639,11 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
     if (m) return parseInt(m[1]);
   }
   return 0;
+};
+
+// Helper to find adventure ID for an act (same DOM lookup as scene)
+(window as any).adventureIdForAct = function (actId: number): number {
+  return (window as any).adventureIdForScene(actId);
 };
 
 // ─── One-Shot Linked Player Characters ───

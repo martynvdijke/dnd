@@ -64,13 +64,18 @@ func GetEncounter(c *gin.Context) {
 		return
 	}
 	// Load monsters
-	mrows, err := db.DB.Query("SELECT id, encounter_id, name, count, cr, xp, ac, hp, initiative_mod, source, notes FROM encounter_monsters WHERE encounter_id=? ORDER BY id", id)
+	mrows, err := db.DB.Query("SELECT id, encounter_id, name, count, cr, xp, ac, hp, initiative_mod, source, notes, compendium_monster_id FROM encounter_monsters WHERE encounter_id=? ORDER BY id", id)
 	if err == nil {
 		defer mrows.Close()
 		e.Monsters = make([]models.EncounterMonster, 0)
 		for mrows.Next() {
 			var m models.EncounterMonster
-			mrows.Scan(&m.ID, &m.EncounterID, &m.Name, &m.Count, &m.CR, &m.XP, &m.AC, &m.HP, &m.InitiativeMod, &m.Source, &m.Notes)
+			var compID sql.NullInt64
+			mrows.Scan(&m.ID, &m.EncounterID, &m.Name, &m.Count, &m.CR, &m.XP, &m.AC, &m.HP, &m.InitiativeMod, &m.Source, &m.Notes, &compID)
+			if compID.Valid {
+				v := compID.Int64
+				m.CompendiumMonsterID = &v
+			}
 			e.Monsters = append(e.Monsters, m)
 		}
 	}

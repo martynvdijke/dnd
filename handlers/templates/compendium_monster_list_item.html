@@ -13,9 +13,22 @@
       <span class="badge bg-secondary ms-1">{{.Size}} {{.Type}}</span>
       <span class="badge bg-danger ms-1">CR {{.CR}}</span>
     </div>
-    <div class="text-muted small text-end">
-      <div>AC {{.AC}}</div>
-      <div>HP {{.HP}}</div>
+    <div class="d-flex align-items-center gap-2">
+      <div class="text-muted small text-end">
+        <div>AC {{.AC}}</div>
+        <div>HP {{.HP}}</div>
+      </div>
+      {{if $.EncounterID}}
+      <button class="btn btn-sm btn-success" title="Add to encounter"
+        onclick="event.stopPropagation();importCompendiumMonsterToEncounter({{.ID}}, {{$.EncounterID}}, {{$.CampaignID}})">
+        <i class="fa-solid fa-plus"></i>
+      </button>
+      {{else if $.AdventureID}}
+      <button class="btn btn-sm btn-success" title="Add to one-shot"
+        onclick="event.stopPropagation();importCompendiumMonsterToOneShot({{.ID}}, {{$.AdventureID}})">
+        <i class="fa-solid fa-plus"></i>
+      </button>
+      {{end}}
     </div>
   </div>
 </div>
