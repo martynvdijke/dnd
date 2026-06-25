@@ -1,3 +1,10 @@
+# [2.23.0](https://github.com/martynvdijke/dnd/compare/v2.22.0...v2.23.0) (2026-06-25)
+
+
+### Features
+
+* compendium monster linking — remove manual add, add direct Add buttons ([485cc7f](https://github.com/martynvdijke/dnd/commit/485cc7fa83635d2bfbe70291278257c8448d8069)), closes [#cardContainer](https://github.com/martynvdijke/dnd/issues/cardContainer) [#cardContainer](https://github.com/martynvdijke/dnd/issues/cardContainer)
+
 # [2.22.0](https://github.com/martynvdijke/dnd/compare/v2.21.5...v2.22.0) (2026-06-24)
 
 
