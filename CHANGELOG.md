@@ -1,3 +1,10 @@
+## [2.23.2](https://github.com/martynvdijke/dnd/compare/v2.23.1...v2.23.2) (2026-06-30)
+
+
+### Bug Fixes
+
+* **deps:** update github.com/dop251/goja digest to 2a84ae0 ([#42](https://github.com/martynvdijke/dnd/issues/42)) ([6314a52](https://github.com/martynvdijke/dnd/commit/6314a52f5611c53e8b0c9cc9d5584bc4aa47a516))
+
 ## [2.23.1](https://github.com/martynvdijke/dnd/compare/v2.23.0...v2.23.1) (2026-06-28)
 
 
