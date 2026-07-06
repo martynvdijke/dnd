@@ -1,3 +1,10 @@
+## [2.23.6](https://github.com/martynvdijke/dnd/compare/v2.23.5...v2.23.6) (2026-07-06)
+
+
+### Bug Fixes
+
+* **deps:** update module golang.org/x/text to v0.39.0 ([bc558c6](https://github.com/martynvdijke/dnd/commit/bc558c61cf5db007ce68aaaec7e34c2cc49eb0c7))
+
 ## [2.23.5](https://github.com/martynvdijke/dnd/compare/v2.23.4...v2.23.5) (2026-07-06)
 
 ## [2.23.4](https://github.com/martynvdijke/dnd/compare/v2.23.3...v2.23.4) (2026-07-02)
