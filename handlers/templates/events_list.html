@@ -1,0 +1,52 @@
+{{if .Error}}
+<div class="alert alert-warning text-center py-4" role="alert">
+  <i class="fa-solid fa-triangle-exclamation me-2"></i>
+  {{.Error}}
+</div>
+{{else if .Empty}}
+<div class="text-center py-5 text-muted">
+  <i class="fa-solid fa-calendar-xmark fa-3x mb-3" style="opacity:0.4"></i>
+  <p class="fs-5">No upcoming events found</p>
+  <p class="small">Configure the calendar ID and tags in <a href="/admin" class="text-gold">admin settings</a>.</p>
+</div>
+{{else}}
+<div class="events-list">
+  {{range .Events}}
+  <div class="card event-card mb-3">
+    <div class="card-body">
+      <h5 class="card-title event-title">
+        <i class="fa-solid fa-dice-d6 me-2 text-gold" style="font-size:0.8em"></i>
+        {{.Title}}
+      </h5>
+      <div class="event-datetime mb-2">
+        <i class="fa-regular fa-calendar me-1 text-muted"></i>
+        {{if .AllDay}}
+          <span class="event-date">{{.StartTime.Format "Jan 2, 2006"}}</span>
+          {{if not (eq (.StartTime.Format "2006-01-02") (.EndTime.Format "2006-01-02"))}}
+            <span class="event-date-sep"> – </span>
+            <span class="event-date">{{.EndTime.Format "Jan 2, 2006"}}</span>
+          {{end}}
+          <span class="badge badge-outline ms-2">All day</span>
+        {{else}}
+          <span class="event-date">{{.StartTime.Format "Mon, Jan 2, 2006"}}</span>
+          <span class="event-time ms-1">{{.StartTime.Format "3:04 PM"}}</span>
+          {{if not (.StartTime.Equal .EndTime)}}
+            <span class="event-sep mx-1">–</span>
+            <span class="event-date">{{.EndTime.Format "Jan 2, 2006"}}</span>
+            <span class="event-time ms-1">{{.EndTime.Format "3:04 PM"}}</span>
+          {{end}}
+        {{end}}
+      </div>
+      {{if .Description}}
+        <p class="card-text event-description small text-muted">{{.Description}}</p>
+      {{end}}
+      {{if .Location}}
+        <div class="event-location small text-muted">
+          <i class="fa-solid fa-location-dot me-1"></i>{{.Location}}
+        </div>
+      {{end}}
+    </div>
+  </div>
+  {{end}}
+</div>
+{{end}}

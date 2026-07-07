@@ -18,6 +18,9 @@ func RegisterPublicRoutes(r *gin.Engine) {
 	r.GET("/api/check-setup", CheckSetup)
 	r.POST("/api/login", HandleLogin)
 	r.GET("/api/share/:token", GetSharedEntity)
+	r.GET("/events", EventsPage)
+	r.GET("/events/ical", EventsICal)
+	r.GET("/htmx/events/list", EventsListPartial)
 }
 
 // RegisterAuthBoilerplate registers auth helper routes (logout, csrf, me).

@@ -38,4 +38,9 @@ func RegisterAdminRoutes(r *gin.RouterGroup) {
 	r.GET("/log-sources", ListLogSources)
 	r.GET("/log-level", GetLogLevel)
 	r.PUT("/log-level", SetLogLevel)
+
+	// Events Settings
+	r.GET("/events-settings", GetEventsSettings)
+	r.POST("/events-settings", SaveEventsSettings)
+	r.POST("/events-settings/clear-cache", ClearEventsCache)
 }

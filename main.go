@@ -54,6 +54,8 @@ func main() {
 	db.Seed()
 	handlers.SeedCompendiumSchemas()
 	handlers.SeedCraftingRecipes()
+	db.SeedDefaultEventsSettings()
+	handlers.SetAppVersion(Version)
 
 	// AUTO_SETUP=true creates the admin user automatically (used for per-worker Playwright isolation).
 	if os.Getenv("AUTO_SETUP") == "true" {

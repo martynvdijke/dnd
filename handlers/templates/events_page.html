@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Upcoming Events — villum</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Vollkorn:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✧</text></svg>">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-md sticky-top">
+  <div class="container">
+    <a class="navbar-brand" href="#">✧ villum — Events</a>
+    <div class="d-flex align-items-center gap-2">
+      <a href="/" class="btn btn-sm btn-outline-gold"><i class="fa-solid fa-arrow-left me-1"></i>App</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="fa-solid fa-calendar-days me-2 text-gold"></i>Upcoming Events</h2>
+    <div class="d-flex gap-2">
+      <a href="/events/ical" class="btn btn-sm btn-outline-gold" title="Subscribe in your calendar app">
+        <i class="fa-regular fa-calendar-plus me-1"></i>Subscribe (iCal)
+      </a>
+      <button class="btn btn-sm btn-outline-gold" hx-get="/htmx/events/list" hx-target="#events-list" hx-swap="innerHTML" onclick="this.innerHTML='<span class=\'spinner-border spinner-border-sm me-1\'></span>Refreshing...'">
+        <i class="fa-solid fa-rotate me-1"></i>Refresh
+      </button>
+    </div>
+  </div>
+
+  <div id="events-list" hx-get="/htmx/events/list" hx-trigger="every 30s" hx-swap="innerHTML">
+    {{template "events_list.html" .}}
+  </div>
+</div>
+
+<footer class="container mt-5 mb-3">
+  <hr>
+  <p class="text-muted small text-center">villum v{{.Version}}</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
+</body>
+</html>

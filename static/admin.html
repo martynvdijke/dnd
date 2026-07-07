@@ -38,6 +38,7 @@
   <li class="nav-item"><button class="nav-link" id="tabAIEndpointsBtn" onclick="showAdminTab('ai-endpoints')"><i class="fa-solid fa-robot me-1" aria-hidden="true"></i>AI Endpoints</button></li>
   <li class="nav-item"><button class="nav-link" id="tabAnalyticsBtn" onclick="showAdminTab('analytics')"><i class="fa-solid fa-chart-line me-1" aria-hidden="true"></i>Analytics</button></li>
   <li class="nav-item"><button class="nav-link" id="tabTelemetryBtn" onclick="showAdminTab('telemetry')"><i class="fa-solid fa-microchip me-1" aria-hidden="true"></i>Telemetry</button></li>
+  <li class="nav-item"><button class="nav-link" id="tabEventsBtn" onclick="showAdminTab('events')"><i class="fa-solid fa-calendar-days me-1" aria-hidden="true"></i>Events</button></li>
   <li class="nav-item"><button class="nav-link" id="tabImportBtn" onclick="showAdminTab('import')"><i class="fa-solid fa-upload me-1" aria-hidden="true"></i>Import</button></li>
   <li class="nav-item"><button class="nav-link" id="tabLogsBtn" onclick="showAdminTab('logs')"><i class="fa-solid fa-list me-1" aria-hidden="true"></i>Logs</button></li>
 </ul>
@@ -312,6 +313,73 @@
         <small class="text-muted">The OTLP HTTP/gRPC endpoint for exporting traces and metrics</small>
       </div>
       <button class="btn btn-gold" onclick="saveOTelSettings()"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Save Telemetry Settings</button>
+    </div>
+  </div>
+</div>
+
+<div id="adminEvents" style="display:none">
+  <div class="card">
+    <div class="card-header"><i class="fa-solid fa-calendar-days me-2" aria-hidden="true"></i>Google Calendar Events Settings</div>
+    <div class="card-body">
+      <div class="mb-3">
+        <label class="form-label" for="eventsCalendarId">Google Calendar ID</label>
+        <input type="text" id="eventsCalendarId" class="form-control" placeholder="your-calendar-id@group.calendar.google.com">
+        <small class="text-muted">The ID of the Google Calendar to fetch events from</small>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="eventsTags">Search Tags</label>
+        <input type="text" id="eventsTags" class="form-control" placeholder="dnd,session,oneshot">
+        <small class="text-muted">Comma-separated keywords to filter events by title/description</small>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="eventsCacheTTL">Cache TTL (seconds)</label>
+        <input type="number" id="eventsCacheTTL" class="form-control" value="300" style="max-width:200px" min="30">
+        <small class="text-muted">How long to cache events before fetching fresh data (default: 300 = 5 minutes)</small>
+      </div>
+
+      <hr>
+      <h6 class="mb-3"><i class="fa-solid fa-key me-1"></i>Authentication</h6>
+
+      <div class="mb-3">
+        <label class="form-label">Auth Method</label>
+        <div class="d-flex gap-3">
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="eventsAuthMethod" id="authMethodServiceAccount" value="service_account" onchange="toggleEventsAuthFields()">
+            <label class="form-check-label" for="authMethodServiceAccount">Service Account</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="eventsAuthMethod" id="authMethodOAuth" value="oauth" onchange="toggleEventsAuthFields()">
+            <label class="form-check-label" for="authMethodOAuth">OAuth 2.0</label>
+          </div>
+        </div>
+      </div>
+
+      <div id="eventsServiceAccountFields">
+        <div class="mb-3">
+          <label class="form-label" for="eventsCredentialsJson">Service Account Credentials (JSON)</label>
+          <textarea id="eventsCredentialsJson" class="form-control font-monospace" rows="4" placeholder='{"type":"service_account","project_id":"...","private_key":"...","client_email":"...","client_id":"...","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token",...}'></textarea>
+          <small class="text-muted">Paste the full service account JSON key. Can also be set via <code>GOOGLE_CALENDAR_CREDENTIALS</code> env var.</small>
+        </div>
+      </div>
+
+      <div id="eventsOAuthFields" style="display:none">
+        <div class="mb-3">
+          <label class="form-label" for="eventsOAuthClientId">OAuth Client ID</label>
+          <input type="text" id="eventsOAuthClientId" class="form-control" placeholder="xxxxxxxxxxxx-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com">
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="eventsOAuthClientSecret">OAuth Client Secret</label>
+          <input type="password" id="eventsOAuthClientSecret" class="form-control" placeholder="GOCSPX-xxxxxxxxxxxxxxxxxxxx">
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="eventsOAuthRefreshToken">OAuth Refresh Token</label>
+          <input type="password" id="eventsOAuthRefreshToken" class="form-control" placeholder="1//0xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+          <small class="text-muted">A refresh token obtained through the OAuth 2.0 consent flow with <code>https://www.googleapis.com/auth/calendar.readonly</code> scope</small>
+        </div>
+      </div>
+
+      <button class="btn btn-gold" onclick="saveEventsSettings()"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Save Events Settings</button>
+      <button class="btn btn-outline-secondary ms-2" onclick="clearEventsCache()"><i class="fa-solid fa-rotate me-1"></i>Clear Cache</button>
     </div>
   </div>
 </div>

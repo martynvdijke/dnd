@@ -3414,6 +3414,68 @@ body.sidebar-collapsed .container {
   transition: opacity 0.15s;
 }
 
+/* ─── Events Page ─── */
+
+.events-list {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.event-card {
+  border-left: 3px solid var(--accent, #b8963e);
+  transition: box-shadow 0.15s;
+}
+
+.event-card:hover {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+.event-title {
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+}
+
+.event-datetime {
+  font-size: 0.9rem;
+  color: var(--text-muted, #6c757d);
+}
+
+.event-date {
+  font-weight: 500;
+}
+
+.event-time {
+  font-family: 'Vollkorn', serif;
+  font-size: 0.85rem;
+}
+
+.event-description {
+  white-space: pre-line;
+  line-height: 1.5;
+}
+
+.badge-outline {
+  border: 1px solid var(--accent, #b8963e);
+  color: var(--accent, #b8963e);
+  background: transparent;
+  font-size: 0.7rem;
+  font-weight: 400;
+}
+
+.text-gold {
+  color: var(--accent, #b8963e);
+}
+
+.btn-outline-gold {
+  color: var(--accent, #b8963e);
+  border-color: var(--accent, #b8963e);
+}
+
+.btn-outline-gold:hover {
+  background: var(--accent, #b8963e);
+  color: #fff;
+}
+
 /* ─── Print: hide new UI elements ─── */
 
 @media print {
