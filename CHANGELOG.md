@@ -1,3 +1,10 @@
+# [2.24.0](https://github.com/martynvdijke/dnd/compare/v2.23.6...v2.24.0) (2026-07-07)
+
+
+### Features
+
+* events page with Google Calendar integration, tag filtering, auth settings, and iCal feed ([3e5ced2](https://github.com/martynvdijke/dnd/commit/3e5ced24a4136c110bb4890e7625431bf052369d))
+
 ## [2.23.6](https://github.com/martynvdijke/dnd/compare/v2.23.5...v2.23.6) (2026-07-06)
 
 
