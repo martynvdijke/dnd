@@ -1,3 +1,5 @@
+## [2.24.3](https://github.com/martynvdijke/dnd/compare/v2.24.2...v2.24.3) (2026-07-08)
+
 ## [2.24.2](https://github.com/martynvdijke/dnd/compare/v2.24.1...v2.24.2) (2026-07-08)
 
 
