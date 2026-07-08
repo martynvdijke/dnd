@@ -1,3 +1,10 @@
+## [2.24.2](https://github.com/martynvdijke/dnd/compare/v2.24.1...v2.24.2) (2026-07-08)
+
+
+### Bug Fixes
+
+* **deps:** update all non-major dependencies ([#47](https://github.com/martynvdijke/dnd/issues/47)) ([be6d191](https://github.com/martynvdijke/dnd/commit/be6d19188820361593a19787e721011aa4627930))
+
 ## [2.24.1](https://github.com/martynvdijke/dnd/compare/v2.24.0...v2.24.1) (2026-07-07)
 
 # [2.24.0](https://github.com/martynvdijke/dnd/compare/v2.23.6...v2.24.0) (2026-07-07)
