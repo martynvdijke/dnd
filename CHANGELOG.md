@@ -1,3 +1,12 @@
+# [2.25.0](https://github.com/martynvdijke/dnd/compare/v2.24.4...v2.25.0) (2026-07-09)
+
+
+### Features
+
+* **events:** add calendar grid view and event detail pages ([b7e163a](https://github.com/martynvdijke/dnd/commit/b7e163a8453725a80dafadad5807e40748940676))
+* **events:** add GCal color-label filtering with filter modes ([b14c0b8](https://github.com/martynvdijke/dnd/commit/b14c0b87fe36267982deeadb261a0ef4ac37990e))
+* **events:** add per-campaign public pages and admin share link + QR ([4d6490a](https://github.com/martynvdijke/dnd/commit/4d6490ad240bdac1865b2c1ee6b2f411599aa11e))
+
 ## [2.24.4](https://github.com/martynvdijke/dnd/compare/v2.24.3...v2.24.4) (2026-07-09)
 
 
