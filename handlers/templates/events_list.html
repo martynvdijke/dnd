@@ -7,7 +7,7 @@
 <div class="text-center py-5 text-muted">
   <i class="fa-solid fa-calendar-xmark fa-3x mb-3" style="opacity:0.4"></i>
   <p class="fs-5">No upcoming events found</p>
-  <p class="small">Configure the calendar ID and tags in <a href="/admin" class="text-gold">admin settings</a>.</p>
+  <p class="small">{{if .CampaignName}}No upcoming events for this campaign.{{else}}Configure the calendar ID and tags in <a href="/admin" class="text-gold">admin settings</a>.{{end}}</p>
 </div>
 {{else}}
 <div class="events-list">

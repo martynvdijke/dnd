@@ -317,10 +317,39 @@
   </div>
 </div>
 
-<div id="adminEvents" style="display:none">
-  <div class="card">
-    <div class="card-header"><i class="fa-solid fa-calendar-days me-2" aria-hidden="true"></i>Google Calendar Events Settings</div>
-    <div class="card-body">
+  <div id="adminEvents" style="display:none">
+    <!-- Public Link & QR Code -->
+    <div class="card mb-4">
+      <div class="card-header"><i class="fa-solid fa-share-nodes me-2" aria-hidden="true"></i>Share Public Events Page</div>
+      <div class="card-body">
+        <div class="row align-items-start">
+          <div class="col-md-8">
+            <div class="mb-3">
+              <label class="form-label">Public URL</label>
+              <div class="input-group">
+                <input type="text" id="eventsPublicLink" class="form-control font-monospace" readonly placeholder="Loading..." style="font-size:0.85rem">
+                <button class="btn btn-outline-primary" onclick="copyPublicLink()" id="copyLinkBtn" title="Copy to clipboard"><i class="fa-solid fa-copy me-1"></i><span id="copyLinkLabel">Copy link</span></button>
+              </div>
+              <small class="text-muted">Set <code>BASE_URL</code> environment variable to customize the domain. Falls back to request host.</small>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-outline-secondary" onclick="openEventsPage()" id="openEventsPageBtn" title="Open public events page in new tab"><i class="fa-solid fa-eye me-1"></i>Open page</button>
+              <button class="btn btn-outline-secondary" onclick="downloadQR()" id="downloadQRBtn" title="Download QR code as PNG"><i class="fa-solid fa-download me-1"></i>Download QR</button>
+            </div>
+          </div>
+          <div class="col-md-4 text-center">
+            <div id="eventsQRContainer" class="border rounded p-2 d-inline-block bg-light">
+              <img id="eventsQRImg" src="/admin/events/qr" alt="QR Code" width="160" height="160" style="image-rendering:pixelated">
+            </div>
+            <div class="mt-1"><small class="text-muted">Scan to open events page</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><i class="fa-solid fa-calendar-days me-2" aria-hidden="true"></i>Google Calendar Events Settings</div>
+      <div class="card-body">
       <div class="mb-3">
         <label class="form-label" for="eventsCalendarId">Google Calendar ID</label>
         <input type="text" id="eventsCalendarId" class="form-control" placeholder="your-calendar-id@group.calendar.google.com">
@@ -405,6 +434,76 @@
 
       <button class="btn btn-gold" onclick="saveEventsSettings()"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Save Events Settings</button>
       <button class="btn btn-outline-secondary ms-2" onclick="clearEventsCache()"><i class="fa-solid fa-rotate me-1"></i>Clear Cache</button>
+    </div>
+  </div>
+
+  <!-- Campaign Event Settings -->
+  <div class="card mt-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="fa-solid fa-flag me-2" aria-hidden="true"></i>Campaign Event Pages</span>
+      <button class="btn btn-primary btn-sm" onclick="showAddCampaignEvent()"><i class="fa-solid fa-plus me-1"></i>Add Campaign Page</button>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover mb-0" id="campaignEventTable">
+          <thead><tr>
+            <th>Display Name</th>
+            <th>Slug</th>
+            <th>Calendar</th>
+            <th>Tags</th>
+            <th>Active</th>
+            <th>Share</th>
+            <th>Actions</th>
+          </tr></thead>
+          <tbody id="campaignEventBody">
+            <tr><td colspan="6" class="text-muted text-center py-3"><i class="fa-solid fa-spinner fa-spin me-2"></i>Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Campaign Event Modal -->
+  <div class="modal fade" id="campaignEventModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="campaignEventModalTitle">Campaign Event Page</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="campaignEventId" value="">
+          <div class="mb-3">
+            <label class="form-label">Display Name <span class="text-danger">*</span></label>
+            <input class="form-control" id="campaignEventDisplayName" placeholder="e.g. Curse of Strahd">
+            <small class="text-muted">The campaign name shown on the public page</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Slug <span class="text-danger">*</span></label>
+            <input class="form-control" id="campaignEventSlug" placeholder="e.g. curse-of-strahd">
+            <small class="text-muted">URL path: <code>/events/c/<span id="campaignSlugPreview">your-slug</span></code></small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Google Calendar ID</label>
+            <input class="form-control" id="campaignEventCalendarId" placeholder="your-calendar-id@group.calendar.google.com">
+            <small class="text-muted">Leave blank to use the global calendar ID</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Search Tags</label>
+            <input class="form-control" id="campaignEventTags" placeholder="dnd,session,oneshot">
+            <small class="text-muted">Comma-separated keywords; leave blank to inherit global tags</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Cache TTL (seconds)</label>
+            <input type="number" class="form-control" id="campaignEventCacheTTL" value="300" style="max-width:200px" min="30">
+          </div>
+          <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="campaignEventIsActive" checked>
+            <label class="form-check-label" for="campaignEventIsActive">Active (visible on public page)</label>
+          </div>
+          <button class="btn btn-gold w-100" onclick="saveCampaignEventSetting()"><i class="fa-solid fa-floppy-disk me-1"></i>Save Campaign Page</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>

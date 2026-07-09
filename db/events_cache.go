@@ -11,7 +11,8 @@ import (
 // GetCachedEvents returns cached events that are within the TTL.
 // If no cache exists or the cache is expired, returns nil.
 // If the cache is expired but has data, returns the stale data (for fallback).
-func GetCachedEvents(ttlSeconds int) ([]googlecalendar.Event, bool) {
+// campaignSlug empty = global events, non-empty = per-campaign events.
+func GetCachedEvents(ttlSeconds int, campaignSlug string) ([]googlecalendar.Event, bool) {
 	if ttlSeconds <= 0 {
 		ttlSeconds = 300
 	}
@@ -19,7 +20,8 @@ func GetCachedEvents(ttlSeconds int) ([]googlecalendar.Event, bool) {
 	rows, err := DB.Query(`
 		SELECT event_id, title, COALESCE(description,''), start_time, end_time, COALESCE(location,''), all_day, cached_at
 		FROM google_events_cache
-		ORDER BY start_time ASC`)
+		WHERE campaign_slug=?
+		ORDER BY start_time ASC`, campaignSlug)
 	if err != nil {
 		log.Printf("events_cache: query error: %v", err)
 		return nil, false
@@ -76,28 +78,28 @@ func GetCachedEvents(ttlSeconds int) ([]googlecalendar.Event, bool) {
 	return events, false
 }
 
-// SetCachedEvents upserts events into the cache, replacing existing entries.
-func SetCachedEvents(events []googlecalendar.Event) error {
+// SetCachedEvents upserts events into the cache for a given campaign slug.
+// campaignSlug empty = global events.
+func SetCachedEvents(events []googlecalendar.Event, campaignSlug string) error {
 	tx, err := DB.Begin()
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
-	// Clear old cache
-	if _, err := tx.Exec("DELETE FROM google_events_cache"); err != nil {
+	// Clear old cache for this campaign slug
+	if _, err := tx.Exec("DELETE FROM google_events_cache WHERE campaign_slug=?", campaignSlug); err != nil {
 		return err
 	}
 
 	stmt, err := tx.Prepare(`
-		INSERT INTO google_events_cache(event_id, title, description, start_time, end_time, location, all_day, cached_at)
-		VALUES(?, ?, ?, ?, ?, ?, ?, datetime('now'))`)
+		INSERT INTO google_events_cache(event_id, title, description, start_time, end_time, location, all_day, campaign_slug, cached_at)
+		VALUES(?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
-	now := time.Now()
 	for _, e := range events {
 		startStr := ""
 		if !e.StartTime.IsZero() {
@@ -111,38 +113,38 @@ func SetCachedEvents(events []googlecalendar.Event) error {
 		if e.AllDay {
 			allDay = 1
 		}
-		if _, err := stmt.Exec(e.ID, e.Title, e.Description, startStr, endStr, e.Location, allDay); err != nil {
+		if _, err := stmt.Exec(e.ID, e.Title, e.Description, startStr, endStr, e.Location, allDay, campaignSlug); err != nil {
 			log.Printf("events_cache: insert error: %v", err)
 		}
 	}
 
-	_ = now // cached_at uses SQLite datetime('now')
 	return tx.Commit()
 }
 
-// ClearCache removes all cached events.
-func ClearCache() error {
-	_, err := DB.Exec("DELETE FROM google_events_cache")
+// ClearCache removes all cached events for a given campaign slug.
+// campaignSlug empty = global events.
+func ClearCache(campaignSlug string) error {
+	_, err := DB.Exec("DELETE FROM google_events_cache WHERE campaign_slug=?", campaignSlug)
 	if err != nil {
 		log.Printf("events_cache: clear error: %v", err)
 	}
 	return err
 }
 
-// GetCachedCount returns the number of cached events.
-func GetCachedCount() int {
+// GetCachedCount returns the number of cached events for a campaign slug.
+func GetCachedCount(campaignSlug string) int {
 	var count int
-	DB.QueryRow("SELECT COUNT(*) FROM google_events_cache").Scan(&count)
+	DB.QueryRow("SELECT COUNT(*) FROM google_events_cache WHERE campaign_slug=?", campaignSlug).Scan(&count)
 	return count
 }
 
-// HasCacheExpired checks whether the cache is older than the given TTL.
-func HasCacheExpired(ttlSeconds int) bool {
+// HasCacheExpired checks whether the cache is older than the given TTL for a campaign slug.
+func HasCacheExpired(ttlSeconds int, campaignSlug string) bool {
 	if ttlSeconds <= 0 {
 		ttlSeconds = 300
 	}
 	var newest string
-	err := DB.QueryRow("SELECT MAX(cached_at) FROM google_events_cache").Scan(&newest)
+	err := DB.QueryRow("SELECT MAX(cached_at) FROM google_events_cache WHERE campaign_slug=?", campaignSlug).Scan(&newest)
 	if err != nil || newest == "" {
 		return true // no cache = expired
 	}
@@ -153,9 +155,7 @@ func HasCacheExpired(ttlSeconds int) bool {
 	return time.Since(t).Seconds() >= float64(ttlSeconds)
 }
 
-// parseCachedAt parses a cached_at timestamp string, handling both RFC3339
-// (returned by modernc/sqlite for TIMESTAMP columns) and the SQLite datetime('now')
-// format (YYYY-MM-DD HH:MM:SS).
+// parseCachedAt parses a cached_at timestamp string.
 func parseCachedAt(s string) (time.Time, error) {
 	if t, err := time.Parse("2006-01-02 15:04:05", s); err == nil {
 		return t, nil
@@ -167,10 +167,9 @@ func parseCachedAt(s string) (time.Time, error) {
 }
 
 // GetStaleCacheAge returns the number of seconds since the cache was last refreshed.
-// Returns -1 if no cache exists.
-func GetStaleCacheAge() int {
+func GetStaleCacheAge(campaignSlug string) int {
 	var newest string
-	err := DB.QueryRow("SELECT MAX(cached_at) FROM google_events_cache").Scan(&newest)
+	err := DB.QueryRow("SELECT MAX(cached_at) FROM google_events_cache WHERE campaign_slug=?", campaignSlug).Scan(&newest)
 	if err != nil || newest == "" {
 		return -1
 	}

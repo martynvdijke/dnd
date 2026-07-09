@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"encoding/json"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -43,7 +45,7 @@ func TestEventsPage(t *testing.T) {
 			{ID: "evt1", Title: "DnD Session", StartTime: time.Date(2026, 7, 15, 19, 0, 0, 0, time.UTC)},
 			{ID: "evt2", Title: "One-Shot", StartTime: time.Date(2026, 7, 20, 18, 0, 0, 0, time.UTC)},
 		}
-		db.SetCachedEvents(events)
+		db.SetCachedEvents(events, "")
 
 		// Configure a calendar ID so the handler tries to fetch
 		db.SaveEventSettings(db.EventSettings{
@@ -68,7 +70,7 @@ func TestEventsPage(t *testing.T) {
 
 	t.Run("shows error state when API is unreachable and no cache", func(t *testing.T) {
 		// Set calendar_id but clear cache
-		db.ClearCache()
+		db.ClearCache("")
 		db.SaveEventSettings(db.EventSettings{
 			CalendarID:      "nonexistent@example.com",
 			Tags:            "dnd",
@@ -118,7 +120,7 @@ func TestEventsListPartial(t *testing.T) {
 		events := []googlecalendar.Event{
 			{ID: "evt3", Title: "Test Session", StartTime: time.Date(2026, 7, 15, 19, 0, 0, 0, time.UTC)},
 		}
-		db.SetCachedEvents(events)
+		db.SetCachedEvents(events, "")
 		db.SaveEventSettings(db.EventSettings{CalendarID: "test@example.com"})
 
 		w := testutil.Get(t, r, "/htmx/events/list")
@@ -183,15 +185,15 @@ func TestAdminEventsSettings(t *testing.T) {
 		// Seed some cache data
 		db.SetCachedEvents([]googlecalendar.Event{
 			{ID: "test", Title: "Test", StartTime: time.Now()},
-		})
-		if count := db.GetCachedCount(); count != 1 {
+		}, "")
+		if count := db.GetCachedCount(""); count != 1 {
 			t.Fatalf("expected 1 cached event, got %d", count)
 		}
 
 		w := testutil.PostJSON(t, r, "/api/admin/events-settings/clear-cache", nil)
 		testutil.AssertStatus(t, w, 200)
 
-		if count := db.GetCachedCount(); count != 0 {
+		if count := db.GetCachedCount(""); count != 0 {
 			t.Errorf("expected 0 cached events after clear, got %d", count)
 		}
 	})
@@ -291,7 +293,7 @@ func TestEventsICalHandler(t *testing.T) {
 
 	t.Run("returns valid ICS with no events configured", func(t *testing.T) {
 		// No calendar configured = no events
-		db.ClearCache()
+		db.ClearCache("")
 		db.SaveEventSettings(db.EventSettings{CalendarID: "", Tags: "dnd"})
 
 		w := testutil.Get(t, r, "/events/ical")
@@ -345,7 +347,7 @@ func TestEventsICalHandler(t *testing.T) {
 				AllDay:    true,
 			},
 		}
-		db.SetCachedEvents(events)
+		db.SetCachedEvents(events, "")
 		db.SaveEventSettings(db.EventSettings{CalendarID: "test@example.com", Tags: "dnd"})
 
 		w := testutil.Get(t, r, "/events/ical")
@@ -388,7 +390,7 @@ func TestEventsICalHandler(t *testing.T) {
 	})
 
 	t.Run("empty event with no description omits DESCRIPTION", func(t *testing.T) {
-		db.ClearCache()
+		db.ClearCache("")
 		events := []googlecalendar.Event{
 			{
 				ID:        "evt3",
@@ -397,7 +399,7 @@ func TestEventsICalHandler(t *testing.T) {
 				EndTime:   time.Date(2026, 9, 1, 14, 0, 0, 0, time.UTC),
 			},
 		}
-		db.SetCachedEvents(events)
+		db.SetCachedEvents(events, "")
 		db.SaveEventSettings(db.EventSettings{CalendarID: "test@example.com"})
 
 		w := testutil.Get(t, r, "/events/ical")
@@ -417,3 +419,160 @@ func TestEventsICalHandler(t *testing.T) {
 }
 
 // contains and searchString are available from oneshot_planning_test.go
+
+// ─── Events Share Link & QR Tests ───
+
+func TestEventsPublicLink(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	gin.SetMode(gin.TestMode)
+
+	t.Run("returns public URL from request host", func(t *testing.T) {
+		r := gin.New()
+		admin := r.Group("/api/admin")
+		admin.Use(mockAuth("admin"), mockCSRF())
+		admin.GET("/events/public-link", EventsPublicLink)
+
+		w := testutil.Get(t, r, "/api/admin/events/public-link")
+		testutil.AssertStatus(t, w, 200)
+
+		var result map[string]string
+		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+			t.Fatalf("failed to parse JSON: %v", err)
+		}
+		url, ok := result["url"]
+		if !ok {
+			t.Fatal("expected 'url' field in response")
+		}
+		if !strings.HasSuffix(url, "/events") {
+			t.Errorf("expected URL ending in /events, got %q", url)
+		}
+	})
+
+	t.Run("returns campaign URL with slug param", func(t *testing.T) {
+		r := gin.New()
+		admin := r.Group("/api/admin")
+		admin.Use(mockAuth("admin"), mockCSRF())
+		admin.GET("/events/public-link", EventsPublicLink)
+
+		w := testutil.Get(t, r, "/api/admin/events/public-link?slug=lost-mines")
+		testutil.AssertStatus(t, w, 200)
+
+		var result map[string]string
+		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+			t.Fatalf("failed to parse JSON: %v", err)
+		}
+		url := result["url"]
+		if !strings.HasSuffix(url, "/events/c/lost-mines") {
+			t.Errorf("expected URL ending in /events/c/lost-mines, got %q", url)
+		}
+	})
+
+	t.Run("uses BASE_URL when set", func(t *testing.T) {
+		SetBaseURL("https://dnd.example.com")
+		defer SetBaseURL("")
+
+		r := gin.New()
+		admin := r.Group("/api/admin")
+		admin.Use(mockAuth("admin"), mockCSRF())
+		admin.GET("/events/public-link", EventsPublicLink)
+
+		w := testutil.Get(t, r, "/api/admin/events/public-link")
+		testutil.AssertStatus(t, w, 200)
+
+		var result map[string]string
+		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+			t.Fatalf("failed to parse JSON: %v", err)
+		}
+		url := result["url"]
+		expected := "https://dnd.example.com/events"
+		if url != expected {
+			t.Errorf("expected %q, got %q", expected, url)
+		}
+	})
+}
+
+func TestEventsQRCode(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	gin.SetMode(gin.TestMode)
+
+	r := gin.New()
+	admin := r.Group("/api/admin")
+	admin.Use(mockAuth("admin"), mockCSRF())
+	admin.GET("/events/qr", EventsQRCode)
+
+	t.Run("returns valid PNG", func(t *testing.T) {
+		SetBaseURL("https://dnd.example.com")
+		defer SetBaseURL("")
+
+		w := testutil.Get(t, r, "/api/admin/events/qr")
+		testutil.AssertStatus(t, w, 200)
+
+		ct := w.Header().Get("Content-Type")
+		if ct != "image/png" {
+			t.Errorf("expected Content-Type image/png, got %q", ct)
+		}
+
+		body := w.Body.Bytes()
+		if len(body) == 0 {
+			t.Fatal("expected non-empty PNG body")
+		}
+		// PNG header: 89 50 4E 47 0D 0A 1A 0A
+		if len(body) < 8 || body[0] != 0x89 || body[1] != 'P' || body[2] != 'N' || body[3] != 'G' {
+			t.Error("expected valid PNG magic bytes")
+		}
+
+		cc := w.Header().Get("Cache-Control")
+		if cc == "" {
+			t.Error("expected Cache-Control header on QR response")
+		}
+	})
+
+	t.Run("returns PNG for campaign slug", func(t *testing.T) {
+		SetBaseURL("https://dnd.example.com")
+		defer SetBaseURL("")
+
+		w := testutil.Get(t, r, "/api/admin/events/qr?slug=lost-mines")
+		testutil.AssertStatus(t, w, 200)
+
+		ct := w.Header().Get("Content-Type")
+		if ct != "image/png" {
+			t.Errorf("expected Content-Type image/png, got %q", ct)
+		}
+		body := w.Body.Bytes()
+		if len(body) < 8 || body[0] != 0x89 || body[1] != 'P' || body[2] != 'N' || body[3] != 'G' {
+			t.Error("expected valid PNG magic bytes")
+		}
+	})
+}
+
+func TestEventsShareAuth(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	gin.SetMode(gin.TestMode)
+
+	t.Run("non-admin is rejected from public-link", func(t *testing.T) {
+		r := gin.New()
+		admin := r.Group("/api/admin")
+		admin.Use(mockAuth("user"), mockAdminRequired(), mockCSRF())
+		admin.GET("/events/public-link", EventsPublicLink)
+
+		w := testutil.Get(t, r, "/api/admin/events/public-link")
+		if w.Code != http.StatusForbidden {
+			t.Errorf("expected 403 for non-admin, got %d", w.Code)
+		}
+	})
+
+	t.Run("non-admin is rejected from qr", func(t *testing.T) {
+		r := gin.New()
+		admin := r.Group("/api/admin")
+		admin.Use(mockAuth("user"), mockAdminRequired(), mockCSRF())
+		admin.GET("/events/qr", EventsQRCode)
+
+		w := testutil.Get(t, r, "/api/admin/events/qr")
+		if w.Code != http.StatusForbidden {
+			t.Errorf("expected 403 for non-admin, got %d", w.Code)
+		}
+	})
+}

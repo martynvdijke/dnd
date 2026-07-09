@@ -1953,6 +1953,123 @@ document.addEventListener('keydown', function (e: KeyboardEvent) {
   }
 });
 
+// ─── Campaign Event Settings CRUD ───
+
+let campaignEventEditId: number | null = null;
+
+async function loadCampaignEventSettings() {
+  try {
+    const campaigns = await api('GET', '/api/admin/events-campaigns');
+    const tbody = document.getElementById('campaignEventBody')!;
+    if (!campaigns || campaigns.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-muted text-center py-3">No campaign event pages configured. Add one to create a public event page for a campaign.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = campaigns.map((c: any) => `
+      <tr>
+        <td><strong>${esc(c.display_name)}</strong></td>
+        <td><code>${esc(c.slug)}</code></td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.calendar_id || '(global)')}</td>
+        <td>${esc(c.tags || '(global)')}</td>
+        <td>${c.is_active ? '<span class="text-success"><i class="fa-solid fa-check"></i></span>' : '<span class="text-muted"><i class="fa-solid fa-xmark"></i></span>'}</td>
+        <td class="text-nowrap">
+          <a href="/events/c/${esc(c.slug)}" class="btn btn-outline-info btn-sm py-0" target="_blank" title="View public page"><i class="fa-solid fa-eye"></i></a>
+          <button class="btn btn-outline-primary btn-sm py-0" onclick="editCampaignEventSetting(${c.id})" title="Edit"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-outline-danger btn-sm py-0" onclick="deleteCampaignEventSetting(${c.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (e: any) {
+    const tbody = document.getElementById('campaignEventBody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-danger text-center">Failed to load: ' + esc(e.message) + '</td></tr>';
+  }
+}
+(window as any).loadCampaignEventSettings = loadCampaignEventSettings;
+
+(window as any).showAddCampaignEvent = function () {
+  campaignEventEditId = null;
+  document.getElementById('campaignEventModalTitle')!.textContent = 'Add Campaign Event Page';
+  (document.getElementById('campaignEventId') as HTMLInputElement).value = '';
+  (document.getElementById('campaignEventDisplayName') as HTMLInputElement).value = '';
+  (document.getElementById('campaignEventSlug') as HTMLInputElement).value = '';
+  (document.getElementById('campaignEventCalendarId') as HTMLInputElement).value = '';
+  (document.getElementById('campaignEventTags') as HTMLInputElement).value = '';
+  (document.getElementById('campaignEventCacheTTL') as HTMLInputElement).value = '300';
+  (document.getElementById('campaignEventIsActive') as HTMLInputElement).checked = true;
+  updateCampaignSlugPreview();
+  new (window as any).bootstrap.Modal(document.getElementById('campaignEventModal')!).show();
+};
+
+(window as any).editCampaignEventSetting = async function (id: number) {
+  campaignEventEditId = id;
+  try {
+    const c = await api('GET', '/api/admin/events-campaigns/' + id);
+    document.getElementById('campaignEventModalTitle')!.textContent = 'Edit Campaign Event Page';
+    (document.getElementById('campaignEventId') as HTMLInputElement).value = String(id);
+    (document.getElementById('campaignEventDisplayName') as HTMLInputElement).value = c.display_name || '';
+    (document.getElementById('campaignEventSlug') as HTMLInputElement).value = c.slug || '';
+    (document.getElementById('campaignEventCalendarId') as HTMLInputElement).value = c.calendar_id || '';
+    (document.getElementById('campaignEventTags') as HTMLInputElement).value = c.tags || '';
+    (document.getElementById('campaignEventCacheTTL') as HTMLInputElement).value = c.cache_ttl_seconds || 300;
+    (document.getElementById('campaignEventIsActive') as HTMLInputElement).checked = c.is_active;
+    updateCampaignSlugPreview();
+    new (window as any).bootstrap.Modal(document.getElementById('campaignEventModal')!).show();
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+function updateCampaignSlugPreview() {
+  const slug = (document.getElementById('campaignEventSlug') as HTMLInputElement).value.trim() || 'your-slug';
+  const preview = document.getElementById('campaignSlugPreview');
+  if (preview) preview.textContent = slug;
+}
+document.addEventListener('input', function (e: Event) {
+  const el = e.target as HTMLElement;
+  if (el && el.id === 'campaignEventSlug') updateCampaignSlugPreview();
+});
+
+(window as any).saveCampaignEventSetting = async function () {
+  const displayName = (document.getElementById('campaignEventDisplayName') as HTMLInputElement).value.trim();
+  const slug = (document.getElementById('campaignEventSlug') as HTMLInputElement).value.trim();
+  if (!displayName || !slug) { toast('Display name and slug are required', true); return; }
+  const body: any = {
+    display_name: displayName,
+    slug: slug,
+    calendar_id: (document.getElementById('campaignEventCalendarId') as HTMLInputElement).value.trim(),
+    tags: (document.getElementById('campaignEventTags') as HTMLInputElement).value.trim(),
+    cache_ttl_seconds: parseInt((document.getElementById('campaignEventCacheTTL') as HTMLInputElement).value) || 300,
+    is_active: (document.getElementById('campaignEventIsActive') as HTMLInputElement).checked
+  };
+  try {
+    if (campaignEventEditId) {
+      body.id = campaignEventEditId;
+      await api('PUT', '/api/admin/events-campaigns/' + campaignEventEditId, body);
+      toast('Campaign page updated');
+    } else {
+      await api('POST', '/api/admin/events-campaigns', body);
+      toast('Campaign page created');
+    }
+    const modalEl = document.getElementById('campaignEventModal')!;
+    const modal = (window as any).bootstrap.Modal.getInstance(modalEl);
+    if (modal) modal.hide();
+    loadCampaignEventSettings();
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
+(window as any).deleteCampaignEventSetting = async function (id: number) {
+  if (!confirm('Delete this campaign event page? The public page will no longer be available.')) return;
+  try {
+    await api('DELETE', '/api/admin/events-campaigns/' + id);
+    toast('Campaign page deleted');
+    loadCampaignEventSettings();
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+};
+
 init();
 
 })();
