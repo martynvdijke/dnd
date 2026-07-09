@@ -1,0 +1,67 @@
+{{if .Error}}
+<div class="alert alert-warning text-center py-4" role="alert">
+  <i class="fa-solid fa-triangle-exclamation me-2"></i>
+  {{.Error}}
+</div>
+{{else if .Empty}}
+<div class="text-center py-5 text-muted">
+  <i class="fa-solid fa-calendar-xmark fa-3x mb-3" style="opacity:0.4"></i>
+  <p class="fs-5">No events this month</p>
+</div>
+{{else}}
+<div class="events-grid" id="events-grid">
+  <!-- Month Navigation -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <button class="btn btn-sm btn-outline-gold month-nav"
+      hx-get="{{if .CampaignSlug}}/htmx/events/c/{{.CampaignSlug}}/grid?month={{.PrevMonth}}{{else}}/htmx/events/grid?month={{.PrevMonth}}{{end}}"
+      hx-target="#events-grid" hx-swap="outerHTML">
+      <i class="fa-solid fa-chevron-left me-1"></i>{{(.Month.AddDate 0 -1 0).Format "January"}}
+    </button>
+    <h5 class="mb-0 fw-semibold">{{.Month.Format "January 2006"}}</h5>
+    <button class="btn btn-sm btn-outline-gold month-nav"
+      hx-get="{{if .CampaignSlug}}/htmx/events/c/{{.CampaignSlug}}/grid?month={{.NextMonth}}{{else}}/htmx/events/grid?month={{.NextMonth}}{{end}}"
+      hx-target="#events-grid" hx-swap="outerHTML">
+      {{(.Month.AddDate 0 1 0).Format "January"}}<i class="fa-solid fa-chevron-right ms-1"></i>
+    </button>
+  </div>
+
+  <!-- Grid Table -->
+  <table class="table table-bordered calendar-grid mb-0">
+    <thead>
+      <tr>
+        <th class="text-center">Sun</th>
+        <th class="text-center">Mon</th>
+        <th class="text-center">Tue</th>
+        <th class="text-center">Wed</th>
+        <th class="text-center">Thu</th>
+        <th class="text-center">Fri</th>
+        <th class="text-center">Sat</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{range .Weeks}}
+      <tr>
+        {{range .Days}}
+        <td class="calendar-cell{{if not .IsCurrentMonth}} calendar-cell-other{{end}}{{if .IsToday}} calendar-cell-today{{end}}">
+          {{if .IsCurrentMonth}}
+          <div class="calendar-day-num">{{.Day}}</div>
+          {{range .Events}}
+          <a href="/events/{{.ID}}" class="calendar-event-link">
+            <div class="calendar-event{{if .ColorId}} calendar-event-colored{{end}}">
+              {{if .ColorId}}<span class="gcal-color-swatch gcal-color-{{.ColorId}}"></span>{{end}}
+              <span class="calendar-event-title">{{.Title}}</span>
+            </div>
+          </a>
+          {{end}}
+          {{if gt .Overflow 0}}
+          <div class="calendar-event-overflow text-muted small text-center">+{{.Overflow}} more</div>
+          {{end}}
+          {{end}}
+        </td>
+        {{end}}
+      </tr>
+      {{end}}
+    </tbody>
+  </table>
+</div>
+{{end}}

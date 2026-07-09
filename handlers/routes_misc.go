@@ -21,9 +21,13 @@ func RegisterPublicRoutes(r *gin.Engine) {
 	r.GET("/events", EventsPage)
 	r.GET("/events/ical", EventsICal)
 	r.GET("/htmx/events/list", EventsListPartial)
+	r.GET("/htmx/events/grid", EventsGridPartial)
 	r.GET("/events/c/:slug", CampaignEventsPage)
 	r.GET("/events/c/:slug/ical", CampaignEventsICal)
 	r.GET("/htmx/events/c/:slug/list", CampaignEventsListPartial)
+	r.GET("/htmx/events/c/:slug/grid", EventsGridCampaignPartial)
+	// Event detail route (after campaign/c routes since literal 'ical' matches first)
+	r.GET("/events/:id", EventDetail)
 }
 
 // RegisterAuthBoilerplate registers auth helper routes (logout, csrf, me).

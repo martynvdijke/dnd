@@ -17,7 +17,7 @@
       <h5 class="card-title event-title">
         {{if .ColorId}}<span class="gcal-color-swatch gcal-color-{{.ColorId}}" title="Event color"></span>{{end}}
         <i class="fa-solid fa-dice-d6 me-2 text-gold" style="font-size:0.8em"></i>
-        {{.Title}}
+        <a href="/events/{{.ID}}" class="event-title-link">{{.Title}}</a>
       </h5>
       <div class="event-datetime mb-2">
         <i class="fa-regular fa-calendar me-1 text-muted"></i>

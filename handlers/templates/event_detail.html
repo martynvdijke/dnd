@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{.Event.Title}} — villum</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Vollkorn:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✧</text></svg>">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-md sticky-top">
+  <div class="container">
+    <a class="navbar-brand" href="#">✧ villum — Event</a>
+    <div class="d-flex align-items-center gap-2">
+      <a href="/" class="btn btn-sm btn-outline-gold"><i class="fa-solid fa-arrow-left me-1"></i>App</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container mt-4">
+  {{if .Error}}
+  <div class="alert alert-warning text-center py-4" role="alert">
+    <i class="fa-solid fa-triangle-exclamation me-2"></i>
+    {{.Error}}
+  </div>
+  {{else}}
+  <div class="d-flex justify-content-between align-items-start mb-4">
+    <div>
+      <h2 class="mb-1">
+        {{if .Event.ColorId}}<span class="gcal-color-swatch gcal-color-{{.Event.ColorId}}" style="width:16px;height:16px"></span>{{end}}
+        <i class="fa-solid fa-calendar-days me-2 text-gold"></i>{{.Event.Title}}
+      </h2>
+      {{if .CampaignName}}
+      <p class="text-muted mb-0"><i class="fa-regular fa-flag me-1"></i>{{.CampaignName}}</p>
+      {{end}}
+    </div>
+    <div>
+      <a href="{{if .CampaignSlug}}/events/c/{{.CampaignSlug}}{{else}}/events{{end}}" class="btn btn-sm btn-outline-gold">
+        <i class="fa-solid fa-arrow-left me-1"></i>Back to Events
+      </a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="row g-4">
+        {{if not .Event.StartTime.IsZero}}
+        <div class="col-md-6">
+          <div class="d-flex align-items-start gap-3">
+            <div class="event-detail-icon text-gold"><i class="fa-regular fa-calendar fa-lg"></i></div>
+            <div>
+              <h6 class="mb-1">Date &amp; Time</h6>
+              <p class="mb-0">
+                {{if .Event.AllDay}}
+                <span>{{.Event.StartTime.Format "Mon, Jan 2, 2006"}}</span>
+                {{if not (eq (.Event.StartTime.Format "2006-01-02") (.Event.EndTime.Format "2006-01-02"))}}
+                  <span> – {{.Event.EndTime.Format "Mon, Jan 2, 2006"}}</span>
+                {{end}}
+                <span class="badge badge-outline ms-2">All day</span>
+                {{else}}
+                <span>{{.Event.StartTime.Format "Mon, Jan 2, 2006"}}</span>
+                <span class="fw-semibold ms-1">{{.Event.StartTime.Format "3:04 PM"}}</span>
+                {{if not (.Event.StartTime.Equal .Event.EndTime)}}
+                  <span> – {{.Event.EndTime.Format "Mon, Jan 2, 2006"}}</span>
+                  <span class="fw-semibold ms-1">{{.Event.EndTime.Format "3:04 PM"}}</span>
+                {{end}}
+                {{end}}
+              </p>
+            </div>
+          </div>
+        </div>
+        {{end}}
+
+        {{if .Event.Location}}
+        <div class="col-md-6">
+          <div class="d-flex align-items-start gap-3">
+            <div class="event-detail-icon text-gold"><i class="fa-solid fa-location-dot fa-lg"></i></div>
+            <div>
+              <h6 class="mb-1">Location</h6>
+              <p class="mb-0">{{.Event.Location}}</p>
+              {{if .Location}}
+              <a href="{{.Location}}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-gold mt-1">
+                <i class="fa-solid fa-map me-1"></i>Open in Google Maps
+              </a>
+              {{end}}
+            </div>
+          </div>
+        </div>
+        {{end}}
+
+        {{if .Event.Description}}
+        <div class="col-12">
+          <div class="d-flex align-items-start gap-3">
+            <div class="event-detail-icon text-gold"><i class="fa-regular fa-note-sticky fa-lg"></i></div>
+            <div>
+              <h6 class="mb-1">Description</h6>
+              <p class="mb-0 event-detail-description">{{.Event.Description}}</p>
+            </div>
+          </div>
+        </div>
+        {{end}}
+      </div>
+    </div>
+  </div>
+  {{end}}
+</div>
+
+<footer class="container mt-5 mb-3">
+  <hr>
+  <p class="text-muted small text-center">villum v{{.Version}}</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js"></script>
+</body>
+</html>

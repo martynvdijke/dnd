@@ -576,3 +576,261 @@ func TestEventsShareAuth(t *testing.T) {
 		}
 	})
 }
+
+// ─── Calendar Grid View Tests ───
+
+func TestEventsGridPartial(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+
+	r := gin.New()
+	r.GET("/htmx/events/grid", EventsGridPartial)
+
+	t.Run("returns grid partial HTML", func(t *testing.T) {
+		w := testutil.Get(t, r, "/htmx/events/grid")
+		testutil.AssertStatus(t, w, 200)
+		body := w.Body.String()
+		if contains(body, "<!DOCTYPE html>") {
+			t.Error("grid partial should not include DOCTYPE")
+		}
+	})
+
+	t.Run("shows empty state when no calendar configured", func(t *testing.T) {
+		w := testutil.Get(t, r, "/htmx/events/grid")
+		body := w.Body.String()
+		if !contains(body, "No events this month") {
+			t.Error("expected empty state in grid partial")
+		}
+	})
+
+	t.Run("shows month navigation with events", func(t *testing.T) {
+		now := time.Now()
+		events := []googlecalendar.Event{
+			{ID: "g1", Title: "Grid Event", StartTime: time.Date(now.Year(), now.Month(), 15, 19, 0, 0, 0, time.UTC)},
+		}
+		db.SetCachedEvents(events, "")
+		db.SaveEventSettings(db.EventSettings{CalendarID: "test@example.com", Tags: ""})
+
+		w := testutil.Get(t, r, "/htmx/events/grid")
+		testutil.AssertStatus(t, w, 200)
+		body := w.Body.String()
+		if !contains(body, "Grid Event") {
+			t.Error("expected event title in grid partial")
+		}
+		if !contains(body, "calendar-grid") {
+			t.Error("expected calendar-grid class")
+		}
+	})
+
+	t.Run("accepts month param", func(t *testing.T) {
+		db.ClearCache("")
+		events := []googlecalendar.Event{
+			{ID: "g2", Title: "July Event", StartTime: time.Date(2026, 7, 4, 12, 0, 0, 0, time.UTC)},
+		}
+		db.SetCachedEvents(events, "")
+		db.SaveEventSettings(db.EventSettings{CalendarID: "test@example.com"})
+
+		w := testutil.Get(t, r, "/htmx/events/grid?month=2026-07")
+		testutil.AssertStatus(t, w, 200)
+		body := w.Body.String()
+		if !contains(body, "July Event") {
+			t.Error("expected event in July grid")
+		}
+		if !contains(body, "July 2026") {
+			t.Error("expected July 2026 in month header")
+		}
+	})
+
+	t.Run("different month hides events", func(t *testing.T) {
+		w := testutil.Get(t, r, "/htmx/events/grid?month=2026-06")
+		testutil.AssertStatus(t, w, 200)
+		body := w.Body.String()
+		if contains(body, "July Event") {
+			t.Error("July event should not appear in June grid")
+		}
+	})
+}
+
+func TestEventDetail(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+
+	r := gin.New()
+	r.GET("/events/:id", EventDetail)
+
+	t.Run("returns 404 for unknown event", func(t *testing.T) {
+		w := testutil.Get(t, r, "/events/nonexistent")
+		testutil.AssertStatus(t, w, 404)
+		body := w.Body.String()
+		if !contains(body, "Event not found") {
+			t.Error("expected not found message")
+		}
+	})
+
+	t.Run("shows event detail when event is in cache", func(t *testing.T) {
+		events := []googlecalendar.Event{
+			{ID: "det1", Title: "Detail Event", Description: "A detailed description", StartTime: time.Date(2026, 7, 15, 19, 0, 0, 0, time.UTC)},
+		}
+		db.SetCachedEvents(events, "")
+		db.SaveEventSettings(db.EventSettings{CalendarID: "test@example.com"})
+
+		w := testutil.Get(t, r, "/events/det1")
+		testutil.AssertStatus(t, w, 200)
+		body := w.Body.String()
+		if !contains(body, "Detail Event") {
+			t.Error("expected event title in detail page")
+		}
+		if !contains(body, "A detailed description") {
+			t.Error("expected event description in detail page")
+		}
+		if !contains(body, "Back to Events") {
+			t.Error("expected back link")
+		}
+	})
+
+	t.Run("shows location with Google Maps link", func(t *testing.T) {
+		db.ClearCache("")
+		events := []googlecalendar.Event{
+			{ID: "det2", Title: "Located Event", Location: "123 Main St, City", StartTime: time.Date(2026, 7, 20, 18, 0, 0, 0, time.UTC)},
+		}
+		db.SetCachedEvents(events, "")
+		db.SaveEventSettings(db.EventSettings{CalendarID: "test@example.com"})
+
+		w := testutil.Get(t, r, "/events/det2")
+		testutil.AssertStatus(t, w, 200)
+		body := w.Body.String()
+		if !contains(body, "123 Main St, City") {
+			t.Error("expected location in detail page")
+		}
+		if !contains(body, "Open in Google Maps") {
+			t.Error("expected Google Maps link")
+		}
+		if !contains(body, "google.com/maps/search") {
+			t.Error("expected google maps search URL")
+		}
+	})
+}
+
+func TestEventsGridViewParam(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+
+	r := gin.New()
+	r.GET("/events", EventsPage)
+
+	t.Run("default view is list", func(t *testing.T) {
+		w := testutil.Get(t, r, "/events")
+		testutil.AssertStatus(t, w, 200)
+		body := w.Body.String()
+		if contains(body, "calendar-grid") {
+			t.Error("default view should not show grid")
+		}
+	})
+
+	t.Run("view=grid shows grid elements", func(t *testing.T) {
+		db.ClearCache("")
+		events := []googlecalendar.Event{
+			{ID: "v1", Title: "View Grid Event", StartTime: time.Date(2026, 7, 10, 19, 0, 0, 0, time.UTC)},
+		}
+		db.SetCachedEvents(events, "")
+		db.SaveEventSettings(db.EventSettings{CalendarID: "test@example.com"})
+
+		w := testutil.Get(t, r, "/events?view=grid")
+		testutil.AssertStatus(t, w, 200)
+		body := w.Body.String()
+		if !contains(body, "View Grid Event") {
+			t.Error("expected grid event title when view=grid")
+		}
+		if !contains(body, "calendar-grid") {
+			t.Error("expected calendar grid when view=grid")
+		}
+	})
+
+	t.Run("view=list stays in list mode", func(t *testing.T) {
+		w := testutil.Get(t, r, "/events?view=list")
+		testutil.AssertStatus(t, w, 200)
+		body := w.Body.String()
+		if contains(body, "calendar-grid") {
+			t.Error("view=list should not show grid")
+		}
+	})
+}
+
+func TestEventsGridHelpers(t *testing.T) {
+	t.Run("parseMonthParam returns correct month", func(t *testing.T) {
+		mt, ok := parseMonthParam("2026-07")
+		if !ok {
+			t.Fatal("expected parse to succeed")
+		}
+		if mt.Year() != 2026 || mt.Month() != time.July {
+			t.Errorf("expected 2026-07, got %d-%d", mt.Year(), mt.Month())
+		}
+	})
+
+	t.Run("parseMonthParam rejects invalid input", func(t *testing.T) {
+		_, ok := parseMonthParam("")
+		if ok {
+			t.Error("expected empty string to fail")
+		}
+		_, ok = parseMonthParam("not-a-date")
+		if ok {
+			t.Error("expected invalid string to fail")
+		}
+		_, ok = parseMonthParam("2026-13")
+		if ok {
+			t.Error("expected invalid month to fail")
+		}
+		_, ok = parseMonthParam("2026-00")
+		if ok {
+			t.Error("expected zero month to fail")
+		}
+	})
+
+	t.Run("filterEventsByMonth returns only events in month", func(t *testing.T) {
+		events := []googlecalendar.Event{
+			{ID: "a", StartTime: time.Date(2026, 7, 4, 12, 0, 0, 0, time.UTC)},
+			{ID: "b", StartTime: time.Date(2026, 7, 15, 19, 0, 0, 0, time.UTC)},
+			{ID: "c", StartTime: time.Date(2026, 6, 30, 23, 0, 0, 0, time.UTC)},
+			{ID: "d", StartTime: time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)},
+		}
+		july := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+		filtered := filterEventsByMonth(events, 2026, july)
+		if len(filtered) != 2 {
+			t.Errorf("expected 2 events in July, got %d", len(filtered))
+		}
+	})
+
+	t.Run("buildGrid creates correct number of weeks", func(t *testing.T) {
+		events := []googlecalendar.Event{
+			{ID: "a", StartTime: time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC)},
+			{ID: "b", StartTime: time.Date(2026, 7, 4, 12, 0, 0, 0, time.UTC)},
+		}
+		july := time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
+		weeks := buildGrid(events, 2026, july)
+		// July 2026 starts on Wednesday, so 5 weeks
+		if len(weeks) < 4 || len(weeks) > 6 {
+			t.Errorf("expected 4-6 weeks for July 2026, got %d", len(weeks))
+		}
+		// Check first week has leading empty days (Wed=3, so 3 leading empty)
+		if len(weeks[0].Days) != 7 {
+			t.Errorf("expected 7 days per week, got %d", len(weeks[0].Days))
+		}
+	})
+
+	t.Run("googleMapsURL returns correct URL", func(t *testing.T) {
+		url := googleMapsURL("123 Main St, City")
+		expected := "https://www.google.com/maps/search/123+Main+St%2C+City"
+		if url != expected {
+			t.Errorf("expected %q, got %q", expected, url)
+		}
+	})
+
+	t.Run("googleMapsURL returns empty for empty location", func(t *testing.T) {
+		if url := googleMapsURL(""); url != "" {
+			t.Errorf("expected empty URL, got %q", url)
+		}
+	})
+}

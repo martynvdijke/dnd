@@ -24,7 +24,18 @@
 <div class="container mt-4">
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="mb-0"><i class="fa-solid fa-calendar-days me-2 text-gold"></i>{{if .CampaignName}}{{.CampaignName}} — {{end}}Upcoming Events</h2>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 align-items-center">
+      <!-- View Switcher -->
+      <div class="btn-group btn-group-sm me-2" role="group">
+        <a href="{{if .CampaignSlug}}/events/c/{{.CampaignSlug}}?view=list{{else}}/events?view=list{{end}}"
+           class="btn btn-sm {{if eq .View "list"}}btn-gold{{else}}btn-outline-gold{{end}}" title="List view">
+          <i class="fa-solid fa-list"></i>
+        </a>
+        <a href="{{if .CampaignSlug}}/events/c/{{.CampaignSlug}}?view=grid{{else}}/events?view=grid{{end}}"
+           class="btn btn-sm {{if eq .View "grid"}}btn-gold{{else}}btn-outline-gold{{end}}" title="Calendar grid view">
+          <i class="fa-solid fa-calendar-days"></i>
+        </a>
+      </div>
       {{if .CampaignSlug}}
       <a href="/events/c/{{.CampaignSlug}}/ical" class="btn btn-sm btn-outline-gold" title="Subscribe in your calendar app">
         <i class="fa-regular fa-calendar-plus me-1"></i>Subscribe (iCal)
@@ -34,14 +45,24 @@
         <i class="fa-regular fa-calendar-plus me-1"></i>Subscribe (iCal)
       </a>
       {{end}}
+      {{if eq .View "grid"}}
+      <button class="btn btn-sm btn-outline-gold" hx-get="{{if .CampaignSlug}}/htmx/events/c/{{.CampaignSlug}}/grid{{else}}/htmx/events/grid{{end}}" hx-target="#events-list" hx-swap="innerHTML" onclick="this.innerHTML='<span class=\'spinner-border spinner-border-sm me-1\'></span>Refreshing...'">
+        <i class="fa-solid fa-rotate me-1"></i>Refresh
+      </button>
+      {{else}}
       <button class="btn btn-sm btn-outline-gold" hx-get="{{if .CampaignSlug}}/htmx/events/c/{{.CampaignSlug}}/list{{else}}/htmx/events/list{{end}}" hx-target="#events-list" hx-swap="innerHTML" onclick="this.innerHTML='<span class=\'spinner-border spinner-border-sm me-1\'></span>Refreshing...'">
         <i class="fa-solid fa-rotate me-1"></i>Refresh
       </button>
+      {{end}}
     </div>
   </div>
 
-  <div id="events-list" hx-get="{{if .CampaignSlug}}/htmx/events/c/{{.CampaignSlug}}/list{{else}}/htmx/events/list{{end}}" hx-trigger="every 30s" hx-swap="innerHTML">
+  <div id="events-list" hx-get="{{if eq .View "grid"}}{{if .CampaignSlug}}/htmx/events/c/{{.CampaignSlug}}/grid{{else}}/htmx/events/grid{{end}}{{else}}{{if .CampaignSlug}}/htmx/events/c/{{.CampaignSlug}}/list{{else}}/htmx/events/list{{end}}{{end}}" hx-trigger="every 30s" hx-swap="innerHTML">
+    {{if eq .View "grid"}}
+    {{template "events_grid.html" .}}
+    {{else}}
     {{template "events_list.html" .}}
+    {{end}}
   </div>
 </div>
 

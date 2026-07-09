@@ -25,6 +25,14 @@ var AppVersion string
 var BaseURL string
 
 // SetAppVersion sets the application version for use in templates.
+// ViewMode holds the current events view ("list" or "grid").
+type ViewMode string
+
+const (
+	ViewList ViewMode = "list"
+	ViewGrid ViewMode = "grid"
+)
+
 func SetAppVersion(v string) {
 	AppVersion = v
 }
@@ -92,6 +100,7 @@ func slugParamForFilename(slug string) string {
 // ─── Public Events Page (Global) ───
 
 func EventsPage(c *gin.Context) {
+	view := c.DefaultQuery("view", "list")
 	settings := db.GetEventSettings()
 
 	if settings.CalendarID == "" {
@@ -100,11 +109,38 @@ func EventsPage(c *gin.Context) {
 			Error:   "",
 			Empty:   true,
 			Version: AppVersion,
+			View:    view,
 		})
 		return
 	}
 
 	events, errMsg := fetchAndCacheEvents(settings, "")
+
+	if view == "grid" {
+		now := time.Now()
+		year := now.Year()
+		month := now.Month()
+		monthTime := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
+		filtered := filterEventsByMonth(events, year, monthTime)
+		weeks := buildGrid(filtered, year, monthTime)
+		prevMonth := monthTime.AddDate(0, -1, 0)
+		nextMonth := monthTime.AddDate(0, 1, 0)
+		empty := len(filtered) == 0 && errMsg == ""
+
+		renderTemplate(c, "events_page.html", eventsPageData{
+			Events:    filtered,
+			Error:     errMsg,
+			Empty:     empty,
+			Version:   AppVersion,
+			View:      view,
+			Weeks:     weeks,
+			Month:     monthTime,
+			PrevMonth: prevMonth.Format("2006-01"),
+			NextMonth: nextMonth.Format("2006-01"),
+		})
+		return
+	}
+
 	empty := len(events) == 0 && errMsg == ""
 
 	renderTemplate(c, "events_page.html", eventsPageData{
@@ -112,6 +148,7 @@ func EventsPage(c *gin.Context) {
 		Error:   errMsg,
 		Empty:   empty,
 		Version: AppVersion,
+		View:    view,
 	})
 }
 
@@ -144,6 +181,13 @@ type eventsPageData struct {
 	Version      string
 	CampaignName string
 	CampaignSlug string
+	View         string // "list" or "grid"
+
+	// Grid-specific fields
+	Weeks     []gridWeek
+	Month     time.Time
+	PrevMonth string
+	NextMonth string
 }
 
 type eventsListData struct {
@@ -152,6 +196,131 @@ type eventsListData struct {
 	Empty        bool
 	CampaignName string
 	CampaignSlug string
+}
+
+// ─── Calendar Grid View Data Types ───
+
+type gridDay struct {
+	Day            int
+	Events         []googlecalendar.Event
+	Overflow       int
+	IsToday        bool
+	IsCurrentMonth bool
+}
+
+type gridWeek struct {
+	Days []gridDay // always 7 (Sun-Sat)
+}
+
+type eventsGridData struct {
+	Weeks        []gridWeek
+	Error        string
+	Empty        bool
+	Month        time.Time
+	PrevMonth    string
+	NextMonth    string
+	CampaignName string
+	CampaignSlug string
+	Version      string
+}
+
+type eventDetailData struct {
+	Event        googlecalendar.Event
+	Error        string
+	CampaignName string
+	CampaignSlug string
+	Version      string
+	Location     string // Google Maps URL
+}
+
+// ─── Calendar Grid Helpers ───
+
+func filterEventsByMonth(events []googlecalendar.Event, year int, month time.Time) []googlecalendar.Event {
+	startOfMonth := time.Date(year, month.Month(), 1, 0, 0, 0, 0, time.UTC)
+	endOfMonth := startOfMonth.AddDate(0, 1, 0)
+	var filtered []googlecalendar.Event
+	for _, e := range events {
+		if !e.StartTime.IsZero() && (e.StartTime.Equal(startOfMonth) || e.StartTime.After(startOfMonth)) && e.StartTime.Before(endOfMonth) {
+			filtered = append(filtered, e)
+		}
+	}
+	return filtered
+}
+
+type gridBuilder struct{}
+
+func (gridBuilder) build(events []googlecalendar.Event, year int, month time.Time) []gridWeek {
+	firstDay := time.Date(year, month.Month(), 1, 0, 0, 0, 0, time.UTC)
+	lastDay := firstDay.AddDate(0, 1, -1)
+	daysInMonth := lastDay.Day()
+
+	dayEvents := make(map[int][]googlecalendar.Event)
+	for _, e := range events {
+		day := e.StartTime.Day()
+		dayEvents[day] = append(dayEvents[day], e)
+	}
+
+	today := time.Now().In(time.UTC)
+	const maxShown = 3
+
+	// Leading empty cells
+	weekday := int(firstDay.Weekday()) // 0=Sun
+	allDays := make([]gridDay, 0, daysInMonth+6)
+	for i := 0; i < weekday; i++ {
+		allDays = append(allDays, gridDay{Day: 0, IsCurrentMonth: false})
+	}
+
+	// Actual days
+	for d := 1; d <= daysInMonth; d++ {
+		evts := dayEvents[d]
+		dayDate := time.Date(year, month.Month(), d, 0, 0, 0, 0, time.UTC)
+		isToday := dayDate.Year() == today.Year() && dayDate.YearDay() == today.YearDay()
+
+		gd := gridDay{Day: d, IsToday: isToday, IsCurrentMonth: true}
+		if len(evts) > maxShown {
+			gd.Events = evts[:maxShown]
+			gd.Overflow = len(evts) - maxShown
+		} else {
+			gd.Events = evts
+			gd.Overflow = 0
+		}
+		allDays = append(allDays, gd)
+	}
+
+	// Trailing empty cells to complete last week
+	for len(allDays)%7 != 0 {
+		allDays = append(allDays, gridDay{Day: 0, IsCurrentMonth: false})
+	}
+
+	weeks := make([]gridWeek, 0, len(allDays)/7)
+	for i := 0; i < len(allDays); i += 7 {
+		weeks = append(weeks, gridWeek{Days: allDays[i : i+7]})
+	}
+	return weeks
+}
+
+func buildGrid(events []googlecalendar.Event, year int, month time.Time) []gridWeek {
+	return gridBuilder{}.build(events, year, month)
+}
+
+// parseMonthParam parses a "YYYY-MM" string into a time.Time (first of month).
+func parseMonthParam(s string) (time.Time, bool) {
+	if s == "" {
+		return time.Time{}, false
+	}
+	parts := strings.Split(s, "-")
+	if len(parts) != 2 {
+		return time.Time{}, false
+	}
+	y, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return time.Time{}, false
+	}
+	m, err := strconv.Atoi(parts[1])
+	if err != nil || m < 1 || m > 12 {
+		return time.Time{}, false
+	}
+	return time.Date(y, time.Month(m), 1, 0, 0, 0, 0, time.UTC), true
 }
 
 // fetchAndCacheEvents fetches events from Google Calendar or cache.
@@ -245,13 +414,16 @@ func fetchFromGoogle(settings db.EventSettings) ([]googlecalendar.Event, error) 
 // ─── Per-Campaign Event Pages ───
 
 func CampaignEventsPage(c *gin.Context) {
+	view := c.DefaultQuery("view", "list")
 	slug := c.Param("slug")
 	cs := db.GetCampaignEventSettingsBySlug(slug)
 	if cs == nil || !cs.IsActive {
-		c.HTML(http.StatusNotFound, "events_page.html", eventsPageData{
-			Error:  "Campaign not found or inactive.",
-			Empty:  true,
+		c.Status(http.StatusNotFound)
+		renderTemplate(c, "events_page.html", eventsPageData{
+			Error:   "Campaign not found or inactive.",
+			Empty:   true,
 			Version: AppVersion,
+			View:    view,
 		})
 		return
 	}
@@ -265,11 +437,40 @@ func CampaignEventsPage(c *gin.Context) {
 			Empty:        true,
 			Version:      AppVersion,
 			CampaignName: cs.DisplayName,
+			View:         view,
 		})
 		return
 	}
 
 	events, errMsg := fetchAndCacheEvents(settings, slug)
+
+	if view == "grid" {
+		now := time.Now()
+		year := now.Year()
+		month := now.Month()
+		monthTime := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
+		filtered := filterEventsByMonth(events, year, monthTime)
+		weeks := buildGrid(filtered, year, monthTime)
+		prevMonth := monthTime.AddDate(0, -1, 0)
+		nextMonth := monthTime.AddDate(0, 1, 0)
+		empty := len(filtered) == 0 && errMsg == ""
+
+		renderTemplate(c, "events_page.html", eventsPageData{
+			Events:       filtered,
+			Error:        errMsg,
+			Empty:        empty,
+			Version:      AppVersion,
+			CampaignName: cs.DisplayName,
+			CampaignSlug: slug,
+			View:         view,
+			Weeks:        weeks,
+			Month:        monthTime,
+			PrevMonth:    prevMonth.Format("2006-01"),
+			NextMonth:    nextMonth.Format("2006-01"),
+		})
+		return
+	}
+
 	empty := len(events) == 0 && errMsg == ""
 
 	data := eventsPageData{
@@ -279,10 +480,8 @@ func CampaignEventsPage(c *gin.Context) {
 		Version:      AppVersion,
 		CampaignName: cs.DisplayName,
 		CampaignSlug: slug,
+		View:         view,
 	}
-
-	// If the campaign's calendar ID matches global, and global has no calendar configured,
-	// the empty campaign calendar had no events — but we already showed the page.
 	renderTemplate(c, "events_page.html", data)
 }
 
@@ -552,4 +751,144 @@ func DeleteCampaignEventSetting(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// ─── Calendar Grid View Handlers ───
+
+// EventsGridPartial returns HTML for the grid partial (HTMX month navigation).
+func EventsGridPartial(c *gin.Context) {
+	settings := db.GetEventSettings()
+
+	if settings.CalendarID == "" {
+		renderTemplate(c, "events_grid.html", eventsGridData{
+			Error: "",
+			Empty: true,
+		})
+		return
+	}
+
+	now := time.Now()
+	year := now.Year()
+	month := now.Month()
+	if mt, ok := parseMonthParam(c.Query("month")); ok {
+		year = mt.Year()
+		month = mt.Month()
+	}
+	monthTime := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
+
+	events, errMsg := fetchAndCacheEvents(settings, "")
+	filtered := filterEventsByMonth(events, year, monthTime)
+	weeks := buildGrid(filtered, year, monthTime)
+	empty := len(filtered) == 0 && errMsg == ""
+	prevMonth := monthTime.AddDate(0, -1, 0)
+	nextMonth := monthTime.AddDate(0, 1, 0)
+
+	renderTemplate(c, "events_grid.html", eventsGridData{
+		Weeks:     weeks,
+		Error:     errMsg,
+		Empty:     empty,
+		Month:     monthTime,
+		PrevMonth: prevMonth.Format("2006-01"),
+		NextMonth: nextMonth.Format("2006-01"),
+		Version:   AppVersion,
+	})
+}
+
+// EventsGridCampaignPartial is the grid partial for a campaign page.
+func EventsGridCampaignPartial(c *gin.Context) {
+	slug := c.Param("slug")
+	cs := db.GetCampaignEventSettingsBySlug(slug)
+	if cs == nil || !cs.IsActive {
+		renderTemplate(c, "events_grid.html", eventsGridData{
+			Error: "Campaign not found or inactive.",
+			Empty: true,
+		})
+		return
+	}
+
+	settings := campaignToGlobalSettings(cs)
+	now := time.Now()
+	year := now.Year()
+	month := now.Month()
+	if mt, ok := parseMonthParam(c.Query("month")); ok {
+		year = mt.Year()
+		month = mt.Month()
+	}
+	monthTime := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
+
+	events, errMsg := fetchAndCacheEvents(settings, slug)
+	filtered := filterEventsByMonth(events, year, monthTime)
+	weeks := buildGrid(filtered, year, monthTime)
+	empty := len(filtered) == 0 && errMsg == ""
+	prevMonth := monthTime.AddDate(0, -1, 0)
+	nextMonth := monthTime.AddDate(0, 1, 0)
+
+	renderTemplate(c, "events_grid.html", eventsGridData{
+		Weeks:        weeks,
+		Error:        errMsg,
+		Empty:        empty,
+		Month:        monthTime,
+		PrevMonth:    prevMonth.Format("2006-01"),
+		NextMonth:    nextMonth.Format("2006-01"),
+		CampaignName: cs.DisplayName,
+		CampaignSlug: slug,
+		Version:      AppVersion,
+	})
+}
+
+// googleMapsURL constructs a Google Maps search URL from a location string.
+func googleMapsURL(location string) string {
+	if location == "" {
+		return ""
+	}
+	return "https://www.google.com/maps/search/" + url.QueryEscape(location)
+}
+
+// EventDetail renders the event detail page.
+func EventDetail(c *gin.Context) {
+	eventID := c.Param("id")
+
+	// Try global cache first
+	settings := db.GetEventSettings()
+	if events, _ := fetchAndCacheEvents(settings, ""); len(events) > 0 {
+		for _, e := range events {
+			if e.ID == eventID {
+				renderTemplate(c, "event_detail.html", eventDetailData{
+					Event:    e,
+					Version:  AppVersion,
+					Location: googleMapsURL(e.Location),
+				})
+				return
+			}
+		}
+	}
+
+	// Try campaign caches
+	campaigns := db.ListCampaignEventSettings()
+	for _, cs := range campaigns {
+		if !cs.IsActive {
+			continue
+		}
+		campSettings := campaignToGlobalSettings(&cs)
+		if campEvents, _ := fetchAndCacheEvents(campSettings, cs.Slug); len(campEvents) > 0 {
+			for _, e := range campEvents {
+				if e.ID == eventID {
+					renderTemplate(c, "event_detail.html", eventDetailData{
+						Event:        e,
+						Version:      AppVersion,
+						CampaignName: cs.DisplayName,
+						CampaignSlug: cs.Slug,
+						Location:     googleMapsURL(e.Location),
+					})
+					return
+				}
+			}
+		}
+	}
+
+	c.Status(http.StatusNotFound)
+	renderTemplate(c, "event_detail.html", eventDetailData{
+		Error:   "Event not found.",
+		Version: AppVersion,
+	})
 }
