@@ -3487,3 +3487,25 @@ body.sidebar-collapsed .container {
     display: none;
   }
 }
+
+/* ─── Google Calendar Event Color Swatches ─── */
+.gcal-color-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.gcal-color-1  { background-color: #a4bdfc; } /* lavender */
+.gcal-color-2  { background-color: #7ae7bf; } /* sage */
+.gcal-color-3  { background-color: #dbadff; } /* grape */
+.gcal-color-4  { background-color: #ff887c; } /* flamingo */
+.gcal-color-5  { background-color: #fbd75b; } /* banana */
+.gcal-color-6  { background-color: #ffb878; } /* tangerine */
+.gcal-color-7  { background-color: #46d6db; } /* peacock */
+.gcal-color-8  { background-color: #e1e1e1; } /* graphite */
+.gcal-color-9  { background-color: #5484ed; } /* blueberry */
+.gcal-color-10 { background-color: #51b749; } /* basil */
+.gcal-color-11 { background-color: #dc2127; } /* tomato */

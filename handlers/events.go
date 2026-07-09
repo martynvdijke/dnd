@@ -160,12 +160,14 @@ func fetchFromGoogle(settings db.EventSettings) ([]googlecalendar.Event, error) 
 		}
 	}
 
-	events, err := client.FetchUpcomingEvents(ctx, settings.CalendarID, tags, 50)
+	colorLabels := settings.ParseColorLabels()
+
+	events, err := client.FetchUpcomingEvents(ctx, settings.CalendarID, tags, colorLabels, settings.FilterMode, 50)
 	if err != nil {
 		return nil, fmt.Errorf("fetch events: %w", err)
 	}
 
-	log.Printf("events: fetched %d events from Google Calendar (method=%s, tags=%v)", len(events), settings.AuthMethod, tags)
+	log.Printf("events: fetched %d events from Google Calendar (method=%s, tags=%v, colors=%v, filter=%s)", len(events), settings.AuthMethod, tags, colorLabels, settings.FilterMode)
 	googlecalendar.LogEvents(events)
 	return events, nil
 }

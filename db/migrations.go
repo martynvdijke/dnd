@@ -1676,6 +1676,13 @@ ALTER TABLE events_settings ADD COLUMN oauth_client_secret TEXT NOT NULL DEFAULT
 ALTER TABLE events_settings ADD COLUMN oauth_refresh_token TEXT NOT NULL DEFAULT '';
 `,
 	},
+	{
+		version: 41,
+		sql: `
+ALTER TABLE events_settings ADD COLUMN color_labels TEXT NOT NULL DEFAULT '';
+ALTER TABLE events_settings ADD COLUMN filter_mode TEXT NOT NULL DEFAULT 'text';
+`,
+	},
 }
 
 func Migrate() error {

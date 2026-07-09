@@ -337,6 +337,31 @@
         <small class="text-muted">How long to cache events before fetching fresh data (default: 300 = 5 minutes)</small>
       </div>
 
+      <div class="mb-3">
+        <label class="form-label">Filter Mode</label>
+        <div class="d-flex gap-3">
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="eventsFilterMode" id="filterModeText" value="text" checked>
+            <label class="form-check-label" for="filterModeText">Text Tags</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="eventsFilterMode" id="filterModeColor" value="color">
+            <label class="form-check-label" for="filterModeColor">Color Labels</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="eventsFilterMode" id="filterModeBoth" value="both">
+            <label class="form-check-label" for="filterModeBoth">Text + Color (AND)</label>
+          </div>
+        </div>
+        <small class="text-muted"><strong>Text:</strong> events matching text tags are shown. <strong>Color:</strong> events matching color labels are shown. <strong>Text + Color:</strong> events must match both (AND). Empty filters act as pass-through.</small>
+      </div>
+
+      <div class="mb-3" id="eventsColorLabelsField">
+        <label class="form-label" for="eventsColorLabels">Color Labels</label>
+        <input type="text" id="eventsColorLabels" class="form-control" placeholder="1,5,banana,tomato">
+        <small class="text-muted">Comma-separated color IDs or names. Standard colors: 1=lavender, 2=sage, 3=grape, 4=flamingo, 5=banana, 6=tangerine, 7=peacock, 8=graphite, 9=blueberry, 10=basil, 11=tomato. Examples: <code>1,5</code> or <code>lavender,blueberry</code>.</small>
+      </div>
+
       <hr>
       <h6 class="mb-3"><i class="fa-solid fa-key me-1"></i>Authentication</h6>
 

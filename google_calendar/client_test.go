@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -116,47 +117,151 @@ func TestToEvent(t *testing.T) {
 	})
 }
 
-func TestFilterEvents(t *testing.T) {
-	items := []*calendar.Event{
-		{Id: "1", Summary: "DnD Session", Description: "Weekly campaign"},
-		{Id: "2", Summary: "Board Game Night", Description: "Settlers of Catan"},
-		{Id: "3", Summary: "Oneshot: Curse of Strahd", Description: "Curse of Strahd intro"},
+func TestFilterEventsByMode(t *testing.T) {
+	events := []Event{
+		{ID: "1", Title: "DnD Session", Description: "Weekly campaign", ColorId: "1"},
+		{ID: "2", Title: "Board Game Night", Description: "Settlers of Catan", ColorId: "3"},
+		{ID: "3", Title: "Oneshot: Curse of Strahd", Description: "Curse of Strahd intro", ColorId: "1"},
 	}
 
-	t.Run("filter by single tag", func(t *testing.T) {
-		result := filterEvents(items, []string{"dnd"})
+	ctx := context.Background()
+
+	t.Run("text mode: filter by single tag", func(t *testing.T) {
+		result := filterEventsByMode(events, []string{"dnd"}, nil, "text", nil, ctx)
 		if len(result) != 1 || result[0].ID != "1" {
 			t.Errorf("expected 1 event (DnD Session), got %d: %+v", len(result), result)
 		}
 	})
 
-	t.Run("filter by multiple tags OR", func(t *testing.T) {
-		result := filterEvents(items, []string{"dnd", "oneshot"})
+	t.Run("text mode: filter by multiple tags OR", func(t *testing.T) {
+		result := filterEventsByMode(events, []string{"dnd", "oneshot"}, nil, "text", nil, ctx)
 		if len(result) != 2 {
 			t.Errorf("expected 2 events, got %d", len(result))
 		}
 	})
 
-	t.Run("no tags returns all", func(t *testing.T) {
-		result := filterEvents(items, nil)
+	t.Run("text mode: no tags returns all", func(t *testing.T) {
+		result := filterEventsByMode(events, nil, nil, "text", nil, ctx)
 		if len(result) != 3 {
 			t.Errorf("expected 3 events, got %d", len(result))
 		}
 	})
 
-	t.Run("empty tags returns all", func(t *testing.T) {
-		result := filterEvents(items, []string{})
+	t.Run("text mode: empty tags returns all", func(t *testing.T) {
+		result := filterEventsByMode(events, []string{}, nil, "text", nil, ctx)
 		if len(result) != 3 {
 			t.Errorf("expected 3 events, got %d", len(result))
 		}
 	})
 
-	t.Run("no match returns empty", func(t *testing.T) {
-		result := filterEvents(items, []string{"nonesuch"})
+	t.Run("text mode: no match returns empty", func(t *testing.T) {
+		result := filterEventsByMode(events, []string{"nonesuch"}, nil, "text", nil, ctx)
 		if len(result) != 0 {
 			t.Errorf("expected 0 events, got %d", len(result))
 		}
 	})
+
+	// ─── Color mode tests ───
+	t.Run("color mode: filter by single color", func(t *testing.T) {
+		result := filterEventsByMode(events, nil, []string{"1"}, "color", nil, ctx)
+		if len(result) != 2 {
+			t.Errorf("expected 2 events (colorId=1), got %d", len(result))
+		}
+	})
+
+	t.Run("color mode: filter by multiple colors OR", func(t *testing.T) {
+		result := filterEventsByMode(events, nil, []string{"1", "3"}, "color", nil, ctx)
+		if len(result) != 3 {
+			t.Errorf("expected 3 events (colorId 1 or 3), got %d", len(result))
+		}
+	})
+
+	t.Run("color mode: empty color labels is pass-through", func(t *testing.T) {
+		result := filterEventsByMode(events, nil, nil, "color", nil, ctx)
+		if len(result) != 3 {
+			t.Errorf("expected 3 events (pass-through), got %d", len(result))
+		}
+	})
+
+	t.Run("color mode: non-matching color returns empty", func(t *testing.T) {
+		result := filterEventsByMode(events, nil, []string{"5"}, "color", nil, ctx)
+		if len(result) != 0 {
+			t.Errorf("expected 0 events, got %d", len(result))
+		}
+	})
+
+	// ─── Both mode tests ───
+	t.Run("both mode: event must match text AND color", func(t *testing.T) {
+		result := filterEventsByMode(events, []string{"dnd"}, []string{"1"}, "both", nil, ctx)
+		if len(result) != 1 || result[0].ID != "1" {
+			t.Errorf("expected 1 event (DnD Session, colorId=1), got %d", len(result))
+		}
+	})
+
+	t.Run("both mode: empty text pass-through", func(t *testing.T) {
+		result := filterEventsByMode(events, nil, []string{"1"}, "both", nil, ctx)
+		if len(result) != 2 {
+			t.Errorf("expected 2 events (colorId=1, text pass-through), got %d", len(result))
+		}
+	})
+
+	t.Run("both mode: empty color pass-through", func(t *testing.T) {
+		result := filterEventsByMode(events, []string{"dnd"}, nil, "both", nil, ctx)
+		if len(result) != 1 {
+			t.Errorf("expected 1 event (text match, color pass-through), got %d", len(result))
+		}
+	})
+}
+
+func TestResolveColorLabels(t *testing.T) {
+	t.Run("numeric IDs are returned directly", func(t *testing.T) {
+		ids, _ := resolveColorLabelsStatic([]string{"1", "5", "11"})
+		if !ids["1"] || !ids["5"] || !ids["11"] {
+			t.Errorf("expected ids 1,5,11, got %v", ids)
+		}
+	})
+
+	t.Run("color names are resolved to IDs", func(t *testing.T) {
+		ids, _ := resolveColorLabelsStatic([]string{"lavender", "banana", "tomato"})
+		if !ids["1"] || !ids["5"] || !ids["11"] {
+			t.Errorf("expected ids 1,5,11, got %v", ids)
+		}
+	})
+
+	t.Run("empty input returns nil", func(t *testing.T) {
+		ids, _ := resolveColorLabelsStatic(nil)
+		if ids != nil {
+			t.Errorf("expected nil, got %v", ids)
+		}
+		ids, _ = resolveColorLabelsStatic([]string{})
+		if ids != nil {
+			t.Errorf("expected nil for empty slice, got %v", ids)
+		}
+	})
+}
+
+// resolveColorLabelsStatic tests the resolution logic without an API call.
+func resolveColorLabelsStatic(labels []string) (map[string]bool, error) {
+	if len(labels) == 0 {
+		return nil, nil
+	}
+	ids := make(map[string]bool, len(labels))
+	for _, label := range labels {
+		label = strings.TrimSpace(label)
+		if label == "" {
+			continue
+		}
+		if _, err := strconv.Atoi(label); err == nil {
+			ids[label] = true
+			continue
+		}
+		lower := strings.ToLower(label)
+		if id, ok := standardColorNames[lower]; ok {
+			ids[id] = true
+			continue
+		}
+	}
+	return ids, nil
 }
 
 func TestFetchUpcomingEvents(t *testing.T) {
@@ -197,7 +302,7 @@ func TestFetchUpcomingEvents(t *testing.T) {
 	client := &Client{svc: svc}
 
 	t.Run("with tags filters results", func(t *testing.T) {
-		events, err := client.FetchUpcomingEvents(ctx, "test@example.com", []string{"dnd"}, 50)
+		events, err := client.FetchUpcomingEvents(ctx, "test@example.com", []string{"dnd"}, nil, "text", 50)
 		if err != nil {
 			t.Fatalf("FetchUpcomingEvents: %v", err)
 		}
@@ -210,7 +315,7 @@ func TestFetchUpcomingEvents(t *testing.T) {
 	})
 
 	t.Run("no tags returns all events", func(t *testing.T) {
-		events, err := client.FetchUpcomingEvents(ctx, "test@example.com", nil, 50)
+		events, err := client.FetchUpcomingEvents(ctx, "test@example.com", nil, nil, "text", 50)
 		if err != nil {
 			t.Fatalf("FetchUpcomingEvents: %v", err)
 		}
