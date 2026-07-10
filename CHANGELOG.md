@@ -1,3 +1,10 @@
+# [2.26.0](https://github.com/martynvdijke/dnd/compare/v2.25.1...v2.26.0) (2026-07-10)
+
+
+### Features
+
+* **events:** add theme toggle to events pages, login link, and campaign auth/filter fields ([3041f64](https://github.com/martynvdijke/dnd/commit/3041f64aada88d689b7ec612278b5f671d622c96))
+
 ## [2.25.1](https://github.com/martynvdijke/dnd/compare/v2.25.0...v2.25.1) (2026-07-10)
 
 
