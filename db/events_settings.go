@@ -7,6 +7,8 @@ import (
 
 // EventSettings holds the Google Calendar integration configuration.
 type EventSettings struct {
+	SourceType       string `json:"source_type"`          // "google_api" (default) or "ical"
+	ICalURL          string `json:"ical_url"`             // iCal/ICS feed URL when SourceType == "ical"
 	CalendarID       string `json:"calendar_id"`
 	Tags             string `json:"tags"`
 	CacheTTLSeconds  int    `json:"cache_ttl_seconds"`
@@ -22,6 +24,8 @@ type EventSettings struct {
 // defaultEventSettings returns the default settings values.
 func defaultEventSettings() EventSettings {
 	return EventSettings{
+		SourceType:       "google_api",
+		ICalURL:          "",
 		CalendarID:       "",
 		Tags:             "dnd,session,oneshot",
 		CacheTTLSeconds:  300,
@@ -39,11 +43,12 @@ func defaultEventSettings() EventSettings {
 func GetEventSettings() EventSettings {
 	var s EventSettings
 	err := DB.QueryRow(`
-		SELECT calendar_id, tags, cache_ttl_seconds, COALESCE(credentials_json,''),
+		SELECT COALESCE(source_type,'google_api'), COALESCE(ical_url,''),
+			calendar_id, tags, cache_ttl_seconds, COALESCE(credentials_json,''),
 			COALESCE(auth_method,'service_account'), COALESCE(oauth_client_id,''), COALESCE(oauth_client_secret,''), COALESCE(oauth_refresh_token,''),
 			COALESCE(color_labels,''), COALESCE(filter_mode,'text')
 		FROM events_settings WHERE id=1`).
-		Scan(&s.CalendarID, &s.Tags, &s.CacheTTLSeconds, &s.CredentialsJSON,
+		Scan(&s.SourceType, &s.ICalURL, &s.CalendarID, &s.Tags, &s.CacheTTLSeconds, &s.CredentialsJSON,
 			&s.AuthMethod, &s.OAuthClientID, &s.OAuthClientSecret, &s.OAuthRefreshToken,
 			&s.ColorLabels, &s.FilterMode)
 	if err != nil {
@@ -52,6 +57,9 @@ func GetEventSettings() EventSettings {
 	}
 	if s.AuthMethod == "" {
 		s.AuthMethod = "service_account"
+	}
+	if s.SourceType == "" {
+		s.SourceType = "google_api"
 	}
 	return s
 }
@@ -82,10 +90,15 @@ func SaveEventSettings(s EventSettings) error {
 	if s.FilterMode == "" {
 		s.FilterMode = "text"
 	}
+	if s.SourceType == "" {
+		s.SourceType = "google_api"
+	}
 	_, err := DB.Exec(`
-		INSERT INTO events_settings(id, calendar_id, tags, cache_ttl_seconds, credentials_json, auth_method, oauth_client_id, oauth_client_secret, oauth_refresh_token, color_labels, filter_mode)
-		VALUES(1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO events_settings(id, source_type, ical_url, calendar_id, tags, cache_ttl_seconds, credentials_json, auth_method, oauth_client_id, oauth_client_secret, oauth_refresh_token, color_labels, filter_mode)
+		VALUES(1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(id) DO UPDATE SET
+			source_type=excluded.source_type,
+			ical_url=excluded.ical_url,
 			calendar_id=excluded.calendar_id,
 			tags=excluded.tags,
 			cache_ttl_seconds=excluded.cache_ttl_seconds,
@@ -96,7 +109,7 @@ func SaveEventSettings(s EventSettings) error {
 			oauth_refresh_token=excluded.oauth_refresh_token,
 			color_labels=excluded.color_labels,
 			filter_mode=excluded.filter_mode`,
-		s.CalendarID, s.Tags, s.CacheTTLSeconds, s.CredentialsJSON, s.AuthMethod,
+		s.SourceType, s.ICalURL, s.CalendarID, s.Tags, s.CacheTTLSeconds, s.CredentialsJSON, s.AuthMethod,
 		s.OAuthClientID, s.OAuthClientSecret, s.OAuthRefreshToken,
 		s.ColorLabels, s.FilterMode)
 	if err != nil {

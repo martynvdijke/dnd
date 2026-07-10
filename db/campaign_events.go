@@ -10,6 +10,8 @@ type CampaignEventSettings struct {
 	CampaignID       int    `json:"campaign_id"`
 	Slug             string `json:"slug"`
 	DisplayName      string `json:"display_name"`
+	SourceType       string `json:"source_type"`
+	ICalURL          string `json:"ical_url"`
 	CalendarID       string `json:"calendar_id"`
 	Tags             string `json:"tags"`
 	ColorLabels      string `json:"color_labels"`
@@ -26,7 +28,9 @@ type CampaignEventSettings struct {
 // ListCampaignEventSettings returns all campaign event settings.
 func ListCampaignEventSettings() []CampaignEventSettings {
 	rows, err := DB.Query(`
-		SELECT id, campaign_id, slug, display_name, calendar_id, tags,
+		SELECT id, campaign_id, slug, display_name,
+			COALESCE(source_type,'google_api'), COALESCE(ical_url,''),
+			calendar_id, tags,
 			COALESCE(color_labels,''), COALESCE(filter_mode,'text'),
 			cache_ttl_seconds, COALESCE(credentials_json,''),
 			COALESCE(auth_method,'service_account'), COALESCE(oauth_client_id,''),
@@ -43,6 +47,7 @@ func ListCampaignEventSettings() []CampaignEventSettings {
 	for rows.Next() {
 		var s CampaignEventSettings
 		if err := rows.Scan(&s.ID, &s.CampaignID, &s.Slug, &s.DisplayName,
+			&s.SourceType, &s.ICalURL,
 			&s.CalendarID, &s.Tags, &s.ColorLabels, &s.FilterMode,
 			&s.CacheTTLSeconds, &s.CredentialsJSON, &s.AuthMethod,
 			&s.OAuthClientID, &s.OAuthClientSecret, &s.OAuthRefreshToken,
@@ -59,7 +64,9 @@ func ListCampaignEventSettings() []CampaignEventSettings {
 func GetCampaignEventSettingsBySlug(slug string) *CampaignEventSettings {
 	var s CampaignEventSettings
 	err := DB.QueryRow(`
-		SELECT id, campaign_id, slug, display_name, calendar_id, tags,
+		SELECT id, campaign_id, slug, display_name,
+			COALESCE(source_type,'google_api'), COALESCE(ical_url,''),
+			calendar_id, tags,
 			COALESCE(color_labels,''), COALESCE(filter_mode,'text'),
 			cache_ttl_seconds, COALESCE(credentials_json,''),
 			COALESCE(auth_method,'service_account'), COALESCE(oauth_client_id,''),
@@ -67,6 +74,7 @@ func GetCampaignEventSettingsBySlug(slug string) *CampaignEventSettings {
 			is_active
 		FROM campaign_event_settings WHERE slug=?`, slug).
 		Scan(&s.ID, &s.CampaignID, &s.Slug, &s.DisplayName,
+			&s.SourceType, &s.ICalURL,
 			&s.CalendarID, &s.Tags, &s.ColorLabels, &s.FilterMode,
 			&s.CacheTTLSeconds, &s.CredentialsJSON, &s.AuthMethod,
 			&s.OAuthClientID, &s.OAuthClientSecret, &s.OAuthRefreshToken,
@@ -81,7 +89,9 @@ func GetCampaignEventSettingsBySlug(slug string) *CampaignEventSettings {
 func GetCampaignEventSettingsByID(id int) *CampaignEventSettings {
 	var s CampaignEventSettings
 	err := DB.QueryRow(`
-		SELECT id, campaign_id, slug, display_name, calendar_id, tags,
+		SELECT id, campaign_id, slug, display_name,
+			COALESCE(source_type,'google_api'), COALESCE(ical_url,''),
+			calendar_id, tags,
 			COALESCE(color_labels,''), COALESCE(filter_mode,'text'),
 			cache_ttl_seconds, COALESCE(credentials_json,''),
 			COALESCE(auth_method,'service_account'), COALESCE(oauth_client_id,''),
@@ -89,6 +99,7 @@ func GetCampaignEventSettingsByID(id int) *CampaignEventSettings {
 			is_active
 		FROM campaign_event_settings WHERE id=?`, id).
 		Scan(&s.ID, &s.CampaignID, &s.Slug, &s.DisplayName,
+			&s.SourceType, &s.ICalURL,
 			&s.CalendarID, &s.Tags, &s.ColorLabels, &s.FilterMode,
 			&s.CacheTTLSeconds, &s.CredentialsJSON, &s.AuthMethod,
 			&s.OAuthClientID, &s.OAuthClientSecret, &s.OAuthRefreshToken,
@@ -110,17 +121,24 @@ func SaveCampaignEventSettings(s CampaignEventSettings) (int, error) {
 	if s.FilterMode == "" {
 		s.FilterMode = "text"
 	}
+	if s.SourceType == "" {
+		s.SourceType = "google_api"
+	}
 
 	if s.ID > 0 {
 		_, err := DB.Exec(`
 			UPDATE campaign_event_settings SET
-				campaign_id=?, slug=?, display_name=?, calendar_id=?, tags=?,
+				campaign_id=?, slug=?, display_name=?,
+				source_type=?, ical_url=?,
+				calendar_id=?, tags=?,
 				color_labels=?, filter_mode=?, cache_ttl_seconds=?,
 				credentials_json=?, auth_method=?, oauth_client_id=?,
 				oauth_client_secret=?, oauth_refresh_token=?, is_active=?,
 				updated_at=datetime('now')
 			WHERE id=?`,
-			s.CampaignID, s.Slug, s.DisplayName, s.CalendarID, s.Tags,
+			s.CampaignID, s.Slug, s.DisplayName,
+			s.SourceType, s.ICalURL,
+			s.CalendarID, s.Tags,
 			s.ColorLabels, s.FilterMode, s.CacheTTLSeconds,
 			s.CredentialsJSON, s.AuthMethod, s.OAuthClientID,
 			s.OAuthClientSecret, s.OAuthRefreshToken, s.IsActive,
@@ -133,9 +151,11 @@ func SaveCampaignEventSettings(s CampaignEventSettings) (int, error) {
 	}
 
 	result, err := DB.Exec(`
-		INSERT INTO campaign_event_settings(campaign_id, slug, display_name, calendar_id, tags, color_labels, filter_mode, cache_ttl_seconds, credentials_json, auth_method, oauth_client_id, oauth_client_secret, oauth_refresh_token, is_active)
-		VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		s.CampaignID, s.Slug, s.DisplayName, s.CalendarID, s.Tags,
+		INSERT INTO campaign_event_settings(campaign_id, slug, display_name, source_type, ical_url, calendar_id, tags, color_labels, filter_mode, cache_ttl_seconds, credentials_json, auth_method, oauth_client_id, oauth_client_secret, oauth_refresh_token, is_active)
+		VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		s.CampaignID, s.Slug, s.DisplayName,
+		s.SourceType, s.ICalURL,
+		s.CalendarID, s.Tags,
 		s.ColorLabels, s.FilterMode, s.CacheTTLSeconds,
 		s.CredentialsJSON, s.AuthMethod, s.OAuthClientID,
 		s.OAuthClientSecret, s.OAuthRefreshToken, s.IsActive)

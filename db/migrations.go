@@ -1715,6 +1715,15 @@ CREATE INDEX IF NOT EXISTS idx_campaign_event_settings_campaign ON campaign_even
 ALTER TABLE google_events_cache ADD COLUMN campaign_slug TEXT NOT NULL DEFAULT '';
 `,
 	},
+	{
+		version: 44,
+		sql: `
+ALTER TABLE events_settings ADD COLUMN source_type TEXT NOT NULL DEFAULT 'google_api';
+ALTER TABLE events_settings ADD COLUMN ical_url TEXT NOT NULL DEFAULT '';
+ALTER TABLE campaign_event_settings ADD COLUMN source_type TEXT NOT NULL DEFAULT 'google_api';
+ALTER TABLE campaign_event_settings ADD COLUMN ical_url TEXT NOT NULL DEFAULT '';
+`,
+	},
 }
 
 func Migrate() error {
@@ -1835,6 +1844,11 @@ func ApplySafeAlters() error {
 		"CREATE INDEX IF NOT EXISTS idx_inventory_compendium_equipment_id ON inventory(compendium_equipment_id)",
 		"CREATE INDEX IF NOT EXISTS idx_oneshot_monsters_compendium_monster_id ON oneshot_monsters(compendium_monster_id)",
 		"CREATE INDEX IF NOT EXISTS idx_oneshot_items_compendium_equipment_id ON oneshot_items(compendium_equipment_id)",
+		// Events iCal URL source support
+		"ALTER TABLE events_settings ADD COLUMN source_type TEXT NOT NULL DEFAULT 'google_api'",
+		"ALTER TABLE events_settings ADD COLUMN ical_url TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE campaign_event_settings ADD COLUMN source_type TEXT NOT NULL DEFAULT 'google_api'",
+		"ALTER TABLE campaign_event_settings ADD COLUMN ical_url TEXT NOT NULL DEFAULT ''",
 	}
 	for _, stmt := range alterStatements {
 		log.Printf("ALTER: %s", stmt)

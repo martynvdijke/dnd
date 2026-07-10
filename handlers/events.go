@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -103,7 +104,18 @@ func EventsPage(c *gin.Context) {
 	view := c.DefaultQuery("view", "list")
 	settings := db.GetEventSettings()
 
-	if settings.CalendarID == "" {
+	// Show empty state if no source is configured
+	if settings.SourceType == "google_api" && settings.CalendarID == "" {
+		renderTemplate(c, "events_page.html", eventsPageData{
+			Events:  nil,
+			Error:   "",
+			Empty:   true,
+			Version: AppVersion,
+			View:    view,
+		})
+		return
+	}
+	if settings.SourceType == "ical" && settings.ICalURL == "" {
 		renderTemplate(c, "events_page.html", eventsPageData{
 			Events:  nil,
 			Error:   "",
@@ -355,6 +367,11 @@ func fetchAndCacheEvents(settings db.EventSettings, campaignSlug string) ([]goog
 }
 
 func fetchFromGoogle(settings db.EventSettings) ([]googlecalendar.Event, error) {
+	// Dispatch based on source type
+	if settings.SourceType == "ical" {
+		return fetchFromICalURL(settings)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -407,6 +424,68 @@ func fetchFromGoogle(settings db.EventSettings) ([]googlecalendar.Event, error) 
 	}
 
 	log.Printf("events: fetched %d events from Google Calendar (method=%s, tags=%v, colors=%v, filter=%s)", len(events), settings.AuthMethod, tags, colorLabels, settings.FilterMode)
+	googlecalendar.LogEvents(events)
+	return events, nil
+}
+
+// fetchFromICalURL fetches and parses an iCal/ICS feed from the given URL.
+// Applies text tag filtering (color labels and filter mode are ignored for iCal sources).
+func fetchFromICalURL(settings db.EventSettings) ([]googlecalendar.Event, error) {
+	if settings.ICalURL == "" {
+		return nil, fmt.Errorf("no iCal URL configured")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, "GET", settings.ICalURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create iCal request: %w", err)
+	}
+	req.Header.Set("Accept", "text/calendar, text/plain, */*")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetch iCal URL: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("iCal URL returned status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read iCal response: %w", err)
+	}
+
+	events, err := googlecalendar.ParseICS(body)
+	if err != nil {
+		return nil, fmt.Errorf("parse iCal feed: %w", err)
+	}
+
+	// Apply text tag filtering (iCal sources only support text tags)
+	var tags []string
+	if settings.Tags != "" {
+		for _, t := range strings.Split(settings.Tags, ",") {
+			trimmed := strings.TrimSpace(t)
+			if trimmed != "" {
+				tags = append(tags, trimmed)
+			}
+		}
+	}
+
+	if len(tags) > 0 {
+		var filtered []googlecalendar.Event
+		for _, e := range events {
+			if googlecalendar.MatchesAnyTag(e, tags) {
+				filtered = append(filtered, e)
+			}
+		}
+		events = filtered
+	}
+
+	log.Printf("events: fetched %d events from iCal URL (tags=%v, url=%s)", len(events), tags, settings.ICalURL)
 	googlecalendar.LogEvents(events)
 	return events, nil
 }
@@ -577,6 +656,8 @@ func CampaignEventsICal(c *gin.Context) {
 func campaignToGlobalSettings(cs *db.CampaignEventSettings) db.EventSettings {
 	gs := db.GetEventSettings()
 	s := db.EventSettings{
+		SourceType:      cs.SourceType,
+		ICalURL:         cs.ICalURL,
 		CalendarID:      cs.CalendarID,
 		Tags:            cs.Tags,
 		ColorLabels:     cs.ColorLabels,
@@ -596,6 +677,10 @@ func campaignToGlobalSettings(cs *db.CampaignEventSettings) db.EventSettings {
 		s.OAuthClientID = gs.OAuthClientID
 		s.OAuthClientSecret = gs.OAuthClientSecret
 		s.OAuthRefreshToken = gs.OAuthRefreshToken
+	}
+	// If campaign has no source type set, inherit from global
+	if s.SourceType == "" {
+		s.SourceType = gs.SourceType
 	}
 	return s
 }

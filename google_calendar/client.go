@@ -234,7 +234,7 @@ func filterEventsByMode(events []Event, tags []string, colorLabels []string, fil
 		// Both mode: AND combination, empty set = pass-through
 		var out []Event
 		for _, e := range events {
-			passText := !hasTags || matchesAnyTag(e, tags)
+			passText := !hasTags || MatchesAnyTag(e, tags)
 			passColor := !hasColors || resolvedColorIDs[e.ColorId]
 			if passText && passColor {
 				out = append(out, e)
@@ -249,7 +249,7 @@ func filterEventsByMode(events []Event, tags []string, colorLabels []string, fil
 		}
 		var out []Event
 		for _, e := range events {
-			if matchesAnyTag(e, tags) {
+			if MatchesAnyTag(e, tags) {
 				out = append(out, e)
 			}
 		}
@@ -257,8 +257,9 @@ func filterEventsByMode(events []Event, tags []string, colorLabels []string, fil
 	}
 }
 
-// matchesAnyTag checks if the event title or description contains any of the given tags (case-insensitive).
-func matchesAnyTag(e Event, tags []string) bool {
+// MatchesAnyTag checks if the event title or description contains any of the given tags (case-insensitive).
+// Exported so it can be reused for iCal-sourced events.
+func MatchesAnyTag(e Event, tags []string) bool {
 	title := strings.ToLower(e.Title)
 	desc := strings.ToLower(e.Description)
 	for _, tag := range tags {

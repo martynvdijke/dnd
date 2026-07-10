@@ -60,9 +60,9 @@ func TestMatchesAnyTag(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := matchesAnyTag(tc.event, tc.tags)
+			got := MatchesAnyTag(tc.event, tc.tags)
 			if got != tc.expected {
-				t.Errorf("matchesAnyTag(%+v, %v) = %v, want %v", tc.event, tc.tags, got, tc.expected)
+				t.Errorf("MatchesAnyTag(%+v, %v) = %v, want %v", tc.event, tc.tags, got, tc.expected)
 			}
 		})
 	}
