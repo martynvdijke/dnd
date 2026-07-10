@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +9,29 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Vollkorn:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/style.css">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✧</text></svg>">
+<script>
+// Theme init & toggle — mirrors ts/lib/theme.ts
+(function() {
+  function updateThemeIcon() {
+    var icon = document.getElementById('themeIcon');
+    if (!icon) return;
+    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    icon.className = isDark ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+  }
+  window.toggleTheme = function() {
+    var html = document.documentElement;
+    var isDark = html.getAttribute('data-theme') === 'dark';
+    var newTheme = isDark ? 'light' : 'dark';
+    html.setAttribute('data-theme', newTheme);
+    localStorage.setItem('villum-theme', newTheme);
+    updateThemeIcon();
+    return false;
+  };
+  var saved = localStorage.getItem('villum-theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  updateThemeIcon();
+})();
+</script>
 </head>
 <body>
 
@@ -17,6 +40,7 @@
     <a class="navbar-brand" href="#">✧ villum{{if .CampaignName}} — {{.CampaignName}}{{end}}</a>
     <div class="d-flex align-items-center gap-2">
       <a href="/" class="btn btn-sm btn-outline-gold"><i class="fa-solid fa-arrow-left me-1"></i>App</a>
+      <a href="#" onclick="toggleTheme();return false" class="text-muted small" title="Toggle theme"><i class="fa-solid fa-moon" id="themeIcon" aria-hidden="true"></i></a>
     </div>
   </div>
 </nav>

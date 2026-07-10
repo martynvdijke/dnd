@@ -1962,29 +1962,43 @@ async function loadCampaignEventSettings() {
     const campaigns = await api('GET', '/api/admin/events-campaigns');
     const tbody = document.getElementById('campaignEventBody')!;
     if (!campaigns || campaigns.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-muted text-center py-3">No campaign event pages configured. Add one to create a public event page for a campaign.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-muted text-center py-3">No campaign event pages configured. Add one to create a public event page for a campaign.</td></tr>';
       return;
     }
-    tbody.innerHTML = campaigns.map((c: any) => `
+    tbody.innerHTML = campaigns.map((c: any) => {
+      const filterParts: string[] = [];
+      if (c.filter_mode && c.filter_mode !== 'text') filterParts.push(c.filter_mode);
+      if (c.color_labels) filterParts.push('color:' + c.color_labels);
+      return `
       <tr>
         <td><strong>${esc(c.display_name)}</strong></td>
         <td><code>${esc(c.slug)}</code></td>
-        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.calendar_id || '(global)')}</td>
-        <td>${esc(c.tags || '(global)')}</td>
+        <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(c.calendar_id || '')}">${esc(c.calendar_id || '(global)')}</td>
+        <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(c.tags || '')}">${esc(c.tags || '(global)')}</td>
+        <td><small class="text-muted">${filterParts.length ? esc(filterParts.join(', ')) : 'text'}</small></td>
+        <td><small class="text-muted">${c.auth_method === 'oauth' ? 'OAuth' : 'Service Acct'}</small></td>
         <td>${c.is_active ? '<span class="text-success"><i class="fa-solid fa-check"></i></span>' : '<span class="text-muted"><i class="fa-solid fa-xmark"></i></span>'}</td>
         <td class="text-nowrap">
           <a href="/events/c/${esc(c.slug)}" class="btn btn-outline-info btn-sm py-0" target="_blank" title="View public page"><i class="fa-solid fa-eye"></i></a>
+        </td>
+        <td class="text-nowrap">
           <button class="btn btn-outline-primary btn-sm py-0" onclick="editCampaignEventSetting(${c.id})" title="Edit"><i class="fa-solid fa-pen"></i></button>
           <button class="btn btn-outline-danger btn-sm py-0" onclick="deleteCampaignEventSetting(${c.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>
         </td>
-      </tr>
-    `).join('');
+      </tr>`;
+    }).join('');
   } catch (e: any) {
     const tbody = document.getElementById('campaignEventBody');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-danger text-center">Failed to load: ' + esc(e.message) + '</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-danger text-center">Failed to load: ' + esc(e.message) + '</td></tr>';
   }
 }
 (window as any).loadCampaignEventSettings = loadCampaignEventSettings;
+
+(window as any).toggleCampaignAuthFields = function () {
+  const sa = (document.getElementById('campaignAuthMethodServiceAccount') as HTMLInputElement).checked;
+  (document.getElementById('campaignServiceAccountFields') as HTMLElement).style.display = sa ? '' : 'none';
+  (document.getElementById('campaignOAuthFields') as HTMLElement).style.display = sa ? 'none' : '';
+};
 
 (window as any).showAddCampaignEvent = function () {
   campaignEventEditId = null;
@@ -1995,8 +2009,18 @@ async function loadCampaignEventSettings() {
   (document.getElementById('campaignEventCalendarId') as HTMLInputElement).value = '';
   (document.getElementById('campaignEventTags') as HTMLInputElement).value = '';
   (document.getElementById('campaignEventCacheTTL') as HTMLInputElement).value = '300';
+  (document.getElementById('campaignEventColorLabels') as HTMLInputElement).value = '';
+  (document.getElementById('campaignFilterModeText') as HTMLInputElement).checked = true;
+  (document.getElementById('campaignAuthMethodServiceAccount') as HTMLInputElement).checked = true;
+  (document.getElementById('campaignEventCredentialsJson') as HTMLInputElement).value = '';
+  (document.getElementById('campaignEventOAuthClientId') as HTMLInputElement).value = '';
+  (document.getElementById('campaignEventOAuthClientSecret') as HTMLInputElement).value = '';
+  (document.getElementById('campaignEventOAuthRefreshToken') as HTMLInputElement).value = '';
   (document.getElementById('campaignEventIsActive') as HTMLInputElement).checked = true;
   updateCampaignSlugPreview();
+  // Reset auth field visibility
+  (document.getElementById('campaignServiceAccountFields') as HTMLElement).style.display = 'none';
+  (document.getElementById('campaignOAuthFields') as HTMLElement).style.display = 'none';
   new (window as any).bootstrap.Modal(document.getElementById('campaignEventModal')!).show();
 };
 
@@ -2011,8 +2035,26 @@ async function loadCampaignEventSettings() {
     (document.getElementById('campaignEventCalendarId') as HTMLInputElement).value = c.calendar_id || '';
     (document.getElementById('campaignEventTags') as HTMLInputElement).value = c.tags || '';
     (document.getElementById('campaignEventCacheTTL') as HTMLInputElement).value = c.cache_ttl_seconds || 300;
+    (document.getElementById('campaignEventColorLabels') as HTMLInputElement).value = c.color_labels || '';
+    // Set filter mode radio
+    const filterMode = c.filter_mode || 'text';
+    const fmRadio = document.getElementById('campaignFilterMode' + filterMode.charAt(0).toUpperCase() + filterMode.slice(1)) as HTMLInputElement;
+    if (fmRadio) fmRadio.checked = true;
+    // Set auth method radio
+    const authMethod = c.auth_method || 'service_account';
+    if (authMethod === 'oauth') {
+      (document.getElementById('campaignAuthMethodOAuth') as HTMLInputElement).checked = true;
+    } else {
+      (document.getElementById('campaignAuthMethodServiceAccount') as HTMLInputElement).checked = true;
+    }
+    (document.getElementById('campaignEventCredentialsJson') as HTMLInputElement).value = c.credentials_json || '';
+    (document.getElementById('campaignEventOAuthClientId') as HTMLInputElement).value = c.oauth_client_id || '';
+    (document.getElementById('campaignEventOAuthClientSecret') as HTMLInputElement).value = c.oauth_client_secret || '';
+    (document.getElementById('campaignEventOAuthRefreshToken') as HTMLInputElement).value = c.oauth_refresh_token || '';
     (document.getElementById('campaignEventIsActive') as HTMLInputElement).checked = c.is_active;
     updateCampaignSlugPreview();
+    // Show correct auth fields
+    (window as any).toggleCampaignAuthFields();
     new (window as any).bootstrap.Modal(document.getElementById('campaignEventModal')!).show();
   } catch (e: any) {
     toast(e.message, true);
@@ -2033,11 +2075,20 @@ document.addEventListener('input', function (e: Event) {
   const displayName = (document.getElementById('campaignEventDisplayName') as HTMLInputElement).value.trim();
   const slug = (document.getElementById('campaignEventSlug') as HTMLInputElement).value.trim();
   if (!displayName || !slug) { toast('Display name and slug are required', true); return; }
+  const filterModeEl = document.querySelector('input[name="campaignFilterMode"]:checked') as HTMLInputElement;
+  const authMethodEl = document.querySelector('input[name="campaignAuthMethod"]:checked') as HTMLInputElement;
   const body: any = {
     display_name: displayName,
     slug: slug,
     calendar_id: (document.getElementById('campaignEventCalendarId') as HTMLInputElement).value.trim(),
     tags: (document.getElementById('campaignEventTags') as HTMLInputElement).value.trim(),
+    color_labels: (document.getElementById('campaignEventColorLabels') as HTMLInputElement).value.trim(),
+    filter_mode: filterModeEl ? filterModeEl.value : 'text',
+    auth_method: authMethodEl ? authMethodEl.value : 'service_account',
+    credentials_json: (document.getElementById('campaignEventCredentialsJson') as HTMLInputElement).value.trim(),
+    oauth_client_id: (document.getElementById('campaignEventOAuthClientId') as HTMLInputElement).value.trim(),
+    oauth_client_secret: (document.getElementById('campaignEventOAuthClientSecret') as HTMLInputElement).value.trim(),
+    oauth_refresh_token: (document.getElementById('campaignEventOAuthRefreshToken') as HTMLInputElement).value.trim(),
     cache_ttl_seconds: parseInt((document.getElementById('campaignEventCacheTTL') as HTMLInputElement).value) || 300,
     is_active: (document.getElementById('campaignEventIsActive') as HTMLInputElement).checked
   };
