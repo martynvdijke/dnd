@@ -1,3 +1,10 @@
+# [2.27.0](https://github.com/martynvdijke/dnd/compare/v2.26.0...v2.27.0) (2026-07-11)
+
+
+### Features
+
+* **events:** add iCal URL event source, admin polish, and theme toggle ([02e5592](https://github.com/martynvdijke/dnd/commit/02e5592a22177773ad2a01ae2d7da77c5a210962))
+
 # [2.26.0](https://github.com/martynvdijke/dnd/compare/v2.25.1...v2.26.0) (2026-07-10)
 
 
