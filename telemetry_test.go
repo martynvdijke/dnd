@@ -142,7 +142,7 @@ func TestInitTelemetryStdout(t *testing.T) {
 	os.Unsetenv("OTEL_TRACES_SAMPLER")
 	os.Unsetenv("OTEL_SERVICE_NAME")
 
-	tp, promExp, err := initTelemetry()
+	tp, promExp, lp, err := initTelemetry()
 	if err != nil {
 		t.Fatalf("initTelemetry() error: %v", err)
 	}
@@ -152,10 +152,11 @@ func TestInitTelemetryStdout(t *testing.T) {
 
 	// Cleanup
 	if tp != nil {
-		shutdownTelemetry(tp)
+		shutdownTelemetry(tp, lp)
 	}
 
 	_ = promExp
+	_ = lp
 }
 
 // ─── initTelemetry with custom service name ───
@@ -165,7 +166,7 @@ func TestInitTelemetryCustomServiceName(t *testing.T) {
 	os.Setenv("OTEL_SERVICE_NAME", "test-villum")
 	defer os.Unsetenv("OTEL_SERVICE_NAME")
 
-	tp, _, err := initTelemetry()
+	tp, _, _, err := initTelemetry()
 	if err != nil {
 		t.Fatalf("initTelemetry() error: %v", err)
 	}
@@ -173,7 +174,7 @@ func TestInitTelemetryCustomServiceName(t *testing.T) {
 		t.Fatal("initTelemetry() returned nil TracerProvider")
 	}
 	if tp != nil {
-		shutdownTelemetry(tp)
+		shutdownTelemetry(tp, nil)
 	}
 }
 
@@ -186,7 +187,7 @@ func TestInitTelemetryWithSampler(t *testing.T) {
 	defer os.Unsetenv("OTEL_TRACES_SAMPLER")
 	defer os.Unsetenv("OTEL_TRACES_SAMPLER_ARG")
 
-	tp, _, err := initTelemetry()
+	tp, _, _, err := initTelemetry()
 	if err != nil {
 		t.Fatalf("initTelemetry() error: %v", err)
 	}
@@ -194,7 +195,7 @@ func TestInitTelemetryWithSampler(t *testing.T) {
 		t.Fatal("initTelemetry() returned nil TracerProvider")
 	}
 	if tp != nil {
-		shutdownTelemetry(tp)
+		shutdownTelemetry(tp, nil)
 	}
 }
 
@@ -278,15 +279,16 @@ func TestInitTelemetryGracefulDegradation(t *testing.T) {
 
 	// This should not crash. gRPC connection to port 1 will fail quickly.
 	// initTelemetry should fall back to stdout exporter.
-	tp, promExp, err := initTelemetry()
+	tp, promExp, lp, err := initTelemetry()
 
 	// Even with OTLP failure, the function should degrade gracefully:
 	// - Either returns a valid TracerProvider with stdout fallback
 	// - Or logs a warning and returns nil (no-op tracing)
-	t.Logf("initTelemetry (bad endpoint): tp=%v, promExp=%v, err=%v", tp != nil, promExp != nil, err)
+	t.Logf("initTelemetry (bad endpoint): tp=%v, promExp=%v, lp=%v, err=%v", tp != nil, promExp != nil, lp != nil, err)
 
 	if tp != nil {
-		shutdownTelemetry(tp)
+		shutdownTelemetry(tp, lp)
 	}
 	_ = promExp
+	_ = lp
 }

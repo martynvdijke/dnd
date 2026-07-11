@@ -7,6 +7,10 @@ services:
       - DB_PATH=/db/villum.db
       - MEDIA_PATH=/app/media
       - PORT=6280
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://collector:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_SERVICE_NAME=villum
+      - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production
     volumes:
       - villum-data:/db
       - villum-media:/app/media

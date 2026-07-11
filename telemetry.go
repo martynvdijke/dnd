@@ -1,15 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
-	"log/slog"
-	"net/http"
 	"os"
-	"strings"
+	"runtime/debug"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -17,16 +13,21 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	otelprom "go.opentelemetry.io/otel/exporters/prometheus"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/metric"
+	sdklog "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.21.0"
-	"villum/db"
 )
 
 const (
@@ -122,23 +123,10 @@ func newOTelMetricsMiddleware(om *otelMetrics) gin.HandlerFunc {
 	}
 }
 
-// initTelemetry initializes OpenTelemetry tracing and metrics.
-// It reads the OTel endpoint from the database first, falling back
-// to OTEL_EXPORTER_OTLP_ENDPOINT env var.
-//   - If an endpoint is configured, uses OTLP gRPC (default) or HTTP
-//   - Otherwise, falls back to stdout exporter
-//
-// Returns the tracer provider, Prometheus exporter, and any initialization error.
-// A nil tracer provider on error means graceful degradation to no-op tracing.
-func initTelemetry() (*sdktrace.TracerProvider, *otelprom.Exporter, error) {
-	// Read OTel endpoint from database, fall back to env var
-	var dbEndpoint string
-	var dbEnabled int
-	err := db.DB.QueryRow("SELECT COALESCE(endpoint, ''), COALESCE(enabled, 0) FROM otel_settings WHERE id = 1").
-		Scan(&dbEndpoint, &dbEnabled)
-	if err == nil && dbEnabled == 1 && dbEndpoint != "" {
-		os.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", dbEndpoint)
-	}
+// initTelemetry initializes OpenTelemetry tracing, metrics, and logging.
+// Configuration is read from environment variables (OTEL_EXPORTER_OTLP_ENDPOINT,
+// OTEL_EXPORTER_OTLP_PROTOCOL, OTEL_SERVICE_NAME, etc.) rather than the database.
+func initTelemetry() (*sdktrace.TracerProvider, *otelprom.Exporter, *sdklog.LoggerProvider, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultExportTimeout)
 	defer cancel()
 
@@ -148,14 +136,26 @@ func initTelemetry() (*sdktrace.TracerProvider, *otelprom.Exporter, error) {
 		serviceName = "villum"
 	}
 
+	serviceVersion := os.Getenv("OTEL_SERVICE_VERSION")
+	if serviceVersion == "" {
+		if info, ok := debug.ReadBuildInfo(); ok && info.Main.Version != "" {
+			serviceVersion = info.Main.Version
+		}
+	}
+
+	resAttrs := []attribute.KeyValue{
+		semconv.ServiceNameKey.String(serviceName),
+	}
+	if serviceVersion != "" {
+		resAttrs = append(resAttrs, semconv.ServiceVersionKey.String(serviceVersion))
+	}
+
 	res, err := resource.New(ctx,
-		resource.WithAttributes(
-			semconv.ServiceNameKey.String(serviceName),
-		),
-		resource.WithFromEnv(), // reads OTEL_RESOURCE_ATTRIBUTES
+		resource.WithAttributes(resAttrs...),
+		resource.WithFromEnv(), // reads OTEL_RESOURCE_ATTRIBUTES including deployment.environment
 	)
 	if err != nil {
-		return nil, nil, fmt.Errorf("creating resource: %w", err)
+		return nil, nil, nil, fmt.Errorf("creating resource: %w", err)
 	}
 
 	// --- Trace Exporter ---
@@ -165,7 +165,7 @@ func initTelemetry() (*sdktrace.TracerProvider, *otelprom.Exporter, error) {
 		traceExporter, err = newStdoutExporter()
 		if err != nil {
 			log.Printf("Warning: stdout exporter also failed (%v), running with no-op tracing", err)
-			return nil, nil, nil
+			return nil, nil, nil, nil
 		}
 	}
 
@@ -182,21 +182,104 @@ func initTelemetry() (*sdktrace.TracerProvider, *otelprom.Exporter, error) {
 	)
 	otel.SetTracerProvider(tp)
 
-	// --- Metrics ---
+	// --- Logs ---
+	lp, err := newLoggerProvider(ctx, res)
+	if err != nil {
+		log.Printf("Warning: OTel logger provider init failed (%v), running without OTel logs", err)
+	}
+	if lp != nil {
+		global.SetLoggerProvider(lp)
+	}
+
+	// --- Metrics (Prometheus + optional OTLP) ---
 	promExporter, err := otelprom.New()
 	if err != nil {
 		log.Printf("Warning: failed to create OTel Prometheus exporter: %v", err)
-		// Continue without OTel metrics - Prometheus client_golang metrics still work
-		return tp, nil, nil
+		// Continue with just Prometheus client_golang metrics
+		return tp, nil, lp, nil
 	}
 
-	meterProvider := sdkmetric.NewMeterProvider(
+	metricOpts := []sdkmetric.Option{
 		sdkmetric.WithReader(promExporter),
 		sdkmetric.WithResource(res),
-	)
+	}
+
+	// Add OTLP metric reader if endpoint is configured
+	if err := addOTLPMetricReader(ctx, &metricOpts); err != nil {
+		log.Printf("Warning: failed to create OTLP metric reader: %v", err)
+	}
+
+	meterProvider := sdkmetric.NewMeterProvider(metricOpts...)
 	otel.SetMeterProvider(meterProvider)
 
-	return tp, promExporter, nil
+	return tp, promExporter, lp, nil
+}
+
+// newLoggerProvider creates an OTel logger provider backed by an OTLP log exporter.
+// Returns nil, nil if no OTLP endpoint is configured.
+func newLoggerProvider(ctx context.Context, res *resource.Resource) (*sdklog.LoggerProvider, error) {
+	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	if endpoint == "" {
+		return nil, nil
+	}
+
+	protocol := os.Getenv("OTEL_EXPORTER_OTLP_PROTOCOL")
+
+	var exporter sdklog.Exporter
+	var err error
+	switch protocol {
+	case "http/protobuf":
+		exporter, err = otlploghttp.New(ctx,
+			otlploghttp.WithEndpointURL(endpoint),
+			otlploghttp.WithTimeout(defaultExportTimeout),
+		)
+	default:
+		exporter, err = otlploggrpc.New(ctx,
+			otlploggrpc.WithEndpointURL(endpoint),
+			otlploggrpc.WithTimeout(defaultExportTimeout),
+		)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("creating log exporter: %w", err)
+	}
+
+	lp := sdklog.NewLoggerProvider(
+		sdklog.WithProcessor(sdklog.NewBatchProcessor(exporter)),
+		sdklog.WithResource(res),
+	)
+	return lp, nil
+}
+
+// addOTLPMetricReader appends an OTLP metric periodic reader to opts if
+// an OTLP endpoint is configured.
+func addOTLPMetricReader(ctx context.Context, opts *[]sdkmetric.Option) error {
+	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	if endpoint == "" {
+		return nil
+	}
+
+	protocol := os.Getenv("OTEL_EXPORTER_OTLP_PROTOCOL")
+
+	var exporter sdkmetric.Exporter
+	var err error
+	switch protocol {
+	case "http/protobuf":
+		exporter, err = otlpmetrichttp.New(ctx,
+			otlpmetrichttp.WithEndpointURL(endpoint),
+			otlpmetrichttp.WithTimeout(defaultExportTimeout),
+		)
+	default:
+		exporter, err = otlpmetricgrpc.New(ctx,
+			otlpmetricgrpc.WithEndpointURL(endpoint),
+			otlpmetricgrpc.WithTimeout(defaultExportTimeout),
+		)
+	}
+	if err != nil {
+		return fmt.Errorf("creating OTLP metric exporter: %w", err)
+	}
+
+	*opts = append(*opts, sdkmetric.WithReader(sdkmetric.NewPeriodicReader(exporter)))
+	return nil
 }
 
 // newTraceExporter creates the appropriate trace exporter based on env vars.
@@ -212,7 +295,6 @@ func newTraceExporter(ctx context.Context) (sdktrace.SpanExporter, error) {
 	case "http/protobuf":
 		return newOTLPHTTPExporter(ctx, endpoint)
 	default:
-		// Default to gRPC
 		return newOTLPRPCExporter(ctx, endpoint)
 	}
 }
@@ -285,208 +367,19 @@ func parseRatio(s string) (float64, error) {
 	return ratio, nil
 }
 
-// ─── OTel Log Export ───
-
-// otelLogHTTPClient is a reusable HTTP client for OTLP log export.
-var otelLogHTTPClient = &http.Client{Timeout: 5 * time.Second}
-
-// otlpLogEndpoint returns the OTLP logs endpoint URL derived from
-// OTEL_EXPORTER_OTLP_ENDPOINT. It appends /v1/logs to the base URL,
-// stripping trailing slashes and handling path components.
-func otlpLogEndpoint() string {
-	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-	if endpoint == "" {
-		return ""
-	}
-	// Normalize: strip trailing slash, then append /v1/logs
-	endpoint = strings.TrimRight(endpoint, "/")
-	// If the endpoint already has a path component (e.g. from an OTel collector),
-	// replace or append appropriately
-	if strings.Contains(endpoint, "/v1/") {
-		return endpoint // already has a path
-	}
-	return endpoint + "/v1/logs"
-}
-
-// otlpLogHeaders returns OTLP headers parsed from OTEL_EXPORTER_OTLP_HEADERS.
-func otlpLogHeaders() map[string]string {
-	headers := os.Getenv("OTEL_EXPORTER_OTLP_HEADERS")
-	if headers == "" {
-		return nil
-	}
-	result := make(map[string]string)
-	for part := range strings.SplitSeq(headers, ",") {
-		part = strings.TrimSpace(part)
-		if idx := strings.Index(part, "="); idx > 0 {
-			result[part[:idx]] = strings.TrimSpace(part[idx+1:])
-		}
-	}
-	return result
-}
-
-// otlpLogSeverity maps slog.Level to OTLP severity number.
-// See: https://opentelemetry.io/docs/specs/otel/logs/data-model/#field-severitynumber
-func otlpLogSeverity(level slog.Level) int {
-	switch {
-	case level < slog.LevelInfo:
-		return 5 // DEBUG
-	case level < slog.LevelWarn:
-		return 9 // INFO
-	case level < slog.LevelError:
-		return 13 // WARN
-	default:
-		return 17 // ERROR
-	}
-}
-
-// otlpLogSeverityText maps slog.Level to OTLP severity text.
-func otlpLogSeverityText(level slog.Level) string {
-	switch {
-	case level < slog.LevelInfo:
-		return "DEBUG"
-	case level < slog.LevelWarn:
-		return "INFO"
-	case level < slog.LevelError:
-		return "WARN"
-	default:
-		return "ERROR"
-	}
-}
-
-// otlpLogRecord represents a single OTLP log record in JSON format.
-type otlpLogRecord struct {
-	TimeUnixNano   string             `json:"timeUnixNano"`
-	SeverityNumber int                `json:"severityNumber"`
-	SeverityText   string             `json:"severityText"`
-	Body           otlpLogValue       `json:"body"`
-	Attributes     []otlpLogAttribute `json:"attributes,omitempty"`
-}
-
-type otlpLogValue struct {
-	StringValue string `json:"stringValue"`
-}
-
-type otlpLogAttribute struct {
-	Key   string       `json:"key"`
-	Value otlpLogValue `json:"value"`
-}
-
-// otlpLogPayload is the top-level OTLP logs request body.
-type otlpLogPayload struct {
-	ResourceLogs []otlpResourceLogs `json:"resourceLogs"`
-}
-
-type otlpResourceLogs struct {
-	Resource  otlpResource   `json:"resource"`
-	ScopeLogs []otlpScopeLog `json:"scopeLogs"`
-}
-
-type otlpResource struct {
-	Attributes []otlpLogAttribute `json:"attributes"`
-}
-
-type otlpScopeLog struct {
-	Scope      otlpScope       `json:"scope"`
-	LogRecords []otlpLogRecord `json:"logRecords"`
-}
-
-type otlpScope struct {
-	Name string `json:"name"`
-}
-
-// newOTelLogExportFn creates a function suitable for logHandler.SetExportFn
-// that sends log records to the configured OTLP endpoint asynchronously.
-// Returns nil if OTel log export is not configured.
-func newOTelLogExportFn() func(ctx context.Context, r slog.Record) {
-	endpoint := otlpLogEndpoint()
-	if endpoint == "" {
-		return nil
-	}
-	headers := otlpLogHeaders()
-	serviceName := os.Getenv("OTEL_SERVICE_NAME")
-	if serviceName == "" {
-		serviceName = "villum"
-	}
-
-	return func(ctx context.Context, r slog.Record) {
-		// Collect attributes from the record
-		var attrs []otlpLogAttribute
-		source := ""
-		r.Attrs(func(a slog.Attr) bool {
-			if a.Key == "source" {
-				source = a.Value.String()
-			} else {
-				attrs = append(attrs, otlpLogAttribute{
-					Key:   a.Key,
-					Value: otlpLogValue{StringValue: fmt.Sprintf("%v", a.Value.Any())},
-				})
-			}
-			return true
-		})
-		if source != "" {
-			attrs = append(attrs, otlpLogAttribute{
-				Key:   "source",
-				Value: otlpLogValue{StringValue: source},
-			})
-		}
-
-		payload := otlpLogPayload{
-			ResourceLogs: []otlpResourceLogs{
-				{
-					Resource: otlpResource{
-						Attributes: []otlpLogAttribute{
-							{Key: "service.name", Value: otlpLogValue{StringValue: serviceName}},
-						},
-					},
-					ScopeLogs: []otlpScopeLog{
-						{
-							Scope: otlpScope{Name: "villum.logger"},
-							LogRecords: []otlpLogRecord{
-								{
-									TimeUnixNano:   fmt.Sprintf("%d", r.Time.UnixNano()),
-									SeverityNumber: otlpLogSeverity(r.Level),
-									SeverityText:   otlpLogSeverityText(r.Level),
-									Body:           otlpLogValue{StringValue: r.Message},
-									Attributes:     attrs,
-								},
-							},
-						},
-					},
-				},
-			},
-		}
-
-		body, err := json.Marshal(payload)
-		if err != nil {
-			return
-		}
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
-		if err != nil {
-			return
-		}
-		req.Header.Set("Content-Type", "application/json")
-		for k, v := range headers {
-			req.Header.Set(k, v)
-		}
-
-		resp, err := otelLogHTTPClient.Do(req)
-		if err != nil {
-			// Silently drop — OTel export is best-effort
-			return
-		}
-		resp.Body.Close()
-	}
-}
-
-// shutdownTelemetry flushes and shuts down the tracer provider gracefully.
-func shutdownTelemetry(tp *sdktrace.TracerProvider) {
-	if tp == nil {
-		return
-	}
+// shutdownTelemetry flushes and shuts down the tracer and logger providers gracefully.
+func shutdownTelemetry(tp *sdktrace.TracerProvider, lp *sdklog.LoggerProvider) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultExportTimeout)
 	defer cancel()
-	if err := tp.Shutdown(ctx); err != nil {
-		log.Printf("Error shutting down tracer provider: %v", err)
+
+	if lp != nil {
+		if err := lp.Shutdown(ctx); err != nil {
+			log.Printf("Error shutting down logger provider: %v", err)
+		}
+	}
+	if tp != nil {
+		if err := tp.Shutdown(ctx); err != nil {
+			log.Printf("Error shutting down tracer provider: %v", err)
+		}
 	}
 }

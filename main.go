@@ -4,11 +4,13 @@ import (
 	"context"
 	"embed"
 	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
+	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 
 	"villum/db"
@@ -104,7 +106,7 @@ func main() {
 		middleware.AppLog.Info("system", "AppLogger initialized")
 	}
 
-	tp, promExporter, err := initTelemetry()
+	tp, promExporter, lp, err := initTelemetry()
 	if err != nil {
 		log.Printf("Warning: telemetry init failed (%v), running without OTel", err)
 	}
@@ -112,15 +114,16 @@ func main() {
 		// otelgin creates spans for all incoming requests
 		r.Use(otelgin.Middleware("villum"))
 		defer func() {
-			shutdownTelemetry(tp)
+			shutdownTelemetry(tp, lp)
 		}()
 
-		// Wire OTel log export — sends structured logs to the same OTLP endpoint
-		if middleware.AppLog != nil {
-			if exportFn := newOTelLogExportFn(); exportFn != nil {
-				middleware.AppLog.Handler().SetExportFn(exportFn)
-				middleware.AppLog.Info("system", "OTel log export enabled")
-			}
+		// Wire OTel log bridge — sends structured logs via the OTel Logs SDK
+		if lp != nil && middleware.AppLog != nil {
+			otelHandler := otelslog.NewHandler("villum", otelslog.WithLoggerProvider(lp))
+			middleware.AppLog.Handler().SetExportFn(func(ctx context.Context, r slog.Record) {
+				_ = otelHandler.Handle(ctx, r)
+			})
+			middleware.AppLog.Info("system", "OTel log bridge enabled")
 		}
 	}
 	// Initialize OTel metrics middleware (records both Prometheus and OTel metrics)
