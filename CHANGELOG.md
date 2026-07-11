@@ -1,3 +1,10 @@
+# [2.28.0](https://github.com/martynvdijke/dnd/compare/v2.27.0...v2.28.0) (2026-07-11)
+
+
+### Features
+
+* replace hand-rolled OTLP log export with OTel Logs SDK, add OTLP metrics and slog bridge ([a598e1b](https://github.com/martynvdijke/dnd/commit/a598e1b3e63334cbff6aeda81abce86926cdc426))
+
 # [2.27.0](https://github.com/martynvdijke/dnd/compare/v2.26.0...v2.27.0) (2026-07-11)
 
 
