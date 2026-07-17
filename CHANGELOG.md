@@ -1,3 +1,10 @@
+## [2.28.6](https://github.com/martynvdijke/dnd/compare/v2.28.5...v2.28.6) (2026-07-17)
+
+
+### Bug Fixes
+
+* **deps:** update module google.golang.org/api to v0.289.0 ([#56](https://github.com/martynvdijke/dnd/issues/56)) ([a92759a](https://github.com/martynvdijke/dnd/commit/a92759a05aec6f76fdd1f0e7aefc353a89ebab1f))
+
 ## [2.28.5](https://github.com/martynvdijke/dnd/compare/v2.28.4...v2.28.5) (2026-07-17)
 
 ## [2.28.4](https://github.com/martynvdijke/dnd/compare/v2.28.3...v2.28.4) (2026-07-16)
