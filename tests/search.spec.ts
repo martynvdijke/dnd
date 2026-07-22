@@ -18,6 +18,13 @@ async function waitModalClosed(page) {
   }, { timeout: 10000 }).catch(() => {});
 }
 
+async function waitForSearchOverlay(page) {
+  await page.waitForFunction(() => {
+    const overlay = document.getElementById('searchOverlay');
+    return overlay && overlay.style.display !== 'none';
+  }, { timeout: 5000 });
+}
+
 test.describe('Advanced Search', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
@@ -44,8 +51,9 @@ test.describe('Advanced Search', () => {
       await page.fill('#searchInput', 'fireball');
     }
     await page.evaluate(() => window.doSearch());
+    await waitForSearchOverlay(page);
     await page.waitForTimeout(1000);
-    await expect(page.locator('#searchPanel')).toContainText('Spells');
+    await expect(page.locator('#cpResults')).toContainText('Spells');
   });
 
   test('search shows no results for nonsense query', async ({ page }) => {
@@ -56,8 +64,9 @@ test.describe('Advanced Search', () => {
       await page.fill('#searchInput', 'xyznonexistent12345');
     }
     await page.evaluate(() => window.doSearch());
+    await waitForSearchOverlay(page);
     await page.waitForTimeout(1000);
-    await expect(page.locator('#searchPanel')).toContainText('No Results');
+    await expect(page.locator('#cpResults')).toContainText('No Results');
   });
 
   test('search finds character by name', async ({ page }) => {
@@ -78,8 +87,9 @@ test.describe('Advanced Search', () => {
       await page.fill('#searchInput', searchTerm);
     }
     await page.evaluate(() => window.doSearch());
+    await waitForSearchOverlay(page);
     await page.waitForTimeout(1000);
-    await expect(page.locator('#searchPanel')).toContainText(name);
+    await expect(page.locator('#cpResults')).toContainText(name);
   });
 
   test('search result navigates to character sheet', async ({ page }) => {
@@ -99,8 +109,9 @@ test.describe('Advanced Search', () => {
       await page.fill('#searchInput', name);
     }
     await page.evaluate(() => window.doSearch());
+    await waitForSearchOverlay(page);
 
-    const result = page.locator('.search-result-item').first();
+    const result = page.locator('.cp-result-item').first();
     await expect(result).toBeVisible({ timeout: 5000 });
     await result.click();
 

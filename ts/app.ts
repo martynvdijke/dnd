@@ -1291,9 +1291,9 @@ function getLocSidebar(): HTMLElement { return document.getElementById('locSideb
     latitude: isNaN(lat) ? null : lat,
     longitude: isNaN(lng) ? null : lng,
   });
-  hideModal();
   allLocations = await api('GET', '/api/locations');
-  renderLocations();
+  await renderLocations();
+  hideModal();
   toast('Location created');
 };
 
@@ -1425,20 +1425,20 @@ async function renderNPCs() {
     relationship: (document.getElementById('linkNPCRel') as HTMLSelectElement).value,
     notes: (document.getElementById('linkNPCNotes') as HTMLTextAreaElement).value,
   });
+  await renderNPCs();
   hideModal();
-  renderNPCs();
   toast('NPC linked');
 };
 
 (window as any).logNPCInteraction = async function (id:number) {
   await api('POST', `/api/npcs/link/${id}/interact`, {});
-  renderNPCs();
+  await renderNPCs();
   toast('Interaction logged');
 };
 
 (window as any).unlinkNPC = async function (id:number) {
   await api('DELETE', `/api/npcs/link/${id}`);
-  renderNPCs();
+  await renderNPCs();
 };
 
 (window as any).showCreateNPC = function () {
@@ -1495,9 +1495,9 @@ let newNPCPortraitUrl = '';
     portrait_url: newNPCPortraitUrl,
   });
   newNPCPortraitUrl = '';
-  hideModal();
   allNPCs = await api('GET', '/api/npcs');
-  renderNPCs();
+  await renderNPCs();
+  hideModal();
   toast('NPC created');
 };
 
