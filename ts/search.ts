@@ -276,7 +276,7 @@ export async function doSearch(query?: string): Promise<void> {
     }
 
     resultsEl.innerHTML = results.map((r, i) => `
-      <div class="cp-result-item ${i === 0 ? 'selected' : ''}" data-index="${i}"
+      <div class="cp-result-item search-result-item ${i === 0 ? 'selected' : ''}" data-index="${i}"
            onclick="window.__searchNavigate('${r.entity_type}',${r.entity_id},'${esc(r.name)}')"
            onmouseenter="__searchHover(${i})">
         <i class="fa-solid ${ENTITY_ICONS[r.entity_type] || 'fa-file'} cp-result-icon"></i>
@@ -284,7 +284,7 @@ export async function doSearch(query?: string): Promise<void> {
           <div class="cp-result-name">${highlightMatch(esc(r.name), q)}</div>
           ${r.snippet ? `<div class="cp-result-snippet">${r.snippet}</div>` : ''}
         </div>
-        <span class="cp-result-type badge badge-muted">${r.entity_type}</span>
+        <span class="cp-result-type badge badge-muted">${r.entity_type.charAt(0).toUpperCase() + r.entity_type.slice(1)}</span>
       </div>
     `).join('');
 
@@ -418,3 +418,6 @@ export function initSearch(): void {
     });
   }
 }
+
+// Backward compatibility: expose for e2e tests and legacy inline usage
+(window as any).doSearch = doSearch;

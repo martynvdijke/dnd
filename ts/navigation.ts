@@ -27,6 +27,7 @@ const views: ViewItem[] = [
 
 export let currentView: ViewState = 'characters';
 let navigatingFromRouter = false;
+let initialLoad = true;
 
 export function setCurrentView(view: ViewState): void {
   currentView = view;
@@ -58,9 +59,10 @@ function switchView(view: ViewState): void {
  */
 export function showView(view: ViewState): void {
   switchView(view);
-  if (!navigatingFromRouter) {
+  if (!navigatingFromRouter && !initialLoad) {
     routerNavigate(view);
   }
+  initialLoad = false;
 }
 
 /**
