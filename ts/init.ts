@@ -8,7 +8,8 @@
  * managed in app.ts and mutated via window-level references during
  * the transition from the monolithic init() to modular ownership.
  */
-import { showView, getCurrentView } from './navigation';
+import { showView, showViewFromRouter, getCurrentView } from './navigation';
+import { initRouter, navigateToInitialHash } from './router';
 import { initBridge } from './lib/bridge';
 import { initTheme } from './lib/theme';
 import { initShortcuts } from './lib/shortcuts';
@@ -56,6 +57,8 @@ export async function init() {
   initAIClickHandler();
   initPdfViewerCleanup();
   initSpellCompendium();
+  // Initialize hash router — handles back/forward and bookmarks
+  initRouter((route) => showViewFromRouter(route.view));
   try {
     const user = await api('GET', '/api/user/me');
     setCurrentUser(user);
@@ -83,7 +86,13 @@ export async function init() {
       show('shopsNavItem');
       show('sidebarShopsNav');
     }
-    showView('characters');
+    // If URL has a hash (e.g. #/compendium), navigate to that view
+    // instead of default characters view
+    if (location.hash && location.hash.length > 1) {
+      navigateToInitialHash((route) => showViewFromRouter(route.view));
+    } else {
+      showView('characters');
+    }
     (window as any).loadCharacters();
     connectWS();
     api('GET', '/api/locations').then(setAllLocations).catch(() => {});

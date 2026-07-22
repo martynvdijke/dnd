@@ -2178,6 +2178,9 @@ async function renderAnalytics() {
   }
 };
 
+// ─── Transfer UI (import/export via villum-transfer format) ───
+import './transfer';
+
 // ─── Party & Campaign → extracted to ts/party.ts ───
 import './party';
 

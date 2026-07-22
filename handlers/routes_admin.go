@@ -54,4 +54,7 @@ func RegisterAdminRoutes(r *gin.RouterGroup) {
 	r.POST("/events-campaigns", SaveCampaignEventSetting)
 	r.PUT("/events-campaigns/:id", SaveCampaignEventSetting)
 	r.DELETE("/events-campaigns/:id", DeleteCampaignEventSetting)
+
+	// Search index management
+	r.GET("/search/resync", HandleAdminResyncSearchIndex)
 }

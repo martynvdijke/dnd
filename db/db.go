@@ -151,6 +151,12 @@ func Init(dbPath string) error {
 		return fmt.Errorf("apply safe alters: %w", err)
 	}
 
+	// Create unified-search-index triggers and backfill AFTER ent has settled:
+	// ent.Schema.Create recreates managed tables, dropping attached triggers.
+	if err := EnsureSearchIndex(); err != nil {
+		return fmt.Errorf("ensure search index: %w", err)
+	}
+
 	return nil
 }
 

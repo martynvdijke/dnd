@@ -157,6 +157,7 @@ func main() {
 		handlers.RegisterShopRoutes(auth)
 		handlers.RegisterBackupRoutes(auth)
 		handlers.RegisterMiscAuthRoutes(auth)
+		handlers.RegisterTransferRoutes(auth)
 	}
 
 	// DM / One-Shot routes (DM or admin only)

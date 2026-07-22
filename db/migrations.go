@@ -1724,6 +1724,56 @@ ALTER TABLE campaign_event_settings ADD COLUMN source_type TEXT NOT NULL DEFAULT
 ALTER TABLE campaign_event_settings ADD COLUMN ical_url TEXT NOT NULL DEFAULT '';
 `,
 	},
+	{
+		version: 45,
+		sql: `
+-- Universal entity links (polymorphic cross-entity references)
+CREATE TABLE IF NOT EXISTS entity_links (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_type TEXT NOT NULL,
+    source_id INTEGER NOT NULL,
+    target_type TEXT NOT NULL,
+    target_id INTEGER NOT NULL,
+    context TEXT NOT NULL DEFAULT 'manual' CHECK(context IN ('manual','mention','import')),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(source_type, source_id, target_type, target_id, context)
+);
+CREATE INDEX IF NOT EXISTS idx_entity_links_source ON entity_links(source_type, source_id);
+CREATE INDEX IF NOT EXISTS idx_entity_links_target ON entity_links(target_type, target_id);
+
+-- Unified full-text search index across all searchable entity types.
+-- Standalone FTS5 table (not external-content). Sync triggers and backfill
+-- are NOT created here: ent's auto-migration (Client.Schema.Create) recreates
+-- ent-managed tables on startup, which would drop triggers on those tables.
+-- db.EnsureSearchIndex() runs after ent migration and creates them instead.
+CREATE VIRTUAL TABLE IF NOT EXISTS entity_search_index USING fts5(
+    entity_type,
+    entity_id UNINDEXED,
+    title,
+    subtitle,
+    body,
+    tokenize='porter unicode61'
+);
+`,
+	},
+	{
+		version: 46,
+		sql: `
+-- Audit log for villum-transfer imports
+CREATE TABLE IF NOT EXISTS transfer_import_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    file_name TEXT NOT NULL DEFAULT '',
+    doc_type TEXT NOT NULL DEFAULT '',
+    counts TEXT NOT NULL DEFAULT '{}',
+    status TEXT NOT NULL DEFAULT 'completed' CHECK(status IN ('completed','failed','rolled_back')),
+    error TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_transfer_import_logs_user ON transfer_import_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_transfer_import_logs_created ON transfer_import_logs(created_at);
+`,
+	},
 }
 
 func Migrate() error {

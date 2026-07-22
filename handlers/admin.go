@@ -186,6 +186,14 @@ func TriggerBackup(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"path": backupPath})
 }
 
+func HandleAdminResyncSearchIndex(c *gin.Context) {
+	if err := db.ResyncSearchIndex(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "search index resynced"})
+}
+
 func ListBackups(c *gin.Context) {
 	backupDir := getBackupDir()
 	entries, err := os.ReadDir(backupDir)

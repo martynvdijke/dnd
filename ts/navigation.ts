@@ -1,6 +1,7 @@
 import type { ViewState } from './types';
 import { openBottomSheet } from './bottom-sheet';
 import { updateFabForView } from './fab';
+import { navigate as routerNavigate } from './router';
 
 export interface ViewItem {
   id: ViewState;
@@ -25,6 +26,7 @@ const views: ViewItem[] = [
 ];
 
 export let currentView: ViewState = 'characters';
+let navigatingFromRouter = false;
 
 export function setCurrentView(view: ViewState): void {
   currentView = view;
@@ -34,7 +36,10 @@ export function getCurrentView(): ViewState {
   return currentView;
 }
 
-export function showView(view: ViewState): void {
+/**
+ * Internal implementation of view switching.
+ */
+function switchView(view: ViewState): void {
   currentView = view;
   views.forEach(v => {
     const el = document.getElementById(v.divId);
@@ -46,6 +51,26 @@ export function showView(view: ViewState): void {
   });
   updateActiveTab(view);
   updateFabForView(view);
+}
+
+/**
+ * Show a view and update the URL hash.
+ */
+export function showView(view: ViewState): void {
+  switchView(view);
+  if (!navigatingFromRouter) {
+    routerNavigate(view);
+  }
+}
+
+/**
+ * Called by the router on hashchange — updates the view without
+ * touching the hash (to avoid loops).
+ */
+export function showViewFromRouter(view: ViewState): void {
+  navigatingFromRouter = true;
+  switchView(view);
+  navigatingFromRouter = false;
 }
 
 export function updateActiveTab(view: ViewState): void {
