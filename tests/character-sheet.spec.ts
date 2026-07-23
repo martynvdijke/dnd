@@ -233,6 +233,9 @@ test.describe('NPC interactions extended', () => {
 
   async function waitModalClosed(page: any) {
     await page.waitForFunction(() => !document.getElementById('genericModal')?.classList.contains('show'), { timeout: 10000 });
+    // Bootstrap keeps the .modal-backdrop during the fade transition — wait for
+    // it to be removed so it doesn't intercept subsequent clicks.
+    await page.waitForFunction(() => !document.querySelector('.modal-backdrop'), { timeout: 5000 }).catch(() => {});
   }
 
   test('can create and delete NPC with full stats', async ({ page }) => {
@@ -563,8 +566,10 @@ test.describe('Auto-save', () => {
     await inlineInput.press('Enter');
     await responsePromise;
 
-    await page.reload();
-    await page.waitForURL('/', { waitUntil: 'domcontentloaded' });
+    // Use goto instead of reload+waitForURL — the latter is racy: the reload
+    // navigation can complete before waitForURL's watcher is set up, causing a
+    // permanent timeout on CI where network/server responses are slower.
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await waitLoadingDone(page);
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
