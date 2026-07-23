@@ -4,7 +4,7 @@ go 1.26.2
 
 require (
 	entgo.io/ent v0.14.6
-	github.com/dop251/goja v0.0.0-20260719185829-0fc1d42c1dc9
+	github.com/dop251/goja v0.0.0-20260722130236-0768e0998ac0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/prometheus/client_golang v1.24.0
