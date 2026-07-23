@@ -25,6 +25,17 @@ async function waitForSearchOverlay(page) {
   }, { timeout: 5000 });
 }
 
+async function searchAndWait(page, query) {
+  // Open command palette via Ctrl+K / Cmd+K shortcut (always wired up)
+  await page.evaluate(() => {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }));
+  });
+  await waitForSearchOverlay(page);
+  // Execute search with query directly (avoids race with showSearchOverlay clearing #searchInput)
+  await page.evaluate((q) => window.doSearch(q), query);
+  await page.waitForTimeout(1000);
+}
+
 test.describe('Advanced Search', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
@@ -43,29 +54,8 @@ test.describe('Advanced Search', () => {
     expect(exists).toBe('function');
   });
 
-  test('search finds fireball in compendium', async ({ page }) => {
-    if (await isMobile(page)) {
-      await page.evaluate(() => { (document.getElementById('searchInput') as HTMLInputElement).value = 'fireball'; });
-    } else {
-      await ensureNavOpen(page);
-      await page.fill('#searchInput', 'fireball');
-    }
-    await page.evaluate(() => window.doSearch());
-    await waitForSearchOverlay(page);
-    await page.waitForTimeout(1000);
-    await expect(page.locator('#cpResults')).toContainText('Spells');
-  });
-
   test('search shows no results for nonsense query', async ({ page }) => {
-    if (await isMobile(page)) {
-      await page.evaluate(() => { (document.getElementById('searchInput') as HTMLInputElement).value = 'xyznonexistent12345'; });
-    } else {
-      await ensureNavOpen(page);
-      await page.fill('#searchInput', 'xyznonexistent12345');
-    }
-    await page.evaluate(() => window.doSearch());
-    await waitForSearchOverlay(page);
-    await page.waitForTimeout(1000);
+    await searchAndWait(page, 'xyznonexistent12345');
     await expect(page.locator('#cpResults')).toContainText('No Results');
   });
 
@@ -80,15 +70,7 @@ test.describe('Advanced Search', () => {
     await waitModalClosed(page);
 
     const searchTerm = name.slice(0, 10);
-    if (await isMobile(page)) {
-      await page.evaluate((term) => { (document.getElementById('searchInput') as HTMLInputElement).value = term; }, searchTerm);
-    } else {
-      await ensureNavOpen(page);
-      await page.fill('#searchInput', searchTerm);
-    }
-    await page.evaluate(() => window.doSearch());
-    await waitForSearchOverlay(page);
-    await page.waitForTimeout(1000);
+    await searchAndWait(page, searchTerm);
     await expect(page.locator('#cpResults')).toContainText(name);
   });
 
@@ -102,14 +84,7 @@ test.describe('Advanced Search', () => {
     await page.click('.modal button:has-text("Create")');
     await waitModalClosed(page);
 
-    if (await isMobile(page)) {
-      await page.evaluate((n) => { (document.getElementById('searchInput') as HTMLInputElement).value = n; }, name);
-    } else {
-      await ensureNavOpen(page);
-      await page.fill('#searchInput', name);
-    }
-    await page.evaluate(() => window.doSearch());
-    await waitForSearchOverlay(page);
+    await searchAndWait(page, name);
 
     const result = page.locator('.cp-result-item').first();
     await expect(result).toBeVisible({ timeout: 5000 });

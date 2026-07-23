@@ -21,12 +21,10 @@ interface SearchResultV2 {
   name: string;
   snippet?: string;
   rank: number;
-  match_column?: string;
 }
 
 interface SearchResponseV2 {
   results: SearchResultV2[];
-  total: number;
 }
 
 // ─── Type Definitions ───
@@ -254,13 +252,21 @@ export async function doSearch(query?: string): Promise<void> {
   selectedIndex = -1;
 
   try {
-    let url = '/api/search/v2?q=' + encodeURIComponent(q);
+    let url = '/api/search?q=' + encodeURIComponent(q);
     if (currentTypeFilter) {
       url += '&types=' + encodeURIComponent(currentTypeFilter);
     }
 
-    const data: SearchResponseV2 = await api('GET', url);
-    const results = data.results || [];
+    const data = await api('GET', url);
+    // Map backend response (title/score) to frontend expectations (name/rank)
+    const rawResults = data.results || [];
+    const results: SearchResultV2[] = rawResults.map((r: any) => ({
+      entity_type: r.entity_type,
+      entity_id: r.entity_id,
+      name: r.title || r.name,
+      snippet: r.snippet,
+      rank: r.score || r.rank,
+    }));
 
     const resultsEl = document.getElementById('cpResults');
     if (!resultsEl) return;
