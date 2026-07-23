@@ -1,3 +1,19 @@
+# [2.29.0](https://github.com/martynvdijke/dnd/compare/v2.28.9...v2.29.0) (2026-07-23)
+
+
+### Bug Fixes
+
+* resolve e2e test failures from search and router changes ([c3f35dd](https://github.com/martynvdijke/dnd/commit/c3f35ddea0e30143c3e02f1670b9fd20cf31e75a)), closes [#cpResults](https://github.com/martynvdijke/dnd/issues/cpResults) [#searchPanel](https://github.com/martynvdijke/dnd/issues/searchPanel)
+* resolve e2e test failures from search and router changes ([56df3f9](https://github.com/martynvdijke/dnd/commit/56df3f987ac94939e07149c5c8227681a6642a03))
+* resolve flaky e2e tests - reload race and modal backdrop interception ([956c70c](https://github.com/martynvdijke/dnd/commit/956c70c8ac90c77cb154184d01a37b2e0c633926))
+* resolve search e2e test failures - API URL mismatch and race conditions ([dff1eb7](https://github.com/martynvdijke/dnd/commit/dff1eb73ec451342056c9f6b4960f2bb68aaecd6))
+* silence server stdout in test fixture to eliminate OTel trace noise ([433fa44](https://github.com/martynvdijke/dnd/commit/433fa44c1b4ef0a57a75c83b9e60b657f9e1b750))
+
+
+### Features
+
+* universal search, entity links, transfer, and frontend phases 5-8 ([c6c71ec](https://github.com/martynvdijke/dnd/commit/c6c71ec588c5f081ed00a69c87dd27c24f85c9dd))
+
 ## [2.28.9](https://github.com/martynvdijke/dnd/compare/v2.28.8...v2.28.9) (2026-07-21)
 
 
