@@ -111,9 +111,10 @@ export const test = base.extend<{}, { workerData: WorkerData }>({
         detached: false,
       });
 
-      proc.stdout?.on('data', (d: Buffer) => {
-        process.stdout.write(`[worker ${workerInfo.workerIndex}] ${d}`);
-      });
+      // Discard server stdout during tests — the Go server dumps verbose OTel
+      // trace JSON (pretty-printed) to stdout when no OTLP collector is reachable.
+      // stderr is still forwarded so actual errors surface in test output.
+      proc.stdout?.on('data', () => {});
       proc.stderr?.on('data', (d: Buffer) => {
         process.stderr.write(`[worker ${workerInfo.workerIndex}] ${d}`);
       });
