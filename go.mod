@@ -7,7 +7,7 @@ require (
 	github.com/dop251/goja v0.0.0-20260723142020-b4aef50fa347
 	github.com/gin-gonic/gin v1.12.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/prometheus/client_golang v1.24.0
+	github.com/prometheus/client_golang v1.24.1
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	go.opentelemetry.io/contrib/bridges/otelslog v0.19.0
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.69.0
@@ -30,7 +30,7 @@ require (
 	golang.org/x/image v0.44.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/text v0.40.0
-	google.golang.org/api v0.289.0
+	google.golang.org/api v0.290.0
 	modernc.org/sqlite v1.54.0
 )
 
@@ -82,7 +82,7 @@ require (
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.3.1 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
-	github.com/prometheus/common v0.70.0 // indirect
+	github.com/prometheus/common v0.70.1 // indirect
 	github.com/prometheus/otlptranslator v1.0.0 // indirect
 	github.com/prometheus/procfs v0.21.1 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
