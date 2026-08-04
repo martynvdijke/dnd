@@ -3,6 +3,7 @@ import * as bootstrap from 'bootstrap';
 
 let modalEl: HTMLElement | null = null;
 let loadingCount = 0;
+let loadingTimer: ReturnType<typeof setTimeout> | null = null;
 
 function getModal(): any {
   if (!modalEl) modalEl = document.getElementById('genericModal');
@@ -61,11 +62,18 @@ export function toast(msg: string, isError = false, duration = 5000): void {
 export function showLoading(): void {
   loadingCount++;
   const overlay = document.getElementById('loadingOverlay');
-  if (overlay) overlay.classList.remove('d-none');
+  if (!overlay || loadingCount > 1 || !overlay.classList.contains('d-none')) return;
+  // 200ms debounce: skip the skeleton for fast requests to avoid flicker.
+  loadingTimer = setTimeout(() => overlay.classList.remove('d-none'), 200);
 }
 
 export function hideLoading(): void {
   loadingCount = Math.max(0, loadingCount - 1);
+  if (loadingCount > 0) return;
+  if (loadingTimer) {
+    clearTimeout(loadingTimer);
+    loadingTimer = null;
+  }
   const overlay = document.getElementById('loadingOverlay');
-  if (overlay && loadingCount === 0) overlay.classList.add('d-none');
+  if (overlay) overlay.classList.add('d-none');
 }

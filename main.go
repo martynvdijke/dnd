@@ -19,7 +19,7 @@ import (
 	"villum/middleware"
 )
 
-//go:embed static/*.html static/*.css static/style.css static/js/*.js static/sw.js static/manifest.json
+//go:embed static/*.html static/*.css static/style.css static/js/*.js static/sw.js static/manifest.json static/fonts/*.woff2
 var staticFiles embed.FS
 
 const Version = "2.29.10"
