@@ -3,10 +3,11 @@ import { showView } from './navigation';
 import { esc, showModal, hideModal, toast } from './lib/dom';
 import { api } from './lib/api';
 import { currentUser, currentChar } from './lib/state';
+import { expose } from './lib/expose';
 
 // ─── Party View & Campaign Management ───
 
-(window as any).showParty = async function () {
+expose('showParty', async function () {
   showView('party');
   const el = document.getElementById('partyContent')!;
   el.innerHTML = '<div class="ornament mb-3">✧ Assembling the party... ✧</div>';
@@ -134,18 +135,18 @@ import { currentUser, currentChar } from './lib/state';
   } catch (e:any) {
     el.innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Failed: ${esc(e.message)}</p></div>`;
   }
-};
+});
 
-(window as any).showCreateCampaign = function () {
+expose('showCreateCampaign', function () {
   showModal('Create Campaign', `
     <div class="mb-3"><label class="form-label">Campaign Name</label><input class="form-control" id="newCampaignName"></div>
     <div class="mb-3"><label class="form-label">Party Name</label><input class="form-control" id="newPartyName" placeholder="e.g. The Dawnbringers"></div>
     <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="newCampaignDesc" rows="2"></textarea></div>
     <button class="btn btn-primary w-100" onclick="doCreateCampaign()">Create</button>
   `);
-};
+});
 
-(window as any).doCreateCampaign = async function () {
+expose('doCreateCampaign', async function () {
   try {
     const name = (document.getElementById('newCampaignName') as HTMLInputElement).value;
     if (!name) { toast('Name required', true); return; }
@@ -157,9 +158,9 @@ import { currentUser, currentChar } from './lib/state';
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).showManageCampaign = async function (campaignId: number, name: string, partyName: string = '') {
+expose('showManageCampaign', async function (campaignId: number, name: string, partyName: string = '') {
   const [campaigns, members] = await Promise.all([
     api('GET', '/api/campaigns'),
     api('GET', `/api/campaigns/${campaignId}/members`).catch(() => []),
@@ -205,9 +206,9 @@ import { currentUser, currentChar } from './lib/state';
   if (input) {
     input.addEventListener('input', () => searchUsers(input.value));
   }
-};
+});
 
-(window as any).doUpdateCampaign = async function (campaignId: number) {
+expose('doUpdateCampaign', async function (campaignId: number) {
   try {
     const name = (document.getElementById('editCampaignName') as HTMLInputElement).value;
     if (!name) { toast('Name required', true); return; }
@@ -220,7 +221,7 @@ import { currentUser, currentChar } from './lib/state';
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
 let searchTimeout: any = null;
 function searchUsers(q: string) {
@@ -239,7 +240,7 @@ function searchUsers(q: string) {
   }, 300);
 }
 
-(window as any).doAddMember = async function (campaignId: number) {
+expose('doAddMember', async function (campaignId: number) {
   const username = (document.getElementById('addMemberUsername') as HTMLInputElement).value.trim();
   if (!username) return;
   try {
@@ -249,18 +250,18 @@ function searchUsers(q: string) {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).doToggleDm = async function (campaignId: number, userId: number, newRole: string) {
+expose('doToggleDm', async function (campaignId: number, userId: number, newRole: string) {
   try {
     await api('PUT', `/api/campaigns/${campaignId}/members/${userId}`, { role: newRole });
     (window as any).showManageCampaign(campaignId, '');
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).doRemoveMember = async function (campaignId: number, userId: number) {
+expose('doRemoveMember', async function (campaignId: number, userId: number) {
   if (!confirm('Remove this member?')) return;
   try {
     await api('DELETE', `/api/campaigns/${campaignId}/members/${userId}`);
@@ -268,9 +269,9 @@ function searchUsers(q: string) {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).deleteCampaign = async function (campaignId: number) {
+expose('deleteCampaign', async function (campaignId: number) {
   if (!confirm('Delete this campaign? Characters will be unlinked.')) return;
   try {
     await api('DELETE', `/api/campaigns/${campaignId}`);
@@ -279,19 +280,19 @@ function searchUsers(q: string) {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
 // ─── Party Management ───
 
-(window as any).showCreateParty = function () {
+expose('showCreateParty', function () {
   showModal('Create Party', `
     <div class="mb-3"><label class="form-label">Party Name</label><input class="form-control" id="newPartyNameInput"></div>
     <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="newPartyDesc" rows="2"></textarea></div>
     <button class="btn btn-primary w-100" onclick="doCreateParty()">Create</button>
   `);
-};
+});
 
-(window as any).doCreateParty = async function () {
+expose('doCreateParty', async function () {
   const name = (document.getElementById('newPartyNameInput') as HTMLInputElement).value;
   if (!name) { toast('Party name required', true); return; }
   const description = (document.getElementById('newPartyDesc') as HTMLTextAreaElement).value;
@@ -301,17 +302,17 @@ function searchUsers(q: string) {
     toast('Party created');
     (window as any).showParty();
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).renameParty = function (id: number, name: string, description: string) {
+expose('renameParty', function (id: number, name: string, description: string) {
   showModal('Rename Party', `
     <div class="mb-3"><label class="form-label">Party Name</label><input class="form-control" id="editPartyNameInput" value="${esc(name)}"></div>
     <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="editPartyDesc" rows="2">${esc(description)}</textarea></div>
     <button class="btn btn-primary w-100" onclick="doRenameParty(${id})">Save</button>
   `);
-};
+});
 
-(window as any).doRenameParty = async function (id: number) {
+expose('doRenameParty', async function (id: number) {
   const name = (document.getElementById('editPartyNameInput') as HTMLInputElement).value;
   if (!name) { toast('Party name required', true); return; }
   const description = (document.getElementById('editPartyDesc') as HTMLTextAreaElement).value;
@@ -321,20 +322,20 @@ function searchUsers(q: string) {
     toast('Party updated');
     (window as any).showParty();
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).deleteParty = async function (id: number) {
+expose('deleteParty', async function (id: number) {
   if (!confirm('Delete this party?')) return;
   try {
     await api('DELETE', `/api/parties/${id}`);
     toast('Party deleted');
     (window as any).showParty();
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
 // ─── Share & Email ───
 
-(window as any).shareCharacter = async function () {
+expose('shareCharacter', async function () {
   if (!currentChar) return;
   try {
     const result = await api('POST', '/api/share', {
@@ -355,17 +356,17 @@ function searchUsers(q: string) {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).copyShareUrl = function () {
+expose('copyShareUrl', function () {
   const input = document.getElementById('shareUrl') as HTMLInputElement;
   if (input) {
     input.select();
     navigator.clipboard.writeText(input.value).then(() => toast('Link copied!')).catch(() => {});
   }
-};
+});
 
-(window as any).shareParty = async function (campaignId: number) {
+expose('shareParty', async function (campaignId: number) {
   try {
     const result = await api('POST', '/api/share', {
       entity_type: 'party',
@@ -385,9 +386,9 @@ function searchUsers(q: string) {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).sendCampaignHighlights = async function (campaignId: number) {
+expose('sendCampaignHighlights', async function (campaignId: number) {
   try {
     const result = await api('POST', '/api/admin/campaign-highlights', { campaign_id: campaignId });
     const msg = result.errors && result.errors.length
@@ -398,4 +399,4 @@ function searchUsers(q: string) {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});

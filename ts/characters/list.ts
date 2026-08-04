@@ -7,6 +7,7 @@
 
 import { esc, toast } from '../lib/dom';
 import { api } from '../lib/api';
+import { expose } from '../lib/expose';
 
 export async function loadCharacters() {
   try {
@@ -31,7 +32,7 @@ export async function loadCharacters() {
     toast(e.message, true);
   }
 }
-(window as any).loadCharacters = loadCharacters;
+expose('loadCharacters', loadCharacters);
 
 export function filterCharacters() {
   const q = (document.getElementById('charSearch') as HTMLInputElement)?.value?.toLowerCase() || '';
@@ -42,4 +43,4 @@ export function filterCharacters() {
     }
   });
 }
-(window as any).filterCharacters = filterCharacters;
+expose('filterCharacters', filterCharacters);

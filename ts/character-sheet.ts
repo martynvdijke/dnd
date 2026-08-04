@@ -1,5 +1,6 @@
 import { showView } from './navigation';
 import { updateFabForView } from './fab';
+import { expose } from './lib/expose';
 
 export function openCharacter(id: number): void {
   showView('sheet');
@@ -40,4 +41,4 @@ export function renderSessionQuickActions(el: HTMLElement): void {
   `;
 }
 
-(window as any).openCharacter = openCharacter;
+expose('openCharacter', openCharacter);

@@ -2,6 +2,7 @@ import type { ViewState } from './types';
 import { openBottomSheet } from './bottom-sheet';
 import { updateFabForView } from './fab';
 import { navigate as routerNavigate } from './router';
+import { expose } from './lib/expose';
 
 export interface ViewItem {
   id: ViewState;
@@ -84,9 +85,9 @@ export function updateActiveTab(view: ViewState): void {
   });
 }
 
-(window as any).showView = showView;
-(window as any).getCurrentView = getCurrentView;
-(window as any).setCurrentView = setCurrentView;
+expose('showView', showView);
+expose('getCurrentView', getCurrentView);
+expose('setCurrentView', setCurrentView);
 
 export function toggleSidebar(): void {
   const sidebar = document.getElementById('appSidebar');
@@ -96,7 +97,7 @@ export function toggleSidebar(): void {
     document.body.classList.toggle('sidebar-expanded');
   }
 }
-(window as any).toggleSidebar = toggleSidebar;
+expose('toggleSidebar', toggleSidebar);
 
 export function showMoreNav(): void {
   // Mirror visibility from corresponding top nav items (set by init based on role)
@@ -114,4 +115,4 @@ export function showMoreNav(): void {
   `;
   openBottomSheet({ id: 'more-nav', title: 'More', content });
 }
-(window as any).showMoreNav = showMoreNav;
+expose('showMoreNav', showMoreNav);

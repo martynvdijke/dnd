@@ -2,10 +2,11 @@
 import { showView } from './navigation';
 import { esc, showModal, hideModal, toast } from './lib/dom';
 import { api } from './lib/api';
+import { expose } from './lib/expose';
 
 // ─── Encounter Builder ───
 
-(window as any).showEncounterBuilder = async function () {
+expose('showEncounterBuilder', async function () {
   showView('encounter');
   const el = document.getElementById('encounterContent')!;
   el.innerHTML = '<div class="ornament">✧ Loading encounters... ✧</div>';
@@ -30,9 +31,9 @@ import { api } from './lib/api';
           : '<div class="empty-state"><i class="fa-solid fa-crosshairs fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Encounters Yet</p><p class="small text-muted">Build balanced encounters with XP budgeting.</p></div>'}
       </div>`;
   } catch (e: any) { el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(e.message)}</p></div>`; }
-};
+});
 
-(window as any).showCreateEncounter = function () {
+expose('showCreateEncounter', function () {
   showModal('New Encounter', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="encName" placeholder="Goblin Ambush"></div>
     <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="encDesc" rows="2"></textarea></div>
@@ -52,9 +53,9 @@ import { api } from './lib/api';
     </div>
     <button class="btn btn-primary w-100" onclick="saveEncounter()"><i class="fa-solid fa-plus me-1"></i>Create</button>
   `);
-};
+});
 
-(window as any).saveEncounter = async function () {
+expose('saveEncounter', async function () {
   const name = (document.getElementById('encName') as HTMLInputElement).value;
   if (!name) { toast('Name required', true); return; }
   await api('POST', '/api/encounters', {
@@ -65,9 +66,9 @@ import { api } from './lib/api';
   hideModal();
   (window as any).showEncounterBuilder();
   toast('Encounter created');
-};
+});
 
-(window as any).showEncounterDetail = async function (id: number) {
+expose('showEncounterDetail', async function (id: number) {
   showView('singleEncounter');
   const el = document.getElementById('singleEncounterContent')!;
   el.innerHTML = '<div class="ornament">✧ Loading... ✧</div>';
@@ -128,22 +129,22 @@ import { api } from './lib/api';
     el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(err.message)}</p>
       <button class="btn btn-outline-secondary btn-sm" onclick="(window as any).showEncounterBuilder()">Back</button></div>`;
   }
-};
+});
 
-(window as any).editEncounter = function (id: number) { (window as any).showEncounterBuilder(); };
+expose('editEncounter', function (id: number) { (window as any).showEncounterBuilder(); });
 
-(window as any).deleteEncounter = async function (id: number) {
+expose('deleteEncounter', async function (id: number) {
   if (!confirm('Delete this encounter?')) return;
   await api('DELETE', `/api/encounters/${id}`);
   (window as any).showEncounterBuilder();
   toast('Encounter deleted');
-};
+});
 
-(window as any).showEncounterMonsterPicker = function (eid: number) {
+expose('showEncounterMonsterPicker', function (eid: number) {
   showModal('Add Monster from Compendium', `<div hx-get="/htmx/compendium-monsters/picker/${eid}" hx-trigger="load" hx-swap="innerHTML">Loading compendium...</div>`);
-};
+});
 
-(window as any).importCompendiumMonsterToEncounter = async function (monsterId: number, encounterId: number, _campaignId?: number) {
+expose('importCompendiumMonsterToEncounter', async function (monsterId: number, encounterId: number, _campaignId?: number) {
   try {
     await api('POST', `/api/encounters/${encounterId}/import/compendium`, { compendium_monster_id: monsterId, count: 1 });
     toast('Monster added to encounter');
@@ -152,16 +153,16 @@ import { api } from './lib/api';
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).deleteMonster = async function (eid: number, mid: number) {
+expose('deleteMonster', async function (eid: number, mid: number) {
   if (!confirm('Remove this monster?')) return;
   await api('DELETE', `/api/encounter-monsters/${mid}`);
   (window as any).showEncounterDetail(eid);
   toast('Monster removed');
-};
+});
 
-(window as any).showEncounterXPCalc = function () {
+expose('showEncounterXPCalc', function () {
   showModal('XP Calculator', `
     <p class="text-muted small">Enter party levels and monster CRs to calculate encounter difficulty.</p>
     <div class="mb-3"><label class="form-label">Party Levels (comma-separated)</label>
@@ -171,9 +172,9 @@ import { api } from './lib/api';
     <button class="btn btn-primary w-100" onclick="doXPCalc()"><i class="fa-solid fa-calculator me-1"></i>Calculate</button>
     <div id="xpCalcResult" class="mt-3"></div>
   `);
-};
+});
 
-(window as any).doXPCalc = async function () {
+expose('doXPCalc', async function () {
   const levels = (document.getElementById('xpPartyLevels') as HTMLInputElement).value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
   const lines = (document.getElementById('xpMonsters') as HTMLTextAreaElement).value.split('\n').filter(l => l.trim());
   const monsters = lines.map(l => {
@@ -195,4 +196,4 @@ import { api } from './lib/api';
         <div class="small text-muted">Thresholds: Easy ${result.thresholds.easy} / Med ${result.thresholds.medium} / Hard ${result.thresholds.hard} / Deadly ${result.thresholds.deadly}</div>
       </div></div>`;
   } catch (e: any) { toast(e.message, true); }
-};
+});

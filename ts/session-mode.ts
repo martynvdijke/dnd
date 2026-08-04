@@ -1,6 +1,7 @@
 import type { SessionModeState } from './types';
 import { updateFabForView } from './fab';
 import { getCurrentView } from './navigation';
+import { expose } from './lib/expose';
 
 let state: SessionModeState = 'normal';
 
@@ -77,7 +78,7 @@ export function restoreSessionMode(): void {
   }
 }
 
-(window as any).toggleSessionMode = toggleSessionMode;
-(window as any).activateSessionMode = activateSessionMode;
-(window as any).deactivateSessionMode = deactivateSessionMode;
-(window as any).isSessionMode = isSessionMode;
+expose('toggleSessionMode', toggleSessionMode);
+expose('activateSessionMode', activateSessionMode);
+expose('deactivateSessionMode', deactivateSessionMode);
+expose('isSessionMode', isSessionMode);

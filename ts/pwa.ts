@@ -1,3 +1,4 @@
+import { expose } from './lib/expose';
 const SW_VERSION = 'v1';
 
 export function registerSW(): void {
@@ -10,7 +11,7 @@ export function registerSW(): void {
 export function captureInstallPrompt(): void {
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
-    (window as any)._deferredInstallPrompt = e;
+    expose('_deferredInstallPrompt', e);
     const moreMenu = document.getElementById('moreMenu');
     if (moreMenu) {
       const installBtn = document.createElement('button');
@@ -22,7 +23,7 @@ export function captureInstallPrompt(): void {
   });
 
   window.addEventListener('appinstalled', () => {
-    (window as any)._deferredInstallPrompt = null;
+    expose('_deferredInstallPrompt', null);
     console.log('[PWA] installed');
   });
 }
@@ -38,7 +39,7 @@ export function showInstallPrompt(): void {
         localStorage.setItem('villum-install-dismissed', String(Date.now()));
       }
     }
-    (window as any)._deferredInstallPrompt = null;
+    expose('_deferredInstallPrompt', null);
   });
 }
 
@@ -46,6 +47,6 @@ export function isOffline(): boolean {
   return !navigator.onLine;
 }
 
-(window as any).registerSW = registerSW;
-(window as any).showInstallPrompt = showInstallPrompt;
-(window as any).isOffline = isOffline;
+expose('registerSW', registerSW);
+expose('showInstallPrompt', showInstallPrompt);
+expose('isOffline', isOffline);

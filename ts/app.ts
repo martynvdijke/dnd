@@ -4,7 +4,7 @@ import Chart from 'chart.js/auto';
 import { marked } from 'marked';
 import L from 'leaflet';
 import * as bootstrap from 'bootstrap';
-(window as any).bootstrap = bootstrap;
+expose('bootstrap', bootstrap);
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -25,17 +25,13 @@ import './party';
 import './timeline';
 import './factions';
 import './character-sheet';
+import { expose } from './lib/expose';
+import { currentUser, currentChar, currentTab, allLocations, allNPCs, setCurrentChar, setCurrentTab, setAllLocations, setAllNPCs } from './lib/state';
 
 // Expose API helper globally for E2E tests (window.api check)
-(window as any).api = api;
+expose('api', api);
 
 declare const htmx: any;
-
-export let currentUser: { id: number; username: string; role: string } | null = null;
-export let currentChar: any = null;
-export let currentTab = 'stats';
-export let allLocations: any[] = [];
-export let allNPCs: any[] = [];
 
 // ─── FAB ───
 // (moved to ts/fab.ts)
@@ -55,14 +51,14 @@ function sortList(key: string, order: 'asc' | 'desc' = 'asc') {
   });
   sorted.forEach(item => container.appendChild(item));
 }
-(window as any).sortList = sortList;
+expose('sortList', sortList);
 
 // Keyboard Shortcuts handled via import from ./lib/shortcuts
 
 // Global Search → extracted to ts/search.ts
 import { showSearchOverlay, hideSearchOverlay, doSearch, initSearch } from './search';
 
-(window as any).navigateSearchResult = function (type: string, id: number, name: string) {
+expose('navigateSearchResult', function (type: string, id: number, name: string) {
   if (type === 'characters') {
     openChar(id);
   } else if (type === 'campaigns') {
@@ -80,7 +76,7 @@ import { showSearchOverlay, hideSearchOverlay, doSearch, initSearch } from './se
     showView('characters');
     toast(name);
   }
-};
+});
 
 // Loading, API, Theme, Modal, Toast → imported from ./lib/{dom,api,theme}
 
@@ -91,16 +87,16 @@ import { loadCharacters, filterCharacters } from './characters/list';
 
 async function openChar(id: number) {
   try {
-    currentChar = await api('GET', `/api/characters/${id}`);
-    (window as any).currentChar = currentChar;
-    currentTab = 'stats';
+    setCurrentChar(await api('GET', `/api/characters/${id}`));
+    expose('currentChar', currentChar);
+    setCurrentTab('stats');
     showView('sheet');
     renderSheet();
   } catch (e: any) {
     toast(e.message, true);
   }
 }
-(window as any).openChar = openChar;
+expose('openChar', openChar);
 
 // ─── Character Sheet ───
 
@@ -141,7 +137,7 @@ function renderSheet() {
 const htmxTabs = ['spells', 'features', 'feats', 'companions', 'crafting', 'notes'];
 
 function switchTab(tab: string) {
-  currentTab = tab;
+  setCurrentTab(tab);
   renderSheet();
   if (htmxTabs.includes(tab) && currentChar) {
     const el = document.getElementById(tab + 'Section');
@@ -165,7 +161,7 @@ function switchTab(tab: string) {
     }
   }
 }
-(window as any).switchTab = switchTab;
+expose('switchTab', switchTab);
 
 // ─── Roll / Combat Actions ───
 
@@ -180,16 +176,16 @@ async function rollCheck(type: string, name: string, adv: string) {
     toast(e.message, true);
   }
 }
-(window as any).rollCheck = rollCheck;
+expose('rollCheck', rollCheck);
 
-(window as any).applyDamage = async function () {
+expose('applyDamage', async function () {
   if (!currentChar) return;
   const dmg = parseInt((document.getElementById('dmgInput') as HTMLInputElement)?.value || '0');
   if (!dmg) return;
   const oldHp = currentChar.hp_current;
   const newHp = Math.max(0, currentChar.hp_current - dmg);
   await updateField('hp_current', newHp);
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   if (currentChar.concentrating_on) {
     try {
       const conc = await api('POST', `/api/characters/${currentChar.id}/check-concentration`, { damage: dmg });
@@ -215,7 +211,7 @@ async function rollCheck(type: string, name: string, adv: string) {
     bar.style.width = Math.max(0, Math.min(100, (oldHp / currentChar.hp_max) * 100)) + '%';
     animateHpChange(hpText, bar, oldHp, currentChar.hp_current, currentChar.hp_max);
   }
-};
+});
 
 async function applyHeal() {
   if (!currentChar) return;
@@ -224,7 +220,7 @@ async function applyHeal() {
   const oldHp = currentChar.hp_current;
   const newHp = Math.min(currentChar.hp_max, currentChar.hp_current + heal);
   await updateField('hp_current', newHp);
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderSheet();
   // Animate HP change after re-render
   const bar = document.getElementById('charHpBarFill');
@@ -234,7 +230,7 @@ async function applyHeal() {
     animateHpChange(hpText, bar, oldHp, currentChar.hp_current, currentChar.hp_max);
   }
 }
-(window as any).applyHeal = applyHeal;
+expose('applyHeal', applyHeal);
 
 async function doRest(type: string) {
   if (!currentChar) return;
@@ -242,7 +238,7 @@ async function doRest(type: string) {
     const oldHp = currentChar.hp_current;
     const result = await api('POST', `/api/characters/${currentChar.id}/rest`, { rest_type: type, hit_dice_count: type === 'short' ? 1 : 0 });
     toast(`${type} rest: healed ${result.hp_healed} HP`);
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+    setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
     renderSheet();
     // Animate HP change after re-render
     const bar = document.getElementById('charHpBarFill');
@@ -255,20 +251,20 @@ async function doRest(type: string) {
     toast(e.message, true);
   }
 }
-(window as any).doRest = doRest;
+expose('doRest', doRest);
 
 async function doLevelUp() {
   if (!currentChar) return;
   try {
     const result = await api('POST', `/api/characters/${currentChar.id}/levelup`);
     toast(`Level Up! Now level ${result.new_level} (+${result.hp_gain} HP)`);
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+    setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
     renderSheet();
   } catch (e: any) {
     toast(e.message, true);
   }
 }
-(window as any).doLevelUp = doLevelUp;
+expose('doLevelUp', doLevelUp);
 
 let autoSaveTimer: number | null = null;
 
@@ -290,11 +286,11 @@ function autoSaveField(field: string, el: HTMLElement) {
     }
   }, 800);
 }
-(window as any).autoSaveField = autoSaveField;
+expose('autoSaveField', autoSaveField);
 
 // ─── Stepper Utility ───
 
-(window as any).stepperField = function (field: string, delta: number, min?: number, max?: number) {
+expose('stepperField', function (field: string, delta: number, min?: number, max?: number) {
   if (!currentChar) return;
   let val = currentChar[field] ?? 0;
   val += delta;
@@ -306,9 +302,9 @@ function autoSaveField(field: string, el: HTMLElement) {
     try { await api('PUT', `/api/characters/${currentChar.id}`, currentChar); } catch (e: any) { toast(e.message, true); }
   }, 800);
   renderSheet();
-};
+});
 
-(window as any).editStepperValue = function (field: string, el: HTMLElement) {
+expose('editStepperValue', function (field: string, el: HTMLElement) {
   if (!currentChar) return;
   const current = currentChar[field] ?? 0;
   el.innerHTML = `<input type="number" class="form-control stepper-inline-input" value="${current}">`;
@@ -331,11 +327,11 @@ function autoSaveField(field: string, el: HTMLElement) {
     if (e.key === 'Enter') { e.preventDefault(); save(); }
     if (e.key === 'Escape') { renderSheet(); }
   });
-};
+});
 
 // ─── Coin Stepper ───
 
-(window as any).coinStepper = async function (coin: string, delta: number) {
+expose('coinStepper', async function (coin: string, delta: number) {
   if (!currentChar) return;
   const currency = currentChar.currency || {};
   const current = currency[coin] || 0;
@@ -349,7 +345,7 @@ function autoSaveField(field: string, el: HTMLElement) {
     toast(`${coin.toUpperCase()} ${delta > 0 ? '+' : ''}${delta}`);
   } catch (e: any) { toast(e.message, true); }
   renderSheet();
-};
+});
 
 // ─── Helper: Render a stepper control ───
 
@@ -369,13 +365,13 @@ async function updateField(field: string, value: any) {
   currentChar[field] = value;
   try { await api('PUT', `/api/characters/${currentChar.id}`, currentChar); } catch (e: any) { toast(e.message, true); }
 }
-(window as any).updateField = updateField;
+expose('updateField', updateField);
 
 function updateXPBar() {
   const container = document.getElementById('xpBarContainer');
   if (container && currentChar) container.innerHTML = renderXPBar(currentChar);
 }
-(window as any).updateXPBar = updateXPBar;
+expose('updateXPBar', updateXPBar);
 
 // ─── Stats ───
 
@@ -501,13 +497,13 @@ function renderXPBar(c: any) {
 
 // ─── Exhaustion ───
 
-(window as any).adjustExhaustion = async function (delta: number) {
+expose('adjustExhaustion', async function (delta: number) {
   if (!currentChar) return;
   const newLevel = Math.max(0, Math.min(6, (currentChar.exhaustion_level || 0) + delta));
   await api('PATCH', `/api/characters/${currentChar.id}/exhaustion`, { exhaustion_level: newLevel });
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderStats();
-};
+});
 
 // ─── Currency ───
 
@@ -517,10 +513,10 @@ async function updateCurrency() {
   const updates: Record<string,number> = {};
   coins.forEach(c => { updates[c] = +(document.getElementById('coin' + c) as HTMLInputElement)?.value || 0; });
   await api('PUT', `/api/characters/${currentChar.id}/currency`, updates);
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   toast('Currency updated');
 }
-(window as any).updateCurrency = updateCurrency;
+expose('updateCurrency', updateCurrency);
 
 // ─── Inventory ───
 
@@ -625,17 +621,17 @@ function renderInventory() {
 
 // ─── Identify Toggle ───
 
-(window as any).toggleIdentify = async function (id: number) {
+expose('toggleIdentify', async function (id: number) {
   const item = currentChar.inventory.find((i:any) => i.id === id);
   if (!item) return;
   const newVal = item.is_identified === false ? true : false;
   await api('PUT', `/api/inventory/${id}`, { ...item, is_identified: newVal });
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderInventory();
   toast(newVal ? 'Item identified' : 'Item marked unidentified');
-};
+});
 
-(window as any).addInventory = function () {
+expose('addInventory', function () {
   showModal('Add Item', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="invName"></div>
     <div class="row g-3 mb-3">
@@ -650,9 +646,9 @@ function renderInventory() {
       </select></div>
     <button class="btn btn-primary w-100" onclick="saveInventory(this)"><i class="fa-solid fa-plus me-1"></i>Add</button>
   `);
-};
+});
 
-(window as any).editInventory = function (id:number,name:string,qty:number,cat:string,weight:number,equipped:boolean) {
+expose('editInventory', function (id:number,name:string,qty:number,cat:string,weight:number,equipped:boolean) {
   showModal('Edit Item', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="invName" value="${esc(name)}"></div>
     <div class="row g-3 mb-3">
@@ -664,9 +660,9 @@ function renderInventory() {
     <div class="mb-3"><div class="form-check"><input type="checkbox" class="form-check-input" id="invEquip"${equipped?' checked':''}><label class="form-check-label">Equipped</label></div></div>
     <button class="btn btn-primary w-100" onclick="saveEditInventory(${id},this)">Save</button>
   `);
-};
+});
 
-(window as any).saveInventory = async function (btn:HTMLElement) {
+expose('saveInventory', async function (btn:HTMLElement) {
   await api('POST', `/api/characters/${currentChar.id}/inventory`, {
     name: (document.getElementById('invName') as HTMLInputElement).value,
     quantity: +(document.getElementById('invQty') as HTMLInputElement).value || 1,
@@ -674,12 +670,12 @@ function renderInventory() {
     category: (document.getElementById('invCat') as HTMLSelectElement).value,
   });
   hideModal();
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderInventory();
   toast('Item added');
-};
+});
 
-(window as any).saveEditInventory = async function (id:number, btn:HTMLElement) {
+expose('saveEditInventory', async function (id:number, btn:HTMLElement) {
   await api('PUT', `/api/inventory/${id}`, {
     name: (document.getElementById('invName') as HTMLInputElement).value,
     quantity: +(document.getElementById('invQty') as HTMLInputElement).value || 1,
@@ -688,28 +684,28 @@ function renderInventory() {
     equipped: (document.getElementById('invEquip') as HTMLInputElement).checked,
   });
   hideModal();
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderInventory();
   toast('Item updated');
-};
+});
 
-(window as any).deleteInventory = async function (id:number) {
+expose('deleteInventory', async function (id:number) {
   if (!confirm('Remove this item?')) return;
   await api('DELETE', `/api/inventory/${id}`);
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderInventory();
   toast('Item removed');
-};
+});
 
-(window as any).toggleEquip = async function (id:number) {
+expose('toggleEquip', async function (id:number) {
   const item = currentChar.inventory.find((i:any) => i.id === id);
   if (!item) return;
   item.equipped = !item.equipped;
   await api('PUT', `/api/inventory/${id}`, item);
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderInventory();
   toast(item.equipped ? 'Equipped' : 'Unequipped');
-};
+});
 
 // ─── Spells ───
 
@@ -778,10 +774,10 @@ async function updateSpellcasting(field:string, value:any) {
   const sc = currentChar.spellcasting || {};
   sc[field] = value;
   await api('PUT', `/api/characters/${currentChar.id}/spellcasting`, sc);
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderSpells();
 }
-(window as any).updateSpellcasting = updateSpellcasting;
+expose('updateSpellcasting', updateSpellcasting);
 
 async function updateSpellSlot(level:number) {
   if (!currentChar) return;
@@ -789,19 +785,19 @@ async function updateSpellSlot(level:number) {
   sc[`slots_${level}_used`] = +(document.getElementById(`slotUse${level}`) as HTMLInputElement).value || 0;
   await api('PUT', `/api/characters/${currentChar.id}/spellcasting`, sc);
 }
-(window as any).updateSpellSlot = updateSpellSlot;
+expose('updateSpellSlot', updateSpellSlot);
 
-(window as any).enableSpellcasting = async function () {
+expose('enableSpellcasting', async function () {
   currentChar.spellcasting = {
     ability: 'int', save_dc: 10, attack_bonus: 0,
     slots_1_max: 2, slots_1_used: 0,
   };
   await api('PUT', `/api/characters/${currentChar.id}/spellcasting`, currentChar.spellcasting);
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderSpells();
-};
+});
 
-(window as any).addSpell = function () {
+expose('addSpell', function () {
   showModal('Add Spell', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="spellName"></div>
     <div class="row g-3 mb-3">
@@ -818,9 +814,9 @@ async function updateSpellSlot(level:number) {
     <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="spellDesc" rows="3"></textarea></div>
     <button class="btn btn-primary w-100" onclick="saveSpell(this)">Add Spell</button>
   `);
-};
+});
 
-(window as any).editSpell = function (id:number,name:string,level:number,school:string,prepared:boolean,comp:string,range:string,cast:string,dur:string,desc:string) {
+expose('editSpell', function (id:number,name:string,level:number,school:string,prepared:boolean,comp:string,range:string,cast:string,dur:string,desc:string) {
   showModal('Edit Spell', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="spellName" value="${esc(name)}"></div>
     <div class="row g-3 mb-3">
@@ -838,9 +834,9 @@ async function updateSpellSlot(level:number) {
     <div class="mb-3"><div class="form-check"><input type="checkbox" class="form-check-input" id="spellPrep"${prepared?' checked':''}><label class="form-check-label">Prepared</label></div></div>
     <button class="btn btn-primary w-100" onclick="saveEditSpell(${id},this)">Save Spell</button>
   `);
-};
+});
 
-(window as any).saveSpell = async function (btn:HTMLElement) {
+expose('saveSpell', async function (btn:HTMLElement) {
   await api('POST', `/api/characters/${currentChar.id}/spells`, {
     name: (document.getElementById('spellName') as HTMLInputElement).value,
     level: +(document.getElementById('spellLevel') as HTMLInputElement).value || 0,
@@ -852,12 +848,12 @@ async function updateSpellSlot(level:number) {
     description: (document.getElementById('spellDesc') as HTMLTextAreaElement).value,
   });
   hideModal();
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderSpells();
   toast('Spell added');
-};
+});
 
-(window as any).saveEditSpell = async function (id:number, btn:HTMLElement) {
+expose('saveEditSpell', async function (id:number, btn:HTMLElement) {
   await api('PUT', `/api/spells/${id}`, {
     name: (document.getElementById('spellName') as HTMLInputElement).value,
     level: +(document.getElementById('spellLevel') as HTMLInputElement).value || 0,
@@ -870,22 +866,22 @@ async function updateSpellSlot(level:number) {
     prepared: (document.getElementById('spellPrep') as HTMLInputElement).checked,
   });
   hideModal();
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderSpells();
   toast('Spell updated');
-};
+});
 
-(window as any).deleteSpell = async function (id:number) {
+expose('deleteSpell', async function (id:number) {
   if (!confirm('Remove this spell?')) return;
   await api('DELETE', `/api/spells/${id}`);
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderSpells();
   toast('Spell removed');
-};
+});
 
 // ─── Spell Preparation Modal ───
 
-(window as any).showPrepareSpells = function () {
+expose('showPrepareSpells', function () {
   const spells = currentChar.spells || [];
   const sc = currentChar.spellcasting || {};
   const maxPrepared = currentChar.level > 0 ? (currentChar.class_mod || 0) + currentChar.level : 0; // WIS/INT/CHA mod + level
@@ -920,9 +916,9 @@ async function updateSpellSlot(level:number) {
     <button class="btn btn-gold w-100 mt-3" onclick="saveSpellPrep()"><i class="fa-solid fa-book-open me-1"></i>Save Preparation</button>
   `;
   showModal('Prepare Spells', bodyHtml);
-};
+});
 
-(window as any).saveSpellPrep = async function () {
+expose('saveSpellPrep', async function () {
   const spellIds: number[] = [];
   (currentChar.spells || []).forEach((s:any) => {
     const cb = document.getElementById(`prep-${s.id}`) as HTMLInputElement;
@@ -930,10 +926,10 @@ async function updateSpellSlot(level:number) {
   });
   await api('PUT', `/api/characters/${currentChar.id}/spells/prepare`, { spell_ids: spellIds });
   hideModal();
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderSpells();
   toast('Spell preparation saved');
-};
+});
 
 // ─── Features ───
 
@@ -960,7 +956,7 @@ function renderFeatures() {
     </div>`;
 }
 
-(window as any).addFeature = function () {
+expose('addFeature', function () {
   showModal('Add Feature', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="featName"></div>
     <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="featDesc" rows="3"></textarea></div>
@@ -970,9 +966,9 @@ function renderFeatures() {
     </div>
     <button class="btn btn-primary w-100" onclick="saveFeature(this)">Add Feature</button>
   `);
-};
+});
 
-(window as any).saveFeature = async function (btn:HTMLElement) {
+expose('saveFeature', async function (btn:HTMLElement) {
   await api('POST', `/api/characters/${currentChar.id}/features`, {
     name: (document.getElementById('featName') as HTMLInputElement).value,
     description: (document.getElementById('featDesc') as HTMLTextAreaElement).value,
@@ -980,21 +976,21 @@ function renderFeatures() {
     level_gained: +(document.getElementById('featLevel') as HTMLInputElement).value || 1,
   });
   hideModal();
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderFeatures();
   toast('Feature added');
-};
+});
 
-(window as any).deleteFeature = async function (id:number) {
+expose('deleteFeature', async function (id:number) {
   await api('DELETE', `/api/features/${id}`);
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderFeatures();
   toast('Feature removed');
-};
+});
 
 // ─── Proficiencies ───
 
-(window as any).addProf = function () {
+expose('addProf', function () {
   showModal('Add Proficiency', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="profName"></div>
     <div class="mb-3"><label class="form-label">Type</label>
@@ -1005,26 +1001,26 @@ function renderFeatures() {
       </select></div>
     <button class="btn btn-primary w-100" onclick="saveProf(this)">Add Proficiency</button>
   `);
-};
+});
 
-(window as any).saveProf = async function (btn:HTMLElement) {
+expose('saveProf', async function (btn:HTMLElement) {
   await api('POST', '/api/proficiencies', {
     character_id: currentChar.id,
     type: (document.getElementById('profType') as HTMLSelectElement).value,
     name: (document.getElementById('profName') as HTMLInputElement).value,
   });
   hideModal();
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderSheet();
   toast('Proficiency added');
-};
+});
 
-(window as any).deleteProf = async function (id:number) {
+expose('deleteProf', async function (id:number) {
   await api('DELETE', `/api/proficiencies/${id}`);
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderSheet();
   toast('Proficiency removed');
-};
+});
 
 // ─── Details ───
 
@@ -1219,18 +1215,18 @@ async function renderLocations() {
 
 function getLocSidebar(): HTMLElement { return document.getElementById('locSidebar')!; }
 
-(window as any).flyToLocation = function (lat: number | null, lng: number | null, activeId: string) {
+expose('flyToLocation', function (lat: number | null, lng: number | null, activeId: string) {
   if (lat != null && lng != null) {
     locationMap.setView([lat, lng], 8, { animate: true });
   }
   getLocSidebar().querySelectorAll('.loc-item').forEach(el => el.classList.remove('loc-active'));
   const item = document.getElementById(activeId);
   if (item) item.classList.add('loc-active');
-};
+});
 
 // ─── Link / Unlink ───
 
-(window as any).showLinkLocation = function () {
+expose('showLinkLocation', function () {
   showModal('Link Location', `
     <div class="mb-3"><label class="form-label">Location</label>
       <select class="form-select" id="linkLocId">${allLocations.map((l:any) => `<option value="${l.id}">${esc(l.name)} (${esc(l.type)})</option>`).join('')}</select></div>
@@ -1242,9 +1238,9 @@ function getLocSidebar(): HTMLElement { return document.getElementById('locSideb
     <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="linkLocNotes" rows="2"></textarea></div>
     <button class="btn btn-primary w-100" onclick="saveLinkLocation()"><i class="fa-solid fa-link me-1"></i>Link</button>
   `);
-};
+});
 
-(window as any).saveLinkLocation = async function () {
+expose('saveLinkLocation', async function () {
   await api('POST', `/api/characters/${currentChar.id}/locations`, {
     location_id: +(document.getElementById('linkLocId') as HTMLSelectElement).value,
     relationship: (document.getElementById('linkLocRel') as HTMLSelectElement).value,
@@ -1253,16 +1249,16 @@ function getLocSidebar(): HTMLElement { return document.getElementById('locSideb
   hideModal();
   renderLocations();
   toast('Location linked');
-};
+});
 
-(window as any).unlinkLocation = async function (id:number) {
+expose('unlinkLocation', async function (id:number) {
   await api('DELETE', `/api/locations/link/${id}`);
   renderLocations();
-};
+});
 
 // ─── Create / Edit ───
 
-(window as any).showCreateLocation = function () {
+expose('showCreateLocation', function () {
   showModal('New Location', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="newLocName"></div>
     <div class="mb-3"><label class="form-label">Type</label>
@@ -1279,9 +1275,9 @@ function getLocSidebar(): HTMLElement { return document.getElementById('locSideb
     <button class="btn btn-outline-secondary btn-sm w-100 mb-2" onclick="pickFromMap('new')"><i class="fa-solid fa-crosshairs me-1"></i>Pick from Map</button>
     <button class="btn btn-primary w-100" onclick="saveNewLocation()"><i class="fa-solid fa-plus me-1"></i>Create</button>
   `);
-};
+});
 
-(window as any).saveNewLocation = async function () {
+expose('saveNewLocation', async function () {
   const lat = parseFloat((document.getElementById('newLocLat') as HTMLInputElement).value);
   const lng = parseFloat((document.getElementById('newLocLng') as HTMLInputElement).value);
   await api('POST', '/api/locations', {
@@ -1291,13 +1287,13 @@ function getLocSidebar(): HTMLElement { return document.getElementById('locSideb
     latitude: isNaN(lat) ? null : lat,
     longitude: isNaN(lng) ? null : lng,
   });
-  allLocations = await api('GET', '/api/locations');
+  setAllLocations(await api('GET', '/api/locations'));
   await renderLocations();
   hideModal();
   toast('Location created');
-};
+});
 
-(window as any).showEditLocation = async function (locId: number) {
+expose('showEditLocation', async function (locId: number) {
   editingLocId = locId;
   const loc = allLocations.find((l: any) => l.id === locId);
   if (!loc) return;
@@ -1317,9 +1313,9 @@ function getLocSidebar(): HTMLElement { return document.getElementById('locSideb
       <button class="btn btn-outline-danger" onclick="deleteLocation(${locId})"><i class="fa-solid fa-trash"></i></button>
     </div>
   `);
-};
+});
 
-(window as any).saveEditLocation = async function (locId: number) {
+expose('saveEditLocation', async function (locId: number) {
   const lat = parseFloat((document.getElementById('editLocLat') as HTMLInputElement).value);
   const lng = parseFloat((document.getElementById('editLocLng') as HTMLInputElement).value);
   await api('PUT', `/api/locations/${locId}`, {
@@ -1330,21 +1326,21 @@ function getLocSidebar(): HTMLElement { return document.getElementById('locSideb
     longitude: isNaN(lng) ? null : lng,
   });
   hideModal();
-  allLocations = await api('GET', '/api/locations');
+  setAllLocations(await api('GET', '/api/locations'));
   renderLocations();
   toast('Location updated');
-};
+});
 
-(window as any).deleteLocation = async function (locId: number) {
+expose('deleteLocation', async function (locId: number) {
   if (!confirm('Delete this location?')) return;
   await api('DELETE', `/api/locations/${locId}`);
   hideModal();
-  allLocations = await api('GET', '/api/locations');
+  setAllLocations(await api('GET', '/api/locations'));
   renderLocations();
   toast('Location deleted');
-};
+});
 
-(window as any).pickFromMap = function (mode: string) {
+expose('pickFromMap', function (mode: string) {
   hideModal();
   toast('Click on the map to place a pin', false);
   if (pickMarker) locationMap.removeLayer(pickMarker);
@@ -1364,7 +1360,7 @@ function getLocSidebar(): HTMLElement { return document.getElementById('locSideb
       (window as any).showEditLocation(editingLocId);
     }
   });
-};
+});
 
 // ─── NPCs ───
 
@@ -1404,7 +1400,7 @@ async function renderNPCs() {
   } catch { el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load NPCs. Try again later.</p></div>'; }
 }
 
-(window as any).showLinkNPC = function () {
+expose('showLinkNPC', function () {
   showModal('Link NPC', `
     <div class="mb-3"><label class="form-label">NPC</label>
       <select class="form-select" id="linkNPCId">${allNPCs.map((n:any) => `<option value="${n.id}">${esc(n.name)} (${esc(n.race)} ${esc(n.class)})</option>`).join('')}</select></div>
@@ -1417,9 +1413,9 @@ async function renderNPCs() {
     <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="linkNPCNotes" rows="2"></textarea></div>
     <button class="btn btn-primary w-100" onclick="saveLinkNPC()"><i class="fa-solid fa-link me-1"></i>Link</button>
   `);
-};
+});
 
-(window as any).saveLinkNPC = async function () {
+expose('saveLinkNPC', async function () {
   await api('POST', `/api/characters/${currentChar.id}/npcs`, {
     npc_id: +(document.getElementById('linkNPCId') as HTMLSelectElement).value,
     relationship: (document.getElementById('linkNPCRel') as HTMLSelectElement).value,
@@ -1428,20 +1424,20 @@ async function renderNPCs() {
   await renderNPCs();
   hideModal();
   toast('NPC linked');
-};
+});
 
-(window as any).logNPCInteraction = async function (id:number) {
+expose('logNPCInteraction', async function (id:number) {
   await api('POST', `/api/npcs/link/${id}/interact`, {});
   await renderNPCs();
   toast('Interaction logged');
-};
+});
 
-(window as any).unlinkNPC = async function (id:number) {
+expose('unlinkNPC', async function (id:number) {
   await api('DELETE', `/api/npcs/link/${id}`);
   await renderNPCs();
-};
+});
 
-(window as any).showCreateNPC = function () {
+expose('showCreateNPC', function () {
   showModal('New NPC', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="newNPCName"></div>
     <div class="mb-3">
@@ -1459,11 +1455,11 @@ async function renderNPCs() {
     <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="newNPCDesc" rows="3"></textarea></div>
     <button class="btn btn-primary w-100" onclick="saveNewNPC()"><i class="fa-solid fa-plus me-1"></i>Create</button>
   `);
-};
+});
 
 let newNPCPortraitUrl = '';
 
-(window as any).uploadNewNPCPortrait = async function () {
+expose('uploadNewNPCPortrait', async function () {
   const input = document.getElementById('newNPCPortraitUpload') as HTMLInputElement;
   if (!input.files || !input.files[0]) { toast('Select an image', true); return; }
   const form = new FormData();
@@ -1477,16 +1473,16 @@ let newNPCPortraitUrl = '';
     newNPCPortraitUrl = data.url;
     toast('Image uploaded');
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).browseNewNPCPortrait = async function () {
+expose('browseNewNPCPortrait', async function () {
   try {
     newNPCPortraitUrl = await FilePicker.pick();
     toast('Image selected');
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).saveNewNPC = async function () {
+expose('saveNewNPC', async function () {
   await api('POST', '/api/npcs', {
     name: (document.getElementById('newNPCName') as HTMLInputElement).value,
     race: (document.getElementById('newNPCRace') as HTMLInputElement).value,
@@ -1495,11 +1491,11 @@ let newNPCPortraitUrl = '';
     portrait_url: newNPCPortraitUrl,
   });
   newNPCPortraitUrl = '';
-  allNPCs = await api('GET', '/api/npcs');
+  setAllNPCs(await api('GET', '/api/npcs'));
   await renderNPCs();
   hideModal();
   toast('NPC created');
-};
+});
 
 // ─── Sessions ───
 
@@ -1530,7 +1526,7 @@ async function renderSessions() {
   } catch { el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load sessions. Try again later.</p></div>'; }
 }
 
-(window as any).showAddSession = function () {
+expose('showAddSession', function () {
   showModal('Log Session', `
     <div class="mb-3"><label class="form-label">Date</label><input class="form-control" id="sessDate" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
     <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="sessTitle" placeholder="Session 1: The Adventure Begins"></div>
@@ -1542,9 +1538,9 @@ async function renderSessions() {
     <div class="mb-3"><label class="form-label">Important Events</label><textarea class="form-control" id="sessEvents" rows="2" placeholder="Key moments, NPCs met, revelations..."></textarea></div>
     <button class="btn btn-primary w-100" onclick="saveSession()"><i class="fa-solid fa-save me-1"></i>Log Session</button>
   `);
-};
+});
 
-(window as any).saveSession = async function () {
+expose('saveSession', async function () {
   await api('POST', `/api/characters/${currentChar.id}/sessions`, {
     session_date: (document.getElementById('sessDate') as HTMLInputElement).value,
     title: (document.getElementById('sessTitle') as HTMLInputElement).value,
@@ -1556,14 +1552,14 @@ async function renderSessions() {
   hideModal();
   renderSessions();
   toast('Session logged');
-};
+});
 
-(window as any).deleteSession = async function (id:number) {
+expose('deleteSession', async function (id:number) {
   if (!confirm('Delete this session?')) return;
   await api('DELETE', `/api/sessions/${id}`);
   renderSessions();
   toast('Session deleted');
-};
+});
 
 // ─── Quests ───
 
@@ -1602,7 +1598,7 @@ async function renderQuests() {
   } catch { el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load quests. Try again later.</p></div>'; }
 }
 
-(window as any).showAddQuest = function () {
+expose('showAddQuest', function () {
   showModal('New Quest', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="questName" placeholder="e.g. Retrieve the Lost Artifact"></div>
     <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="questDesc" rows="3"></textarea></div>
@@ -1611,9 +1607,9 @@ async function renderQuests() {
     <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="questNotes" rows="2"></textarea></div>
     <button class="btn btn-primary w-100" onclick="saveQuest()"><i class="fa-solid fa-plus me-1"></i>Create</button>
   `);
-};
+});
 
-(window as any).saveQuest = async function () {
+expose('saveQuest', async function () {
   await api('POST', `/api/characters/${currentChar.id}/quests`, {
     name: (document.getElementById('questName') as HTMLInputElement).value,
     description: (document.getElementById('questDesc') as HTMLTextAreaElement).value,
@@ -1624,9 +1620,9 @@ async function renderQuests() {
   hideModal();
   renderQuests();
   toast('Quest created');
-};
+});
 
-(window as any).updateQuestStatus = async function (id:number, status:string) {
+expose('updateQuestStatus', async function (id:number, status:string) {
   const quests = await api('GET', `/api/characters/${currentChar.id}/quests`);
   const q = quests.find((x:any) => x.id === id);
   if (!q) return;
@@ -1634,14 +1630,14 @@ async function renderQuests() {
   await api('PUT', `/api/quests/${id}`, q);
   renderQuests();
   toast('Quest status updated');
-};
+});
 
-(window as any).deleteQuest = async function (id:number) {
+expose('deleteQuest', async function (id:number) {
   if (!confirm('Delete this quest?')) return;
   await api('DELETE', `/api/quests/${id}`);
   renderQuests();
   toast('Quest deleted');
-};
+});
 
 // ─── Journal ───
 
@@ -1736,7 +1732,7 @@ async function renderJournal() {
   } catch { el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load journal. Try again later.</p></div>'; }
 }
 
-(window as any).showAddJournal = function () {
+expose('showAddJournal', function () {
   showModal('Journal Entry', `
     <div class="journal-editor-modal">
       <div class="mb-3"><label class="form-label">Date</label><input class="form-control" id="journalDate" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
@@ -1746,9 +1742,9 @@ async function renderJournal() {
     </div>
   `);
   initJournalEditor();
-};
+});
 
-(window as any).showEditJournal = async function (id: number) {
+expose('showEditJournal', async function (id: number) {
   const entries = await api('GET', `/api/characters/${currentChar.id}/journal`);
   const j = entries.find((e: any) => e.id === id);
   if (!j) return;
@@ -1761,9 +1757,9 @@ async function renderJournal() {
     </div>
   `);
   initJournalEditor(j.entry);
-};
+});
 
-(window as any).saveJournal = async function (editId?: number) {
+expose('saveJournal', async function (editId?: number) {
   const entry = journalEditor?.getHTML() || '';
   const title = (document.getElementById('journalTitle') as HTMLInputElement)?.value || '';
   const entry_date = (document.getElementById('journalDate') as HTMLInputElement)?.value || new Date().toISOString().split('T')[0];
@@ -1776,14 +1772,14 @@ async function renderJournal() {
   hideModal();
   renderJournal();
   toast(editId ? 'Journal entry updated' : 'Journal entry saved');
-};
+});
 
-(window as any).deleteJournal = async function (id: number) {
+expose('deleteJournal', async function (id: number) {
   if (!confirm('Delete this journal entry?')) return;
   await api('DELETE', `/api/journal/${id}`);
   renderJournal();
   toast('Journal entry deleted');
-};
+});
 
 // ─── D3 Force Graph ───
 
@@ -2075,7 +2071,7 @@ async function renderAnalytics() {
 
 // ─── New Character ───
 
-(window as any).newChar = function () {
+expose('newChar', function () {
   showModal('New Character', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="newName" placeholder="Character name"></div>
     <div class="row g-3 mb-3">
@@ -2091,9 +2087,9 @@ async function renderAnalytics() {
   fetch('/api/compendium/classes', { credentials: 'include' }).then(r => r.json()).then((cls:any[]) => {
     document.getElementById('classSuggestions')!.innerHTML = cls.map((c:any) => `<option value="${esc(c.name)}">`).join('');
   }).catch(() => {});
-};
+});
 
-(window as any).createChar = async function () {
+expose('createChar', async function () {
   const name = (document.getElementById('newName') as HTMLInputElement).value || 'Unnamed';
   const race = (document.getElementById('newRace') as HTMLInputElement).value;
   const cls = (document.getElementById('newClass') as HTMLInputElement).value;
@@ -2105,20 +2101,20 @@ async function renderAnalytics() {
   } catch (e:any) {
     toast(e.message, true);
   }
-};
+});
 
 // ─── Import / Export ───
 
-(window as any).showImport = function () {
+expose('showImport', function () {
   showModal('Import Character', `
     <p class="text-muted fst-italic small mb-3">Paste JSON or upload a file</p>
     <div class="mb-3"><label class="form-label">JSON</label><textarea class="form-control" id="importJson" rows="6" style="font-family:monospace;font-size:0.8rem"></textarea></div>
     <div class="mb-3"><label class="form-label">File</label><input class="form-control" type="file" id="importFile" accept=".json"></div>
     <button class="btn btn-primary w-100" onclick="doImport()"><i class="fa-solid fa-file-import me-1"></i>Import</button>
   `);
-};
+});
 
-(window as any).doImport = async function () {
+expose('doImport', async function () {
   const jsonEl = document.getElementById('importJson') as HTMLTextAreaElement;
   const fileEl = document.getElementById('importFile') as HTMLInputElement;
   try {
@@ -2140,9 +2136,9 @@ async function renderAnalytics() {
   } catch (e:any) {
     toast('Import failed: ' + e.message, true);
   }
-};
+});
 
-(window as any).exportChar = async function () {
+expose('exportChar', async function () {
   if (!currentChar) return;
   try {
     const data = await api('GET', `/api/characters/${currentChar.id}/export`);
@@ -2156,11 +2152,11 @@ async function renderAnalytics() {
   } catch (e:any) {
     toast(e.message, true);
   }
-};
+});
 
 // ─── Print ───
 
-(window as any).printChar = async function () {
+expose('printChar', async function () {
   if (!currentChar) return;
   try {
     const res = await fetch(`/api/characters/${currentChar.id}/print`, {
@@ -2176,7 +2172,7 @@ async function renderAnalytics() {
   } catch (e:any) {
     toast(e.message, true);
   }
-};
+});
 
 // ─── Transfer UI (import/export via villum-transfer format) ───
 import './transfer';
@@ -2186,30 +2182,30 @@ import './party';
 
 // ─── Delete Character ───
 
-(window as any).deleteChar = async function () {
+expose('deleteChar', async function () {
   if (!currentChar) return;
   if (!confirm('Delete this character?')) return;
   try {
     await api('DELETE', `/api/characters/${currentChar.id}`);
-    currentChar = null;
+    setCurrentChar(null);
     showView('characters');
     await loadCharacters();
     toast('Character deleted');
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
 // ─── Logout ───
 
-(window as any).logout = async function () {
+expose('logout', async function () {
   await api('POST', '/api/logout');
   window.location.href = '/login';
-};
+});
 
 // ─── Portrait Upload ───
 
-(window as any).uploadPortrait = async function () {
+expose('uploadPortrait', async function () {
   const input = document.getElementById('portraitUpload') as HTMLInputElement;
   if (!input.files || !input.files[0]) { toast('Select an image', true); return; }
   const form = new FormData();
@@ -2221,32 +2217,32 @@ import './party';
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Upload failed');
     await updateField('portrait_url', data.url);
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+    setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
     renderSheet();
     toast('Portrait uploaded');
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).browsePortrait = async function () {
+expose('browsePortrait', async function () {
   try {
     const url = await FilePicker.pick();
     await updateField('portrait_url', url);
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+    setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
     renderSheet();
     toast('Portrait set');
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).clearPortrait = async function () {
+expose('clearPortrait', async function () {
   await updateField('portrait_url', '');
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderSheet();
   toast('Portrait removed');
-};
+});
 
 // ─── Race Colors Management ───
 
-(window as any).showRaceColors = async function () {
+expose('showRaceColors', async function () {
   try {
     const data = await api('GET', '/api/race-colors');
     const colors = data.colors || {};
@@ -2272,9 +2268,9 @@ import './party';
       <button class="btn btn-primary w-100 mt-3" onclick="saveRaceColors()"><i class="fa-solid fa-save me-1"></i>Save Changes</button>
     `);
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).addRaceColor = function () {
+expose('addRaceColor', function () {
   const name = (document.getElementById('newRaceColorName') as HTMLInputElement).value.trim();
   const color = (document.getElementById('newRaceColorPicker') as HTMLInputElement).value;
   if (!name) { toast('Enter a race name', true); return; }
@@ -2287,9 +2283,9 @@ import './party';
     </div>
   `);
   (document.getElementById('newRaceColorName') as HTMLInputElement).value = '';
-};
+});
 
-(window as any).saveRaceColors = async function () {
+expose('saveRaceColors', async function () {
   const colors: Record<string, string> = {};
   document.querySelectorAll('#raceColorsList input[type="color"]').forEach((el) => {
     const input = el as HTMLInputElement;
@@ -2299,11 +2295,11 @@ import './party';
   await api('PUT', '/api/race-colors', { colors });
   hideModal();
   toast('Race colors saved');
-};
+});
 
 // ─── Multi-Class ───
 
-(window as any).addClass = function () {
+expose('addClass', function () {
   showModal('Add Class', `
     <div class="mb-3"><label class="form-label">Class</label><input class="form-control" id="mcClass"></div>
     <div class="mb-3"><label class="form-label">Subclass</label><input class="form-control" id="mcSubclass"></div>
@@ -2314,9 +2310,9 @@ import './party';
     </div>
     <button class="btn btn-primary w-100" onclick="saveClass()"><i class="fa-solid fa-plus me-1"></i>Add</button>
   `);
-};
+});
 
-(window as any).saveClass = async function () {
+expose('saveClass', async function () {
   await api('POST', `/api/characters/${currentChar.id}/classes`, {
     class: (document.getElementById('mcClass') as HTMLInputElement).value,
     subclass: (document.getElementById('mcSubclass') as HTMLInputElement).value,
@@ -2324,12 +2320,12 @@ import './party';
     hit_dice: (document.getElementById('mcHD') as HTMLSelectElement).value,
   });
   hideModal();
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderSheet();
   toast('Class added');
-};
+});
 
-(window as any).editClass = function (id: number) {
+expose('editClass', function (id: number) {
   const cc = currentChar.classes.find((c: any) => c.id === id);
   if (!cc) return;
   showModal('Edit Class', `
@@ -2342,9 +2338,9 @@ import './party';
     </div>
     <button class="btn btn-primary w-100" onclick="saveEditClass(${id})"><i class="fa-solid fa-save me-1"></i>Save</button>
   `);
-};
+});
 
-(window as any).saveEditClass = async function (id: number) {
+expose('saveEditClass', async function (id: number) {
   await api('PUT', `/api/classes/${id}`, {
     class: (document.getElementById('mcClass') as HTMLInputElement).value,
     subclass: (document.getElementById('mcSubclass') as HTMLInputElement).value,
@@ -2352,18 +2348,18 @@ import './party';
     hit_dice: (document.getElementById('mcHD') as HTMLSelectElement).value,
   });
   hideModal();
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderSheet();
   toast('Class updated');
-};
+});
 
-(window as any).deleteClass = async function (id: number) {
+expose('deleteClass', async function (id: number) {
   if (!confirm('Remove this class?')) return;
   await api('DELETE', `/api/classes/${id}`);
-  currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderSheet();
   toast('Class removed');
-};
+});
 
 // ─── Encounter Builder → extracted to ts/encounter.ts ───
 import './encounter';
@@ -2375,7 +2371,7 @@ import './timeline';
 
 // ─── Conditions / Ailments ───
 
-(window as any).showAddCondition = function () {
+expose('showAddCondition', function () {
   showModal('Add Condition', `
     <div class="mb-3"><label class="form-label">Condition</label>
       <select class="form-select" id="condType">
@@ -2412,9 +2408,9 @@ import './timeline';
     const customDiv = document.getElementById('condCustomNameDiv')!;
     customDiv.style.display = sel.value ? 'none' : 'block';
   });
-};
+});
 
-(window as any).saveCondition = async function () {
+expose('saveCondition', async function () {
   const sel = document.getElementById('condType') as HTMLSelectElement;
   const name = sel.value || (document.getElementById('condName') as HTMLInputElement).value;
   if (!name) { toast('Name required', true); return; }
@@ -2430,9 +2426,9 @@ import './timeline';
   hideModal();
   renderCombat();
   toast('Condition added');
-};
+});
 
-(window as any).tickConditions = async function () {
+expose('tickConditions', async function () {
   if (!currentChar) return;
   const result = await api('POST', '/api/conditions/tick', {
     character_id: currentChar.id, count: 1, duration_type: 'round',
@@ -2440,12 +2436,12 @@ import './timeline';
   renderCombat();
   if (result.expired > 0) toast(`${result.expired} condition(s) expired`);
   else toast('Rounds advanced');
-};
+});
 
-(window as any).deleteCondition = async function (id: number) {
+expose('deleteCondition', async function (id: number) {
   await api('DELETE', `/api/conditions/${id}`);
   renderCombat();
-};
+});
 
 // ─── Feats ───
 
@@ -2483,7 +2479,7 @@ async function renderFeats() {
   } catch { el.innerHTML = '<div class="empty-state"><p class="small text-muted">Could not load feats.</p></div>'; }
 }
 
-(window as any).showAddFeat = function () {
+expose('showAddFeat', function () {
   editingFeatId = null;
   showModal('Add Feat', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="featName" list="featSuggestions">
@@ -2498,11 +2494,11 @@ async function renderFeats() {
     <div class="mb-3"><label class="form-label">Level Gained</label><input class="form-control" id="featLevel" type="number" value="1"></div>
     <button class="btn btn-primary w-100" onclick="saveFeat()"><i class="fa-solid fa-plus me-1"></i>Add Feat</button>
   `);
-};
+});
 
 let editingFeatId: number | null = null;
 
-(window as any).showEditFeat = function (id: number, name: string, description: string, prerequisites: string, source: string, level: number) {
+expose('showEditFeat', function (id: number, name: string, description: string, prerequisites: string, source: string, level: number) {
   editingFeatId = id;
   showModal('Edit Feat', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="featName" value="${esc(name)}" list="featSuggestions">
@@ -2517,9 +2513,9 @@ let editingFeatId: number | null = null;
     <div class="mb-3"><label class="form-label">Level Gained</label><input class="form-control" id="featLevel" type="number" value="${level}"></div>
     <button class="btn btn-primary w-100" onclick="saveFeat()"><i class="fa-solid fa-floppy-disk me-1"></i>Save Feat</button>
   `);
-};
+});
 
-(window as any).saveFeat = async function () {
+expose('saveFeat', async function () {
   const name = (document.getElementById('featName') as HTMLInputElement).value;
   if (!name) { toast('Name required', true); return; }
   const data = {
@@ -2539,14 +2535,14 @@ let editingFeatId: number | null = null;
   }
   hideModal();
   renderFeats();
-};
+});
 
-(window as any).deleteFeat = async function (id: number) {
+expose('deleteFeat', async function (id: number) {
   if (!confirm('Remove this feat?')) return;
   await api('DELETE', `/api/feats/${id}`);
   renderFeats();
   toast('Feat removed');
-};
+});
 
 // ─── Companions ───
 
@@ -2595,7 +2591,7 @@ async function renderCompanions() {
   } catch { el.innerHTML = '<div class="empty-state"><p class="small text-muted">Could not load companions.</p></div>'; }
 }
 
-(window as any).showAddCompanion = function () {
+expose('showAddCompanion', function () {
   showModal('Add Companion', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="compName"></div>
     <div class="row g-3 mb-3">
@@ -2624,9 +2620,9 @@ async function renderCompanions() {
     <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="compNotes" rows="2"></textarea></div>
     <button class="btn btn-primary w-100" onclick="saveCompanion()"><i class="fa-solid fa-plus me-1"></i>Add</button>
   `);
-};
+});
 
-(window as any).saveCompanion = async function () {
+expose('saveCompanion', async function () {
   const name = (document.getElementById('compName') as HTMLInputElement).value;
   if (!name) { toast('Name required', true); return; }
   await api('POST', '/api/companions', {
@@ -2650,9 +2646,9 @@ async function renderCompanions() {
   hideModal();
   renderCompanions();
   toast('Companion added');
-};
+});
 
-(window as any).editCompanion = async function (id: number) {
+expose('editCompanion', async function (id: number) {
   const comps = await api('GET', `/api/companions?character_id=${currentChar.id}`);
   const comp = comps.find((c: any) => c.id === id);
   if (!comp) return;
@@ -2689,13 +2685,13 @@ async function renderCompanions() {
     <div class="mb-3"><label class="form-label">Abilities</label><textarea class="form-control" id="compAbilities" rows="2">${esc(comp.abilities)}</textarea></div>
     <button class="btn btn-primary w-100" onclick="saveEditCompanion(${id})"><i class="fa-solid fa-save me-1"></i>Save</button>
   `);
-};
+});
 
 // ─── Companion Portrait ───
 
 let compPortraitUrl: string = '';
 
-(window as any).uploadCompPortrait = async function (id: number) {
+expose('uploadCompPortrait', async function (id: number) {
   const input = document.getElementById('compPortraitUpload') as HTMLInputElement;
   if (!input.files || !input.files[0]) { toast('Select an image', true); return; }
   const form = new FormData();
@@ -2710,24 +2706,24 @@ let compPortraitUrl: string = '';
     hideModal();
     toast('Portrait uploaded — re-open to confirm');
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).browseCompPortrait = async function (id: number) {
+expose('browseCompPortrait', async function (id: number) {
   try {
     const url = await FilePicker.pick();
     compPortraitUrl = url;
     hideModal();
     toast('Portrait selected — re-open to confirm');
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).clearCompPortrait = async function (id: number) {
+expose('clearCompPortrait', async function (id: number) {
   compPortraitUrl = '';
   hideModal();
   toast('Portrait cleared');
-};
+});
 
-(window as any).saveEditCompanion = async function (id: number) {
+expose('saveEditCompanion', async function (id: number) {
   const portraitUrl = compPortraitUrl || (document.getElementById('compPortraitUrl') as HTMLInputElement)?.value || '';
   await api('PUT', `/api/companions/${id}`, {
     name: (document.getElementById('compName') as HTMLInputElement).value,
@@ -2752,14 +2748,14 @@ let compPortraitUrl: string = '';
   hideModal();
   renderCompanions();
   toast('Companion updated');
-};
+});
 
-(window as any).deleteCompanion = async function (id: number) {
+expose('deleteCompanion', async function (id: number) {
   if (!confirm('Remove this companion?')) return;
   await api('DELETE', `/api/companions/${id}`);
   renderCompanions();
   toast('Companion removed');
-};
+});
 
 // ─── Notes ───
 
@@ -2800,7 +2796,7 @@ async function renderNotes() {
   } catch { el.innerHTML = '<div class="empty-state"><p class="small text-muted">Could not load notes.</p></div>'; }
 }
 
-(window as any).showAddNote = function () {
+expose('showAddNote', function () {
   showModal('New Note', `
     <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="noteTitle" placeholder="Note title"></div>
     <div class="mb-3"><label class="form-label">Content</label><textarea class="form-control" id="noteContent" rows="6"></textarea></div>
@@ -2819,9 +2815,9 @@ async function renderNotes() {
     </div>
     <button class="btn btn-primary w-100" onclick="saveNote()"><i class="fa-solid fa-plus me-1"></i>Create Note</button>
   `);
-};
+});
 
-(window as any).saveNote = async function () {
+expose('saveNote', async function () {
   await api('POST', '/api/notes', {
     character_id: currentChar.id,
     title: (document.getElementById('noteTitle') as HTMLInputElement).value,
@@ -2832,9 +2828,9 @@ async function renderNotes() {
   hideModal();
   renderNotes();
   toast('Note created');
-};
+});
 
-(window as any).editNote = async function (id: number) {
+expose('editNote', async function (id: number) {
   const notes = await api('GET', `/api/notes?character_id=${currentChar.id}`);
   const n = notes.find((x: any) => x.id === id);
   if (!n) return;
@@ -2849,9 +2845,9 @@ async function renderNotes() {
     </div>
     <button class="btn btn-primary w-100" onclick="saveEditNote(${id})"><i class="fa-solid fa-save me-1"></i>Save</button>
   `);
-};
+});
 
-(window as any).saveEditNote = async function (id: number) {
+expose('saveEditNote', async function (id: number) {
   await api('PUT', `/api/notes/${id}`, {
     title: (document.getElementById('noteTitle') as HTMLInputElement).value,
     content: (document.getElementById('noteContent') as HTMLTextAreaElement).value,
@@ -2861,14 +2857,14 @@ async function renderNotes() {
   hideModal();
   renderNotes();
   toast('Note updated');
-};
+});
 
-(window as any).deleteNote = async function (id: number) {
+expose('deleteNote', async function (id: number) {
   if (!confirm('Delete this note?')) return;
   await api('DELETE', `/api/notes/${id}`);
   renderNotes();
   toast('Note deleted');
-};
+});
 
 // ─── Factions → extracted to ts/factions.ts ───
 import './factions';
@@ -2887,7 +2883,7 @@ async function ensureCompendiumEquipment() {
 
 // ─── Main Shops View ───
 
-(window as any).showShops = async function () {
+expose('showShops', async function () {
   showView('shops');
   const el = document.getElementById('shopsContent')!;
   try {
@@ -2925,7 +2921,7 @@ async function ensureCompendiumEquipment() {
   } catch (e: any) {
     el.innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load shops: ${esc(e.message)}</p></div>`;
   }
-};
+});
 
 function renderShopCard(s: any, isDM: boolean): string {
   const locName = s.location_name || 'Anywhere';
@@ -2948,17 +2944,17 @@ function renderShopCard(s: any, isDM: boolean): string {
   </div>`;
 }
 
-(window as any).filterShops = function () {
+expose('filterShops', function () {
   const q = (document.getElementById('shopSearch') as HTMLInputElement)?.value?.toLowerCase() || '';
   document.querySelectorAll('#shopsGrid .character-card').forEach(card => {
     const parent = card.closest('.col-md-6, .col-lg-4') as HTMLElement;
     if (parent) parent.style.display = !q || card.textContent?.toLowerCase().includes(q) ? '' : 'none';
   });
-};
+});
 
 // ─── Shop CRUD (DM) ───
 
-(window as any).showNewShop = function () {
+expose('showNewShop', function () {
   const campaignOpts = allCampaigns.map((c: any) =>
     `<option value="${c.id}">${esc(c.name)}${c.party_name ? ' (' + esc(c.party_name) + ')' : ''}</option>`
   ).join('');
@@ -2981,9 +2977,9 @@ function renderShopCard(s: any, isDM: boolean): string {
       </select></div>
     <button class="btn btn-primary w-100" onclick="saveShop()"><i class="fa-solid fa-plus me-1"></i>Create Shop</button>
   `);
-};
+});
 
-(window as any).saveShop = async function (shopId?: number) {
+expose('saveShop', async function (shopId?: number) {
   const name = (document.getElementById('shopName') as HTMLInputElement).value;
   if (!name) { toast('Shop name is required', true); return; }
 
@@ -3011,9 +3007,9 @@ function renderShopCard(s: any, isDM: boolean): string {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).showEditShop = async function (shopId: number) {
+expose('showEditShop', async function (shopId: number) {
   const shop = selectedShopShops.find((s: any) => s.id === shopId);
   if (!shop) { toast('Shop not found', true); return; }
 
@@ -3031,9 +3027,9 @@ function renderShopCard(s: any, isDM: boolean): string {
       </select></div>
     <button class="btn btn-primary w-100" onclick="saveShop(${shopId})"><i class="fa-solid fa-save me-1"></i>Save Changes</button>
   `);
-};
+});
 
-(window as any).deleteShop = async function (shopId: number) {
+expose('deleteShop', async function (shopId: number) {
   if (!confirm('Delete this shop? All items will be removed.')) return;
   try {
     await api('DELETE', `/api/shops/${shopId}`);
@@ -3042,11 +3038,11 @@ function renderShopCard(s: any, isDM: boolean): string {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
 // ─── Shop Items Detail ───
 
-(window as any).showShopDetail = async function (shopId: number) {
+expose('showShopDetail', async function (shopId: number) {
   try {
     const [items, shops] = await Promise.all([
       api('GET', `/api/shops/${shopId}/items`),
@@ -3109,11 +3105,11 @@ function renderShopCard(s: any, isDM: boolean): string {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
 // ─── Shop Item CRUD (DM) ───
 
-(window as any).showAddShopItem = async function (shopId: number) {
+expose('showAddShopItem', async function (shopId: number) {
   await ensureCompendiumEquipment();
   showModal('Add Shop Item', `
     <div class="mb-3"><label class="form-label">Item Name</label>
@@ -3140,9 +3136,9 @@ function renderShopCard(s: any, isDM: boolean): string {
       <button class="btn btn-primary w-100" onclick="saveShopItem(${shopId})"><i class="fa-solid fa-plus me-1"></i>Add Item</button>
     </div>
   `);
-};
+});
 
-(window as any).pickCompItem = function (inputId: string) {
+expose('pickCompItem', function (inputId: string) {
   showModal('Pick from Compendium', `
     <div class="mb-3"><input class="form-control" id="compPickSearch" placeholder="Search equipment..." oninput="filterCompPick()"></div>
     <div id="compPickList" style="max-height:300px;overflow-y:auto">
@@ -3155,17 +3151,17 @@ function renderShopCard(s: any, isDM: boolean): string {
       `).join('')}
     </div>
   `);
-};
+});
 
-(window as any).filterCompPick = function () {
+expose('filterCompPick', function () {
   const q = (document.getElementById('compPickSearch') as HTMLInputElement)?.value?.toLowerCase() || '';
   document.querySelectorAll('.comp-pick-item').forEach(el => {
     const name = el.getAttribute('data-name') || '';
     (el as HTMLElement).style.display = !q || name.toLowerCase().includes(q) ? '' : 'none';
   });
-};
+});
 
-(window as any).selectCompPick = function (inputId: string) {
+expose('selectCompPick', function (inputId: string) {
   const selected = document.querySelector('.comp-pick-item[style*="display: none"]') ? null : null;
   const el = document.querySelector('.comp-pick-item:not([style*="display: none"])') as HTMLElement;
   // Clicked the one visible item, fill the input
@@ -3182,7 +3178,7 @@ function renderShopCard(s: any, isDM: boolean): string {
     if (catSelect && cat) { const opt = Array.from(catSelect.options).find(o => o.value === cat); if (opt) opt.selected = true; }
     hideModal();
   }
-};
+});
 
 // This is handled by onclick directly on the comp-pick-item elements
 document.addEventListener('click', function compPickHandler(e) {
@@ -3203,7 +3199,7 @@ document.addEventListener('click', function compPickHandler(e) {
   }
 });
 
-(window as any).saveShopItem = async function (shopId: number, itemId?: number) {
+expose('saveShopItem', async function (shopId: number, itemId?: number) {
   const name = (document.getElementById('shopItemName') as HTMLInputElement).value;
   if (!name) { toast('Item name is required', true); return; }
 
@@ -3228,9 +3224,9 @@ document.addEventListener('click', function compPickHandler(e) {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).editShopItem = async function (itemId: number) {
+expose('editShopItem', async function (itemId: number) {
   // Find the item from any shop detail modal
   const itemsEl = document.getElementById('shopItemsList');
   if (!itemsEl) return;
@@ -3265,9 +3261,9 @@ document.addEventListener('click', function compPickHandler(e) {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).deleteShopItem = async function (itemId: number) {
+expose('deleteShopItem', async function (itemId: number) {
   if (!confirm('Remove this item from the shop?')) return;
   try {
     await api('DELETE', `/api/shop-items/${itemId}`);
@@ -3275,11 +3271,11 @@ document.addEventListener('click', function compPickHandler(e) {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
 // ─── Buy / Sell ───
 
-(window as any).buyItem = async function (shopId: number, itemId: number) {
+expose('buyItem', async function (shopId: number, itemId: number) {
   if (!currentChar) { toast('Select a character first', true); return; }
 
   showModal('Buy Item', `
@@ -3293,17 +3289,17 @@ document.addEventListener('click', function compPickHandler(e) {
     </div>
     <button class="btn btn-gold w-100" onclick="confirmBuy(${shopId}, ${itemId})"><i class="fa-solid fa-cart-shopping me-1"></i>Purchase</button>
   `);
-};
+});
 
-(window as any).qtyAdjust = function (delta: number) {
+expose('qtyAdjust', function (delta: number) {
   const input = document.getElementById('buyQty') as HTMLInputElement;
   if (input) {
     const val = Math.max(1, Math.min(99, (parseInt(input.value) || 1) + delta));
     input.value = String(val);
   }
-};
+});
 
-(window as any).confirmBuy = async function (shopId: number, itemId: number) {
+expose('confirmBuy', async function (shopId: number, itemId: number) {
   const qty = parseInt((document.getElementById('buyQty') as HTMLInputElement).value) || 1;
   try {
     const result = await api('POST', `/api/shops/${shopId}/buy`, {
@@ -3321,9 +3317,9 @@ document.addEventListener('click', function compPickHandler(e) {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).sellItem = async function (shopId: number) {
+expose('sellItem', async function (shopId: number) {
   if (!currentChar) { toast('Select a character first', true); return; }
 
   try {
@@ -3361,9 +3357,9 @@ document.addEventListener('click', function compPickHandler(e) {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).toggleSellItem = function (el: HTMLElement) {
+expose('toggleSellItem', function (el: HTMLElement) {
   el.classList.toggle('selected');
   const check = el.querySelector('.sell-check i')!;
   if (el.classList.contains('selected')) {
@@ -3371,9 +3367,9 @@ document.addEventListener('click', function compPickHandler(e) {
   } else {
     check.className = 'fa-regular fa-square';
   }
-};
+});
 
-(window as any).confirmSell = async function (shopId: number) {
+expose('confirmSell', async function (shopId: number) {
   const selected: Array<{ inventory_item_id: number; quantity: number }> = [];
   document.querySelectorAll('.sell-inv-item.selected').forEach((el: any) => {
     const id = parseInt(el.getAttribute('data-id'));
@@ -3396,11 +3392,11 @@ document.addEventListener('click', function compPickHandler(e) {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
 // ─── Transactions ───
 
-(window as any).showTransactions = async function () {
+expose('showTransactions', async function () {
   try {
     const txns = await api('GET', '/api/shop-transactions');
     showModal('Transaction History', `
@@ -3427,9 +3423,9 @@ document.addEventListener('click', function compPickHandler(e) {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).showOneShots = function () {
+expose('showOneShots', function () {
   showView('oneshot');
   const el = document.getElementById('oneshotSection')!;
   el.setAttribute('hx-get', '/htmx/oneshot-adventures');
@@ -3437,9 +3433,9 @@ document.addEventListener('click', function compPickHandler(e) {
   el.setAttribute('hx-swap', 'innerHTML');
   el.innerHTML = '<div class="ornament">✧ Loading one-shot adventures... ✧</div>';
   htmx.process(el);
-};
+});
 
-(window as any).showCampaignOverview = function (campaignId: number) {
+expose('showCampaignOverview', function (campaignId: number) {
   showView('campaignOverview');
   const el = document.getElementById('campaignOverviewSection')!;
   el.setAttribute('hx-get', `/htmx/campaigns/${campaignId}/overview`);
@@ -3447,9 +3443,9 @@ document.addEventListener('click', function compPickHandler(e) {
   el.setAttribute('hx-swap', 'innerHTML');
   el.innerHTML = '<div class="ornament">✧ Loading campaign overview... ✧</div>';
   htmx.process(el);
-};
+});
 
-(window as any).loadFactionReputations = async function () {
+expose('loadFactionReputations', async function () {
   const charId = (document.getElementById('factionCharSel') as HTMLSelectElement).value;
   const area = document.getElementById('factionRepArea')!;
   const list = document.getElementById('factionRepList')!;
@@ -3477,9 +3473,9 @@ document.addEventListener('click', function compPickHandler(e) {
       </div>`;
     }).join('') : '<p class="text-muted small">No reputation tracked for this character. Click a faction to set reputation.</p>';
   } catch {}
-};
+});
 
-(window as any).editReputation = function (charId: number, factionId: number, standing: number, rank: string, notes: string) {
+expose('editReputation', function (charId: number, factionId: number, standing: number, rank: string, notes: string) {
   showModal('Set Reputation', `
     <div class="mb-3"><label class="form-label">Standing (-100 to 100)</label>
       <input class="form-control" id="repStanding" type="number" value="${standing}" min="-100" max="100"></div>
@@ -3487,9 +3483,9 @@ document.addEventListener('click', function compPickHandler(e) {
     <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="repNotes" rows="2">${esc(notes)}</textarea></div>
     <button class="btn btn-primary w-100" onclick="saveReputation(${charId}, ${factionId})"><i class="fa-solid fa-save me-1"></i>Save</button>
   `);
-};
+});
 
-(window as any).saveReputation = async function (charId: number, factionId: number) {
+expose('saveReputation', async function (charId: number, factionId: number) {
   await api('POST', '/api/faction-reputation', {
     character_id: charId, faction_id: factionId,
     standing: +(document.getElementById('repStanding') as HTMLInputElement).value || 0,
@@ -3499,7 +3495,7 @@ document.addEventListener('click', function compPickHandler(e) {
   hideModal();
   (window as any).loadFactionReputations();
   toast('Reputation updated');
-};
+});
 
 // ─── Combat Section Update for conditions and concentration ───
 
@@ -3690,7 +3686,7 @@ async function renderCrafting() {
   }
 }
 
-(window as any).startRecipe = async function (recipeId: number) {
+expose('startRecipe', async function (recipeId: number) {
   try {
     const recipes = await api('GET', '/api/crafting/recipes');
     const recipe = recipes.find((r: any) => r.id === recipeId);
@@ -3708,9 +3704,9 @@ async function renderCrafting() {
       <button class="btn btn-gold w-100 mt-2" onclick="confirmStartRecipe(${recipe.id},'${esc(recipe.name)}',${recipe.crafting_time_hours},${recipe.difficulty_dc})"><i class="fa-solid fa-hammer me-1"></i>Begin Crafting</button>
     `);
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).confirmStartRecipe = async function (recipeId: number, name: string, hours: number, dc: number) {
+expose('confirmStartRecipe', async function (recipeId: number, name: string, hours: number, dc: number) {
   try {
     await api('POST', `/api/characters/${currentChar.id}/crafting`, {
       recipe_id: recipeId,
@@ -3724,34 +3720,34 @@ async function renderCrafting() {
     renderCrafting();
     toast('Crafting started!');
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).advanceCrafting = async function (id: number) {
+expose('advanceCrafting', async function (id: number) {
   try {
     await api('PUT', `/api/crafting/${id}`, { progress_hours: 1 });
     renderCrafting();
     toast('Crafting advanced by 1 hour');
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).completeCrafting = async function (id: number) {
+expose('completeCrafting', async function (id: number) {
   try {
     await api('PUT', `/api/crafting/${id}`, { status: 'complete' });
     renderCrafting();
     toast('Crafting completed! Item added to inventory.');
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).abandonCrafting = async function (id: number) {
+expose('abandonCrafting', async function (id: number) {
   if (!confirm('Abandon this project?')) return;
   try {
     await api('PUT', `/api/crafting/${id}`, { status: 'abandoned' });
     renderCrafting();
     toast('Project abandoned');
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).showStartCrafting = function () {
+expose('showStartCrafting', function () {
   showModal('Start Crafting', `
     <p class="small text-muted">Browse recipes from the Crafting tab, or create a custom project.</p>
     <div class="mb-3"><label class="form-label">Project Name</label><input class="form-control" id="custCraftName" placeholder="e.g. Brewing a custom potion"></div>
@@ -3762,9 +3758,9 @@ async function renderCrafting() {
     <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="custCraftNotes" rows="2"></textarea></div>
     <button class="btn btn-primary w-100" onclick="confirmCustomCraft()"><i class="fa-solid fa-hammer me-1"></i>Start</button>
   `);
-};
+});
 
-(window as any).confirmCustomCraft = async function () {
+expose('confirmCustomCraft', async function () {
   const name = (document.getElementById('custCraftName') as HTMLInputElement).value;
   if (!name) { toast('Enter a project name', true); return; }
   try {
@@ -3779,23 +3775,23 @@ async function renderCrafting() {
     renderCrafting();
     toast('Custom crafting started!');
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
 // ─── HP Auto-Calc in details ───
 
-(window as any).calcHP = async function () {
+expose('calcHP', async function () {
   if (!currentChar) return;
   try {
     const result = await api('POST', `/api/characters/${currentChar.id}/calc-hp`);
-    currentChar = await api('GET', `/api/characters/${currentChar.id}`);
+    setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
     renderSheet();
     toast(`HP calculated: ${result.hp_max} HP`);
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
 // ─── Random Character Generator ───
 
-(window as any).generateRandomChar = async function () {
+expose('generateRandomChar', async function () {
   try {
     const rc = await api('GET', '/api/generate/character');
     showModal('Random Character', `
@@ -3824,11 +3820,11 @@ async function renderCrafting() {
       <p class="small text-muted">Use this as inspiration for your next character!</p>
     `);
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
 // ─── Character Comparison ───
 
-(window as any).showComparison = async function () {
+expose('showComparison', async function () {
   const sel = document.getElementById('charCompareSelect') as HTMLSelectElement;
   if (!sel) return;
   const selected = Array.from(sel.selectedOptions).map(o => o.value).filter(v => v);
@@ -3854,13 +3850,13 @@ async function renderCrafting() {
       </table></div>
     `);
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
 // ─── Add character comparison to character list view ───
 
 let compareMode = false;
 
-(window as any).toggleCompareMode = function () {
+expose('toggleCompareMode', function () {
   compareMode = !compareMode;
   const el = document.getElementById('charGrid')!;
   const btn = document.getElementById('compareBtn') as HTMLButtonElement;
@@ -3897,7 +3893,7 @@ let compareMode = false;
     if (bar) bar.remove();
     if (btn) btn.textContent = 'Compare';
   }
-};
+});
 
 // ─── Combat Tracker → extracted to ts/combat-tracker.ts ───
 import './combat-tracker';
@@ -3906,7 +3902,7 @@ import './combat-tracker';
 
 // ─── Wiki ───
 
-(window as any).showWiki = async function (campaignId?: number) {
+expose('showWiki', async function (campaignId?: number) {
   showView('wiki');
   const el = document.getElementById('wikiContent')!;
   el.innerHTML = '<div class="ornament">✧ Loading wiki... ✧</div>';
@@ -3980,12 +3976,12 @@ import './combat-tracker';
         </div>
       </div>`;
   } catch (e: any) { el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(e.message)}</p></div>`; }
-};
+});
 
-(window as any).toggleWikiSidebar = function () {
+expose('toggleWikiSidebar', function () {
   const offcanvas = document.getElementById('wikiOffcanvas');
   if (offcanvas) bootstrap.Offcanvas.getOrCreateInstance(offcanvas).toggle();
-};
+});
 
 function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, depth: number): string {
   const children = childMap[parentId] || [];
@@ -3997,7 +3993,7 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
   ).join('');
 }
 
-(window as any).loadWikiPage = async function (pageId: number) {
+expose('loadWikiPage', async function (pageId: number) {
   try {
     const page = await api('GET', `/api/wiki/${pageId}`);
     const el = document.getElementById('wikiPageContent')!;
@@ -4016,9 +4012,9 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
         <div class="small text-muted mt-3">Updated: ${page.updated_at}</div>
       </div>`;
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).showAddWikiPage = function (campaignId: number) {
+expose('showAddWikiPage', function (campaignId: number) {
   showModal('New Wiki Page', `
     <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="wikiTitle"></div>
     <div class="mb-3"><label class="form-label">Content (Markdown)</label><textarea class="form-control" id="wikiContent" rows="8" placeholder="Write in Markdown..."></textarea></div>
@@ -4026,9 +4022,9 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
       <select class="form-select" id="wikiVis"><option value="public">Public</option><option value="dm-only">DM Only</option></select></div>
     <button class="btn btn-primary w-100" onclick="saveWikiPage(${campaignId})">Create Page</button>
   `);
-};
+});
 
-(window as any).saveWikiPage = async function (campaignId: number) {
+expose('saveWikiPage', async function (campaignId: number) {
   try {
     await api('POST', `/api/campaigns/${campaignId}/wiki`, {
       campaign_id: campaignId,
@@ -4042,9 +4038,9 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
     (window as any).showWiki(campaignId);
     toast('Wiki page created');
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).showEditWikiPage = function (id: number, title: string, content: string, visibility: string) {
+expose('showEditWikiPage', function (id: number, title: string, content: string, visibility: string) {
   showModal('Edit Wiki Page', `
     <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="wikiTitle" value="${esc(title)}"></div>
     <div class="mb-3"><label class="form-label">Content (Markdown)</label><textarea class="form-control" id="wikiContent" rows="8">${esc(content)}</textarea></div>
@@ -4052,9 +4048,9 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
       <select class="form-select" id="wikiVis"><option value="public" ${visibility === 'public' ? 'selected' : ''}>Public</option><option value="dm-only" ${visibility === 'dm-only' ? 'selected' : ''}>DM Only</option></select></div>
     <button class="btn btn-primary w-100" onclick="saveEditWikiPage(${id})">Save</button>
   `);
-};
+});
 
-(window as any).saveEditWikiPage = async function (id: number) {
+expose('saveEditWikiPage', async function (id: number) {
   try {
     const page = await api('GET', `/api/wiki/${id}`);
     await api('PUT', `/api/wiki/${id}`, {
@@ -4067,9 +4063,9 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
     (window as any).loadWikiPage(id);
     toast('Wiki page updated');
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).deleteWikiPage = async function (id: number) {
+expose('deleteWikiPage', async function (id: number) {
   if (!confirm('Delete this wiki page?')) return;
   try {
     await api('DELETE', `/api/wiki/${id}`);
@@ -4077,11 +4073,11 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
     (window as any).showWiki(cid);
     toast('Wiki page deleted');
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
 // ─── Campaign Graph ───
 
-(window as any).showCampaignGraph = async function (campaignId: number) {
+expose('showCampaignGraph', async function (campaignId: number) {
   const modalEl = document.getElementById('genericModal')!;
   const dialogEl = modalEl.querySelector('.modal-dialog') as HTMLElement;
   const origClass = dialogEl.className;
@@ -4116,11 +4112,11 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
     dialogEl.className = origClass;
     modalEl.removeEventListener('hidden.bs.modal', restore);
   }, { once: true });
-};
+});
 
 // ─── One-Shot Tree UI (SortableJS Drag-Reorder) ───
 
-(window as any).initOneShotTree = function (adventureId: number) {
+expose('initOneShotTree', function (adventureId: number) {
   const actTree = document.getElementById('actTree');
   if (!actTree) return;
 
@@ -4158,11 +4154,11 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
       }
     });
   });
-};
+});
 
 // ─── One-Shot Items ───
 
-(window as any).showOneShotItemForm = function (adventureId: number) {
+expose('showOneShotItemForm', function (adventureId: number) {
   showModal('Add Item', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="itemName"></div>
     <div class="row g-3 mb-3">
@@ -4181,9 +4177,9 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
     <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="itemNotes" rows="2"></textarea></div>
     <button class="btn btn-primary w-100" onclick="saveOneShotItem(${adventureId})">Create</button>
   `);
-};
+});
 
-(window as any).saveOneShotItem = async function (adventureId: number) {
+expose('saveOneShotItem', async function (adventureId: number) {
   const name = (document.getElementById('itemName') as HTMLInputElement).value;
   if (!name) { toast('Name required', true); return; }
   await api('POST', `/api/oneshot-adventures/${adventureId}/items`, {
@@ -4202,15 +4198,15 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
   // Refresh items section via HTMX
   const itemsCard = document.querySelector('[hx-get*="/items"]');
   if (itemsCard) htmx.trigger(itemsCard, 'load');
-};
+});
 
 // ─── One-Shot Items: Compendium Equipment Picker ───
 
-(window as any).showCompendiumEquipmentPickerForOneShot = function (adventureId: number) {
+expose('showCompendiumEquipmentPickerForOneShot', function (adventureId: number) {
   showModal('Equipment Compendium', `<div id="compendiumEquipmentPickerContent" hx-get="/htmx/compendium/equipment/picker-oneshot/${adventureId}" hx-trigger="load" hx-swap="innerHTML"><div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div></div>`);
-};
+});
 
-(window as any).importCompendiumEquipmentToOneShot = async function (equipmentId: number, adventureId: number, quantity: number) {
+expose('importCompendiumEquipmentToOneShot', async function (equipmentId: number, adventureId: number, quantity: number) {
   try {
     await api('POST', `/api/oneshot-adventures/${adventureId}/import/compendium-equipment`, {
       compendium_equipment_id: equipmentId,
@@ -4222,9 +4218,9 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
     const itemsCard = document.querySelector('[hx-get*="/items"]');
     if (itemsCard) htmx.trigger(itemsCard, 'load');
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).editOneShotItem = async function (itemId: number) {
+expose('editOneShotItem', async function (itemId: number) {
   // Get item data by listing from the adventure context
   showModal('Edit Item', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="editItemName"></div>
@@ -4244,9 +4240,9 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
     <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="editItemNotes" rows="2"></textarea></div>
     <button class="btn btn-primary w-100" onclick="updateOneShotItem(${itemId})">Save</button>
   `);
-};
+});
 
-(window as any).updateOneShotItem = async function (itemId: number) {
+expose('updateOneShotItem', async function (itemId: number) {
   const name = (document.getElementById('editItemName') as HTMLInputElement).value;
   if (!name) { toast('Name required', true); return; }
   await api('PUT', `/api/oneshot-items/${itemId}`, {
@@ -4264,19 +4260,19 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
   toast('Item updated');
   const itemsCard = document.querySelector('[hx-get*="/items"]');
   if (itemsCard) htmx.trigger(itemsCard, 'load');
-};
+});
 
-(window as any).deleteOneShotItem = async function (itemId: number) {
+expose('deleteOneShotItem', async function (itemId: number) {
   if (!confirm('Delete this item?')) return;
   await api('DELETE', `/api/oneshot-items/${itemId}`);
   toast('Item deleted');
   const itemsCard = document.querySelector('[hx-get*="/items"]');
   if (itemsCard) htmx.trigger(itemsCard, 'load');
-};
+});
 
 // ─── One-Shot Shops ───
 
-(window as any).showOneShotShopForm = function (adventureId: number) {
+expose('showOneShotShopForm', function (adventureId: number) {
   showModal('Add Shop', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="shopName"></div>
     <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="shopDesc" rows="2"></textarea></div>
@@ -4286,9 +4282,9 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
     </div>
     <button class="btn btn-primary w-100" onclick="createOneShotShop(${adventureId})">Create</button>
   `);
-};
+});
 
-(window as any).createOneShotShop = async function (adventureId: number) {
+expose('createOneShotShop', async function (adventureId: number) {
   const name = (document.getElementById('shopName') as HTMLInputElement).value;
   if (!name) { toast('Name required', true); return; }
   await api('POST', `/api/oneshot-adventures/${adventureId}/shops`, {
@@ -4301,31 +4297,31 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
   toast('Shop created');
   const shopsCard = document.querySelector('[hx-get*="/shops"]');
   if (shopsCard) htmx.trigger(shopsCard, 'load');
-};
+});
 
-(window as any).deleteOneShotShop = async function (shopId: number) {
+expose('deleteOneShotShop', async function (shopId: number) {
   if (!confirm('Delete this shop?')) return;
   await api('DELETE', `/api/oneshot-adventures/0/shops/${shopId}`);
   toast('Shop deleted');
   const shopsCard = document.querySelector('[hx-get*="/shops"]');
   if (shopsCard) htmx.trigger(shopsCard, 'load');
-};
+});
 
 // ─── One-Shot Monsters ───
 
-(window as any).deleteOneShotMonster = async function (monsterId: number) {
+expose('deleteOneShotMonster', async function (monsterId: number) {
   if (!confirm('Delete this monster?')) return;
   await api('DELETE', `/api/oneshot-monsters/${monsterId}`);
   toast('Monster deleted');
   const monstersCard = document.querySelector('[hx-get*="/monsters"]');
   if (monstersCard) htmx.trigger(monstersCard, 'load');
-};
+});
 
-(window as any).showCompendiumMonsterPickerForOneShot = function (adventureId: number) {
+expose('showCompendiumMonsterPickerForOneShot', function (adventureId: number) {
   showModal('Monster Compendium', `<div id="compendiumMonsterPickerContent" hx-get="/htmx/compendium-monsters/oneshot/${adventureId}" hx-trigger="load" hx-swap="innerHTML"><div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div></div>`);
-};
+});
 
-(window as any).importCompendiumMonsterToOneShot = async function (monsterId: number, adventureId: number) {
+expose('importCompendiumMonsterToOneShot', async function (monsterId: number, adventureId: number) {
   try {
     await api('POST', `/api/oneshot-adventures/${adventureId}/import/compendium`, {
       compendium_monster_id: monsterId,
@@ -4336,11 +4332,11 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
     const monstersCard = document.querySelector('[hx-get*="/monsters"]');
     if (monstersCard) htmx.trigger(monstersCard, 'load');
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
 // ─── One-Shot NPC Linking ───
 
-(window as any).showOneShotNPCLinkForm = async function (adventureId: number) {
+expose('showOneShotNPCLinkForm', async function (adventureId: number) {
   let npcs: any[];
   try {
     const res = await fetch('/api/npcs');
@@ -4366,9 +4362,9 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
     <div class="mb-3"><label class="form-label"><input type="checkbox" id="npcLinkCombat"> Combat-ready</label></div>
     <button class="btn btn-primary w-100" onclick="linkOneShotNPC(${adventureId})">Link NPC</button>
   `);
-};
+});
 
-(window as any).filterNPCList = function (query: string) {
+expose('filterNPCList', function (query: string) {
   const list = document.getElementById('npcSelectList');
   if (!list) return;
   const q = query.toLowerCase();
@@ -4376,9 +4372,9 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
     const label = el.querySelector('.form-check-label')?.textContent?.toLowerCase() || '';
     el.classList.toggle('d-none', !label.includes(q));
   });
-};
+});
 
-(window as any).linkOneShotNPC = async function (adventureId: number) {
+expose('linkOneShotNPC', async function (adventureId: number) {
   const selected = document.querySelector<HTMLInputElement>('.npc-select:checked');
   if (!selected) { toast('Select an NPC', true); return; }
   const npcId = parseInt(selected.value);
@@ -4390,19 +4386,19 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
   toast('NPC linked');
   const npcCard = document.querySelector('[hx-get*="/npcs"]');
   if (npcCard) htmx.trigger(npcCard, 'load');
-};
+});
 
-(window as any).deleteOneShotNPC = async function (adventureId: number, npcId: number) {
+expose('deleteOneShotNPC', async function (adventureId: number, npcId: number) {
   if (!confirm('Remove this NPC from the adventure?')) return;
   await api('DELETE', `/api/oneshot-adventures/${adventureId}/npcs/${npcId}`);
   toast('NPC removed');
   const npcCard = document.querySelector('[hx-get*="/npcs"]');
   if (npcCard) htmx.trigger(npcCard, 'load');
-};
+});
 
 // ─── Combat-Ready NPCs → Combat Tracker ───
 
-(window as any).addNPCToCombat = async function (npcId: number, npcName: string) {
+expose('addNPCToCombat', async function (npcId: number, npcName: string) {
   try {
     await api('POST', '/api/combat', {
       name: npcName,
@@ -4417,9 +4413,9 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
     (window as any).showCombatTracker();
     toast(`${npcName} added to combat tracker`);
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).addOneShotCombatNPCs = async function (adventureId: number) {
+expose('addOneShotCombatNPCs', async function (adventureId: number) {
   try {
     const res = await api('GET', `/api/oneshot-adventures/${adventureId}/npcs`);
     const combatNPCs = res.filter((n: any) => n.combat_ready);
@@ -4439,10 +4435,10 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
     (window as any).showCombatTracker();
     toast(`${combatNPCs.length} combat-ready NPC(s) added to tracker`);
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
 // Monster Library
-(window as any).showMonsterLibrary = function (adventureId: number) {
+expose('showMonsterLibrary', function (adventureId: number) {
   showModal('Monster Library', `
     <div class="mb-3 d-flex gap-2">
       <button class="btn btn-outline-primary btn-sm" onclick="showAddLibraryMonster(${adventureId})"><i class="fa-solid fa-plus me-1"></i>New</button>
@@ -4453,7 +4449,7 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
     </div>
   `);
   loadMonsterLibrary(adventureId);
-};
+});
 
 async function loadMonsterLibrary(adventureId: number) {
   const list = document.getElementById('libraryList');
@@ -4464,7 +4460,7 @@ async function loadMonsterLibrary(adventureId: number) {
       list.innerHTML = '<div class="text-muted small fst-italic py-2">No monsters in library yet.</div>';
       return;
     }
-    (window as any)._libraryMonsters = monsters;
+    expose('_libraryMonsters', monsters);
     renderLibraryMonsters(adventureId, monsters);
   } catch {
     list.innerHTML = '<div class="text-danger small py-2">Failed to load library.</div>';
@@ -4489,7 +4485,7 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
   `).join('');
 }
 
-(window as any).filterLibraryMonsters = function () {
+expose('filterLibraryMonsters', function () {
   const q = ((document.getElementById('libSearch') as HTMLInputElement).value || '').toLowerCase();
   const monsters = (window as any)._libraryMonsters || [];
   if (!q) { renderLibraryMonsters(0, monsters); return; }
@@ -4509,9 +4505,9 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
       </div>
     </div>
   `).join('') || '<div class="text-muted small fst-italic py-2">No matches.</div>';
-};
+});
 
-(window as any).showAddLibraryMonster = function (adventureId: number) {
+expose('showAddLibraryMonster', function (adventureId: number) {
   showModal('Add to Library', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="libMonsterName"></div>
     <div class="row g-3 mb-3">
@@ -4528,9 +4524,9 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
     <div class="mb-3"><label class="form-label">Actions</label><textarea class="form-control" id="libMonsterActions" rows="3"></textarea></div>
     <button class="btn btn-primary w-100" onclick="createLibraryMonster(${adventureId})">Create</button>
   `);
-};
+});
 
-(window as any).createLibraryMonster = async function (adventureId: number) {
+expose('createLibraryMonster', async function (adventureId: number) {
   const name = (document.getElementById('libMonsterName') as HTMLInputElement).value;
   if (!name) { toast('Name required', true); return; }
   await api('POST', '/api/monster-library', {
@@ -4553,9 +4549,9 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
   hideModal();
   toast('Monster added to library');
   if (adventureId) (window as any).showMonsterLibrary(adventureId);
-};
+});
 
-(window as any).quickAddLibraryMonster = async function (adventureId: number, libraryId: number) {
+expose('quickAddLibraryMonster', async function (adventureId: number, libraryId: number) {
   try {
     const libMonsters = (window as any)._libraryMonsters || [];
     const m = libMonsters.find((x: any) => x.id === libraryId);
@@ -4572,17 +4568,17 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
     const monstersCard = document.querySelector('[hx-get*="/monsters"]');
     if (monstersCard) htmx.trigger(monstersCard, 'load');
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).deleteLibraryMonster = async function (libraryId: number, adventureId: number) {
+expose('deleteLibraryMonster', async function (libraryId: number, adventureId: number) {
   if (!confirm('Delete from library?')) return;
   await api('DELETE', `/api/monster-library/${libraryId}`);
   toast('Library entry deleted');
   if (adventureId) loadMonsterLibrary(adventureId);
-};
+});
 
 // Act-level monster display
-(window as any).showActMonsters = async function (actId: number) {
+expose('showActMonsters', async function (actId: number) {
   try {
     const monsters = await api('GET', `/api/oneshot-acts/${actId}/monsters`);
     const advId = (window as any).adventureIdForAct ? (window as any).adventureIdForAct(actId) : 0;
@@ -4601,10 +4597,10 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
       `).join('') : '<div class="text-muted small fst-italic">No monsters in this act.</div>'}
     `);
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
 // Scene-level monster display
-(window as any).showSceneMonsters = async function (sceneId: number) {
+expose('showSceneMonsters', async function (sceneId: number) {
   try {
     const monsters = await api('GET', `/api/oneshot-scenes/${sceneId}/monsters`);
     const advId = (window as any).adventureIdForScene ? (window as any).adventureIdForScene(sceneId) : 0;
@@ -4623,10 +4619,10 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
       `).join('') : '<div class="text-muted small fst-italic">No monsters in this scene.</div>'}
     `);
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
 // Helper to find adventure ID for a scene (from DOM)
-(window as any).adventureIdForScene = function (sceneId: number): number {
+expose('adventureIdForScene', function (sceneId: number): number {
   const tree = document.getElementById('actTree');
   if (!tree) return 0;
   // Adventure ID is stored on the oneshotSection or nearby
@@ -4642,24 +4638,24 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
     if (m) return parseInt(m[1]);
   }
   return 0;
-};
+});
 
 // Helper to find adventure ID for an act (same DOM lookup as scene)
-(window as any).adventureIdForAct = function (actId: number): number {
+expose('adventureIdForAct', function (actId: number): number {
   return (window as any).adventureIdForScene(actId);
-};
+});
 
 // ─── One-Shot Linked Player Characters ───
 
-(window as any).showLinkPCForm = function (adventureId: number) {
+expose('showLinkPCForm', function (adventureId: number) {
   showModal('Link Character', `
     <p class="text-muted small mb-3">Search for a character to link to this one-shot.</p>
     <div class="mb-3"><input class="form-control" id="pcSearchInput" placeholder="Search characters..." oninput="searchCharactersForLink(${adventureId})"></div>
     <div id="pcLinkResults" class="mb-3" style="max-height:300px;overflow-y:auto"></div>
   `);
-};
+});
 
-(window as any).searchCharactersForLink = async function (adventureId: number) {
+expose('searchCharactersForLink', async function (adventureId: number) {
   const q = (document.getElementById('pcSearchInput') as HTMLInputElement).value.trim();
   const resultsEl = document.getElementById('pcLinkResults');
   if (!resultsEl) return;
@@ -4676,36 +4672,36 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
       </div>
     `).join('') : '<div class="text-muted small">No characters found.</div>';
   } catch { resultsEl.innerHTML = '<div class="text-danger small">Search failed.</div>'; }
-};
+});
 
-(window as any).linkPCToOneShot = async function (adventureId: number, charId: number) {
+expose('linkPCToOneShot', async function (adventureId: number, charId: number) {
   await api('POST', `/api/oneshot-adventures/${adventureId}/characters`, { character_id: charId });
   hideModal();
   toast('Character linked');
   const pcsCard = document.querySelector('[hx-get*="/pcs"]');
   if (pcsCard) htmx.trigger(pcsCard, 'load');
-};
+});
 
-(window as any).unlinkPCFromOneShot = async function (adventureId: number, charId: number) {
+expose('unlinkPCFromOneShot', async function (adventureId: number, charId: number) {
   if (!confirm('Unlink this character?')) return;
   await api('DELETE', `/api/oneshot-adventures/${adventureId}/characters/${charId}`);
   toast('Character unlinked');
   const pcsCard = document.querySelector('[hx-get*="/pcs"]');
   if (pcsCard) htmx.trigger(pcsCard, 'load');
-};
+});
 
 // ─── NPC↔Item Links ───
 
-(window as any).showLinkNPCToItem = function (adventureId: number, itemId: number) {
+expose('showLinkNPCToItem', function (adventureId: number, itemId: number) {
   showModal('Link NPC to Item', `
     <p class="text-muted small mb-3">Find an NPC in this adventure to link:</p>
     <div class="mb-3"><input class="form-control" id="npcLinkSearch" placeholder="Search NPCs..." oninput="searchNPCsForLink(${adventureId}, ${itemId})"></div>
     <div id="npcLinkResults" class="mb-3" style="max-height:300px;overflow-y:auto"></div>
   `);
   (window as any).searchNPCsForLink(adventureId, itemId);
-};
+});
 
-(window as any).searchNPCsForLink = async function (adventureId: number, itemId: number) {
+expose('searchNPCsForLink', async function (adventureId: number, itemId: number) {
   const q = (document.getElementById('npcLinkSearch') as HTMLInputElement)?.value?.trim() || '';
   const resultsEl = document.getElementById('npcLinkResults');
   if (!resultsEl) return;
@@ -4718,27 +4714,27 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
       </div>
     `).join('') : '<div class="text-muted small">No NPCs found in this adventure.</div>';
   } catch { resultsEl.innerHTML = '<div class="text-danger small">Search failed.</div>'; }
-};
+});
 
-(window as any).linkNPCToItem = async function (adventureId: number, npcId: number, itemId: number) {
+expose('linkNPCToItem', async function (adventureId: number, npcId: number, itemId: number) {
   await api('POST', `/api/oneshot-adventures/${adventureId}/npc-item-links`, { npc_id: npcId, item_id: itemId });
   hideModal();
   toast('NPC linked to item');
   const itemsCard = document.querySelector('[hx-get*="/items"]');
   if (itemsCard) htmx.trigger(itemsCard, 'load');
-};
+});
 
-(window as any).unlinkNPCFromItem = async function (linkId: number) {
+expose('unlinkNPCFromItem', async function (linkId: number) {
   if (!confirm('Remove link?')) return;
   await api('DELETE', `/api/npc-item-links/${linkId}`);
   toast('Link removed');
   const itemsCard = document.querySelector('[hx-get*="/items"]');
   if (itemsCard) htmx.trigger(itemsCard, 'load');
-};
+});
 
 // ─── Polymorphic File Uploads ───
 
-(window as any).showUploadModal = function (ownerType: string, ownerId: number) {
+expose('showUploadModal', function (ownerType: string, ownerId: number) {
   showModal('Upload File', `
     <div class="mb-3">
       <label class="form-label">Select file</label>
@@ -4746,9 +4742,9 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
     </div>
     <button class="btn btn-primary w-100" onclick="doUpload('${ownerType}', ${ownerId})"><i class="fa-solid fa-upload me-1"></i>Upload</button>
   `);
-};
+});
 
-(window as any).doUpload = async function (ownerType: string, ownerId: number) {
+expose('doUpload', async function (ownerType: string, ownerId: number) {
   const input = document.getElementById('uploadFileInput') as HTMLInputElement;
   if (!input?.files?.length) { toast('Select a file', true); return; }
   const form = new FormData();
@@ -4763,7 +4759,7 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
     hideModal();
     toast('File uploaded');
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
 // ─── Show combat nav for admin ───
 // (handled in init by checking role)
@@ -4774,7 +4770,7 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
 
 // ─── Campaign Dashboard ───
 
-(window as any).showCampaignDashboard = async function (campaignId: number, campaignName: string) {
+expose('showCampaignDashboard', async function (campaignId: number, campaignName: string) {
   showModal(`${esc(campaignName)} Dashboard`, `<div id="campaignDashContent"><div class="ornament">✧ Loading dashboard... ✧</div></div>`);
   try {
     const d = await api('GET', `/api/campaigns/${campaignId}/dashboard`);
@@ -4861,11 +4857,11 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
   } catch (e: any) {
     document.getElementById('campaignDashContent')!.innerHTML = `<div class="empty-state"><p class="text-danger">${esc(e.message)}</p></div>`;
   }
-};
+});
 
 // ─── Party Inventory & Treasury ───
 
-(window as any).showPartyInventory = async function (campaignId: number) {
+expose('showPartyInventory', async function (campaignId: number) {
   showModal('Party Inventory', `<div id="partyInvContent"><div class="ornament">✧ Loading... ✧</div></div>`);
   try {
     const items = await api('GET', `/api/campaigns/${campaignId}/party-items`);
@@ -4888,18 +4884,18 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
   } catch (e: any) {
     document.getElementById('partyInvContent')!.innerHTML = `<p class="text-danger">${esc(e.message)}</p>`;
   }
-};
+});
 
-(window as any).addPartyItem = async function (campaignId: number) {
+expose('addPartyItem', async function (campaignId: number) {
   showModal('Add Party Item', `
     <div class="mb-2"><label class="form-label">Item Name</label><input class="form-control" id="piName"></div>
     <div class="mb-2"><label class="form-label">Quantity</label><input class="form-control" id="piQty" type="number" value="1"></div>
     <div class="mb-2"><label class="form-label">Notes</label><textarea class="form-control" id="piNotes" rows="2"></textarea></div>
     <button class="btn btn-primary w-100" onclick="savePartyItem(${campaignId})">Add</button>
   `);
-};
+});
 
-(window as any).savePartyItem = async function (campaignId: number) {
+expose('savePartyItem', async function (campaignId: number) {
   const name = (document.getElementById('piName') as HTMLInputElement).value.trim();
   if (!name) { toast('Name required', true); return; }
   await api('POST', `/api/campaigns/${campaignId}/party-items`, {
@@ -4910,18 +4906,18 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
   hideModal();
   toast('Item added to party inventory');
   (window as any).showPartyInventory(campaignId);
-};
+});
 
-(window as any).deletePartyItem = async function (campaignId: number, itemId: number) {
+expose('deletePartyItem', async function (campaignId: number, itemId: number) {
   if (!confirm('Remove this item?')) return;
   await api('DELETE', `/api/party-items/${itemId}`);
   toast('Item removed');
   (window as any).showPartyInventory(campaignId);
-};
+});
 
 // ─── Session Planner ───
 
-(window as any).showSessionPlanner = async function (campaignId: number) {
+expose('showSessionPlanner', async function (campaignId: number) {
   showModal('Session Planner', `<div id="sessionPlanContent"><div class="ornament">✧ Loading sessions... ✧</div></div>`);
   try {
     const plans = await api('GET', `/api/campaigns/${campaignId}/session-plans`);
@@ -4957,9 +4953,9 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
   } catch (e: any) {
     document.getElementById('sessionPlanContent')!.innerHTML = `<p class="text-danger">${esc(e.message)}</p>`;
   }
-};
+});
 
-(window as any).showSessionPlanForm = function (campaignId: number, plan?: any) {
+expose('showSessionPlanForm', function (campaignId: number, plan?: any) {
   const isEdit = !!plan;
   const title = isEdit ? 'Edit Session Plan' : 'New Session Plan';
   showModal(title, `
@@ -4981,9 +4977,9 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
     <div class="mb-2"><label class="form-label">Player Goals (one per line)</label><textarea class="form-control" id="spGoals" rows="2" placeholder="Rescue the prisoners&#10;Find the hidden passage">${isEdit && plan.player_goals ? (Array.isArray(plan.player_goals) ? plan.player_goals.join('\n') : plan.player_goals) : ''}</textarea></div>
     <button class="btn btn-primary w-100" onclick="saveSessionPlan(${campaignId}${isEdit ? `, ${plan.id}` : ''})"><i class="fa-solid fa-save me-1"></i>${isEdit ? 'Update' : 'Create'}</button>
   `);
-};
+});
 
-(window as any).saveSessionPlan = async function (campaignId: number, planId?: number) {
+expose('saveSessionPlan', async function (campaignId: number, planId?: number) {
   const title = (document.getElementById('spTitle') as HTMLInputElement).value.trim();
   if (!title) { toast('Title required', true); return; }
   const encounters = (document.getElementById('spEncounters') as HTMLTextAreaElement).value.split('\n').filter((l: string) => l.trim());
@@ -5006,14 +5002,14 @@ function renderLibraryMonsters(adventureId: number, monsters: any[]) {
   hideModal();
   toast(planId ? 'Session plan updated' : 'Session plan created');
   (window as any).showSessionPlanner(campaignId);
-};
+});
 
-(window as any).deleteSessionPlan = async function (planId: number, campaignId: number) {
+expose('deleteSessionPlan', async function (planId: number, campaignId: number) {
   if (!confirm('Delete this session plan?')) return;
   await api('DELETE', `/api/session-plans/${planId}`);
   toast('Session plan deleted');
   (window as any).showSessionPlanner(campaignId);
-};
+});
 
 // ─── Encounter Difficulty Calculator ───
 
@@ -5025,7 +5021,7 @@ const CR_XP: Record<string, number> = {
   '23': 50000, '24': 62000, '25': 75000, '30': 155000,
 };
 
-(window as any).showEncounterDifficulty = function () {
+expose('showEncounterDifficulty', function () {
   showModal('Encounter Difficulty Calculator', `
     <div class="diff-calc-section">
       <h6>Party</h6>
@@ -5044,9 +5040,9 @@ const CR_XP: Record<string, number> = {
   `);
   // Add first monster row
   addMonsterRow();
-};
+});
 
-(window as any).addMonsterRow = function () {
+expose('addMonsterRow', function () {
   const list = document.getElementById('ecMonsterList');
   if (!list) return;
   const idx = list.children.length;
@@ -5061,9 +5057,9 @@ const CR_XP: Record<string, number> = {
   `;
   list.appendChild(row);
   calcEncounterDifficulty();
-};
+});
 
-(window as any).calcEncounterDifficulty = function () {
+expose('calcEncounterDifficulty', function () {
   const partySize = parseInt((document.getElementById('ecPartySize') as HTMLInputElement)?.value) || 4;
   const avgLevel = parseInt((document.getElementById('ecAvgLevel') as HTMLInputElement)?.value) || 5;
   const resultEl = document.getElementById('ecResult');
@@ -5137,7 +5133,7 @@ const CR_XP: Record<string, number> = {
     </div>
     ${monsters.filter(m => m.name).length ? `<div class="mt-2 small">${monsters.filter(m => m.name).map(m => `<div>${esc(m.name)} ×${m.qty} (${m.xp.toLocaleString()} XP)</div>`).join('')}</div>` : ''}
   `;
-};
+});
 
 // ─── Treasure Generator ───
 
@@ -5181,7 +5177,7 @@ async function rollDice(dice: string): Promise<number> {
   }
 }
 
-(window as any).showTreasureGenerator = function () {
+expose('showTreasureGenerator', function () {
   showModal('Treasure Generator', `
     <div class="diff-calc-section">
       <div class="row g-2 mb-2">
@@ -5208,9 +5204,9 @@ async function rollDice(dice: string): Promise<number> {
       <button class="btn btn-sm btn-outline-secondary" onclick="hideModal()">Close</button>
     </div>
   `);
-};
+});
 
-(window as any).generateTreasure = async function () {
+expose('generateTreasure', async function () {
   const lvl = parseInt((document.getElementById('tgLevel') as HTMLSelectElement).value) || 5;
   const diff = (document.getElementById('tgDifficulty') as HTMLSelectElement).value;
   const resultEl = document.getElementById('tgResult');
@@ -5248,7 +5244,7 @@ async function rollDice(dice: string): Promise<number> {
     </div>
     <button class="btn btn-sm btn-outline-primary mt-2 w-100" onclick="generateTreasure()"><i class="fa-solid fa-rotate me-1"></i>Generate Again</button>
   `;
-};
+});
 
 // AI Generation → extracted to ts/ai.ts
 import { initAIClickHandler } from './ai';
@@ -5260,8 +5256,8 @@ import { initPdfViewerCleanup } from './pdf-viewer';
 import { init } from './init';
 
 // These are called from inline HTML onclick — register at window level
-(window as any).openCampaignDashboard = function (campaignId: number, name: string) {
+expose('openCampaignDashboard', function (campaignId: number, name: string) {
   (window as any).showCampaignDashboard(campaignId, name);
-};
+});
 
 init();

@@ -4,10 +4,11 @@ import { esc, showModal, hideModal, toast } from './lib/dom';
 import { api } from './lib/api';
 import { showView } from './navigation';
 import { animateHpChange, animateTurnChange } from './lib/animations';
+import { expose } from './lib/expose';
 
 // ─── Combat Tracker ───
 
-(window as any).showCombatTracker = async function () {
+expose('showCombatTracker', async function () {
   showView('combatTracker');
   const el = document.getElementById('combatTrackerContent')!;
   el.innerHTML = '<div class="ornament">✧ Loading combat tracker... ✧</div>';
@@ -89,14 +90,14 @@ import { animateHpChange, animateTurnChange } from './lib/animations';
   } catch (e: any) {
     el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(e.message)}</p></div>`;
   }
-};
+});
 
 async function findCombatEntry(id: number): Promise<any> {
   const entries = await api('GET', '/api/combat');
   return entries.find((e: any) => e.id === id);
 }
 
-(window as any).combatTrackerDamage = async function (id: number) {
+expose('combatTrackerDamage', async function (id: number) {
   const input = document.getElementById('qdamage-' + id) as HTMLInputElement;
   const dmg = parseInt(input?.value || '0');
   if (!dmg) return;
@@ -118,9 +119,9 @@ async function findCombatEntry(id: number): Promise<any> {
       }
     }
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).combatTrackerHeal = async function (id: number) {
+expose('combatTrackerHeal', async function (id: number) {
   const input = document.getElementById('qdamage-' + id) as HTMLInputElement;
   const heal = parseInt(input?.value || '0');
   if (!heal) return;
@@ -142,9 +143,9 @@ async function findCombatEntry(id: number): Promise<any> {
       }
     }
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).toggleCombatActive = async function (id: number) {
+expose('toggleCombatActive', async function (id: number) {
   try {
     const entry = await findCombatEntry(id);
     if (!entry) { toast('Entry not found', true); return; }
@@ -152,17 +153,17 @@ async function findCombatEntry(id: number): Promise<any> {
     await api('PUT', '/api/combat/' + id, entry);
     (window as any).showCombatTracker();
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).deleteCombatEntry = async function (id: number) {
+expose('deleteCombatEntry', async function (id: number) {
   if (!confirm('Remove this combatant?')) return;
   try {
     await api('DELETE', '/api/combat/' + id);
     (window as any).showCombatTracker();
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).rollAllInitiative = async function () {
+expose('rollAllInitiative', async function () {
   try {
     const entries = await api('GET', '/api/combat');
     for (const e of entries) {
@@ -174,9 +175,9 @@ async function findCombatEntry(id: number): Promise<any> {
     (window as any).showCombatTracker();
     toast('Initiative rolled for all combatants');
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).advanceCombatTurn = async function () {
+expose('advanceCombatTurn', async function () {
   try {
     // Find the currently active row before advancing
     const prevActiveRow = document.querySelector('tr.table-active') as HTMLElement | null;
@@ -190,9 +191,9 @@ async function findCombatEntry(id: number): Promise<any> {
     }
     toast(result.current_entry ? `Turn: ${result.current_entry.name}` : 'Turn advanced');
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).showAddCombatEntry = function () {
+expose('showAddCombatEntry', function () {
   showModal('Add Combatant', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="ceName"></div>
     <div class="row g-3 mb-3">
@@ -206,9 +207,9 @@ async function findCombatEntry(id: number): Promise<any> {
     </div>
     <button class="btn btn-primary w-100" onclick="saveNewCombatEntry()"><i class="fa-solid fa-plus me-1"></i>Add</button>
   `);
-};
+});
 
-(window as any).saveNewCombatEntry = async function () {
+expose('saveNewCombatEntry', async function () {
   await api('POST', '/api/combat', {
     name: (document.getElementById('ceName') as HTMLInputElement).value,
     type: (document.getElementById('ceType') as HTMLSelectElement).value,
@@ -220,16 +221,16 @@ async function findCombatEntry(id: number): Promise<any> {
   hideModal();
   (window as any).showCombatTracker();
   toast('Combatant added');
-};
+});
 
 let draggedCombatId: number | null = null;
 
-(window as any).dragCombatEntry = function (ev: any, id: number) {
+expose('dragCombatEntry', function (ev: any, id: number) {
   draggedCombatId = id;
   ev.dataTransfer.effectAllowed = 'move';
-};
+});
 
-(window as any).dropCombatEntry = async function (ev: any, targetId: number) {
+expose('dropCombatEntry', async function (ev: any, targetId: number) {
   ev.preventDefault();
   if (draggedCombatId === null || draggedCombatId === targetId) return;
   try {
@@ -246,4 +247,4 @@ let draggedCombatId: number | null = null;
     (window as any).showCombatTracker();
     toast('Reordered');
   } catch (e: any) { toast(e.message, true); }
-};
+});

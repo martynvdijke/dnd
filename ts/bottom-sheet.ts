@@ -1,4 +1,5 @@
 import type { BottomSheetConfig } from './types';
+import { expose } from './lib/expose';
 
 let activeSheet: HTMLElement | null = null;
 let startY = 0;
@@ -91,5 +92,5 @@ export function closeBottomSheet(): void {
   }
 }
 
-(window as any).openBottomSheet = openBottomSheet;
-(window as any).closeBottomSheet = closeBottomSheet;
+expose('openBottomSheet', openBottomSheet);
+expose('closeBottomSheet', closeBottomSheet);

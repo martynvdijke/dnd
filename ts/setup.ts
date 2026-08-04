@@ -1,4 +1,5 @@
 import { toggleTheme, initTheme as sharedInitTheme } from './lib/theme';
+import { expose } from './lib/expose';
 
 function updateSetupThemeUI() {
   const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -13,10 +14,10 @@ function initTheme() {
   updateSetupThemeUI();
 }
 
-(window as any).toggleTheme = () => {
+expose('toggleTheme', () => {
   toggleTheme();
   updateSetupThemeUI();
-};
+});
 
 async function init() {
   initTheme();

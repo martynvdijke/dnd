@@ -12,6 +12,7 @@
 
 import { esc, toast } from './lib/dom';
 import { api } from './lib/api';
+import { expose } from './lib/expose';
 
 // ─── Types ───
 
@@ -170,7 +171,7 @@ function buildCommandPalette(panel: HTMLElement): void {
   renderRecents();
 }
 
-(window as any).__searchSetType = function (type: string) {
+expose('__searchSetType', function (type: string) {
   updateTypeFilter(type);
   const input = document.getElementById('searchInput') as HTMLInputElement;
   if (input && input.value.trim()) {
@@ -178,7 +179,7 @@ function buildCommandPalette(panel: HTMLElement): void {
   } else {
     renderRecents();
   }
-};
+});
 
 function updateTypeFilter(type: string): void {
   currentTypeFilter = type;
@@ -215,18 +216,18 @@ function renderRecents(): void {
     `).join('')}`;
 }
 
-(window as any).__clearRecents = function () {
+expose('__clearRecents', function () {
   clearRecents();
   renderRecents();
-};
+});
 
-(window as any).__searchRecent = function (query: string) {
+expose('__searchRecent', function (query: string) {
   const input = document.getElementById('searchInput') as HTMLInputElement;
   if (input) {
     input.value = query;
     doSearch(query);
   }
-};
+});
 
 // ─── Search Execution ───
 
@@ -344,10 +345,10 @@ function onSearchKeydown(e: KeyboardEvent, input: HTMLInputElement): void {
   }
 }
 
-(window as any).__searchHover = function (index: number) {
+expose('__searchHover', function (index: number) {
   selectedIndex = index;
   updateSelection(document.querySelectorAll('#cpResults .cp-result-item'));
-};
+});
 
 function updateSelection(items: NodeListOf<Element>): void {
   items.forEach((el, i) => {
@@ -361,7 +362,7 @@ function updateSelection(items: NodeListOf<Element>): void {
 
 // ─── Result Navigation ───
 
-(window as any).__searchNavigate = function (type: string, id: number, name: string) {
+expose('__searchNavigate', function (type: string, id: number, name: string) {
   hideSearchOverlay();
 
   // Use the same navigation as the existing legacy system
@@ -380,7 +381,7 @@ function updateSelection(items: NodeListOf<Element>): void {
       }
     });
   }
-};
+});
 
 // ─── Init ───
 
@@ -426,4 +427,4 @@ export function initSearch(): void {
 }
 
 // Backward compatibility: expose for e2e tests and legacy inline usage
-(window as any).doSearch = doSearch;
+expose('doSearch', doSearch);

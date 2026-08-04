@@ -10,6 +10,8 @@
  */
 import { showView } from '../navigation';
 
+export { expose } from './expose';
+
 import {
   toggleTheme,
 } from './theme';

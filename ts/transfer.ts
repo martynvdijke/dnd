@@ -9,6 +9,7 @@
  */
 import { api } from './lib/api';
 import { showModal, hideModal, esc, toast } from './lib/dom';
+import { expose } from './lib/expose';
 
 // ─── Types ───
 
@@ -88,7 +89,7 @@ export function showTransferExport(preSelectedType?: string, campaignId?: number
  * Perform export and download as JSON.
  * Called from onclick in the export modal.
  */
-(window as any).transferDoExport = async function (campaignId: number | null) {
+expose('transferDoExport', async function (campaignId: number | null) {
   const checked = document.querySelectorAll<HTMLInputElement>('.transfer-type-chip input:checked');
   const types = Array.from(checked).map(cb => cb.value);
   if (types.length === 0 && !campaignId) {
@@ -119,7 +120,7 @@ export function showTransferExport(preSelectedType?: string, campaignId?: number
   } catch (e: any) {
     toast('Export failed: ' + e.message, true);
   }
-};
+});
 
 // ─── Import ───
 
@@ -170,18 +171,18 @@ async function readImportSource(): Promise<any> {
   throw new Error('Select a file or paste JSON');
 }
 
-(window as any).transferOnFileChange = function () {
+expose('transferOnFileChange', function () {
   // Clear textarea when a file is selected
   const fileEl = document.getElementById('transferImportFile') as HTMLInputElement;
   if (fileEl.files && fileEl.files[0]) {
     (document.getElementById('transferImportJson') as HTMLTextAreaElement).value = '';
   }
-};
+});
 
 /**
  * Run a dry-run import, then let the user confirm the actual import.
  */
-(window as any).transferDoImport = async function () {
+expose('transferDoImport', async function () {
   let data: any;
   try {
     data = await readImportSource();
@@ -234,16 +235,16 @@ async function readImportSource(): Promise<any> {
       </div>
     `;
     // Store data for confirmation step
-    (window as any).__transferPendingData = data;
+    expose('__transferPendingData', data);
   } catch (e: any) {
     toast('Import preview failed: ' + e.message, true);
   }
-};
+});
 
 /**
  * Execute the confirmed import after dry run preview.
  */
-(window as any).transferConfirmImport = async function () {
+expose('transferConfirmImport', async function () {
   const data = (window as any).__transferPendingData;
   if (!data) {
     toast('No import data. Please start again.', true);
@@ -252,7 +253,7 @@ async function readImportSource(): Promise<any> {
 
   try {
     const result: TransferImportResult = await api('POST', '/api/transfer/import', data);
-    (window as any).__transferPendingData = null;
+    expose('__transferPendingData', null);
 
     // Show result
     const results = result.results || [];
@@ -295,7 +296,7 @@ async function readImportSource(): Promise<any> {
   } catch (e: any) {
     toast('Import failed: ' + e.message, true);
   }
-};
+});
 
 // ─── Transfer Logs ───
 
@@ -361,6 +362,6 @@ export async function showTransferLogs(): Promise<void> {
 
 // ─── Init — wire global references ───
 
-(window as any).showTransferExport = showTransferExport;
-(window as any).showTransferImport = showTransferImport;
-(window as any).showTransferLogs = showTransferLogs;
+expose('showTransferExport', showTransferExport);
+expose('showTransferImport', showTransferImport);
+expose('showTransferLogs', showTransferLogs);

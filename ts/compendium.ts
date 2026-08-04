@@ -3,10 +3,11 @@
 import { esc, capitalize } from './lib/dom';
 import { api } from './lib/api';
 import { showView } from './navigation';
+import { expose } from './lib/expose';
 
 // ─── Compendium Global Search Navigation ───
 
-(window as any).compendiumNavigateToSearchResult = function (type: string, id: number) {
+expose('compendiumNavigateToSearchResult', function (type: string, id: number) {
   const tabMap: Record<string, string> = {
     spell: 'spells',
     equipment: 'equipment',
@@ -25,17 +26,17 @@ import { showView } from './navigation';
   if (compView) {
     compView.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
-};
+});
 
 // ─── Compendium ───
 
-(window as any).showCompendium = function () {
+expose('showCompendium', function () {
   showView('compendium');
   loadCompendiumMonsters();
   loadCompendiumSchemaTypes();
-};
+});
 
-(window as any).loadCompendiumTab = function (tab: string) {
+expose('loadCompendiumTab', function (tab: string) {
   document.getElementById('compTabRaces')!.classList.remove('active');
   document.getElementById('compTabClasses')!.classList.remove('active');
   document.getElementById('compTabSpells')!.classList.remove('active');
@@ -52,7 +53,7 @@ import { showView } from './navigation';
   if (tab === 'spells') loadCompendiumSpells();
   if (tab === 'equipment') loadCompendiumEquipment();
   if (tab === 'monsters') loadCompendiumMonsters();
-};
+});
 
 // ─── Dynamic Schema Tabs (imported entries) ───
 
@@ -95,7 +96,7 @@ async function loadCompendiumSchemaTypes() {
   } catch { /* no schema entries — hide section */ }
 }
 
-(window as any).loadCompendiumSchemaTab = function (typeName: string) {
+expose('loadCompendiumSchemaTab', function (typeName: string) {
   const tabsEl = document.getElementById('compSchemaTabs');
   if (!tabsEl) return;
   tabsEl.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
@@ -110,7 +111,7 @@ async function loadCompendiumSchemaTypes() {
   const pane = document.getElementById('compSchemaContent-' + typeName);
   if (pane) pane.style.display = 'block';
   activeSchemaTab = typeName;
-};
+});
 
 export function renderSchemaEntries(schema: any): string {
   const entries = schema.entries || [];

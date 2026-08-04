@@ -1,4 +1,5 @@
 import type { FABAction, ViewState } from './types';
+import { expose } from './lib/expose';
 
 const actionMap: Record<string, FABAction[]> = {
   characters: [
@@ -57,7 +58,7 @@ export function toggleFabMenu(): void {
   if (menu) menu.classList.toggle('open');
 }
 
-(window as any).toggleFabMenu = toggleFabMenu;
+expose('toggleFabMenu', toggleFabMenu);
 
 export function updateFabForView(view: ViewState, isSessionMode: boolean = false): void {
   const menu = document.getElementById('fabMenu');

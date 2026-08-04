@@ -1,3 +1,4 @@
+import { expose } from './lib/expose';
 (() => {
 
 let csrfToken = '';
@@ -25,7 +26,7 @@ function toggleTheme() {
   const icon = document.getElementById('themeIcon');
   if (icon) icon.className = isDark ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
 }
-(window as any).toggleTheme = toggleTheme;
+expose('toggleTheme', toggleTheme);
 
 function initTheme() {
   const saved = localStorage.getItem('villum-theme') || 'light';
@@ -76,7 +77,7 @@ function showAdminTab(tab: string) {
   if (tab === 'logs') { startLogAutoRefresh(); }
   else { stopLogAutoRefresh(); }
 }
-(window as any).showAdminTab = showAdminTab;
+expose('showAdminTab', showAdminTab);
 
 // ─── Unified Compendium ───
 
@@ -116,7 +117,7 @@ async function loadUnifiedCompendium() {
   }
 }
 
-(window as any).loadUnifiedCompendium = loadUnifiedCompendium;
+expose('loadUnifiedCompendium', loadUnifiedCompendium);
 
 // ─── Global Cross-Schema Search ───
 
@@ -133,7 +134,7 @@ function onGlobalSearchInput(value: string) {
   }
   globalSearchTimeout = setTimeout(() => doGlobalSearch(q), 300);
 }
-(window as any).onGlobalSearchInput = onGlobalSearchInput;
+expose('onGlobalSearchInput', onGlobalSearchInput);
 
 async function doGlobalSearch(q: string) {
   try {
@@ -189,7 +190,7 @@ function openEntryFromSearch(entryId: number, typeId: number) {
     toast('Could not open entry', true);
   });
 }
-(window as any).openEntryFromSearch = openEntryFromSearch;
+expose('openEntryFromSearch', openEntryFromSearch);
 
 function clearGlobalSearch() {
   (document.getElementById('compendiumGlobalSearch') as HTMLInputElement).value = '';
@@ -197,7 +198,7 @@ function clearGlobalSearch() {
   document.getElementById('unifiedSchemaListView')!.style.display = 'block';
   document.getElementById('unifiedEntryBrowser')!.style.display = 'none';
 }
-(window as any).clearGlobalSearch = clearGlobalSearch;
+expose('clearGlobalSearch', clearGlobalSearch);
 
 // ─── Entry Browser ───
 
@@ -213,14 +214,14 @@ function browseSchema(schemaId: number, schemaName: string) {
   document.getElementById('entryBrowserTitle')!.textContent = schemaName + ' Entries';
   loadSchemaEntries();
 }
-(window as any).browseSchema = browseSchema;
+expose('browseSchema', browseSchema);
 
 function backToSchemaList() {
   document.getElementById('unifiedEntryBrowser')!.style.display = 'none';
   document.getElementById('unifiedSchemaListView')!.style.display = 'block';
   currentSchemaId = 0;
 }
-(window as any).backToSchemaList = backToSchemaList;
+expose('backToSchemaList', backToSchemaList);
 
 async function loadSchemaEntries() {
   const schemaId = currentSchemaId;
@@ -308,7 +309,7 @@ function goToPage(page: number) {
   currentSchemaPage = page;
   loadSchemaEntries();
 }
-(window as any).goToPage = goToPage;
+expose('goToPage', goToPage);
 
 let entrySearchTimeout: any = null;
 function onEntrySearchInput(value: string) {
@@ -317,12 +318,12 @@ function onEntrySearchInput(value: string) {
   currentSchemaPage = 1;
   entrySearchTimeout = setTimeout(() => loadSchemaEntries(), 300);
 }
-(window as any).onEntrySearchInput = onEntrySearchInput;
+expose('onEntrySearchInput', onEntrySearchInput);
 
 function addEntryCurrentSchema() {
   if (currentSchemaId) createSchemaEntry(currentSchemaId);
 }
-(window as any).addEntryCurrentSchema = addEntryCurrentSchema;
+expose('addEntryCurrentSchema', addEntryCurrentSchema);
 
 // ─── Entry Selection / Bulk Ops ───
 
@@ -331,7 +332,7 @@ function toggleEntrySelect(id: number) {
   else selectedEntryIds.add(id);
   updateBulkActionsToolbar();
 }
-(window as any).toggleEntrySelect = toggleEntrySelect;
+expose('toggleEntrySelect', toggleEntrySelect);
 
 function toggleSelectAll() {
   const cb = document.getElementById('selectAllEntries') as HTMLInputElement;
@@ -344,7 +345,7 @@ function toggleSelectAll() {
   });
   updateBulkActionsToolbar();
 }
-(window as any).toggleSelectAll = toggleSelectAll;
+expose('toggleSelectAll', toggleSelectAll);
 
 function updateBulkActionsToolbar() {
   const count = selectedEntryIds.size;
@@ -361,7 +362,7 @@ function clearEntrySelection() {
   if (selAll) selAll.checked = false;
   updateBulkActionsToolbar();
 }
-(window as any).clearEntrySelection = clearEntrySelection;
+expose('clearEntrySelection', clearEntrySelection);
 
 async function batchDeleteEntries() {
   const ids = Array.from(selectedEntryIds);
@@ -376,7 +377,7 @@ async function batchDeleteEntries() {
     toast(e.message, true);
   }
 }
-(window as any).batchDeleteEntries = batchDeleteEntries;
+expose('batchDeleteEntries', batchDeleteEntries);
 
 async function batchEditEntries() {
   const ids = Array.from(selectedEntryIds);
@@ -401,7 +402,7 @@ async function batchEditEntries() {
     <button class="btn btn-secondary" onclick="hideModal()">Cancel</button>
   `);
 }
-(window as any).batchEditEntries = batchEditEntries;
+expose('batchEditEntries', batchEditEntries);
 
 async function saveBatchEdit() {
   const field = (document.getElementById('bulkField') as HTMLSelectElement).value;
@@ -418,7 +419,7 @@ async function saveBatchEdit() {
     toast(e.message, true);
   }
 }
-(window as any).saveBatchEdit = saveBatchEdit;
+expose('saveBatchEdit', saveBatchEdit);
 
 async function batchExportEntries() {
   const ids = Array.from(selectedEntryIds);
@@ -443,7 +444,7 @@ async function batchExportEntries() {
     toast('Export failed: ' + e.message, true);
   }
 }
-(window as any).batchExportEntries = batchExportEntries;
+expose('batchExportEntries', batchExportEntries);
 
 // ─── Entry CRUD ───
 
@@ -457,7 +458,7 @@ function createSchemaEntry(schemaId: number) {
     showModal('Create Entry in ' + esc(schema.display_name), getEntryFormHtml(null));
   }).catch((e: any) => toast(e.message, true));
 }
-(window as any).createSchemaEntry = createSchemaEntry;
+expose('createSchemaEntry', createSchemaEntry);
 
 function editSchemaEntryById(entryId: number, schemaId: number) {
   Promise.all([
@@ -472,7 +473,7 @@ function editSchemaEntryById(entryId: number, schemaId: number) {
     showModal('Edit Entry', getEntryFormHtml(entry.data || entry));
   }).catch((e: any) => toast(e.message, true));
 }
-(window as any).editSchemaEntryById = editSchemaEntryById;
+expose('editSchemaEntryById', editSchemaEntryById);
 
 function viewSchemaEntry(entryId: number) {
   api('GET', '/api/admin/compendium-entries/' + entryId).then(entry => {
@@ -511,7 +512,7 @@ function viewSchemaEntry(entryId: number) {
     });
   }).catch((e: any) => toast(e.message, true));
 }
-(window as any).viewSchemaEntry = viewSchemaEntry;
+expose('viewSchemaEntry', viewSchemaEntry);
 
 async function duplicateSchemaEntry(entryId: number, schemaId: number) {
   try {
@@ -527,7 +528,7 @@ async function duplicateSchemaEntry(entryId: number, schemaId: number) {
     toast(e.message, true);
   }
 }
-(window as any).duplicateSchemaEntry = duplicateSchemaEntry;
+expose('duplicateSchemaEntry', duplicateSchemaEntry);
 
 function deleteSchemaEntryById(entryId: number) {
   if (!confirm('Delete this entry?')) return;
@@ -537,7 +538,7 @@ function deleteSchemaEntryById(entryId: number) {
     loadSchemaEntries();
   }).catch((e: any) => toast(e.message, true));
 }
-(window as any).deleteSchemaEntryById = deleteSchemaEntryById;
+expose('deleteSchemaEntryById', deleteSchemaEntryById);
 
 // ─── Schema-Aware Entry Editor ───
 
@@ -604,7 +605,7 @@ function getEntryFormHtml(data: any): string {
     </div>`;
 }
 
-(window as any).saveEntry = async function () {
+expose('saveEntry', async function () {
   const data: Record<string, any> = {};
   let valid = true;
 
@@ -673,14 +674,14 @@ function getEntryFormHtml(data: any): string {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
 // ─── Import Integration ───
 
 function openImportForSchema() {
   if (currentSchemaId) openImportForSchemaId(currentSchemaId);
 }
-(window as any).openImportForSchema = openImportForSchema;
+expose('openImportForSchema', openImportForSchema);
 
 function openImportForSchemaId(schemaId: number) {
   // Show the import tab with the schema pre-selected
@@ -696,7 +697,7 @@ function openImportForSchemaId(schemaId: number) {
     }
   }, 500);
 }
-(window as any).openImportForSchemaId = openImportForSchemaId;
+expose('openImportForSchemaId', openImportForSchemaId);
 
 // ─── Legacy Migration ───
 
@@ -722,7 +723,7 @@ async function checkLegacyMigrationStatus() {
 function dismissLegacyBanner() {
   document.getElementById('legacyMigrationBanner')!.style.display = 'none';
 }
-(window as any).dismissLegacyBanner = dismissLegacyBanner;
+expose('dismissLegacyBanner', dismissLegacyBanner);
 
 async function runLegacyMigration() {
   if (!confirm('Migrate legacy compendium data to the new schema system?')) return;
@@ -738,7 +739,7 @@ async function runLegacyMigration() {
   }
   if (btn) btn.innerHTML = 'Migrate now';
 }
-(window as any).runLegacyMigration = runLegacyMigration;
+expose('runLegacyMigration', runLegacyMigration);
 
 // ─── Logs ───
 
@@ -851,7 +852,7 @@ function toggleLogDetail(detailId: string) {
   const isVisible = detailRow.style.display !== 'none';
   detailRow.style.display = isVisible ? 'none' : 'table-row';
 }
-(window as any).toggleLogDetail = toggleLogDetail;
+expose('toggleLogDetail', toggleLogDetail);
 
 async function loadLogLevel() {
   try {
@@ -869,14 +870,14 @@ async function setLogLevel(level: string) {
     toast(e.message, true);
   }
 }
-(window as any).setLogLevel = setLogLevel;
+expose('setLogLevel', setLogLevel);
 
 function clearLogFilters() {
   const sourceFilter = document.getElementById('logSourceFilter') as HTMLSelectElement;
   if (sourceFilter) sourceFilter.value = '';
   loadLogs();
 }
-(window as any).clearLogFilters = clearLogFilters;
+expose('clearLogFilters', clearLogFilters);
 
 // ─── Users ───
 
@@ -904,7 +905,7 @@ async function loadUsers() {
   }
 }
 
-(window as any).showAddUser = function () {
+expose('showAddUser', function () {
   showModal('Add User', `
     <div class="mb-3"><label class="form-label">Username</label><input class="form-control" id="addUsername"></div>
     <div class="mb-3"><label class="form-label">Password</label><input class="form-control" type="password" id="addPassword"></div>
@@ -916,9 +917,9 @@ async function loadUsers() {
     </div>
     <button class="btn btn-primary w-100" onclick="saveNewUser()">Create</button>
   `);
-};
+});
 
-(window as any).saveNewUser = async function () {
+expose('saveNewUser', async function () {
   try {
     await api('POST', '/api/admin/users', {
       username: (document.getElementById('addUsername') as HTMLInputElement).value,
@@ -933,9 +934,9 @@ async function loadUsers() {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).editUser = function (id: number, username: string, display: string, email: string, role: string) {
+expose('editUser', function (id: number, username: string, display: string, email: string, role: string) {
   showModal('Edit User', `
     <div class="mb-3"><label class="form-label">Username</label><input class="form-control" id="editUsername" value="${esc(username)}"></div>
     <div class="mb-3"><label class="form-label">Display Name</label><input class="form-control" id="editDisplay" value="${esc(display)}"></div>
@@ -946,9 +947,9 @@ async function loadUsers() {
     </div>
     <button class="btn btn-primary w-100" onclick="saveEditUser(${id})">Save</button>
   `);
-};
+});
 
-(window as any).saveEditUser = async function (id: number) {
+expose('saveEditUser', async function (id: number) {
   try {
     await api('PUT', `/api/admin/users/${id}`, {
       username: (document.getElementById('editUsername') as HTMLInputElement).value,
@@ -962,9 +963,9 @@ async function loadUsers() {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).deleteUser = async function (id: number) {
+expose('deleteUser', async function (id: number) {
   if (!confirm('Delete this user?')) return;
   try {
     await api('DELETE', `/api/admin/users/${id}`);
@@ -973,16 +974,16 @@ async function loadUsers() {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).resetPass = function (id: number) {
+expose('resetPass', function (id: number) {
   showModal('Reset Password', `
     <div class="mb-3"><label class="form-label">New Password</label><input class="form-control" type="password" id="resetPass"></div>
     <button class="btn btn-primary w-100" onclick="doResetPass(${id})">Reset</button>
   `);
-};
+});
 
-(window as any).doResetPass = async function (id: number) {
+expose('doResetPass', async function (id: number) {
   try {
     await api('PUT', `/api/admin/users/${id}/password`, {
       password: (document.getElementById('resetPass') as HTMLInputElement).value,
@@ -992,18 +993,18 @@ async function loadUsers() {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
 // ─── Schemas ───
 
 let schemaEditId: number | null = null;
 
-(window as any).showAddSchema = function () {
+expose('showAddSchema', function () {
   schemaEditId = null;
   showModal('New Compendium Schema', getSchemaFormHtml(null));
-};
+});
 
-(window as any).editSchema = async function (id: number) {
+expose('editSchema', async function (id: number) {
   schemaEditId = id;
   try {
     const s = await api('GET', `/api/admin/compendium-schemas/${id}`);
@@ -1011,7 +1012,7 @@ let schemaEditId: number | null = null;
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
 function getSchemaFormHtml(schema: any): string {
   const s = schema || {};
@@ -1057,18 +1058,18 @@ function getSchemaFieldHtml(field: any, index: number): string {
   </div>`;
 }
 
-(window as any).addSchemaField = function () {
+expose('addSchemaField', function () {
   const container = document.getElementById('schemaFields')!;
   const index = container.children.length;
   container.insertAdjacentHTML('beforeend', getSchemaFieldHtml({ key: '', label: '', type: 'text', required: false }, index));
-};
+});
 
-(window as any).removeSchemaField = function (index: number) {
+expose('removeSchemaField', function (index: number) {
   const el = document.getElementById('sf-' + index);
   if (el) el.remove();
-};
+});
 
-(window as any).saveSchema = async function () {
+expose('saveSchema', async function () {
   const display_name = (document.getElementById('schemaDisplayName') as HTMLInputElement).value.trim();
   const type_name = (document.getElementById('schemaTypeName') as HTMLInputElement).value.trim();
   if (!display_name || !type_name) { toast('Display Name and Type Name are required', true); return; }
@@ -1100,9 +1101,9 @@ function getSchemaFieldHtml(field: any, index: number): string {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).deleteSchema = async function (id: number) {
+expose('deleteSchema', async function (id: number) {
   if (!confirm('Delete this schema? This cannot be undone.')) return;
   try {
     await api('DELETE', `/api/admin/compendium-schemas/${id}`);
@@ -1111,7 +1112,7 @@ function getSchemaFieldHtml(field: any, index: number): string {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
 // ─── Backup ───
 
@@ -1124,7 +1125,7 @@ async function loadBackupSettings() {
   } catch {}
 }
 
-(window as any).saveBackupSettings = async function () {
+expose('saveBackupSettings', async function () {
   try {
     await api('PUT', '/api/backup/settings', {
       enabled: (document.getElementById('backupEnabled') as HTMLInputElement).checked,
@@ -1135,7 +1136,7 @@ async function loadBackupSettings() {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
 async function loadBackupList() {
   try {
@@ -1149,7 +1150,7 @@ async function loadBackupList() {
   } catch {}
 }
 
-(window as any).triggerBackup = async function () {
+expose('triggerBackup', async function () {
   try {
     const result = await api('POST', '/api/backup/trigger');
     toast('Backup created: ' + result.path);
@@ -1157,7 +1158,7 @@ async function loadBackupList() {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
 // ─── Email Settings ───
 
@@ -1175,7 +1176,7 @@ async function loadEmailSettings() {
   } catch {}
 }
 
-(window as any).saveEmailSettings = async function () {
+expose('saveEmailSettings', async function () {
   try {
     await api('POST', '/api/admin/email-settings', {
       smtp_host: (document.getElementById('smtpHost') as HTMLInputElement).value,
@@ -1189,9 +1190,9 @@ async function loadEmailSettings() {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).testEmailSettings = async function () {
+expose('testEmailSettings', async function () {
   try {
     await api('POST', '/api/admin/email-settings', {
       smtp_host: (document.getElementById('smtpHost') as HTMLInputElement).value,
@@ -1206,7 +1207,7 @@ async function loadEmailSettings() {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
 // ─── Umami Analytics ───
 
@@ -1221,7 +1222,7 @@ async function loadUmamiSettings() {
   } catch {}
 }
 
-(window as any).saveUmamiSettings = async function () {
+expose('saveUmamiSettings', async function () {
   try {
     await api('POST', '/api/admin/umami-settings', {
       enabled: (document.getElementById('umamiEnabled') as HTMLInputElement).checked,
@@ -1234,7 +1235,7 @@ async function loadUmamiSettings() {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
 // ─── OpenTelemetry ───
 
@@ -1246,7 +1247,7 @@ async function loadOTelSettings() {
   } catch {}
 }
 
-(window as any).saveOTelSettings = async function () {
+expose('saveOTelSettings', async function () {
   try {
     await api('POST', '/api/admin/otel-settings', {
       enabled: (document.getElementById('otelEnabled') as HTMLInputElement).checked,
@@ -1256,7 +1257,7 @@ async function loadOTelSettings() {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
 // ─── AI Endpoints ───
 
@@ -1285,16 +1286,16 @@ async function loadAIEndpoints() {
     toast(e.message, true);
   }
 }
-(window as any).loadAIEndpoints = loadAIEndpoints;
+expose('loadAIEndpoints', loadAIEndpoints);
 
 function toggleAIEndpointFields() {
   const type = (document.getElementById('aiEndpointType') as HTMLSelectElement).value;
   document.getElementById('aiEndpointTextFields')!.style.display = type === 'text' ? 'flex' : 'none';
   document.getElementById('aiEndpointImageSizeField')!.style.display = type === 'image' ? 'block' : 'none';
 }
-(window as any).toggleAIEndpointFields = toggleAIEndpointFields;
+expose('toggleAIEndpointFields', toggleAIEndpointFields);
 
-(window as any).showAddAIEndpoint = function () {
+expose('showAddAIEndpoint', function () {
   aiEndpointEditId = null;
   document.getElementById('aiEndpointModalTitle')!.textContent = 'Add AI Endpoint';
   (document.getElementById('aiEndpointId') as HTMLInputElement).value = '';
@@ -1311,9 +1312,9 @@ function toggleAIEndpointFields() {
   toggleAIEndpointFields();
   const modal = new (window as any).bootstrap.Modal(document.getElementById('aiEndpointModal')!);
   modal.show();
-};
+});
 
-(window as any).editAIEndpoint = async function (id: number) {
+expose('editAIEndpoint', async function (id: number) {
   aiEndpointEditId = id;
   try {
     const ep = await api('GET', `/api/admin/ai-endpoints/${id}`);
@@ -1336,9 +1337,9 @@ function toggleAIEndpointFields() {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).saveAIEndpoint = async function () {
+expose('saveAIEndpoint', async function () {
   const name = (document.getElementById('aiEndpointName') as HTMLInputElement).value.trim();
   const type = (document.getElementById('aiEndpointType') as HTMLSelectElement).value;
   const base_url = (document.getElementById('aiEndpointBaseURL') as HTMLInputElement).value.trim();
@@ -1381,9 +1382,9 @@ function toggleAIEndpointFields() {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).deleteAIEndpoint = async function (id: number) {
+expose('deleteAIEndpoint', async function (id: number) {
   if (!confirm('Delete this AI endpoint? This cannot be undone.')) return;
   try {
     await api('DELETE', `/api/admin/ai-endpoints/${id}`);
@@ -1392,9 +1393,9 @@ function toggleAIEndpointFields() {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).testAIEndpoint = async function (id: number) {
+expose('testAIEndpoint', async function (id: number) {
   const btn = event?.target as HTMLElement;
   if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
   try {
@@ -1408,7 +1409,7 @@ function toggleAIEndpointFields() {
     toast(e.message, true);
   }
   if (btn) btn.innerHTML = '<i class="fa-solid fa-flask"></i>';
-};
+});
 
 // ─── Import Wizard ───
 
@@ -1453,16 +1454,16 @@ async function loadImportLogs() {
   } catch (e: any) { toast(e.message, true); }
 }
 
-(window as any).rollbackImport = async function (id: number) {
+expose('rollbackImport', async function (id: number) {
   if (!confirm('Roll back this import? This will delete imported entries. Cannot be undone.')) return;
   try {
     await api('POST', `/api/admin/compendium-import-logs/${id}/rollback`);
     toast('Import rolled back');
     loadImportLogs();
   } catch (e: any) { toast(e.message, true); }
-};
+});
 
-(window as any).onImportSchemaChange = function () {
+expose('onImportSchemaChange', function () {
   // If data is already loaded, re-run auto-detection instead of hiding everything
   if (importJsonData && importJsonData.records.length > 0) {
     autoDetectMapping();
@@ -1471,17 +1472,17 @@ async function loadImportLogs() {
   document.getElementById('importPreview')!.style.display = 'none';
   document.getElementById('importMapping')!.style.display = 'none';
   (document.getElementById('importStartBtn') as HTMLButtonElement).disabled = true;
-};
+});
 
-(window as any).showImportPaste = function () {
+expose('showImportPaste', function () {
   document.getElementById('importPasteArea')!.style.display = 'block';
   document.getElementById('importFetchArea')!.style.display = 'none';
-};
+});
 
-(window as any).showImportFetch = function () {
+expose('showImportFetch', function () {
   document.getElementById('importFetchArea')!.style.display = 'block';
   document.getElementById('importPasteArea')!.style.display = 'none';
-};
+});
 
 function handleImportFile(event: Event) {
   const input = event.target as HTMLInputElement;
@@ -1498,7 +1499,7 @@ function handleImportFile(event: Event) {
   };
   reader.readAsText(file);
 }
-(window as any).handleImportFile = handleImportFile;
+expose('handleImportFile', handleImportFile);
 
 function useImportPaste() {
   const text = (document.getElementById('importPasteText') as HTMLTextAreaElement).value.trim();
@@ -1510,7 +1511,7 @@ function useImportPaste() {
     toast('Invalid JSON: ' + err.message, true);
   }
 }
-(window as any).useImportPaste = useImportPaste;
+expose('useImportPaste', useImportPaste);
 
 async function fetchImportUrl() {
   const url = (document.getElementById('importFetchUrl') as HTMLInputElement).value.trim();
@@ -1557,7 +1558,7 @@ async function fetchImportUrl() {
   }
   if (btn) btn.innerHTML = '<i class="fa-solid fa-download me-1"></i> Fetch';
 }
-(window as any).fetchImportUrl = fetchImportUrl;
+expose('fetchImportUrl', fetchImportUrl);
 
 function setImportJsonData(data: any, filename: string) {
   const arr = Array.isArray(data) ? data : [data];
@@ -1629,7 +1630,7 @@ function autoDetectMapping() {
     toast('Detected ' + mapping.filter((m: any) => m.schemaField).length + ' mapped fields');
   }).catch((e: any) => toast(e.message, true));
 }
-(window as any).autoDetectMapping = autoDetectMapping;
+expose('autoDetectMapping', autoDetectMapping);
 
 function renderMappingTable(schemaFields: any[]) {
   const tbody = document.getElementById('importMappingTable')!.querySelector('tbody')!;
@@ -1647,9 +1648,9 @@ function renderMappingTable(schemaFields: any[]) {
   }).join('');
 }
 
-(window as any).updateMapping = function (idx: number, schemaField: string) {
+expose('updateMapping', function (idx: number, schemaField: string) {
   importMapping[idx].schemaField = schemaField;
-};
+});
 
 async function startImport() {
   const schemaId = parseInt((document.getElementById('importSchema') as HTMLSelectElement).value, 10);
@@ -1703,7 +1704,7 @@ async function startImport() {
   btn.innerHTML = '<i class="fa-solid fa-play me-1"></i>Start Import';
   loadImportLogs();
 }
-(window as any).startImport = startImport;
+expose('startImport', startImport);
 
 function resetImportForm() {
   importJsonData = null;
@@ -1718,7 +1719,7 @@ function resetImportForm() {
   (document.getElementById('importFileInput') as HTMLInputElement).value = '';
   (document.getElementById('importStartBtn') as HTMLButtonElement).disabled = true;
 }
-(window as any).resetImportForm = resetImportForm;
+expose('resetImportForm', resetImportForm);
 
 // ─── Utils ───
 
@@ -1768,10 +1769,10 @@ function toast(msg: string, isError = false) {
   setTimeout(() => el.remove(), 6000);
 }
 
-(window as any).logout = async function () {
+expose('logout', async function () {
   await api('POST', '/api/logout');
   window.location.href = '/login';
-};
+});
 
 // ─── PDF Viewer ───
 
@@ -1850,7 +1851,7 @@ function pdfViewerFilenameFromUrl(url: string): string {
   return decodeURIComponent(last);
 }
 
-(window as any).openPdfViewer = function (url: string, title?: string) {
+expose('openPdfViewer', function (url: string, title?: string) {
   pdfViewerUrl = url;
   pdfViewerTitle = title || pdfViewerFilenameFromUrl(url);
   const modalEl = document.getElementById('pdfViewerModal');
@@ -1886,31 +1887,31 @@ function pdfViewerFilenameFromUrl(url: string): string {
       pdfViewerShowError('Failed to load PDF: ' + (err.message || 'Unknown error'));
     });
   });
-};
+});
 
-(window as any).pdfViewerPrevPage = function () {
+expose('pdfViewerPrevPage', function () {
   if (!pdfViewerDoc || pdfViewerPage <= 1) return;
   pdfViewerPage--;
   pdfViewerRenderPage(pdfViewerPage);
-};
+});
 
-(window as any).pdfViewerNextPage = function () {
+expose('pdfViewerNextPage', function () {
   if (!pdfViewerDoc || pdfViewerPage >= pdfViewerDoc.numPages) return;
   pdfViewerPage++;
   pdfViewerRenderPage(pdfViewerPage);
-};
+});
 
-(window as any).pdfViewerZoomIn = function () {
+expose('pdfViewerZoomIn', function () {
   pdfViewerScale = Math.min(pdfViewerScale * 1.25, 5);
   if (pdfViewerDoc) pdfViewerRenderPage(pdfViewerPage);
-};
+});
 
-(window as any).pdfViewerZoomOut = function () {
+expose('pdfViewerZoomOut', function () {
   pdfViewerScale = Math.max(pdfViewerScale / 1.25, 0.25);
   if (pdfViewerDoc) pdfViewerRenderPage(pdfViewerPage);
-};
+});
 
-(window as any).pdfViewerFitToWidth = function () {
+expose('pdfViewerFitToWidth', function () {
   if (!pdfViewerDoc) return;
   const canvas = document.getElementById('pdfViewerCanvas') as HTMLCanvasElement;
   if (!canvas) return;
@@ -1922,9 +1923,9 @@ function pdfViewerFilenameFromUrl(url: string): string {
     pdfViewerScale = cw / ov.width;
     pdfViewerRenderPage(pdfViewerPage);
   });
-};
+});
 
-(window as any).pdfViewerDownload = function () {
+expose('pdfViewerDownload', function () {
   if (pdfViewerUrl) {
     const a = document.createElement('a');
     a.href = pdfViewerUrl;
@@ -1933,7 +1934,7 @@ function pdfViewerFilenameFromUrl(url: string): string {
     a.click();
     document.body.removeChild(a);
   }
-};
+});
 
 // Cleanup on modal close
 document.addEventListener('hidden.bs.modal', function (e: Event) {
@@ -1956,18 +1957,18 @@ document.addEventListener('keydown', function (e: KeyboardEvent) {
 
 // ─── Events Settings (Global) ───
 
-(window as any).toggleEventSourceFields = function () {
+expose('toggleEventSourceFields', function () {
   const isIcal = (document.getElementById('sourceTypeIcal') as HTMLInputElement).checked;
   (document.getElementById('eventsIcalUrlField') as HTMLElement).style.display = isIcal ? '' : 'none';
   (document.getElementById('eventsGoogleFields') as HTMLElement).style.display = isIcal ? 'none' : '';
   (document.getElementById('eventsGoogleOnlyFields') as HTMLElement).style.display = isIcal ? 'none' : '';
-};
+});
 
-(window as any).toggleEventsAuthFields = function () {
+expose('toggleEventsAuthFields', function () {
   const sa = (document.getElementById('authMethodServiceAccount') as HTMLInputElement).checked;
   (document.getElementById('eventsServiceAccountFields') as HTMLElement).style.display = sa ? '' : 'none';
   (document.getElementById('eventsOAuthFields') as HTMLElement).style.display = sa ? 'none' : '';
-};
+});
 
 async function loadEventsSettings() {
   try {
@@ -2006,9 +2007,9 @@ async function loadEventsSettings() {
     toast(e.message, true);
   }
 }
-(window as any).loadEventsSettings = loadEventsSettings;
+expose('loadEventsSettings', loadEventsSettings);
 
-(window as any).saveEventsSettings = async function () {
+expose('saveEventsSettings', async function () {
   const sourceTypeEl = document.querySelector('input[name="eventsSourceType"]:checked') as HTMLInputElement;
   const filterModeEl = document.querySelector('input[name="eventsFilterMode"]:checked') as HTMLInputElement;
   const authMethodEl = document.querySelector('input[name="eventsAuthMethod"]:checked') as HTMLInputElement;
@@ -2032,18 +2033,18 @@ async function loadEventsSettings() {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).clearEventsCache = async function () {
+expose('clearEventsCache', async function () {
   try {
     await api('POST', '/api/admin/events-cache/clear');
     toast('Events cache cleared');
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).copyPublicLink = async function () {
+expose('copyPublicLink', async function () {
   const input = document.getElementById('eventsPublicLink') as HTMLInputElement;
   try {
     await navigator.clipboard.writeText(input.value);
@@ -2054,14 +2055,14 @@ async function loadEventsSettings() {
     input.select();
     document.execCommand('copy');
   }
-};
+});
 
-(window as any).openEventsPage = function () {
+expose('openEventsPage', function () {
   const input = document.getElementById('eventsPublicLink') as HTMLInputElement;
   window.open(input.value, '_blank');
-};
+});
 
-(window as any).downloadQR = function () {
+expose('downloadQR', function () {
   const img = document.getElementById('eventsQRImg') as HTMLImageElement;
   const a = document.createElement('a');
   a.href = img.src;
@@ -2069,7 +2070,7 @@ async function loadEventsSettings() {
   document.body.appendChild(a);
   a.click();
   a.remove();
-};
+});
 
 // ─── Campaign Event Settings CRUD ───
 
@@ -2113,22 +2114,22 @@ async function loadCampaignEventSettings() {
     if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-danger text-center">Failed to load: ' + esc(e.message) + '</td></tr>';
   }
 }
-(window as any).loadCampaignEventSettings = loadCampaignEventSettings;
+expose('loadCampaignEventSettings', loadCampaignEventSettings);
 
-(window as any).toggleCampaignAuthFields = function () {
+expose('toggleCampaignAuthFields', function () {
   const sa = (document.getElementById('campaignAuthMethodServiceAccount') as HTMLInputElement).checked;
   (document.getElementById('campaignServiceAccountFields') as HTMLElement).style.display = sa ? '' : 'none';
   (document.getElementById('campaignOAuthFields') as HTMLElement).style.display = sa ? 'none' : '';
-};
+});
 
-(window as any).toggleCampaignEventSourceFields = function () {
+expose('toggleCampaignEventSourceFields', function () {
   const isIcal = (document.getElementById('campaignSourceTypeIcal') as HTMLInputElement).checked;
   (document.getElementById('campaignIcalUrlField') as HTMLElement).style.display = isIcal ? '' : 'none';
   (document.getElementById('campaignGoogleFields') as HTMLElement).style.display = isIcal ? 'none' : '';
   (document.getElementById('campaignGoogleOnlyFields') as HTMLElement).style.display = isIcal ? 'none' : '';
-};
+});
 
-(window as any).showAddCampaignEvent = function () {
+expose('showAddCampaignEvent', function () {
   campaignEventEditId = null;
   document.getElementById('campaignEventModalTitle')!.textContent = 'Add Campaign Event Page';
   (document.getElementById('campaignEventId') as HTMLInputElement).value = '';
@@ -2153,9 +2154,9 @@ async function loadCampaignEventSettings() {
   (document.getElementById('campaignOAuthFields') as HTMLElement).style.display = 'none';
   (window as any).toggleCampaignEventSourceFields();
   new (window as any).bootstrap.Modal(document.getElementById('campaignEventModal')!).show();
-};
+});
 
-(window as any).editCampaignEventSetting = async function (id: number) {
+expose('editCampaignEventSetting', async function (id: number) {
   campaignEventEditId = id;
   try {
     const c = await api('GET', '/api/admin/events-campaigns/' + id);
@@ -2199,7 +2200,7 @@ async function loadCampaignEventSettings() {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
 function updateCampaignSlugPreview() {
   const slug = (document.getElementById('campaignEventSlug') as HTMLInputElement).value.trim() || 'your-slug';
@@ -2211,7 +2212,7 @@ document.addEventListener('input', function (e: Event) {
   if (el && el.id === 'campaignEventSlug') updateCampaignSlugPreview();
 });
 
-(window as any).saveCampaignEventSetting = async function () {
+expose('saveCampaignEventSetting', async function () {
   const displayName = (document.getElementById('campaignEventDisplayName') as HTMLInputElement).value.trim();
   const slug = (document.getElementById('campaignEventSlug') as HTMLInputElement).value.trim();
   if (!displayName || !slug) { toast('Display name and slug are required', true); return; }
@@ -2251,9 +2252,9 @@ document.addEventListener('input', function (e: Event) {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
-(window as any).deleteCampaignEventSetting = async function (id: number) {
+expose('deleteCampaignEventSetting', async function (id: number) {
   if (!confirm('Delete this campaign event page? The public page will no longer be available.')) return;
   try {
     await api('DELETE', '/api/admin/events-campaigns/' + id);
@@ -2262,7 +2263,7 @@ document.addEventListener('input', function (e: Event) {
   } catch (e: any) {
     toast(e.message, true);
   }
-};
+});
 
 init();
 

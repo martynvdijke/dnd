@@ -1,3 +1,4 @@
+import { expose } from './lib/expose';
 let touchStartY = 0;
 let touchCurrentY = 0;
 let isPulling = false;
@@ -95,5 +96,5 @@ export function initSwipeDismiss(containerId: string): void {
   }, { passive: true });
 }
 
-(window as any).initPullToRefresh = initPullToRefresh;
-(window as any).initSwipeDismiss = initSwipeDismiss;
+expose('initPullToRefresh', initPullToRefresh);
+expose('initSwipeDismiss', initSwipeDismiss);
