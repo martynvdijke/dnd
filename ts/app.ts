@@ -16,7 +16,9 @@ import { FilePicker } from './file-picker';
 import { initTheme } from './lib/theme';
 import { api, setCsrfToken, getCsrfToken } from './lib/api';
 import { initShortcuts, showShortcutsHelp, getSections } from './lib/shortcuts';
-import { renderDiceTab } from './dice';
+import { renderSheet, updateField } from './characters/sheet';
+import { renderStats } from './characters/stats';
+import { renderCombat } from './characters/combat';
 import { animateHpChange } from './lib/animations';
 import './compendium';
 import './combat-tracker';
@@ -100,83 +102,11 @@ expose('openChar', openChar);
 
 // ─── Character Sheet ───
 
-const sections = ['stats', 'combat', 'spells', 'inventory', 'features', 'feats', 'companions', 'crafting', 'locations', 'npcs', 'sessions', 'quests', 'journal', 'notes', 'graph', 'analytics', 'details', 'dice'];
 
-function renderSheet() {
-  if (!currentChar) return;
-  const c = currentChar;
-  const multi = c.classes && c.classes.length > 0;
-  const classStr = multi
-    ? c.classes.map((cc: any) => `${cc.class}${cc.subclass ? ' (' + cc.subclass + ')' : ''} ${cc.level}`).join(' / ')
-    : `${c.class}${c.subclass ? ' (' + c.subclass + ')' : ''}`;
-  document.getElementById('sheetName')!.innerHTML = c.portrait_url
-    ? `<img src="${esc(c.portrait_url)}" class="character-portrait me-2" alt="">${esc(c.name)}`
-    : esc(c.name);
-  document.getElementById('sheetSubtitle')!.textContent =
-    `${c.race} ${classStr} · Level ${c.level}`;
 
-  const tabBar = document.getElementById('tabBar')!;
-  tabBar.innerHTML = sections.map(s => `
-    <li class="nav-item"><button class="nav-link ${s === currentTab ? 'active' : ''}" onclick="switchTab('${s}')">${capitalize(s)}</button></li>
-  `).join('');
-
-  sections.forEach(s => {
-    const el = document.getElementById(s + 'Section')!;
-    el.style.display = s === currentTab ? 'block' : 'none';
-  });
-
-  renderStats();
-  renderCombat();
-  renderGraph();
-  renderAnalytics();
-  renderCrafting();
-  renderDetails();
-  renderDiceTab();
-}
-
-const htmxTabs = ['spells', 'features', 'feats', 'companions', 'crafting', 'notes'];
-
-function switchTab(tab: string) {
-  setCurrentTab(tab);
-  renderSheet();
-  if (htmxTabs.includes(tab) && currentChar) {
-    const el = document.getElementById(tab + 'Section');
-    if (el) {
-      el.setAttribute('hx-get', `/htmx/${tab}?character_id=${currentChar.id}`);
-      el.setAttribute('hx-trigger', 'load');
-      el.setAttribute('hx-swap', 'innerHTML');
-      el.innerHTML = '<div class="ornament">✧ Loading... ✧</div>';
-      htmx.process(el);
-    }
-  }
-  // Client-side rendering for tabs
-  if (currentChar) {
-    switch (tab) {
-      case 'inventory': renderInventory(); break;
-      case 'locations': renderLocations(); break;
-      case 'npcs': renderNPCs(); break;
-      case 'sessions': renderSessions(); break;
-      case 'quests': renderQuests(); break;
-      case 'journal': renderJournal(); break;
-    }
-  }
-}
-expose('switchTab', switchTab);
 
 // ─── Roll / Combat Actions ───
 
-async function rollCheck(type: string, name: string, adv: string) {
-  if (!currentChar) return;
-  try {
-    const result = await api('POST', '/api/roll/check', {
-      character_id: currentChar.id, type, name, advantage: adv,
-    });
-    toast(result.text);
-  } catch (e: any) {
-    toast(e.message, true);
-  }
-}
-expose('rollCheck', rollCheck);
 
 expose('applyDamage', async function () {
   if (!currentChar) return;
@@ -213,285 +143,12 @@ expose('applyDamage', async function () {
   }
 });
 
-async function applyHeal() {
-  if (!currentChar) return;
-  const heal = parseInt((document.getElementById('healInput') as HTMLInputElement)?.value || '0');
-  if (!heal) return;
-  const oldHp = currentChar.hp_current;
-  const newHp = Math.min(currentChar.hp_max, currentChar.hp_current + heal);
-  await updateField('hp_current', newHp);
-  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
-  renderSheet();
-  // Animate HP change after re-render
-  const bar = document.getElementById('charHpBarFill');
-  const hpText = document.getElementById('charHpText');
-  if (bar && hpText) {
-    bar.style.width = Math.max(0, Math.min(100, (oldHp / currentChar.hp_max) * 100)) + '%';
-    animateHpChange(hpText, bar, oldHp, currentChar.hp_current, currentChar.hp_max);
-  }
-}
-expose('applyHeal', applyHeal);
 
-async function doRest(type: string) {
-  if (!currentChar) return;
-  try {
-    const oldHp = currentChar.hp_current;
-    const result = await api('POST', `/api/characters/${currentChar.id}/rest`, { rest_type: type, hit_dice_count: type === 'short' ? 1 : 0 });
-    toast(`${type} rest: healed ${result.hp_healed} HP`);
-    setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
-    renderSheet();
-    // Animate HP change after re-render
-    const bar = document.getElementById('charHpBarFill');
-    const hpText = document.getElementById('charHpText');
-    if (bar && hpText && result.hp_healed > 0) {
-      bar.style.width = Math.max(0, Math.min(100, (oldHp / currentChar.hp_max) * 100)) + '%';
-      animateHpChange(hpText, bar, oldHp, currentChar.hp_current, currentChar.hp_max);
-    }
-  } catch (e: any) {
-    toast(e.message, true);
-  }
-}
-expose('doRest', doRest);
 
-async function doLevelUp() {
-  if (!currentChar) return;
-  try {
-    const result = await api('POST', `/api/characters/${currentChar.id}/levelup`);
-    toast(`Level Up! Now level ${result.new_level} (+${result.hp_gain} HP)`);
-    setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
-    renderSheet();
-  } catch (e: any) {
-    toast(e.message, true);
-  }
-}
-expose('doLevelUp', doLevelUp);
 
-let autoSaveTimer: number | null = null;
 
-function autoSaveField(field: string, el: HTMLElement) {
-  const input = el as HTMLInputElement;
-  const isCheckbox = input.type === 'checkbox';
-  const isTextarea = el.tagName === 'TEXTAREA';
-  const raw = isCheckbox ? input.checked : (el as any).value;
-  const num = parseFloat(String(raw));
-  const finalVal = !isNaN(num) && !isCheckbox && !isTextarea ? num : raw;
-  if (!currentChar) return;
-  currentChar[field] = finalVal;
-  if (autoSaveTimer) clearTimeout(autoSaveTimer);
-  autoSaveTimer = window.setTimeout(async () => {
-    try {
-      await api('PUT', `/api/characters/${currentChar.id}`, currentChar);
-    } catch (e: any) {
-      toast(e.message, true);
-    }
-  }, 800);
-}
-expose('autoSaveField', autoSaveField);
 
-// ─── Stepper Utility ───
 
-expose('stepperField', function (field: string, delta: number, min?: number, max?: number) {
-  if (!currentChar) return;
-  let val = currentChar[field] ?? 0;
-  val += delta;
-  if (min !== undefined) val = Math.max(min, val);
-  if (max !== undefined) val = Math.min(max, val);
-  currentChar[field] = val;
-  if (autoSaveTimer) clearTimeout(autoSaveTimer);
-  autoSaveTimer = window.setTimeout(async () => {
-    try { await api('PUT', `/api/characters/${currentChar.id}`, currentChar); } catch (e: any) { toast(e.message, true); }
-  }, 800);
-  renderSheet();
-});
-
-expose('editStepperValue', function (field: string, el: HTMLElement) {
-  if (!currentChar) return;
-  const current = currentChar[field] ?? 0;
-  el.innerHTML = `<input type="number" class="form-control stepper-inline-input" value="${current}">`;
-  const input = el.querySelector('input')!;
-  input.focus();
-  input.select();
-  const save = () => {
-    const parsed = parseInt(input.value);
-    if (!isNaN(parsed)) {
-      currentChar[field] = parsed;
-      if (autoSaveTimer) clearTimeout(autoSaveTimer);
-      autoSaveTimer = window.setTimeout(async () => {
-        try { await api('PUT', `/api/characters/${currentChar.id}`, currentChar); } catch (e: any) { toast(e.message, true); }
-      }, 800);
-    }
-    renderSheet();
-  };
-  input.addEventListener('blur', save);
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); save(); }
-    if (e.key === 'Escape') { renderSheet(); }
-  });
-});
-
-// ─── Coin Stepper ───
-
-expose('coinStepper', async function (coin: string, delta: number) {
-  if (!currentChar) return;
-  const currency = currentChar.currency || {};
-  const current = currency[coin] || 0;
-  const newVal = Math.max(0, current + delta);
-  currency[coin] = newVal;
-  currentChar.currency = currency;
-  const updates: Record<string, number> = {};
-  ['cp','sp','ep','gp','pp'].forEach(c => { updates[c] = currency[c] || 0; });
-  try {
-    await api('PUT', `/api/characters/${currentChar.id}/currency`, updates);
-    toast(`${coin.toUpperCase()} ${delta > 0 ? '+' : ''}${delta}`);
-  } catch (e: any) { toast(e.message, true); }
-  renderSheet();
-});
-
-// ─── Helper: Render a stepper control ───
-
-function renderStepper(field: string, value: number, delta: number, min?: number, max?: number, label?: string, size?: string): string {
-  const sizeClass = size === 'lg' ? 'stepper-lg' : size === 'sm' ? 'currency-stepper' : '';
-  const ariaInc = label ? `Increase ${label}` : `Increase ${field}`;
-  const ariaDec = label ? `Decrease ${label}` : `Decrease ${field}`;
-  return `<span class="stepper ${sizeClass}">
-    <button class="stepper-btn" onclick="stepperField('${field}', -${Math.abs(delta)}, ${min ?? 'undefined'}, ${max ?? 'undefined'})" aria-label="${ariaDec}">−</button>
-    <span class="stepper-value" onclick="editStepperValue('${field}', this)">${value}</span>
-    <button class="stepper-btn" onclick="stepperField('${field}', ${Math.abs(delta)}, ${min ?? 'undefined'}, ${max ?? 'undefined'})" aria-label="${ariaInc}">+</button>
-  </span>`;
-}
-
-async function updateField(field: string, value: any) {
-  if (!currentChar) return;
-  currentChar[field] = value;
-  try { await api('PUT', `/api/characters/${currentChar.id}`, currentChar); } catch (e: any) { toast(e.message, true); }
-}
-expose('updateField', updateField);
-
-function updateXPBar() {
-  const container = document.getElementById('xpBarContainer');
-  if (container && currentChar) container.innerHTML = renderXPBar(currentChar);
-}
-expose('updateXPBar', updateXPBar);
-
-// ─── Stats ───
-
-function renderStats() {
-  const c = currentChar;
-  const el = document.getElementById('statsSection')!;
-  const abils = ['str','dex','con','int','wis','cha'].map((k, i) => ({ key: k, label: k.toUpperCase(), desc: ['Strength','Dexterity','Constitution','Intelligence','Wisdom','Charisma'][i], skills: ['Athletics','Acrobatics, Sleight of Hand, Stealth','','Arcana, History, Investigation, Nature, Religion','Animal Handling, Insight, Medicine, Perception, Survival','Deception, Intimidation, Performance, Persuasion'][i] }));
-  el.innerHTML = `
-    <div class="stats-grid row g-3">
-      ${abils.map(a => {
-        const val = (c as any)[a.key];
-        const mod = (c as any)[`${a.key}_mod`];
-        const cls = mod > 0 ? 'text-success' : mod < 0 ? 'text-danger' : 'text-muted';
-        return `<div class="ability-column col-6 col-md-4 col-lg-2">
-          <div class="ability-box" title="${a.desc} (${a.label})\nModifier: ${mod >= 0 ? '+' : ''}${mod}\nSkills: ${a.skills || 'None'}">
-            <div class="abil-label" onclick="rollCheck('check','${a.key}','normal')" style="cursor:pointer">${a.label}</div>
-            ${renderStepper(a.key, val, 1, 1, 30, a.label)}
-            <div class="abil-mod ${cls}">${mod >= 0 ? '+' : ''}${mod}</div>
-          </div>
-        </div>`;
-      }).join('')}
-    </div>
-    <div class="d-flex gap-2 mt-3">
-      <button class="btn btn-sm btn-outline-primary" onclick="rollCheck('check','str','advantage')"><i class="fa-solid fa-chevron-up me-1"></i>Advantage</button>
-      <button class="btn btn-sm btn-outline-primary" onclick="rollCheck('check','str','disadvantage')"><i class="fa-solid fa-chevron-down me-1"></i>Disadvantage</button>
-    </div>
-    <div class="ornament my-2">✧</div>
-    <div class="row g-3 mt-2">
-      <div class="col-6 col-md-3"><label class="form-label">Proficiency</label>${renderStepper('proficiency_bonus', c.proficiency_bonus, 1, 1, 10, 'Proficiency Bonus')}</div>
-      <div class="col-6 col-md-3"><label class="form-label">Inspiration</label>${renderStepper('inspiration', c.inspiration, 1, 0, undefined, 'Inspiration')}</div>
-      <div class="col-6 col-md-3"><label class="form-label">Passive Percep.</label><input type="number" class="form-control form-control-sm" value="${c.passive_perception}" oninput="autoSaveField('passive_perception',this)" style="min-height:44px;font-size:1.1rem"></div>
-      <div class="col-6 col-md-3"><label class="form-label">XP</label>${renderStepper('xp', c.xp, 1, 0, undefined, 'XP')}</div>
-    </div>
-    <div class="mt-2" id="xpBarContainer">${renderXPBar(c)}</div>
-    <!-- Passive Investigation & Insight -->
-    <div class="row g-2 mt-2">
-      <div class="col-4 col-md-2">
-        <div class="passive-score-box" title="10 + WIS modifier + proficiency if proficient">
-          <div class="score-value">${(c.wis_mod||0) + ((c.proficiencies||[]).some((p:any)=>p.name==='Insight')?c.proficiency_bonus:0) + 10}</div>
-          <div class="score-label">Passive Insight</div>
-          <div class="score-breakdown">10 + ${c.wis_mod||0} WIS${(c.proficiencies||[]).some((p:any)=>p.name==='Insight')?' + '+c.proficiency_bonus+' Prof':''}</div>
-        </div>
-      </div>
-      <div class="col-4 col-md-2">
-        <div class="passive-score-box" title="10 + INT modifier + proficiency if proficient">
-          <div class="score-value">${(c.int_mod||0) + ((c.proficiencies||[]).some((p:any)=>p.name==='Investigation')?c.proficiency_bonus:0) + 10}</div>
-          <div class="score-label">Passive Investigation</div>
-          <div class="score-breakdown">10 + ${c.int_mod||0} INT${(c.proficiencies||[]).some((p:any)=>p.name==='Investigation')?' + '+c.proficiency_bonus+' Prof':''}</div>
-        </div>
-      </div>
-      <div class="col-4 col-md-3">
-        <div class="exhaustion-display">
-          <span class="exhaustion-level ex-${c.exhaustion_level||0}">${c.exhaustion_level||0}</span>
-          <div>
-            <div class="exhaustion-label">Exhaustion</div>
-            <div class="exhaustion-effect">${['-','Disadvantage on ability checks','Speed halved','Disadvantage on attacks & saves','HP max halved','Speed reduced to 0','Death'][c.exhaustion_level||0]||''}</div>
-          </div>
-          <div class="ms-auto d-flex gap-1">
-            <button class="exhaustion-btn" onclick="adjustExhaustion(-1)" title="Reduce exhaustion" style="min-width:44px;min-height:44px">−</button>
-            <button class="exhaustion-btn" onclick="adjustExhaustion(1)" title="Increase exhaustion" style="min-width:44px;min-height:44px">+</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    </div>
-    <h5 class="mt-3">Skills <small class="text-muted fw-normal">(click to roll)</small></h5>
-    <div id="skillsArea"><div class="skills-grid">${renderSkills(c)}</div></div>
-    <h5 class="mt-3">Proficiencies</h5>
-    <div id="profsArea">${(c.proficiencies||[]).map((p:any) =>
-      `<span class="badge badge-blood me-1 mb-1">${esc(p.name)} (${p.type}) <a href="#" onclick="deleteProf(${p.id});return false" class="text-white text-decoration-none">×</a></span>`
-    ).join('')}</div>
-    <button class="btn btn-sm btn-outline-primary mt-2" onclick="addProf()"><i class="fa-solid fa-plus me-1"></i>Add Proficiency</button>
-  `;
-}
-
-function renderSkills(c: any) {
-  const skls = [
-    {name:'Athletics',abil:'str'},{name:'Acrobatics',abil:'dex'},{name:'Sleight of Hand',abil:'dex'},{name:'Stealth',abil:'dex'},
-    {name:'Arcana',abil:'int'},{name:'History',abil:'int'},{name:'Investigation',abil:'int'},{name:'Nature',abil:'int'},{name:'Religion',abil:'int'},
-    {name:'Animal Handling',abil:'wis'},{name:'Insight',abil:'wis'},{name:'Medicine',abil:'wis'},{name:'Perception',abil:'wis'},{name:'Survival',abil:'wis'},
-    {name:'Deception',abil:'cha'},{name:'Intimidation',abil:'cha'},{name:'Performance',abil:'cha'},{name:'Persuasion',abil:'cha'},
-  ];
-  const profs = (c.proficiencies||[]).filter((p:any) => p.type === 'skill').map((p:any) => p.name.toLowerCase());
-  return skls.map(s => {
-    const isProf = profs.includes(s.name.toLowerCase());
-    const mod = (c as any)[`${s.abil}_mod`];
-    const total = isProf ? mod + c.proficiency_bonus : mod;
-    const sign = total >= 0 ? '+' : '';
-    const breakdown = isProf ? `${s.abil.toUpperCase()} ${mod >= 0 ? '+' : ''}${mod} + Prof ${c.proficiency_bonus} = ${sign}${total}` : `${s.abil.toUpperCase()} ${mod >= 0 ? '+' : ''}${mod} = ${sign}${total}`;
-    return `<div class="skill-row d-flex justify-content-between" onclick="rollCheck('skill','${s.name}','normal')" title="${breakdown}">
-      <span class="skill-name">${s.name}${isProf ? ' <span class="text-primary">★</span>' : ''}</span>
-      <span class="fw-bold">${sign}${total}</span>
-    </div>`;
-  }).join('');
-}
-
-// ─── XP Progress Bar ───
-
-const XP_TABLE = [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000];
-
-function renderXPBar(c: any) {
-  const level = c.level || 1;
-  const xp = c.xp || 0;
-  const idx = Math.min(level - 1, XP_TABLE.length - 2);
-  const currentMilestone = XP_TABLE[idx];
-  const nextMilestone = XP_TABLE[idx + 1] || currentMilestone + 10000;
-  if (level >= 20) {
-    return `<div class="small text-muted fst-italic">Maximum level reached</div>`;
-  }
-  const progress = nextMilestone > currentMilestone ? Math.min(100, Math.max(0, ((xp - currentMilestone) / (nextMilestone - currentMilestone)) * 100)) : 0;
-  return `
-    <div class="d-flex justify-content-between small mb-1">
-      <span class="text-muted">Level ${level}</span>
-      <span class="text-muted">${xp.toLocaleString()} / ${nextMilestone.toLocaleString()} XP</span>
-      <span class="text-muted">Level ${level + 1}</span>
-    </div>
-    <div class="hp-bar" style="height:8px" title="${Math.round(progress)}% to next level">
-      <div class="hp-bar-fill" style="width:${progress}%;height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-light))"></div>
-    </div>`;
-}
 
 // ─── Combat ───
 
@@ -618,6 +275,7 @@ function renderInventory() {
       `).join('') || '<div class="empty-state"><i class="fa-solid fa-backpack fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">Empty Pockets</p><p class="small text-muted">No items yet. Add gear to your inventory.</p></div>'}
     </div>`;
 }
+expose('renderInventory', renderInventory);
 
 // ─── Identify Toggle ───
 
@@ -1093,6 +751,7 @@ function renderDetails() {
       <button class="btn btn-outline-primary btn-sm" onclick="shareCharacter()"><i class="fa-solid fa-share-nodes me-1"></i>Share Character</button>
     </div>`;
 }
+expose('renderDetails', renderDetails);
 
 // ─── Locations ───
 
@@ -1212,6 +871,7 @@ async function renderLocations() {
       ${allLocations.length === 0 ? '<div class="text-center text-muted py-4"><i class="fa-solid fa-map fa-lg mb-2 d-block"></i><small>No locations yet</small></div>' : ''}`;
   } catch { sidebar.innerHTML = '<div class="text-center text-muted py-4">Could not load locations</div>'; }
 }
+expose('renderLocations', renderLocations);
 
 function getLocSidebar(): HTMLElement { return document.getElementById('locSidebar')!; }
 
@@ -1399,6 +1059,7 @@ async function renderNPCs() {
         </div>`).join('')}&nbsp;</div>`;
   } catch { el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load NPCs. Try again later.</p></div>'; }
 }
+expose('renderNPCs', renderNPCs);
 
 expose('showLinkNPC', function () {
   showModal('Link NPC', `
@@ -1525,6 +1186,7 @@ async function renderSessions() {
       </div>`;
   } catch { el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load sessions. Try again later.</p></div>'; }
 }
+expose('renderSessions', renderSessions);
 
 expose('showAddSession', function () {
   showModal('Log Session', `
@@ -1597,6 +1259,7 @@ async function renderQuests() {
     el.innerHTML = html;
   } catch { el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load quests. Try again later.</p></div>'; }
 }
+expose('renderQuests', renderQuests);
 
 expose('showAddQuest', function () {
   showModal('New Quest', `
@@ -1731,6 +1394,7 @@ async function renderJournal() {
       </div>`;
   } catch { el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load journal. Try again later.</p></div>'; }
 }
+expose('renderJournal', renderJournal);
 
 expose('showAddJournal', function () {
   showModal('Journal Entry', `
@@ -1978,6 +1642,7 @@ async function renderGraph() {
     el.innerHTML += `<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load graph: ${esc(e.message)}</p></div>`;
   }
 }
+expose('renderGraph', renderGraph);
 
 // ─── Analytics ───
 
@@ -2068,6 +1733,7 @@ async function renderAnalytics() {
     el.innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load analytics: ${esc(e.message)}</p></div>`;
   }
 }
+expose('renderAnalytics', renderAnalytics);
 
 // ─── New Character ───
 
@@ -3497,119 +3163,6 @@ expose('saveReputation', async function (charId: number, factionId: number) {
   toast('Reputation updated');
 });
 
-// ─── Combat Section Update for conditions and concentration ───
-
-function renderCombat() {
-  const c = currentChar;
-  const el = document.getElementById('combatSection')!;
-  const pct = c.hp_max > 0 ? Math.round((c.hp_current / c.hp_max) * 100) : 0;
-  el.innerHTML = `
-    <div class="combat-stack row g-3">
-      <div class="combat-stat-row col-4"><div class="combat-stat" title="Armor Class"><div class="stat-label">AC</div><div class="stat-value">${renderStepper('ac', c.ac, 1, 0, undefined, 'AC')}</div></div></div>
-      <div class="combat-stat-row col-4"><div class="combat-stat" title="Initiative modifier"><div class="stat-label">Initiative</div><div class="stat-value">${renderStepper('initiative', c.initiative, 1, undefined, undefined, 'Initiative')}</div></div></div>
-      <div class="combat-stat-row col-4"><div class="combat-stat" title="Movement speed"><div class="stat-label">Speed</div><div class="stat-value">${renderStepper('speed', c.speed, 5, 0, undefined, 'Speed')}</div></div></div>
-    </div>
-    <h5 class="mt-3">Hit Points</h5>
-    <div class="hp-bar position-relative mb-2" title="${c.hp_current} / ${c.hp_max} HP${c.temp_hp > 0 ? ' (+' + c.temp_hp + ' temporary)' : ''}">
-      <div class="hp-bar-fill" id="charHpBarFill" style="width:${pct}%"></div>
-      <div class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center text-white small fw-bold" id="charHpText" style="font-size:0.8rem">${c.hp_current} / ${c.hp_max}${c.temp_hp > 0 ? ' (+' + c.temp_hp + ' temp)' : ''}</div>
-    </div>
-    <div class="row g-2">
-      <div class="col-4"><label class="form-label small">HP Max</label>${renderStepper('hp_max', c.hp_max, 1, 1, undefined, 'HP Max', 'lg')}</div>
-      <div class="col-4"><label class="form-label small">Current</label>${renderStepper('hp_current', c.hp_current, 1, 0, undefined, 'HP Current', 'lg')}</div>
-      <div class="col-4"><label class="form-label small">Temp HP</label>${renderStepper('temp_hp', c.temp_hp, 1, 0, undefined, 'Temp HP', 'lg')}</div>
-    </div>
-    <div class="row g-2 mt-2">
-      <div class="col-6">
-        <label class="form-label small">Damage</label>
-        <div class="input-group input-group-sm"><input type="number" class="form-control" id="dmgInput" value="0"><button class="btn btn-danger" onclick="applyDamage()">Apply</button></div>
-      </div>
-      <div class="col-6">
-        <label class="form-label small">Heal</label>
-        <div class="input-group input-group-sm"><input type="number" class="form-control" id="healInput" value="0"><button class="btn btn-success" onclick="applyHeal()">Apply</button></div>
-      </div>
-    </div>
-    <div class="d-flex gap-2 mt-3 flex-wrap">
-      <button class="btn btn-sm btn-outline-primary" onclick="doRest('short')"><i class="fa-solid fa-campground me-1"></i>Short Rest</button>
-      <button class="btn btn-sm btn-outline-primary" onclick="doRest('long')"><i class="fa-solid fa-moon me-1"></i>Long Rest</button>
-      <button class="btn btn-sm btn-gold" onclick="doLevelUp()"><i class="fa-solid fa-arrow-up me-1"></i>Level Up</button>
-    </div>
-    <div id="conditionsArea" class="mt-3">
-      <div class="d-flex justify-content-between align-items-center">
-        <h5 class="mt-0 mb-2">Conditions</h5>
-        <div class="d-flex gap-1">
-          <button class="btn btn-sm btn-outline-primary" onclick="showAddCondition()"><i class="fa-solid fa-plus"></i></button>
-          <button class="btn btn-sm btn-outline-secondary" onclick="tickConditions()" title="Advance 1 round"><i class="fa-solid fa-forward"></i></button>
-        </div>
-      </div>
-      <div id="conditionBadges"></div>
-    </div>
-    <h5 class="mt-3">Saving Throws <small class="text-muted fw-normal">(click to roll)</small></h5>
-    <div class="d-flex flex-wrap gap-1 mb-3">
-      ${['str','dex','con','int','wis','cha'].map(a => {
-        const mod = (c as any)[`${a}_mod`];
-        const total = c.proficiency_bonus + mod;
-        const sign = total >= 0 ? '+' : '';
-        return `<span class="badge badge-gold" style="cursor:pointer;font-size:0.85rem;padding:0.4rem 0.6rem" onclick="rollCheck('save','${a}','normal')">${a.toUpperCase()} ${sign}${total}</span>`;
-      }).join('')}
-    </div>
-    <h5 class="mt-3">Death Saves</h5>
-    <div class="row g-2">
-      <div class="col-6"><label class="form-label small">Successes</label>${renderStepper('death_saves_successes', c.death_saves_successes, 1, 0, 3, 'Death Save Successes')}</div>
-      <div class="col-6"><label class="form-label small">Failures</label>${renderStepper('death_saves_failures', c.death_saves_failures, 1, 0, 3, 'Death Save Failures')}</div>
-    </div>
-    <h5 class="mt-3">Concentration</h5>
-    <div class="form-check"><input type="checkbox" class="form-check-input" id="concentrationCb" ${c.concentrating ? 'checked' : ''} onchange="autoSaveField('concentrating',this)"><label class="form-check-label" for="concentrationCb">Concentrating on a spell</label></div>
-    <div class="mt-2">
-      <label class="form-label small">Concentrating On</label>
-      <input class="form-control form-control-sm" value="${esc(c.concentrating_on)}" oninput="autoSaveField('concentrating_on',this)" placeholder="e.g. Hunter's Mark" style="min-height:44px;font-size:1rem">
-    </div>
-    <h5 class="mt-3">Hit Dice</h5>
-    <div class="row g-2">
-      <div class="col-6"><label class="form-label small">Total</label>${renderStepper('hit_dice_total', c.hit_dice_total, 1, 0, undefined, 'Hit Dice Total')}</div>
-      <div class="col-6"><label class="form-label small">Used</label>${renderStepper('hit_dice_used', c.hit_dice_used, 1, 0, undefined, 'Hit Dice Used')}</div>
-    </div>`;
-  // Load condition badges async
-  loadConditionBadges();
-}
-
-async function loadConditionBadges() {
-  if (!currentChar) return;
-  try {
-    const conds = await api('GET', `/api/conditions/summary?character_id=${currentChar.id}`);
-    const el = document.getElementById('conditionBadges');
-    if (!el) return;
-    if (!conds.length) {
-      el.innerHTML = '<div class="text-muted small fst-italic">No active conditions</div>';
-      return;
-    }
-    const iconMap: Record<string, string> = {
-      blinded: 'fa-eye-slash', charmed: 'fa-heart', deafened: 'fa-ear-deaf',
-      exhaustion: 'fa-battery-quarter', frightened: 'fa-ghost', grappled: 'fa-handcuffs',
-      incapacitated: 'fa-bed', invisible: 'fa-ghost', paralyzed: 'fa-snowflake',
-      petrified: 'fa-monument', poisoned: 'fa-skull', prone: 'fa-person-falling',
-      restrained: 'fa-lock', stunned: 'fa-star', unconscious: 'fa-circle',
-      concentration: 'fa-brain',
-    };
-    const colorMap: Record<string, string> = {
-      blinded: '#8b0000', charmed: '#dda0dd', deafened: '#666',
-      exhaustion: '#ff8c00', frightened: '#4b0082', grappled: '#8b4513',
-      incapacitated: '#555', invisible: '#87ceeb', paralyzed: '#00bfff',
-      petrified: '#808080', poisoned: '#32cd32', prone: '#d2b48c',
-      restrained: '#ffd700', stunned: '#ff4500', unconscious: '#2f4f4f',
-      concentration: '#4169e1',
-    };
-    el.innerHTML = '<div class="d-flex flex-wrap gap-1 mb-2">' + conds.map((cond: any) => {
-      const icon = iconMap[cond.type] || 'fa-circle';
-      const color = colorMap[cond.type] || '#b8963e';
-      const durStr = cond.duration_type === 'permanent' ? 'perm' : cond.duration + cond.duration_type.substring(0, 1);
-      return `<span class="badge" style="background:${color};color:#fff;font-size:0.75rem;padding:0.3rem 0.5rem;border-radius:4px" title="${esc(cond.name)} (${durStr})">
-        <i class="fa-solid ${icon} me-1"></i>${esc(cond.name)} ${durStr}
-        <a href="#" onclick="deleteCondition(${cond.id});return false" class="text-white text-decoration-none ms-1">×</a>
-      </span>`;
-    }).join('') + '</div>';
-  } catch {}
-}
 
 // ─── Crafting ───
 
@@ -3685,6 +3238,7 @@ async function renderCrafting() {
     el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(e.message)}</p></div>`;
   }
 }
+expose('renderCrafting', renderCrafting);
 
 expose('startRecipe', async function (recipeId: number) {
   try {
