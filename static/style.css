@@ -592,7 +592,7 @@ h1 { color: var(--ink); }
   position: fixed;
   bottom: 1.5rem;
   left: 1.5rem;
-  z-index: 9000;
+  z-index: 1035;
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -2311,7 +2311,7 @@ kbd {
   left: 0;
   bottom: 0;
   width: 220px;
-  z-index: 9980;
+  z-index: 1030;
   background: var(--parchment-dark);
   border-right: 2px solid var(--primary);
   overflow-y: auto;
