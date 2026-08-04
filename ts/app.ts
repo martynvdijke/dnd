@@ -19,6 +19,8 @@ import { initShortcuts, showShortcutsHelp, getSections } from './lib/shortcuts';
 import { renderSheet, updateField } from './characters/sheet';
 import { renderStats } from './characters/stats';
 import { renderCombat } from './characters/combat';
+import { renderInventory } from './characters/inventory';
+import { renderSpells } from './characters/spells';
 import { animateHpChange } from './lib/animations';
 import './compendium';
 import './combat-tracker';
@@ -102,11 +104,7 @@ expose('openChar', openChar);
 
 // ─── Character Sheet ───
 
-
-
-
 // ─── Roll / Combat Actions ───
-
 
 expose('applyDamage', async function () {
   if (!currentChar) return;
@@ -143,13 +141,6 @@ expose('applyDamage', async function () {
   }
 });
 
-
-
-
-
-
-
-
 // ─── Combat ───
 
 // ─── Exhaustion ───
@@ -161,121 +152,6 @@ expose('adjustExhaustion', async function (delta: number) {
   setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderStats();
 });
-
-// ─── Currency ───
-
-async function updateCurrency() {
-  if (!currentChar) return;
-  const coins = ['cp','sp','ep','gp','pp'];
-  const updates: Record<string,number> = {};
-  coins.forEach(c => { updates[c] = +(document.getElementById('coin' + c) as HTMLInputElement)?.value || 0; });
-  await api('PUT', `/api/characters/${currentChar.id}/currency`, updates);
-  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
-  toast('Currency updated');
-}
-expose('updateCurrency', updateCurrency);
-
-// ─── Inventory ───
-
-function renderInventory() {
-  const inv = currentChar.inventory || [];
-  const c = currentChar;
-  const categories: Record<string, any[]> = { weapon: [], armor: [], gear: [], potion: [], scroll: [], tool: [], wondrous: [], other: [] };
-  inv.forEach((i:any) => { if (categories[i.category]) categories[i.category].push(i); else categories.other.push(i); });
-  const total = inv.reduce((s:number,i:any)=>s+(i.weight||0)*(i.quantity||1),0);
-
-  // Encumbrance: STR x5 (light), x10 (encumbered), x15 (heavy)
-  const str = c.str || 10;
-  const lightMax = str * 5;
-  const encumberedMax = str * 10;
-  const heavyMax = str * 15;
-  const encPct = heavyMax > 0 ? Math.min(100, (total / heavyMax) * 100) : 0;
-  let encState = 'light';
-  let encLabel = 'Light Load';
-  if (total > heavyMax) { encState = 'over'; encLabel = 'Over Capacity'; }
-  else if (total > encumberedMax) { encState = 'heavy'; encLabel = 'Heavily Encumbered'; }
-  else if (total > lightMax) { encState = 'encumbered'; encLabel = 'Encumbered'; }
-
-  // Attunement count (equipped items with attunement flag)
-  const attuneItems = inv.filter((i:any) => i.equipped && i.attunement);
-  const attuneCount = attuneItems.length;
-  let attuneState = 'attune-ok';
-  if (attuneCount >= 3) attuneState = 'attune-full';
-  else if (attuneCount >= 2) attuneState = 'attune-warn';
-
-  // Equipped items grouped for loadout
-  const equipped = inv.filter((i:any) => i.equipped);
-  const loadoutGroups: Record<string, any[]> = { weapon: [], armor: [], shield: [], ring: [], wondrous: [], other: [] };
-  equipped.forEach((i:any) => {
-    if (i.category === 'weapon') loadoutGroups.weapon.push(i);
-    else if (i.category === 'armor' && i.ac_bonus > 0 && i.name.toLowerCase().includes('shield')) loadoutGroups.shield.push(i);
-    else if (i.category === 'armor') loadoutGroups.armor.push(i);
-    else if (i.category === 'wondrous') loadoutGroups.wondrous.push(i);
-    else loadoutGroups.other.push(i);
-  });
-
-  document.getElementById('inventorySection')!.innerHTML = `
-    <div class="d-flex justify-content-between align-items-center">
-      <h5>Inventory <span class="text-muted small">(Total: ${total} / ${heavyMax} lbs)</span></h5>
-      <div class="d-flex gap-2 align-items-center">
-        <span class="attune-counter ${attuneState}" title="Attuned items">🔗 ${attuneCount}/3</span>
-        <button class="btn btn-primary btn-sm" onclick="addInventory()"><i class="fa-solid fa-plus me-1"></i>Add Item</button>
-      </div>
-    </div>
-    <div class="encumbrance-bar" title="${total} lbs / ${heavyMax} lbs max">
-      <div class="encumbrance-bar-fill enc-${encState}" style="width:${encPct}%"></div>
-    </div>
-    <div class="d-flex justify-content-between">
-      <span class="encumbrance-state enc-${encState}">${esc(encLabel)}</span>
-      <span class="text-muted small">${encLabel === 'Light Load' ? 'Speed normal' : encLabel === 'Encumbered' ? 'Speed -10' : encLabel === 'Heavily Encumbered' ? 'Speed -20, Disadvantage on checks' : 'Speed 0'}</span>
-    </div>
-    <!-- Loadout Panel -->
-    <div class="loadout-panel mt-2">
-      <div class="loadout-header" onclick="this.nextElementSibling.classList.toggle('d-none')">
-        <h6><i class="fa-solid fa-shield-halved me-1"></i>Loadout (${equipped.length} equipped)</h6>
-        <span class="text-muted small"><i class="fa-solid fa-chevron-down"></i></span>
-      </div>
-      <div class="loadout-body">
-        ${Object.entries(loadoutGroups).filter(([,items]) => items.length).map(([cat, items]) => `
-          <div class="loadout-category">
-            <div class="loadout-category-label">${capitalize(cat)}</div>
-            ${(items as any[]).map((i:any) => `
-              <div class="loadout-item">
-                <span class="item-name">${esc(i.name)}</span>
-                <span class="item-detail">${i.damage_dice ? esc(i.damage_dice) + (i.damage_type ? ' ' + esc(i.damage_type) : '') : i.ac_bonus > 0 ? 'AC +' + i.ac_bonus : ''}</span>
-              </div>
-            `).join('')}
-          </div>
-        `).join('') || '<div class="text-muted small fst-italic">No items equipped.</div>'}
-      </div>
-    </div>
-    <div class="mt-2" id="invList">
-      ${Object.entries(categories).filter(([,items]) => items.length).map(([cat, items]) => `
-        <h6 class="mt-3 text-muted">${capitalize(cat)}</h6>
-        ${(items as any[]).map((i:any) => `
-          <div class="inv-item${i.equipped ? ' equipped' : ''}${i.is_identified === false ? ' unidentified' : ''}">
-            <div>
-              <span class="fw-bold">${esc(i.name)}</span>
-              ${i.quantity > 1 ? `<span class="badge badge-muted">x${i.quantity}</span>` : ''}
-              ${i.equipped ? '<span class="badge badge-gold">Equipped</span>' : ''}
-              ${i.attunement ? '<span class="badge-attunement" title="Requires Attunement">Attune</span>' : ''}
-              ${i.is_identified === false ? '<span class="badge-unidentified">Unidentified</span>' : ''}
-              ${i.damage_dice && (i.is_identified !== false) ? `<span class="badge badge-blood ms-1">${esc(i.damage_dice)} ${esc(i.damage_type)}</span>` : ''}
-              ${i.ac_bonus > 0 && (i.is_identified !== false) ? `<span class="badge badge-gold ms-1">AC+${i.ac_bonus}</span>` : ''}
-              ${i.is_identified === false && i.damage_dice ? `<span class="badge badge-muted ms-1">???</span>` : ''}
-            </div>
-            <div class="d-flex gap-1">
-              ${i.is_identified === false ? `<button class="btn-identify" onclick="toggleIdentify(${i.id})" title="Identify item">🔍 ID</button>` : ''}
-              ${i.magic && i.is_identified !== false ? `<button class="btn-identify" onclick="toggleIdentify(${i.id})" title="Mark unidentified">🔮</button>` : ''}
-              <button class="btn btn-sm btn-outline-primary" onclick="editInventory(${i.id},'${esc(i.name)}',${i.quantity},'${esc(i.category)}',${i.weight},${i.equipped})" title="Edit"><i class="fa-solid fa-pen"></i></button>
-              <button class="btn btn-sm btn-outline-secondary" onclick="toggleEquip(${i.id})" title="${i.equipped ? 'Unequip' : 'Equip'}"><i class="fa-solid fa-shield-halved"></i></button>
-              <button class="btn btn-sm btn-outline-danger" onclick="deleteInventory(${i.id})" title="Remove"><i class="fa-solid fa-trash"></i></button>
-            </div>
-          </div>`).join('')}
-      `).join('') || '<div class="empty-state"><i class="fa-solid fa-backpack fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">Empty Pockets</p><p class="small text-muted">No items yet. Add gear to your inventory.</p></div>'}
-    </div>`;
-}
-expose('renderInventory', renderInventory);
 
 // ─── Identify Toggle ───
 
@@ -364,86 +240,6 @@ expose('toggleEquip', async function (id:number) {
   renderInventory();
   toast(item.equipped ? 'Equipped' : 'Unequipped');
 });
-
-// ─── Spells ───
-
-function renderSpells() {
-  const spells = currentChar.spells || [];
-  const sc = currentChar.spellcasting || {};
-  document.getElementById('spellsSection')!.innerHTML = sc.ability ? `
-    <h5>Spellcasting</h5>
-    <div class="row g-3 mb-3">
-      <div class="col-md-4"><label class="form-label">Ability</label><input class="form-control form-control-sm" value="${esc(sc.ability)}" onchange="updateSpellcasting('ability',this.value)"></div>
-      <div class="col-md-4"><label class="form-label">Save DC</label><input class="form-control form-control-sm" type="number" value="${sc.save_dc||0}" onchange="updateSpellcasting('save_dc',+this.value)"></div>
-      <div class="col-md-4"><label class="form-label">Atk Bonus</label><input class="form-control form-control-sm" type="number" value="${sc.attack_bonus||0}" onchange="updateSpellcasting('attack_bonus',+this.value)"></div>
-    </div>
-    <h6>Spell Slots</h6>
-    <div class="d-flex gap-3 flex-wrap mb-3">
-      ${[1,2,3,4,5,6,7,8,9].map(lv => {
-        const mx = sc[`slots_${lv}_max`] || 0;
-        if (!mx) return '';
-        return `<div class="text-center">
-          <div class="text-muted small">Lv ${lv}</div>
-          <input type="number" class="form-control form-control-sm text-center" style="width:55px" id="slotUse${lv}" value="${sc[`slots_${lv}_used`]||0}" onchange="updateSpellSlot(${lv})" min="0" max="${mx}">
-          <div class="text-muted small">/ ${mx}</div>
-        </div>`;
-      }).join('')}
-    </div>
-    <div class="d-flex justify-content-between align-items-center mt-3">
-      <h6>Known Spells <span class="text-muted small fw-normal">${spells.filter((s:any)=>s.prepared).length}/${spells.filter((s:any)=>s.level>0 && spells.filter((ss:any)=>ss.level===s.level).length > 0).length + 3} prepared</span></h6>
-      <div class="d-flex gap-2">
-        <button class="btn btn-sm btn-outline-gold" onclick="showPrepareSpells()"><i class="fa-solid fa-book-open me-1"></i>Prepare Spells</button>
-        <button class="btn btn-primary btn-sm" onclick="addSpell()"><i class="fa-solid fa-plus me-1"></i>Add Spell</button>
-      </div>
-    </div>
-    <div class="row g-2 mt-2">
-      ${spells.map((s:any) => `
-        <div class="col-md-6">
-          <div class="card spell-card ${s.prepared ? 'border-gold' : ''}">
-            <div class="card-body py-2 px-3">
-              <div class="d-flex justify-content-between align-items-start">
-                <div>
-                  <span class="fw-bold">${esc(s.name)}</span>
-                  <span class="badge ${s.level === 0 ? 'badge-muted' : 'badge-blood'} ms-1">${s.level > 0 ? 'Lv' + s.level : 'Cantrip'}</span>
-                  <span class="badge badge-gold ms-1">${esc(s.school)}</span>
-                </div>
-                <div class="d-flex gap-1">
-                  <button class="btn btn-sm btn-outline-primary" onclick="editSpell(${s.id},'${esc(s.name)}',${s.level},'${esc(s.school)}',${s.prepared},'${esc(s.components||'')}','${esc(s.range||'')}','${esc(s.casting_time||'')}','${esc(s.duration||'')}','${esc(s.description||'')}')"><i class="fa-solid fa-pen"></i></button>
-                  <button class="btn btn-sm btn-outline-danger" onclick="deleteSpell(${s.id})"><i class="fa-solid fa-trash"></i></button>
-                </div>
-              </div>
-              <div class="small text-muted mt-1">
-                ${s.casting_time ? `<span class="me-2"><i class="fa-regular fa-clock me-1"></i>${esc(s.casting_time)}</span>` : ''}
-                ${s.range ? `<span class="me-2"><i class="fa-solid fa-bullseye me-1"></i>${esc(s.range)}</span>` : ''}
-                ${s.duration ? `<span><i class="fa-regular fa-hourglass me-1"></i>${esc(s.duration)}</span>` : ''}
-              </div>
-              ${s.description ? `<p class="mb-0 mt-1 small text-muted">${esc(s.description).substring(0, 150)}${s.description.length > 150 ? '...' : ''}</p>` : ''}
-            </div>
-          </div>
-        </div>`).join('') || '<div class="empty-state"><i class="fa-solid fa-wand-sparkles fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Spells Known</p><p class="small text-muted">Add spells to your spellbook using the button above.</p></div>'}
-    </div>` : `
-    <div class="empty-state"><i class="fa-solid fa-wand-sparkles fa-2x mb-2 d-block text-muted"></i>
-    <p class="text-muted fst-italic">No spellcasting.</p>
-    <button class="btn btn-outline-primary btn-sm" onclick="enableSpellcasting()"><i class="fa-solid fa-magic me-1"></i>Set Up Spellcasting</button></div>`;
-}
-
-async function updateSpellcasting(field:string, value:any) {
-  if (!currentChar) return;
-  const sc = currentChar.spellcasting || {};
-  sc[field] = value;
-  await api('PUT', `/api/characters/${currentChar.id}/spellcasting`, sc);
-  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
-  renderSpells();
-}
-expose('updateSpellcasting', updateSpellcasting);
-
-async function updateSpellSlot(level:number) {
-  if (!currentChar) return;
-  const sc = currentChar.spellcasting || {};
-  sc[`slots_${level}_used`] = +(document.getElementById(`slotUse${level}`) as HTMLInputElement).value || 0;
-  await api('PUT', `/api/characters/${currentChar.id}/spellcasting`, sc);
-}
-expose('updateSpellSlot', updateSpellSlot);
 
 expose('enableSpellcasting', async function () {
   currentChar.spellcasting = {
@@ -535,45 +331,6 @@ expose('deleteSpell', async function (id:number) {
   setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
   renderSpells();
   toast('Spell removed');
-});
-
-// ─── Spell Preparation Modal ───
-
-expose('showPrepareSpells', function () {
-  const spells = currentChar.spells || [];
-  const sc = currentChar.spellcasting || {};
-  const maxPrepared = currentChar.level > 0 ? (currentChar.class_mod || 0) + currentChar.level : 0; // WIS/INT/CHA mod + level
-  const currentPrepared = spells.filter((s:any) => s.prepared).length;
-
-  // Group by level
-  const byLevel: Record<number, any[]> = {};
-  spells.forEach((s:any) => {
-    const lv = s.level || 0;
-    if (!byLevel[lv]) byLevel[lv] = [];
-    byLevel[lv].push(s);
-  });
-
-  const bodyHtml = `
-    <div class="mb-2 d-flex justify-content-between">
-      <span class="fw-bold">Prepared: ${currentPrepared} / ${maxPrepared}</span>
-      <span class="text-muted small">Max = spellcasting mod + level</span>
-    </div>
-    <div class="spell-prep-list">
-      ${Object.keys(byLevel).sort((a,b)=>+a - +b).map(lv => `
-        <div class="spell-prep-group">
-          <h6>${lv === '0' ? 'Cantrips' : 'Level ' + lv}</h6>
-          ${byLevel[+lv].map((s:any) => `
-            <div class="spell-prep-item">
-              <input type="checkbox" class="form-check-input" id="prep-${s.id}" ${s.prepared ? 'checked' : ''}>
-              <label for="prep-${s.id}">${esc(s.name)} <span class="text-muted">(${esc(s.school)})</span></label>
-            </div>
-          `).join('')}
-        </div>
-      `).join('')}
-    </div>
-    <button class="btn btn-gold w-100 mt-3" onclick="saveSpellPrep()"><i class="fa-solid fa-book-open me-1"></i>Save Preparation</button>
-  `;
-  showModal('Prepare Spells', bodyHtml);
 });
 
 expose('saveSpellPrep', async function () {
@@ -3162,7 +2919,6 @@ expose('saveReputation', async function (charId: number, factionId: number) {
   (window as any).loadFactionReputations();
   toast('Reputation updated');
 });
-
 
 // ─── Crafting ───
 
