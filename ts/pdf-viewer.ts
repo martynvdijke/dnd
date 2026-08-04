@@ -82,6 +82,25 @@ function pdfViewerFilenameFromUrl(url: string): string {
   return decodeURIComponent(last);
 }
 
+function pdfViewerShowModal() {
+  const modalEl = document.getElementById('pdfViewerModal');
+  if (!modalEl) return;
+  const bsModal = (window as any).bootstrap.Modal;
+  const modal = bsModal.getInstance(modalEl) || bsModal.getOrCreateInstance(modalEl);
+  if (modalEl.classList.contains('show')) return;
+  if (modal._isTransitioning) {
+    // Modal.show() is a no-op while a hide transition is still running;
+    // queue the show until the modal has fully hidden.
+    modalEl.addEventListener('hidden.bs.modal', function onHidden(e) {
+      if ((e.target as HTMLElement).id !== 'pdfViewerModal') return;
+      modalEl.removeEventListener('hidden.bs.modal', onHidden);
+      modal.show();
+    });
+    return;
+  }
+  modal.show();
+}
+
 // ─── Public API ───
 
 export function openPdfViewer(url: string, title?: string) {
@@ -107,8 +126,7 @@ export function openPdfViewer(url: string, title?: string) {
   if (next) next.disabled = true;
   const zoom = document.getElementById('pdfViewerZoomLevel');
   if (zoom) zoom.textContent = '100%';
-  const modal = (window as any).bootstrap.Modal.getOrCreateInstance(modalEl);
-  modal.show();
+  pdfViewerShowModal();
   pdfViewerScale = 1.5;
   pdfViewerPage = 1;
   if (pdfViewerDoc) { pdfViewerDoc.destroy(); pdfViewerDoc = null; }
