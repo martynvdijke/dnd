@@ -39,7 +39,7 @@ func HtmxCampaignNPCsSection(c *gin.Context) {
 			&npc.NPCName, &npc.NPCRace, &npc.NPCClass)
 		out = append(out, npc)
 	}
-	renderTemplate(c, "campaign_npcs_section.html", htmxCampaignNPCData{
+	renderTemplate(c, "campaign_npcs_section", htmxCampaignNPCData{
 		CampaignID: campaignID,
 		NPCs:       out,
 	})
@@ -77,7 +77,7 @@ func HtmxCampaignEncountersSection(c *gin.Context) {
 		}
 		out = append(out, e)
 	}
-	renderTemplate(c, "campaign_encounters_section.html", htmxCampaignEncounterData{
+	renderTemplate(c, "campaign_encounters_section", htmxCampaignEncounterData{
 		CampaignID: campaignID,
 		Encounters: out,
 	})
@@ -112,7 +112,7 @@ func HtmxCampaignEncounterMonsters(c *gin.Context) {
 		rows.Scan(&m.ID, &m.EncounterID, &m.Name, &m.Count, &m.CR, &m.XP, &m.AC, &m.HP, &m.InitiativeMod, &m.Source, &m.Notes, &m.CompendiumMonsterID)
 		out = append(out, m)
 	}
-	renderTemplate(c, "campaign_encounter_monsters.html", htmxEncounterMonsterData{
+	renderTemplate(c, "campaign_encounter_monsters", htmxEncounterMonsterData{
 		CampaignID:    campaignID,
 		EncounterID:   encounterID,
 		EncounterName: encounterName,
@@ -144,7 +144,7 @@ func HtmxCampaignEncounterMonsterList(c *gin.Context) {
 		rows.Scan(&m.ID, &m.EncounterID, &m.Name, &m.Count, &m.CR, &m.XP, &m.AC, &m.HP, &m.InitiativeMod, &m.Source, &m.Notes, &m.CompendiumMonsterID)
 		out = append(out, m)
 	}
-	renderTemplate(c, "campaign_encounter_monsters.html", htmxEncounterMonsterData{
+	renderTemplate(c, "campaign_encounter_monsters", htmxEncounterMonsterData{
 		CampaignID:  campaignID,
 		EncounterID: encounterID,
 		Monsters:    out,
@@ -159,7 +159,7 @@ type htmxNewEncounterFormData struct {
 
 func HtmxNewEncounterForm(c *gin.Context) {
 	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	renderTemplate(c, "encounter_form.html", htmxNewEncounterFormData{CampaignID: campaignID})
+	renderTemplate(c, "encounter_form", htmxNewEncounterFormData{CampaignID: campaignID})
 }
 
 // ─── Create Encounter (HTMX) ───
@@ -204,7 +204,7 @@ type htmxMonsterFormData struct {
 func HtmxAddEncounterMonsterForm(c *gin.Context) {
 	encounterID, _ := strconv.ParseInt(c.Param("eid"), 10, 64)
 	campaignID, _ := strconv.ParseInt(c.Query("campaign_id"), 10, 64)
-	renderTemplate(c, "encounter_monster_form.html", htmxMonsterFormData{
+	renderTemplate(c, "encounter_monster_form", htmxMonsterFormData{
 		EncounterID: encounterID,
 		CampaignID:  campaignID,
 	})
@@ -247,7 +247,7 @@ func HtmxEditEncounterMonsterForm(c *gin.Context) {
 		c.String(http.StatusNotFound, "not found")
 		return
 	}
-	renderTemplate(c, "encounter_monster_form.html", htmxMonsterFormData{
+	renderTemplate(c, "encounter_monster_form", htmxMonsterFormData{
 		MonsterID:   monsterID,
 		EncounterID: encounterID,
 		CampaignID:  campaignID,
@@ -299,7 +299,7 @@ func HtmxCampaignNPCLinkForm(c *gin.Context) {
 		rows.Scan(&n.ID, &n.Name, &n.Race, &n.Class, &n.Description, &n.Notes)
 		all = append(all, n)
 	}
-	renderTemplate(c, "campaign_npc_link_form.html", htmxCampaignNPCLinkData{
+	renderTemplate(c, "campaign_npc_link_form", htmxCampaignNPCLinkData{
 		CampaignID: campaignID,
 		AllNPCs:    all,
 	})
@@ -332,7 +332,7 @@ type htmxCampaignNPCCreateData struct {
 
 func HtmxCampaignNPCCreateForm(c *gin.Context) {
 	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	renderTemplate(c, "campaign_npc_create_form.html", htmxCampaignNPCCreateData{CampaignID: campaignID})
+	renderTemplate(c, "campaign_npc_create_form", htmxCampaignNPCCreateData{CampaignID: campaignID})
 }
 
 func HtmxCampaignCreateAndLinkNPC(c *gin.Context) {
@@ -474,7 +474,7 @@ func HtmxCampaignMonsterRoster(c *gin.Context) {
 		out = append(out, m)
 	}
 
-	renderTemplate(c, "campaign_monster_roster.html", htmxCampaignRosterData{
+	renderTemplate(c, "campaign_monster_roster", htmxCampaignRosterData{
 		CampaignID: campaignID,
 		Monsters:   out,
 		CanAdd:     true,

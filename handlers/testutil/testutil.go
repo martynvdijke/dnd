@@ -456,3 +456,20 @@ func SeedWikiPage(t *testing.T, id, campaignID int64, title string) {
 		t.Fatalf("seed wiki page: %v", err)
 	}
 }
+
+// SeedNPC inserts an NPC fixture owned by user 1 and returns the npc id.
+func SeedNPC(t *testing.T, id int64, name, race, class string) int64 {
+	t.Helper()
+	res, err := db.DB.Exec(
+		"INSERT OR IGNORE INTO npcs(id, user_id, name, race, class, description) VALUES(?, 1, ?, ?, ?, ?)",
+		id, name, race, class, "seeded description",
+	)
+	if err != nil {
+		t.Fatalf("seed npc: %v", err)
+	}
+	nid, _ := res.LastInsertId()
+	if nid == 0 {
+		nid = id
+	}
+	return nid
+}
