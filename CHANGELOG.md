@@ -1,3 +1,10 @@
+# [2.32.0](https://github.com/martynvdijke/dnd/compare/v2.31.0...v2.32.0) (2026-08-05)
+
+
+### Features
+
+* compendium-first search for encounter and one-shot monster adds ([3a062f7](https://github.com/martynvdijke/dnd/commit/3a062f7fa4b75116e72c54ad3c08a7ff833f1803))
+
 # [2.31.0](https://github.com/martynvdijke/dnd/compare/v2.30.1...v2.31.0) (2026-08-05)
 
 
