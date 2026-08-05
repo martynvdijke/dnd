@@ -10,6 +10,5 @@
     "allowSyntheticDefaultImports": true,
     "skipLibCheck": true
   },
-  "include": ["ts/**/*.ts"],
-  "exclude": ["ts/app.ts"]
+  "include": ["ts/**/*.ts"]
 }

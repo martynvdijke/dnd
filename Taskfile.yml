@@ -28,11 +28,21 @@ tasks:
       - rm -f villum.db villum.db-wal villum.db-shm
       - npx playwright test
 
-  build:ts:
-    desc: Compile TypeScript
+  build:vite:
+    desc: Build frontend bundles with Vite
     cmds:
-      - npx vite build
-      - npx tsc
+      - npm run build:vite
+
+  typecheck:
+    desc: Type-check TypeScript
+    cmds:
+      - npm run typecheck
+
+  build:ts:
+    desc: Compile TypeScript (Vite bundles + typecheck)
+    cmds:
+      - task: build:vite
+      - task: typecheck
 
   build:
     desc: Build Go binary
