@@ -33,6 +33,8 @@ func TestEventSettingsSaveAndRead(t *testing.T) {
 		OAuthClientID:     "my-client-id",
 		OAuthClientSecret: "my-client-secret",
 		OAuthRefreshToken: "my-refresh-token",
+		ColorLabels:       "1,5,banana",
+		FilterMode:        "both",
 	}
 
 	if err := SaveEventSettings(input); err != nil {
@@ -60,6 +62,15 @@ func TestEventSettingsSaveAndRead(t *testing.T) {
 	}
 	if s.OAuthRefreshToken != "my-refresh-token" {
 		t.Errorf("oauth_refresh_token: expected %q, got %q", "my-refresh-token", s.OAuthRefreshToken)
+	}
+	if s.ColorLabels != "1,5,banana" {
+		t.Errorf("color_labels: expected %q, got %q", "1,5,banana", s.ColorLabels)
+	}
+	if s.FilterMode != "both" {
+		t.Errorf("filter_mode: expected %q, got %q", "both", s.FilterMode)
+	}
+	if got := s.ParseColorLabels(); len(got) != 3 {
+		t.Errorf("ParseColorLabels: expected 3 labels, got %v", got)
 	}
 }
 

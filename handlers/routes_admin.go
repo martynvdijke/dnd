@@ -42,7 +42,9 @@ func RegisterAdminRoutes(r *gin.RouterGroup) {
 	// Events Settings
 	r.GET("/events-settings", GetEventsSettings)
 	r.POST("/events-settings", SaveEventsSettings)
+	r.PUT("/events-settings", SaveEventsSettings)
 	r.POST("/events-settings/clear-cache", ClearEventsCache)
+	r.POST("/events-cache/clear", ClearEventsCache)
 
 	// Events Share Link & QR
 	r.GET("/events/public-link", EventsPublicLink)

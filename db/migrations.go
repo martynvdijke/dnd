@@ -1786,6 +1786,14 @@ CREATE TABLE IF NOT EXISTS app_settings (
 INSERT OR IGNORE INTO app_settings (key, value) VALUES ('eink', '0');
 `,
 	},
+	{
+		version: 48,
+		sql: `
+-- Persist Google Calendar event color labels through the events cache so
+-- swatches survive cache-served page loads.
+ALTER TABLE google_events_cache ADD COLUMN color_id TEXT NOT NULL DEFAULT '';
+`,
+	},
 }
 
 func Migrate() error {

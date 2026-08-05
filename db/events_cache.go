@@ -18,7 +18,7 @@ func GetCachedEvents(ttlSeconds int, campaignSlug string) ([]googlecalendar.Even
 	}
 
 	rows, err := DB.Query(`
-		SELECT event_id, title, COALESCE(description,''), start_time, end_time, COALESCE(location,''), all_day, cached_at
+		SELECT event_id, title, COALESCE(description,''), start_time, end_time, COALESCE(location,''), all_day, COALESCE(color_id,''), cached_at
 		FROM google_events_cache
 		WHERE campaign_slug=?
 		ORDER BY start_time ASC`, campaignSlug)
@@ -35,7 +35,7 @@ func GetCachedEvents(ttlSeconds int, campaignSlug string) ([]googlecalendar.Even
 		var e googlecalendar.Event
 		var startStr, endStr, cachedAtStr string
 		var allDay int
-		if err := rows.Scan(&e.ID, &e.Title, &e.Description, &startStr, &endStr, &e.Location, &allDay, &cachedAtStr); err != nil {
+		if err := rows.Scan(&e.ID, &e.Title, &e.Description, &startStr, &endStr, &e.Location, &allDay, &e.ColorId, &cachedAtStr); err != nil {
 			log.Printf("events_cache: scan error: %v", err)
 			continue
 		}
@@ -93,8 +93,8 @@ func SetCachedEvents(events []googlecalendar.Event, campaignSlug string) error {
 	}
 
 	stmt, err := tx.Prepare(`
-		INSERT INTO google_events_cache(event_id, title, description, start_time, end_time, location, all_day, campaign_slug, cached_at)
-		VALUES(?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`)
+		INSERT INTO google_events_cache(event_id, title, description, start_time, end_time, location, all_day, campaign_slug, color_id, cached_at)
+		VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`)
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func SetCachedEvents(events []googlecalendar.Event, campaignSlug string) error {
 		if e.AllDay {
 			allDay = 1
 		}
-		if _, err := stmt.Exec(e.ID, e.Title, e.Description, startStr, endStr, e.Location, allDay, campaignSlug); err != nil {
+		if _, err := stmt.Exec(e.ID, e.Title, e.Description, startStr, endStr, e.Location, allDay, campaignSlug, e.ColorId); err != nil {
 			log.Printf("events_cache: insert error: %v", err)
 		}
 	}
