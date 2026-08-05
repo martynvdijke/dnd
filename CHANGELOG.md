@@ -1,3 +1,10 @@
+# [2.34.0](https://github.com/martynvdijke/dnd/compare/v2.33.0...v2.34.0) (2026-08-05)
+
+
+### Features
+
+* e-ink mode — high-contrast stylesheet, toggle, and admin setting ([b718a61](https://github.com/martynvdijke/dnd/commit/b718a6106a74ee6ebb210117ac1ef596b4962f56)), closes [hi#contrast](https://github.com/hi/issues/contrast)
+
 # [2.33.0](https://github.com/martynvdijke/dnd/compare/v2.32.0...v2.33.0) (2026-08-05)
 
 
