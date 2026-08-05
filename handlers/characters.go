@@ -465,8 +465,16 @@ func DeleteCharacter(c *gin.Context) {
 
 	// Delete child records first (Ent auto-migration creates FK constraints with NoAction,
 	// so we must delete children manually before the parent character record).
-	db.Client.CharacterCurrency.Delete().Where(charactercurrency.CharacterID(id)).Exec(c.Request.Context())
-	db.Client.CharacterClass.Delete().Where(characterclass.CharacterID(id)).Exec(c.Request.Context())
+	for _, table := range []string{
+		"character_currency", "character_classes", "character_proficiencies",
+		"character_locations", "character_npcs", "sessions", "quests", "journal",
+		"rest_log", "character_conditions", "character_feats", "companions",
+		"faction_reputation", "character_notes", "character_crafting",
+		"character_resources", "downtime_activities", "level_up_plans",
+		"character_spellcasting", "character_features", "spells", "inventory",
+	} {
+		db.DB.Exec("DELETE FROM "+table+" WHERE character_id = ?", id)
+	}
 	if err := db.Client.Character.DeleteOneID(id).Exec(c.Request.Context()); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -941,6 +949,7 @@ func loadSpells(ctx context.Context, characterID int64) []models.Spell {
 			ID: e.ID, CharacterID: e.CharacterID, Name: e.Name, Level: e.Level, School: e.School,
 			CastingTime: e.CastingTime, Range: e.Range, Components: e.Components, Duration: e.Duration,
 			Description: e.Description, Prepared: e.Prepared, AlwaysPrepared: e.AlwaysPrepared, Source: e.Source, Notes: e.Notes,
+			CompendiumSpellID: e.CompendiumSpellID,
 		})
 	}
 	return out
@@ -958,6 +967,7 @@ func loadInventory(ctx context.Context, characterID int64) []models.InventoryIte
 			Category: e.Category, DamageDice: e.DamageDice, DamageType: e.DamageType, WeaponProperties: e.WeaponProperties,
 			ACBonus: e.AcBonus, ArmorType: e.ArmorType, Description: e.Description,
 			IsEquipped: e.IsEquipped, IsMagical: e.IsMagical, Attunement: e.Attunement, IsIdentified: e.IsIdentified, Notes: e.Notes,
+			CompendiumEquipmentID: e.CompendiumEquipmentID,
 		})
 	}
 	return out
