@@ -35,6 +35,15 @@ jobs:
       - name: Download Go dependencies
         run: go mod download
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install Node dependencies
+        run: npm ci
+
       - name: Build embedded static bundles
         run: npm run build:vite
 
@@ -45,15 +54,6 @@ jobs:
         run: |
           gofmt -l .
           test -z "$(gofmt -l .)"
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: '24'
-          cache: 'npm'
-
-      - name: Install Node dependencies
-        run: npm ci
 
       - name: Typecheck TypeScript
         run: npm run typecheck
