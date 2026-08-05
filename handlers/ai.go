@@ -2,10 +2,16 @@ package handlers
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -588,4 +594,96 @@ func truncateResponse(s string) string {
 		return s[:200] + "..."
 	}
 	return s
+}
+
+type saveImageRequest struct {
+	URL string `json:"url"`
+}
+
+type saveImageResponse struct {
+	URL string `json:"url"`
+}
+
+// SaveGeneratedImage downloads an AI-generated image and stores it in the media library.
+func SaveGeneratedImage(c *gin.Context) {
+	var req saveImageRequest
+	if err := c.ShouldBindJSON(&req); err != nil || req.URL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "url is required"})
+		return
+	}
+
+	u, err := url.Parse(req.URL)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Hostname() == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid url"})
+		return
+	}
+
+	// SSRF guard: reject loopback, private, link-local, and unspecified hosts
+	ips, err := net.LookupIP(u.Hostname())
+	if err != nil || len(ips) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "could not resolve host"})
+		return
+	}
+	for _, ip := range ips {
+		if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() || ip.IsUnspecified() {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "url host must be publicly reachable"})
+			return
+		}
+	}
+
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Get(req.URL)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": sanitizeError(err)})
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		c.JSON(http.StatusBadGateway, gin.H{"error": fmt.Sprintf("download failed: %s", resp.Status)})
+		return
+	}
+
+	ctype := resp.Header.Get("Content-Type")
+	if !strings.HasPrefix(ctype, "image/") {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "url did not return an image"})
+		return
+	}
+
+	ext := map[string]string{
+		"image/png":  "png",
+		"image/jpeg": "jpg",
+		"image/jpg":  "jpg",
+		"image/webp": "webp",
+		"image/gif":  "gif",
+	}[ctype]
+	if ext == "" {
+		ext = "png"
+	}
+
+	data, err := io.ReadAll(io.LimitReader(resp.Body, 10<<20))
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": sanitizeError(err)})
+		return
+	}
+
+	rb := make([]byte, 4)
+	if _, err := rand.Read(rb); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate filename"})
+		return
+	}
+	filename := fmt.Sprintf("ai-%d-%s.%s", time.Now().Unix(), hex.EncodeToString(rb), ext)
+	dir := filepath.Join(MediaPath, "ai")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": sanitizeError(err)})
+		return
+	}
+	if err := os.WriteFile(filepath.Join(dir, filename), data, 0o644); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": sanitizeError(err)})
+		return
+	}
+
+	middleware.LogInfo("ai", "generated image saved", "file", filename, "bytes", len(data))
+
+	c.JSON(http.StatusOK, saveImageResponse{URL: "/media/ai/" + filename})
 }

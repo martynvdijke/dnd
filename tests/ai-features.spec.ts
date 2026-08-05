@@ -51,22 +51,67 @@ test.describe('AI Features', () => {
       expect(result.error).toBeTruthy();
     });
 
-    test('Create an AI endpoint', async ({ page }) => {
+    test('Create, update, test, and delete an AI endpoint (full CRUD)', async ({ page }) => {
       const name = 'Test ' + uniqueName();
-      const result = await page.evaluate(async (n) => {
-        try {
-          const data = await (window as any).api('POST', '/api/admin/ai-endpoints', {
-            name: n, provider: 'openai', api_key: 'sk-test123',
-            endpoint_type: 'text', base_url: 'https://api.openai.com/v1',
-            models: JSON.stringify(['gpt-4']), is_enabled: true,
-          });
-          return { ok: true, data };
-        } catch (e) {
-          return { ok: false, error: String(e) };
-        }
+
+      // Create with correct field names
+      const created: any = await page.evaluate(async (n) => {
+        return (window as any).api('POST', '/api/admin/ai-endpoints', {
+          name: n, type: 'text', base_url: 'https://api.openai.com/v1',
+          model: 'gpt-4o-mini', api_key: 'sk-test123', enabled: true,
+          temperature: 0.7, max_tokens: 128,
+        });
       }, name);
-      // Accept either success or validation error
-      expect(result.ok === true || result.error !== undefined).toBe(true);
+      expect(created).toBeTruthy();
+      expect(created.id).toBeTruthy();
+      // API key must be encrypted before storage
+      expect(JSON.stringify(created)).not.toContain('sk-test123');
+
+      // List includes the new endpoint
+      const list: any[] = await page.evaluate(async () => {
+        return (window as any).api('GET', '/api/admin/ai-endpoints');
+      });
+      expect(list.some((e) => e.id === created.id && e.name === name)).toBe(true);
+
+      // Enabled endpoint shows up in DM-facing enabled list
+      const enabledText: any[] = await page.evaluate(async () => {
+        return (window as any).api('GET', '/api/ai/endpoints?type=text');
+      });
+      expect(enabledText.some((e) => e.id === created.id)).toBe(true);
+
+      // Update (PUT requires name, type, base_url, model)
+      const updated: any = await page.evaluate(async ({ id, nm }) => {
+        return (window as any).api('PUT', '/api/admin/ai-endpoints/' + id, {
+          name: nm, type: 'text', base_url: 'https://api.openai.com/v1',
+          model: 'gpt-4.1-mini', enabled: false,
+        });
+      }, { id: created.id, nm: name });
+      expect(updated.model).toBe('gpt-4.1-mini');
+      expect(updated.enabled).toBe(false);
+
+      // Disabled endpoint no longer in enabled list
+      const enabledTextAfter: any[] = await page.evaluate(async () => {
+        return (window as any).api('GET', '/api/ai/endpoints?type=text');
+      });
+      expect(enabledTextAfter.some((e) => e.id === created.id)).toBe(false);
+
+      // Test endpoint: fake key must fail deterministically
+      const testResult: any = await page.evaluate(async (id) => {
+        return (window as any).api('POST', '/api/admin/ai-endpoints/' + id + '/test');
+      }, created.id);
+      expect(testResult.success).toBe(false);
+      expect(testResult.message).toBeTruthy();
+
+      // Delete
+      const del: any = await page.evaluate(async (id) => {
+        return (window as any).api('DELETE', '/api/admin/ai-endpoints/' + id);
+      }, created.id);
+      expect(del).toBeTruthy();
+
+      const listAfter: any[] = await page.evaluate(async () => {
+        return (window as any).api('GET', '/api/admin/ai-endpoints');
+      });
+      expect(listAfter.some((e) => e.id === created.id)).toBe(false);
     });
   });
 

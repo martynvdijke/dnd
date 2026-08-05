@@ -7,6 +7,7 @@ func RegisterDMARoutes(r *gin.RouterGroup) {
 	r.GET("/ai/endpoints", HandleListEnabledAIEndpoints)
 	r.POST("/ai/generate/text", HandleTextGeneration)
 	r.POST("/ai/generate/image", HandleImageGeneration)
+	r.POST("/ai/save-image", SaveGeneratedImage)
 }
 
 // RegisterAdminAIRoutes registers admin AI endpoint management routes.

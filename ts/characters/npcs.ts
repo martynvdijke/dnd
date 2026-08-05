@@ -86,11 +86,13 @@ expose('showCreateNPC', function () {
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="newNPCName"></div>
     <div class="mb-3">
       <label class="form-label">Portrait</label>
+      <input type="hidden" id="newNPCPortraitUrl">
       <div class="d-flex align-items-center gap-2">
         <input type="file" class="form-control form-control-sm" id="newNPCPortraitUpload" accept="image/*">
         <button class="btn btn-primary btn-sm" onclick="uploadNewNPCPortrait()"><i class="fa-solid fa-upload me-1"></i>Upload</button>
         <button class="btn btn-outline-info btn-sm" onclick="browseNewNPCPortrait()"><i class="fa-solid fa-image me-1"></i>Browse</button>
       </div>
+      <button class="btn btn-outline-primary btn-sm mt-2 ai-generate-btn" type="button" data-ai-mode="image" data-ai-target="newNPCPortraitUrl" data-ai-hint="Fantasy portrait of this NPC" data-ai-title="Generate NPC Portrait"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate with AI</button>
     </div>
     <div class="row g-3 mb-3">
       <div class="col-6"><label class="form-label">Race</label><input class="form-control" id="newNPCRace"></div>
@@ -127,12 +129,13 @@ expose('browseNewNPCPortrait', async function () {
 });
 
 expose('saveNewNPC', async function () {
+  const aiUrl = (document.getElementById('newNPCPortraitUrl') as HTMLInputElement)?.value || '';
   await api('POST', '/api/npcs', {
     name: (document.getElementById('newNPCName') as HTMLInputElement).value,
     race: (document.getElementById('newNPCRace') as HTMLInputElement).value,
     class: (document.getElementById('newNPCClass') as HTMLInputElement).value,
     description: (document.getElementById('newNPCDesc') as HTMLTextAreaElement).value,
-    portrait_url: newNPCPortraitUrl,
+    portrait_url: newNPCPortraitUrl || aiUrl,
   });
   newNPCPortraitUrl = '';
   setAllNPCs(await api('GET', '/api/npcs'));

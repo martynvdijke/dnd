@@ -48,6 +48,7 @@
     <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('npPortraitUpload').click()"><i class="fa-solid fa-upload"></i></button>
     <input type="file" id="npPortraitUpload" accept="image/*" style="display:none" onchange="uploadNPCPortrait(this.files)">
   </div>
+  <button class="btn btn-sm btn-outline-primary mt-2 ai-generate-btn" type="button" data-ai-mode="image" data-ai-target="npPortraitUrl" data-ai-hint="Fantasy portrait of this NPC" data-ai-title="Generate NPC Portrait"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate with AI</button>
 </div>
 <button class="btn btn-primary w-100" hx-post="/htmx/npcs" hx-target="#npcsSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create</button>
 <script>

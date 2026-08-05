@@ -3,6 +3,7 @@
  */
 import { esc, toast, showModal, hideModal } from './lib/dom';
 import { api } from './lib/api';
+import { expose } from './lib/expose';
 
 // ─── State ───
 
@@ -12,6 +13,23 @@ export let aiGenLastImageUrl: string | null = null;
 const AI_DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant for a D&D website called villum. You help DMs create compelling narratives, NPCs, locations, items, and other TTRPG content. Be creative and concise.';
 
 // ─── Modal ───
+
+// Show the AI modal, queueing the show until any in-flight hide transition finishes
+// (bootstrap silently swallows show() during a hide transition).
+function aiShowModal(): void {
+  const el = document.getElementById('aiGenModal')!;
+  const bootstrap = (window as any).bootstrap;
+  if (el.classList.contains('show')) return;
+  const modal = bootstrap.Modal.getOrCreateInstance(el);
+  if (modal._isTransitioning) {
+    el.addEventListener('hidden.bs.modal', function onHidden() {
+      el.removeEventListener('hidden.bs.modal', onHidden);
+      bootstrap.Modal.getOrCreateInstance(el).show();
+    });
+    return;
+  }
+  modal.show();
+}
 
 export function openAIGenModal(mode: string, targetId: string, promptHint?: string, title?: string) {
   aiGenLastResult = null;
@@ -35,9 +53,9 @@ export function openAIGenModal(mode: string, targetId: string, promptHint?: stri
   document.getElementById('aiGenSystemField')!.style.display = mode === 'text' ? 'block' : 'none';
   document.getElementById('aiGenInsertBtn')!.style.display = mode === 'text' ? 'inline-block' : 'none';
   document.getElementById('aiGenReplaceBtn')!.style.display = mode === 'text' ? 'inline-block' : 'none';
+  document.getElementById('aiGenSaveBtn')!.style.display = mode === 'image' ? 'inline-block' : 'none';
 
-  const modal = new (window as any).bootstrap.Modal(document.getElementById('aiGenModal')!);
-  modal.show();
+  aiShowModal();
 
   // Fetch endpoints for this mode
   fetchAIEndpoints(mode);
@@ -151,6 +169,33 @@ export function replaceAIGenResult() {
     toast('Text replaced');
   }
 }
+
+export async function saveAIGenImage() {
+  if (!aiGenLastImageUrl) { toast('No image to save — generate one first', true); return; }
+  const targetId = (document.getElementById('aiGenTargetId') as HTMLInputElement).value;
+  try {
+    const resp: any = await api('POST', '/api/ai/save-image', { url: aiGenLastImageUrl });
+    if (!resp || !resp.url) { toast('Save failed', true); return; }
+    if (targetId) {
+      const target = document.getElementById(targetId) as HTMLTextAreaElement | HTMLInputElement;
+      if (target) target.value = resp.url;
+    }
+    const modal = (window as any).bootstrap.Modal.getInstance(document.getElementById('aiGenModal')!);
+    if (modal) modal.hide();
+    toast('Image saved to library');
+  } catch (e: any) {
+    toast(e.message || 'Save failed', true);
+  }
+}
+
+// ─── Window registration (called from inline HTML onclick handlers) ───
+
+expose('openAIGenModal', openAIGenModal);
+expose('generateWithAI', generateWithAI);
+expose('regenerateWithAI', regenerateWithAI);
+expose('insertAIGenResult', insertAIGenResult);
+expose('replaceAIGenResult', replaceAIGenResult);
+expose('saveAIGenImage', saveAIGenImage);
 
 // ─── Campaign Dashboard Helper ───
 
