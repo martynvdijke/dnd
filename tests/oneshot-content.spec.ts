@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { waitLoadingDone, clickSecondaryNavItem, login } from './helpers.js';
+import { waitLoadingDone, clickSecondaryNavItem, login, NAV_TIMEOUT } from './helpers.js';
 
 const uniqueName = () => `OSC-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -16,7 +16,7 @@ async function loadHtmx(page, url, target?: string) {
 /** Click the One-Shots nav link, handling mobile hamburger menu */
 async function navigateToOneShots(page) {
   await clickSecondaryNavItem(page, 'oneshots', 'moreNavOneshot', 'One-Shots');
-  await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+  await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: NAV_TIMEOUT });
 }
 
 /** Create a one-shot adventure via API and return its ID */
@@ -46,6 +46,7 @@ test.describe('One-Shot Content Features', () => {
 
   test.describe('Items', () => {
     test('Create an item for a one-shot', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createOneShot(page, title);
       expect(adv.id).toBeGreaterThan(0);
@@ -60,6 +61,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('List items for a one-shot', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createOneShot(page, title);
       const itemName = uniqueName();
@@ -78,6 +80,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('Update item details', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createOneShot(page, title);
       const itemName = uniqueName();
@@ -106,6 +109,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('Delete item removes it from list', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createOneShot(page, title);
       const itemName = uniqueName();
@@ -127,6 +131,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('List item uploads returns empty array', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createOneShot(page, title);
       const itemName = uniqueName();
@@ -149,6 +154,7 @@ test.describe('One-Shot Content Features', () => {
 
   test.describe('Shops', () => {
     test('Create a shop within a one-shot', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createOneShot(page, title);
 
@@ -162,6 +168,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('List shops for a one-shot', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createOneShot(page, title);
       const shopName = uniqueName();
@@ -180,6 +187,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('Create shop item within a one-shot shop', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createOneShot(page, title);
       const shopName = uniqueName();
@@ -209,6 +217,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('Delete shop within a one-shot', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createOneShot(page, title);
       const shopName = uniqueName();
@@ -236,6 +245,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('Shop items HTMX section loads in one-shot detail view', async ({ page }) => {
+    test.slow();
       // Create a one-shot with a shop
       const title = uniqueName();
       const adv = await createOneShot(page, title);
@@ -264,7 +274,7 @@ test.describe('One-Shot Content Features', () => {
           if (card) card.innerHTML = html;
         }, shopsHtml);
       }
-      await expect(page.locator('#oneshotSection')).toContainText(shopName, { timeout: 5000 });
+      await expect(page.locator('#oneshotSection')).toContainText(shopName, { timeout: NAV_TIMEOUT });
     });
   });
 
@@ -272,6 +282,7 @@ test.describe('One-Shot Content Features', () => {
 
   test.describe('Monsters', () => {
     test('Create monster library entry', async ({ page }) => {
+    test.slow();
       const name = uniqueName();
       const result = await page.evaluate(async (n) => {
         return (window as any).api('POST', '/api/monster-library', {
@@ -287,6 +298,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('List monster library returns created entries', async ({ page }) => {
+    test.slow();
       const name = uniqueName();
       await page.evaluate(async (n) => {
         return (window as any).api('POST', '/api/monster-library', {
@@ -303,6 +315,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('Update monster library entry', async ({ page }) => {
+    test.slow();
       const name = uniqueName();
       const created = await page.evaluate(async (n) => {
         return (window as any).api('POST', '/api/monster-library', {
@@ -329,6 +342,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('Delete monster library entry', async ({ page }) => {
+    test.slow();
       const name = uniqueName();
       const created = await page.evaluate(async (n) => {
         return (window as any).api('POST', '/api/monster-library', {
@@ -348,6 +362,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('Create and list act monsters', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createGeneratedOneShot(page, title);
       expect(adv.id).toBeGreaterThan(0);
@@ -376,6 +391,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('Update and delete act monster', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createGeneratedOneShot(page, title);
       const detail = await page.evaluate(async (id) => {
@@ -419,13 +435,14 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('Monsters HTMX section loads in one-shot detail view', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createOneShot(page, title);
 
       await navigateToOneShots(page);
       await loadHtmx(page, `/htmx/oneshot-adventures/${adv.id}`);
       await page.waitForTimeout(1000);
-      await expect(page.locator('#oneshotSection')).toContainText('Monsters', { timeout: 5000 });
+      await expect(page.locator('#oneshotSection')).toContainText('Monsters', { timeout: NAV_TIMEOUT });
     });
   });
 
@@ -433,6 +450,7 @@ test.describe('One-Shot Content Features', () => {
 
   test.describe('Player Characters', () => {
     test('Create a character for linking', async ({ page }) => {
+    test.slow();
       const name = uniqueName();
       const result = await page.evaluate(async (n) => {
         return (window as any).api('POST', '/api/characters', {
@@ -445,6 +463,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('Link character to a one-shot', async ({ page }) => {
+    test.slow();
       const adv = await createOneShot(page, uniqueName());
 
       // Create a character first
@@ -467,6 +486,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('List linked characters for a one-shot', async ({ page }) => {
+    test.slow();
       const adv = await createOneShot(page, uniqueName());
       const charName = uniqueName();
       const character = await page.evaluate(async (n) => {
@@ -491,6 +511,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('Unlink character from a one-shot', async ({ page }) => {
+    test.slow();
       const adv = await createOneShot(page, uniqueName());
       const charName = uniqueName();
       const character = await page.evaluate(async (n) => {
@@ -519,13 +540,14 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('PCs HTMX section loads in one-shot detail view', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createOneShot(page, title);
 
       await navigateToOneShots(page);
       await loadHtmx(page, `/htmx/oneshot-adventures/${adv.id}`);
       await page.waitForTimeout(1000);
-      await expect(page.locator('#oneshotSection')).toContainText('Player Characters', { timeout: 5000 });
+      await expect(page.locator('#oneshotSection')).toContainText('Player Characters', { timeout: NAV_TIMEOUT });
     });
   });
 
@@ -533,6 +555,7 @@ test.describe('One-Shot Content Features', () => {
 
   test.describe('NPC-Item Links', () => {
     test('Create NPC-item link', async ({ page }) => {
+    test.slow();
       const adv = await createOneShot(page, uniqueName());
 
       // Create an NPC
@@ -565,6 +588,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('List items for NPC', async ({ page }) => {
+    test.slow();
       const adv = await createOneShot(page, uniqueName());
       const npcName = uniqueName();
       const npc = await page.evaluate(async (n) => {
@@ -599,6 +623,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('List NPCs for item', async ({ page }) => {
+    test.slow();
       const adv = await createOneShot(page, uniqueName());
       const npcName = uniqueName();
       const npc = await page.evaluate(async (n) => {
@@ -632,6 +657,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('Delete NPC-item link', async ({ page }) => {
+    test.slow();
       const adv = await createOneShot(page, uniqueName());
       const npcName = uniqueName();
       const npc = await page.evaluate(async (n) => {
@@ -673,6 +699,7 @@ test.describe('One-Shot Content Features', () => {
 
   test.describe('Inline Editing', () => {
     test('Update act duration', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createGeneratedOneShot(page, title);
       const detail = await page.evaluate(async (id) => {
@@ -691,6 +718,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('Update scene duration', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createGeneratedOneShot(page, title);
       const detail = await page.evaluate(async (id) => {
@@ -710,6 +738,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('Reorder acts', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createGeneratedOneShot(page, title);
       const detail = await page.evaluate(async (id) => {
@@ -732,6 +761,7 @@ test.describe('One-Shot Content Features', () => {
     });
 
     test('Reorder scenes within an act', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createGeneratedOneShot(page, title);
       const detail = await page.evaluate(async (id) => {
@@ -774,6 +804,7 @@ test.describe('One-Shot Content Features', () => {
 
   test.describe('Act & Scene Editing', () => {
     test('Edit act title via HTMX', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createGeneratedOneShot(page, title);
       const detail = await page.evaluate(async (id) => {
@@ -800,10 +831,11 @@ test.describe('One-Shot Content Features', () => {
       await page.waitForTimeout(500);
 
       // Verify updated title in detail
-      await expect(page.locator('#oneshotSection')).toContainText(newTitle, { timeout: 5000 });
+      await expect(page.locator('#oneshotSection')).toContainText(newTitle, { timeout: NAV_TIMEOUT });
     });
 
     test('Edit scene details via HTMX', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createGeneratedOneShot(page, title);
       const detail = await page.evaluate(async (id) => {
@@ -831,10 +863,11 @@ test.describe('One-Shot Content Features', () => {
       await page.waitForTimeout(500);
 
       // Verify updated title
-      await expect(page.locator('#oneshotSection')).toContainText(newTitle, { timeout: 5000 });
+      await expect(page.locator('#oneshotSection')).toContainText(newTitle, { timeout: NAV_TIMEOUT });
     });
 
     test('Edit act parent via API', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createOneShot(page, title);
 
@@ -896,6 +929,7 @@ test.describe('One-Shot Content Features', () => {
     }
 
     test('Create and view scene dialogs', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createGeneratedOneShot(page, title);
       const detail = await page.evaluate(async (id) => {
@@ -920,11 +954,12 @@ test.describe('One-Shot Content Features', () => {
       // Reload dialogs in modal
       await loadHtmx(page, `/htmx/oneshot-scenes/${sceneId}/dialogs`, 'genericModalBody');
       await page.waitForTimeout(300);
-      await expect(page.locator('#genericModalBody')).toContainText(speaker, { timeout: 5000 });
-      await expect(page.locator('#genericModalBody')).toContainText(dtext, { timeout: 5000 });
+      await expect(page.locator('#genericModalBody')).toContainText(speaker, { timeout: NAV_TIMEOUT });
+      await expect(page.locator('#genericModalBody')).toContainText(dtext, { timeout: NAV_TIMEOUT });
     });
 
     test('Edit scene dialog via HTMX', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createGeneratedOneShot(page, title);
       const detail = await page.evaluate(async (id) => {
@@ -966,10 +1001,11 @@ test.describe('One-Shot Content Features', () => {
       await page.waitForTimeout(300);
 
       // Verify updated text
-      await expect(page.locator('#genericModalBody')).toContainText(newText, { timeout: 5000 });
+      await expect(page.locator('#genericModalBody')).toContainText(newText, { timeout: NAV_TIMEOUT });
     });
 
     test('Delete scene dialog', async ({ page }) => {
+    test.slow();
       const title = uniqueName();
       const adv = await createGeneratedOneShot(page, title);
       const detail = await page.evaluate(async (id) => {
@@ -997,7 +1033,7 @@ test.describe('One-Shot Content Features', () => {
       });
       expect(dialogId).toBeGreaterThan(0);
 
-      await expect(page.locator('#genericModalBody')).toContainText(speaker, { timeout: 5000 });
+      await expect(page.locator('#genericModalBody')).toContainText(speaker, { timeout: NAV_TIMEOUT });
 
       // Click delete button (handle hx-confirm dialog)
       page.once('dialog', dialog => dialog.accept());
@@ -1006,7 +1042,7 @@ test.describe('One-Shot Content Features', () => {
       await page.waitForTimeout(300);
 
       // Verify deleted - speaker should no longer be visible
-      await expect(page.locator('#genericModalBody')).not.toContainText(speaker, { timeout: 5000 });
+      await expect(page.locator('#genericModalBody')).not.toContainText(speaker, { timeout: NAV_TIMEOUT });
     });
   });
 });
@@ -1020,6 +1056,7 @@ test.describe('Acts & Scenes API CRUD', () => {
   });
 
   test('Create act for a one-shot', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createOneShot(page, title);
     const result = await page.evaluate(async ({ id, t }) => {
@@ -1031,6 +1068,7 @@ test.describe('Acts & Scenes API CRUD', () => {
   });
 
   test('List acts via adventure detail', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createGeneratedOneShot(page, title);
     expect(adv.id).toBeGreaterThan(0);
@@ -1041,6 +1079,7 @@ test.describe('Acts & Scenes API CRUD', () => {
   });
 
   test('Update act title', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createGeneratedOneShot(page, title);
     const detail = await page.evaluate(async (id) => {
@@ -1064,6 +1103,7 @@ test.describe('Acts & Scenes API CRUD', () => {
   });
 
   test('Delete an act', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createOneShot(page, title);
     const act = await page.evaluate(async ({ id, t }) => {
@@ -1083,6 +1123,7 @@ test.describe('Acts & Scenes API CRUD', () => {
   });
 
   test('Create scene within act', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createGeneratedOneShot(page, title);
     const detail = await page.evaluate(async (id) => {
@@ -1099,6 +1140,7 @@ test.describe('Acts & Scenes API CRUD', () => {
   });
 
   test('Update scene details', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createGeneratedOneShot(page, title);
     const detail = await page.evaluate(async (id) => {
@@ -1122,6 +1164,7 @@ test.describe('Acts & Scenes API CRUD', () => {
   });
 
   test('Delete a scene', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createGeneratedOneShot(page, title);
     const detail = await page.evaluate(async (id) => {
@@ -1150,6 +1193,7 @@ test.describe('Session Pacing', () => {
   });
 
   test('Start and get pacing session', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createOneShot(page, title);
     const act = await page.evaluate(async ({ id, t }) => {
@@ -1174,6 +1218,7 @@ test.describe('Session Pacing', () => {
   });
 
   test('Pause and resume pacing session', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createOneShot(page, title);
     const act = await page.evaluate(async ({ id, t }) => {
@@ -1202,6 +1247,7 @@ test.describe('Session Pacing', () => {
   });
 
   test('Advance and complete pacing session', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createGeneratedOneShot(page, title);
     const detail = await page.evaluate(async (id) => {
@@ -1238,6 +1284,7 @@ test.describe('Clues', () => {
   });
 
   test('Create a clue', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createOneShot(page, title);
     const result = await page.evaluate(async ({ advId, t }) => {
@@ -1250,6 +1297,7 @@ test.describe('Clues', () => {
   });
 
   test('List clues for a one-shot', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createOneShot(page, title);
     const clueTitle = 'List Clue ' + uniqueName();
@@ -1268,6 +1316,7 @@ test.describe('Clues', () => {
   });
 
   test('Update a clue', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createOneShot(page, title);
     const clueTitle = 'Update Clue ' + uniqueName();
@@ -1294,6 +1343,7 @@ test.describe('Clues', () => {
   });
 
   test('Delete a clue', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createOneShot(page, title);
     const created = await page.evaluate(async ({ advId, t }) => {
@@ -1314,6 +1364,7 @@ test.describe('Clues', () => {
   });
 
   test('Reveal and hide a clue', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createOneShot(page, title);
     const created = await page.evaluate(async ({ advId, t }) => {
@@ -1346,6 +1397,7 @@ test.describe('Prep Checklist', () => {
   });
 
   test('Create checklist item', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createOneShot(page, title);
     const result = await page.evaluate(async ({ advId }) => {
@@ -1357,6 +1409,7 @@ test.describe('Prep Checklist', () => {
   });
 
   test('List checklist for a one-shot', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createOneShot(page, title);
     await page.evaluate(async ({ advId }) => {
@@ -1373,6 +1426,7 @@ test.describe('Prep Checklist', () => {
   });
 
   test('Update checklist item', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createOneShot(page, title);
     const created = await page.evaluate(async ({ advId }) => {
@@ -1396,6 +1450,7 @@ test.describe('Prep Checklist', () => {
   });
 
   test('Delete checklist item', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createOneShot(page, title);
     const created = await page.evaluate(async ({ advId }) => {
@@ -1424,6 +1479,7 @@ test.describe('DM Notes', () => {
   });
 
   test('Create DM note', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createOneShot(page, title);
     const noteTitle = 'Note ' + uniqueName();
@@ -1436,6 +1492,7 @@ test.describe('DM Notes', () => {
   });
 
   test('List DM notes for a one-shot', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createOneShot(page, title);
     const noteTitle = 'List Note ' + uniqueName();
@@ -1453,6 +1510,7 @@ test.describe('DM Notes', () => {
   });
 
   test('Update DM note', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createOneShot(page, title);
     const noteTitle = 'Update Note ' + uniqueName();
@@ -1478,6 +1536,7 @@ test.describe('DM Notes', () => {
   });
 
   test('Delete DM note', async ({ page }) => {
+    test.slow();
     const title = uniqueName();
     const adv = await createOneShot(page, title);
     const noteTitle = 'Delete Note ' + uniqueName();

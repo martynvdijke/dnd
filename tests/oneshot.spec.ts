@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { waitLoadingDone, waitModalClosed, clickSecondaryNavItem, login } from './helpers.js';
+import { waitLoadingDone, waitModalClosed, clickSecondaryNavItem, login, NAV_TIMEOUT } from './helpers.js';
 
 const uniqueName = () => `OS-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -38,15 +38,15 @@ async function loadHtmx(page, url) {
 /** Click the One-Shots nav link, handling mobile hamburger menu or mobile More→One-Shots */
 async function navigateToOneShots(page) {
   await clickSecondaryNavItem(page, 'oneshots', 'moreNavOneshot', 'One-Shots');
-  await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
+  await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: NAV_TIMEOUT });
 }
 
 /** Fill and submit the one-shot form inside the modal */
 async function submitOneShotForm(page, { title, template, difficulty, minutes }) {
-  await expect(page.locator('#genericModal')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('#genericModal')).toBeVisible({ timeout: NAV_TIMEOUT });
 
   // Wait for form to load in modal body
-  await page.waitForSelector('#genericModalBody input[name="title"]', { timeout: 5000 });
+  await page.waitForSelector('#genericModalBody input[name="title"]', { timeout: NAV_TIMEOUT });
   await page.locator('#genericModalBody input[name="title"]').fill(title);
   if (template) await page.locator('#genericModalBody select[name="template"]').selectOption(template);
   if (difficulty) await page.locator('#genericModalBody select[name="difficulty"]').selectOption(difficulty);
@@ -64,7 +64,7 @@ async function submitOneShotForm(page, { title, template, difficulty, minutes })
     (t) => !!document.querySelector(`#oneshotSection .list-group-item`) &&
       Array.from(document.querySelectorAll('#oneshotSection .list-group-item')).some(i => i.textContent.includes(t)),
     title,
-    { timeout: 5000 }
+    { timeout: NAV_TIMEOUT }
   ).catch(() => {});
 }
 
@@ -83,7 +83,7 @@ test.describe('One-Shot Adventure Features', () => {
     await navigateToOneShots(page);
 
     // Verify New button exists before clicking
-    await expect(page.locator('#oneshotSection button:has-text("New")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#oneshotSection button:has-text("New")')).toBeVisible({ timeout: NAV_TIMEOUT });
     await page.locator('#oneshotSection button:has-text("New")').click();
 
     const title = uniqueName();
@@ -91,7 +91,7 @@ test.describe('One-Shot Adventure Features', () => {
       title, template: 'custom', difficulty: 'medium', minutes: 120
     });
 
-    await expect(page.locator('#oneshotSection')).toContainText(title, { timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText(title, { timeout: NAV_TIMEOUT });
   });
 
   test('Generate a five-room dungeon via UI form', async ({ page }) => {
@@ -111,7 +111,7 @@ test.describe('One-Shot Adventure Features', () => {
 
     // Click the adventure to view detail and check for acts
     const listItem = page.locator('#oneshotSection .list-group-item').filter({ hasText: title });
-    await listItem.waitFor({ state: 'visible', timeout: 5000 });
+    await listItem.waitFor({ state: 'visible', timeout: NAV_TIMEOUT });
     await listItem.click();
 
     // Wait for HTMX detail view to load acts
@@ -149,8 +149,8 @@ test.describe('One-Shot Adventure Features', () => {
 
     // Load prep dashboard via HTMX
     await loadHtmx(page, `/htmx/oneshot-adventures/${advId}/dashboard`);
-    await expect(page.locator('#oneshotSection')).toContainText(title, { timeout: 5000 });
-    await expect(page.locator('#oneshotSection')).toContainText('Session Flow', { timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText(title, { timeout: NAV_TIMEOUT });
+    await expect(page.locator('#oneshotSection')).toContainText('Session Flow', { timeout: NAV_TIMEOUT });
   });
 
   test('DM screen loads with quick reference, actions, and notes tabs', async ({ page }) => {
@@ -174,10 +174,10 @@ test.describe('One-Shot Adventure Features', () => {
     }, title);
 
     await loadHtmx(page, `/htmx/oneshot-adventures/${advId}/dm-screen`);
-    await expect(page.locator('#oneshotSection')).toContainText('Quick Reference', { timeout: 5000 });
-    await expect(page.locator('#oneshotSection')).toContainText('Quick Actions', { timeout: 5000 });
-    await expect(page.locator('#oneshotSection')).toContainText('DM Notes', { timeout: 5000 });
-    await expect(page.locator('#oneshotSection')).toContainText('Conditions', { timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText('Quick Reference', { timeout: NAV_TIMEOUT });
+    await expect(page.locator('#oneshotSection')).toContainText('Quick Actions', { timeout: NAV_TIMEOUT });
+    await expect(page.locator('#oneshotSection')).toContainText('DM Notes', { timeout: NAV_TIMEOUT });
+    await expect(page.locator('#oneshotSection')).toContainText('Conditions', { timeout: NAV_TIMEOUT });
   });
 
   test('Prep checklist add and toggle via UI', async ({ page }) => {
@@ -205,11 +205,11 @@ test.describe('One-Shot Adventure Features', () => {
     // Load checklist via HTMX
     await loadHtmx(page, `/htmx/oneshot-adventures/${advId}/checklist`);
     await page.waitForTimeout(1000);
-    await expect(page.locator('#oneshotSection')).toContainText('No checklist items yet', { timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText('No checklist items yet', { timeout: NAV_TIMEOUT });
 
     // Add checklist item
     const input = page.locator('#oneshotSection input[name="item"]');
-    await expect(input).toBeVisible({ timeout: 5000 });
+    await expect(input).toBeVisible({ timeout: NAV_TIMEOUT });
     await input.fill('Prepare battle maps');
     await page.locator('#oneshotSection button.btn-primary i.fa-plus').click();
     await page.waitForTimeout(2000);
@@ -222,11 +222,11 @@ test.describe('One-Shot Adventure Features', () => {
 
     // Load pregens list
     await loadHtmx(page, '/htmx/pregens');
-    await expect(page.locator('#oneshotSection')).toContainText(/Pregen/i, { timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText(/Pregen/i, { timeout: NAV_TIMEOUT });
 
     // Generate a character
     await loadHtmx(page, '/htmx/pregens/generate?name=Sir+Test&class=fighter&race=human&level=3');
-    await expect(page.locator('#oneshotSection')).toContainText('Sir Test', { timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText('Sir Test', { timeout: NAV_TIMEOUT });
   });
 
   test('Session flow loads print-friendly view', async ({ page }) => {
@@ -246,9 +246,9 @@ test.describe('One-Shot Adventure Features', () => {
     expect(advId).toBeGreaterThan(0);
 
     await loadHtmx(page, `/htmx/oneshot-adventures/${advId}/session-flow`);
-    await expect(page.locator('#oneshotSection')).toContainText(title, { timeout: 5000 });
-    await expect(page.locator('#oneshotSection')).toContainText('Entrance & Guardian', { timeout: 5000 });
-    await expect(page.locator('#oneshotSection')).toContainText('Reward & Revelation', { timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText(title, { timeout: NAV_TIMEOUT });
+    await expect(page.locator('#oneshotSection')).toContainText('Entrance & Guardian', { timeout: NAV_TIMEOUT });
+    await expect(page.locator('#oneshotSection')).toContainText('Reward & Revelation', { timeout: NAV_TIMEOUT });
   });
 
   test('Clue board - add and view clues', async ({ page }) => {
@@ -276,7 +276,7 @@ test.describe('One-Shot Adventure Features', () => {
 
     // Load clue board
     await loadHtmx(page, `/htmx/oneshot-adventures/${advId}/clues`);
-    await expect(page.locator('#oneshotSection')).toContainText('The Hidden Dagger', { timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText('The Hidden Dagger', { timeout: NAV_TIMEOUT });
   });
 
   test('Pacing session can be started and viewed', async ({ page }) => {
@@ -303,8 +303,8 @@ test.describe('One-Shot Adventure Features', () => {
 
     // Load pacing dashboard via HTMX
     await loadHtmx(page, `/htmx/session-pacing/${sessionId}`);
-    await expect(page.locator('#oneshotSection')).toContainText('Session Dashboard', { timeout: 5000 });
-    await expect(page.locator('#oneshotSection')).toContainText('Running', { timeout: 5000 });
-    await expect(page.locator('#oneshotSection button:has-text("Pause")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#oneshotSection')).toContainText('Session Dashboard', { timeout: NAV_TIMEOUT });
+    await expect(page.locator('#oneshotSection')).toContainText('Running', { timeout: NAV_TIMEOUT });
+    await expect(page.locator('#oneshotSection button:has-text("Pause")')).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 });

@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { login } from './helpers.js';
+import { login, NAV_TIMEOUT } from './helpers.js';
 
 const uniqueName = () => `Camp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -7,7 +7,7 @@ async function waitLoadingDone(page) {
   await page.waitForFunction(() => {
     const o = document.getElementById('loadingOverlay');
     return o && o.classList.contains('d-none');
-  }, { timeout: 5000 }).catch(() => {});
+  }, { timeout: NAV_TIMEOUT }).catch(() => {});
 }
 
 async function waitModalClosed(page) {
@@ -60,7 +60,7 @@ test.describe('Campaign features', () => {
     await createCharAndOpen(page, name, 'Human', 'Wizard');
 
     await page.click('#tabBar button:has-text("Npcs")');
-    await expect(page.locator('#npcsSection button:has-text("New NPC")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#npcsSection button:has-text("New NPC")')).toBeVisible({ timeout: NAV_TIMEOUT });
     await expect(page.locator('#npcsSection h5').first()).toContainText('Related NPCs');
 
     await page.click('text=New NPC');
@@ -84,7 +84,7 @@ test.describe('Campaign features', () => {
     await createCharAndOpen(page, name, 'Human', 'Wizard');
 
     await page.click('#tabBar button:has-text("Sessions")');
-    await expect(page.locator('#sessionsSection button:has-text("Log Session")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#sessionsSection button:has-text("Log Session")')).toBeVisible({ timeout: NAV_TIMEOUT });
     await expect(page.locator('#sessionsSection h5').first()).toContainText('Session Log');
 
     await page.click('text=Log Session');
@@ -105,7 +105,7 @@ test.describe('Campaign features', () => {
     await createCharAndOpen(page, name, 'Human', 'Wizard');
 
     await page.click('#tabBar button:has-text("Quests")');
-    await expect(page.locator('#questsSection button:has-text("New Quest")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#questsSection button:has-text("New Quest")')).toBeVisible({ timeout: NAV_TIMEOUT });
     await expect(page.locator('#questsSection h5').first()).toContainText('Quests');
 
     await page.click('text=New Quest');
@@ -124,7 +124,7 @@ test.describe('Campaign features', () => {
     await createCharAndOpen(page, name, 'Human', 'Wizard');
 
     await page.click('#tabBar button:has-text("Journal")');
-    await expect(page.locator('#journalSection button:has-text("Write Entry")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#journalSection button:has-text("Write Entry")')).toBeVisible({ timeout: NAV_TIMEOUT });
     await expect(page.locator('#journalSection h5').first()).toContainText('Character Journal');
 
     await page.click('text=Write Entry');
@@ -165,7 +165,7 @@ test.describe('Campaign features', () => {
     await waitModalClosed(page);
 
     await page.click('#tabBar button:has-text("Graph")');
-    await expect(page.locator('#graphContainer')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#graphContainer')).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 
   // ─── Dashboard ───

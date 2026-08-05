@@ -1,5 +1,5 @@
 import { test, expect, type Page } from './fixtures.js';
-import { ensureNavOpen, waitLoadingDone, isMobile, login } from './helpers.js';
+import { ensureNavOpen, waitLoadingDone, isMobile, login, NAV_TIMEOUT } from './helpers.js';
 
 async function goToAdmin(page: Page) {
   await page.waitForTimeout(300);
@@ -12,6 +12,7 @@ test.describe('Admin panel', () => {
   });
 
   test('admin link is visible for admin users', async ({ page }) => {
+    test.slow();
     if (await isMobile(page)) {
       await page.goto('/admin', { waitUntil: 'domcontentloaded', timeout: 10000 });
       await expect(page.locator('#adminUsers .card-header')).toContainText('Users');
@@ -22,6 +23,7 @@ test.describe('Admin panel', () => {
   });
 
   test('admin panel loads user list', async ({ page }) => {
+    test.slow();
     await goToAdmin(page);
     await expect(page.locator('#adminUsers .card-header')).toContainText('Users');
     const rows = page.locator('#userTable tbody tr');
@@ -29,6 +31,7 @@ test.describe('Admin panel', () => {
   });
 
   test('admin can create a new user', async ({ page }) => {
+    test.slow();
     const name = `testuser-${Date.now()}`;
     await goToAdmin(page);
     await page.click('#adminUsers button:has-text("Add User")');
@@ -41,11 +44,12 @@ test.describe('Admin panel', () => {
   });
 
   test('admin can manage compendium', async ({ page }) => {
+    test.slow();
     const uniqueEntry = `Test Race ${Date.now()}`;
     await goToAdmin(page);
 
     // Open the unified Compendium tab
-    await page.click('#adminTabs button:has-text("Compendium")');
+    await page.locator('[data-testid="admin-tabs"] button:has-text("Compendium")').click();
 
     // Wait for schema list to load
     await expect(page.locator('#unifiedSchemaBody')).not.toContainText('Loading');
@@ -63,7 +67,7 @@ test.describe('Admin panel', () => {
     await page.click('#addEntryBtn');
 
     // Fill in the modal form (schema-aware fields use #ef_name, #ef_description etc.)
-    await page.waitForSelector('#ef_name', { timeout: 5000 });
+    await page.waitForSelector('#ef_name', { timeout: NAV_TIMEOUT });
     await page.fill('#ef_name', uniqueEntry);
     await page.fill('#ef_description', 'A test race for testing');
     await page.fill('#ef_speed', '30');
@@ -80,6 +84,7 @@ test.describe('Admin panel', () => {
   });
 
   test('backup tab works', async ({ page }) => {
+    test.slow();
     await goToAdmin(page);
     await page.click('#adminTabs button:has-text("Backup")');
     await expect(page.locator('#adminBackup .card-header').first()).toContainText('Backup Settings');

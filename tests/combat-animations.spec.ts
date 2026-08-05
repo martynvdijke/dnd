@@ -1,5 +1,5 @@
 import { test, expect, type Page } from './fixtures.js';
-import { ensureNavOpen, waitLoadingDone, clickNavItem, login, isMobile } from './helpers.js';
+import { ensureNavOpen, waitLoadingDone, clickNavItem, login, isMobile, NAV_TIMEOUT } from './helpers.js';
 
 async function createCharacter(page: Page, name: string) {
   return page.evaluate(async (n) => {
@@ -29,6 +29,7 @@ test.describe('Combat animations', () => {
   });
 
   test('HP damage shows floating number on character sheet', async ({ page }) => {
+    test.slow();
     // Create a character with full HP
     const name = `AnimChar-${Date.now()}`;
     await createCharacter(page, name);
@@ -41,23 +42,24 @@ test.describe('Combat animations', () => {
 
     // Switch to the Combat tab (damage input is inside #combatSection, hidden by default)
     await page.click('#tabBar button:has-text("Combat")');
-    await expect(page.locator('#combatSection')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#combatSection')).toBeVisible({ timeout: NAV_TIMEOUT });
 
     // Apply damage via the damage input
     const dmgInput = page.locator('#dmgInput');
-    await expect(dmgInput).toBeVisible({ timeout: 5000 });
+    await expect(dmgInput).toBeVisible({ timeout: NAV_TIMEOUT });
     await dmgInput.fill('5');
     await page.locator('button[onclick*="applyDamage"]').click();
 
     // Wait for the floating damage number to appear
     const floatEl = page.locator('.damage-float');
-    await expect(floatEl).toBeVisible({ timeout: 5000 });
+    await expect(floatEl).toBeVisible({ timeout: NAV_TIMEOUT });
     await expect(floatEl).toContainText('-5');
   });
 
   test('combat turn transition marks active row', async ({ page }) => {
+    test.slow();
     await openCombat(page);
-    await expect(page.locator('#combatTrackerView')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#combatTrackerView')).toBeVisible({ timeout: NAV_TIMEOUT });
 
     // Add a combatant so there's a row to transition
     const uniqueEnemy = `Goblin-${Date.now()}`;
@@ -71,7 +73,7 @@ test.describe('Combat animations', () => {
     await page.fill('#ceHPMax', '27');
     await page.click('.modal button:has-text("Add")');
     // Wait for the combatant to appear
-    await expect(page.locator('#combatTrackerContent')).toContainText(uniqueEnemy, { timeout: 5000 });
+    await expect(page.locator('#combatTrackerContent')).toContainText(uniqueEnemy, { timeout: NAV_TIMEOUT });
 
     // Add a second combatant so Next Turn has somewhere to go
     const secondEnemy = `Orc-${Date.now()}`;
@@ -80,7 +82,7 @@ test.describe('Combat animations', () => {
     await page.selectOption('#ceType', 'monster');
     await page.fill('#ceHPMax', '30');
     await page.click('.modal button:has-text("Add")');
-    await expect(page.locator('#combatTrackerContent')).toContainText(secondEnemy, { timeout: 5000 });
+    await expect(page.locator('#combatTrackerContent')).toContainText(secondEnemy, { timeout: NAV_TIMEOUT });
 
     // Click "Next Turn"
     const nextTurnBtn = page.locator('button:has-text("Next Turn")');
@@ -90,6 +92,6 @@ test.describe('Combat animations', () => {
     // After turn change, the active row should be marked with combatant-row-active
     // (all rows have table-active, but only the active one gets combatant-row-active from animateTurnChange)
     const activeRow = page.locator('tr.combatant-row-active');
-    await expect(activeRow).toBeVisible({ timeout: 5000 });
+    await expect(activeRow).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 });

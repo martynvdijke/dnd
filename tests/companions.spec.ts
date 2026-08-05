@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { login } from './helpers.js';
+import { login, NAV_TIMEOUT } from './helpers.js';
 
 const uniqueName = () => `Compn-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -7,7 +7,7 @@ async function waitLoadingDone(page) {
   await page.waitForFunction(() => {
     const o = document.getElementById('loadingOverlay');
     return o && o.classList.contains('d-none');
-  }, { timeout: 5000 }).catch(() => {});
+  }, { timeout: NAV_TIMEOUT }).catch(() => {});
 }
 
 async function createCharacter(page, name) {

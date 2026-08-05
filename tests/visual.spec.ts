@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { login, waitLoadingDone, clickNavItem, isMobile } from './helpers.js';
+import { login, waitLoadingDone, clickNavItem, isMobile, NAV_TIMEOUT } from './helpers.js';
 
 test.describe('Visual regression', () => {
   test.beforeEach(async ({ page }) => {
@@ -8,6 +8,7 @@ test.describe('Visual regression', () => {
   });
 
   test('@visual nav sidebar on desktop', async ({ page }) => {
+    test.slow();
     test.info().annotations.push({ type: 'visual', description: 'Desktop navigation sidebar' });
     if (await isMobile(page)) test.skip();
     await page.waitForTimeout(500);
@@ -15,10 +16,11 @@ test.describe('Visual regression', () => {
   });
 
   test('@visual compendium legacy tabs', async ({ page }) => {
+    test.slow();
     test.info().annotations.push({ type: 'visual', description: 'Compendium page with legacy tabs' });
     await clickNavItem(page, 'compendium', 'compendium');
-    await expect(page.locator('#compendiumView')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('#compendiumTabs')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#compendiumView')).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(page.locator('#compendiumTabs')).toBeVisible({ timeout: NAV_TIMEOUT });
     // Select a stable anchor — use compendiumTabs row (content below changes with scroll)
     await page.locator('#compTabRaces').click();
     await expect(page.locator('#compRaces .card').first()).toBeVisible({ timeout: 10000 });
@@ -27,6 +29,7 @@ test.describe('Visual regression', () => {
   });
 
   test('@visual compendium with dynamic schema tab', async ({ page }) => {
+    test.slow();
     test.info().annotations.push({ type: 'visual', description: 'Compendium with dynamic schema tab visible' });
     const timestamp = Date.now();
     const typeName = `vis-${timestamp}`;
@@ -53,7 +56,7 @@ test.describe('Visual regression', () => {
     await expect(tab).toBeVisible({ timeout: 8000 });
     await tab.click();
     // Target the specific schema's content pane by type_name
-    await expect(page.locator(`#compSchemaContent-${typeName} .card`).first()).toBeVisible({ timeout: 5000 });
+    await expect(page.locator(`#compSchemaContent-${typeName} .card`).first()).toBeVisible({ timeout: NAV_TIMEOUT });
 
     // Cleanup
     const entries: any = await page.evaluate((sid) => {
@@ -70,9 +73,10 @@ test.describe('Visual regression', () => {
   });
 
   test('@visual character list view', async ({ page }) => {
+    test.slow();
     test.info().annotations.push({ type: 'visual', description: 'Characters view heading' });
     await clickNavItem(page, 'characters', 'characters');
-    await expect(page.locator('#charactersView')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#charactersView')).toBeVisible({ timeout: NAV_TIMEOUT });
     await page.waitForTimeout(300);
     // Characters view content is dynamic — snapshot the heading row for stability
     await expect(page.locator('#charactersView h1')).toHaveScreenshot('characters-view.png');

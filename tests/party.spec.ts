@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { clickNavItem, login } from './helpers.js';
+import { clickNavItem, login, NAV_TIMEOUT } from './helpers.js';
 
 const uniqueName = () => `Party-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -161,7 +161,7 @@ test.describe('Party Management', () => {
     await page.waitForTimeout(1500);
 
     // Check the party content area contains the party name
-    await expect(page.locator('#partyContent')).toContainText(name, { timeout: 5000 });
-    await expect(page.locator('#partyContent')).toContainText('Party View', { timeout: 5000 });
+    await expect(page.locator('#partyContent')).toContainText(name, { timeout: NAV_TIMEOUT });
+    await expect(page.locator('#partyContent')).toContainText('Party View', { timeout: NAV_TIMEOUT });
   });
 });

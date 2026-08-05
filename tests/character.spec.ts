@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { login } from './helpers.js';
+import { login, NAV_TIMEOUT } from './helpers.js';
 
 const uniqueName = () => `Test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -7,7 +7,7 @@ async function waitLoadingDone(page) {
   await page.waitForFunction(() => {
     const o = document.getElementById('loadingOverlay');
     return o && o.classList.contains('d-none');
-  }, { timeout: 5000 }).catch(() => {});
+  }, { timeout: NAV_TIMEOUT }).catch(() => {});
 }
 
 async function waitModalClosed(page) {
@@ -28,7 +28,7 @@ test.describe('Character management', () => {
 
   test('creates a new character', async ({ page }) => {
     const name = uniqueName();
-    await page.click('button:has-text("New Character")');
+    await page.getByTestId('new-character').click();
     await page.fill('#newName', name);
     await page.fill('#newRace', 'Elf');
     await page.fill('#newClass', 'Wizard');
@@ -40,7 +40,7 @@ test.describe('Character management', () => {
 
   test('opens character sheet', async ({ page }) => {
     const name = uniqueName();
-    await page.click('button:has-text("New Character")');
+    await page.getByTestId('new-character').click();
     await page.fill('#newName', name);
     await page.fill('#newRace', 'Human');
     await page.fill('#newClass', 'Fighter');
@@ -49,6 +49,7 @@ test.describe('Character management', () => {
 
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
+    await expect(page.getByTestId('sheet-view')).toBeVisible();
     await expect(page.locator('#sheetName')).toContainText(name);
     await page.waitForFunction((n) => {
       const el = document.getElementById('sheetSubtitle');
@@ -59,7 +60,7 @@ test.describe('Character management', () => {
 
   test('shows ability scores', async ({ page }) => {
     const name = uniqueName();
-    await page.click('button:has-text("New Character")');
+    await page.getByTestId('new-character').click();
     await page.fill('#newName', name);
     await page.fill('#newRace', 'Dwarf');
     await page.fill('#newClass', 'Barbarian');

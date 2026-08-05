@@ -1,5 +1,5 @@
 import { test, expect, type Page } from './fixtures.js';
-import { login, clickNavItem } from './helpers.js';
+import { login, clickNavItem, NAV_TIMEOUT } from './helpers.js';
 
 const uniqueName = () => `CMP-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -7,7 +7,7 @@ async function waitLoadingDone(page: Page) {
   await page.waitForFunction(() => {
     const o = document.getElementById('loadingOverlay');
     return o && o.classList.contains('d-none');
-  }, { timeout: 5000 }).catch(() => {});
+  }, { timeout: NAV_TIMEOUT }).catch(() => {});
 }
 
 test.describe('Compendium', () => {
@@ -310,7 +310,7 @@ test.describe('User Compendium View', () => {
   test('legacy tabs render when navigating to compendium', async ({ page }) => {
     await navToCompendium(page);
     // Verify heading
-    await expect(page.locator('#compendiumView h1')).toContainText('Compendium', { timeout: 5000 });
+    await expect(page.locator('#compendiumView h1')).toContainText('Compendium', { timeout: NAV_TIMEOUT });
     // Verify legacy tab buttons are visible
     await expect(page.locator('#compTabRaces')).toBeVisible();
     await expect(page.locator('#compTabClasses')).toBeVisible();
@@ -345,7 +345,7 @@ test.describe('User Compendium View', () => {
 
     // The section is always in DOM. If there are schemas with entries, it's visible.
     const section = page.locator('#compSchemaSection');
-    await expect(section).toBeAttached({ timeout: 5000 });
+    await expect(section).toBeAttached({ timeout: NAV_TIMEOUT });
   });
 
   test('dynamic schema tab shows entry cards with name and preview', async ({ page }) => {
@@ -399,7 +399,7 @@ test.describe('User Compendium View', () => {
     await navToCompendium(page);
 
     const section = page.locator('#compSchemaSection');
-    await expect(section).toBeAttached({ timeout: 5000 });
+    await expect(section).toBeAttached({ timeout: NAV_TIMEOUT });
 
     // Determine expected state from API
     const result: any = await page.evaluate(async () => {

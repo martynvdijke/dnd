@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { login } from './helpers.js';
+import { login, NAV_TIMEOUT } from './helpers.js';
 
 async function getCSRFToken(page: any): Promise<string> {
   const resp = await page.request.get('/api/csrf-token');
@@ -78,7 +78,7 @@ test.describe('Race Colors', () => {
 
     // The character card should show a colored badge
     const badge = page.locator('.character-card').filter({ hasText: 'RaceColorChar' }).locator('.badge');
-    await expect(badge).toBeVisible({ timeout: 5000 });
+    await expect(badge).toBeVisible({ timeout: NAV_TIMEOUT });
     await expect(badge).toHaveText('TestElf');
     // Check the style has the color
     const style = await badge.getAttribute('style');

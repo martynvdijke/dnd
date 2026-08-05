@@ -1,5 +1,5 @@
 import { test, expect, type Page } from './fixtures.js';
-import { ensureNavOpen, waitLoadingDone, waitModalClosed, isMobile, clickNavItem, login } from './helpers.js';
+import { ensureNavOpen, waitLoadingDone, waitModalClosed, isMobile, clickNavItem, login, NAV_TIMEOUT } from './helpers.js';
 
 const uniqueName = () => `Test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -90,7 +90,7 @@ test.describe('Character sheet editing', () => {
     await waitLoadingDone(page);
 
     // On mobile the button may be behind the sheet panel — force the click
-    await page.click('text=Add Proficiency', { force: true, timeout: 5000 });
+    await page.click('text=Add Proficiency', { force: true, timeout: NAV_TIMEOUT });
     await page.waitForTimeout(300);
     await page.fill('#profName', 'Stealth');
     await page.click('#genericModal button:has-text("Add Proficiency")');
@@ -235,7 +235,7 @@ test.describe('NPC interactions extended', () => {
     await page.waitForFunction(() => !document.getElementById('genericModal')?.classList.contains('show'), { timeout: 10000 });
     // Bootstrap keeps the .modal-backdrop during the fade transition — wait for
     // it to be removed so it doesn't intercept subsequent clicks.
-    await page.waitForFunction(() => !document.querySelector('.modal-backdrop'), { timeout: 5000 }).catch(() => {});
+    await page.waitForFunction(() => !document.querySelector('.modal-backdrop'), { timeout: NAV_TIMEOUT }).catch(() => {});
   }
 
   test('can create and delete NPC with full stats', async ({ page }) => {
@@ -250,7 +250,7 @@ test.describe('NPC interactions extended', () => {
     await waitLoadingDone(page);
 
     await page.click('#tabBar button:has-text("Npcs")');
-    await expect(page.locator('#npcsSection button:has-text("New NPC")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#npcsSection button:has-text("New NPC")')).toBeVisible({ timeout: NAV_TIMEOUT });
     await page.click('text=New NPC');
     await page.fill('#newNPCName', 'Villain');
     await page.fill('#newNPCRace', 'Dragonborn');
@@ -274,7 +274,7 @@ test.describe('NPC interactions extended', () => {
     await waitLoadingDone(page);
 
     await page.click('#tabBar button:has-text("Npcs")');
-    await expect(page.locator('#npcsSection button:has-text("New NPC")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#npcsSection button:has-text("New NPC")')).toBeVisible({ timeout: NAV_TIMEOUT });
     await page.click('text=New NPC');
     await page.fill('#newNPCName', 'Quest Giver');
     await page.fill('#newNPCRace', 'Human');
@@ -284,12 +284,12 @@ test.describe('NPC interactions extended', () => {
     await waitModalClosed(page);
 
     await page.locator('button:has-text("Link NPC")').click();
-    await expect(page.locator('#linkNPCId')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#linkNPCId')).toBeVisible({ timeout: NAV_TIMEOUT });
     await page.selectOption('#linkNPCId', { index: 0 });
     await page.locator('#genericModal button:has-text("Link")').click();
     await waitModalClosed(page);
 
-    await expect(page.locator('#npcsSection')).toContainText('Quest Giver', { timeout: 5000 });
+    await expect(page.locator('#npcsSection')).toContainText('Quest Giver', { timeout: NAV_TIMEOUT });
   });
 });
 
@@ -343,14 +343,14 @@ test.describe('Import/export edge cases', () => {
 
   test('import handles empty JSON gracefully', async ({ page }) => {
     await page.click('button:has-text("Import")');
-    await expect(page.locator('#genericModal')).toHaveClass(/show|fade/, { timeout: 5000 });
+    await expect(page.locator('#genericModal')).toHaveClass(/show|fade/, { timeout: NAV_TIMEOUT });
     const textarea = page.locator('#importJson');
     await expect(textarea).toBeVisible({ timeout: 10000 });
   });
 
   test('import handles malformed JSON', async ({ page }) => {
     await page.click('button:has-text("Import")');
-    await expect(page.locator('#genericModal')).toHaveClass(/show|fade/, { timeout: 5000 });
+    await expect(page.locator('#genericModal')).toHaveClass(/show|fade/, { timeout: NAV_TIMEOUT });
     const textarea = page.locator('#importJson');
     await expect(textarea).toBeVisible({ timeout: 10000 });
 
@@ -419,7 +419,7 @@ test.describe('Session and quest management UI', () => {
     await waitLoadingDone(page);
 
     await page.click('#tabBar button:has-text("Quests")');
-    await expect(page.locator('#questsSection button:has-text("New Quest")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#questsSection button:has-text("New Quest")')).toBeVisible({ timeout: NAV_TIMEOUT });
     await page.click('text=New Quest');
     await page.fill('#questName', 'Save the Village');
     await page.fill('#questDesc', 'Protect from goblin raid');
@@ -514,7 +514,7 @@ test.describe('Keyboard shortcuts', () => {
 
   test('? opens keyboard shortcuts help', async ({ page }) => {
     await page.keyboard.press('?');
-    await expect(page.locator('#genericModal')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#genericModal')).toBeVisible({ timeout: NAV_TIMEOUT });
     await expect(page.locator('#genericModal')).toContainText('Keyboard Shortcuts');
     await page.locator('#genericModal').getByTestId('modal-close').click();
     await waitModalClosed(page);
@@ -557,7 +557,7 @@ test.describe('Auto-save', () => {
     await firstValue.click();
     // The editStepperValue function replaces the span with an input
     const inlineInput = page.locator('.stepper-inline-input').first();
-    await expect(inlineInput).toBeVisible({ timeout: 5000 });
+    await expect(inlineInput).toBeVisible({ timeout: NAV_TIMEOUT });
     await inlineInput.fill('18');
     // Press Enter to trigger save, then wait for the API call to complete
     const responsePromise = page.waitForResponse(resp =>
@@ -738,7 +738,7 @@ test.describe('Error handling and edge cases', () => {
     await page.fill('#newRace', 'Human');
     await page.fill('#newClass', 'Fighter');
     await page.click('text=Create');
-    await expect(page.locator('#charGrid')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#charGrid')).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 
   test('character tabs are navigable back and forth', async ({ page }) => {
@@ -782,7 +782,7 @@ test.describe('Error handling and edge cases', () => {
     await waitLoadingDone(page);
 
     await page.click('#tabBar button:has-text("Dice")');
-    await expect(page.locator('#diceExpr')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#diceExpr')).toBeVisible({ timeout: NAV_TIMEOUT });
 
     const input = page.locator('#diceExpr');
     await input.fill('1d20-2');
@@ -804,8 +804,8 @@ test.describe('Error handling and edge cases', () => {
     await waitLoadingDone(page);
 
     await page.click('#tabBar button:has-text("Dice")');
-    await expect(page.locator('#diceSection')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('#diceExpr')).toBeAttached({ timeout: 5000 });
+    await expect(page.locator('#diceSection')).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(page.locator('#diceExpr')).toBeAttached({ timeout: NAV_TIMEOUT });
 
     const input = page.locator('#diceExpr');
     const btn = page.locator('text=Roll the Bones');

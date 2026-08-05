@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { ensureNavOpen, waitLoadingDone, clickNavItem, login } from './helpers.js';
+import { ensureNavOpen, waitLoadingDone, clickNavItem, login, NAV_TIMEOUT } from './helpers.js';
 
 test.describe('Dice rolling', () => {
   test.beforeEach(async ({ page }) => {
@@ -41,7 +41,7 @@ test.describe('Dice rolling', () => {
     await expect(result).toContainText('4d6kh3');
     // The dice container should have die elements
     const diceContainer = page.locator('#dice3dContainer');
-    await expect(diceContainer.locator('.die')).toHaveCount(4, { timeout: 5000 });
+    await expect(diceContainer.locator('.die')).toHaveCount(4, { timeout: NAV_TIMEOUT });
   });
 
   test('rpg notation: exploding dice', async ({ page }) => {
@@ -64,7 +64,7 @@ test.describe('Dice rolling', () => {
     await expect(result).toContainText('1d100');
     // d100 should render as a die
     const diceContainer = page.locator('#dice3dContainer');
-    await expect(diceContainer.locator('.die.d100').first()).toBeVisible({ timeout: 5000 });
+    await expect(diceContainer.locator('.die.d100').first()).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 
   test('dice renders for all standard polyhedral types', async ({ page }) => {
@@ -99,7 +99,7 @@ test.describe('Dice rolling', () => {
     await page.click('text=Roll the Bones');
     // Should show a toast error
     const toast = page.locator('.toast, .toast-container, .alert-danger').first();
-    await expect(toast).toBeVisible({ timeout: 5000 });
+    await expect(toast).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 
   test('placeholder text indicates RPG notation', async ({ page }) => {
@@ -128,7 +128,7 @@ test.describe('Dice rolling', () => {
     await page.click('text=Roll the Bones');
     // Settle animation takes 900ms, crit overlay appears right after
     const critOverlay = page.locator('.crit-overlay');
-    await expect(critOverlay).toBeVisible({ timeout: 5000 });
+    await expect(critOverlay).toBeVisible({ timeout: NAV_TIMEOUT });
     await expect(page.locator('.crit-text')).toContainText(/CRITICAL/i);
   });
 });

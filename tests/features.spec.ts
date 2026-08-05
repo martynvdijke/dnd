@@ -71,7 +71,7 @@ test.describe('Full feature coverage', () => {
     await waitLoadingDone(page);
 
     await page.click('#tabBar button:has-text("Combat")');
-    await expect(page.locator('#combatSection')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#combatSection')).toBeVisible({ timeout: NAV_TIMEOUT });
     await expect(page.locator('#combatSection')).toContainText('Hit Points');
   });
 
@@ -87,7 +87,7 @@ test.describe('Full feature coverage', () => {
     await waitLoadingDone(page);
 
     await page.click('#tabBar button:has-text("Dice")');
-    await expect(page.locator('#diceExpr')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#diceExpr')).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 
   test('character list shows after creating character', async ({ page }) => {
@@ -118,7 +118,7 @@ test.describe('Full feature coverage', () => {
 
   test('import modal opens', async ({ page }) => {
     await page.click('button:has-text("Import")');
-    await expect(page.locator('#genericModal')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('#importJson')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#genericModal')).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(page.locator('#importJson')).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 });

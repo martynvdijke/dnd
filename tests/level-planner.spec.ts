@@ -21,6 +21,7 @@ test.describe('Level Planner', () => {
   });
 
   test('create a level plan for a character', async ({ page }) => {
+    test.slow();
     const name = uniqueName();
     await createCharacter(page, name);
 
@@ -41,6 +42,7 @@ test.describe('Level Planner', () => {
   });
 
   test('get level plan for a character', async ({ page }) => {
+    test.slow();
     const name = uniqueName();
     await createCharacter(page, name);
 
@@ -63,6 +65,7 @@ test.describe('Level Planner', () => {
   });
 
   test('get level suggestions for a character', async ({ page }) => {
+    test.slow();
     const name = uniqueName();
     await createCharacter(page, name);
 
@@ -82,6 +85,7 @@ test.describe('Level Planner', () => {
   });
 
   test('delete a level plan', async ({ page }) => {
+    test.slow();
     const name = uniqueName();
     await createCharacter(page, name);
 

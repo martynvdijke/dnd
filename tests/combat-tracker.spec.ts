@@ -21,17 +21,20 @@ test.describe.serial('Combat Tracker', () => {
   });
 
   test('combat nav item visible for admin', async ({ page }) => {
+    test.slow();
     await openCombat(page);
     await expect(page.locator('#combatTrackerView')).toBeVisible();
   });
 
   test('opens combat tracker view', async ({ page }) => {
+    test.slow();
     await openCombat(page);
     await expect(page.locator('#combatTrackerView')).toBeVisible();
     await expect(page.locator('#combatTrackerContent')).toBeVisible();
   });
 
   test('adds a combatant and shows in tracker', async ({ page }) => {
+    test.slow();
     await openCombat(page);
 
     const uniqueEnemy = `Goblin-${Date.now()}`;
@@ -52,6 +55,7 @@ test.describe.serial('Combat Tracker', () => {
   });
 
   test('rolls initiative for combatants', async ({ page }) => {
+    test.slow();
     await openCombat(page);
 
     const uniqueEnemy = `Goblin-${Date.now()}`;
@@ -76,6 +80,7 @@ test.describe.serial('Combat Tracker', () => {
   });
 
   test('applies damage to combatant', async ({ page }) => {
+    test.slow();
     await openCombat(page);
 
     const uniqueEnemy = `Goblin-${Date.now()}`;

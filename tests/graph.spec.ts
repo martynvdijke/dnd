@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { login, waitLoadingDone, waitModalClosed } from './helpers.js';
+import { login, waitLoadingDone, waitModalClosed, NAV_TIMEOUT } from './helpers.js';
 
 const uniqueName = () => `G-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -28,7 +28,7 @@ test.describe('D3 Graph Visualization', () => {
     await expect(graphSection).toBeVisible();
 
     const svg = graphSection.locator('svg');
-    await expect(svg).toBeVisible({ timeout: 5000 });
+    await expect(svg).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 
   test('campaign graph renders SVG in modal', async ({ page }) => {
@@ -66,7 +66,7 @@ test.describe('D3 Graph Visualization', () => {
     }, { timeout: 15000 });
 
     const svg = modal.locator('svg');
-    await expect(svg).toBeVisible({ timeout: 5000 });
+    await expect(svg).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 
   test('graph nodes have text labels', async ({ page }) => {

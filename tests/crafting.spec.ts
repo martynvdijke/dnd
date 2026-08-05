@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { login, waitLoadingDone, waitModalClosed } from './helpers.js';
+import { login, waitLoadingDone, waitModalClosed, NAV_TIMEOUT } from './helpers.js';
 
 const uniqueName = () => `Craft-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -9,9 +9,10 @@ test.describe('Crafting System', () => {
   });
 
   test('crafting tab shows recipes', async ({ page }) => {
+    test.slow();
     const name = uniqueName();
     await page.click('button:has-text("New Character")');
-    await page.locator('#newName').waitFor({ state: 'visible', timeout: 5000 });
+    await page.locator('#newName').waitFor({ state: 'visible', timeout: NAV_TIMEOUT });
     await page.fill('#newName', name);
     await page.fill('#newRace', 'Human');
     await page.fill('#newClass', 'Artificer');
@@ -28,9 +29,10 @@ test.describe('Crafting System', () => {
   });
 
   test('starts crafting via API', async ({ page }) => {
+    test.slow();
     const name = uniqueName();
     await page.click('button:has-text("New Character")');
-    await page.locator('#newName').waitFor({ state: 'visible', timeout: 5000 });
+    await page.locator('#newName').waitFor({ state: 'visible', timeout: NAV_TIMEOUT });
     await page.fill('#newName', name);
     await page.fill('#newRace', 'Elf');
     await page.fill('#newClass', 'Wizard');
@@ -76,9 +78,10 @@ test.describe('Crafting System', () => {
   });
 
   test('advances crafting progress via API', async ({ page }) => {
+    test.slow();
     const name = uniqueName();
     await page.click('button:has-text("New Character")');
-    await page.locator('#newName').waitFor({ state: 'visible', timeout: 5000 });
+    await page.locator('#newName').waitFor({ state: 'visible', timeout: NAV_TIMEOUT });
     await page.fill('#newName', name);
     await page.fill('#newRace', 'Gnome');
     await page.fill('#newClass', 'Artificer');

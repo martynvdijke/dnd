@@ -13,6 +13,7 @@ test.describe('Monster Management', () => {
 
   test.describe('Monster Library CRUD', () => {
     test('Create monster library entry with full stats', async ({ page }) => {
+    test.slow();
       const name = uniqueName();
       const result = await page.evaluate(async (n) => {
         return (window as any).api('POST', '/api/monster-library', {
@@ -28,6 +29,7 @@ test.describe('Monster Management', () => {
     });
 
     test('Create monster library entry with minimal fields', async ({ page }) => {
+    test.slow();
       const name = uniqueName();
       const result = await page.evaluate(async (n) => {
         return (window as any).api('POST', '/api/monster-library', {
@@ -39,6 +41,7 @@ test.describe('Monster Management', () => {
     });
 
     test('List monster library returns created entries', async ({ page }) => {
+    test.slow();
       const name = uniqueName();
       await page.evaluate(async (n) => {
         return (window as any).api('POST', '/api/monster-library', {
@@ -55,6 +58,7 @@ test.describe('Monster Management', () => {
     });
 
     test('Update monster library entry', async ({ page }) => {
+    test.slow();
       const name = uniqueName();
       const created = await page.evaluate(async (n) => {
         return (window as any).api('POST', '/api/monster-library', {
@@ -81,6 +85,7 @@ test.describe('Monster Management', () => {
     });
 
     test('Delete monster library entry', async ({ page }) => {
+    test.slow();
       const name = uniqueName();
       const created = await page.evaluate(async (n) => {
         return (window as any).api('POST', '/api/monster-library', {

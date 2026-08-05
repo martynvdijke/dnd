@@ -59,13 +59,13 @@ export async function clickNavItem(page: Page, nav: string, bottomNav?: string) 
       await page.locator(`#bottomTabBar button[data-nav="${bottomNav}"]`).click({ force: true });
     }
   } else {
-    await page.locator(`#appSidebar button[data-nav="${nav}"]`).click();
+    await page.locator(`[data-testid="nav-${nav}"]`).click();
   }
 }
 
 export async function openMoreNav(page: Page) {
   if (await isMobile(page)) {
-    await page.click('#moreTabBtn');
+    await page.locator('[data-testid="nav-more"]').click();
     await page.waitForTimeout(300);
   }
 }
@@ -78,7 +78,7 @@ export async function clickSecondaryNavItem(page: Page, nav: string, moreId: str
     // Wait for bottom sheet close animation (onclick calls closeBottomSheet)
     await page.waitForTimeout(500);
   } else {
-    await page.locator(`#appSidebar button[data-nav="${nav}"]`).click();
+    await page.locator(`[data-testid="nav-${nav}"]`).click();
   }
 }
 

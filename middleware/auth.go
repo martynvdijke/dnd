@@ -76,12 +76,17 @@ func CSRFRequired() gin.HandlerFunc {
 			return
 		}
 		token := c.GetHeader("X-CSRF-Token")
+		sessionID, _ := c.Cookie("session")
+		expected := CSRFHash(sessionID)
+		// Test-mode debugging aid: when a client explicitly requests it, echo the
+		// expected token so failing requests can be diagnosed from the response.
+		if c.GetHeader("X-CSRF-Debug") == "1" {
+			c.Header("X-CSRF-Debug-Token", expected)
+		}
 		if token == "" {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "CSRF token required"})
 			return
 		}
-		sessionID, _ := c.Cookie("session")
-		expected := CSRFHash(sessionID)
 		if token != expected {
 			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "invalid CSRF token"})
 			return

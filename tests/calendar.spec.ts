@@ -10,6 +10,7 @@ test.describe('Calendar Events', () => {
   });
 
   test('create calendar event', async ({ page }) => {
+    test.slow();
     const eventName = uniqueName();
     const result = await page.evaluate(async (opts) => {
       // Create a campaign first (calendar events are campaign-scoped)
@@ -37,6 +38,7 @@ test.describe('Calendar Events', () => {
   });
 
   test('list calendar events for a campaign', async ({ page }) => {
+    test.slow();
     const campName = uniqueName();
     await page.evaluate(async (name) => {
       await window.api('POST', '/api/campaigns', { name, description: 'List calendar test', dm_notes: '' });

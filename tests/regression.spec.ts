@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { login, clickNavItem, clickSecondaryNavItem, isMobile, waitLoadingDone } from './helpers.js';
+import { login, clickNavItem, clickSecondaryNavItem, isMobile, waitLoadingDone, NAV_TIMEOUT } from './helpers.js';
 
 // Regression tests — run with: npx playwright test --grep @regression
 test.describe('Regression suite', () => {
@@ -24,34 +24,34 @@ test.describe('Regression suite', () => {
     test.info().annotations.push({ type: 'regression', description: 'Characters view loads' });
     await navTo(page, 'characters', 'characters');
     // On fresh DB without characters, the view still shows #charactersView
-    await expect(page.locator('#charactersView')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#charactersView')).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 
   test('@regression Compendium view renders', async ({ page }) => {
     test.info().annotations.push({ type: 'regression', description: 'Compendium view loads with tabs' });
     await navTo(page, 'compendium', 'compendium');
-    await expect(page.locator('#compendiumView')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('#compendiumTabs')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('h1:has-text("Compendium")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#compendiumView')).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(page.locator('#compendiumTabs')).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(page.locator('h1:has-text("Compendium")')).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 
   test('@regression Dice view renders', async ({ page }) => {
     test.info().annotations.push({ type: 'regression', description: 'Dice view loads' });
     await navTo(page, 'dice', 'dice');
-    await expect(page.locator('#diceView')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#diceView')).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 
   test('@regression Encounters view renders', async ({ page }) => {
     test.info().annotations.push({ type: 'regression', description: 'Encounters view loads' });
     await navTo(page, 'encounters', 'encounters');
-    await expect(page.locator('#encounterView')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#encounterView')).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 
   test('@regression compendium legacy tabs load content', async ({ page }) => {
     test.info().annotations.push({ type: 'regression', description: 'Each legacy tab shows content' });
     await navTo(page, 'compendium', 'compendium');
-    await expect(page.locator('#compendiumView')).toBeVisible({ timeout: 5000 });
-    await expect(page.locator('#compendiumTabs')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#compendiumView')).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(page.locator('#compendiumTabs')).toBeVisible({ timeout: NAV_TIMEOUT });
 
     const tabCount = await page.evaluate(async () => {
       const tabs = ['races', 'classes', 'spells', 'feats', 'backgrounds', 'equipment', 'monsters'];
@@ -95,7 +95,7 @@ test.describe('Regression suite', () => {
 
     // Navigate to compendium
     await navTo(page, 'compendium', 'compendium');
-    await expect(page.locator('#compendiumView')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('#compendiumView')).toBeVisible({ timeout: NAV_TIMEOUT });
 
     // Wait for the async schema API to load and tabs to render
     await expect(page.locator('#compSchemaTabs')).toBeVisible({ timeout: 8000 });
@@ -110,7 +110,7 @@ test.describe('Regression suite', () => {
     const contentPane = page.locator(`#compSchemaContent-${typeName}`);
     await expect(contentPane).toBeVisible({ timeout: 3000 });
     const contentEntry = contentPane.locator('.card-body strong').filter({ hasText: `Test-${timestamp}` });
-    await expect(contentEntry).toBeVisible({ timeout: 5000 });
+    await expect(contentEntry).toBeVisible({ timeout: NAV_TIMEOUT });
 
     // Delete entry and schema
     await page.evaluate((eid: number) => {

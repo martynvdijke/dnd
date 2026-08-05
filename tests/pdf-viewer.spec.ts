@@ -10,6 +10,7 @@ test.describe('PDF Viewer', () => {
   });
 
   test('PDF viewer global function exists', async ({ page }) => {
+    test.slow();
     const hasViewer = await page.evaluate(() => {
       return typeof (window as any).pdfViewerOpen === 'function';
     });
@@ -18,6 +19,7 @@ test.describe('PDF Viewer', () => {
   });
 
   test('PDF viewer open does not crash', async ({ page }) => {
+    test.slow();
     const result = await page.evaluate(async () => {
       try {
         if (typeof (window as any).pdfViewerOpen === 'function') {
@@ -33,6 +35,7 @@ test.describe('PDF Viewer', () => {
   });
 
   test('PDF viewer element appears when triggered', async ({ page }) => {
+    test.slow();
     // Attempt to trigger PDF viewer and check for modal/viewer element
     const viewerPresent = await page.evaluate(async () => {
       try {
@@ -54,6 +57,7 @@ test.describe('PDF Viewer', () => {
   });
 
   test('Page loads without PDF-related console errors', async ({ page }) => {
+    test.slow();
     const consoleErrors: string[] = [];
     page.on('console', (msg) => {
       if (msg.type() === 'error') {

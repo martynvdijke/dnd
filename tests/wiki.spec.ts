@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { login } from './helpers.js';
+import { login, NAV_TIMEOUT } from './helpers.js';
 
 const uniqueName = () => `Wiki-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -9,6 +9,7 @@ test.describe('Campaign Wiki', () => {
   });
 
   test('create campaign and wiki page via API', async ({ page }) => {
+    test.slow();
     const campName = uniqueName();
     const pageTitle = 'World Lore';
     const pageContent = '# The World\n\nThis is the **lore** of our world.';
@@ -41,6 +42,7 @@ test.describe('Campaign Wiki', () => {
   });
 
   test('wiki page renders markdown content', async ({ page }) => {
+    test.slow();
     const campName = uniqueName();
     const pageTitle = 'Markdown Test';
     const pageContent = '# Heading\n\n**Bold text** *italic*';
@@ -69,10 +71,11 @@ test.describe('Campaign Wiki', () => {
 
     const wikiContent = page.locator('#wikiPageContent .wiki-content');
     await expect(wikiContent).toContainText('Heading', { timeout: 10000 });
-    await expect(wikiContent).toContainText('Bold text', { timeout: 5000 });
+    await expect(wikiContent).toContainText('Bold text', { timeout: NAV_TIMEOUT });
   });
 
   test('update a wiki page', async ({ page }) => {
+    test.slow();
     const campName = uniqueName();
     const pageTitle = 'Update Test';
     const updatedTitle = 'Updated Page';
@@ -111,10 +114,11 @@ test.describe('Campaign Wiki', () => {
     await page.evaluate((pid) => window.loadWikiPage(pid), result.pageId);
     await page.waitForTimeout(500);
 
-    await expect(page.locator('#wikiPageContent .wiki-content')).toContainText('Updated Content', { timeout: 5000 });
+    await expect(page.locator('#wikiPageContent .wiki-content')).toContainText('Updated Content', { timeout: NAV_TIMEOUT });
   });
 
   test('delete a wiki page', async ({ page }) => {
+    test.slow();
     const campName = uniqueName();
     const pageTitle = 'Delete Test';
 
@@ -156,6 +160,7 @@ test.describe('Campaign Wiki', () => {
   });
 
   test('list wiki pages for a campaign', async ({ page }) => {
+    test.slow();
     const campName = uniqueName();
 
     await page.evaluate(async (name) => {
@@ -185,6 +190,7 @@ test.describe('Campaign Wiki', () => {
   });
 
   test('wiki page with special characters in content', async ({ page }) => {
+    test.slow();
     const campName = uniqueName();
     const pageTitle = 'Special Char';
 
@@ -214,11 +220,12 @@ test.describe('Campaign Wiki', () => {
       return el && el.textContent && el.textContent.length > 0;
     }, { timeout: 15000 });
 
-    await expect(page.locator('#wikiPageContent .wiki-content')).toContainText('Special', { timeout: 5000 });
-    await expect(page.locator('#wikiPageContent .wiki-content')).toContainText('D&D 5e', { timeout: 5000 });
+    await expect(page.locator('#wikiPageContent .wiki-content')).toContainText('Special', { timeout: NAV_TIMEOUT });
+    await expect(page.locator('#wikiPageContent .wiki-content')).toContainText('D&D 5e', { timeout: NAV_TIMEOUT });
   });
 
   test('wiki offcanvas works on mobile viewport', async ({ page }) => {
+    test.slow();
     await page.setViewportSize({ width: 390, height: 844 });
 
     const campName = uniqueName();

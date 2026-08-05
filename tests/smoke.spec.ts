@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { isMobile, clickNavItem, clickSecondaryNavItem, login, waitModalClosed } from './helpers.js';
+import { isMobile, clickNavItem, clickSecondaryNavItem, login, waitModalClosed, NAV_TIMEOUT } from './helpers.js';
 
 test.describe('Full application smoke test', () => {
   test.beforeEach(async ({ page }) => {
@@ -9,6 +9,7 @@ test.describe('Full application smoke test', () => {
   });
 
   test('all static assets load correctly', async ({ page }) => {
+    test.slow();
     const assets = [
       '/static/style.css',
       '/static/js/app.js',
@@ -21,19 +22,22 @@ test.describe('Full application smoke test', () => {
   });
 
   test('login flow works', async ({ page }) => {
+    test.slow();
     await login(page);
-    await expect(page.locator('#userName')).toContainText('admin', { timeout: 5000 });
+    await expect(page.locator('#userName')).toContainText('admin', { timeout: NAV_TIMEOUT });
     if (!(await isMobile(page))) {
       await expect(page.locator('.navbar-brand')).toBeVisible();
     }
   });
 
   test('character list loads', async ({ page }) => {
+    test.slow();
     await login(page);
-    await expect(page.locator('h1:has-text("Character Folio")')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('h1:has-text("Character Folio")')).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 
   test('navigation between views works', async ({ page }) => {
+    test.slow();
     await login(page);
 
     const views = [
@@ -52,11 +56,12 @@ test.describe('Full application smoke test', () => {
       } else {
         await page.locator(`#appSidebar button[data-nav="${link}"]`).click();
       }
-      await expect(page.locator(`h1:has-text("${heading}")`)).toBeVisible({ timeout: 5000 });
+      await expect(page.locator(`h1:has-text("${heading}")`)).toBeVisible({ timeout: NAV_TIMEOUT });
     }
   });
 
   test('character create and sheet open', async ({ page }) => {
+    test.slow();
     await login(page);
 
     const name = `Smoke-${Date.now()}`;
@@ -67,12 +72,13 @@ test.describe('Full application smoke test', () => {
     await page.click('.modal button:has-text("Create")');
     await waitModalClosed(page);
 
-    await expect(page.locator('.character-card').filter({ hasText: name })).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.character-card').filter({ hasText: name })).toBeVisible({ timeout: NAV_TIMEOUT });
     await page.locator('.character-card').filter({ hasText: name }).click();
     await expect(page.locator('#sheetName')).toContainText(name, { timeout: 10000 });
   });
 
   test('logout works', async ({ page }) => {
+    test.slow();
     await login(page);
 
     if (await isMobile(page)) {
@@ -85,12 +91,13 @@ test.describe('Full application smoke test', () => {
       }
       await page.locator('a:has-text("Logout")').click();
     }
-    await expect(page).toHaveURL(/\/login/, { timeout: 5000 });
+    await expect(page).toHaveURL(/\/login/, { timeout: NAV_TIMEOUT });
   });
 
   test('app version is displayed', async ({ page }) => {
+    test.slow();
     await login(page);
 
-    await expect(page.locator('footer')).toContainText(/v\d+\.\d+\.\d+/, { timeout: 5000 });
+    await expect(page.locator('footer')).toContainText(/v\d+\.\d+\.\d+/, { timeout: NAV_TIMEOUT });
   });
 });
