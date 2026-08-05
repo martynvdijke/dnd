@@ -35,6 +35,9 @@ jobs:
       - name: Download Go dependencies
         run: go mod download
 
+      - name: Build embedded static bundles
+        run: npm run build:vite
+
       - name: Vet
         run: go vet -tags sqlite_fts5 ./...
 
@@ -78,6 +81,9 @@ jobs:
 
       - name: Install Node dependencies
         run: npm ci
+
+      - name: Build embedded static bundles
+        run: npm run build:vite
 
       - name: Run Tests with Coverage
         run:
