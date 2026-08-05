@@ -647,6 +647,7 @@
           <select id="importSchema" class="form-select" onchange="onImportSchemaChange()">
             <option value="">— Select Schema —</option>
           </select>
+          <button class="btn btn-outline-info btn-sm mt-2" id="detectSchemaBtn" onclick="autoDetectSchema()" disabled><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Auto-detect Schema</button>
         </div>
         <div class="col-md-4">
           <label class="form-label">Duplicate Action</label>
@@ -724,6 +725,7 @@
 
       <!-- Import button -->
       <button id="importStartBtn" class="btn btn-primary" onclick="startImport()" disabled><i class="fa-solid fa-play me-1"></i>Start Import</button>
+      <button id="importPreviewPlanBtn" class="btn btn-outline-secondary ms-1" onclick="previewImportPlan()" disabled><i class="fa-solid fa-magnifying-glass-chart me-1"></i>Preview Plan</button>
       <button class="btn btn-outline-secondary ms-1" onclick="resetImportForm()"><i class="fa-solid fa-rotate-left me-1"></i>Reset</button>
 
       <!-- Import Logs -->

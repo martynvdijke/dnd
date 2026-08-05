@@ -63,6 +63,9 @@ type CompendiumImportLog struct {
 	Summary      map[string]any `json:"summary"`
 	CreatedAt    string         `json:"created_at"`
 	RolledBackAt *string        `json:"rolled_back_at,omitempty"`
+	Filename     string         `json:"filename,omitempty"`
+	SchemaName   string         `json:"schema_name,omitempty"`
+	SchemaID     int64          `json:"schema_id,omitempty"`
 }
 
 // CompendiumImportSession tracks the multi-step import state in memory/session

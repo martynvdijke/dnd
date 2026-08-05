@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
 	"maps"
 	"net/http"
+	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -15,6 +18,10 @@ import (
 	"villum/db"
 	"villum/models"
 )
+
+// fieldNameRe validates sort/filter field names passed as query params.
+// Only simple identifier-shaped names are allowed (prevents SQL injection via json_extract paths).
+var fieldNameRe = regexp.MustCompile(`^[A-Za-z0-9_]+$`)
 
 // ─── Schema CRUD ───
 
@@ -187,6 +194,18 @@ func ListCompendiumEntries(c *gin.Context) {
 	var total int
 	var entries []models.CompendiumEntry
 
+	// Optional sorting: ?sort=<field>&order=asc|desc (field allowlist to prevent SQL injection)
+	orderBy := "e.created_at DESC"
+	if sortField := strings.TrimSpace(c.Query("sort")); sortField != "" {
+		if fieldNameRe.MatchString(sortField) {
+			dir := "ASC"
+			if strings.ToLower(c.DefaultQuery("order", "asc")) == "desc" {
+				dir = "DESC"
+			}
+			orderBy = "json_extract(e.data, '$.\"" + sortField + "\"') COLLATE NOCASE " + dir + ", e.id DESC"
+		}
+	}
+
 	if q != "" {
 		// FTS5 search scoped to schema
 		err = db.DB.QueryRow(`SELECT COUNT(*) FROM compendium_entries_fts f
@@ -200,7 +219,7 @@ func ListCompendiumEntries(c *gin.Context) {
 			FROM compendium_entries e
 			JOIN compendium_entries_fts f ON e.id = f.rowid
 			WHERE e.schema_id=? AND compendium_entries_fts MATCH ?
-			ORDER BY e.created_at DESC LIMIT ? OFFSET ?`, schemaID, q, pageSize, offset)
+			ORDER BY `+orderBy+` LIMIT ? OFFSET ?`, schemaID, q, pageSize, offset)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -210,8 +229,8 @@ func ListCompendiumEntries(c *gin.Context) {
 	} else {
 		db.DB.QueryRow("SELECT COUNT(*) FROM compendium_entries WHERE schema_id=?", schemaID).Scan(&total)
 
-		rows, err := db.DB.Query(`SELECT id, schema_id, data, created_at, updated_at
-			FROM compendium_entries WHERE schema_id=? ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+		rows, err := db.DB.Query(`SELECT e.id, e.schema_id, e.data, e.created_at, e.updated_at
+			FROM compendium_entries e WHERE e.schema_id=? ORDER BY `+orderBy+` LIMIT ? OFFSET ?`,
 			schemaID, pageSize, offset)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -677,25 +696,52 @@ func ImportCompendiumEntries(c *gin.Context) {
 		cleanEntries = append(cleanEntries, entry)
 	}
 
-	// Insert clean entries
+	// Dry-run mode: report the import plan without writing anything.
+	dryRun := c.DefaultQuery("dry_run", "") == "true"
+	if dryRun {
+		c.JSON(http.StatusOK, gin.H{
+			"dry_run":      true,
+			"total":        len(entries),
+			"would_insert": len(cleanEntries),
+			"would_skip":   skipCount,
+			"duplicates":   duplicates,
+			"errors":       fieldErrors,
+		})
+		return
+	}
+
+	// Insert clean entries (transactional — all-or-nothing)
+	tx, err := db.DB.Begin()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to begin transaction: " + err.Error()})
+		return
+	}
+	defer tx.Rollback()
+
 	inserted := 0
 	for _, entry := range cleanEntries {
 		dataJSON, _ := json.Marshal(entry)
-		_, err := db.DB.Exec(`INSERT INTO compendium_entries(schema_id, data) VALUES(?,?)`, schemaID, string(dataJSON))
-		if err == nil {
-			inserted++
+		_, err := tx.Exec(`INSERT INTO compendium_entries(schema_id, data) VALUES(?,?)`, schemaID, string(dataJSON))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "insert failed: " + err.Error()})
+			return
 		}
+		inserted++
+	}
+	if err := tx.Commit(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "commit failed: " + err.Error()})
+		return
 	}
 
 	// Log import
-	filesJSON, _ := json.Marshal([]map[string]any{
-		{"filename": "upload", "entries": len(entries)},
-	})
+	filesJSON, _ := json.Marshal([]string{"upload"})
 	summary := map[string]any{
-		"total":      len(entries),
-		"inserted":   inserted,
-		"duplicates": skipCount,
-		"errors":     len(fieldErrors),
+		"total":       len(entries),
+		"inserted":    inserted,
+		"duplicates":  skipCount,
+		"errors":      len(fieldErrors),
+		"schema_id":   schemaID,
+		"schema_name": schema.DisplayName,
 	}
 	summaryJSON, _ := json.Marshal(summary)
 	mappingJSON, _ := json.Marshal(map[string]string{})
@@ -739,13 +785,38 @@ func ExportCompendiumEntries(c *gin.Context) {
 	format := c.DefaultQuery("format", "json")
 	filter := c.Query("q")
 
+	// POST mode: export a specific set of entry IDs (5.3)
+	var ids []int64
+	if c.Request.Method == http.MethodPost {
+		var req struct {
+			IDs []int64 `json:"ids"`
+		}
+		if err := c.ShouldBindJSON(&req); err == nil && len(req.IDs) > 0 {
+			ids = req.IDs
+		}
+	}
+
 	var rows interface {
 		Scan(...any) error
 		Close() error
 		Next() bool
 	}
 
-	if filter != "" {
+	if len(ids) > 0 {
+		placeholders := strings.TrimSuffix(strings.Repeat("?,", len(ids)), ",")
+		args := make([]any, 0, len(ids)+1)
+		args = append(args, schemaID)
+		for _, id := range ids {
+			args = append(args, id)
+		}
+		r, err := db.DB.Query(`SELECT id, data, created_at FROM compendium_entries
+			WHERE schema_id=? AND id IN (`+placeholders+`) ORDER BY id`, args...)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		rows = r
+	} else if filter != "" {
 		r, err := db.DB.Query(`SELECT e.id, e.data, e.created_at
 			FROM compendium_entries e
 			JOIN compendium_entries_fts f ON e.id = f.rowid
@@ -830,6 +901,19 @@ func ListCompendiumImportLogs(c *gin.Context) {
 		json.Unmarshal([]byte(summaryJSON), &l.Summary)
 		l.CreatedAt = createdAt
 		l.RolledBackAt = rolledBackAt
+		// Enrich with derived display fields (filename from files list, schema from summary)
+		l.Filename = strings.Join(l.Files, ", ")
+		if sid, ok := l.Summary["schema_id"]; ok {
+			switch v := sid.(type) {
+			case float64:
+				l.SchemaID = int64(v)
+			case int64:
+				l.SchemaID = v
+			}
+		}
+		if sn, ok := l.Summary["schema_name"].(string); ok {
+			l.SchemaName = sn
+		}
 		logs = append(logs, l)
 	}
 	c.JSON(http.StatusOK, logs)
@@ -1310,6 +1394,125 @@ func DetectImportFields(c *gin.Context) {
 	})
 }
 
+// DetectImportSchema auto-detects which compendium schema best matches uploaded
+// JSON entries by scoring field-name overlap against ALL known schemas.
+// Returns ranked schema candidates with confidence (high/medium/low), coverage,
+// matched fields, and unmatched schema fields.
+func DetectImportSchema(c *gin.Context) {
+	// Read the uploaded data (file or body; array or single object)
+	var rawEntries []map[string]any
+	file, _, err := c.Request.FormFile("file")
+	if err == nil {
+		defer file.Close()
+		body, _ := io.ReadAll(file)
+		json.Unmarshal(body, &rawEntries)
+	} else {
+		body, _ := io.ReadAll(c.Request.Body)
+		json.Unmarshal(body, &rawEntries)
+		if len(rawEntries) == 0 {
+			var single map[string]any
+			if json.Unmarshal(body, &single) == nil && len(single) > 0 {
+				rawEntries = []map[string]any{single}
+			}
+		}
+	}
+	if len(rawEntries) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no entries found"})
+		return
+	}
+
+	discovered := discoverJSONFields(rawEntries)
+	discLower := make(map[string]bool, len(discovered))
+	discNorm := make(map[string]bool, len(discovered))
+	for _, d := range discovered {
+		discLower[strings.ToLower(d)] = true
+		discNorm[normalizeFieldName(d)] = true
+	}
+
+	rows, err := db.DB.Query("SELECT id, type_name, display_name, fields FROM compendium_schemas")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	type candidate struct {
+		SchemaID    int64    `json:"schema_id"`
+		TypeName    string   `json:"type_name"`
+		DisplayName string   `json:"display_name"`
+		Confidence  string   `json:"confidence"`
+		Coverage    float64  `json:"coverage"`
+		Matched     []string `json:"matched_fields"`
+		Unmatched   []string `json:"unmatched_schema_fields"`
+	}
+
+	candidates := make([]candidate, 0)
+	for rows.Next() {
+		var id int64
+		var typeName, displayName, fieldsJSON string
+		if err := rows.Scan(&id, &typeName, &displayName, &fieldsJSON); err != nil {
+			continue
+		}
+		var schemaFields []models.SchemaField
+		json.Unmarshal([]byte(fieldsJSON), &schemaFields)
+		if len(schemaFields) == 0 {
+			continue
+		}
+
+		matched := make([]string, 0)
+		unmatched := make([]string, 0)
+		for _, f := range schemaFields {
+			if discLower[strings.ToLower(f.Name)] || discNorm[normalizeFieldName(f.Name)] {
+				matched = append(matched, f.Name)
+			} else {
+				unmatched = append(unmatched, f.Name)
+			}
+		}
+		if len(matched) == 0 {
+			continue
+		}
+
+		coverage := float64(len(matched)) / float64(len(schemaFields))
+		confidence := "low"
+		if len(matched) == len(schemaFields) {
+			confidence = "high"
+		} else if coverage >= 0.5 {
+			confidence = "medium"
+		}
+		candidates = append(candidates, candidate{
+			SchemaID: id, TypeName: typeName, DisplayName: displayName,
+			Confidence: confidence, Coverage: coverage, Matched: matched, Unmatched: unmatched,
+		})
+	}
+
+	sort.Slice(candidates, func(i, j int) bool {
+		if candidates[i].Coverage != candidates[j].Coverage {
+			return candidates[i].Coverage > candidates[j].Coverage
+		}
+		return len(candidates[i].Matched) > len(candidates[j].Matched)
+	})
+
+	c.JSON(http.StatusOK, gin.H{
+		"entry_count":       len(rawEntries),
+		"discovered_fields": discovered,
+		"matches":           candidates,
+	})
+}
+
+// normalizeFieldName lowercases and strips non-alphanumeric characters for fuzzy field matching.
+func normalizeFieldName(s string) string {
+	return strings.Map(func(r rune) rune {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			return r
+		case r >= 'A' && r <= 'Z':
+			return r + 32
+		default:
+			return -1
+		}
+	}, s)
+}
+
 // discoverJSONFields recursively extracts all keys from a set of JSON objects
 // using dot notation for nested objects (e.g., "properties.Level").
 func discoverJSONFields(entries []map[string]any) []string {
@@ -1621,8 +1824,8 @@ func ImportCompendiumBatchJSON(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 
 	// Get schema fields for validation
-	var fieldsJSON string
-	err := db.DB.QueryRow("SELECT fields FROM compendium_schemas WHERE id=?", req.SchemaID).Scan(&fieldsJSON)
+	var fieldsJSON, schemaDisplayName string
+	err := db.DB.QueryRow("SELECT fields, display_name FROM compendium_schemas WHERE id=?", req.SchemaID).Scan(&fieldsJSON, &schemaDisplayName)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "schema not found"})
 		return
@@ -1697,12 +1900,27 @@ func ImportCompendiumBatchJSON(c *gin.Context) {
 
 	// Check duplicates (by name field)
 	skipCount := 0
+	overwriteCount := 0
 	cleanEntries := make([]map[string]any, 0)
 
 	existingNames := loadExistingNames(req.SchemaID)
 	existingSet := make(map[string]bool, len(existingNames))
 	for _, n := range existingNames {
 		existingSet[strings.ToLower(n)] = true
+	}
+
+	// Dry-run mode: report the import plan without writing anything.
+	dryRun := c.DefaultQuery("dry_run", "") == "true"
+
+	var tx *sql.Tx
+	if !dryRun {
+		var err error
+		tx, err = db.DB.Begin()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to begin transaction: " + err.Error()})
+			return
+		}
+		defer tx.Rollback()
 	}
 
 	for _, entry := range mappedEntries {
@@ -1717,12 +1935,23 @@ func ImportCompendiumBatchJSON(c *gin.Context) {
 				continue
 			} else if duplicateAction == "overwrite" {
 				var existingID int64
-				db.DB.QueryRow(`SELECT id FROM compendium_entries WHERE schema_id=? AND json_extract(data, '$.name')=?`,
-					req.SchemaID, entryName).Scan(&existingID)
+				row := db.DB.QueryRow(`SELECT id FROM compendium_entries WHERE schema_id=? AND json_extract(data, '$.name')=?`,
+					req.SchemaID, entryName)
+				if tx != nil {
+					row = tx.QueryRow(`SELECT id FROM compendium_entries WHERE schema_id=? AND json_extract(data, '$.name')=?`,
+						req.SchemaID, entryName)
+				}
+				row.Scan(&existingID)
 				if existingID > 0 {
-					dataJSON, _ := json.Marshal(entry)
-					db.DB.Exec(`UPDATE compendium_entries SET data=?, updated_at=datetime('now') WHERE id=?`,
-						string(dataJSON), existingID)
+					if !dryRun {
+						dataJSON, _ := json.Marshal(entry)
+						if _, err := tx.Exec(`UPDATE compendium_entries SET data=?, updated_at=datetime('now') WHERE id=?`,
+							string(dataJSON), existingID); err != nil {
+							c.JSON(http.StatusInternalServerError, gin.H{"error": "update failed: " + err.Error()})
+							return
+						}
+					}
+					overwriteCount++
 				}
 				continue
 			}
@@ -1731,27 +1960,45 @@ func ImportCompendiumBatchJSON(c *gin.Context) {
 		cleanEntries = append(cleanEntries, entry)
 	}
 
-	// Insert new entries
+	if dryRun {
+		c.JSON(http.StatusOK, gin.H{
+			"dry_run":           true,
+			"total":             len(req.Entries),
+			"would_create":      len(cleanEntries),
+			"would_update":      overwriteCount,
+			"would_skip":        skipCount,
+			"validation_errors": len(fieldErrors),
+			"errors":            fieldErrors,
+		})
+		return
+	}
+
+	// Insert new entries (inside the transaction)
 	inserted := 0
 	for _, entry := range cleanEntries {
 		dataJSON, _ := json.Marshal(entry)
-		_, err := db.DB.Exec(`INSERT INTO compendium_entries(schema_id, data) VALUES(?,?)`, req.SchemaID, string(dataJSON))
-		if err == nil {
-			inserted++
+		if _, err := tx.Exec(`INSERT INTO compendium_entries(schema_id, data) VALUES(?,?)`, req.SchemaID, string(dataJSON)); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "insert failed: " + err.Error()})
+			return
 		}
+		inserted++
+	}
+	if err := tx.Commit(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "commit failed: " + err.Error()})
+		return
 	}
 
 	// Log the import
 	totalEntries := len(req.Entries)
-	filesJSON, _ := json.Marshal([]map[string]any{
-		{"filename": req.Filename, "entries": totalEntries},
-	})
+	filesJSON, _ := json.Marshal([]string{req.Filename})
 	summary := map[string]any{
 		"total":              totalEntries,
 		"mapped":             len(mappedEntries),
 		"inserted":           inserted,
 		"duplicates_skipped": skipCount,
 		"validation_errors":  len(fieldErrors),
+		"schema_id":          req.SchemaID,
+		"schema_name":        schemaDisplayName,
 	}
 	summaryJSON, _ := json.Marshal(summary)
 

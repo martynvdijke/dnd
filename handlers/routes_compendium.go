@@ -51,8 +51,13 @@ func RegisterAdminCompendiumRoutes(r *gin.RouterGroup) {
 	r.POST("/compendium-schemas/:id/import", ImportCompendiumEntries)
 	r.POST("/compendium-schemas/:id/import/with-mapping", ImportCompendiumEntriesWithMapping)
 	r.POST("/compendium-schemas/:id/import/detect", DetectImportFields)
+	r.POST("/compendium/import/detect-schema", DetectImportSchema)
 	r.GET("/compendium-schemas/:id/export", ExportCompendiumEntries)
+	r.POST("/compendium-schemas/:id/export", ExportCompendiumEntries)
 	r.POST("/compendium-import", ImportCompendiumBatchJSON)
+
+	// Legacy migration
+	r.POST("/compendium/migrate-legacy", HandleMigrateLegacy)
 
 	// Import Logs
 	r.GET("/compendium-import-logs", ListCompendiumImportLogs)

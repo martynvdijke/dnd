@@ -83,6 +83,57 @@ test.describe('Admin panel', () => {
     await expect(page.locator('#entryTable')).toContainText(uniqueEntry);
   });
 
+  test('import wizard: paste, detect schema, dry-run, import, verify log', async ({ page }) => {
+    test.slow();
+    const stamp = Date.now();
+    const name1 = `ImportWiz A ${stamp}`;
+    const name2 = `ImportWiz B ${stamp}`;
+    await goToAdmin(page);
+
+    // Open the Import tab
+    await page.locator('[data-testid="admin-tabs"] button:has-text("Import")').click();
+    await expect(page.locator('#importSchema')).toBeVisible();
+
+    // Paste JSON source
+    await page.click('#adminImport button:has-text("Paste JSON")');
+    await page.fill('#importPasteText', JSON.stringify([
+      { name: name1, description: 'imported via wizard', speed: 30, size: 'Medium' },
+      { name: name2, description: 'imported via wizard too', speed: 25, size: 'Small' },
+    ]));
+    await page.click('#adminImport button:has-text("Use This JSON")');
+
+    // Preview loads and the detect-schema / preview buttons enable
+    await expect(page.locator('#importPreview')).toBeVisible();
+    await expect(page.locator('#importRecordCount')).toContainText('2 records');
+    await expect(page.locator('#detectSchemaBtn')).toBeEnabled();
+
+    // Auto-detect schema (server-side field-overlap scoring)
+    await page.click('#detectSchemaBtn');
+    await expect(page.locator('#importResults')).toContainText('Schema detected');
+    const schemaValue = await page.locator('#importSchema').inputValue();
+    expect(schemaValue).not.toBe('');
+
+    // Auto-detect field mapping
+    await page.click('#importPreview button:has-text("Auto-Detect Field Mapping")');
+    await expect(page.locator('#importMapping')).toBeVisible();
+    await expect(page.locator('#importMappingTable tbody tr').first()).toBeVisible();
+
+    // Dry-run preview plan (nothing written)
+    await page.click('#importPreviewPlanBtn');
+    await expect(page.locator('#importResults')).toContainText('Dry-run plan');
+    await expect(page.locator('#importResults')).toContainText('create: 2');
+
+    // Execute the import
+    await page.click('#importStartBtn');
+    await expect(page.locator('#importResults')).toContainText('Done!', { timeout: 30000 });
+    await expect(page.locator('#importResults')).toContainText('Imported 2');
+
+    // Import log row appears with completed status
+    const logRow = page.locator('#importLogBody tr').first();
+    await expect(logRow).toContainText('pasted.json');
+    await expect(logRow).toContainText('completed');
+  });
+
   test('backup tab works', async ({ page }) => {
     test.slow();
     await goToAdmin(page);

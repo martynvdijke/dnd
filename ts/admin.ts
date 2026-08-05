@@ -1538,6 +1538,8 @@ function setImportJsonData(data: any, filename: string) {
   document.getElementById('importMapping')!.style.display = 'none';
   importMapping = [];
   (document.getElementById('importStartBtn') as HTMLButtonElement).disabled = true;
+  (document.getElementById('detectSchemaBtn') as HTMLButtonElement).disabled = false;
+  (document.getElementById('importPreviewPlanBtn') as HTMLButtonElement).disabled = false;
   toast('Loaded ' + arr.length + ' records from ' + filename);
 }
 
@@ -1589,6 +1591,67 @@ function autoDetectMapping() {
   }).catch((e: any) => toast(e.message, true));
 }
 expose('autoDetectMapping', autoDetectMapping);
+
+// Auto-detect the best-matching schema for the loaded JSON via server-side
+// field-overlap scoring across all known schemas (compendium-overhaul 4.3).
+expose('autoDetectSchema', async function () {
+  if (!importJsonData || !importJsonData.records.length) { toast('No data loaded', true); return; }
+  try {
+    const res = await api('POST', '/api/admin/compendium/import/detect-schema', importJsonData.records);
+    const matches = res.matches || [];
+    if (!matches.length) { toast('No schema matched the loaded fields', true); return; }
+    const best = matches[0];
+    const sel = document.getElementById('importSchema') as HTMLSelectElement;
+    sel.value = String(best.schema_id);
+    if (!sel.value) {
+      // schema select not yet populated — reload options first
+      const schemas = await api('GET', '/api/admin/compendium-schemas');
+      sel.innerHTML = '<option value="">— Select Schema —</option>' + schemas.map((s: any) => `<option value="${s.id}">${esc(s.display_name)} (${esc(s.type_name)})</option>`).join('');
+      sel.value = String(best.schema_id);
+    }
+    // onImportSchemaChange is window-exposed (anonymous function) — call via window
+    (window as any).onImportSchemaChange?.();
+    const confBadge = best.confidence === 'high' ? 'bg-success' : best.confidence === 'medium' ? 'bg-warning text-dark' : 'bg-secondary';
+    toast(`Detected schema: ${best.display_name} (${best.confidence} match, ${best.matched_fields.length} fields)`);
+    // Show the detection result inline
+    const results = document.getElementById('importResults')!;
+    results.innerHTML = `<div class="alert alert-info mb-0 py-2">
+      <strong>Schema detected:</strong> ${esc(best.display_name)} (${esc(best.type_name)})
+      <span class="badge ${confBadge} ms-1">${esc(best.confidence)}</span>
+      <span class="text-muted ms-2">${best.matched_fields.length}/${best.matched_fields.length + best.unmatched_schema_fields.length} fields matched</span>
+    </div>`;
+  } catch (e: any) { toast(e.message, true); }
+});
+
+// Dry-run preview: compute the import plan without writing anything (4.9).
+expose('previewImportPlan', async function () {
+  const schemaId = parseInt((document.getElementById('importSchema') as HTMLSelectElement).value, 10);
+  if (!schemaId) { toast('Select a schema', true); return; }
+  if (!importJsonData || !importJsonData.records.length) { toast('No data to import', true); return; }
+  const dedup = (document.getElementById('importDedup') as HTMLSelectElement).value;
+  const mapping = importMapping.filter(m => m.schemaField).map(m => ({
+    source_field: m.jsonField,
+    schema_field: m.schemaField
+  }));
+  try {
+    const res = await api('POST', '/api/admin/compendium-import?dry_run=true', {
+      schema_id: schemaId,
+      entries: importJsonData.records,
+      dedup_action: dedup,
+      field_mapping: mapping,
+      filename: importJsonData.filename || 'import.json'
+    });
+    const results = document.getElementById('importResults')!;
+    results.innerHTML = `<div class="alert alert-secondary mb-0 py-2">
+      <strong>Dry-run plan</strong> (nothing imported yet) — create: <span class="text-success fw-bold">${res.would_create ?? 0}</span>,
+      update: <span class="text-warning fw-bold">${res.would_update ?? 0}</span>,
+      skip: <span class="text-muted fw-bold">${res.would_skip ?? 0}</span>,
+      validation errors: <span class="text-danger fw-bold">${res.validation_errors ?? 0}</span>
+      of ${res.total ?? importJsonData.records.length} records
+    </div>`;
+    (document.getElementById('importStartBtn') as HTMLButtonElement).disabled = false;
+  } catch (e: any) { toast(e.message, true); }
+});
 
 function renderMappingTable(schemaFields: any[]) {
   const tbody = document.getElementById('importMappingTable')!.querySelector('tbody')!;
@@ -1676,6 +1739,8 @@ function resetImportForm() {
   (document.getElementById('importFetchUrl') as HTMLInputElement).value = '';
   (document.getElementById('importFileInput') as HTMLInputElement).value = '';
   (document.getElementById('importStartBtn') as HTMLButtonElement).disabled = true;
+  (document.getElementById('detectSchemaBtn') as HTMLButtonElement).disabled = true;
+  (document.getElementById('importPreviewPlanBtn') as HTMLButtonElement).disabled = true;
 }
 expose('resetImportForm', resetImportForm);
 
