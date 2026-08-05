@@ -97,7 +97,13 @@ export async function init() {
     connectWS();
     api('GET', '/api/locations').then(setAllLocations).catch(() => {});
     api('GET', '/api/npcs').then(setAllNPCs).catch(() => {});
-  } catch {
-    window.location.href = '/login';
+  } catch (err) {
+    // Offline (service worker serving the cached shell): stay on the app
+    // instead of redirecting to /login — cached assets keep the UI usable.
+    if (navigator.onLine === false) {
+      showView('characters');
+    } else {
+      window.location.href = '/login';
+    }
   }
 }

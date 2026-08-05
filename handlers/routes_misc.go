@@ -124,6 +124,16 @@ func RegisterStaticRoutes(r *gin.Engine, embedFS embed.FS, mediaPath string, Ver
 	staticFS, _ := fs.Sub(embedFS, "static")
 	r.StaticFS("/static", http.FS(staticFS))
 
+	// Service worker at root scope so it can control the whole app (offline support)
+	r.GET("/sw.js", func(c *gin.Context) {
+		data, err := fs.ReadFile(staticFS, "sw.js")
+		if err != nil {
+			c.String(http.StatusNotFound, "not found")
+			return
+		}
+		c.Data(http.StatusOK, "application/javascript", data)
+	})
+
 	// Serve HTML pages with version substitution and optional analytics injection
 	serveHTML := func(path, fileName string, pageType string) {
 		r.GET(path, func(c *gin.Context) {

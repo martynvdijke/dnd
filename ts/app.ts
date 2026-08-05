@@ -3881,9 +3881,13 @@ import { initPdfViewerCleanup } from './pdf-viewer';
 // Initialization → extracted to ts/init.ts
 import { init } from './init';
 
+// PWA → register service worker for offline support
+import { registerSW } from './pwa';
+
 // These are called from inline HTML onclick — register at window level
 expose('openCampaignDashboard', function (campaignId: number, name: string) {
   (window as any).showCampaignDashboard(campaignId, name);
 });
 
 init();
+registerSW();

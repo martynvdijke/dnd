@@ -1,4 +1,4 @@
-const CACHE_NAME = 'villum-v1';
+const CACHE_NAME = 'villum-v2';
 const CDN_CACHE = 'villum-cdn-v1';
 
 // CDN origins to cache-first
@@ -80,18 +80,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets + app shell: cache-first
+  // Static assets + app shell: cache-first, cache-on-first-fetch, offline fallback
   if (url.pathname.startsWith('/static/') || url.pathname === '/app' || url.pathname === '/') {
     event.respondWith(
       caches.match(event.request).then((cached) => {
-        return cached || fetch(event.request).then((response) => {
-          return caches.open(CACHE_NAME).then((cache) => {
-            if (url.pathname.startsWith('/static/')) {
+        if (cached) return cached;
+        return fetch(event.request).then((response) => {
+          if (response.ok && (url.pathname.startsWith('/static/') || url.pathname === '/' || url.pathname === '/app')) {
+            return caches.open(CACHE_NAME).then((cache) => {
               cache.put(event.request, response.clone());
-            }
-            return response;
-          });
-        });
+              return response;
+            });
+          }
+          return response;
+        }).catch(() => new Response('Offline', { status: 503 }));
       })
     );
     return;
