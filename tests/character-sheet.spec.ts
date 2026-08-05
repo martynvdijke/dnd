@@ -138,7 +138,7 @@ test.describe('Campaign management UI', () => {
     await page.click('text=Create');
     await waitModalClosed(page);
 
-    await clickNavItem(page, 'Party', 'party');
+    await clickNavItem(page, 'party', 'party');
     await expect(page.locator('#partyView h1')).toContainText('Party View');
     await expect(page.locator('#partyContent')).toContainText(name);
   });
@@ -162,7 +162,7 @@ test.describe('Campaign management UI', () => {
   });
 
   test('compendium search works', async ({ page }) => {
-    await clickNavItem(page, 'Compendium', 'compendium');
+    await clickNavItem(page, 'compendium', 'compendium');
     await expect(page.locator('#compendiumView h1')).toContainText('Compendium');
 
     const searchInput = page.locator('#compSearch');
@@ -516,7 +516,7 @@ test.describe('Keyboard shortcuts', () => {
     await page.keyboard.press('?');
     await expect(page.locator('#genericModal')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#genericModal')).toContainText('Keyboard Shortcuts');
-    await page.locator('#genericModal .btn-close').click();
+    await page.locator('#genericModal').getByTestId('modal-close').click();
     await waitModalClosed(page);
     await expect(page.locator('#genericModal')).not.toBeVisible();
   });

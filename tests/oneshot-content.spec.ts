@@ -15,7 +15,7 @@ async function loadHtmx(page, url, target?: string) {
 
 /** Click the One-Shots nav link, handling mobile hamburger menu */
 async function navigateToOneShots(page) {
-  await clickSecondaryNavItem(page, 'One-Shots', 'moreNavOneshot');
+  await clickSecondaryNavItem(page, 'oneshots', 'moreNavOneshot', 'One-Shots');
   await page.waitForSelector('#oneshotSection', { state: 'visible', timeout: 5000 });
 }
 

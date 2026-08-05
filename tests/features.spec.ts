@@ -99,7 +99,7 @@ test.describe('Full feature coverage', () => {
     await page.click('text=Create');
     await waitModalClosed(page);
 
-    await clickNavItem(page, 'Characters', 'characters');
+    await clickNavItem(page, 'characters', 'characters');
     await expect(page.locator('.character-card').filter({ hasText: name })).toBeVisible();
   });
 

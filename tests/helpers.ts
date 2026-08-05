@@ -1,18 +1,7 @@
 import type { Page } from '@playwright/test';
 
-const desktopNavMap: Record<string, string> = {
-  'Characters': 'characters',
-  'Dice': 'dice',
-  'Party': 'party',
-  'Compendium': 'compendium',
-  'Encounters': 'encounters',
-  'Timeline': 'timeline',
-  'One-Shots': 'oneshots',
-  'Combat': 'combat',
-  'Factions': 'factions',
-  'Shops': 'shops',
-  'Admin': 'admin',
-};
+export const LOGIN_TIMEOUT = 30000;
+export const NAV_TIMEOUT = 10000;
 
 export async function ensureNavOpen(page: Page) {
   const toggler = page.locator('.navbar-toggler');
@@ -36,14 +25,14 @@ export async function waitLoadingDone(page: Page, timeout: number = 15000) {
  * Log in as admin user and wait for the SPA to fully initialize.
  * Prefer this over inline login to avoid test flakiness on slower runtimes (mobile-chrome in CI).
  */
-export async function login(page: Page, timeout: number = 30000) {
+export async function login(page: Page, timeout: number = LOGIN_TIMEOUT) {
   await page.goto('/login', { waitUntil: 'domcontentloaded' });
   await page.fill('#username', 'admin');
   await page.fill('#password', 'testpassword123');
   // Use Promise.all to avoid race between click and navigation listener
   await Promise.all([
     page.waitForURL('/', { timeout, waitUntil: 'domcontentloaded' }),
-    page.click('button[type="submit"]'),
+    page.getByTestId('login-submit').click(),
   ]);
   await waitLoadingDone(page, timeout);
 }
@@ -64,16 +53,13 @@ export async function isMobile(page: Page): Promise<boolean> {
   return await toggler.isVisible().catch(() => false);
 }
 
-export async function clickNavItem(page: Page, text: string, bottomNav?: string) {
+export async function clickNavItem(page: Page, nav: string, bottomNav?: string) {
   if (await isMobile(page)) {
     if (bottomNav) {
       await page.locator(`#bottomTabBar button[data-nav="${bottomNav}"]`).click({ force: true });
     }
   } else {
-    const nav = desktopNavMap[text];
-    if (nav) {
-      await page.locator(`#appSidebar button[data-nav="${nav}"]`).click();
-    }
+    await page.locator(`#appSidebar button[data-nav="${nav}"]`).click();
   }
 }
 
@@ -84,18 +70,15 @@ export async function openMoreNav(page: Page) {
   }
 }
 
-export async function clickSecondaryNavItem(page: Page, desktopText: string, moreId: string) {
+export async function clickSecondaryNavItem(page: Page, nav: string, moreId: string, label?: string) {
   if (await isMobile(page)) {
     await openMoreNav(page);
     // Bottom sheet buttons are dynamically created without IDs, click by text
-    await page.locator('#bottom-sheet-more-nav button').filter({ hasText: desktopText }).click();
+    await page.locator('#bottom-sheet-more-nav button').filter({ hasText: label ?? nav }).click();
     // Wait for bottom sheet close animation (onclick calls closeBottomSheet)
     await page.waitForTimeout(500);
   } else {
-    const nav = desktopNavMap[desktopText];
-    if (nav) {
-      await page.locator(`#appSidebar button[data-nav="${nav}"]`).click();
-    }
+    await page.locator(`#appSidebar button[data-nav="${nav}"]`).click();
   }
 }
 

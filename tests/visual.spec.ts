@@ -16,7 +16,7 @@ test.describe('Visual regression', () => {
 
   test('@visual compendium legacy tabs', async ({ page }) => {
     test.info().annotations.push({ type: 'visual', description: 'Compendium page with legacy tabs' });
-    await clickNavItem(page, 'Compendium', 'compendium');
+    await clickNavItem(page, 'compendium', 'compendium');
     await expect(page.locator('#compendiumView')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#compendiumTabs')).toBeVisible({ timeout: 5000 });
     // Select a stable anchor — use compendiumTabs row (content below changes with scroll)
@@ -45,7 +45,7 @@ test.describe('Visual regression', () => {
       });
     }, schema.id);
 
-    await clickNavItem(page, 'Compendium', 'compendium');
+    await clickNavItem(page, 'compendium', 'compendium');
     await expect(page.locator('#compSchemaTabs')).toBeVisible({ timeout: 8000 });
     await expect(page.locator('#compSchemaTabs .nav-link').first()).toBeVisible({ timeout: 3000 });
     // Use type_name to target the correct tab (avoids ambiguity from retry duplicates)
@@ -71,7 +71,7 @@ test.describe('Visual regression', () => {
 
   test('@visual character list view', async ({ page }) => {
     test.info().annotations.push({ type: 'visual', description: 'Characters view heading' });
-    await clickNavItem(page, 'Characters', 'characters');
+    await clickNavItem(page, 'characters', 'characters');
     await expect(page.locator('#charactersView')).toBeVisible({ timeout: 5000 });
     await page.waitForTimeout(300);
     // Characters view content is dynamic — snapshot the heading row for stability

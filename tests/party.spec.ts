@@ -157,7 +157,7 @@ test.describe('Party Management', () => {
     }, name);
 
     // Navigate to Party View
-    await clickNavItem(page, 'Party', 'party');
+    await clickNavItem(page, 'party', 'party');
     await page.waitForTimeout(1500);
 
     // Check the party content area contains the party name

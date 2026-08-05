@@ -8,32 +8,28 @@ test.describe('Regression suite', () => {
     await waitLoadingDone(page);
   });
 
-  async function navTo(page: any, desktopNav: string, bottomNav: string, moreText?: string) {
+  async function navTo(page: any, nav: string, bottomNav: string, moreLabel?: string) {
     if (await isMobile(page)) {
-      if (moreText) {
-        await clickSecondaryNavItem(page, moreText, 'moreNav');
+      if (moreLabel) {
+        await clickSecondaryNavItem(page, nav, 'moreNav', moreLabel);
       } else {
-        await clickNavItem(page, desktopNav, bottomNav);
+        await clickNavItem(page, nav, bottomNav);
       }
     } else {
-      const navMap: Record<string, string> = {
-        'Characters': 'characters', 'Compendium': 'compendium', 'Dice': 'dice',
-        'Encounters': 'encounters', 'Combat': 'combatTracker',
-      };
-      await page.locator(`#appSidebar button[data-nav="${navMap[desktopNav]}"]`).click();
+      await page.locator(`#appSidebar button[data-nav="${nav}"]`).click();
     }
   }
 
   test('@regression Characters view renders', async ({ page }) => {
     test.info().annotations.push({ type: 'regression', description: 'Characters view loads' });
-    await navTo(page, 'Characters', 'characters');
+    await navTo(page, 'characters', 'characters');
     // On fresh DB without characters, the view still shows #charactersView
     await expect(page.locator('#charactersView')).toBeVisible({ timeout: 5000 });
   });
 
   test('@regression Compendium view renders', async ({ page }) => {
     test.info().annotations.push({ type: 'regression', description: 'Compendium view loads with tabs' });
-    await navTo(page, 'Compendium', 'compendium');
+    await navTo(page, 'compendium', 'compendium');
     await expect(page.locator('#compendiumView')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#compendiumTabs')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('h1:has-text("Compendium")')).toBeVisible({ timeout: 5000 });
@@ -41,19 +37,19 @@ test.describe('Regression suite', () => {
 
   test('@regression Dice view renders', async ({ page }) => {
     test.info().annotations.push({ type: 'regression', description: 'Dice view loads' });
-    await navTo(page, 'Dice', 'dice');
+    await navTo(page, 'dice', 'dice');
     await expect(page.locator('#diceView')).toBeVisible({ timeout: 5000 });
   });
 
   test('@regression Encounters view renders', async ({ page }) => {
     test.info().annotations.push({ type: 'regression', description: 'Encounters view loads' });
-    await navTo(page, 'Encounters', 'encounters');
+    await navTo(page, 'encounters', 'encounters');
     await expect(page.locator('#encounterView')).toBeVisible({ timeout: 5000 });
   });
 
   test('@regression compendium legacy tabs load content', async ({ page }) => {
     test.info().annotations.push({ type: 'regression', description: 'Each legacy tab shows content' });
-    await navTo(page, 'Compendium', 'compendium');
+    await navTo(page, 'compendium', 'compendium');
     await expect(page.locator('#compendiumView')).toBeVisible({ timeout: 5000 });
     await expect(page.locator('#compendiumTabs')).toBeVisible({ timeout: 5000 });
 
@@ -98,7 +94,7 @@ test.describe('Regression suite', () => {
     expect(entryId).toBeGreaterThan(0);
 
     // Navigate to compendium
-    await navTo(page, 'Compendium', 'compendium');
+    await navTo(page, 'compendium', 'compendium');
     await expect(page.locator('#compendiumView')).toBeVisible({ timeout: 5000 });
 
     // Wait for the async schema API to load and tabs to render
@@ -125,7 +121,7 @@ test.describe('Regression suite', () => {
     }, schemaId);
 
     // Refresh compendium view — the deleted schema's tab should be gone
-    await navTo(page, 'Compendium', 'compendium');
+    await navTo(page, 'compendium', 'compendium');
     // Seeds (backgrounds, monsters, etc.) keep the section visible,
     // so verify the lifecycle tab is absent rather than the whole section
     await expect(page.locator(`#compSchemaTab-${typeName}`)).not.toBeVisible({ timeout: 8000 });

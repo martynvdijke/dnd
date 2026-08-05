@@ -34,7 +34,7 @@ test.describe('Combat animations', () => {
     await createCharacter(page, name);
 
     // Navigate to character list and open the sheet
-    await clickNavItem(page, 'Characters', 'characters');
+    await clickNavItem(page, 'characters', 'characters');
     await waitLoadingDone(page);
     await page.locator('.character-card, .char-card, [onclick*="showSheet"]', { hasText: name }).first().click();
     await waitLoadingDone(page);

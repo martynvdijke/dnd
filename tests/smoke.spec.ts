@@ -36,25 +36,21 @@ test.describe('Full application smoke test', () => {
   test('navigation between views works', async ({ page }) => {
     await login(page);
 
-    const navMap: Record<string, string> = { 'Compendium': 'compendium', 'Dice': 'dice', 'Encounters': 'encounters', 'Factions': 'factions' };
     const views = [
-      { link: 'Compendium', heading: 'Compendium', bottomNav: 'compendium' },
-      { link: 'Dice', heading: 'Dice Roller', bottomNav: 'dice' },
-      { link: 'Encounters', heading: 'Encounter Builder', moreText: 'Encounters' },
-      { link: 'Factions', heading: 'Factions', moreText: 'Factions' },
+      { link: 'compendium', heading: 'Compendium', bottomNav: 'compendium' },
+      { link: 'dice', heading: 'Dice Roller', bottomNav: 'dice' },
+      { link: 'encounters', heading: 'Encounter Builder', moreLabel: 'Encounters' },
+      { link: 'factions', heading: 'Factions', moreLabel: 'Factions' },
     ];
-    for (const { link, heading, bottomNav, moreText } of views) {
+    for (const { link, heading, bottomNav, moreLabel } of views) {
       if (await isMobile(page)) {
-        if (moreText) {
-          await clickSecondaryNavItem(page, moreText, 'moreNav');
+        if (moreLabel) {
+          await clickSecondaryNavItem(page, link, 'moreNav', moreLabel);
         } else if (bottomNav) {
           await clickNavItem(page, link, bottomNav);
         }
       } else {
-        const nav = navMap[link];
-        if (nav) {
-          await page.locator(`#appSidebar button[data-nav="${nav}"]`).click();
-        }
+        await page.locator(`#appSidebar button[data-nav="${link}"]`).click();
       }
       await expect(page.locator(`h1:has-text("${heading}")`)).toBeVisible({ timeout: 5000 });
     }
@@ -64,7 +60,7 @@ test.describe('Full application smoke test', () => {
     await login(page);
 
     const name = `Smoke-${Date.now()}`;
-    await page.click('button:has-text("New Character")');
+    await page.getByTestId('new-character').click();
     await page.fill('#newName', name);
     await page.fill('#newRace', 'Human');
     await page.fill('#newClass', 'Fighter');

@@ -300,7 +300,7 @@ test.describe('User Compendium View', () => {
   });
 
   async function navToCompendium(page: any) {
-    await clickNavItem(page, 'Compendium', 'compendium');
+    await clickNavItem(page, 'compendium', 'compendium');
     // Wait for SPA loading to complete and compendium view to render
     await page.waitForSelector('#compendiumView', { state: 'visible', timeout: 10000 });
     // Give async schema load time to resolve

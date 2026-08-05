@@ -26,7 +26,7 @@ test.describe('Shops & Trading', () => {
         markup_buy_percent: 40,
       });
     }, shopName);
-    await clickSecondaryNavItem(page, 'Shops', 'moreNavShops');
+    await clickSecondaryNavItem(page, 'shops', 'moreNavShops', 'Shops');
     await page.waitForTimeout(500);
     await expect(page.locator('#shopsGrid')).toContainText(shopName);
   });
@@ -44,7 +44,7 @@ test.describe('Shops & Trading', () => {
       }
     }, shopName);
 
-    await clickSecondaryNavItem(page, 'Shops', 'moreNavShops');
+    await clickSecondaryNavItem(page, 'shops', 'moreNavShops', 'Shops');
     await page.waitForTimeout(500);
     await expect(page.locator('#shopsGrid')).toContainText(shopName);
   });

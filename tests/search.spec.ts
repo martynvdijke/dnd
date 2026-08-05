@@ -45,7 +45,7 @@ test.describe('Advanced Search', () => {
   test('search bar is visible in navbar', async ({ page }) => {
     if (await isMobile(page)) return;
     await ensureNavOpen(page);
-    await expect(page.locator('#searchInput')).toBeVisible();
+    await expect(page.locator('[data-testid="search-input"]')).toBeVisible();
     await expect(page.locator('#searchBtn')).toBeVisible();
   });
 
