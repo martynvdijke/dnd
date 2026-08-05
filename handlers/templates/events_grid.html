@@ -17,7 +17,16 @@
       hx-target="#events-grid" hx-swap="outerHTML">
       <i class="fa-solid fa-chevron-left me-1"></i>{{(.Month.AddDate 0 -1 0).Format "January"}}
     </button>
-    <h5 class="mb-0 fw-semibold">{{.Month.Format "January 2006"}}</h5>
+    <div class="d-flex align-items-center gap-2">
+      <h5 class="mb-0 fw-semibold">{{.Month.Format "January 2006"}}</h5>
+      {{if .ShowToday}}
+      <button class="btn btn-sm btn-outline-gold month-nav" type="button" title="Jump to today"
+        hx-get="{{if .CampaignSlug}}/htmx/events/c/{{.CampaignSlug}}/grid{{else}}/htmx/events/grid{{end}}"
+        hx-target="#events-grid" hx-swap="outerHTML">
+        <i class="fa-regular fa-calendar-check me-1"></i>Today
+      </button>
+      {{end}}
+    </div>
     <button class="btn btn-sm btn-outline-gold month-nav"
       hx-get="{{if .CampaignSlug}}/htmx/events/c/{{.CampaignSlug}}/grid?month={{.NextMonth}}{{else}}/htmx/events/grid?month={{.NextMonth}}{{end}}"
       hx-target="#events-grid" hx-swap="outerHTML">

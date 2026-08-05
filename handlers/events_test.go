@@ -650,6 +650,25 @@ func TestEventsGridPartial(t *testing.T) {
 			t.Error("July event should not appear in June grid")
 		}
 	})
+
+	t.Run("shows Today button when viewing another month", func(t *testing.T) {
+		prev := time.Now().AddDate(0, -1, 0).Format("2006-01")
+		w := testutil.Get(t, r, "/htmx/events/grid?month="+prev)
+		testutil.AssertStatus(t, w, 200)
+		body := w.Body.String()
+		if !contains(body, "Jump to today") {
+			t.Error("expected Today button when viewing a different month")
+		}
+	})
+
+	t.Run("hides Today button on current month", func(t *testing.T) {
+		w := testutil.Get(t, r, "/htmx/events/grid")
+		testutil.AssertStatus(t, w, 200)
+		body := w.Body.String()
+		if contains(body, "Jump to today") {
+			t.Error("Today button should be hidden on the current month")
+		}
+	})
 }
 
 func TestEventDetail(t *testing.T) {
@@ -756,6 +775,29 @@ func TestEventsGridViewParam(t *testing.T) {
 		body := w.Body.String()
 		if contains(body, "calendar-grid") {
 			t.Error("view=list should not show grid")
+		}
+	})
+
+	t.Run("view=grid honors month param", func(t *testing.T) {
+		db.ClearCache("")
+		prev := time.Now().AddDate(0, -1, 0)
+		events := []googlecalendar.Event{
+			{ID: "v2", Title: "Prev Month Event", StartTime: time.Date(prev.Year(), prev.Month(), 15, 19, 0, 0, 0, time.UTC)},
+		}
+		db.SetCachedEvents(events, "")
+		db.SaveEventSettings(db.EventSettings{CalendarID: "test@example.com"})
+
+		w := testutil.Get(t, r, "/events?view=grid&month="+prev.Format("2006-01"))
+		testutil.AssertStatus(t, w, 200)
+		body := w.Body.String()
+		if !contains(body, "Prev Month Event") {
+			t.Error("expected event from requested month in grid")
+		}
+		if !contains(body, prev.Format("January 2006")) {
+			t.Error("expected requested month in grid header")
+		}
+		if !contains(body, "Jump to today") {
+			t.Error("expected Today button when navigating to another month via page param")
 		}
 	})
 }

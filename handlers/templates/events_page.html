@@ -81,7 +81,7 @@
     </div>
   </div>
 
-  <div id="events-list" hx-get="{{if eq .View "grid"}}{{if .CampaignSlug}}/htmx/events/c/{{.CampaignSlug}}/grid{{else}}/htmx/events/grid{{end}}{{else}}{{if .CampaignSlug}}/htmx/events/c/{{.CampaignSlug}}/list{{else}}/htmx/events/list{{end}}{{end}}" hx-trigger="every 30s" hx-swap="innerHTML">
+  <div id="events-list" hx-get="{{if eq .View "grid"}}{{if .CampaignSlug}}/htmx/events/c/{{.CampaignSlug}}/grid{{else}}/htmx/events/grid{{end}}{{if .MonthQuery}}?month={{.MonthQuery}}{{end}}{{else}}{{if .CampaignSlug}}/htmx/events/c/{{.CampaignSlug}}/list{{else}}/htmx/events/list{{end}}{{end}}" hx-trigger="every 30s" hx-swap="innerHTML">
     {{if eq .View "grid"}}
     {{template "events_grid.html" .}}
     {{else}}

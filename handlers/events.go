@@ -130,23 +130,30 @@ func EventsPage(c *gin.Context) {
 		now := time.Now()
 		year := now.Year()
 		month := now.Month()
+		if mt, ok := parseMonthParam(c.Query("month")); ok {
+			year = mt.Year()
+			month = mt.Month()
+		}
 		monthTime := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
 		filtered := filterEventsByMonth(events, year, monthTime)
 		weeks := buildGrid(filtered, year, monthTime)
 		prevMonth := monthTime.AddDate(0, -1, 0)
 		nextMonth := monthTime.AddDate(0, 1, 0)
 		empty := len(filtered) == 0 && errMsg == ""
+		showToday := monthTime.Year() != now.Year() || monthTime.Month() != now.Month()
 
 		renderTemplate(c, "events_page.html", eventsPageData{
-			Events:    filtered,
-			Error:     errMsg,
-			Empty:     empty,
-			Version:   AppVersion,
-			View:      view,
-			Weeks:     weeks,
-			Month:     monthTime,
-			PrevMonth: prevMonth.Format("2006-01"),
-			NextMonth: nextMonth.Format("2006-01"),
+			Events:     filtered,
+			Error:      errMsg,
+			Empty:      empty,
+			Version:    AppVersion,
+			View:       view,
+			Weeks:      weeks,
+			Month:      monthTime,
+			PrevMonth:  prevMonth.Format("2006-01"),
+			NextMonth:  nextMonth.Format("2006-01"),
+			ShowToday:  showToday,
+			MonthQuery: monthTime.Format("2006-01"),
 		})
 		return
 	}
@@ -194,10 +201,12 @@ type eventsPageData struct {
 	View         string // "list" or "grid"
 
 	// Grid-specific fields
-	Weeks     []gridWeek
-	Month     time.Time
-	PrevMonth string
-	NextMonth string
+	Weeks      []gridWeek
+	Month      time.Time
+	PrevMonth  string
+	NextMonth  string
+	ShowToday  bool
+	MonthQuery string
 }
 
 type eventsListData struct {
@@ -229,6 +238,7 @@ type eventsGridData struct {
 	Month        time.Time
 	PrevMonth    string
 	NextMonth    string
+	ShowToday    bool
 	CampaignName string
 	CampaignSlug string
 	Version      string
@@ -525,12 +535,17 @@ func CampaignEventsPage(c *gin.Context) {
 		now := time.Now()
 		year := now.Year()
 		month := now.Month()
+		if mt, ok := parseMonthParam(c.Query("month")); ok {
+			year = mt.Year()
+			month = mt.Month()
+		}
 		monthTime := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
 		filtered := filterEventsByMonth(events, year, monthTime)
 		weeks := buildGrid(filtered, year, monthTime)
 		prevMonth := monthTime.AddDate(0, -1, 0)
 		nextMonth := monthTime.AddDate(0, 1, 0)
 		empty := len(filtered) == 0 && errMsg == ""
+		showToday := monthTime.Year() != now.Year() || monthTime.Month() != now.Month()
 
 		renderTemplate(c, "events_page.html", eventsPageData{
 			Events:       filtered,
@@ -544,6 +559,8 @@ func CampaignEventsPage(c *gin.Context) {
 			Month:        monthTime,
 			PrevMonth:    prevMonth.Format("2006-01"),
 			NextMonth:    nextMonth.Format("2006-01"),
+			ShowToday:    showToday,
+			MonthQuery:   monthTime.Format("2006-01"),
 		})
 		return
 	}
@@ -865,6 +882,7 @@ func EventsGridPartial(c *gin.Context) {
 	empty := len(filtered) == 0 && errMsg == ""
 	prevMonth := monthTime.AddDate(0, -1, 0)
 	nextMonth := monthTime.AddDate(0, 1, 0)
+	showToday := monthTime.Year() != now.Year() || monthTime.Month() != now.Month()
 
 	renderTemplate(c, "events_grid.html", eventsGridData{
 		Weeks:     weeks,
@@ -873,6 +891,7 @@ func EventsGridPartial(c *gin.Context) {
 		Month:     monthTime,
 		PrevMonth: prevMonth.Format("2006-01"),
 		NextMonth: nextMonth.Format("2006-01"),
+		ShowToday: showToday,
 		Version:   AppVersion,
 	})
 }
@@ -905,6 +924,7 @@ func EventsGridCampaignPartial(c *gin.Context) {
 	empty := len(filtered) == 0 && errMsg == ""
 	prevMonth := monthTime.AddDate(0, -1, 0)
 	nextMonth := monthTime.AddDate(0, 1, 0)
+	showToday := monthTime.Year() != now.Year() || monthTime.Month() != now.Month()
 
 	renderTemplate(c, "events_grid.html", eventsGridData{
 		Weeks:        weeks,
@@ -913,6 +933,7 @@ func EventsGridCampaignPartial(c *gin.Context) {
 		Month:        monthTime,
 		PrevMonth:    prevMonth.Format("2006-01"),
 		NextMonth:    nextMonth.Format("2006-01"),
+		ShowToday:    showToday,
 		CampaignName: cs.DisplayName,
 		CampaignSlug: slug,
 		Version:      AppVersion,
