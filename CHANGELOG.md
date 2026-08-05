@@ -1,3 +1,10 @@
+# [2.39.0](https://github.com/martynvdijke/dnd/compare/v2.38.0...v2.39.0) (2026-08-05)
+
+
+### Features
+
+* entity upload listing endpoint and NPC portrait CRUD test ([d1a228d](https://github.com/martynvdijke/dnd/commit/d1a228d93a1fcc20e39c25b05a609b440d70c149))
+
 # [2.38.0](https://github.com/martynvdijke/dnd/compare/v2.37.0...v2.38.0) (2026-08-05)
 
 
