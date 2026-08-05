@@ -1,3 +1,10 @@
+# [2.31.0](https://github.com/martynvdijke/dnd/compare/v2.30.1...v2.31.0) (2026-08-05)
+
+
+### Features
+
+* inject version via ldflags instead of release-time sed ([3660225](https://github.com/martynvdijke/dnd/commit/36602251d3fd5cb8776166d8b1f88b27b1ca265c))
+
 ## [2.30.1](https://github.com/martynvdijke/dnd/compare/v2.30.0...v2.30.1) (2026-08-05)
 
 # [2.30.0](https://github.com/martynvdijke/dnd/compare/v2.29.10...v2.30.0) (2026-08-05)
