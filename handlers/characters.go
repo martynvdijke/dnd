@@ -187,8 +187,11 @@ func GetCharacter(c *gin.Context) {
 
 	ch := entCharacterToModel(entChar)
 
-	// Authorization — campaign members may view (read-only); edit rights depend on character_type
-	if !canViewCharacter(c, id) {
+	// Authorization — admin, owner, or campaign DM may view; edit rights depend on character_type
+	role, _ := c.Get("role")
+	uidVal, _ := c.Get("user_id")
+	uid, _ := uidVal.(int64)
+	if role != "admin" && entChar.UserID != uid && !isDMOfCharacter(c, id) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}

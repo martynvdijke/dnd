@@ -77,6 +77,12 @@ func UpdateCharacterResource(c *gin.Context) {
 
 func DeleteCharacterResource(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	// Idempotent no-op when the resource does not exist
+	var exists int
+	if err := db.DB.QueryRow("SELECT COUNT(*) FROM character_resources WHERE id=?", id).Scan(&exists); err == nil && exists == 0 {
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+		return
+	}
 	if !canEditResourceID(c, "character_resources", id) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return

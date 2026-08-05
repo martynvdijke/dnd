@@ -732,8 +732,9 @@ func TestEventsGridViewParam(t *testing.T) {
 
 	t.Run("view=grid shows grid elements", func(t *testing.T) {
 		db.ClearCache("")
+		now := time.Now()
 		events := []googlecalendar.Event{
-			{ID: "v1", Title: "View Grid Event", StartTime: time.Date(2026, 7, 10, 19, 0, 0, 0, time.UTC)},
+			{ID: "v1", Title: "View Grid Event", StartTime: time.Date(now.Year(), now.Month(), 10, 19, 0, 0, 0, time.UTC)},
 		}
 		db.SetCachedEvents(events, "")
 		db.SaveEventSettings(db.EventSettings{CalendarID: "test@example.com"})

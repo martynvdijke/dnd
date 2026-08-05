@@ -54,7 +54,7 @@ func TestCompendiumPickerTemplatesAreModalBodyContent(t *testing.T) {
 			mustContain: []string{
 				`id="compendiumSpellSearch"`,
 				`id="compendiumSpellResults"`,
-				`hx-post="/api/characters/1/spells/link"`,
+				`hx-post="/htmx/compendium/spells/link?character_id=1"`,
 				`Acid Splash`,
 				// The + link button must hide the *generic* modal that's
 				// actually shown, not a phantom nested modal.
@@ -82,7 +82,7 @@ func TestCompendiumPickerTemplatesAreModalBodyContent(t *testing.T) {
 			mustContain: []string{
 				`id="compendiumEquipmentSearch"`,
 				`id="compendiumEquipmentResults"`,
-				`hx-post="/api/characters/1/inventory/link"`,
+				`hx-post="/htmx/compendium/equipment/link?character_id=1"`,
 				`Backpack`,
 				`getElementById('genericModal')`,
 			},
