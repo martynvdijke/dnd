@@ -1,3 +1,10 @@
+# [2.33.0](https://github.com/martynvdijke/dnd/compare/v2.32.0...v2.33.0) (2026-08-05)
+
+
+### Features
+
+* compendium manager — sorting, auto schema detection, dry-run, transactional import, export by IDs ([53cfa98](https://github.com/martynvdijke/dnd/commit/53cfa9834d3d8d94adfd4fe1b03ade22e3d886f5))
+
 # [2.32.0](https://github.com/martynvdijke/dnd/compare/v2.31.0...v2.32.0) (2026-08-05)
 
 
