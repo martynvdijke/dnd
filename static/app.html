@@ -45,8 +45,8 @@
       </ul>
       <div class="d-flex me-2" role="search">
         <div class="input-group input-group-sm">
-          <input class="form-control" type="search" id="searchInput" placeholder="Search everything..." aria-label="Search" style="min-width:180px">
-          <button class="btn btn-outline-gold" id="searchBtn"><i class="fa-solid fa-search" aria-hidden="true"></i></button>
+          <input class="form-control" type="search" id="searchInput" data-testid="search-input" placeholder="Search everything..." aria-label="Search" style="min-width:180px">
+          <button class="btn btn-outline-gold" id="searchBtn" data-testid="search-submit"><i class="fa-solid fa-search" aria-hidden="true"></i></button>
         </div>
       </div>
       <span class="navbar-text me-3" id="userName"></span>
@@ -68,17 +68,17 @@
   </div>
   <div class="sidebar-section">
     <ul class="sidebar-nav">
-      <li><button class="sidebar-nav-item active" data-nav="characters" onclick="showView('characters');loadCharacters()"><i class="fa-solid fa-users" aria-hidden="true"></i><span class="sidebar-label">Characters</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="party" onclick="showParty()"><i class="fa-solid fa-flag" aria-hidden="true"></i><span class="sidebar-label">Party View</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="compendium" onclick="showCompendium()"><i class="fa-solid fa-book" aria-hidden="true"></i><span class="sidebar-label">Compendium</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="dice" onclick="showView('dice');renderDiceTab()"><i class="fa-solid fa-dice" aria-hidden="true"></i><span class="sidebar-label">Dice</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="encounters" onclick="showEncounterBuilder()"><i class="fa-solid fa-crosshairs" aria-hidden="true"></i><span class="sidebar-label">Encounters</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="oneshots" id="sidebarOneshotNav" style="display:none" onclick="showOneShots()"><i class="fa-solid fa-scroll" aria-hidden="true"></i><span class="sidebar-label">One-Shots</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="combat" id="sidebarCombatNav" style="display:none" onclick="showCombatTracker()"><i class="fa-solid fa-swords" aria-hidden="true"></i><span class="sidebar-label">Combat</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="timeline" onclick="showTimeline()"><i class="fa-solid fa-timeline" aria-hidden="true"></i><span class="sidebar-label">Timeline</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="factions" id="sidebarFactionsNav" style="display:none" onclick="showFactions()"><i class="fa-solid fa-flag" aria-hidden="true"></i><span class="sidebar-label">Factions</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="shops" id="sidebarShopsNav" style="display:none" onclick="showShops()"><i class="fa-solid fa-store" aria-hidden="true"></i><span class="sidebar-label">Shops</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="admin" id="sidebarAdminNav" style="display:none" onclick="window.location.href='/admin'"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i><span class="sidebar-label">Admin</span></button></li>
+      <li><button class="sidebar-nav-item active" data-nav="characters" data-testid="nav-characters" onclick="showView('characters');loadCharacters()"><i class="fa-solid fa-users" aria-hidden="true"></i><span class="sidebar-label">Characters</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="party" data-testid="nav-party" onclick="showParty()"><i class="fa-solid fa-flag" aria-hidden="true"></i><span class="sidebar-label">Party View</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="compendium" data-testid="nav-compendium" onclick="showCompendium()"><i class="fa-solid fa-book" aria-hidden="true"></i><span class="sidebar-label">Compendium</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="dice" data-testid="nav-dice" onclick="showView('dice');renderDiceTab()"><i class="fa-solid fa-dice" aria-hidden="true"></i><span class="sidebar-label">Dice</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="encounters" data-testid="nav-encounters" onclick="showEncounterBuilder()"><i class="fa-solid fa-crosshairs" aria-hidden="true"></i><span class="sidebar-label">Encounters</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="oneshots" data-testid="nav-oneshots" id="sidebarOneshotNav" style="display:none" onclick="showOneShots()"><i class="fa-solid fa-scroll" aria-hidden="true"></i><span class="sidebar-label">One-Shots</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="combat" data-testid="nav-combat" id="sidebarCombatNav" style="display:none" onclick="showCombatTracker()"><i class="fa-solid fa-swords" aria-hidden="true"></i><span class="sidebar-label">Combat</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="timeline" data-testid="nav-timeline" onclick="showTimeline()"><i class="fa-solid fa-timeline" aria-hidden="true"></i><span class="sidebar-label">Timeline</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="factions" data-testid="nav-factions" id="sidebarFactionsNav" style="display:none" onclick="showFactions()"><i class="fa-solid fa-flag" aria-hidden="true"></i><span class="sidebar-label">Factions</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="shops" data-testid="nav-shops" id="sidebarShopsNav" style="display:none" onclick="showShops()"><i class="fa-solid fa-store" aria-hidden="true"></i><span class="sidebar-label">Shops</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="admin" data-testid="nav-admin" id="sidebarAdminNav" style="display:none" onclick="window.location.href='/admin'"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i><span class="sidebar-label">Admin</span></button></li>
     </ul>
   </div>
   <div class="sidebar-section" style="margin-top:auto;border-top:1px solid var(--border-light);padding-top:0.5rem">
@@ -94,7 +94,7 @@
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
     <h1 class="h2 mb-0">Character Folio</h1>
     <div class="d-flex gap-2">
-      <button class="btn btn-gold btn-sm" onclick="newChar()"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i>New Character</button>
+      <button class="btn btn-gold btn-sm" onclick="newChar()" data-testid="new-character"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i>New Character</button>
       <button class="btn btn-outline-primary btn-sm" onclick="showImport()"><i class="fa-solid fa-file-import me-1" aria-hidden="true"></i>Import</button>
     </div>
   </div>
@@ -104,7 +104,7 @@
   <div id="charGrid" class="row g-3"></div>
 </div>
 
-<div id="sheetView" style="display:none">
+<div id="sheetView" style="display:none" data-testid="sheet-view">
   <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-2">
     <div>
       <h1 class="h2 mb-0" id="sheetName"></h1>
@@ -160,7 +160,7 @@
   <div id="partyContent"></div>
 </div>
 
-<div id="compendiumView" style="display:none">
+<div id="compendiumView" style="display:none" data-testid="compendium-view">
   <h1 class="h2 mb-3"><i class="fa-solid fa-book me-2" aria-hidden="true"></i>Compendium</h1>
   <div class="mb-3">
     <input type="search" class="form-control" id="compendiumGlobalSearch" placeholder="Search compendium..."
@@ -234,23 +234,23 @@
 </div>
 
   <div class="bottom-tab-bar" id="bottomTabBar">
-    <button class="bottom-tab-item active" data-nav="characters" onclick="showView('characters');loadCharacters()">
+    <button class="bottom-tab-item active" data-nav="characters" data-testid="nav-characters" onclick="showView('characters');loadCharacters()">
       <i class="fa-solid fa-users" aria-hidden="true"></i>
       <span>Characters</span>
     </button>
-    <button class="bottom-tab-item" data-nav="party" onclick="showParty()">
+    <button class="bottom-tab-item" data-nav="party" data-testid="nav-party" onclick="showParty()">
       <i class="fa-solid fa-flag" aria-hidden="true"></i>
       <span>Party</span>
     </button>
-    <button class="bottom-tab-item" data-nav="dice" onclick="showView('dice');renderDiceTab()">
+    <button class="bottom-tab-item" data-nav="dice" data-testid="nav-dice" onclick="showView('dice');renderDiceTab()">
       <i class="fa-solid fa-dice" aria-hidden="true"></i>
       <span>Dice</span>
     </button>
-    <button class="bottom-tab-item" data-nav="compendium" onclick="showCompendium()">
+    <button class="bottom-tab-item" data-nav="compendium" data-testid="nav-compendium" onclick="showCompendium()">
       <i class="fa-solid fa-book" aria-hidden="true"></i>
       <span>Compendium</span>
     </button>
-    <button class="bottom-tab-item" data-nav="more" id="moreTabBtn" onclick="showMoreNav()">
+    <button class="bottom-tab-item" data-nav="more" data-testid="nav-more" id="moreTabBtn" onclick="showMoreNav()">
       <i class="fa-solid fa-ellipsis" aria-hidden="true"></i>
       <span>More</span>
     </button>
@@ -291,7 +291,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="aiGenModalTitle">Generate with AI</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" data-testid="modal-close"></button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="aiGenTargetId" value="">
@@ -335,7 +335,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="genericModalTitle">Modal</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" data-testid="modal-close"></button>
       </div>
       <div class="modal-body" id="genericModalBody"></div>
     </div>
@@ -366,7 +366,7 @@
         <h5 class="modal-title" id="pdfViewerTitle">PDF Viewer</h5>
         <div class="d-flex gap-1">
           <button class="btn btn-sm btn-outline-secondary" onclick="pdfViewerDownload()" title="Download PDF"><i class="fa-solid fa-download"></i></button>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-testid="modal-close"></button>
         </div>
       </div>
       <div class="modal-body d-flex flex-column align-items-center justify-content-center bg-dark" id="pdfViewerBody">

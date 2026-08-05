@@ -15,7 +15,7 @@ export async function loadCharacters() {
     const grid = document.getElementById('charGrid')!;
     grid.innerHTML = chars.map((c: any) => `
       <div class="col-md-6 col-lg-4">
-        <div class="character-card" onclick="openChar(${c.id})">
+        <div class="character-card" data-testid="character-card" onclick="openChar(${c.id})">
           <div class="d-flex align-items-center gap-2 mb-1">
             ${c.portrait_url ? `<img src="${esc(c.portrait_url)}" class="character-portrait" style="width:32px;height:32px;object-fit:cover;border-radius:50%" alt="">` : ''}
             <div class="char-name">${esc(c.name)}</div>
