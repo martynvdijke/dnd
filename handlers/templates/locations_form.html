@@ -15,6 +15,7 @@
       <option value="other">Other</option>
     </select>
   </div>
-  <div class="col-6"><label class="form-label">Description</label><textarea class="form-control" id="newLocDesc" name="description" rows="2"></textarea></div>
+  <div class="col-6"><label class="form-label">Description</label><textarea class="form-control" id="newLocDesc" name="description" rows="2"></textarea>
+  <button class="btn btn-sm btn-outline-primary mt-2 ai-generate-btn" type="button" data-ai-mode="text" data-ai-target="newLocDesc" data-ai-hint="Describe this location vividly for a D&D campaign" data-ai-title="Generate Location Description"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate with AI</button></div>
 </div>
 <button class="btn btn-primary w-100" hx-post="/htmx/locations" hx-target="#locationsSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create</button></form>

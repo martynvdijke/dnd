@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
+	"villum/models"
 	"villum/handlers/testutil"
 )
 
@@ -369,4 +370,105 @@ func TestAIErrorMessagesFormat(t *testing.T) {
 	if !strings.Contains(httpMsg, "429") {
 		t.Errorf("expected HTTP error message to include status code, got: %s", httpMsg)
 	}
+}
+
+func setupDMAIRouter(t *testing.T) *gin.Engine {
+	t.Helper()
+	testutil.NewDB(t)
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	dm := r.Group("/api/ai")
+	dm.Use(mockAuth("user"), mockCSRF())
+	{
+		dm.GET("/endpoints", HandleListEnabledAIEndpoints)
+	}
+	return r
+}
+
+// TestListEnabledAIEndpoints covers the DM-facing enabled-endpoints list
+// (task 5.1): type filtering, disabled exclusion, and secret redaction.
+func TestListEnabledAIEndpoints(t *testing.T) {
+	r := setupDMAIRouter(t)
+	defer cleanupAIEndpoints()
+	defer testutil.CloseDB(t)
+
+	ctx := context.Background()
+	seed := func(name, typ, model string, enabled bool) int64 {
+		t.Helper()
+		ep, err := db.CreateAIEndpoint(ctx, &models.AIEndpoint{
+			Name:             name,
+			Type:             typ,
+			BaseURL:          "https://api.example.com/v1",
+			EncryptedAPIKey:  "sk-enc-secret",
+			Model:            model,
+			Enabled:          enabled,
+		})
+		if err != nil {
+			t.Fatalf("seed endpoint failed: %v", err)
+		}
+		return ep.ID
+	}
+	textID := seed("dm-text", "text", "gpt-4o", true)
+	seed("dm-text-disabled", "text", "gpt-4o", false)
+	imageID := seed("dm-image", "image", "dall-e-3", true)
+
+	t.Run("missing type returns 400", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/api/ai/endpoints", nil)
+		r.ServeHTTP(w, req)
+		if w.Code != 400 {
+			t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("invalid type returns 400", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/api/ai/endpoints?type=invalid", nil)
+		r.ServeHTTP(w, req)
+		if w.Code != 400 {
+			t.Fatalf("expected 400, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("filters by type, excludes disabled, redacts secrets", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/api/ai/endpoints?type=text", nil)
+		r.ServeHTTP(w, req)
+		if w.Code != 200 {
+			t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+		}
+		body := w.Body.String()
+		if strings.Contains(body, "api.example.com") || strings.Contains(body, "sk-enc-secret") {
+			t.Fatalf("response leaked base URL or API key: %s", body)
+		}
+		var eps []map[string]any
+		if err := json.Unmarshal(w.Body.Bytes(), &eps); err != nil {
+			t.Fatalf("unmarshal failed: %v", err)
+		}
+		if len(eps) != 1 {
+			t.Fatalf("expected exactly 1 enabled text endpoint, got %d: %s", len(eps), body)
+		}
+		if int64(eps[0]["id"].(float64)) != textID {
+			t.Fatalf("expected id %d, got %v", textID, eps[0]["id"])
+		}
+		for _, key := range []string{"id", "name", "model", "type"} {
+			if _, ok := eps[0][key]; !ok {
+				t.Fatalf("expected field %q in response, got %v", key, eps[0])
+			}
+		}
+	})
+
+	t.Run("image type returns only image endpoints", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest("GET", "/api/ai/endpoints?type=image", nil)
+		r.ServeHTTP(w, req)
+		if w.Code != 200 {
+			t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+		}
+		var eps []map[string]any
+		json.Unmarshal(w.Body.Bytes(), &eps)
+		if len(eps) != 1 || int64(eps[0]["id"].(float64)) != imageID {
+			t.Fatalf("expected 1 image endpoint with id %d, got %v", imageID, eps)
+		}
+	})
 }

@@ -3703,3 +3703,6 @@ body.sidebar-collapsed .container {
   color: var(--gold, #b8963e);
   text-decoration: underline;
 }
+
+/* AI generation modal sits above stacked modals (NPC create/edit, etc.) */
+#aiGenModal { z-index: 1065; }

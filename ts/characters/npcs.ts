@@ -98,7 +98,8 @@ expose('showCreateNPC', function () {
       <div class="col-6"><label class="form-label">Race</label><input class="form-control" id="newNPCRace"></div>
       <div class="col-6"><label class="form-label">Class</label><input class="form-control" id="newNPCClass"></div>
     </div>
-    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="newNPCDesc" rows="3"></textarea></div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="newNPCDesc" rows="3"></textarea>
+    <button class="btn btn-sm btn-outline-primary mt-2 ai-generate-btn" type="button" data-ai-mode="text" data-ai-target="newNPCDesc" data-ai-hint="Write a compelling backstory for this NPC" data-ai-title="Generate NPC Backstory"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate with AI</button></div>
     <button class="btn btn-primary w-100" onclick="saveNewNPC()"><i class="fa-solid fa-plus me-1"></i>Create</button>
   `);
 });

@@ -148,7 +148,76 @@ test.describe('AI Features', () => {
           return { ok: false, error: String(e) };
         }
       });
+      // Accept any response - AI may or may not be configured
       expect(result).toBeTruthy();
+    });
+  });
+
+  // ─── AI Generation UI ───
+
+  test.describe('AI Generation UI', () => {
+    test('AI modal generates text, inserts result, and Generate Again re-sends the prompt', async ({ page }) => {
+      const name = 'UI ' + uniqueName();
+      const created: any = await page.evaluate(async (n) => {
+        return (window as any).api('POST', '/api/admin/ai-endpoints', {
+          name: n, type: 'text', base_url: 'https://api.openai.com/v1',
+          model: 'gpt-4o-mini', api_key: 'sk-ui', enabled: true,
+        });
+      }, name);
+      expect(created.id).toBeTruthy();
+
+      // Mock the generation endpoint so the flow is deterministic
+      const calls: any[] = [];
+      await page.route('**/api/ai/generate/text', async (route) => {
+        calls.push(route.request().postDataJSON());
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ text: 'Mocked result #' + calls.length }),
+        });
+      });
+
+      // FAB menu exposes the "Generate with AI" entry point (task 4.6)
+      await expect(page.locator('#fabMenu')).toContainText('Generate with AI');
+
+      // Provide a target textarea via the NPC create modal
+      await page.evaluate(() => (window as any).showCreateNPC());
+      await page.waitForSelector('#newNPCDesc');
+
+      // Open the AI modal targeting the NPC description field
+      await page.evaluate(() => (window as any).openAIGenModal('text', 'newNPCDesc', 'Test hint', 'Generate Test'));
+      await page.waitForSelector('#aiGenModal.show');
+
+      await page.selectOption('#aiGenEndpoint', String(created.id));
+      await page.fill('#aiGenPrompt', 'Write an NPC description');
+      await page.click('#aiGenGenerateBtn');
+
+      await expect(page.locator('#aiGenResultText')).toHaveText('Mocked result #1', { timeout: 15000 });
+
+      // Insert the result into the target field
+      await page.click('#aiGenInsertBtn');
+      await expect(page.locator('#newNPCDesc')).toHaveValue(/Mocked result #1/);
+
+      // Reopen and generate again — same prompt, new result
+      await page.evaluate(() => (window as any).openAIGenModal('text', 'newNPCDesc'));
+      await page.waitForSelector('#aiGenModal.show');
+      await page.selectOption('#aiGenEndpoint', String(created.id));
+      await page.fill('#aiGenPrompt', 'Write an NPC description');
+      await page.click('#aiGenGenerateBtn');
+      await expect(page.locator('#aiGenResultText')).toHaveText('Mocked result #2', { timeout: 15000 });
+
+      // Generate Again re-runs the same prompt (task 5.3)
+      await page.getByRole('button', { name: /Generate Again/ }).click();
+      await expect(page.locator('#aiGenResultText')).toHaveText('Mocked result #3', { timeout: 15000 });
+
+      expect(calls.length).toBe(3);
+      for (const call of calls) {
+        expect(call.prompt).toBe('Write an NPC description');
+      }
+
+      await page.evaluate(async (id) => {
+        return (window as any).api('DELETE', '/api/admin/ai-endpoints/' + id);
+      }, created.id);
     });
   });
 });

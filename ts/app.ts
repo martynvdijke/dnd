@@ -2799,7 +2799,8 @@ expose('showOneShotItemForm', function (adventureId: number) {
         <span><input type="checkbox" id="itemAttune"> Attunement</span>
       </label></div>
     </div>
-    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="itemDesc" rows="2"></textarea></div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="itemDesc" rows="2"></textarea>
+    <button class="btn btn-sm btn-outline-primary mt-2 ai-generate-btn" type="button" data-ai-mode="text" data-ai-target="itemDesc" data-ai-hint="Write a flavorful item description for a D&D item with this name and category" data-ai-title="Generate Item Description"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate with AI</button></div>
     <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="itemNotes" rows="2"></textarea></div>
     <button class="btn btn-primary w-100" onclick="saveOneShotItem(${adventureId})">Create</button>
   `);
@@ -2862,7 +2863,8 @@ expose('editOneShotItem', async function (itemId: number) {
         <span><input type="checkbox" id="editItemAttune"> Attunement</span>
       </label></div>
     </div>
-    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="editItemDesc" rows="2"></textarea></div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="editItemDesc" rows="2"></textarea>
+    <button class="btn btn-sm btn-outline-primary mt-2 ai-generate-btn" type="button" data-ai-mode="text" data-ai-target="editItemDesc" data-ai-hint="Write a flavorful item description for a D&D item with this name and category" data-ai-title="Generate Item Description"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate with AI</button></div>
     <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="editItemNotes" rows="2"></textarea></div>
     <button class="btn btn-primary w-100" onclick="updateOneShotItem(${itemId})">Save</button>
   `);

@@ -48,6 +48,13 @@ const sessionModeActions: FABAction[] = [
   { id: 'end-turn', label: 'End Turn', icon: 'fa-forward', onclick: 'nextTurn()' },
 ];
 
+const aiAction: FABAction = {
+  id: 'ai-gen',
+  label: 'Generate with AI',
+  icon: 'fa-wand-magic-sparkles',
+  onclick: "openAIGenModal('text', '')",
+};
+
 export function getActionsForView(view: ViewState, isSessionMode: boolean = false): FABAction[] {
   if (isSessionMode) return sessionModeActions;
   return actionMap[view] || actionMap.characters;
@@ -64,7 +71,7 @@ export function updateFabForView(view: ViewState, isSessionMode: boolean = false
   const menu = document.getElementById('fabMenu');
   if (!menu) return;
   const actions = getActionsForView(view, isSessionMode);
-  menu.innerHTML = actions.map(a =>
+  menu.innerHTML = [...actions, aiAction].map(a =>
     `<button class="fab-menu-item" onclick="${a.onclick};toggleFabMenu()">
       <i class="fa-solid ${a.icon} me-2" aria-hidden="true"></i>${a.label}
     </button>`
