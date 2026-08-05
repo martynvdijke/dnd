@@ -1,8 +1,8 @@
 // @ts-nocheck — extracted from app.ts monolith (address-tech-debt-and-ux)
 import { expose } from '../lib/expose';
 import { currentChar, setCurrentChar } from '../lib/state';
-import { esc, capitalize, toast } from '../lib/dom';
-import { api } from '../lib/api';
+import { esc, capitalize, toast, openCompendiumPicker } from '../lib/dom';
+import { api, getCsrfToken } from '../lib/api';
 
 export async function updateCurrency() {
   if (!currentChar) return;
@@ -56,6 +56,7 @@ export function renderInventory() {
       <h5>Inventory <span class="text-muted small">(Total: ${total} / ${heavyMax} lbs)</span></h5>
       <div class="d-flex gap-2 align-items-center">
         <span class="attune-counter ${attuneState}" title="Attuned items">🔗 ${attuneCount}/3</span>
+        <button class="btn btn-outline-primary btn-sm" onclick="openInventoryPicker()"><i class="fa-solid fa-book me-1"></i>Link from Compendium</button>
         <button class="btn btn-primary btn-sm" onclick="addInventory()"><i class="fa-solid fa-plus me-1"></i>Add Item</button>
       </div>
     </div>
@@ -100,11 +101,13 @@ export function renderInventory() {
               ${i.damage_dice && (i.is_identified !== false) ? `<span class="badge badge-blood ms-1">${esc(i.damage_dice)} ${esc(i.damage_type)}</span>` : ''}
               ${i.ac_bonus > 0 && (i.is_identified !== false) ? `<span class="badge badge-gold ms-1">AC+${i.ac_bonus}</span>` : ''}
               ${i.is_identified === false && i.damage_dice ? `<span class="badge badge-muted ms-1">???</span>` : ''}
+              ${i.compendium_equipment_id ? '<span class="badge badge-compendium ms-1" title="Linked from compendium"><i class="fa-solid fa-book me-1"></i></span>' : ''}
             </div>
             <div class="d-flex gap-1">
               ${i.is_identified === false ? `<button class="btn-identify" onclick="toggleIdentify(${i.id})" title="Identify item">🔍 ID</button>` : ''}
               ${i.magic && i.is_identified !== false ? `<button class="btn-identify" onclick="toggleIdentify(${i.id})" title="Mark unidentified">🔮</button>` : ''}
               <button class="btn btn-sm btn-outline-primary" onclick="editInventory(${i.id},'${esc(i.name)}',${i.quantity},'${esc(i.category)}',${i.weight},${i.equipped})" title="Edit"><i class="fa-solid fa-pen"></i></button>
+              ${i.compendium_equipment_id ? `<button class="btn btn-sm btn-outline-secondary" onclick="unlinkCompendiumItem(${i.id})" title="Unlink from compendium"><i class="fa-solid fa-link-slash"></i></button>` : ''}
               <button class="btn btn-sm btn-outline-secondary" onclick="toggleEquip(${i.id})" title="${i.equipped ? 'Unequip' : 'Equip'}"><i class="fa-solid fa-shield-halved"></i></button>
               <button class="btn btn-sm btn-outline-danger" onclick="deleteInventory(${i.id})" title="Remove"><i class="fa-solid fa-trash"></i></button>
             </div>
@@ -115,3 +118,37 @@ export function renderInventory() {
 
 expose('updateCurrency', updateCurrency);
 expose('renderInventory', renderInventory);
+
+expose('openInventoryPicker', function () {
+  openCompendiumPicker({
+    title: 'Link from Compendium',
+    placeholder: 'Search equipment...',
+    search: (q) => api('GET', `/api/compendium/equipment?q=${encodeURIComponent(q)}`),
+    render: (e: any) => `<div><span class="fw-bold">${esc(e.name)}</span>
+      ${e.category ? `<span class="text-muted small ms-1">${esc(e.category)}</span>` : ''}
+      ${e.item_rarity ? `<span class="text-muted small"> · ${esc(e.item_rarity)}</span>` : ''}
+      ${e.weight ? `<span class="text-muted small"> · ${e.weight} lbs</span>` : ''}</div>`,
+    onPick: (e: any) => { linkCompendiumItem(e).catch((err: Error) => toast(err.message, true)); },
+  });
+});
+
+async function linkCompendiumItem(item: any) {
+  const fd = new FormData();
+  fd.append('compendium_equipment_id', String(item.id));
+  fd.append('quantity', '1');
+  const headers: Record<string, string> = {};
+  const csrf = getCsrfToken();
+  if (csrf) headers['X-CSRF-Token'] = csrf;
+  const res = await fetch(`/api/characters/${currentChar.id}/inventory/link`, { method: 'POST', body: fd, headers, credentials: 'include' });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Link failed');
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
+  renderInventory();
+  toast(`Linked ${item.name} to inventory`);
+}
+
+expose('unlinkCompendiumItem', async function (itemId: number) {
+  await api('DELETE', `/api/characters/${currentChar.id}/inventory/${itemId}/link`);
+  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
+  renderInventory();
+  toast('Unlinked from compendium (item kept)');
+});

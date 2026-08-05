@@ -20,7 +20,7 @@
       <div class="d-flex align-items-center gap-1">
         <input type="number" class="form-control form-control-sm" style="width:60px" id="qty-{{.ID}}" value="1" min="1">
         <button class="btn btn-sm btn-success"
-          hx-post="/api/characters/{{$.CharacterID}}/inventory/link"
+          hx-post="/htmx/compendium/equipment/link?character_id={{$.CharacterID}}"
           hx-vals='{"compendium_equipment_id":"{{.ID}}","quantity":document.getElementById("qty-{{.ID}}").value}'
           hx-target="#inventorySection"
           hx-swap="innerHTML"

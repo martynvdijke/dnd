@@ -18,7 +18,7 @@
         <p class="mb-0 small text-muted">{{truncate .Description 120}}</p>
       </div>
       <button class="btn btn-sm btn-success ms-2"
-        hx-post="/api/characters/{{$.CharacterID}}/spells/link"
+        hx-post="/htmx/compendium/spells/link?character_id={{$.CharacterID}}"
         hx-vals='{"compendium_spell_id":"{{.ID}}"}'
         hx-target="#spellsSection"
         hx-swap="innerHTML"

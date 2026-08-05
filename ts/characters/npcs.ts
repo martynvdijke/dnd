@@ -1,7 +1,7 @@
 // Extracted from app.ts — NPCs section (address-tech-debt-and-ux)
 import { expose } from '../lib/expose';
 import { currentChar, allNPCs, setAllNPCs } from '../lib/state';
-import { esc, showModal, hideModal, toast } from '../lib/dom';
+import { esc, showModal, hideModal, toast, openCompendiumPicker } from '../lib/dom';
 import { api, getCsrfToken } from '../lib/api';
 import { FilePicker } from '../file-picker';
 
@@ -46,6 +46,9 @@ expose('renderNPCs', renderNPCs);
 
 expose('showLinkNPC', function () {
   showModal('Link NPC', `
+    <div class="mb-3"><label class="form-label">Search all NPCs</label>
+      <input type="search" class="form-control" id="npcSearchInput" placeholder="Search across all users..." autocomplete="off">
+      <div id="npcSearchResults" class="mt-1" style="max-height:30vh;overflow-y:auto"></div></div>
     <div class="mb-3"><label class="form-label">NPC</label>
       <select class="form-select" id="linkNPCId">${allNPCs.map((n:any) => `<option value="${n.id}">${esc(n.name)} (${esc(n.race)} ${esc(n.class)})</option>`).join('')}</select></div>
     <div class="mb-3"><label class="form-label">Relationship</label>
@@ -55,8 +58,64 @@ expose('showLinkNPC', function () {
         <option value="pet">Pet/Mount</option><option value="deity">Deity/Patron</option><option value="other">Other</option>
       </select></div>
     <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="linkNPCNotes" rows="2"></textarea></div>
-    <button class="btn btn-primary w-100" onclick="saveLinkNPC()"><i class="fa-solid fa-link me-1"></i>Link</button>
+    <button class="btn btn-primary w-100 mb-2" onclick="saveLinkNPC()"><i class="fa-solid fa-link me-1"></i>Link</button>
+    <div class="text-center"><small class="text-muted d-block mb-1">or create from the compendium</small>
+      <button class="btn btn-outline-primary btn-sm w-100" onclick="linkNPCFromMonster()"><i class="fa-solid fa-dragon me-1"></i>From Compendium Monster</button></div>
   `);
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const input = document.getElementById('npcSearchInput') as HTMLInputElement;
+  input.addEventListener('input', () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(async () => {
+      const q = input.value.trim();
+      const el = document.getElementById('npcSearchResults')!;
+      if (!q) { el.innerHTML = ''; return; }
+      let results: any[] = [];
+      try { results = await api('GET', `/api/npcs/search?q=${encodeURIComponent(q)}`); } catch { results = []; }
+      el.innerHTML = results.length ? results.map((n:any) => `
+        <div class="cp-item d-flex justify-content-between align-items-center p-2 border-bottom">
+          <div><span class="fw-bold">${esc(n.name)}</span>
+            ${n.race ? `<span class="text-muted small ms-1">${esc(n.race)}${n.class ? ' ' + esc(n.class) : ''}</span>` : ''}</div>
+          <button class="btn btn-sm btn-outline-primary" onclick="pickSearchedNPC(${n.id},'${esc(n.name)}')">Use</button>
+        </div>`).join('') : '<div class="text-muted small fst-italic p-2">No NPCs found.</div>';
+    }, 250);
+  });
+});
+
+expose('pickSearchedNPC', function (id: number, name: string) {
+  const sel = document.getElementById('linkNPCId') as HTMLSelectElement;
+  if (![...sel.options].some((o) => +o.value === id)) {
+    const opt = document.createElement('option');
+    opt.value = String(id);
+    opt.textContent = name + ' (searched)';
+    sel.appendChild(opt);
+  }
+  sel.value = String(id);
+  const input = document.getElementById('npcSearchInput') as HTMLInputElement;
+  if (input) input.value = name;
+  toast(`Selected ${name}`);
+});
+
+expose('linkNPCFromMonster', function () {
+  openCompendiumPicker({
+    title: 'Link NPC from Compendium Monster',
+    placeholder: 'Search monsters...',
+    search: (q) => api('GET', `/api/compendium/monsters?q=${encodeURIComponent(q)}`),
+    render: (m: any) => `<div><span class="fw-bold">${esc(m.name)}</span>
+      ${m.type ? `<span class="text-muted small ms-1">${esc(m.type)}${m.size ? ' · ' + esc(m.size) : ''} · CR ${m.cr || '?'}</span>` : ''}</div>`,
+    onPick: async (m: any) => {
+      const created = await api('POST', '/api/npcs', {
+        name: m.name,
+        race: m.type || '',
+        class: '',
+        description: m.description ? String(m.description).substring(0, 500) : '',
+      });
+      await api('POST', `/api/characters/${currentChar.id}/npcs`, { npc_id: created.id, relationship: 'ally', notes: 'Created from compendium monster' });
+      setAllNPCs(await api('GET', '/api/npcs'));
+      renderNPCs();
+      toast(`Created and linked NPC ${m.name}`);
+    },
+  });
 });
 
 expose('saveLinkNPC', async function () {

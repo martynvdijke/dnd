@@ -77,3 +77,48 @@ export function hideLoading(): void {
   const overlay = document.getElementById('loadingOverlay');
   if (overlay) overlay.classList.add('d-none');
 }
+
+export interface CompendiumPickerOptions {
+  title: string;
+  placeholder: string;
+  search: (q: string) => Promise<any[]>;
+  render: (item: any) => string;
+  onPick: (item: any) => void;
+}
+
+export function openCompendiumPicker(opts: CompendiumPickerOptions): void {
+  let results: any[] = [];
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const doSearch = async (q: string) => {
+    try {
+      results = await opts.search(q);
+    } catch {
+      results = [];
+    }
+    const list = document.getElementById('cpResults');
+    if (!list) return;
+    list.innerHTML = results.length
+      ? results.map((r, i) => `<div class="cp-item" data-i="${i}" role="button" tabindex="0">${opts.render(r)}</div>`).join('')
+      : '<div class="text-muted small fst-italic p-2">No results.</div>';
+  };
+  showModal(opts.title, `
+    <input type="search" class="form-control mb-2" id="cpSearch" placeholder="${opts.placeholder}" autocomplete="off">
+    <div id="cpResults" class="cp-list" style="max-height:50vh;overflow-y:auto"></div>
+  `);
+  const input = document.getElementById('cpSearch') as HTMLInputElement;
+  const list = document.getElementById('cpResults')!;
+  input.addEventListener('input', () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => doSearch(input.value.trim()), 250);
+  });
+  list.addEventListener('click', (e) => {
+    const row = (e.target as HTMLElement).closest('.cp-item') as HTMLElement | null;
+    if (!row) return;
+    const item = results[+row.dataset.i!];
+    if (item) {
+      hideModal();
+      opts.onPick(item);
+    }
+  });
+  doSearch('');
+}

@@ -19,7 +19,7 @@
     <div class="d-flex gap-1">
       {{if .CompendiumEquipmentID}}
       <button class="btn btn-sm btn-outline-info" hx-get="/compendium/card/equipment/{{.CompendiumEquipmentID}}" hx-target="#cardContainer" hx-swap="beforeend"><i class="fa-solid fa-eye"></i></button>
-      <button class="btn btn-sm btn-outline-danger" hx-delete="/api/characters/{{$.CharacterID}}/inventory/{{.ID}}/link" hx-target="#inventorySection" hx-swap="innerHTML" hx-confirm="Remove this linked item?"><i class="fa-solid fa-unlink"></i></button>
+      <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/inventory/{{.ID}}/compendium-unlink?character_id={{$.CharacterID}}" hx-target="#inventorySection" hx-swap="innerHTML" hx-confirm="Remove this linked item?"><i class="fa-solid fa-unlink"></i></button>
       {{else}}
       <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/inventory/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Edit Item';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-pen"></i></button>
       <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/inventory/{{.ID}}" hx-target="#inventorySection" hx-swap="innerHTML" hx-confirm="Remove this item?"><i class="fa-solid fa-trash"></i></button>

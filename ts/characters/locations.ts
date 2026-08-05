@@ -140,6 +140,9 @@ expose('flyToLocation', function (lat: number | null, lng: number | null, active
 
 expose('showLinkLocation', function () {
   showModal('Link Location', `
+    <div class="mb-3"><label class="form-label">Search all locations</label>
+      <input type="search" class="form-control" id="locSearchInput" placeholder="Search across all users..." autocomplete="off">
+      <div id="locSearchResults" class="mt-1" style="max-height:30vh;overflow-y:auto"></div></div>
     <div class="mb-3"><label class="form-label">Location</label>
       <select class="form-select" id="linkLocId">${allLocations.map((l:any) => `<option value="${l.id}">${esc(l.name)} (${esc(l.type)})</option>`).join('')}</select></div>
     <div class="mb-3"><label class="form-label">Relationship</label>
@@ -150,6 +153,39 @@ expose('showLinkLocation', function () {
     <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="linkLocNotes" rows="2"></textarea></div>
     <button class="btn btn-primary w-100" onclick="saveLinkLocation()"><i class="fa-solid fa-link me-1"></i>Link</button>
   `);
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const input = document.getElementById('locSearchInput') as HTMLInputElement;
+  input.addEventListener('input', () => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(async () => {
+      const q = input.value.trim();
+      const el = document.getElementById('locSearchResults')!;
+      if (!q) { el.innerHTML = ''; return; }
+      let results: any[] = [];
+      try { results = await api('GET', `/api/locations/search?q=${encodeURIComponent(q)}`); } catch { results = []; }
+      el.innerHTML = results.length ? results.map((l:any) => `
+        <div class="cp-item d-flex justify-content-between align-items-center p-2 border-bottom">
+          <div><span class="fw-bold">${esc(l.name)}</span>
+            ${l.type ? `<span class="text-muted small ms-1">${esc(l.type)}</span>` : ''}
+            ${l.description ? `<span class="text-muted small"> — ${esc(l.description).substring(0, 60)}</span>` : ''}</div>
+          <button class="btn btn-sm btn-outline-primary" onclick="pickSearchedLocation(${l.id},'${esc(l.name)}')">Use</button>
+        </div>`).join('') : '<div class="text-muted small fst-italic p-2">No locations found.</div>';
+    }, 250);
+  });
+});
+
+expose('pickSearchedLocation', function (id: number, name: string) {
+  const sel = document.getElementById('linkLocId') as HTMLSelectElement;
+  if (![...sel.options].some((o) => +o.value === id)) {
+    const opt = document.createElement('option');
+    opt.value = String(id);
+    opt.textContent = name + ' (searched)';
+    sel.appendChild(opt);
+  }
+  sel.value = String(id);
+  const input = document.getElementById('locSearchInput') as HTMLInputElement;
+  if (input) input.value = name;
+  toast(`Selected ${name}`);
 });
 
 expose('saveLinkLocation', async function () {

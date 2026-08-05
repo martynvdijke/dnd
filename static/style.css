@@ -3718,3 +3718,13 @@ body.sidebar-collapsed .container {
   color: inherit !important;
 }
 #sheetView.readonly button:not(.nav-link) { display: none !important; }
+
+/* ─── Compendium linking ─── */
+.badge-compendium {
+  background: #3b82f6;
+  color: #fff;
+  font-size: 0.7rem;
+}
+.cp-item { cursor: pointer; }
+.cp-item:hover { background: rgba(59, 130, 246, 0.08); }
+.cp-item .btn { cursor: pointer; }

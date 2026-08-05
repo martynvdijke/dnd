@@ -657,6 +657,12 @@ func HtmxListInventory(c *gin.Context) {
 		c.String(http.StatusBadRequest, "character_id required")
 		return
 	}
+
+	renderHtmxInventoryList(c, charID)
+}
+
+// renderHtmxInventoryList renders the htmx inventory list partial for a character.
+func renderHtmxInventoryList(c *gin.Context, charID string) {
 	rows, err := db.DB.Query("SELECT id, character_id, name, quantity, weight, category, description, is_equipped, is_magical, attunement, COALESCE(compendium_equipment_id,0) FROM inventory WHERE character_id=? ORDER BY category, name", charID)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
@@ -743,6 +749,12 @@ func HtmxListSpells(c *gin.Context) {
 		c.String(http.StatusBadRequest, "character_id required")
 		return
 	}
+
+	renderHtmxSpellsList(c, charID)
+}
+
+// renderHtmxSpellsList renders the htmx spells list partial for a character.
+func renderHtmxSpellsList(c *gin.Context, charID string) {
 	rows, err := db.DB.Query("SELECT id, character_id, name, level, school, casting_time, range, components, duration, description, prepared, always_prepared, source, notes, COALESCE(compendium_spell_id,0) FROM spells WHERE character_id=? ORDER BY level, name", charID)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
@@ -1756,6 +1768,10 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"GET", "/htmx/compendium/spells/picker", HtmxCompendiumSpellPicker},
 		{"GET", "/htmx/compendium/equipment/picker", HtmxCompendiumEquipmentPicker},
 		{"GET", "/htmx/compendium/equipment/picker-oneshot/:id", HtmxCompendiumEquipmentPickerForOneShot},
+		{"POST", "/htmx/compendium/spells/link", HtmxLinkCompendiumSpell},
+		{"DELETE", "/htmx/spells/:id/compendium-unlink", HtmxUnlinkCompendiumSpell},
+		{"POST", "/htmx/compendium/equipment/link", HtmxLinkCompendiumEquipment},
+		{"DELETE", "/htmx/inventory/:id/compendium-unlink", HtmxUnlinkCompendiumEquipment},
 
 		// Compendium Card (HTMX partial)
 		{"GET", "/htmx/compendium/card/:type/:id", HtmxCompendiumCard},

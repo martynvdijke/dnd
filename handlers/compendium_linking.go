@@ -11,6 +11,42 @@ import (
 
 // ─── Spell Linking (Character Sheet) ───
 
+// spellLinkInsert copies a compendium spell into the character's spellbook.
+// Returns (httpStatus, errorMessage); message == "" on success.
+func spellLinkInsert(charID, compendiumSpellID int64) (int, string) {
+	var name, school, castingTime, range_, components, duration, description, higherLevels, classes, sourcePage string
+	var level int
+	err := db.DB.QueryRow(`SELECT name, level, school, casting_time, "range", components, duration, description, COALESCE(higher_levels,''), COALESCE(classes,'[]'), COALESCE(source_page,'') FROM compendium_spells WHERE id=?`, compendiumSpellID).Scan(
+		&name, &level, &school, &castingTime, &range_, &components, &duration, &description, &higherLevels, &classes, &sourcePage)
+	if err != nil {
+		return http.StatusNotFound, "compendium spell not found"
+	}
+	_, err = db.DB.Exec(`INSERT INTO spells(character_id, name, level, school, casting_time, "range", components, duration, description, source, notes, compendium_spell_id)
+		VALUES(?,?,?,?,?,?,?,?,?,?,'',?)`,
+		charID, name, level, school, castingTime, range_, components, duration, description, sourcePage, compendiumSpellID)
+	if err != nil {
+		return http.StatusInternalServerError, err.Error()
+	}
+	return 0, ""
+}
+
+// unlinkSpellRef nulls the compendium reference on a spell, preserving its data.
+func unlinkSpellRef(spellID int64) (int, string) {
+	var compID int64
+	err := db.DB.QueryRow("SELECT COALESCE(compendium_spell_id,0) FROM spells WHERE id=?", spellID).Scan(&compID)
+	if err != nil {
+		return http.StatusNotFound, "spell not found"
+	}
+	if compID == 0 {
+		return http.StatusBadRequest, "spell is not linked from compendium"
+	}
+	_, err = db.DB.Exec("UPDATE spells SET compendium_spell_id = NULL WHERE id=?", spellID)
+	if err != nil {
+		return http.StatusInternalServerError, err.Error()
+	}
+	return 0, ""
+}
+
 // LinkCompendiumSpell creates a spell row for a character linked to a compendium spell.
 // POST /api/characters/:id/spells/link
 func LinkCompendiumSpell(c *gin.Context) {
@@ -23,32 +59,41 @@ func LinkCompendiumSpell(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-
 	compendiumSpellID, err := strconv.ParseInt(c.PostForm("compendium_spell_id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "compendium_spell_id required"})
 		return
 	}
-
-	// Fetch the compendium spell data to populate the inline spell
-	var name, school, castingTime, range_, components, duration, description, higherLevels, classes, sourcePage string
-	var level int
-	err = db.DB.QueryRow(`SELECT name, level, school, casting_time, "range", components, duration, description, COALESCE(higher_levels,''), COALESCE(classes,'[]'), COALESCE(source_page,'') FROM compendium_spells WHERE id=?`, compendiumSpellID).Scan(
-		&name, &level, &school, &castingTime, &range_, &components, &duration, &description, &higherLevels, &classes, &sourcePage)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "compendium spell not found"})
+	if st, msg := spellLinkInsert(charID, compendiumSpellID); msg != "" {
+		c.JSON(st, gin.H{"error": msg})
 		return
 	}
-
-	_, err = db.DB.Exec(`INSERT INTO spells(character_id, name, level, school, casting_time, "range", components, duration, description, source, notes, compendium_spell_id)
-		VALUES(?,?,?,?,?,?,?,?,?,?,'',?)`,
-		charID, name, level, school, castingTime, range_, components, duration, description, sourcePage, compendiumSpellID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
 	c.JSON(http.StatusCreated, gin.H{"status": "linked"})
+}
+
+// HtmxLinkCompendiumSpell links a compendium spell and re-renders the spells list.
+// POST /htmx/compendium/spells/link?character_id=:cid (form: compendium_spell_id)
+func HtmxLinkCompendiumSpell(c *gin.Context) {
+	charID := c.Query("character_id")
+	cid, err := strconv.ParseInt(charID, 10, 64)
+	if err != nil || charID == "" {
+		c.String(http.StatusBadRequest, "invalid character id")
+		return
+	}
+	if !canEditCharacterID(c, cid) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
+	compID, err := strconv.ParseInt(c.PostForm("compendium_spell_id"), 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, "compendium_spell_id required")
+		return
+	}
+	if st, msg := spellLinkInsert(cid, compID); msg != "" {
+		c.String(st, msg)
+		return
+	}
+	renderHtmxSpellsList(c, strconv.FormatInt(cid, 10))
 }
 
 // UnlinkCompendiumSpell unlinks a spell from the compendium, preserving the spell data.
@@ -63,30 +108,74 @@ func UnlinkCompendiumSpell(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-
-	// Only unlink if linked — prevent unlinking inline-created spells
-	var compID int64
-	err = db.DB.QueryRow("SELECT COALESCE(compendium_spell_id,0) FROM spells WHERE id=?", spellID).Scan(&compID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "spell not found"})
+	if st, msg := unlinkSpellRef(spellID); msg != "" {
+		c.JSON(st, gin.H{"error": msg})
 		return
 	}
-	if compID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "spell is not linked from compendium"})
-		return
-	}
-
-	// Null out the reference but keep the copied spell data (self-contained sheet)
-	_, err = db.DB.Exec("UPDATE spells SET compendium_spell_id = NULL WHERE id=?", spellID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
 	c.JSON(http.StatusOK, gin.H{"status": "unlinked"})
 }
 
+// HtmxUnlinkCompendiumSpell unlinks a compendium spell and re-renders the spells list.
+// DELETE /htmx/spells/:id/compendium-unlink?character_id=:cid
+func HtmxUnlinkCompendiumSpell(c *gin.Context) {
+	spellID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid spell id")
+		return
+	}
+	if !canEditResourceID(c, "spells", spellID) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
+	charID := c.Query("character_id")
+	if charID == "" {
+		c.String(http.StatusBadRequest, "character_id required")
+		return
+	}
+	if st, msg := unlinkSpellRef(spellID); msg != "" {
+		c.String(st, msg)
+		return
+	}
+	renderHtmxSpellsList(c, charID)
+}
+
 // ─── Inventory/Equipment Linking (Character Sheet) ───
+
+// itemLinkInsert copies a compendium equipment entry into the character's inventory.
+// Returns (httpStatus, errorMessage); message == "" on success.
+func itemLinkInsert(charID, compendiumEquipmentID int64, quantity int) (int, string) {
+	var name, category, description, sourcePage string
+	var weight float64
+	err := db.DB.QueryRow(`SELECT name, COALESCE(category,''), COALESCE(description,''), COALESCE(weight,0), COALESCE(source_page,'') FROM compendium_equipment WHERE id=?`, compendiumEquipmentID).Scan(
+		&name, &category, &description, &weight, &sourcePage)
+	if err != nil {
+		return http.StatusNotFound, "compendium equipment not found"
+	}
+	_, err = db.DB.Exec(`INSERT INTO inventory(character_id, name, quantity, weight, category, description, notes, compendium_equipment_id)
+		VALUES(?,?,?,?,?,?,'',?)`,
+		charID, name, quantity, weight, category, description, compendiumEquipmentID)
+	if err != nil {
+		return http.StatusInternalServerError, err.Error()
+	}
+	return 0, ""
+}
+
+// unlinkItemRef nulls the compendium reference on an inventory item, preserving its data.
+func unlinkItemRef(itemID int64) (int, string) {
+	var compID int64
+	err := db.DB.QueryRow("SELECT COALESCE(compendium_equipment_id,0) FROM inventory WHERE id=?", itemID).Scan(&compID)
+	if err != nil {
+		return http.StatusNotFound, "item not found"
+	}
+	if compID == 0 {
+		return http.StatusBadRequest, "item is not linked from compendium"
+	}
+	_, err = db.DB.Exec("UPDATE inventory SET compendium_equipment_id = NULL WHERE id=?", itemID)
+	if err != nil {
+		return http.StatusInternalServerError, err.Error()
+	}
+	return 0, ""
+}
 
 // LinkCompendiumEquipment creates an inventory item linked to a compendium equipment entry.
 // POST /api/characters/:id/inventory/link
@@ -100,13 +189,11 @@ func LinkCompendiumEquipment(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-
 	compendiumEquipmentID, err := strconv.ParseInt(c.PostForm("compendium_equipment_id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "compendium_equipment_id required"})
 		return
 	}
-
 	quantity := 1
 	if q := c.PostForm("quantity"); q != "" {
 		quantity, _ = strconv.Atoi(q)
@@ -114,26 +201,43 @@ func LinkCompendiumEquipment(c *gin.Context) {
 			quantity = 1
 		}
 	}
-
-	// Fetch compendium equipment data
-	var name, category, description, sourcePage string
-	var weight float64
-	err = db.DB.QueryRow(`SELECT name, COALESCE(category,''), COALESCE(description,''), COALESCE(weight,0), COALESCE(source_page,'') FROM compendium_equipment WHERE id=?`, compendiumEquipmentID).Scan(
-		&name, &category, &description, &weight, &sourcePage)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "compendium equipment not found"})
+	if st, msg := itemLinkInsert(charID, compendiumEquipmentID, quantity); msg != "" {
+		c.JSON(st, gin.H{"error": msg})
 		return
 	}
-
-	_, err = db.DB.Exec(`INSERT INTO inventory(character_id, name, quantity, weight, category, description, notes, compendium_equipment_id)
-		VALUES(?,?,?,?,?,?,'',?)`,
-		charID, name, quantity, weight, category, description, compendiumEquipmentID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
 	c.JSON(http.StatusCreated, gin.H{"status": "linked"})
+}
+
+// HtmxLinkCompendiumEquipment links a compendium equipment entry and re-renders the inventory list.
+// POST /htmx/compendium/equipment/link?character_id=:cid (form: compendium_equipment_id, quantity)
+func HtmxLinkCompendiumEquipment(c *gin.Context) {
+	charID := c.Query("character_id")
+	cid, err := strconv.ParseInt(charID, 10, 64)
+	if err != nil || charID == "" {
+		c.String(http.StatusBadRequest, "invalid character id")
+		return
+	}
+	if !canEditCharacterID(c, cid) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
+	compID, err := strconv.ParseInt(c.PostForm("compendium_equipment_id"), 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, "compendium_equipment_id required")
+		return
+	}
+	quantity := 1
+	if q := c.PostForm("quantity"); q != "" {
+		quantity, _ = strconv.Atoi(q)
+		if quantity < 1 {
+			quantity = 1
+		}
+	}
+	if st, msg := itemLinkInsert(cid, compID, quantity); msg != "" {
+		c.String(st, msg)
+		return
+	}
+	renderHtmxInventoryList(c, charID)
 }
 
 // UnlinkCompendiumEquipment unlinks an inventory item from the compendium, preserving the item data.
@@ -148,26 +252,35 @@ func UnlinkCompendiumEquipment(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-
-	var compID int64
-	err = db.DB.QueryRow("SELECT COALESCE(compendium_equipment_id,0) FROM inventory WHERE id=?", itemID).Scan(&compID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "item not found"})
+	if st, msg := unlinkItemRef(itemID); msg != "" {
+		c.JSON(st, gin.H{"error": msg})
 		return
 	}
-	if compID == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "item is not linked from compendium"})
-		return
-	}
-
-	// Null out the reference but keep the copied item data (self-contained sheet)
-	_, err = db.DB.Exec("UPDATE inventory SET compendium_equipment_id = NULL WHERE id=?", itemID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
 	c.JSON(http.StatusOK, gin.H{"status": "unlinked"})
+}
+
+// HtmxUnlinkCompendiumEquipment unlinks a compendium inventory item and re-renders the inventory list.
+// DELETE /htmx/inventory/:id/compendium-unlink?character_id=:cid
+func HtmxUnlinkCompendiumEquipment(c *gin.Context) {
+	itemID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid item id")
+		return
+	}
+	if !canEditResourceID(c, "inventory", itemID) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
+	charID := c.Query("character_id")
+	if charID == "" {
+		c.String(http.StatusBadRequest, "character_id required")
+		return
+	}
+	if st, msg := unlinkItemRef(itemID); msg != "" {
+		c.String(st, msg)
+		return
+	}
+	renderHtmxInventoryList(c, charID)
 }
 
 // ─── Monster Linking (One-Shot Acts/Scenes) ───
