@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -28,6 +29,9 @@ var BaseURL string
 // SetAppVersion sets the application version for use in templates.
 // ViewMode holds the current events view ("list" or "grid").
 type ViewMode string
+
+// slugRe validates campaign event page slugs (lowercase letters, numbers, hyphens).
+var slugRe = regexp.MustCompile(`^[a-z0-9-]+$`)
 
 const (
 	ViewList ViewMode = "list"
@@ -524,6 +528,7 @@ func CampaignEventsPage(c *gin.Context) {
 			Empty:        true,
 			Version:      AppVersion,
 			CampaignName: cs.DisplayName,
+			CampaignSlug: slug,
 			View:         view,
 		})
 		return
@@ -826,6 +831,10 @@ func SaveCampaignEventSetting(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "slug is required"})
 		return
 	}
+	if !slugRe.MatchString(s.Slug) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "slug must contain only lowercase letters, numbers, and hyphens"})
+		return
+	}
 	id, err := db.SaveCampaignEventSettings(s)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -834,6 +843,25 @@ func SaveCampaignEventSetting(c *gin.Context) {
 	// Clear per-campaign cache
 	db.ClearCache(s.Slug)
 	c.JSON(http.StatusOK, gin.H{"id": id})
+}
+
+// ClearCampaignCache clears the cached events for a single campaign.
+func ClearCampaignCache(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	s := db.GetCampaignEventSettingsByID(id)
+	if s == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+	if err := db.ClearCache(s.Slug); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 func DeleteCampaignEventSetting(c *gin.Context) {

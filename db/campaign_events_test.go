@@ -56,6 +56,18 @@ func TestCampaignEventSettings(t *testing.T) {
 		}
 	})
 
+	t.Run("slug uniqueness is enforced", func(t *testing.T) {
+		_, err := SaveCampaignEventSettings(CampaignEventSettings{
+			CampaignID:  2,
+			Slug:        "test-campaign",
+			DisplayName: "Duplicate Campaign",
+			IsActive:    true,
+		})
+		if err == nil {
+			t.Fatal("expected error for duplicate slug, got nil")
+		}
+	})
+
 	t.Run("list includes created", func(t *testing.T) {
 		list := ListCampaignEventSettings()
 		if len(list) != 1 {
@@ -157,6 +169,20 @@ func TestPerCampaignCache(t *testing.T) {
 		}
 		if count := GetCachedCount("my-campaign"); count != 0 {
 			t.Errorf("expected 0 campaign cached, got %d", count)
+		}
+	})
+
+	t.Run("clearing global cache clears all campaigns", func(t *testing.T) {
+		SetCachedEvents(events[:1], "")
+		SetCachedEvents(events[1:], "my-campaign")
+
+		ClearCache("")
+
+		if global, _ := GetCachedEvents(300, ""); len(global) != 0 {
+			t.Errorf("expected global cache empty after global clear, got %d events", len(global))
+		}
+		if campaign, _ := GetCachedEvents(300, "my-campaign"); len(campaign) != 0 {
+			t.Errorf("expected campaign cache empty after global clear, got %d events", len(campaign))
 		}
 	})
 }

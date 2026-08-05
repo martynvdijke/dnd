@@ -2218,6 +2218,7 @@ async function loadCampaignEventSettings() {
           <a href="/events/c/${esc(c.slug)}" class="btn btn-outline-info btn-sm py-0" target="_blank" title="View public page"><i class="fa-solid fa-eye"></i></a>
         </td>
         <td class="text-nowrap">
+          <button class="btn btn-outline-warning btn-sm py-0" onclick="clearCampaignCache(${c.id})" title="Clear cache for this campaign page"><i class="fa-solid fa-eraser"></i></button>
           <button class="btn btn-outline-primary btn-sm py-0" onclick="editCampaignEventSetting(${c.id})" title="Edit"><i class="fa-solid fa-pen"></i></button>
           <button class="btn btn-outline-danger btn-sm py-0" onclick="deleteCampaignEventSetting(${c.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>
         </td>
@@ -2245,6 +2246,7 @@ expose('toggleCampaignEventSourceFields', function () {
 
 expose('showAddCampaignEvent', function () {
   campaignEventEditId = null;
+  campaignSlugAuto = true;
   document.getElementById('campaignEventModalTitle')!.textContent = 'Add Campaign Event Page';
   (document.getElementById('campaignEventId') as HTMLInputElement).value = '';
   (document.getElementById('campaignEventDisplayName') as HTMLInputElement).value = '';
@@ -2272,6 +2274,7 @@ expose('showAddCampaignEvent', function () {
 
 expose('editCampaignEventSetting', async function (id: number) {
   campaignEventEditId = id;
+  campaignSlugAuto = false; // slug is user-controlled in edit mode
   try {
     const c = await api('GET', '/api/admin/events-campaigns/' + id);
     document.getElementById('campaignEventModalTitle')!.textContent = 'Edit Campaign Event Page';
@@ -2321,9 +2324,22 @@ function updateCampaignSlugPreview() {
   const preview = document.getElementById('campaignSlugPreview');
   if (preview) preview.textContent = slug;
 }
+function slugifyCampaignName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+let campaignSlugAuto = false; // true while slug is auto-generated from display name
 document.addEventListener('input', function (e: Event) {
   const el = e.target as HTMLElement;
-  if (el && el.id === 'campaignEventSlug') updateCampaignSlugPreview();
+  if (el && el.id === 'campaignEventSlug') {
+    campaignSlugAuto = false;
+    updateCampaignSlugPreview();
+  }
+  if (el && el.id === 'campaignEventDisplayName') {
+    if (campaignSlugAuto) {
+      (document.getElementById('campaignEventSlug') as HTMLInputElement).value = slugifyCampaignName((el as HTMLInputElement).value);
+      updateCampaignSlugPreview();
+    }
+  }
 });
 
 expose('saveCampaignEventSetting', async function () {
@@ -2373,6 +2389,16 @@ expose('deleteCampaignEventSetting', async function (id: number) {
   try {
     await api('DELETE', '/api/admin/events-campaigns/' + id);
     toast('Campaign page deleted');
+    loadCampaignEventSettings();
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+});
+
+expose('clearCampaignCache', async function (id: number) {
+  try {
+    await api('POST', '/api/admin/events-campaigns/' + id + '/clear-cache');
+    toast('Campaign cache cleared');
     loadCampaignEventSettings();
   } catch (e: any) {
     toast(e.message, true);

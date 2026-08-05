@@ -877,3 +877,118 @@ func TestEventsGridHelpers(t *testing.T) {
 		}
 	})
 }
+
+func TestCampaignEventsPage(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+
+	r := gin.New()
+	r.GET("/events/c/:slug", CampaignEventsPage)
+
+	events := []googlecalendar.Event{
+		{
+			ID:          "camp-evt-1",
+			Title:       "Campaign Night",
+			Description: "Session 42",
+			StartTime:   time.Now().Add(24 * time.Hour),
+			EndTime:     time.Now().Add(27 * time.Hour),
+		},
+	}
+
+	t.Run("renders page for enabled campaign with cached events", func(t *testing.T) {
+		db.SaveCampaignEventSettings(db.CampaignEventSettings{
+			Slug:        "lost-mines",
+			DisplayName: "Lost Mines",
+			CalendarID:  "campaign@example.com",
+			Tags:        "dnd",
+			IsActive:    true,
+		})
+		db.SetCachedEvents(events, "lost-mines")
+
+		w := testutil.Get(t, r, "/events/c/lost-mines")
+		testutil.AssertStatus(t, w, 200)
+		body := w.Body.String()
+		if !strings.Contains(body, "Lost Mines") {
+			t.Error("expected campaign display name in body")
+		}
+		if !strings.Contains(body, "Campaign Night") {
+			t.Error("expected cached event title in body")
+		}
+	})
+
+	t.Run("returns 404 for unknown slug", func(t *testing.T) {
+		w := testutil.Get(t, r, "/events/c/does-not-exist")
+		testutil.AssertStatus(t, w, 404)
+	})
+
+	t.Run("returns 404 for inactive campaign", func(t *testing.T) {
+		db.SaveCampaignEventSettings(db.CampaignEventSettings{
+			Slug:        "inactive-camp",
+			DisplayName: "Inactive",
+			CalendarID:  "inactive@example.com",
+			IsActive:    false,
+		})
+
+		w := testutil.Get(t, r, "/events/c/inactive-camp")
+		testutil.AssertStatus(t, w, 404)
+	})
+}
+
+func TestCampaignEventsICal(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+
+	r := gin.New()
+	r.GET("/events/c/:slug/ical", CampaignEventsICal)
+
+	t.Run("returns valid ICS for campaign with cached events", func(t *testing.T) {
+		db.SaveCampaignEventSettings(db.CampaignEventSettings{
+			Slug:        "lost-mines",
+			DisplayName: "Lost Mines",
+			CalendarID:  "campaign@example.com",
+			Tags:        "dnd",
+			IsActive:    true,
+		})
+		db.SetCachedEvents([]googlecalendar.Event{
+			{
+				ID:          "camp-evt-1",
+				Title:       "Campaign Night",
+				Description: "Session 42",
+				StartTime:   time.Date(2026, 9, 10, 19, 0, 0, 0, time.UTC),
+				EndTime:     time.Date(2026, 9, 10, 22, 0, 0, 0, time.UTC),
+			},
+		}, "lost-mines")
+
+		w := testutil.Get(t, r, "/events/c/lost-mines/ical")
+		testutil.AssertStatus(t, w, 200)
+		body := w.Body.String()
+		if !strings.Contains(body, "BEGIN:VCALENDAR") {
+			t.Error("expected BEGIN:VCALENDAR")
+		}
+		if !strings.Contains(body, "UID:camp-evt-1@lost-mines.villum.events") {
+			t.Error("expected campaign-scoped UID")
+		}
+		if !strings.Contains(body, "SUMMARY:Campaign Night") {
+			t.Error("expected SUMMARY")
+		}
+		if !strings.Contains(body, "X-WR-CALNAME:Lost Mines") {
+			t.Error("expected X-WR-CALNAME with campaign display name")
+		}
+
+		ct := w.Header().Get("Content-Type")
+		if ct != "text/calendar" {
+			t.Errorf("expected Content-Type text/calendar, got %q", ct)
+		}
+		disp := w.Header().Get("Content-Disposition")
+		if !strings.Contains(disp, "lost-mines.ics") {
+			t.Errorf("expected Content-Disposition with lost-mines.ics, got %q", disp)
+		}
+	})
+
+	t.Run("returns 404 for unknown slug", func(t *testing.T) {
+		w := testutil.Get(t, r, "/events/c/does-not-exist/ical")
+		testutil.AssertStatus(t, w, 404)
+	})
+}

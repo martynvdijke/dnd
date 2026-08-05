@@ -121,10 +121,16 @@ func SetCachedEvents(events []googlecalendar.Event, campaignSlug string) error {
 	return tx.Commit()
 }
 
-// ClearCache removes all cached events for a given campaign slug.
-// campaignSlug empty = global events.
+// ClearCache removes cached events. An empty campaignSlug clears ALL entries
+// (global cache + all per-campaign caches); a non-empty slug clears only that
+// campaign's cache.
 func ClearCache(campaignSlug string) error {
-	_, err := DB.Exec("DELETE FROM google_events_cache WHERE campaign_slug=?", campaignSlug)
+	var err error
+	if campaignSlug == "" {
+		_, err = DB.Exec("DELETE FROM google_events_cache")
+	} else {
+		_, err = DB.Exec("DELETE FROM google_events_cache WHERE campaign_slug=?", campaignSlug)
+	}
 	if err != nil {
 		log.Printf("events_cache: clear error: %v", err)
 	}
