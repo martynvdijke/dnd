@@ -281,6 +281,58 @@ func ListNPCs(c *gin.Context) {
 	c.JSON(http.StatusOK, out)
 }
 
+// SearchNPCs searches NPCs across all users (DM-visible). GET /api/npcs/search?q=
+func SearchNPCs(c *gin.Context) {
+	q := strings.TrimSpace(c.Query("q"))
+	query := db.Client.NPC.Query()
+	if q != "" {
+		query = query.Where(npc.NameContainsFold(q))
+	}
+	npcs, err := query.Order(npc.ByName()).Limit(50).All(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	out := make([]gin.H, 0, len(npcs))
+	for _, n := range npcs {
+		out = append(out, gin.H{
+			"id":          n.ID,
+			"user_id":     n.UserID,
+			"name":        n.Name,
+			"race":        n.Race,
+			"class":       n.Class,
+			"description": n.Description,
+			"portrait_url": n.PortraitURL,
+		})
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+// SearchLocations searches locations across all users (DM-visible). GET /api/locations/search?q=
+func SearchLocations(c *gin.Context) {
+	q := strings.TrimSpace(c.Query("q"))
+	query := db.Client.Location.Query()
+	if q != "" {
+		query = query.Where(location.NameContainsFold(q))
+	}
+	locs, err := query.Order(location.ByName()).Limit(50).All(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	out := make([]gin.H, 0, len(locs))
+	for _, l := range locs {
+		out = append(out, gin.H{
+			"id":          l.ID,
+			"user_id":     l.UserID,
+			"name":        l.Name,
+			"type":        l.Type,
+			"description": l.Description,
+		})
+	}
+	c.JSON(http.StatusOK, out)
+}
+
 func CreateNPC(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	var n models.NPC
@@ -1163,21 +1215,22 @@ func GetCampaignGraphData(c *gin.Context) {
 // ─── Party View ───
 
 type PartyMember struct {
-	ID          int64  `json:"id"`
-	UserID      int64  `json:"user_id"`
-	OwnerName   string `json:"owner_name"`
-	Name        string `json:"name"`
-	Race        string `json:"race"`
-	RaceColor   string `json:"race_color"`
-	Class       string `json:"class"`
-	Level       int    `json:"level"`
-	AC          int    `json:"ac"`
-	HPMax       int    `json:"hp_max"`
-	HPCurrent   int    `json:"hp_current"`
-	TempHP      int    `json:"temp_hp"`
-	Status      string `json:"status"`
-	PortraitURL string `json:"portrait_url"`
-	CampaignID  *int64 `json:"campaign_id"`
+	ID             int64  `json:"id"`
+	UserID         int64  `json:"user_id"`
+	OwnerName      string `json:"owner_name"`
+	Name           string `json:"name"`
+	Race           string `json:"race"`
+	RaceColor      string `json:"race_color"`
+	Class          string `json:"class"`
+	Level          int    `json:"level"`
+	AC             int    `json:"ac"`
+	HPMax          int    `json:"hp_max"`
+	HPCurrent      int    `json:"hp_current"`
+	TempHP         int    `json:"temp_hp"`
+	Status         string `json:"status"`
+	PortraitURL    string `json:"portrait_url"`
+	CampaignID     *int64 `json:"campaign_id"`
+	CharacterType  string `json:"character_type"`
 }
 
 func GetPartyView(c *gin.Context) {
@@ -1261,20 +1314,21 @@ func GetPartyView(c *gin.Context) {
 			raceColor = rc
 		}
 		pm := PartyMember{
-			ID:          ch.ID,
-			UserID:      ch.UserID,
-			OwnerName:   ownerName,
-			Name:        ch.Name,
-			Race:        ch.Race,
-			RaceColor:   raceColor,
-			Class:       ch.Class,
-			Level:       ch.Level,
-			AC:          ch.Ac,
-			HPMax:       ch.HpMax,
-			HPCurrent:   ch.HpCurrent,
-			TempHP:      ch.TempHp,
-			Status:      "alive",
-			PortraitURL: ch.PortraitURL,
+			ID:            ch.ID,
+			UserID:        ch.UserID,
+			OwnerName:     ownerName,
+			Name:          ch.Name,
+			Race:          ch.Race,
+			RaceColor:     raceColor,
+			Class:         ch.Class,
+			Level:         ch.Level,
+			AC:            ch.Ac,
+			HPMax:         ch.HpMax,
+			HPCurrent:     ch.HpCurrent,
+			TempHP:        ch.TempHp,
+			Status:        "alive",
+			PortraitURL:   ch.PortraitURL,
+			CharacterType: ch.CharacterType,
 		}
 		if pm.HPCurrent <= 0 {
 			pm.Status = "down"

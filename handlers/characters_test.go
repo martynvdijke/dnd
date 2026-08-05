@@ -600,8 +600,16 @@ func TestUnlinkCompendiumSpell(t *testing.T) {
 	var data map[string]any
 	testutil.ParseJSON(t, w, &data)
 	testutil.AssertField(t, data, "status", "unlinked")
-	if testutil.CountRows(t, "spells") != 0 {
-		t.Fatal("expected 0 spell rows after unlink")
+	// Unlink preserves the spell data but nulls the compendium reference
+	var compRef any
+	var rowCount int
+	db.DB.QueryRow("SELECT compendium_spell_id FROM spells WHERE id=1").Scan(&compRef)
+	db.DB.QueryRow("SELECT COUNT(*) FROM spells WHERE id=1").Scan(&rowCount)
+	if rowCount != 1 {
+		t.Fatal("expected spell row to survive unlink")
+	}
+	if compRef != nil {
+		t.Fatalf("expected compendium_spell_id NULL after unlink, got %v", compRef)
 	}
 }
 
@@ -629,8 +637,16 @@ func TestUnlinkCompendiumEquipment(t *testing.T) {
 	var data map[string]any
 	testutil.ParseJSON(t, w, &data)
 	testutil.AssertField(t, data, "status", "unlinked")
-	if testutil.CountRows(t, "inventory") != 0 {
-		t.Fatal("expected 0 inventory rows after unlink")
+	// Unlink preserves the item data but nulls the compendium reference
+	var compRef any
+	var rowCount int
+	db.DB.QueryRow("SELECT compendium_equipment_id FROM inventory WHERE id=1").Scan(&compRef)
+	db.DB.QueryRow("SELECT COUNT(*) FROM inventory WHERE id=1").Scan(&rowCount)
+	if rowCount != 1 {
+		t.Fatal("expected inventory row to survive unlink")
+	}
+	if compRef != nil {
+		t.Fatalf("expected compendium_equipment_id NULL after unlink, got %v", compRef)
 	}
 }
 

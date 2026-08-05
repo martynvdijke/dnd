@@ -29,6 +29,7 @@ func RegisterCharacterRoutes(r *gin.RouterGroup) {
 	r.DELETE("/inventory/:iid", DeleteInventory)
 	r.POST("/characters/:id/inventory/link", LinkCompendiumEquipment)
 	r.DELETE("/characters/:id/inventory/:itemId/link", UnlinkCompendiumEquipment)
+	r.POST("/characters/:id/inventory/:itemId/unlink", UnlinkCompendiumEquipment)
 
 	// Spells sub-resource
 	r.POST("/characters/:id/spells", CreateSpell)
@@ -36,6 +37,7 @@ func RegisterCharacterRoutes(r *gin.RouterGroup) {
 	r.DELETE("/spells/:sid", DeleteSpell)
 	r.POST("/characters/:id/spells/link", LinkCompendiumSpell)
 	r.DELETE("/characters/:id/spells/:spellId/link", UnlinkCompendiumSpell)
+	r.POST("/characters/:id/spells/:spellId/unlink", UnlinkCompendiumSpell)
 
 	// Features sub-resource
 	r.POST("/characters/:id/features", CreateFeature)
@@ -47,6 +49,7 @@ func RegisterCharacterRoutes(r *gin.RouterGroup) {
 	r.DELETE("/proficiencies/:pid", DeleteProficiency)
 
 	// Locations
+	r.GET("/locations/search", SearchLocations)
 	r.GET("/locations", ListLocations)
 	r.POST("/locations", CreateLocation)
 	r.PUT("/locations/:id", UpdateLocation)
@@ -56,6 +59,7 @@ func RegisterCharacterRoutes(r *gin.RouterGroup) {
 	r.DELETE("/locations/link/:lid", UnlinkLocation)
 
 	// NPCs
+	r.GET("/npcs/search", SearchNPCs)
 	r.GET("/npcs", ListNPCs)
 	r.POST("/npcs", CreateNPC)
 	r.PUT("/npcs/:id", UpdateNPC)

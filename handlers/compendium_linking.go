@@ -51,8 +51,8 @@ func LinkCompendiumSpell(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"status": "linked"})
 }
 
-// UnlinkCompendiumSpell unlinks (and deletes) a spell that was linked from the compendium.
-// DELETE /api/characters/:id/spells/:spellId/link
+// UnlinkCompendiumSpell unlinks a spell from the compendium, preserving the spell data.
+// DELETE /api/characters/:id/spells/:spellId/link  (also POST /api/characters/:id/spells/:spellId/unlink)
 func UnlinkCompendiumSpell(c *gin.Context) {
 	spellID, err := strconv.ParseInt(c.Param("spellId"), 10, 64)
 	if err != nil {
@@ -64,7 +64,7 @@ func UnlinkCompendiumSpell(c *gin.Context) {
 		return
 	}
 
-	// Only delete if linked — prevent deleting inline-created spells
+	// Only unlink if linked — prevent unlinking inline-created spells
 	var compID int64
 	err = db.DB.QueryRow("SELECT COALESCE(compendium_spell_id,0) FROM spells WHERE id=?", spellID).Scan(&compID)
 	if err != nil {
@@ -76,7 +76,8 @@ func UnlinkCompendiumSpell(c *gin.Context) {
 		return
 	}
 
-	_, err = db.DB.Exec("DELETE FROM spells WHERE id=?", spellID)
+	// Null out the reference but keep the copied spell data (self-contained sheet)
+	_, err = db.DB.Exec("UPDATE spells SET compendium_spell_id = NULL WHERE id=?", spellID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -135,8 +136,8 @@ func LinkCompendiumEquipment(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"status": "linked"})
 }
 
-// UnlinkCompendiumEquipment unlinks (and deletes) an inventory item linked from the compendium.
-// DELETE /api/characters/:id/inventory/:itemId/link
+// UnlinkCompendiumEquipment unlinks an inventory item from the compendium, preserving the item data.
+// DELETE /api/characters/:id/inventory/:itemId/link  (also POST /api/characters/:id/inventory/:itemId/unlink)
 func UnlinkCompendiumEquipment(c *gin.Context) {
 	itemID, err := strconv.ParseInt(c.Param("itemId"), 10, 64)
 	if err != nil {
@@ -159,7 +160,8 @@ func UnlinkCompendiumEquipment(c *gin.Context) {
 		return
 	}
 
-	_, err = db.DB.Exec("DELETE FROM inventory WHERE id=?", itemID)
+	// Null out the reference but keep the copied item data (self-contained sheet)
+	_, err = db.DB.Exec("UPDATE inventory SET compendium_equipment_id = NULL WHERE id=?", itemID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
