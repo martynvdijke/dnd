@@ -1,3 +1,10 @@
+# [2.35.0](https://github.com/martynvdijke/dnd/compare/v2.34.0...v2.35.0) (2026-08-05)
+
+
+### Features
+
+* events admin share link and QR — populate public link, per-campaign share modal, fix QR endpoint path ([9f8857f](https://github.com/martynvdijke/dnd/commit/9f8857ffb513d48b9495b167fe08a975ab675c99))
+
 # [2.34.0](https://github.com/martynvdijke/dnd/compare/v2.33.0...v2.34.0) (2026-08-05)
 
 
