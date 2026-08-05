@@ -65,14 +65,14 @@ func ListCharacters(c *gin.Context) {
 	role, _ := c.Get("role")
 
 	type CharSummary struct {
-		ID          int64  `json:"id"`
-		UserID      int64  `json:"user_id"`
-		Name        string `json:"name"`
-		Race        string `json:"race"`
-		Class       string `json:"class"`
-		Level       int    `json:"level"`
-		HPMax       int    `json:"hp_max"`
-		HPCurrent   int    `json:"hp_current"`
+		ID            int64  `json:"id"`
+		UserID        int64  `json:"user_id"`
+		Name          string `json:"name"`
+		Race          string `json:"race"`
+		Class         string `json:"class"`
+		Level         int    `json:"level"`
+		HPMax         int    `json:"hp_max"`
+		HPCurrent     int    `json:"hp_current"`
 		PortraitURL   string `json:"portrait_url,omitempty"`
 		RaceColor     string `json:"race_color,omitempty"`
 		CharacterType string `json:"character_type"`
@@ -136,15 +136,15 @@ func ListAllCharacters(c *gin.Context) {
 	}
 
 	type CharSummary struct {
-		ID          int64  `json:"id"`
-		UserID      int64  `json:"user_id"`
-		Username    string `json:"username"`
-		Name        string `json:"name"`
-		Race        string `json:"race"`
-		Class       string `json:"class"`
-		Level       int    `json:"level"`
-		HPMax       int    `json:"hp_max"`
-		HPCurrent   int    `json:"hp_current"`
+		ID            int64  `json:"id"`
+		UserID        int64  `json:"user_id"`
+		Username      string `json:"username"`
+		Name          string `json:"name"`
+		Race          string `json:"race"`
+		Class         string `json:"class"`
+		Level         int    `json:"level"`
+		HPMax         int    `json:"hp_max"`
+		HPCurrent     int    `json:"hp_current"`
 		PortraitURL   string `json:"portrait_url,omitempty"`
 		RaceColor     string `json:"race_color,omitempty"`
 		CharacterType string `json:"character_type"`
@@ -1269,10 +1269,10 @@ func ImportCharacterJSON(c *gin.Context) {
 			SetArmorType(item.ArmorType).
 			SetDescription(item.Description).
 			SetIsEquipped(item.IsEquipped).
-		SetIsMagical(item.IsMagical).
-		SetAttunement(item.Attunement).
-		SetIsIdentified(item.IsIdentified).
-		SetNotes(item.Notes).
+			SetIsMagical(item.IsMagical).
+			SetAttunement(item.Attunement).
+			SetIsIdentified(item.IsIdentified).
+			SetNotes(item.Notes).
 			Save(c.Request.Context())
 	}
 

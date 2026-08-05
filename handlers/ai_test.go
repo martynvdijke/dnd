@@ -12,8 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
-	"villum/models"
 	"villum/handlers/testutil"
+	"villum/models"
 )
 
 func mockAuth(role string) gin.HandlerFunc {
@@ -396,12 +396,12 @@ func TestListEnabledAIEndpoints(t *testing.T) {
 	seed := func(name, typ, model string, enabled bool) int64 {
 		t.Helper()
 		ep, err := db.CreateAIEndpoint(ctx, &models.AIEndpoint{
-			Name:             name,
-			Type:             typ,
-			BaseURL:          "https://api.example.com/v1",
-			EncryptedAPIKey:  "sk-enc-secret",
-			Model:            model,
-			Enabled:          enabled,
+			Name:            name,
+			Type:            typ,
+			BaseURL:         "https://api.example.com/v1",
+			EncryptedAPIKey: "sk-enc-secret",
+			Model:           model,
+			Enabled:         enabled,
 		})
 		if err != nil {
 			t.Fatalf("seed endpoint failed: %v", err)

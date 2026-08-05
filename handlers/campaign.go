@@ -296,12 +296,12 @@ func SearchNPCs(c *gin.Context) {
 	out := make([]gin.H, 0, len(npcs))
 	for _, n := range npcs {
 		out = append(out, gin.H{
-			"id":          n.ID,
-			"user_id":     n.UserID,
-			"name":        n.Name,
-			"race":        n.Race,
-			"class":       n.Class,
-			"description": n.Description,
+			"id":           n.ID,
+			"user_id":      n.UserID,
+			"name":         n.Name,
+			"race":         n.Race,
+			"class":        n.Class,
+			"description":  n.Description,
 			"portrait_url": n.PortraitURL,
 		})
 	}
@@ -495,8 +495,8 @@ func GetCharacterNPCs(c *gin.Context) {
 	}
 	type NPCLink struct {
 		models.CharacterNPC
-		NPCName     string `json:"npc_name"`
-		NPCRace     string `json:"npc_race"`
+		NPCName      string `json:"npc_name"`
+		NPCRace      string `json:"npc_race"`
 		NPCRaceColor string `json:"npc_race_color,omitempty"`
 		NPCClass     string `json:"npc_class"`
 		NPHPMax      int    `json:"npc_hp_max"`
@@ -1215,22 +1215,22 @@ func GetCampaignGraphData(c *gin.Context) {
 // ─── Party View ───
 
 type PartyMember struct {
-	ID             int64  `json:"id"`
-	UserID         int64  `json:"user_id"`
-	OwnerName      string `json:"owner_name"`
-	Name           string `json:"name"`
-	Race           string `json:"race"`
-	RaceColor      string `json:"race_color"`
-	Class          string `json:"class"`
-	Level          int    `json:"level"`
-	AC             int    `json:"ac"`
-	HPMax          int    `json:"hp_max"`
-	HPCurrent      int    `json:"hp_current"`
-	TempHP         int    `json:"temp_hp"`
-	Status         string `json:"status"`
-	PortraitURL    string `json:"portrait_url"`
-	CampaignID     *int64 `json:"campaign_id"`
-	CharacterType  string `json:"character_type"`
+	ID            int64  `json:"id"`
+	UserID        int64  `json:"user_id"`
+	OwnerName     string `json:"owner_name"`
+	Name          string `json:"name"`
+	Race          string `json:"race"`
+	RaceColor     string `json:"race_color"`
+	Class         string `json:"class"`
+	Level         int    `json:"level"`
+	AC            int    `json:"ac"`
+	HPMax         int    `json:"hp_max"`
+	HPCurrent     int    `json:"hp_current"`
+	TempHP        int    `json:"temp_hp"`
+	Status        string `json:"status"`
+	PortraitURL   string `json:"portrait_url"`
+	CampaignID    *int64 `json:"campaign_id"`
+	CharacterType string `json:"character_type"`
 }
 
 func GetPartyView(c *gin.Context) {

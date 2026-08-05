@@ -21,7 +21,7 @@ import (
 
 // TransferEnvelope is the top-level villum-transfer JSON format.
 type TransferEnvelope struct {
-	VillumTransfer TransferMeta    `json:"villum_transfer"`
+	VillumTransfer TransferMeta     `json:"villum_transfer"`
 	Entities       []TransferEntity `json:"entities"`
 }
 
@@ -61,11 +61,11 @@ type TransferEntityResult struct {
 // ─── Column Schema Cache ───
 
 type columnInfo struct {
-	Index    int    // ordinal position (0-based)
-	Name     string // column name
-	Type     string // declared type (e.g. "INTEGER", "TEXT")
-	NotNull  bool
-	PK       bool // is primary key
+	Index   int    // ordinal position (0-based)
+	Name    string // column name
+	Type    string // declared type (e.g. "INTEGER", "TEXT")
+	NotNull bool
+	PK      bool // is primary key
 }
 
 type tableSchemaCache struct {

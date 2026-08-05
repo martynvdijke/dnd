@@ -123,7 +123,7 @@ func TestPerCampaignCache(t *testing.T) {
 	}
 
 	t.Run("global cache is isolated from campaign cache", func(t *testing.T) {
-		SetCachedEvents(events[:1], "")         // global
+		SetCachedEvents(events[:1], "")            // global
 		SetCachedEvents(events[1:], "my-campaign") // per-campaign
 
 		global, _ := GetCachedEvents(300, "")

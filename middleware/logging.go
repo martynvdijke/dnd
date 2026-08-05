@@ -18,12 +18,12 @@ import (
 
 // LogEntry represents a single structured log entry for the in-memory buffer.
 type LogEntry struct {
-	ID         int64            `json:"id"`
-	Timestamp  time.Time        `json:"timestamp"`
-	Level      string           `json:"level"`
-	Source     string           `json:"source"`
-	Message    string           `json:"message"`
-	Attributes map[string]any   `json:"attributes,omitempty"`
+	ID         int64          `json:"id"`
+	Timestamp  time.Time      `json:"timestamp"`
+	Level      string         `json:"level"`
+	Source     string         `json:"source"`
+	Message    string         `json:"message"`
+	Attributes map[string]any `json:"attributes,omitempty"`
 }
 
 // LogBuffer is a concurrent-safe ring buffer for log entries.

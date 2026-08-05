@@ -35,8 +35,8 @@ func TestRecapCRUD(t *testing.T) {
 
 	t.Run("create recap returns 201", func(t *testing.T) {
 		w := testutil.PostJSON(t, r, "/api/campaigns/1/recaps", map[string]any{
-			"title":             "Session 1 Recap",
-			"content":           "The party explored the dungeon...",
+			"title":              "Session 1 Recap",
+			"content":            "The party explored the dungeon...",
 			"session_start_date": "2026-06-01",
 			"session_end_date":   "2026-06-01",
 		})

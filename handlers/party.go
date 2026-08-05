@@ -91,8 +91,12 @@ func ListPartyFactions(c *gin.Context) {
 		var f models.Faction
 		var campaignID, partyID sql.NullInt64
 		rows.Scan(&f.ID, &campaignID, &partyID, &f.Name, &f.Description, &f.Type, &f.Headquarters)
-		if campaignID.Valid { f.CampaignID = &campaignID.Int64 }
-		if partyID.Valid { f.PartyID = &partyID.Int64 }
+		if campaignID.Valid {
+			f.CampaignID = &campaignID.Int64
+		}
+		if partyID.Valid {
+			f.PartyID = &partyID.Int64
+		}
 		out = append(out, f)
 	}
 	c.JSON(http.StatusOK, out)
@@ -147,7 +151,9 @@ func ListCampaignPartyItems(c *gin.Context) {
 		var p models.PartyItem
 		var campaignID sql.NullInt64
 		rows.Scan(&p.ID, &campaignID, &p.Name, &p.Quantity, &p.Notes, &p.CreatedAt)
-		if campaignID.Valid { p.CampaignID = &campaignID.Int64 }
+		if campaignID.Valid {
+			p.CampaignID = &campaignID.Int64
+		}
 		out = append(out, p)
 	}
 	c.JSON(http.StatusOK, out)
@@ -193,7 +199,9 @@ func ListSessionPlans(c *gin.Context) {
 		rows.Scan(&sp.ID, &campaignID, &sp.Title, &sp.SessionDate, &sp.Status, &sp.DMNotes,
 			&sp.PlannedEncounters, &sp.NpcIDs, &sp.PlayerGoals, &sp.ExpectedDuration,
 			&sp.CreatedAt, &sp.UpdatedAt)
-		if campaignID.Valid { sp.CampaignID = &campaignID.Int64 }
+		if campaignID.Valid {
+			sp.CampaignID = &campaignID.Int64
+		}
 		out = append(out, sp)
 	}
 	c.JSON(http.StatusOK, out)

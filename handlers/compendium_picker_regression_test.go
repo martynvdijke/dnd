@@ -20,7 +20,8 @@ import (
 // otherwise the modal appears empty.
 //
 // See: handlers/templates/compendium_spell_picker.html
-//      handlers/templates/compendium_equipment_picker.html
+//
+//	handlers/templates/compendium_equipment_picker.html
 func TestCompendiumPickerTemplatesAreModalBodyContent(t *testing.T) {
 	testutil.NewDB(t)
 	defer testutil.CloseDB(t)

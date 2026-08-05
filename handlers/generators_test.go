@@ -17,17 +17,17 @@ func TestGenerators(t *testing.T) {
 	testutil.SeedUser(t, 1, "admin", "admin")
 
 	genRoutes := map[string]gin.HandlerFunc{
-		"/generate/npc":             HandleGenerateNPC,
-		"/generate/name":            HandleGenerateName,
-		"/generate/encounter":       HandleGenerateEncounter,
-		"/generate/loot":            HandleGenerateLoot,
-		"/generate/character":       HandleGenerateRandomCharacter,
-		"/generate/adventure-hook":  HandleGenerateAdventureHook,
+		"/generate/npc":              HandleGenerateNPC,
+		"/generate/name":             HandleGenerateName,
+		"/generate/encounter":        HandleGenerateEncounter,
+		"/generate/loot":             HandleGenerateLoot,
+		"/generate/character":        HandleGenerateRandomCharacter,
+		"/generate/adventure-hook":   HandleGenerateAdventureHook,
 		"/generate/dungeon-dressing": HandleGenerateDungeonDressing,
-		"/generate/tavern":          HandleGenerateTavern,
-		"/generate/urban-encounter": HandleGenerateUrbanEncounter,
-		"/generate/road-encounter":  HandleGenerateRoadEncounter,
-		"/generate/weather":         HandleGenerateWeather,
+		"/generate/tavern":           HandleGenerateTavern,
+		"/generate/urban-encounter":  HandleGenerateUrbanEncounter,
+		"/generate/road-encounter":   HandleGenerateRoadEncounter,
+		"/generate/weather":          HandleGenerateWeather,
 	}
 
 	for name, h := range genRoutes {

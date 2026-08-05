@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
 	"go.opentelemetry.io/contrib/bridges/otelslog"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+	"golang.org/x/crypto/bcrypt"
 
 	"villum/db"
 	"villum/ent/user"

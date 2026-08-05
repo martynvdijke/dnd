@@ -96,8 +96,6 @@ func slugParamForFilename(slug string) string {
 	return "-" + slug
 }
 
-
-
 // ─── Public Events Page (Global) ───
 
 func EventsPage(c *gin.Context) {

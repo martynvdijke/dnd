@@ -269,21 +269,21 @@ func HandleSearch(c *gin.Context) {
 	if err != nil {
 		// FTS5 parse errors or empty index
 		c.JSON(http.StatusOK, gin.H{
-			"results":    []UnifiedResult{},
-			"characters": []SearchResultItem{},
-			"npcs":       []SearchResultItem{},
-			"notes":      []SearchResultItem{},
-			"quests":     []SearchResultItem{},
-			"journal":    []SearchResultItem{},
-			"sessions":   []SearchResultItem{},
-			"spells":     []SearchResultItem{},
-			"equipment":  []SearchResultItem{},
-			"races":      []SearchResultItem{},
-			"classes":    []SearchResultItem{},
-			"feats":      []SearchResultItem{},
+			"results":     []UnifiedResult{},
+			"characters":  []SearchResultItem{},
+			"npcs":        []SearchResultItem{},
+			"notes":       []SearchResultItem{},
+			"quests":      []SearchResultItem{},
+			"journal":     []SearchResultItem{},
+			"sessions":    []SearchResultItem{},
+			"spells":      []SearchResultItem{},
+			"equipment":   []SearchResultItem{},
+			"races":       []SearchResultItem{},
+			"classes":     []SearchResultItem{},
+			"feats":       []SearchResultItem{},
 			"backgrounds": []SearchResultItem{},
-			"campaigns":  []SearchResultItem{},
-			"monsters":   []SearchResultItem{},
+			"campaigns":   []SearchResultItem{},
+			"monsters":    []SearchResultItem{},
 		})
 		return
 	}

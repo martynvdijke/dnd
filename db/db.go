@@ -10,11 +10,11 @@ import (
 	"strconv"
 	"time"
 
-	_ "modernc.org/sqlite"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+	_ "modernc.org/sqlite"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"

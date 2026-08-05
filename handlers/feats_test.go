@@ -28,12 +28,12 @@ func TestFeatCRUD(t *testing.T) {
 
 	t.Run("create feat returns 201", func(t *testing.T) {
 		w := testutil.PostJSON(t, r, "/api/feats", map[string]any{
-			"character_id": 1,
-			"name":         "Great Weapon Master",
-			"description":  "Power attack with heavy weapons",
+			"character_id":  1,
+			"name":          "Great Weapon Master",
+			"description":   "Power attack with heavy weapons",
 			"prerequisites": "Strength 18",
-			"source":       "PHB",
-			"level_gained": 4,
+			"source":        "PHB",
+			"level_gained":  4,
 		})
 		testutil.AssertStatus(t, w, 201)
 	})

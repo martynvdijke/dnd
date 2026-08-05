@@ -29,11 +29,11 @@ func (OneShotAdventure) Fields() []ent.Field {
 		field.String("template").Default("custom"),
 		field.Int("estimated_minutes").Default(180),
 		field.String("difficulty").Default("medium"),
-	field.String("notes").Default(""),
-	field.Bool("is_mini_campaign").Default(false),
-	field.Int("sort_order").Default(0),
-	field.String("created_at").Default(""),
-	field.String("updated_at").Default(""),
+		field.String("notes").Default(""),
+		field.Bool("is_mini_campaign").Default(false),
+		field.Int("sort_order").Default(0),
+		field.String("created_at").Default(""),
+		field.String("updated_at").Default(""),
 	}
 }
 

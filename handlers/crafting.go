@@ -12,35 +12,35 @@ import (
 )
 
 type CraftingRecipe struct {
-	ID               int64   `json:"id"`
-	UserID           *int64  `json:"user_id"`
-	Name             string  `json:"name"`
-	Description      string  `json:"description"`
-	Category         string  `json:"category"`
-	DifficultyDC     int     `json:"difficulty_dc"`
-	CraftingTimeHours float64 `json:"crafting_time_hours"`
-	RequiredTools    string  `json:"required_tools"`
-	RequiredMaterials string `json:"required_materials"`
-	ResultItemName   string  `json:"result_item_name"`
-	ResultItemCategory string `json:"result_item_category"`
-	ResultQuantity   int     `json:"result_quantity"`
-	ResultDescription string `json:"result_description"`
-	Notes            string  `json:"notes"`
-	CreatedAt        string  `json:"created_at"`
+	ID                 int64   `json:"id"`
+	UserID             *int64  `json:"user_id"`
+	Name               string  `json:"name"`
+	Description        string  `json:"description"`
+	Category           string  `json:"category"`
+	DifficultyDC       int     `json:"difficulty_dc"`
+	CraftingTimeHours  float64 `json:"crafting_time_hours"`
+	RequiredTools      string  `json:"required_tools"`
+	RequiredMaterials  string  `json:"required_materials"`
+	ResultItemName     string  `json:"result_item_name"`
+	ResultItemCategory string  `json:"result_item_category"`
+	ResultQuantity     int     `json:"result_quantity"`
+	ResultDescription  string  `json:"result_description"`
+	Notes              string  `json:"notes"`
+	CreatedAt          string  `json:"created_at"`
 }
 
 type CharacterCrafting struct {
-	ID                  int64   `json:"id"`
-	CharacterID         int64   `json:"character_id"`
-	RecipeID            *int64  `json:"recipe_id,omitempty"`
-	Name                string  `json:"name"`
-	ProgressHours       float64 `json:"progress_hours"`
-	TotalHoursRequired  float64 `json:"total_hours_required"`
-	DC                  int     `json:"dc"`
-	Status              string  `json:"status"`
-	MaterialsAllocated  string  `json:"materials_allocated"`
-	Notes               string  `json:"notes"`
-	StartedAt           string  `json:"started_at"`
+	ID                 int64   `json:"id"`
+	CharacterID        int64   `json:"character_id"`
+	RecipeID           *int64  `json:"recipe_id,omitempty"`
+	Name               string  `json:"name"`
+	ProgressHours      float64 `json:"progress_hours"`
+	TotalHoursRequired float64 `json:"total_hours_required"`
+	DC                 int     `json:"dc"`
+	Status             string  `json:"status"`
+	MaterialsAllocated string  `json:"materials_allocated"`
+	Notes              string  `json:"notes"`
+	StartedAt          string  `json:"started_at"`
 }
 
 func scanRecipes(rows *sql.Rows, err error) ([]CraftingRecipe, error) {
@@ -199,13 +199,13 @@ func SeedCraftingRecipes() {
 
 	// system recipes - use nil user_id
 	recipes := []struct {
-		name, desc, category string
-		dc                   int
-		hours                float64
-		tools, materials     string
+		name, desc, category  string
+		dc                    int
+		hours                 float64
+		tools, materials      string
 		resultName, resultCat string
-		resultQty            int
-		resultDesc           string
+		resultQty             int
+		resultDesc            string
 	}{
 		{"Potion of Healing", "Restores 2d4+2 hit points", "potion", 10, 1, `["alchemist's supplies"]`, `[{"name":"Healing Herb Bundle","quantity":1,"consumed":true},{"name":"Glass Vial","quantity":1,"consumed":true}]`, "Potion of Healing", "potion", 1, "2d4+2 HP"},
 		{"Potion of Greater Healing", "Restores 4d4+4 hit points", "potion", 12, 4, `["alchemist's supplies"]`, `[{"name":"Potion of Healing","quantity":1,"consumed":true},{"name":"Greater Healing Herb Bundle","quantity":2,"consumed":true}]`, "Potion of Greater Healing", "potion", 1, "4d4+4 HP"},

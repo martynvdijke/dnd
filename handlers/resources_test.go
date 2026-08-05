@@ -32,9 +32,9 @@ func TestResourceCRUD(t *testing.T) {
 
 	t.Run("create resource returns 201", func(t *testing.T) {
 		w := testutil.PostJSON(t, r, "/api/characters/1/resources", map[string]any{
-			"name":    "Spell Slot L1",
-			"current": 2,
-			"max":     4,
+			"name":                "Spell Slot L1",
+			"current":             2,
+			"max":                 4,
 			"short_rest_recovery": 0,
 			"long_rest_recovery":  1,
 		})

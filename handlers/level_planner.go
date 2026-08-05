@@ -19,14 +19,14 @@ type LevelUpPlan struct {
 }
 
 type LevelPlanEntry struct {
-	Level     int    `json:"level"`
-	Class     string `json:"class"`
-	Subclass  string `json:"subclass"`
-	Feat      string `json:"feat"`
-	Spell     string `json:"spell"`
-	ASI       string `json:"asi"`
+	Level        int    `json:"level"`
+	Class        string `json:"class"`
+	Subclass     string `json:"subclass"`
+	Feat         string `json:"feat"`
+	Spell        string `json:"spell"`
+	ASI          string `json:"asi"`
 	ClassFeature string `json:"class_feature"`
-	Notes     string `json:"notes"`
+	Notes        string `json:"notes"`
 }
 
 func GetLevelUpPlan(c *gin.Context) {
@@ -102,7 +102,7 @@ func GetLevelUpSuggestions(c *gin.Context) {
 
 	for lvl := level + 1; lvl <= 20; lvl++ {
 		entry := map[string]any{
-			"level": lvl,
+			"level":    lvl,
 			"features": []string{},
 		}
 
@@ -111,11 +111,26 @@ func GetLevelUpSuggestions(c *gin.Context) {
 			entry["has_asi"] = true
 			lowestStat := "str"
 			lowestVal := str
-			if dex < lowestVal { lowestStat = "dex"; lowestVal = dex }
-			if con < lowestVal { lowestStat = "con"; lowestVal = con }
-			if intel < lowestVal { lowestStat = "int"; lowestVal = intel }
-			if wis < lowestVal { lowestStat = "wis"; lowestVal = wis }
-			if cha < lowestVal { lowestStat = "cha"; lowestVal = cha }
+			if dex < lowestVal {
+				lowestStat = "dex"
+				lowestVal = dex
+			}
+			if con < lowestVal {
+				lowestStat = "con"
+				lowestVal = con
+			}
+			if intel < lowestVal {
+				lowestStat = "int"
+				lowestVal = intel
+			}
+			if wis < lowestVal {
+				lowestStat = "wis"
+				lowestVal = wis
+			}
+			if cha < lowestVal {
+				lowestStat = "cha"
+				lowestVal = cha
+			}
 			entry["asi_suggestion"] = "Increase " + lowestStat + " (+1 or feat)"
 		}
 

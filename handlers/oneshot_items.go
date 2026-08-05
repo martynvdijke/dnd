@@ -56,7 +56,9 @@ func CreateOneShotItem(c *gin.Context) {
 	var aID sql.NullInt64
 	db.DB.QueryRow("SELECT id, adventure_id, act_id, name, description, category, quantity, weight, price_gp, is_magical, attunement, notes, created_at FROM oneshot_items WHERE id=?", id).Scan(
 		&it.ID, &it.AdventureID, &aID, &it.Name, &it.Description, &it.Category, &it.Quantity, &it.Weight, &it.PriceGP, &isMag, &att, &it.Notes, &it.CreatedAt)
-	if aID.Valid { it.ActID = &aID.Int64 }
+	if aID.Valid {
+		it.ActID = &aID.Int64
+	}
 	it.IsMagical = isMag == 1
 	it.Attunement = att == 1
 	c.JSON(http.StatusCreated, it)

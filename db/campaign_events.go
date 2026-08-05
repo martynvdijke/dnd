@@ -6,23 +6,23 @@ import (
 
 // CampaignEventSettings holds per-campaign Google Calendar integration settings.
 type CampaignEventSettings struct {
-	ID               int    `json:"id"`
-	CampaignID       int    `json:"campaign_id"`
-	Slug             string `json:"slug"`
-	DisplayName      string `json:"display_name"`
-	SourceType       string `json:"source_type"`
-	ICalURL          string `json:"ical_url"`
-	CalendarID       string `json:"calendar_id"`
-	Tags             string `json:"tags"`
-	ColorLabels      string `json:"color_labels"`
-	FilterMode       string `json:"filter_mode"`
-	CacheTTLSeconds  int    `json:"cache_ttl_seconds"`
-	CredentialsJSON  string `json:"credentials_json"`
-	AuthMethod       string `json:"auth_method"`
-	OAuthClientID    string `json:"oauth_client_id"`
+	ID                int    `json:"id"`
+	CampaignID        int    `json:"campaign_id"`
+	Slug              string `json:"slug"`
+	DisplayName       string `json:"display_name"`
+	SourceType        string `json:"source_type"`
+	ICalURL           string `json:"ical_url"`
+	CalendarID        string `json:"calendar_id"`
+	Tags              string `json:"tags"`
+	ColorLabels       string `json:"color_labels"`
+	FilterMode        string `json:"filter_mode"`
+	CacheTTLSeconds   int    `json:"cache_ttl_seconds"`
+	CredentialsJSON   string `json:"credentials_json"`
+	AuthMethod        string `json:"auth_method"`
+	OAuthClientID     string `json:"oauth_client_id"`
 	OAuthClientSecret string `json:"oauth_client_secret"`
 	OAuthRefreshToken string `json:"oauth_refresh_token"`
-	IsActive         bool   `json:"is_active"`
+	IsActive          bool   `json:"is_active"`
 }
 
 // ListCampaignEventSettings returns all campaign event settings.

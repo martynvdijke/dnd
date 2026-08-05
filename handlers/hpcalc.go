@@ -12,8 +12,8 @@ import (
 )
 
 type HPCalcResult struct {
-	HPMax     int `json:"hp_max"`
-	HPCurrent int `json:"hp_current"`
+	HPMax     int           `json:"hp_max"`
+	HPCurrent int           `json:"hp_current"`
 	Breakdown []HPBreakdown `json:"breakdown"`
 }
 

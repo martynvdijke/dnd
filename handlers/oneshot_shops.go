@@ -10,16 +10,16 @@ import (
 )
 
 type OneShotShop struct {
-	ID             int64    `json:"id"`
-	UserID         int64    `json:"user_id"`
-	CampaignID     *int64   `json:"campaign_id,omitempty"`
-	OneshotID      *int64   `json:"oneshot_adventure_id,omitempty"`
-	ActID          *int64   `json:"act_id,omitempty"`
-	Name           string   `json:"name"`
-	Description    string   `json:"description"`
-	MarkupPercent  float64  `json:"markup_percent"`
+	ID               int64   `json:"id"`
+	UserID           int64   `json:"user_id"`
+	CampaignID       *int64  `json:"campaign_id,omitempty"`
+	OneshotID        *int64  `json:"oneshot_adventure_id,omitempty"`
+	ActID            *int64  `json:"act_id,omitempty"`
+	Name             string  `json:"name"`
+	Description      string  `json:"description"`
+	MarkupPercent    float64 `json:"markup_percent"`
 	MarkupBuyPercent float64 `json:"markup_buy_percent"`
-	CreatedAt      string   `json:"created_at"`
+	CreatedAt        string  `json:"created_at"`
 }
 
 func ListOneShotShops(c *gin.Context) {
@@ -62,23 +62,27 @@ func CreateOneShotShop(c *gin.Context) {
 func CreateOneShotShopItem(c *gin.Context) {
 	shopID, _ := strconv.ParseInt(c.Param("shopId"), 10, 64)
 	var it struct {
-		ItemName          string  `json:"item_name"`
-		Category          string  `json:"category"`
-		PriceGP           float64 `json:"price_gp"`
-		QuantityAvailable int     `json:"quantity_available"`
-		Description       string  `json:"description"`
-		IsMagical         bool    `json:"is_magical"`
-		AttunementRequired bool   `json:"attunement_required"`
-		Notes             string  `json:"notes"`
+		ItemName           string  `json:"item_name"`
+		Category           string  `json:"category"`
+		PriceGP            float64 `json:"price_gp"`
+		QuantityAvailable  int     `json:"quantity_available"`
+		Description        string  `json:"description"`
+		IsMagical          bool    `json:"is_magical"`
+		AttunementRequired bool    `json:"attunement_required"`
+		Notes              string  `json:"notes"`
 	}
 	if err := c.ShouldBindJSON(&it); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	isMag := 0
-	if it.IsMagical { isMag = 1 }
+	if it.IsMagical {
+		isMag = 1
+	}
 	att := 0
-	if it.AttunementRequired { att = 1 }
+	if it.AttunementRequired {
+		att = 1
+	}
 	_, err := db.DB.Exec("INSERT INTO shop_items(shop_id,item_name,category,price_gp,quantity_available,description,is_magical,attunement_required,notes) VALUES(?,?,?,?,?,?,?,?,?)",
 		shopID, it.ItemName, it.Category, it.PriceGP, it.QuantityAvailable, it.Description, isMag, att, it.Notes)
 	if err != nil {

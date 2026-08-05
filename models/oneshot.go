@@ -1,20 +1,20 @@
 package models
 
 type OneShotAdventure struct {
-	ID              int64  `json:"id"`
-	UserID          int64  `json:"user_id"`
-	CampaignID      *int64 `json:"campaign_id,omitempty"`
-	Title           string `json:"title"`
-	Premise         string `json:"premise"`
-	Hook            string `json:"hook"`
-	Template        string `json:"template"`
-	EstimatedMinutes int   `json:"estimated_minutes"`
-	Difficulty      string `json:"difficulty"`
-	Notes           string `json:"notes"`
-	CreatedAt       string `json:"created_at"`
-	UpdatedAt       string `json:"updated_at"`
-	IsMiniCampaign  bool   `json:"is_mini_campaign"`
-	SortOrder       int    `json:"sort_order"`
+	ID               int64  `json:"id"`
+	UserID           int64  `json:"user_id"`
+	CampaignID       *int64 `json:"campaign_id,omitempty"`
+	Title            string `json:"title"`
+	Premise          string `json:"premise"`
+	Hook             string `json:"hook"`
+	Template         string `json:"template"`
+	EstimatedMinutes int    `json:"estimated_minutes"`
+	Difficulty       string `json:"difficulty"`
+	Notes            string `json:"notes"`
+	CreatedAt        string `json:"created_at"`
+	UpdatedAt        string `json:"updated_at"`
+	IsMiniCampaign   bool   `json:"is_mini_campaign"`
+	SortOrder        int    `json:"sort_order"`
 	// Loaded relations
 	Acts       []OneShotAct                `json:"acts,omitempty"`
 	NPCs       []OneShotAdventureNPC       `json:"npcs,omitempty"`
@@ -43,16 +43,16 @@ type OneShotAct struct {
 }
 
 type OneShotShop struct {
-	ID                int64   `json:"id"`
-	UserID            int64   `json:"user_id"`
-	CampaignID        *int64  `json:"campaign_id,omitempty"`
-	OneshotAdventureID *int64 `json:"oneshot_adventure_id,omitempty"`
-	ActID             *int64  `json:"act_id,omitempty"`
-	Name              string  `json:"name"`
-	Description       string  `json:"description"`
-	MarkupPercent     float64 `json:"markup_percent"`
-	MarkupBuyPercent  float64 `json:"markup_buy_percent"`
-	CreatedAt         string  `json:"created_at"`
+	ID                 int64   `json:"id"`
+	UserID             int64   `json:"user_id"`
+	CampaignID         *int64  `json:"campaign_id,omitempty"`
+	OneshotAdventureID *int64  `json:"oneshot_adventure_id,omitempty"`
+	ActID              *int64  `json:"act_id,omitempty"`
+	Name               string  `json:"name"`
+	Description        string  `json:"description"`
+	MarkupPercent      float64 `json:"markup_percent"`
+	MarkupBuyPercent   float64 `json:"markup_buy_percent"`
+	CreatedAt          string  `json:"created_at"`
 }
 
 type OneShotActNPC struct {
@@ -123,24 +123,24 @@ type OneShotSceneDialog struct {
 }
 
 type SessionPacing struct {
-	ID              int64  `json:"id"`
-	AdventureID     int64  `json:"adventure_id"`
-	CurrentActID    *int64 `json:"current_act_id,omitempty"`
-	CurrentSceneID  *int64 `json:"current_scene_id,omitempty"`
-	Status          string `json:"status"`
-	ElapsedSeconds  int    `json:"elapsed_seconds"`
-	StartedAt       string `json:"started_at"`
-	CompletedAt     string `json:"completed_at,omitempty"`
-	AdventureTitle  string `json:"adventure_title,omitempty"`
-	ActTitle        string `json:"act_title,omitempty"`
-	SceneTitle      string `json:"scene_title,omitempty"`
-	SceneEstimated  int    `json:"scene_estimated_minutes,omitempty"`
-	ActNumber       int    `json:"act_number,omitempty"`
-	SceneNumber     int    `json:"scene_number,omitempty"`
-	TotalActs       int    `json:"total_acts,omitempty"`
-	TotalScenes     int    `json:"total_scenes,omitempty"`
-	CompletedActs   int    `json:"completed_acts,omitempty"`
-	CompletedScenes int    `json:"completed_scenes,omitempty"`
+	ID              int64         `json:"id"`
+	AdventureID     int64         `json:"adventure_id"`
+	CurrentActID    *int64        `json:"current_act_id,omitempty"`
+	CurrentSceneID  *int64        `json:"current_scene_id,omitempty"`
+	Status          string        `json:"status"`
+	ElapsedSeconds  int           `json:"elapsed_seconds"`
+	StartedAt       string        `json:"started_at"`
+	CompletedAt     string        `json:"completed_at,omitempty"`
+	AdventureTitle  string        `json:"adventure_title,omitempty"`
+	ActTitle        string        `json:"act_title,omitempty"`
+	SceneTitle      string        `json:"scene_title,omitempty"`
+	SceneEstimated  int           `json:"scene_estimated_minutes,omitempty"`
+	ActNumber       int           `json:"act_number,omitempty"`
+	SceneNumber     int           `json:"scene_number,omitempty"`
+	TotalActs       int           `json:"total_acts,omitempty"`
+	TotalScenes     int           `json:"total_scenes,omitempty"`
+	CompletedActs   int           `json:"completed_acts,omitempty"`
+	CompletedScenes int           `json:"completed_scenes,omitempty"`
 	SceneTimings    []SceneTiming `json:"scene_timings,omitempty"`
 }
 
@@ -179,9 +179,9 @@ type Clue struct {
 }
 
 type ClueDependency struct {
-	ID            int64  `json:"id"`
-	ClueID        int64  `json:"clue_id"`
-	DependsOnID   int64  `json:"depends_on_id"`
+	ID             int64  `json:"id"`
+	ClueID         int64  `json:"clue_id"`
+	DependsOnID    int64  `json:"depends_on_id"`
 	DependsOnTitle string `json:"depends_on_title,omitempty"`
 }
 
@@ -253,13 +253,13 @@ type PrepChecklistItem struct {
 }
 
 type PrepDashboardData struct {
-	Adventure   OneShotAdventure        `json:"adventure"`
-	Acts        []OneShotAct            `json:"acts"`
-	Clues       []Clue                  `json:"clues"`
-	Pregens     []PregeneratedCharacter `json:"pregens"`
-	Checklist   []PrepChecklistItem     `json:"checklist"`
-	Pacing      *SessionPacing          `json:"pacing,omitempty"`
-	SessionID   *int64                  `json:"session_id,omitempty"`
+	Adventure OneShotAdventure        `json:"adventure"`
+	Acts      []OneShotAct            `json:"acts"`
+	Clues     []Clue                  `json:"clues"`
+	Pregens   []PregeneratedCharacter `json:"pregens"`
+	Checklist []PrepChecklistItem     `json:"checklist"`
+	Pacing    *SessionPacing          `json:"pacing,omitempty"`
+	SessionID *int64                  `json:"session_id,omitempty"`
 }
 
 // ─── DM Screen ───
@@ -275,9 +275,9 @@ type DmNote struct {
 }
 
 type DmQuickRefSection struct {
-	Title    string           `json:"title"`
-	Icon     string           `json:"icon"`
-	Entries  []DmQuickRefEntry `json:"entries"`
+	Title   string            `json:"title"`
+	Icon    string            `json:"icon"`
+	Entries []DmQuickRefEntry `json:"entries"`
 }
 
 type DmQuickRefEntry struct {

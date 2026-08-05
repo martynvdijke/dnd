@@ -157,20 +157,20 @@ func TestTransferImport(t *testing.T) {
 			{
 				Type: "campaign", OriginalID: 1,
 				Data: map[string]any{
-					"name":       "Imported Campaign",
-					"party_name": "New Party",
+					"name":        "Imported Campaign",
+					"party_name":  "New Party",
 					"description": "Brought from another instance",
 				},
 			},
 			{
 				Type: "character", OriginalID: 1,
 				Data: map[string]any{
-					"name":       "Imported Hero",
-					"race":       "Elf",
-					"class":      "Ranger",
-					"level":      3,
+					"name":        "Imported Hero",
+					"race":        "Elf",
+					"class":       "Ranger",
+					"level":       3,
 					"campaign_id": int64(1), // references old campaign ID
-					"str": int64(12), "dex": int64(16), "con": int64(14),
+					"str":         int64(12), "dex": int64(16), "con": int64(14),
 					"int": int64(10), "wis": int64(14), "cha": int64(10),
 					"hp_max": int64(30), "hp_current": int64(30),
 					"ac": int64(15), "initiative": int64(3), "speed": int64(30),
@@ -369,9 +369,9 @@ func TestTransferImportFKChain(t *testing.T) {
 			{
 				Type: "shop", OriginalID: 30,
 				Data: map[string]any{
-					"name": "Campaign Shop",
-					"description": "A shop in the campaign",
-					"campaign_id":       int64(10),
+					"name":                 "Campaign Shop",
+					"description":          "A shop in the campaign",
+					"campaign_id":          int64(10),
 					"oneshot_adventure_id": int64(20),
 				},
 			},

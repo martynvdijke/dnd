@@ -88,8 +88,8 @@ func DeleteCondition(c *gin.Context) {
 
 func TickConditions(c *gin.Context) {
 	var req struct {
-		CharacterID int64 `json:"character_id"`
-		Count       int   `json:"count"`
+		CharacterID  int64  `json:"character_id"`
+		Count        int    `json:"count"`
 		DurationType string `json:"duration_type"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {

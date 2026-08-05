@@ -332,7 +332,7 @@ var monsterXP = map[string]int{
 
 func CalculateEncounterXP(c *gin.Context) {
 	var req struct {
-		PartyLevels []int             `json:"party_levels"`
+		PartyLevels []int                     `json:"party_levels"`
 		Monsters    []models.EncounterMonster `json:"monsters"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -399,9 +399,9 @@ func CalculateEncounterXP(c *gin.Context) {
 	adjustedXP := int(float64(totalMonsterXP) * sizeMultiplier)
 
 	c.JSON(http.StatusOK, gin.H{
-		"total_xp":        totalMonsterXP,
-		"adjusted_xp":     adjustedXP,
-		"difficulty":      difficulty,
+		"total_xp":    totalMonsterXP,
+		"adjusted_xp": adjustedXP,
+		"difficulty":  difficulty,
 		"thresholds": gin.H{
 			"easy":   easyThreshold,
 			"medium": mediumThreshold,

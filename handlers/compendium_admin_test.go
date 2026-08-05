@@ -466,7 +466,7 @@ func TestCompendiumAdminExport(t *testing.T) {
 
 	testutil.PostJSON(t, r, "/api/admin/compendium-schemas/"+formatInt(raceID)+"/entries", map[string]any{
 		"data": map[string]any{
-			"name": "Exportable Race",
+			"name":        "Exportable Race",
 			"description": "A race for export testing",
 		},
 	})

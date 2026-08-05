@@ -28,7 +28,7 @@ func sampleICS() string {
 		"SUMMARY:DnD Session\r\n" +
 		"DESCRIPTION:Weekly game\r\n" +
 		"DTSTART:" + d1.Format("20060102T150405Z") + "\r\n" +
-		"DTEND:" + d1.Add(3 * time.Hour).Format("20060102T150405Z") + "\r\n" +
+		"DTEND:" + d1.Add(3*time.Hour).Format("20060102T150405Z") + "\r\n" +
 		"LOCATION:The Tavern\r\n" +
 		"END:VEVENT\r\n" +
 		"BEGIN:VEVENT\r\n" +
@@ -36,7 +36,7 @@ func sampleICS() string {
 		"SUMMARY:Board Game Night\r\n" +
 		"DESCRIPTION:Casual board games\r\n" +
 		"DTSTART:" + d2.Format("20060102T150405Z") + "\r\n" +
-		"DTEND:" + d2.Add(2 * time.Hour).Format("20060102T150405Z") + "\r\n" +
+		"DTEND:" + d2.Add(2*time.Hour).Format("20060102T150405Z") + "\r\n" +
 		"END:VEVENT\r\n" +
 		"END:VCALENDAR\r\n"
 }
@@ -304,9 +304,9 @@ func TestEventSettingsRoundTrip_GoogleAPI(t *testing.T) {
 	// Save settings with google_api source type
 	settings := db.EventSettings{
 		SourceType: "google_api",
-		CalendarID:  "test@example.com",
-		Tags:        "dnd",
-		AuthMethod:  "service_account",
+		CalendarID: "test@example.com",
+		Tags:       "dnd",
+		AuthMethod: "service_account",
 	}
 	db.SaveEventSettings(settings)
 

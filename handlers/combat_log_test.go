@@ -27,14 +27,14 @@ func TestCombatLogCRUD(t *testing.T) {
 
 	t.Run("create combat log entry returns 201", func(t *testing.T) {
 		w := testutil.PostJSON(t, r, "/api/combat-log", map[string]any{
-			"campaign_id":   1,
-			"actor_name":    "Goblin",
-			"action":        "attack",
-			"target_name":   "Hero",
-			"damage":        8,
-			"damage_type":   "slashing",
+			"campaign_id":     1,
+			"actor_name":      "Goblin",
+			"action":          "attack",
+			"target_name":     "Hero",
+			"damage":          8,
+			"damage_type":     "slashing",
 			"roll_expression": "1d20+4",
-			"roll_total":    15,
+			"roll_total":      15,
 		})
 		testutil.AssertStatus(t, w, 201)
 	})

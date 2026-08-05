@@ -20,9 +20,9 @@ type Pool struct {
 
 // Engine wraps a goja runtime with the dice-roller library loaded.
 type Engine struct {
-	vm      *goja.Runtime
-	rollFn  goja.Callable
-	pool    *Pool
+	vm     *goja.Runtime
+	rollFn goja.Callable
+	pool   *Pool
 }
 
 // NewPool creates a pool of n engines. Each engine pre-loads the dice-roller bundle.
@@ -64,11 +64,11 @@ func (p *Pool) Release(eng *Engine) {
 
 // RollResult maps the JSON output of DiceRoll.toJSON()
 type RollResult struct {
-	Notation   string          `json:"notation"`
-	Total      json.Number     `json:"total"`
-	Rolls      json.RawMessage `json:"rolls,omitempty"`
-	Output     string          `json:"output"`
-	Error      string          `json:"error,omitempty"`
+	Notation string          `json:"notation"`
+	Total    json.Number     `json:"total"`
+	Rolls    json.RawMessage `json:"rolls,omitempty"`
+	Output   string          `json:"output"`
+	Error    string          `json:"error,omitempty"`
 }
 
 // Roll evaluates a dice expression and returns the result.

@@ -53,7 +53,7 @@ type Character struct {
 	DeathSavesFailures  int    `json:"death_saves_failures"`
 	ConcentratingOn     string `json:"concentrating_on"`
 	ExhaustionLevel     int    `json:"exhaustion_level"`
-	CanEdit              bool   `json:"can_edit"`
+	CanEdit             bool   `json:"can_edit"`
 
 	Proficiencies []Proficiency   `json:"proficiencies,omitempty"`
 	Features      []Feature       `json:"features,omitempty"`
@@ -115,42 +115,42 @@ type Spellcasting struct {
 }
 
 type Spell struct {
-	ID               int64  `json:"id"`
-	CharacterID      int64  `json:"character_id"`
-	Name             string `json:"name"`
-	Level            int    `json:"level"`
-	School           string `json:"school"`
-	CastingTime      string `json:"casting_time"`
-	Range            string `json:"range"`
-	Components       string `json:"components"`
-	Duration         string `json:"duration"`
-	Description      string `json:"description"`
-	Prepared         bool   `json:"prepared"`
-	AlwaysPrepared   bool   `json:"always_prepared"`
-	Source           string `json:"source"`
-	Notes            string `json:"notes"`
+	ID                int64  `json:"id"`
+	CharacterID       int64  `json:"character_id"`
+	Name              string `json:"name"`
+	Level             int    `json:"level"`
+	School            string `json:"school"`
+	CastingTime       string `json:"casting_time"`
+	Range             string `json:"range"`
+	Components        string `json:"components"`
+	Duration          string `json:"duration"`
+	Description       string `json:"description"`
+	Prepared          bool   `json:"prepared"`
+	AlwaysPrepared    bool   `json:"always_prepared"`
+	Source            string `json:"source"`
+	Notes             string `json:"notes"`
 	CompendiumSpellID *int64 `json:"compendium_spell_id,omitempty"`
 }
 
 type InventoryItem struct {
-	ID                  int64   `json:"id"`
-	CharacterID         int64   `json:"character_id"`
-	Name                string  `json:"name"`
-	Quantity            int     `json:"quantity"`
-	Weight              float64 `json:"weight"`
-	Category            string  `json:"category"`
-	DamageDice          string  `json:"damage_dice"`
-	DamageType          string  `json:"damage_type"`
-	WeaponProperties    string  `json:"weapon_properties"`
-	ACBonus             int     `json:"ac_bonus"`
-	ArmorType           string  `json:"armor_type"`
-	Description         string  `json:"description"`
-	IsEquipped          bool    `json:"is_equipped"`
-	IsMagical           bool    `json:"is_magical"`
-	Attunement          bool    `json:"attunement"`
-	IsIdentified        bool    `json:"is_identified"`
-	Notes               string  `json:"notes"`
-	CompendiumEquipmentID *int64 `json:"compendium_equipment_id,omitempty"`
+	ID                    int64   `json:"id"`
+	CharacterID           int64   `json:"character_id"`
+	Name                  string  `json:"name"`
+	Quantity              int     `json:"quantity"`
+	Weight                float64 `json:"weight"`
+	Category              string  `json:"category"`
+	DamageDice            string  `json:"damage_dice"`
+	DamageType            string  `json:"damage_type"`
+	WeaponProperties      string  `json:"weapon_properties"`
+	ACBonus               int     `json:"ac_bonus"`
+	ArmorType             string  `json:"armor_type"`
+	Description           string  `json:"description"`
+	IsEquipped            bool    `json:"is_equipped"`
+	IsMagical             bool    `json:"is_magical"`
+	Attunement            bool    `json:"attunement"`
+	IsIdentified          bool    `json:"is_identified"`
+	Notes                 string  `json:"notes"`
+	CompendiumEquipmentID *int64  `json:"compendium_equipment_id,omitempty"`
 }
 
 type DiceRoll struct {
@@ -319,30 +319,30 @@ type CharClass struct {
 }
 
 type EncounterTemplate struct {
-	ID          int64               `json:"id"`
-	CampaignID  *int64              `json:"campaign_id,omitempty"`
-	UserID      int64               `json:"user_id"`
-	Name        string              `json:"name"`
-	Description string              `json:"description"`
-	Environment string              `json:"environment"`
-	Difficulty  string              `json:"difficulty"`
-	XPBudget    int                 `json:"xp_budget"`
-	TotalXP     int                 `json:"total_xp"`
-	Notes       string              `json:"notes"`
-	Monsters    []EncounterMonster  `json:"monsters,omitempty"`
-	CreatedAt   string              `json:"created_at"`
+	ID          int64              `json:"id"`
+	CampaignID  *int64             `json:"campaign_id,omitempty"`
+	UserID      int64              `json:"user_id"`
+	Name        string             `json:"name"`
+	Description string             `json:"description"`
+	Environment string             `json:"environment"`
+	Difficulty  string             `json:"difficulty"`
+	XPBudget    int                `json:"xp_budget"`
+	TotalXP     int                `json:"total_xp"`
+	Notes       string             `json:"notes"`
+	Monsters    []EncounterMonster `json:"monsters,omitempty"`
+	CreatedAt   string             `json:"created_at"`
 }
 
 type EncounterMonster struct {
-	ID           int64  `json:"id"`
-	EncounterID  int64  `json:"encounter_id"`
-	Name         string `json:"name"`
-	Count        int    `json:"count"`
-	CR           string `json:"cr"`
-	XP           int    `json:"xp"`
-	AC           int    `json:"ac"`
-	HP           int    `json:"hp"`
-	InitiativeMod int   `json:"initiative_mod"`
+	ID                  int64  `json:"id"`
+	EncounterID         int64  `json:"encounter_id"`
+	Name                string `json:"name"`
+	Count               int    `json:"count"`
+	CR                  string `json:"cr"`
+	XP                  int    `json:"xp"`
+	AC                  int    `json:"ac"`
+	HP                  int    `json:"hp"`
+	InitiativeMod       int    `json:"initiative_mod"`
 	Source              string `json:"source"`
 	Notes               string `json:"notes"`
 	CompendiumMonsterID *int64 `json:"compendium_monster_id,omitempty"`
@@ -360,27 +360,27 @@ type CalendarEvent struct {
 }
 
 type Condition struct {
-	ID            int64  `json:"id"`
-	CharacterID   int64  `json:"character_id"`
-	Name          string `json:"name"`
-	Type          string `json:"type"`
-	Source        string `json:"source"`
-	Duration      int    `json:"duration"`
-	DurationType  string `json:"duration_type"`
-	SavingThrow   string `json:"saving_throw"`
-	SaveDC        int    `json:"save_dc"`
-	Description   string `json:"description"`
-	StartedAt     string `json:"started_at"`
-}
-
-type CharacterFeat struct {
 	ID           int64  `json:"id"`
 	CharacterID  int64  `json:"character_id"`
 	Name         string `json:"name"`
-	Description  string `json:"description"`
-	Prerequisites string `json:"prerequisites"`
+	Type         string `json:"type"`
 	Source       string `json:"source"`
-	LevelGained  int    `json:"level_gained"`
+	Duration     int    `json:"duration"`
+	DurationType string `json:"duration_type"`
+	SavingThrow  string `json:"saving_throw"`
+	SaveDC       int    `json:"save_dc"`
+	Description  string `json:"description"`
+	StartedAt    string `json:"started_at"`
+}
+
+type CharacterFeat struct {
+	ID            int64  `json:"id"`
+	CharacterID   int64  `json:"character_id"`
+	Name          string `json:"name"`
+	Description   string `json:"description"`
+	Prerequisites string `json:"prerequisites"`
+	Source        string `json:"source"`
+	LevelGained   int    `json:"level_gained"`
 }
 
 type Companion struct {
@@ -444,35 +444,35 @@ type PartyItem struct {
 }
 
 type SessionPlan struct {
-	ID                 int64   `json:"id"`
-	CampaignID         *int64  `json:"campaign_id,omitempty"`
-	Title              string  `json:"title"`
-	SessionDate        string  `json:"session_date"`
-	Status             string  `json:"status"`
-	DMNotes            string  `json:"dm_notes"`
-	PlannedEncounters  string  `json:"planned_encounters"`
-	NpcIDs             string  `json:"npc_ids"`
-	PlayerGoals        string  `json:"player_goals"`
-	ExpectedDuration   int     `json:"expected_duration"`
-	CreatedAt          string  `json:"created_at"`
-	UpdatedAt          string  `json:"updated_at"`
+	ID                int64  `json:"id"`
+	CampaignID        *int64 `json:"campaign_id,omitempty"`
+	Title             string `json:"title"`
+	SessionDate       string `json:"session_date"`
+	Status            string `json:"status"`
+	DMNotes           string `json:"dm_notes"`
+	PlannedEncounters string `json:"planned_encounters"`
+	NpcIDs            string `json:"npc_ids"`
+	PlayerGoals       string `json:"player_goals"`
+	ExpectedDuration  int    `json:"expected_duration"`
+	CreatedAt         string `json:"created_at"`
+	UpdatedAt         string `json:"updated_at"`
 }
 
 type ExhaustionEffect struct {
-	Level int    `json:"level"`
+	Level  int    `json:"level"`
 	Effect string `json:"effect"`
 }
 
 type TimelineEvent struct {
-	ID                int64  `json:"id"`
-	CampaignID        int64  `json:"campaign_id"`
-	Title             string `json:"title"`
-	Description       string `json:"description"`
-	EventDate         string `json:"event_date"`
-	EventType         string `json:"event_type"`
-	Importance        int    `json:"importance"`
-	Icon              string `json:"icon"`
-	LinkedEntityType  string `json:"linked_entity_type"`
-	LinkedEntityID    *int64 `json:"linked_entity_id,omitempty"`
-	CreatedAt         string `json:"created_at"`
+	ID               int64  `json:"id"`
+	CampaignID       int64  `json:"campaign_id"`
+	Title            string `json:"title"`
+	Description      string `json:"description"`
+	EventDate        string `json:"event_date"`
+	EventType        string `json:"event_type"`
+	Importance       int    `json:"importance"`
+	Icon             string `json:"icon"`
+	LinkedEntityType string `json:"linked_entity_type"`
+	LinkedEntityID   *int64 `json:"linked_entity_id,omitempty"`
+	CreatedAt        string `json:"created_at"`
 }

@@ -7,9 +7,9 @@ import (
 )
 
 type QuickRefSection struct {
-	Title    string       `json:"title"`
-	Icon     string       `json:"icon"`
-	Entries  []QuickRefEntry `json:"entries"`
+	Title   string          `json:"title"`
+	Icon    string          `json:"icon"`
+	Entries []QuickRefEntry `json:"entries"`
 }
 
 type QuickRefEntry struct {

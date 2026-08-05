@@ -10,29 +10,29 @@ import (
 )
 
 type CampaignDashboard struct {
-	ID               int64                   `json:"id"`
-	Name             string                  `json:"name"`
-	PartyName        string                  `json:"party_name"`
-	ActiveQuests     int                     `json:"active_quests"`
-	UpcomingSessions int                     `json:"upcoming_sessions"`
-	TotalMembers     int                     `json:"total_members"`
-	ActiveConditions int                     `json:"active_conditions"`
-	Weather          *WeatherResult          `json:"weather,omitempty"`
-	RecentJournal    int                     `json:"recent_journal"`
-	UpcomingEvents   []CalendarEventSummary  `json:"upcoming_events"`
-	RecentTimeline   []TimelineEventSummary  `json:"recent_timeline"`
-	CharacterSummary []CharacterDashSummary  `json:"characters"`
-	DowntimeCount    int                     `json:"downtime_count"`
-	RecentRecaps     []RecapSummary          `json:"recent_recaps"`
-	RecentCombats    []CombatSummary         `json:"recent_combats"`
-	RecentDiceRolls  []DiceRollSummary       `json:"recent_dice_rolls"`
+	ID               int64                  `json:"id"`
+	Name             string                 `json:"name"`
+	PartyName        string                 `json:"party_name"`
+	ActiveQuests     int                    `json:"active_quests"`
+	UpcomingSessions int                    `json:"upcoming_sessions"`
+	TotalMembers     int                    `json:"total_members"`
+	ActiveConditions int                    `json:"active_conditions"`
+	Weather          *WeatherResult         `json:"weather,omitempty"`
+	RecentJournal    int                    `json:"recent_journal"`
+	UpcomingEvents   []CalendarEventSummary `json:"upcoming_events"`
+	RecentTimeline   []TimelineEventSummary `json:"recent_timeline"`
+	CharacterSummary []CharacterDashSummary `json:"characters"`
+	DowntimeCount    int                    `json:"downtime_count"`
+	RecentRecaps     []RecapSummary         `json:"recent_recaps"`
+	RecentCombats    []CombatSummary        `json:"recent_combats"`
+	RecentDiceRolls  []DiceRollSummary      `json:"recent_dice_rolls"`
 }
 
 type RecapSummary struct {
-	ID              int64  `json:"id"`
-	Title           string `json:"title"`
+	ID               int64  `json:"id"`
+	Title            string `json:"title"`
 	SessionStartDate string `json:"session_start_date"`
-	CreatedAt       string `json:"created_at"`
+	CreatedAt        string `json:"created_at"`
 }
 
 type CombatSummary struct {
@@ -58,11 +58,11 @@ type CalendarEventSummary struct {
 }
 
 type TimelineEventSummary struct {
-	ID          int64  `json:"id"`
-	Title       string `json:"title"`
-	EventDate   string `json:"event_date"`
-	EventType   string `json:"event_type"`
-	Importance  int    `json:"importance"`
+	ID         int64  `json:"id"`
+	Title      string `json:"title"`
+	EventDate  string `json:"event_date"`
+	EventType  string `json:"event_type"`
+	Importance int    `json:"importance"`
 }
 
 type CharacterDashSummary struct {

@@ -158,11 +158,11 @@ func TestAdminEventsSettings(t *testing.T) {
 
 	t.Run("POST saves settings", func(t *testing.T) {
 		w := testutil.PostJSON(t, r, "/api/admin/events-settings", map[string]any{
-			"calendar_id":        "admin@example.com",
-			"tags":               "dnd,oneshot",
-			"cache_ttl_seconds":  600,
-			"auth_method":        "oauth",
-			"oauth_client_id":    "test-client",
+			"calendar_id":         "admin@example.com",
+			"tags":                "dnd,oneshot",
+			"cache_ttl_seconds":   600,
+			"auth_method":         "oauth",
+			"oauth_client_id":     "test-client",
 			"oauth_client_secret": "test-secret",
 			"oauth_refresh_token": "test-refresh",
 		})

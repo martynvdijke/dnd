@@ -7,35 +7,35 @@ import (
 
 // EventSettings holds the Google Calendar integration configuration.
 type EventSettings struct {
-	SourceType       string `json:"source_type"`          // "google_api" (default) or "ical"
-	ICalURL          string `json:"ical_url"`             // iCal/ICS feed URL when SourceType == "ical"
-	CalendarID       string `json:"calendar_id"`
-	Tags             string `json:"tags"`
-	CacheTTLSeconds  int    `json:"cache_ttl_seconds"`
-	CredentialsJSON  string `json:"credentials_json"`
-	AuthMethod       string `json:"auth_method"`         // "service_account" or "oauth"
-	OAuthClientID    string `json:"oauth_client_id"`     // OAuth 2.0 client ID
+	SourceType        string `json:"source_type"` // "google_api" (default) or "ical"
+	ICalURL           string `json:"ical_url"`    // iCal/ICS feed URL when SourceType == "ical"
+	CalendarID        string `json:"calendar_id"`
+	Tags              string `json:"tags"`
+	CacheTTLSeconds   int    `json:"cache_ttl_seconds"`
+	CredentialsJSON   string `json:"credentials_json"`
+	AuthMethod        string `json:"auth_method"`         // "service_account" or "oauth"
+	OAuthClientID     string `json:"oauth_client_id"`     // OAuth 2.0 client ID
 	OAuthClientSecret string `json:"oauth_client_secret"` // OAuth 2.0 client secret
 	OAuthRefreshToken string `json:"oauth_refresh_token"` // OAuth 2.0 refresh token
-	ColorLabels      string `json:"color_labels"`         // Comma-separated GCal color IDs or names
-	FilterMode       string `json:"filter_mode"`          // "text", "color", or "both"
+	ColorLabels       string `json:"color_labels"`        // Comma-separated GCal color IDs or names
+	FilterMode        string `json:"filter_mode"`         // "text", "color", or "both"
 }
 
 // defaultEventSettings returns the default settings values.
 func defaultEventSettings() EventSettings {
 	return EventSettings{
-		SourceType:       "google_api",
-		ICalURL:          "",
-		CalendarID:       "",
-		Tags:             "dnd,session,oneshot",
-		CacheTTLSeconds:  300,
-		CredentialsJSON:  "",
-		AuthMethod:       "service_account",
-		OAuthClientID:    "",
+		SourceType:        "google_api",
+		ICalURL:           "",
+		CalendarID:        "",
+		Tags:              "dnd,session,oneshot",
+		CacheTTLSeconds:   300,
+		CredentialsJSON:   "",
+		AuthMethod:        "service_account",
+		OAuthClientID:     "",
 		OAuthClientSecret: "",
 		OAuthRefreshToken: "",
-		ColorLabels:      "",
-		FilterMode:       "text",
+		ColorLabels:       "",
+		FilterMode:        "text",
 	}
 }
 

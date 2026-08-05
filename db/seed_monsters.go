@@ -12,17 +12,17 @@ func seedMonsters() {
 	}
 
 	type monster struct {
-		name, mtype, size string
-		ac, hp            int
-		str, dex, con     int
-		int_, wis, cha    int
-		cr                string
-		source            string
-		saves, skills     string
+		name, mtype, size              string
+		ac, hp                         int
+		str, dex, con                  int
+		int_, wis, cha                 int
+		cr                             string
+		source                         string
+		saves, skills                  string
 		vuln, resist, immun, condImmun string
-		senses, langs     string
+		senses, langs                  string
 		abilities, actions, legendary  string
-		desc              string
+		desc                           string
 	}
 
 	monsters := []monster{

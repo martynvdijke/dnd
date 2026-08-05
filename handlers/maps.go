@@ -11,15 +11,15 @@ import (
 )
 
 type CampaignMap struct {
-	ID         int64   `json:"id"`
-	CampaignID int64   `json:"campaign_id"`
-	Name       string  `json:"name"`
-	ImageURL   string  `json:"image_url"`
-	Width      int     `json:"width"`
-	Height     int     `json:"height"`
-	GridSize   int     `json:"grid_size"`
-	IsActive   bool    `json:"is_active"`
-	FogOfWar   string  `json:"fog_of_war"`
+	ID         int64  `json:"id"`
+	CampaignID int64  `json:"campaign_id"`
+	Name       string `json:"name"`
+	ImageURL   string `json:"image_url"`
+	Width      int    `json:"width"`
+	Height     int    `json:"height"`
+	GridSize   int    `json:"grid_size"`
+	IsActive   bool   `json:"is_active"`
+	FogOfWar   string `json:"fog_of_war"`
 }
 
 type MapPin struct {

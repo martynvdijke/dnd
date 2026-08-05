@@ -9,13 +9,13 @@ import (
 )
 
 type WeatherResult struct {
-	Season      string `json:"season"`
-	Temperature string `json:"temperature"`
-	Sky         string `json:"sky"`
+	Season        string `json:"season"`
+	Temperature   string `json:"temperature"`
+	Sky           string `json:"sky"`
 	Precipitation string `json:"precipitation"`
-	Wind        string `json:"wind"`
-	Special     string `json:"special"`
-	Description string `json:"description"`
+	Wind          string `json:"wind"`
+	Special       string `json:"special"`
+	Description   string `json:"description"`
 }
 
 var seasons = []string{"Spring", "Summer", "Autumn", "Winter"}

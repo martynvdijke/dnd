@@ -25,12 +25,12 @@ func TestEventSettingsSaveAndRead(t *testing.T) {
 	defer teardownTestDB(t)
 
 	input := EventSettings{
-		CalendarID:       "test@example.com",
-		Tags:             "dnd,oneshot",
-		CacheTTLSeconds:  600,
-		CredentialsJSON:  `{"type":"service_account"}`,
-		AuthMethod:       "oauth",
-		OAuthClientID:    "my-client-id",
+		CalendarID:        "test@example.com",
+		Tags:              "dnd,oneshot",
+		CacheTTLSeconds:   600,
+		CredentialsJSON:   `{"type":"service_account"}`,
+		AuthMethod:        "oauth",
+		OAuthClientID:     "my-client-id",
 		OAuthClientSecret: "my-client-secret",
 		OAuthRefreshToken: "my-refresh-token",
 	}

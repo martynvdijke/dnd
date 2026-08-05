@@ -11,21 +11,21 @@ import (
 )
 
 type CombatLogEntry struct {
-	ID             int64  `json:"id"`
-	CampaignID     *int64 `json:"campaign_id,omitempty"`
-	CombatEntryID  *int64 `json:"combat_entry_id,omitempty"`
-	ActorName      string `json:"actor_name"`
-	Action         string `json:"action"`
-	TargetName     string `json:"target_name"`
-	Damage         int    `json:"damage"`
-	DamageType     string `json:"damage_type"`
-	Healing        int    `json:"healing"`
+	ID               int64  `json:"id"`
+	CampaignID       *int64 `json:"campaign_id,omitempty"`
+	CombatEntryID    *int64 `json:"combat_entry_id,omitempty"`
+	ActorName        string `json:"actor_name"`
+	Action           string `json:"action"`
+	TargetName       string `json:"target_name"`
+	Damage           int    `json:"damage"`
+	DamageType       string `json:"damage_type"`
+	Healing          int    `json:"healing"`
 	ConditionApplied string `json:"condition_applied"`
-	RollExpression string `json:"roll_expression"`
-	RollTotal      int    `json:"roll_total"`
-	IsCritical     bool   `json:"is_critical"`
-	Description    string `json:"description"`
-	CreatedAt      string `json:"created_at"`
+	RollExpression   string `json:"roll_expression"`
+	RollTotal        int    `json:"roll_total"`
+	IsCritical       bool   `json:"is_critical"`
+	Description      string `json:"description"`
+	CreatedAt        string `json:"created_at"`
 }
 
 func ListCombatLogEntries(c *gin.Context) {
@@ -40,7 +40,7 @@ func ListCombatLogEntries(c *gin.Context) {
 		if campaignID != "" {
 			return db.DB.Query("SELECT id,campaign_id,combat_entry_id,actor_name,action,target_name,damage,damage_type,healing,condition_applied,roll_expression,roll_total,is_critical,description,created_at FROM combat_log_entries WHERE campaign_id=? ORDER BY created_at DESC LIMIT "+limit, campaignID)
 		}
-		return db.DB.Query("SELECT id,campaign_id,combat_entry_id,actor_name,action,target_name,damage,damage_type,healing,condition_applied,roll_expression,roll_total,is_critical,description,created_at FROM combat_log_entries ORDER BY created_at DESC LIMIT "+limit)
+		return db.DB.Query("SELECT id,campaign_id,combat_entry_id,actor_name,action,target_name,damage,damage_type,healing,condition_applied,roll_expression,roll_total,is_critical,description,created_at FROM combat_log_entries ORDER BY created_at DESC LIMIT " + limit)
 	}()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -84,8 +84,8 @@ func GetCombatLogStats(c *gin.Context) {
 
 	topDamagers, _ := db.DB.Query("SELECT actor_name, SUM(damage) as dmg FROM combat_log_entries WHERE campaign_id=? GROUP BY actor_name ORDER BY dmg DESC LIMIT 5", campaignID)
 	type DamagerStat struct {
-		Name string `json:"name"`
-		Damage int `json:"damage"`
+		Name   string `json:"name"`
+		Damage int    `json:"damage"`
 	}
 	var topDmg []DamagerStat
 	if topDamagers != nil {
@@ -98,10 +98,10 @@ func GetCombatLogStats(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"total_entries":  totalEntries,
-		"total_damage":   totalDamage,
-		"total_healing":  totalHealing,
-		"crit_count":     critCount,
-		"top_damagers":   topDmg,
+		"total_entries": totalEntries,
+		"total_damage":  totalDamage,
+		"total_healing": totalHealing,
+		"crit_count":    critCount,
+		"top_damagers":  topDmg,
 	})
 }

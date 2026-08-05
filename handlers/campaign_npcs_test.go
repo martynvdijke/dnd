@@ -212,7 +212,6 @@ func TestCampaignNPCLinkForm(t *testing.T) {
 	}
 }
 
-
 func itoa64(v int64) string {
 	return strconv.FormatInt(v, 10)
 }

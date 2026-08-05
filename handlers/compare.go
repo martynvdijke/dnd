@@ -24,25 +24,25 @@ func CompareCharacters(c *gin.Context) {
 	}
 
 	type CharSummary struct {
-		ID       int64  `json:"id"`
-		Name     string `json:"name"`
-		Race     string `json:"race"`
-		Class    string `json:"class"`
-		Level    int    `json:"level"`
-		HPMax    int    `json:"hp_max"`
-		HPCurrent int   `json:"hp_current"`
-		AC       int    `json:"ac"`
-		Str      int    `json:"str"`
-		Dex      int    `json:"dex"`
-		Con      int    `json:"con"`
-		Int      int    `json:"int"`
-		Wis      int    `json:"wis"`
-		Cha      int    `json:"cha"`
-		XP       int    `json:"xp"`
+		ID         int64  `json:"id"`
+		Name       string `json:"name"`
+		Race       string `json:"race"`
+		Class      string `json:"class"`
+		Level      int    `json:"level"`
+		HPMax      int    `json:"hp_max"`
+		HPCurrent  int    `json:"hp_current"`
+		AC         int    `json:"ac"`
+		Str        int    `json:"str"`
+		Dex        int    `json:"dex"`
+		Con        int    `json:"con"`
+		Int        int    `json:"int"`
+		Wis        int    `json:"wis"`
+		Cha        int    `json:"cha"`
+		XP         int    `json:"xp"`
 		Background string `json:"background"`
 		Alignment  string `json:"alignment"`
-		Speed     int    `json:"speed"`
-		Initiative int   `json:"initiative"`
+		Speed      int    `json:"speed"`
+		Initiative int    `json:"initiative"`
 	}
 
 	result := make([]CharSummary, 0)

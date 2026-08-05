@@ -88,8 +88,8 @@ func TestDiceAdvantageDisadvantage(t *testing.T) {
 
 	t.Run("roll with character id stores history", func(t *testing.T) {
 		w := testutil.PostJSON(t, r, "/api/roll", map[string]any{
-			"expression":    "1d20+5",
-			"character_id":  1,
+			"expression":   "1d20+5",
+			"character_id": 1,
 		})
 		testutil.AssertStatus(t, w, 200)
 	})
