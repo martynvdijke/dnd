@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { ensureNavOpen, waitLoadingDone, waitModalClosed, clickNavItem, login } from './helpers.js';
+import { ensureNavOpen, waitLoadingDone, waitModalClosed, clickNavItem, login, NAV_TIMEOUT } from './helpers.js';
 
 const uniqueName = () => `FT-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
