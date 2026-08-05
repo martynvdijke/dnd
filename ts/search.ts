@@ -1,7 +1,7 @@
 /**
  * Universal command palette / search overlay.
  *
- * Uses the FTS5 search v2 API (/api/search/v2) for fast, ranked results.
+ * Uses the FTS5 search API (/api/search) for fast, ranked results.
  * Features:
  *  - Command palette overlay (open with Cmd+K / Ctrl+K or click search icon)
  *  - Type filter chips to narrow results
@@ -120,7 +120,7 @@ export function showSearchOverlay(): void {
   }
   overlay.style.display = 'flex';
   selectedIndex = -1;
-  const input = document.getElementById('searchInput') as HTMLInputElement | null;
+  const input = document.getElementById('cpSearchInput') as HTMLInputElement | null;
   if (input) {
     input.value = '';
     input.focus();
@@ -139,7 +139,7 @@ function buildCommandPalette(panel: HTMLElement): void {
     <div class="cp-header">
       <div class="cp-input-wrapper">
         <i class="fa-solid fa-search cp-search-icon"></i>
-        <input type="text" class="cp-input" id="searchInput" placeholder="Search everything..." autocomplete="off" spellcheck="false">
+        <input type="text" class="cp-input" id="cpSearchInput" placeholder="Search everything..." autocomplete="off" spellcheck="false">
         <kbd class="cp-kbd">ESC</kbd>
       </div>
       <div class="cp-filters" id="cpFilters"></div>
@@ -163,7 +163,7 @@ function buildCommandPalette(panel: HTMLElement): void {
   ).join('');
 
   // Setup input handler
-  const input = document.getElementById('searchInput') as HTMLInputElement;
+  const input = document.getElementById('cpSearchInput') as HTMLInputElement;
   input.addEventListener('input', () => onSearchInput(input.value));
   input.addEventListener('keydown', (e) => onSearchKeydown(e, input));
 
@@ -173,7 +173,7 @@ function buildCommandPalette(panel: HTMLElement): void {
 
 expose('__searchSetType', function (type: string) {
   updateTypeFilter(type);
-  const input = document.getElementById('searchInput') as HTMLInputElement;
+  const input = document.getElementById('cpSearchInput') as HTMLInputElement;
   if (input && input.value.trim()) {
     doSearch(input.value);
   } else {
@@ -222,7 +222,7 @@ expose('__clearRecents', function () {
 });
 
 expose('__searchRecent', function (query: string) {
-  const input = document.getElementById('searchInput') as HTMLInputElement;
+  const input = document.getElementById('cpSearchInput') as HTMLInputElement;
   if (input) {
     input.value = query;
     doSearch(query);
@@ -245,7 +245,7 @@ function onSearchInput(value: string): void {
 }
 
 export async function doSearch(query?: string): Promise<void> {
-  const input = document.getElementById('searchInput') as HTMLInputElement | null;
+  const input = document.getElementById('cpSearchInput') as HTMLInputElement | null;
   const q = query || input?.value?.trim() || '';
   if (!q) return;
 
