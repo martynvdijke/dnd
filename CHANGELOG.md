@@ -1,3 +1,10 @@
+# [2.36.0](https://github.com/martynvdijke/dnd/compare/v2.35.0...v2.36.0) (2026-08-05)
+
+
+### Features
+
+* calendar grid today navigation and month param on events page ([cab0e68](https://github.com/martynvdijke/dnd/commit/cab0e68ea4140fce2867639a65d9d485e91bae0d))
+
 # [2.35.0](https://github.com/martynvdijke/dnd/compare/v2.34.0...v2.35.0) (2026-08-05)
 
 
