@@ -66,7 +66,7 @@ function showAdminTab(tab: string) {
     if (el) el.style.display = s === tab ? 'block' : 'none';
   });
   if (tab === 'users') loadUsers();
-  if (tab === 'unified-compendium') { loadUnifiedCompendium(); checkLegacyMigrationStatus(); }
+  if (tab === 'unified-compendium') loadUnifiedCompendium();
   if (tab === 'backup') { loadBackupSettings(); loadBackupList(); }
   if (tab === 'email') loadEmailSettings();
   if (tab === 'ai-endpoints') loadAIEndpoints();
@@ -698,48 +698,6 @@ function openImportForSchemaId(schemaId: number) {
   }, 500);
 }
 expose('openImportForSchemaId', openImportForSchemaId);
-
-// ─── Legacy Migration ───
-
-async function checkLegacyMigrationStatus() {
-  const banner = document.getElementById('legacyMigrationBanner')!;
-  try {
-    // Check if legacy tables have data by fetching a count
-    const res = await fetch('/api/compendium/races', { credentials: 'include' });
-    const races = await res.json();
-    // If we have legacy races but schemas exist, suggest migration
-    const schemas = await api('GET', '/api/admin/compendium-schemas');
-    const raceSchema = schemas.find((s: any) => s.type_name === 'race');
-    if (raceSchema && raceSchema.entry_count === 0 && Array.isArray(races) && races.length > 0) {
-      banner.style.display = 'flex';
-    } else {
-      banner.style.display = 'none';
-    }
-  } catch {
-    banner.style.display = 'none';
-  }
-}
-
-function dismissLegacyBanner() {
-  document.getElementById('legacyMigrationBanner')!.style.display = 'none';
-}
-expose('dismissLegacyBanner', dismissLegacyBanner);
-
-async function runLegacyMigration() {
-  if (!confirm('Migrate legacy compendium data to the new schema system?')) return;
-  const btn = document.querySelector('#legacyMigrationBanner .alert-link') as HTMLElement;
-  if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Migrating...';
-  try {
-    const res = await api('POST', '/api/admin/compendium/migrate-legacy');
-    toast('Migration complete: ' + (res.total_migrated || 0) + ' entries migrated');
-    document.getElementById('legacyMigrationBanner')!.style.display = 'none';
-    loadUnifiedCompendium();
-  } catch (e: any) {
-    toast('Migration failed: ' + e.message, true);
-  }
-  if (btn) btn.innerHTML = 'Migrate now';
-}
-expose('runLegacyMigration', runLegacyMigration);
 
 // ─── Logs ───
 

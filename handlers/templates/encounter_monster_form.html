@@ -1,5 +1,5 @@
 {{define "encounter_monster_form"}}
-<form hx-post="/htmx/encounters/{{.EncounterID}}/monsters" hx-target="#campaignEncounterMonstersSection" hx-swap="innerHTML">
+<form hx-post="/htmx/encounters/{{.EncounterID}}/monsters" hx-target="#campaignEncountersSection" hx-swap="innerHTML">
   <input type="hidden" name="campaign_id" value="{{.CampaignID}}">
   <div class="mb-2">
     <label class="form-label small">Name *</label>

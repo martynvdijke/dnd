@@ -43,6 +43,7 @@
 <div class="text-muted small fst-italic">No monsters yet.</div>
 {{end}}
 <div class="mt-2 d-flex gap-1">
+  <button class="btn btn-sm btn-primary" onclick="showOneShotMonsterSearch({{.AdventureID}})"><i class="fa-solid fa-magnifying-glass me-1"></i>Search Compendium</button>
   <button class="btn btn-sm btn-outline-info" onclick="showMonsterLibrary({{.AdventureID}})"><i class="fa-solid fa-book me-1"></i>From Library</button>
   <button class="btn btn-sm btn-outline-warning" onclick="showCompendiumMonsterPickerForOneShot({{.AdventureID}})"><i class="fa-solid fa-book-open me-1"></i>From Compendium</button>
 </div>

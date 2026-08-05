@@ -3,6 +3,7 @@ import { showView } from './navigation';
 import { esc, showModal, hideModal, toast } from './lib/dom';
 import { api } from './lib/api';
 import { expose } from './lib/expose';
+import { compendiumSearchModal } from './compendium-search';
 
 // ─── Encounter Builder ───
 
@@ -140,9 +141,103 @@ expose('deleteEncounter', async function (id: number) {
   toast('Encounter deleted');
 });
 
-expose('showEncounterMonsterPicker', function (eid: number) {
-  showModal('Add Monster from Compendium', `<div hx-get="/htmx/compendium-monsters/picker/${eid}" hx-trigger="load" hx-swap="innerHTML">Loading compendium...</div>`);
+expose('showEncounterMonsterPicker', async function (eid: number) {
+  const entry = await compendiumSearchModal({
+    title: 'Add Monster from Compendium',
+    schemaType: 'monster',
+    context: 'Search the compendium for a monster to add to this encounter.',
+  });
+  if (!entry) {
+    // "Create Custom" (or dismissed) → custom monster form
+    showModal('Add Custom Monster', `<div hx-get="/htmx/encounters/${eid}/monsters/new" hx-trigger="load" hx-swap="innerHTML"><div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div></div>`);
+    return;
+  }
+  try {
+    await api('POST', `/api/encounters/${eid}/import/compendium-entry`, { compendium_entry_id: entry.id, count: 1 });
+    toast(`Added ${entry.name} to encounter`);
+    (window as any).showEncounterDetail(eid);
+  } catch (e: any) { toast(e.message, true); }
 });
+
+// ─── Campaign Encounter Monsters (compendium-first) ───
+
+// Campaign overview: "View monsters" — swaps the encounters card with the monster list.
+expose('showEncounterMonsters', function (eid: number, cid: number) {
+  const card = document.getElementById('campaignEncountersSection') as HTMLElement | null;
+  if (!card) return;
+  card.setAttribute('hx-get', `/htmx/campaigns/${cid}/encounters/${eid}/monsters?campaign_id=${cid}`);
+  card.setAttribute('hx-trigger', 'load');
+  card.setAttribute('hx-swap', 'innerHTML');
+  card.innerHTML = '<div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading monsters...</div>';
+  htmx.process(card);
+  htmx.trigger(card, 'load');
+});
+
+// "Back" from the monster list — restore the encounters list.
+expose('showEncounterList', function (cid: number) {
+  const card = document.getElementById('campaignEncountersSection') as HTMLElement | null;
+  if (!card) return;
+  card.setAttribute('hx-get', `/htmx/campaigns/${cid}/encounters-section`);
+  card.setAttribute('hx-trigger', 'load');
+  card.setAttribute('hx-swap', 'innerHTML');
+  card.innerHTML = '<div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading encounters...</div>';
+  htmx.process(card);
+  htmx.trigger(card, 'load');
+});
+
+// "New Encounter" — modal with the create form (posts back into #campaignEncountersSection).
+expose('showNewEncounterForm', function (cid: number) {
+  showModal('New Encounter', `<div hx-get="/htmx/campaigns/${cid}/encounters/new" hx-trigger="load" hx-swap="innerHTML"><div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div></div>`);
+});
+
+// "Edit" monster — modal with the update form.
+expose('editEncounterMonster', function (mid: number, eid: number, cid: number) {
+  showModal('Edit Monster', `<div hx-get="/htmx/encounters/${eid}/monsters/${mid}/edit?campaign_id=${cid}" hx-trigger="load" hx-swap="innerHTML"><div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div></div>`);
+});
+
+// "Delete" monster — inline refresh of the monsters section.
+expose('deleteEncounterMonster', function (mid: number, eid: number, cid: number) {
+  if (!confirm('Remove this monster from the encounter?')) return;
+  const card = document.getElementById('campaignEncountersSection') as HTMLElement | null;
+  if (!card) return;
+  htmx.ajax('DELETE', `/htmx/encounters/${eid}/monsters/${mid}?campaign_id=${cid}`, { target: card, swap: 'innerHTML' });
+});
+
+// Campaign encounters section: "Add Monster" — compendium search first, custom form as fallback.
+expose('showAddEncounterMonsterForm', async function (eid: number, cid: number) {
+  const entry = await compendiumSearchModal({
+    title: 'Add Monster from Compendium',
+    schemaType: 'monster',
+    context: 'Search the compendium for a monster to add to this encounter.',
+  });
+  if (!entry) {
+    // "Create Custom" (or dismissed) → existing custom monster form
+    showAddEncounterMonsterCustom(eid, cid);
+    return;
+  }
+  try {
+    await api('POST', `/api/encounters/${eid}/import/compendium-entry`, { compendium_entry_id: entry.id, count: 1 });
+    toast(`Added ${entry.name} to encounter`);
+    refreshCampaignEncounters(cid);
+  } catch (e: any) { toast(e.message, true); }
+});
+
+// Custom monster form for encounters (htmx partial).
+function showAddEncounterMonsterCustom(eid: number, cid: number) {
+  showModal('Add Custom Monster', `<div hx-get="/htmx/encounters/${eid}/monsters/new?campaign_id=${cid}" hx-trigger="load" hx-swap="innerHTML"><div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div></div>`);
+}
+expose('showAddEncounterMonsterCustom', showAddEncounterMonsterCustom);
+
+// Legacy compendium monster browser for encounters (kept alongside the search-first flow).
+expose('showCompendiumMonsterPicker', function (eid: number, _cid: number) {
+  showModal('Monster Compendium', `<div id="compendiumMonsterPickerContent" hx-get="/htmx/compendium-monsters/picker/${eid}" hx-trigger="load" hx-swap="innerHTML"><div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div></div>`);
+});
+
+function refreshCampaignEncounters(_cid: number) {
+  // Re-triggers the current hx-get on the encounters card (list or monsters section).
+  const card = document.getElementById('campaignEncountersSection') as HTMLElement | null;
+  if (card) htmx.trigger(card, 'load');
+}
 
 expose('importCompendiumMonsterToEncounter', async function (monsterId: number, encounterId: number, _campaignId?: number) {
   try {

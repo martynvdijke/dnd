@@ -24,6 +24,7 @@ import './characters/sessions';
 import './characters/quests';
 import './characters/journal';
 import { animateHpChange } from './lib/animations';
+import { compendiumSearchModal } from './compendium-search';
 import './compendium';
 import './combat-tracker';
 import './encounter';
@@ -2948,6 +2949,29 @@ expose('deleteOneShotMonster', async function (monsterId: number) {
 
 expose('showCompendiumMonsterPickerForOneShot', function (adventureId: number) {
   showModal('Monster Compendium', `<div id="compendiumMonsterPickerContent" hx-get="/htmx/compendium-monsters/oneshot/${adventureId}" hx-trigger="load" hx-swap="innerHTML"><div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div></div>`);
+});
+
+// One-shot monsters: compendium search first (schema-based), library as custom fallback.
+expose('showOneShotMonsterSearch', async function (adventureId: number) {
+  const entry = await compendiumSearchModal({
+    title: 'Add Monster from Compendium',
+    schemaType: 'monster',
+    context: 'Search the compendium for a monster to add to this one-shot.',
+  });
+  if (!entry) {
+    // "Create Custom" (or dismissed) → monster library (has a New Monster flow)
+    showMonsterLibrary(adventureId);
+    return;
+  }
+  try {
+    await api('POST', `/api/oneshot-adventures/${adventureId}/import/compendium-entry`, {
+      compendium_entry_id: entry.id,
+      adventure_id: adventureId,
+    });
+    toast(`Added ${entry.name} to one-shot`);
+    const monstersCard = document.querySelector('[hx-get*="/monsters"]');
+    if (monstersCard) htmx.trigger(monstersCard, 'load');
+  } catch (e: any) { toast(e.message, true); }
 });
 
 expose('importCompendiumMonsterToOneShot', async function (monsterId: number, adventureId: number) {
