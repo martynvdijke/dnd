@@ -1,3 +1,10 @@
+# [2.38.0](https://github.com/martynvdijke/dnd/compare/v2.37.0...v2.38.0) (2026-08-05)
+
+
+### Features
+
+* per-campaign event cache clear, slug validation, auto-slug, campaign-scoped empty-state ical link ([4c6c2d5](https://github.com/martynvdijke/dnd/commit/4c6c2d5776050611ba5eeefe64f87a942fc1aef8))
+
 # [2.37.0](https://github.com/martynvdijke/dnd/compare/v2.36.0...v2.37.0) (2026-08-05)
 
 
