@@ -95,6 +95,7 @@ async function openChar(id: number) {
   try {
     setCurrentChar(await api('GET', `/api/characters/${id}`));
     expose('currentChar', currentChar);
+    expose('canEditCharacter', !!(currentChar as any).can_edit);
     setCurrentTab('stats');
     showView('sheet');
     renderSheet();

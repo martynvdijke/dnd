@@ -47,6 +47,22 @@ export function renderSheet() {
   (window as any).renderCrafting?.();
   (window as any).renderDetails?.();
   renderDiceTab();
+  applySheetReadonly();
+}
+
+// Read-only mode for characters without edit rights (linked characters, campaign members)
+function sheetCanEdit(): boolean {
+  return (window as any).canEditCharacter !== false;
+}
+
+function applySheetReadonly() {
+  const el = document.getElementById('sheetView');
+  if (!el) return;
+  const ro = !sheetCanEdit();
+  el.classList.toggle('readonly', ro);
+  if (ro) {
+    el.querySelectorAll('input, textarea, select').forEach((i: any) => { i.disabled = true; });
+  }
 }
 
 export function switchTab(tab: string) {
@@ -72,6 +88,7 @@ export function switchTab(tab: string) {
       case 'quests': (window as any).renderQuests?.(); break;
       case 'journal': (window as any).renderJournal?.(); break;
     }
+    applySheetReadonly();
   }
 }
 

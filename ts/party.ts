@@ -94,8 +94,10 @@ expose('showParty', async function () {
             ${g.members.map((m:any) => {
               const pct = m.hp_max > 0 ? Math.round((m.hp_current / m.hp_max) * 100) : 0;
               const sc = m.status === 'down' ? 'var(--danger)' : m.status === 'injured' ? 'var(--gold)' : 'var(--success)';
+              const isLinked = m.character_type === 'linked';
+              const clickable = canOpen(m.user_id) && !isLinked;
               return `<div class="col-md-6 col-lg-4">
-                <div class="character-card" ${canOpen(m.user_id) ? `onclick="openChar(${m.id})"` : ''} style="${canOpen(m.user_id) ? '' : 'cursor:default;opacity:0.75'}">
+                <div class="character-card" ${clickable ? `onclick="openChar(${m.id})"` : ''} style="${clickable ? '' : 'cursor:default;opacity:0.75'}">
                   <div class="d-flex align-items-center gap-2 mb-1">
                     ${m.portrait_url ? `<img src="${esc(m.portrait_url)}" class="character-portrait" style="width:28px;height:28px;object-fit:cover;border-radius:50%" alt="">` : ''}
                     <div class="char-name" style="font-size:0.95rem">${esc(m.name)}</div>
@@ -103,6 +105,7 @@ expose('showParty', async function () {
                   <div class="char-detail">
                     ${m.race_color ? `<span class="badge" style="background:${m.race_color};color:#fff">${esc(m.race)}</span>` : esc(m.race)}
                     ${esc(m.class)} · Level ${m.level}
+                    ${isLinked ? '<span class="badge bg-secondary ms-1" title="Linked character — view only from party view">linked</span>' : ''}
                   </div>
                   ${m.owner_name && m.owner_name !== currentUser?.username ? `<div class="small text-muted"><i class="fa-solid fa-user me-1"></i>${esc(m.owner_name)}</div>` : ''}
                   <div class="d-flex gap-3 mt-1 small text-muted">
@@ -112,6 +115,7 @@ expose('showParty', async function () {
                     <div class="hp-bar-fill" style="width:${pct}%;height:100%"></div>
                     <div class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center text-white" style="font-size:0.65rem">${m.hp_current}/${m.hp_max}</div>
                   </div>
+                  ${isLinked ? `<button class="btn btn-sm btn-outline-primary mt-2" onclick="event.stopPropagation();showCharStatsModal(${m.id})"><i class="fa-solid fa-eye me-1"></i>View Stats</button>` : ''}
                 </div>
               </div>`;
             }).join('')}
@@ -380,6 +384,38 @@ expose('shareParty', async function (campaignId: number) {
       </div>
       <div class="d-flex gap-2">
         <button class="btn btn-primary flex-grow-1" onclick="window.open('mailto:?subject=Check out our party&body=${encodeURIComponent(result.url)}','_blank')"><i class="fa-solid fa-envelope me-1"></i>Email</button>
+        <button class="btn btn-outline-secondary" onclick="hideModal()">Close</button>
+      </div>
+    `);
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+});
+
+// ─── Read-only character stats modal (linked characters) ───
+
+expose('showCharStatsModal', async function (charId: number) {
+  try {
+    const c: any = await api('GET', `/api/characters/${charId}`);
+    const mod = (s: number) => Math.floor((s - 10) / 2);
+    const statBox = (label: string, val: number) => `
+      <div class="text-center px-3 py-2 border rounded">
+        <div class="small text-muted">${label}</div>
+        <div class="fs-4 fw-bold">${val}</div>
+        <div class="small text-muted">${mod(val) >= 0 ? '+' : ''}${mod(val)}</div>
+      </div>`;
+    const skills = c.skills
+      ? `<div class="mt-1">${esc(c.skills)}</div>`
+      : '<div class="mt-1 text-muted small">None</div>';
+    showModal(`Stats: ${esc(c.name)}`, `
+      <div class="mb-3 small text-muted">
+        ${esc(c.race)} ${esc(c.class)}${c.subclass ? ` (${esc(c.subclass)})` : ''} · Level ${c.level} · ${c.hp_current}/${c.hp_max} HP · AC ${c.ac}
+      </div>
+      <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
+        ${statBox('STR', c.str)}${statBox('DEX', c.dex)}${statBox('CON', c.con)}${statBox('INT', c.int)}${statBox('WIS', c.wis)}${statBox('CHA', c.cha)}
+      </div>
+      <div class="small"><strong>Skills:</strong>${skills}</div>
+      <div class="d-flex justify-content-end mt-3">
         <button class="btn btn-outline-secondary" onclick="hideModal()">Close</button>
       </div>
     `);

@@ -3706,3 +3706,15 @@ body.sidebar-collapsed .container {
 
 /* AI generation modal sits above stacked modals (NPC create/edit, etc.) */
 #aiGenModal { z-index: 1065; }
+
+/* ─── Read-only character sheet (linked characters / campaign members without edit rights) ─── */
+#sheetView.readonly input,
+#sheetView.readonly textarea,
+#sheetView.readonly select {
+  pointer-events: none !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: inherit !important;
+}
+#sheetView.readonly button:not(.nav-link) { display: none !important; }
