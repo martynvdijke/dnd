@@ -40,6 +40,10 @@ func ListCharacterResources(c *gin.Context) {
 
 func CreateCharacterResource(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditCharacterID(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var r CharacterResource
 	if err := c.ShouldBindJSON(&r); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -57,6 +61,10 @@ func CreateCharacterResource(c *gin.Context) {
 
 func UpdateCharacterResource(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditResourceID(c, "character_resources", id) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var r CharacterResource
 	if err := c.ShouldBindJSON(&r); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -69,12 +77,20 @@ func UpdateCharacterResource(c *gin.Context) {
 
 func DeleteCharacterResource(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditResourceID(c, "character_resources", id) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("DELETE FROM character_resources WHERE id=?", id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 func RecoverResourcesOnRest(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditCharacterID(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var req struct {
 		RestType string `json:"rest_type"`
 	}

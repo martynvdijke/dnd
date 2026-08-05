@@ -119,6 +119,11 @@ func Notes(v string) predicate.Spell {
 	return predicate.Spell(sql.FieldEQ(FieldNotes, v))
 }
 
+// CompendiumSpellID applies equality check predicate on the "compendium_spell_id" field. It's identical to CompendiumSpellIDEQ.
+func CompendiumSpellID(v int64) predicate.Spell {
+	return predicate.Spell(sql.FieldEQ(FieldCompendiumSpellID, v))
+}
+
 // CharacterIDEQ applies the EQ predicate on the "character_id" field.
 func CharacterIDEQ(v int64) predicate.Spell {
 	return predicate.Spell(sql.FieldEQ(FieldCharacterID, v))
@@ -782,6 +787,56 @@ func NotesEqualFold(v string) predicate.Spell {
 // NotesContainsFold applies the ContainsFold predicate on the "notes" field.
 func NotesContainsFold(v string) predicate.Spell {
 	return predicate.Spell(sql.FieldContainsFold(FieldNotes, v))
+}
+
+// CompendiumSpellIDEQ applies the EQ predicate on the "compendium_spell_id" field.
+func CompendiumSpellIDEQ(v int64) predicate.Spell {
+	return predicate.Spell(sql.FieldEQ(FieldCompendiumSpellID, v))
+}
+
+// CompendiumSpellIDNEQ applies the NEQ predicate on the "compendium_spell_id" field.
+func CompendiumSpellIDNEQ(v int64) predicate.Spell {
+	return predicate.Spell(sql.FieldNEQ(FieldCompendiumSpellID, v))
+}
+
+// CompendiumSpellIDIn applies the In predicate on the "compendium_spell_id" field.
+func CompendiumSpellIDIn(vs ...int64) predicate.Spell {
+	return predicate.Spell(sql.FieldIn(FieldCompendiumSpellID, vs...))
+}
+
+// CompendiumSpellIDNotIn applies the NotIn predicate on the "compendium_spell_id" field.
+func CompendiumSpellIDNotIn(vs ...int64) predicate.Spell {
+	return predicate.Spell(sql.FieldNotIn(FieldCompendiumSpellID, vs...))
+}
+
+// CompendiumSpellIDGT applies the GT predicate on the "compendium_spell_id" field.
+func CompendiumSpellIDGT(v int64) predicate.Spell {
+	return predicate.Spell(sql.FieldGT(FieldCompendiumSpellID, v))
+}
+
+// CompendiumSpellIDGTE applies the GTE predicate on the "compendium_spell_id" field.
+func CompendiumSpellIDGTE(v int64) predicate.Spell {
+	return predicate.Spell(sql.FieldGTE(FieldCompendiumSpellID, v))
+}
+
+// CompendiumSpellIDLT applies the LT predicate on the "compendium_spell_id" field.
+func CompendiumSpellIDLT(v int64) predicate.Spell {
+	return predicate.Spell(sql.FieldLT(FieldCompendiumSpellID, v))
+}
+
+// CompendiumSpellIDLTE applies the LTE predicate on the "compendium_spell_id" field.
+func CompendiumSpellIDLTE(v int64) predicate.Spell {
+	return predicate.Spell(sql.FieldLTE(FieldCompendiumSpellID, v))
+}
+
+// CompendiumSpellIDIsNil applies the IsNil predicate on the "compendium_spell_id" field.
+func CompendiumSpellIDIsNil() predicate.Spell {
+	return predicate.Spell(sql.FieldIsNull(FieldCompendiumSpellID))
+}
+
+// CompendiumSpellIDNotNil applies the NotNil predicate on the "compendium_spell_id" field.
+func CompendiumSpellIDNotNil() predicate.Spell {
+	return predicate.Spell(sql.FieldNotNull(FieldCompendiumSpellID))
 }
 
 // HasCharacter applies the HasEdge predicate on the "character" edge.

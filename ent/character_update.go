@@ -778,6 +778,20 @@ func (_u *CharacterUpdate) ClearCampaignID() *CharacterUpdate {
 	return _u
 }
 
+// SetCharacterType sets the "character_type" field.
+func (_u *CharacterUpdate) SetCharacterType(v string) *CharacterUpdate {
+	_u.mutation.SetCharacterType(v)
+	return _u
+}
+
+// SetNillableCharacterType sets the "character_type" field if the given value is not nil.
+func (_u *CharacterUpdate) SetNillableCharacterType(v *string) *CharacterUpdate {
+	if v != nil {
+		_u.SetCharacterType(*v)
+	}
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *CharacterUpdate) SetCreatedAt(v string) *CharacterUpdate {
 	_u.mutation.SetCreatedAt(v)
@@ -1885,6 +1899,9 @@ func (_u *CharacterUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.CampaignIDCleared() {
 		_spec.ClearField(character.FieldCampaignID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.CharacterType(); ok {
+		_spec.SetField(character.FieldCharacterType, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(character.FieldCreatedAt, field.TypeString, value)
@@ -3703,6 +3720,20 @@ func (_u *CharacterUpdateOne) ClearCampaignID() *CharacterUpdateOne {
 	return _u
 }
 
+// SetCharacterType sets the "character_type" field.
+func (_u *CharacterUpdateOne) SetCharacterType(v string) *CharacterUpdateOne {
+	_u.mutation.SetCharacterType(v)
+	return _u
+}
+
+// SetNillableCharacterType sets the "character_type" field if the given value is not nil.
+func (_u *CharacterUpdateOne) SetNillableCharacterType(v *string) *CharacterUpdateOne {
+	if v != nil {
+		_u.SetCharacterType(*v)
+	}
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *CharacterUpdateOne) SetCreatedAt(v string) *CharacterUpdateOne {
 	_u.mutation.SetCreatedAt(v)
@@ -4840,6 +4871,9 @@ func (_u *CharacterUpdateOne) sqlSave(ctx context.Context) (_node *Character, er
 	}
 	if _u.mutation.CampaignIDCleared() {
 		_spec.ClearField(character.FieldCampaignID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.CharacterType(); ok {
+		_spec.SetField(character.FieldCharacterType, field.TypeString, value)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(character.FieldCreatedAt, field.TypeString, value)

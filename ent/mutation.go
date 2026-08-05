@@ -58,6 +58,7 @@ import (
 	"villum/ent/oneshotadventureencounter"
 	"villum/ent/oneshotitem"
 	"villum/ent/oneshotscene"
+	"villum/ent/otelsetting"
 	"villum/ent/partyitem"
 	"villum/ent/predicate"
 	"villum/ent/quest"
@@ -131,6 +132,7 @@ const (
 	TypeLevelUpPlan               = "LevelUpPlan"
 	TypeLocation                  = "Location"
 	TypeNPC                       = "NPC"
+	TypeOTelSetting               = "OTelSetting"
 	TypeOneShotAct                = "OneShotAct"
 	TypeOneShotActNPC             = "OneShotActNPC"
 	TypeOneShotAdventure          = "OneShotAdventure"
@@ -10122,6 +10124,7 @@ type CharacterMutation struct {
 	concentrating_on           *string
 	campaign_id                *int64
 	addcampaign_id             *int64
+	character_type             *string
 	created_at                 *string
 	updated_at                 *string
 	clearedFields              map[string]struct{}
@@ -12219,6 +12222,42 @@ func (m *CharacterMutation) ResetCampaignID() {
 	delete(m.clearedFields, character.FieldCampaignID)
 }
 
+// SetCharacterType sets the "character_type" field.
+func (m *CharacterMutation) SetCharacterType(s string) {
+	m.character_type = &s
+}
+
+// CharacterType returns the value of the "character_type" field in the mutation.
+func (m *CharacterMutation) CharacterType() (r string, exists bool) {
+	v := m.character_type
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCharacterType returns the old "character_type" field's value of the Character entity.
+// If the Character object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CharacterMutation) OldCharacterType(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCharacterType is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCharacterType requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCharacterType: %w", err)
+	}
+	return oldValue.CharacterType, nil
+}
+
+// ResetCharacterType resets all changes to the "character_type" field.
+func (m *CharacterMutation) ResetCharacterType() {
+	m.character_type = nil
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (m *CharacterMutation) SetCreatedAt(s string) {
 	m.created_at = &s
@@ -13594,7 +13633,7 @@ func (m *CharacterMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CharacterMutation) Fields() []string {
-	fields := make([]string, 0, 42)
+	fields := make([]string, 0, 43)
 	if m.user != nil {
 		fields = append(fields, character.FieldUserID)
 	}
@@ -13715,6 +13754,9 @@ func (m *CharacterMutation) Fields() []string {
 	if m.campaign_id != nil {
 		fields = append(fields, character.FieldCampaignID)
 	}
+	if m.character_type != nil {
+		fields = append(fields, character.FieldCharacterType)
+	}
 	if m.created_at != nil {
 		fields = append(fields, character.FieldCreatedAt)
 	}
@@ -13809,6 +13851,8 @@ func (m *CharacterMutation) Field(name string) (ent.Value, bool) {
 		return m.ConcentratingOn()
 	case character.FieldCampaignID:
 		return m.CampaignID()
+	case character.FieldCharacterType:
+		return m.CharacterType()
 	case character.FieldCreatedAt:
 		return m.CreatedAt()
 	case character.FieldUpdatedAt:
@@ -13902,6 +13946,8 @@ func (m *CharacterMutation) OldField(ctx context.Context, name string) (ent.Valu
 		return m.OldConcentratingOn(ctx)
 	case character.FieldCampaignID:
 		return m.OldCampaignID(ctx)
+	case character.FieldCharacterType:
+		return m.OldCharacterType(ctx)
 	case character.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case character.FieldUpdatedAt:
@@ -14194,6 +14240,13 @@ func (m *CharacterMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetCampaignID(v)
+		return nil
+	case character.FieldCharacterType:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCharacterType(v)
 		return nil
 	case character.FieldCreatedAt:
 		v, ok := value.(string)
@@ -14665,6 +14718,9 @@ func (m *CharacterMutation) ResetField(name string) error {
 		return nil
 	case character.FieldCampaignID:
 		m.ResetCampaignID()
+		return nil
+	case character.FieldCharacterType:
+		m.ResetCharacterType()
 		return nil
 	case character.FieldCreatedAt:
 		m.ResetCreatedAt()
@@ -42918,33 +42974,35 @@ func (m *FactionReputationMutation) ResetEdge(name string) error {
 // InventoryItemMutation represents an operation that mutates the InventoryItem nodes in the graph.
 type InventoryItemMutation struct {
 	config
-	op                Op
-	typ               string
-	id                *int64
-	name              *string
-	quantity          *int
-	addquantity       *int
-	weight            *float64
-	addweight         *float64
-	category          *string
-	damage_dice       *string
-	damage_type       *string
-	weapon_properties *string
-	ac_bonus          *int
-	addac_bonus       *int
-	armor_type        *string
-	description       *string
-	is_equipped       *bool
-	is_magical        *bool
-	attunement        *bool
-	is_identified     *bool
-	notes             *string
-	clearedFields     map[string]struct{}
-	character         *int64
-	clearedcharacter  bool
-	done              bool
-	oldValue          func(context.Context) (*InventoryItem, error)
-	predicates        []predicate.InventoryItem
+	op                         Op
+	typ                        string
+	id                         *int64
+	name                       *string
+	quantity                   *int
+	addquantity                *int
+	weight                     *float64
+	addweight                  *float64
+	category                   *string
+	damage_dice                *string
+	damage_type                *string
+	weapon_properties          *string
+	ac_bonus                   *int
+	addac_bonus                *int
+	armor_type                 *string
+	description                *string
+	is_equipped                *bool
+	is_magical                 *bool
+	attunement                 *bool
+	is_identified              *bool
+	notes                      *string
+	compendium_equipment_id    *int64
+	addcompendium_equipment_id *int64
+	clearedFields              map[string]struct{}
+	character                  *int64
+	clearedcharacter           bool
+	done                       bool
+	oldValue                   func(context.Context) (*InventoryItem, error)
+	predicates                 []predicate.InventoryItem
 }
 
 var _ ent.Mutation = (*InventoryItemMutation)(nil)
@@ -43687,6 +43745,76 @@ func (m *InventoryItemMutation) ResetNotes() {
 	m.notes = nil
 }
 
+// SetCompendiumEquipmentID sets the "compendium_equipment_id" field.
+func (m *InventoryItemMutation) SetCompendiumEquipmentID(i int64) {
+	m.compendium_equipment_id = &i
+	m.addcompendium_equipment_id = nil
+}
+
+// CompendiumEquipmentID returns the value of the "compendium_equipment_id" field in the mutation.
+func (m *InventoryItemMutation) CompendiumEquipmentID() (r int64, exists bool) {
+	v := m.compendium_equipment_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCompendiumEquipmentID returns the old "compendium_equipment_id" field's value of the InventoryItem entity.
+// If the InventoryItem object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *InventoryItemMutation) OldCompendiumEquipmentID(ctx context.Context) (v *int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCompendiumEquipmentID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCompendiumEquipmentID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCompendiumEquipmentID: %w", err)
+	}
+	return oldValue.CompendiumEquipmentID, nil
+}
+
+// AddCompendiumEquipmentID adds i to the "compendium_equipment_id" field.
+func (m *InventoryItemMutation) AddCompendiumEquipmentID(i int64) {
+	if m.addcompendium_equipment_id != nil {
+		*m.addcompendium_equipment_id += i
+	} else {
+		m.addcompendium_equipment_id = &i
+	}
+}
+
+// AddedCompendiumEquipmentID returns the value that was added to the "compendium_equipment_id" field in this mutation.
+func (m *InventoryItemMutation) AddedCompendiumEquipmentID() (r int64, exists bool) {
+	v := m.addcompendium_equipment_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearCompendiumEquipmentID clears the value of the "compendium_equipment_id" field.
+func (m *InventoryItemMutation) ClearCompendiumEquipmentID() {
+	m.compendium_equipment_id = nil
+	m.addcompendium_equipment_id = nil
+	m.clearedFields[inventoryitem.FieldCompendiumEquipmentID] = struct{}{}
+}
+
+// CompendiumEquipmentIDCleared returns if the "compendium_equipment_id" field was cleared in this mutation.
+func (m *InventoryItemMutation) CompendiumEquipmentIDCleared() bool {
+	_, ok := m.clearedFields[inventoryitem.FieldCompendiumEquipmentID]
+	return ok
+}
+
+// ResetCompendiumEquipmentID resets all changes to the "compendium_equipment_id" field.
+func (m *InventoryItemMutation) ResetCompendiumEquipmentID() {
+	m.compendium_equipment_id = nil
+	m.addcompendium_equipment_id = nil
+	delete(m.clearedFields, inventoryitem.FieldCompendiumEquipmentID)
+}
+
 // ClearCharacter clears the "character" edge to the Character entity.
 func (m *InventoryItemMutation) ClearCharacter() {
 	m.clearedcharacter = true
@@ -43748,7 +43876,7 @@ func (m *InventoryItemMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *InventoryItemMutation) Fields() []string {
-	fields := make([]string, 0, 16)
+	fields := make([]string, 0, 17)
 	if m.character != nil {
 		fields = append(fields, inventoryitem.FieldCharacterID)
 	}
@@ -43797,6 +43925,9 @@ func (m *InventoryItemMutation) Fields() []string {
 	if m.notes != nil {
 		fields = append(fields, inventoryitem.FieldNotes)
 	}
+	if m.compendium_equipment_id != nil {
+		fields = append(fields, inventoryitem.FieldCompendiumEquipmentID)
+	}
 	return fields
 }
 
@@ -43837,6 +43968,8 @@ func (m *InventoryItemMutation) Field(name string) (ent.Value, bool) {
 		return m.IsIdentified()
 	case inventoryitem.FieldNotes:
 		return m.Notes()
+	case inventoryitem.FieldCompendiumEquipmentID:
+		return m.CompendiumEquipmentID()
 	}
 	return nil, false
 }
@@ -43878,6 +44011,8 @@ func (m *InventoryItemMutation) OldField(ctx context.Context, name string) (ent.
 		return m.OldIsIdentified(ctx)
 	case inventoryitem.FieldNotes:
 		return m.OldNotes(ctx)
+	case inventoryitem.FieldCompendiumEquipmentID:
+		return m.OldCompendiumEquipmentID(ctx)
 	}
 	return nil, fmt.Errorf("unknown InventoryItem field %s", name)
 }
@@ -43999,6 +44134,13 @@ func (m *InventoryItemMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetNotes(v)
 		return nil
+	case inventoryitem.FieldCompendiumEquipmentID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCompendiumEquipmentID(v)
+		return nil
 	}
 	return fmt.Errorf("unknown InventoryItem field %s", name)
 }
@@ -44016,6 +44158,9 @@ func (m *InventoryItemMutation) AddedFields() []string {
 	if m.addac_bonus != nil {
 		fields = append(fields, inventoryitem.FieldAcBonus)
 	}
+	if m.addcompendium_equipment_id != nil {
+		fields = append(fields, inventoryitem.FieldCompendiumEquipmentID)
+	}
 	return fields
 }
 
@@ -44030,6 +44175,8 @@ func (m *InventoryItemMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedWeight()
 	case inventoryitem.FieldAcBonus:
 		return m.AddedAcBonus()
+	case inventoryitem.FieldCompendiumEquipmentID:
+		return m.AddedCompendiumEquipmentID()
 	}
 	return nil, false
 }
@@ -44060,6 +44207,13 @@ func (m *InventoryItemMutation) AddField(name string, value ent.Value) error {
 		}
 		m.AddAcBonus(v)
 		return nil
+	case inventoryitem.FieldCompendiumEquipmentID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCompendiumEquipmentID(v)
+		return nil
 	}
 	return fmt.Errorf("unknown InventoryItem numeric field %s", name)
 }
@@ -44067,7 +44221,11 @@ func (m *InventoryItemMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *InventoryItemMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(inventoryitem.FieldCompendiumEquipmentID) {
+		fields = append(fields, inventoryitem.FieldCompendiumEquipmentID)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -44080,6 +44238,11 @@ func (m *InventoryItemMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *InventoryItemMutation) ClearField(name string) error {
+	switch name {
+	case inventoryitem.FieldCompendiumEquipmentID:
+		m.ClearCompendiumEquipmentID()
+		return nil
+	}
 	return fmt.Errorf("unknown InventoryItem nullable field %s", name)
 }
 
@@ -44134,6 +44297,9 @@ func (m *InventoryItemMutation) ResetField(name string) error {
 		return nil
 	case inventoryitem.FieldNotes:
 		m.ResetNotes()
+		return nil
+	case inventoryitem.FieldCompendiumEquipmentID:
+		m.ResetCompendiumEquipmentID()
 		return nil
 	}
 	return fmt.Errorf("unknown InventoryItem field %s", name)
@@ -48717,6 +48883,414 @@ func (m *NPCMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown NPC edge %s", name)
+}
+
+// OTelSettingMutation represents an operation that mutates the OTelSetting nodes in the graph.
+type OTelSettingMutation struct {
+	config
+	op            Op
+	typ           string
+	id            *int64
+	endpoint      *string
+	enabled       *bool
+	clearedFields map[string]struct{}
+	done          bool
+	oldValue      func(context.Context) (*OTelSetting, error)
+	predicates    []predicate.OTelSetting
+}
+
+var _ ent.Mutation = (*OTelSettingMutation)(nil)
+
+// otelsettingOption allows management of the mutation configuration using functional options.
+type otelsettingOption func(*OTelSettingMutation)
+
+// newOTelSettingMutation creates new mutation for the OTelSetting entity.
+func newOTelSettingMutation(c config, op Op, opts ...otelsettingOption) *OTelSettingMutation {
+	m := &OTelSettingMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeOTelSetting,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withOTelSettingID sets the ID field of the mutation.
+func withOTelSettingID(id int64) otelsettingOption {
+	return func(m *OTelSettingMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *OTelSetting
+		)
+		m.oldValue = func(ctx context.Context) (*OTelSetting, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().OTelSetting.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withOTelSetting sets the old OTelSetting of the mutation.
+func withOTelSetting(node *OTelSetting) otelsettingOption {
+	return func(m *OTelSettingMutation) {
+		m.oldValue = func(context.Context) (*OTelSetting, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m OTelSettingMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m OTelSettingMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of OTelSetting entities.
+func (m *OTelSettingMutation) SetID(id int64) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *OTelSettingMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *OTelSettingMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().OTelSetting.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetEndpoint sets the "endpoint" field.
+func (m *OTelSettingMutation) SetEndpoint(s string) {
+	m.endpoint = &s
+}
+
+// Endpoint returns the value of the "endpoint" field in the mutation.
+func (m *OTelSettingMutation) Endpoint() (r string, exists bool) {
+	v := m.endpoint
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEndpoint returns the old "endpoint" field's value of the OTelSetting entity.
+// If the OTelSetting object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OTelSettingMutation) OldEndpoint(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEndpoint is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEndpoint requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEndpoint: %w", err)
+	}
+	return oldValue.Endpoint, nil
+}
+
+// ClearEndpoint clears the value of the "endpoint" field.
+func (m *OTelSettingMutation) ClearEndpoint() {
+	m.endpoint = nil
+	m.clearedFields[otelsetting.FieldEndpoint] = struct{}{}
+}
+
+// EndpointCleared returns if the "endpoint" field was cleared in this mutation.
+func (m *OTelSettingMutation) EndpointCleared() bool {
+	_, ok := m.clearedFields[otelsetting.FieldEndpoint]
+	return ok
+}
+
+// ResetEndpoint resets all changes to the "endpoint" field.
+func (m *OTelSettingMutation) ResetEndpoint() {
+	m.endpoint = nil
+	delete(m.clearedFields, otelsetting.FieldEndpoint)
+}
+
+// SetEnabled sets the "enabled" field.
+func (m *OTelSettingMutation) SetEnabled(b bool) {
+	m.enabled = &b
+}
+
+// Enabled returns the value of the "enabled" field in the mutation.
+func (m *OTelSettingMutation) Enabled() (r bool, exists bool) {
+	v := m.enabled
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldEnabled returns the old "enabled" field's value of the OTelSetting entity.
+// If the OTelSetting object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OTelSettingMutation) OldEnabled(ctx context.Context) (v bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldEnabled is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldEnabled requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldEnabled: %w", err)
+	}
+	return oldValue.Enabled, nil
+}
+
+// ResetEnabled resets all changes to the "enabled" field.
+func (m *OTelSettingMutation) ResetEnabled() {
+	m.enabled = nil
+}
+
+// Where appends a list predicates to the OTelSettingMutation builder.
+func (m *OTelSettingMutation) Where(ps ...predicate.OTelSetting) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the OTelSettingMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *OTelSettingMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.OTelSetting, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *OTelSettingMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *OTelSettingMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (OTelSetting).
+func (m *OTelSettingMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *OTelSettingMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.endpoint != nil {
+		fields = append(fields, otelsetting.FieldEndpoint)
+	}
+	if m.enabled != nil {
+		fields = append(fields, otelsetting.FieldEnabled)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *OTelSettingMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case otelsetting.FieldEndpoint:
+		return m.Endpoint()
+	case otelsetting.FieldEnabled:
+		return m.Enabled()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *OTelSettingMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case otelsetting.FieldEndpoint:
+		return m.OldEndpoint(ctx)
+	case otelsetting.FieldEnabled:
+		return m.OldEnabled(ctx)
+	}
+	return nil, fmt.Errorf("unknown OTelSetting field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *OTelSettingMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case otelsetting.FieldEndpoint:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEndpoint(v)
+		return nil
+	case otelsetting.FieldEnabled:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetEnabled(v)
+		return nil
+	}
+	return fmt.Errorf("unknown OTelSetting field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *OTelSettingMutation) AddedFields() []string {
+	return nil
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *OTelSettingMutation) AddedField(name string) (ent.Value, bool) {
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *OTelSettingMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown OTelSetting numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *OTelSettingMutation) ClearedFields() []string {
+	var fields []string
+	if m.FieldCleared(otelsetting.FieldEndpoint) {
+		fields = append(fields, otelsetting.FieldEndpoint)
+	}
+	return fields
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *OTelSettingMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *OTelSettingMutation) ClearField(name string) error {
+	switch name {
+	case otelsetting.FieldEndpoint:
+		m.ClearEndpoint()
+		return nil
+	}
+	return fmt.Errorf("unknown OTelSetting nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *OTelSettingMutation) ResetField(name string) error {
+	switch name {
+	case otelsetting.FieldEndpoint:
+		m.ResetEndpoint()
+		return nil
+	case otelsetting.FieldEnabled:
+		m.ResetEnabled()
+		return nil
+	}
+	return fmt.Errorf("unknown OTelSetting field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *OTelSettingMutation) AddedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *OTelSettingMutation) AddedIDs(name string) []ent.Value {
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *OTelSettingMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *OTelSettingMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *OTelSettingMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 0)
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *OTelSettingMutation) EdgeCleared(name string) bool {
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *OTelSettingMutation) ClearEdge(name string) error {
+	return fmt.Errorf("unknown OTelSetting unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *OTelSettingMutation) ResetEdge(name string) error {
+	return fmt.Errorf("unknown OTelSetting edge %s", name)
 }
 
 // OneShotActMutation represents an operation that mutates the OneShotAct nodes in the graph.
@@ -62519,28 +63093,30 @@ func (m *ShopTransactionMutation) ResetEdge(name string) error {
 // SpellMutation represents an operation that mutates the Spell nodes in the graph.
 type SpellMutation struct {
 	config
-	op               Op
-	typ              string
-	id               *int64
-	name             *string
-	level            *int
-	addlevel         *int
-	school           *string
-	casting_time     *string
-	_range           *string
-	components       *string
-	duration         *string
-	description      *string
-	prepared         *bool
-	always_prepared  *bool
-	source           *string
-	notes            *string
-	clearedFields    map[string]struct{}
-	character        *int64
-	clearedcharacter bool
-	done             bool
-	oldValue         func(context.Context) (*Spell, error)
-	predicates       []predicate.Spell
+	op                     Op
+	typ                    string
+	id                     *int64
+	name                   *string
+	level                  *int
+	addlevel               *int
+	school                 *string
+	casting_time           *string
+	_range                 *string
+	components             *string
+	duration               *string
+	description            *string
+	prepared               *bool
+	always_prepared        *bool
+	source                 *string
+	notes                  *string
+	compendium_spell_id    *int64
+	addcompendium_spell_id *int64
+	clearedFields          map[string]struct{}
+	character              *int64
+	clearedcharacter       bool
+	done                   bool
+	oldValue               func(context.Context) (*Spell, error)
+	predicates             []predicate.Spell
 }
 
 var _ ent.Mutation = (*SpellMutation)(nil)
@@ -63135,6 +63711,76 @@ func (m *SpellMutation) ResetNotes() {
 	m.notes = nil
 }
 
+// SetCompendiumSpellID sets the "compendium_spell_id" field.
+func (m *SpellMutation) SetCompendiumSpellID(i int64) {
+	m.compendium_spell_id = &i
+	m.addcompendium_spell_id = nil
+}
+
+// CompendiumSpellID returns the value of the "compendium_spell_id" field in the mutation.
+func (m *SpellMutation) CompendiumSpellID() (r int64, exists bool) {
+	v := m.compendium_spell_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCompendiumSpellID returns the old "compendium_spell_id" field's value of the Spell entity.
+// If the Spell object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *SpellMutation) OldCompendiumSpellID(ctx context.Context) (v *int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCompendiumSpellID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCompendiumSpellID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCompendiumSpellID: %w", err)
+	}
+	return oldValue.CompendiumSpellID, nil
+}
+
+// AddCompendiumSpellID adds i to the "compendium_spell_id" field.
+func (m *SpellMutation) AddCompendiumSpellID(i int64) {
+	if m.addcompendium_spell_id != nil {
+		*m.addcompendium_spell_id += i
+	} else {
+		m.addcompendium_spell_id = &i
+	}
+}
+
+// AddedCompendiumSpellID returns the value that was added to the "compendium_spell_id" field in this mutation.
+func (m *SpellMutation) AddedCompendiumSpellID() (r int64, exists bool) {
+	v := m.addcompendium_spell_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearCompendiumSpellID clears the value of the "compendium_spell_id" field.
+func (m *SpellMutation) ClearCompendiumSpellID() {
+	m.compendium_spell_id = nil
+	m.addcompendium_spell_id = nil
+	m.clearedFields[spell.FieldCompendiumSpellID] = struct{}{}
+}
+
+// CompendiumSpellIDCleared returns if the "compendium_spell_id" field was cleared in this mutation.
+func (m *SpellMutation) CompendiumSpellIDCleared() bool {
+	_, ok := m.clearedFields[spell.FieldCompendiumSpellID]
+	return ok
+}
+
+// ResetCompendiumSpellID resets all changes to the "compendium_spell_id" field.
+func (m *SpellMutation) ResetCompendiumSpellID() {
+	m.compendium_spell_id = nil
+	m.addcompendium_spell_id = nil
+	delete(m.clearedFields, spell.FieldCompendiumSpellID)
+}
+
 // ClearCharacter clears the "character" edge to the Character entity.
 func (m *SpellMutation) ClearCharacter() {
 	m.clearedcharacter = true
@@ -63196,7 +63842,7 @@ func (m *SpellMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *SpellMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 14)
 	if m.character != nil {
 		fields = append(fields, spell.FieldCharacterID)
 	}
@@ -63236,6 +63882,9 @@ func (m *SpellMutation) Fields() []string {
 	if m.notes != nil {
 		fields = append(fields, spell.FieldNotes)
 	}
+	if m.compendium_spell_id != nil {
+		fields = append(fields, spell.FieldCompendiumSpellID)
+	}
 	return fields
 }
 
@@ -63270,6 +63919,8 @@ func (m *SpellMutation) Field(name string) (ent.Value, bool) {
 		return m.Source()
 	case spell.FieldNotes:
 		return m.Notes()
+	case spell.FieldCompendiumSpellID:
+		return m.CompendiumSpellID()
 	}
 	return nil, false
 }
@@ -63305,6 +63956,8 @@ func (m *SpellMutation) OldField(ctx context.Context, name string) (ent.Value, e
 		return m.OldSource(ctx)
 	case spell.FieldNotes:
 		return m.OldNotes(ctx)
+	case spell.FieldCompendiumSpellID:
+		return m.OldCompendiumSpellID(ctx)
 	}
 	return nil, fmt.Errorf("unknown Spell field %s", name)
 }
@@ -63405,6 +64058,13 @@ func (m *SpellMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetNotes(v)
 		return nil
+	case spell.FieldCompendiumSpellID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCompendiumSpellID(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Spell field %s", name)
 }
@@ -63416,6 +64076,9 @@ func (m *SpellMutation) AddedFields() []string {
 	if m.addlevel != nil {
 		fields = append(fields, spell.FieldLevel)
 	}
+	if m.addcompendium_spell_id != nil {
+		fields = append(fields, spell.FieldCompendiumSpellID)
+	}
 	return fields
 }
 
@@ -63426,6 +64089,8 @@ func (m *SpellMutation) AddedField(name string) (ent.Value, bool) {
 	switch name {
 	case spell.FieldLevel:
 		return m.AddedLevel()
+	case spell.FieldCompendiumSpellID:
+		return m.AddedCompendiumSpellID()
 	}
 	return nil, false
 }
@@ -63442,6 +64107,13 @@ func (m *SpellMutation) AddField(name string, value ent.Value) error {
 		}
 		m.AddLevel(v)
 		return nil
+	case spell.FieldCompendiumSpellID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCompendiumSpellID(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Spell numeric field %s", name)
 }
@@ -63449,7 +64121,11 @@ func (m *SpellMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *SpellMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(spell.FieldCompendiumSpellID) {
+		fields = append(fields, spell.FieldCompendiumSpellID)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -63462,6 +64138,11 @@ func (m *SpellMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *SpellMutation) ClearField(name string) error {
+	switch name {
+	case spell.FieldCompendiumSpellID:
+		m.ClearCompendiumSpellID()
+		return nil
+	}
 	return fmt.Errorf("unknown Spell nullable field %s", name)
 }
 
@@ -63507,6 +64188,9 @@ func (m *SpellMutation) ResetField(name string) error {
 		return nil
 	case spell.FieldNotes:
 		m.ResetNotes()
+		return nil
+	case spell.FieldCompendiumSpellID:
+		m.ResetCompendiumSpellID()
 		return nil
 	}
 	return fmt.Errorf("unknown Spell field %s", name)

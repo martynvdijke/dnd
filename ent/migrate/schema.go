@@ -364,6 +364,7 @@ var (
 		{Name: "exhaustion_level", Type: field.TypeInt, Default: 0},
 		{Name: "concentrating_on", Type: field.TypeString, Default: ""},
 		{Name: "campaign_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "character_type", Type: field.TypeString, Default: "player"},
 		{Name: "created_at", Type: field.TypeString, Default: ""},
 		{Name: "updated_at", Type: field.TypeString, Default: ""},
 		{Name: "user_id", Type: field.TypeInt64},
@@ -376,7 +377,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "characters_users_characters",
-				Columns:    []*schema.Column{CharactersColumns[42]},
+				Columns:    []*schema.Column{CharactersColumns[43]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -385,7 +386,7 @@ var (
 			{
 				Name:    "character_user_id",
 				Unique:  false,
-				Columns: []*schema.Column{CharactersColumns[42]},
+				Columns: []*schema.Column{CharactersColumns[43]},
 			},
 		},
 	}
@@ -1346,6 +1347,7 @@ var (
 		{Name: "attunement", Type: field.TypeBool, Default: false},
 		{Name: "is_identified", Type: field.TypeBool, Default: false},
 		{Name: "notes", Type: field.TypeString, Default: ""},
+		{Name: "compendium_equipment_id", Type: field.TypeInt64, Nullable: true},
 		{Name: "character_id", Type: field.TypeInt64},
 	}
 	// InventoryTable holds the schema information for the "inventory" table.
@@ -1356,7 +1358,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "inventory_characters_inventory",
-				Columns:    []*schema.Column{InventoryColumns[16]},
+				Columns:    []*schema.Column{InventoryColumns[17]},
 				RefColumns: []*schema.Column{CharactersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -1365,7 +1367,7 @@ var (
 			{
 				Name:    "inventoryitem_character_id",
 				Unique:  false,
-				Columns: []*schema.Column{InventoryColumns[16]},
+				Columns: []*schema.Column{InventoryColumns[17]},
 			},
 		},
 	}
@@ -1523,6 +1525,18 @@ var (
 				Columns: []*schema.Column{NpcsColumns[25]},
 			},
 		},
+	}
+	// OtelSettingsColumns holds the columns for the "otel_settings" table.
+	OtelSettingsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "endpoint", Type: field.TypeString, Nullable: true},
+		{Name: "enabled", Type: field.TypeBool, Default: false},
+	}
+	// OtelSettingsTable holds the schema information for the "otel_settings" table.
+	OtelSettingsTable = &schema.Table{
+		Name:       "otel_settings",
+		Columns:    OtelSettingsColumns,
+		PrimaryKey: []*schema.Column{OtelSettingsColumns[0]},
 	}
 	// OneshotActsColumns holds the columns for the "oneshot_acts" table.
 	OneshotActsColumns = []*schema.Column{
@@ -2060,6 +2074,7 @@ var (
 		{Name: "always_prepared", Type: field.TypeBool, Default: false},
 		{Name: "source", Type: field.TypeString, Default: ""},
 		{Name: "notes", Type: field.TypeString, Default: ""},
+		{Name: "compendium_spell_id", Type: field.TypeInt64, Nullable: true},
 		{Name: "character_id", Type: field.TypeInt64},
 	}
 	// SpellsTable holds the schema information for the "spells" table.
@@ -2070,7 +2085,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "spells_characters_spells",
-				Columns:    []*schema.Column{SpellsColumns[13]},
+				Columns:    []*schema.Column{SpellsColumns[14]},
 				RefColumns: []*schema.Column{CharactersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -2079,7 +2094,7 @@ var (
 			{
 				Name:    "spell_character_id",
 				Unique:  false,
-				Columns: []*schema.Column{SpellsColumns[13]},
+				Columns: []*schema.Column{SpellsColumns[14]},
 			},
 		},
 	}
@@ -2207,6 +2222,7 @@ var (
 		LevelUpPlansTable,
 		LocationsTable,
 		NpcsTable,
+		OtelSettingsTable,
 		OneshotActsTable,
 		OneshotActNpcsTable,
 		OneshotAdventuresTable,

@@ -27,6 +27,7 @@ func (Spell) Fields() []ent.Field {
 		field.Bool("always_prepared").Default(false),
 		field.String("source").Default(""),
 		field.String("notes").Default(""),
+		field.Int64("compendium_spell_id").Optional().Nillable(),
 	}
 }
 

@@ -49,6 +49,10 @@ func GetLevelUpPlan(c *gin.Context) {
 
 func SaveLevelUpPlan(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditCharacterID(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var plan LevelUpPlan
 	if err := c.ShouldBindJSON(&plan); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -80,6 +84,10 @@ func SaveLevelUpPlan(c *gin.Context) {
 
 func DeleteLevelUpPlan(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditCharacterID(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("DELETE FROM level_up_plans WHERE character_id=?", charID)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

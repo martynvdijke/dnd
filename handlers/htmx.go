@@ -221,6 +221,10 @@ func HtmxEditNoteForm(c *gin.Context) {
 
 func HtmxCreateNote(c *gin.Context) {
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	title := c.PostForm("title")
 	content := c.PostForm("content")
 	visibility := c.PostForm("visibility")
@@ -236,6 +240,10 @@ func HtmxCreateNote(c *gin.Context) {
 func HtmxUpdateNote(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	title := c.PostForm("title")
 	content := c.PostForm("content")
 	visibility := c.PostForm("visibility")
@@ -303,6 +311,10 @@ func HtmxEditFeatForm(c *gin.Context) {
 
 func HtmxCreateFeat(c *gin.Context) {
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	if name := c.PostForm("name"); name == "" {
 		c.String(http.StatusBadRequest, "name required")
 		return
@@ -316,6 +328,10 @@ func HtmxCreateFeat(c *gin.Context) {
 func HtmxUpdateFeat(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	db.DB.Exec("UPDATE character_feats SET name=?, description=?, prerequisites=?, source=?, level_gained=? WHERE id=?",
 		c.PostForm("name"), c.PostForm("description"), c.PostForm("prerequisites"), c.PostForm("source"), getIntParam(c, "level_gained", 1), id)
 	c.Request.URL.RawQuery = "character_id=" + charID
@@ -380,6 +396,10 @@ func HtmxEditConditionForm(c *gin.Context) {
 
 func HtmxCreateCondition(c *gin.Context) {
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	name := c.PostForm("name")
 	if name == "" {
 		c.String(http.StatusBadRequest, "name required")
@@ -395,6 +415,10 @@ func HtmxCreateCondition(c *gin.Context) {
 func HtmxUpdateCondition(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	db.DB.Exec("UPDATE character_conditions SET name=?, type=?, source=?, duration=?, duration_type=?, saving_throw=?, save_dc=?, description=? WHERE id=?",
 		c.PostForm("name"), c.PostForm("type"), c.PostForm("source"), getIntParam(c, "duration", 0), c.PostForm("duration_type"), c.PostForm("saving_throw"), getIntParam(c, "save_dc", 0), c.PostForm("description"), id)
 	c.Request.URL.RawQuery = "character_id=" + charID
@@ -468,6 +492,10 @@ func HtmxEditCompanionForm(c *gin.Context) {
 
 func HtmxCreateCompanion(c *gin.Context) {
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	name := c.PostForm("name")
 	if name == "" {
 		c.String(http.StatusBadRequest, "name required")
@@ -490,6 +518,10 @@ func HtmxCreateCompanion(c *gin.Context) {
 func HtmxUpdateCompanion(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	isAlive := 0
 	if c.PostForm("is_alive") == "true" {
 		isAlive = 1
@@ -563,6 +595,10 @@ func HtmxNewFeatureForm(c *gin.Context) {
 
 func HtmxCreateFeature(c *gin.Context) {
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	db.DB.Exec("INSERT INTO character_features(character_id,name,description,source,level_gained) VALUES(?,?,?,?,?)",
 		charID, c.PostForm("name"), c.PostForm("description"), c.PostForm("source"), getIntParam(c, "level_gained", 1))
 	c.Request.URL.RawQuery = "character_id=" + charID
@@ -588,6 +624,10 @@ func HtmxNewProficiencyForm(c *gin.Context) {
 
 func HtmxCreateProficiency(c *gin.Context) {
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	db.DB.Exec("INSERT INTO character_proficiencies(character_id,type,name) VALUES(?,?,?)",
 		charID, c.PostForm("type"), c.PostForm("name"))
 	c.Request.URL.RawQuery = "character_id=" + charID
@@ -657,6 +697,10 @@ func HtmxEditInventoryForm(c *gin.Context) {
 
 func HtmxCreateInventory(c *gin.Context) {
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	db.DB.Exec("INSERT INTO inventory(character_id,name,description,quantity,weight,category) VALUES(?,?,?,?,?,?)",
 		charID, c.PostForm("name"), c.PostForm("description"), getIntParam(c, "quantity", 1), getFloatParam(c, "weight", 0), c.PostForm("category"))
 	c.Request.URL.RawQuery = "character_id=" + charID
@@ -666,6 +710,10 @@ func HtmxCreateInventory(c *gin.Context) {
 func HtmxUpdateInventory(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	db.DB.Exec("UPDATE inventory SET name=?, description=?, quantity=?, weight=?, category=? WHERE id=?",
 		c.PostForm("name"), c.PostForm("description"), getIntParam(c, "quantity", 1), getFloatParam(c, "weight", 0), c.PostForm("category"), id)
 	c.Request.URL.RawQuery = "character_id=" + charID
@@ -735,6 +783,10 @@ func HtmxEditSpellForm(c *gin.Context) {
 
 func HtmxCreateSpell(c *gin.Context) {
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	db.DB.Exec("INSERT INTO spells(character_id,name,level,school,casting_time,range,components,duration,description) VALUES(?,?,?,?,?,?,?,?,?)",
 		charID, c.PostForm("name"), getIntParam(c, "level", 0), c.PostForm("school"), c.PostForm("casting_time"), c.PostForm("range"), c.PostForm("components"), c.PostForm("duration"), c.PostForm("description"))
 	c.Request.URL.RawQuery = "character_id=" + charID
@@ -744,6 +796,10 @@ func HtmxCreateSpell(c *gin.Context) {
 func HtmxUpdateSpell(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	db.DB.Exec("UPDATE spells SET name=?, level=?, school=?, casting_time=?, range=?, components=?, duration=?, description=? WHERE id=?",
 		c.PostForm("name"), getIntParam(c, "level", 0), c.PostForm("school"), c.PostForm("casting_time"), c.PostForm("range"), c.PostForm("components"), c.PostForm("duration"), c.PostForm("description"), id)
 	c.Request.URL.RawQuery = "character_id=" + charID
@@ -836,6 +892,10 @@ func HtmxLinkNPCForm(c *gin.Context) {
 
 func HtmxCreateNPC(c *gin.Context) {
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	userID, _ := c.Get("user_id")
 	name := c.PostForm("name")
 	if name == "" {
@@ -855,6 +915,10 @@ func HtmxCreateNPC(c *gin.Context) {
 
 func HtmxLinkNPC(c *gin.Context) {
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	npcID := c.PostForm("npc_id")
 	if npcID != "" {
 		db.DB.Exec("INSERT INTO character_npcs(character_id,npc_id) VALUES(?,?)", charID, npcID)
@@ -941,6 +1005,10 @@ func HtmxLinkLocationForm(c *gin.Context) {
 
 func HtmxCreateLocation(c *gin.Context) {
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	userID, _ := c.Get("user_id")
 	name := c.PostForm("name")
 	if name == "" {
@@ -959,6 +1027,10 @@ func HtmxCreateLocation(c *gin.Context) {
 
 func HtmxLinkLocation(c *gin.Context) {
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	locID := c.PostForm("location_id")
 	if locID != "" {
 		db.DB.Exec("INSERT INTO character_locations(character_id,location_id) VALUES(?,?)", charID, locID)
@@ -1026,6 +1098,10 @@ func HtmxEditSessionForm(c *gin.Context) {
 
 func HtmxCreateSession(c *gin.Context) {
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	db.DB.Exec("INSERT INTO sessions(character_id,session_date,title,notes,xp_earned,gold_earned,important_events) VALUES(?,?,?,?,?,?,?)",
 		charID, c.PostForm("session_date"), c.PostForm("title"), c.PostForm("notes"), getIntParam(c, "xp_earned", 0), getIntParam(c, "gold_earned", 0), c.PostForm("important_events"))
 	c.Request.URL.RawQuery = "character_id=" + charID
@@ -1035,6 +1111,10 @@ func HtmxCreateSession(c *gin.Context) {
 func HtmxUpdateSession(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	db.DB.Exec("UPDATE sessions SET session_date=?, title=?, notes=?, xp_earned=?, gold_earned=?, important_events=? WHERE id=?",
 		c.PostForm("session_date"), c.PostForm("title"), c.PostForm("notes"), getIntParam(c, "xp_earned", 0), getIntParam(c, "gold_earned", 0), c.PostForm("important_events"), id)
 	c.Request.URL.RawQuery = "character_id=" + charID
@@ -1100,6 +1180,10 @@ func HtmxEditQuestForm(c *gin.Context) {
 
 func HtmxCreateQuest(c *gin.Context) {
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	status := c.PostForm("status")
 	if status == "" {
 		status = "active"
@@ -1113,6 +1197,10 @@ func HtmxCreateQuest(c *gin.Context) {
 func HtmxUpdateQuest(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	status := c.PostForm("status")
 	if status == "" {
 		status = "active"
@@ -1182,6 +1270,10 @@ func HtmxEditJournalForm(c *gin.Context) {
 
 func HtmxCreateJournal(c *gin.Context) {
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	db.DB.Exec("INSERT INTO journal(character_id,title,entry,entry_date) VALUES(?,?,?,?)",
 		charID, c.PostForm("title"), c.PostForm("entry"), c.PostForm("entry_date"))
 	c.Request.URL.RawQuery = "character_id=" + charID
@@ -1191,6 +1283,10 @@ func HtmxCreateJournal(c *gin.Context) {
 func HtmxUpdateJournal(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
 	db.DB.Exec("UPDATE journal SET title=?, entry=?, entry_date=? WHERE id=?",
 		c.PostForm("title"), c.PostForm("entry"), c.PostForm("entry_date"), id)
 	c.Request.URL.RawQuery = "character_id=" + charID

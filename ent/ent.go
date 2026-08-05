@@ -59,6 +59,7 @@ import (
 	"villum/ent/oneshotadventureencounter"
 	"villum/ent/oneshotitem"
 	"villum/ent/oneshotscene"
+	"villum/ent/otelsetting"
 	"villum/ent/partyitem"
 	"villum/ent/quest"
 	"villum/ent/restlog"
@@ -181,6 +182,7 @@ func checkColumn(t, c string) error {
 			levelupplan.Table:               levelupplan.ValidColumn,
 			location.Table:                  location.ValidColumn,
 			npc.Table:                       npc.ValidColumn,
+			otelsetting.Table:               otelsetting.ValidColumn,
 			oneshotact.Table:                oneshotact.ValidColumn,
 			oneshotactnpc.Table:             oneshotactnpc.ValidColumn,
 			oneshotadventure.Table:          oneshotadventure.ValidColumn,

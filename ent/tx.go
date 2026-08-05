@@ -102,6 +102,8 @@ type Tx struct {
 	Location *LocationClient
 	// NPC is the client for interacting with the NPC builders.
 	NPC *NPCClient
+	// OTelSetting is the client for interacting with the OTelSetting builders.
+	OTelSetting *OTelSettingClient
 	// OneShotAct is the client for interacting with the OneShotAct builders.
 	OneShotAct *OneShotActClient
 	// OneShotActNPC is the client for interacting with the OneShotActNPC builders.
@@ -316,6 +318,7 @@ func (tx *Tx) init() {
 	tx.LevelUpPlan = NewLevelUpPlanClient(tx.config)
 	tx.Location = NewLocationClient(tx.config)
 	tx.NPC = NewNPCClient(tx.config)
+	tx.OTelSetting = NewOTelSettingClient(tx.config)
 	tx.OneShotAct = NewOneShotActClient(tx.config)
 	tx.OneShotActNPC = NewOneShotActNPCClient(tx.config)
 	tx.OneShotAdventure = NewOneShotAdventureClient(tx.config)

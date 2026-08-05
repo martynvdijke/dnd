@@ -217,6 +217,33 @@ func (_u *SpellUpdate) SetNillableNotes(v *string) *SpellUpdate {
 	return _u
 }
 
+// SetCompendiumSpellID sets the "compendium_spell_id" field.
+func (_u *SpellUpdate) SetCompendiumSpellID(v int64) *SpellUpdate {
+	_u.mutation.ResetCompendiumSpellID()
+	_u.mutation.SetCompendiumSpellID(v)
+	return _u
+}
+
+// SetNillableCompendiumSpellID sets the "compendium_spell_id" field if the given value is not nil.
+func (_u *SpellUpdate) SetNillableCompendiumSpellID(v *int64) *SpellUpdate {
+	if v != nil {
+		_u.SetCompendiumSpellID(*v)
+	}
+	return _u
+}
+
+// AddCompendiumSpellID adds value to the "compendium_spell_id" field.
+func (_u *SpellUpdate) AddCompendiumSpellID(v int64) *SpellUpdate {
+	_u.mutation.AddCompendiumSpellID(v)
+	return _u
+}
+
+// ClearCompendiumSpellID clears the value of the "compendium_spell_id" field.
+func (_u *SpellUpdate) ClearCompendiumSpellID() *SpellUpdate {
+	_u.mutation.ClearCompendiumSpellID()
+	return _u
+}
+
 // SetCharacter sets the "character" edge to the Character entity.
 func (_u *SpellUpdate) SetCharacter(v *Character) *SpellUpdate {
 	return _u.SetCharacterID(v.ID)
@@ -318,6 +345,15 @@ func (_u *SpellUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(spell.FieldNotes, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.CompendiumSpellID(); ok {
+		_spec.SetField(spell.FieldCompendiumSpellID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedCompendiumSpellID(); ok {
+		_spec.AddField(spell.FieldCompendiumSpellID, field.TypeInt64, value)
+	}
+	if _u.mutation.CompendiumSpellIDCleared() {
+		_spec.ClearField(spell.FieldCompendiumSpellID, field.TypeInt64)
 	}
 	if _u.mutation.CharacterCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -557,6 +593,33 @@ func (_u *SpellUpdateOne) SetNillableNotes(v *string) *SpellUpdateOne {
 	return _u
 }
 
+// SetCompendiumSpellID sets the "compendium_spell_id" field.
+func (_u *SpellUpdateOne) SetCompendiumSpellID(v int64) *SpellUpdateOne {
+	_u.mutation.ResetCompendiumSpellID()
+	_u.mutation.SetCompendiumSpellID(v)
+	return _u
+}
+
+// SetNillableCompendiumSpellID sets the "compendium_spell_id" field if the given value is not nil.
+func (_u *SpellUpdateOne) SetNillableCompendiumSpellID(v *int64) *SpellUpdateOne {
+	if v != nil {
+		_u.SetCompendiumSpellID(*v)
+	}
+	return _u
+}
+
+// AddCompendiumSpellID adds value to the "compendium_spell_id" field.
+func (_u *SpellUpdateOne) AddCompendiumSpellID(v int64) *SpellUpdateOne {
+	_u.mutation.AddCompendiumSpellID(v)
+	return _u
+}
+
+// ClearCompendiumSpellID clears the value of the "compendium_spell_id" field.
+func (_u *SpellUpdateOne) ClearCompendiumSpellID() *SpellUpdateOne {
+	_u.mutation.ClearCompendiumSpellID()
+	return _u
+}
+
 // SetCharacter sets the "character" edge to the Character entity.
 func (_u *SpellUpdateOne) SetCharacter(v *Character) *SpellUpdateOne {
 	return _u.SetCharacterID(v.ID)
@@ -688,6 +751,15 @@ func (_u *SpellUpdateOne) sqlSave(ctx context.Context) (_node *Spell, err error)
 	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(spell.FieldNotes, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.CompendiumSpellID(); ok {
+		_spec.SetField(spell.FieldCompendiumSpellID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedCompendiumSpellID(); ok {
+		_spec.AddField(spell.FieldCompendiumSpellID, field.TypeInt64, value)
+	}
+	if _u.mutation.CompendiumSpellIDCleared() {
+		_spec.ClearField(spell.FieldCompendiumSpellID, field.TypeInt64)
 	}
 	if _u.mutation.CharacterCleared() {
 		edge := &sqlgraph.EdgeSpec{

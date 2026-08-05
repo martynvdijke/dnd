@@ -548,6 +548,18 @@ func (f NPCFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) 
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.NPCMutation", m)
 }
 
+// The OTelSettingFunc type is an adapter to allow the use of ordinary
+// function as OTelSetting mutator.
+type OTelSettingFunc func(context.Context, *ent.OTelSettingMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f OTelSettingFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.OTelSettingMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.OTelSettingMutation", m)
+}
+
 // The OneShotActFunc type is an adapter to allow the use of ordinary
 // function as OneShotAct mutator.
 type OneShotActFunc func(context.Context, *ent.OneShotActMutation) (ent.Value, error)

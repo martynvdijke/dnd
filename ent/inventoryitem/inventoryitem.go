@@ -44,6 +44,8 @@ const (
 	FieldIsIdentified = "is_identified"
 	// FieldNotes holds the string denoting the notes field in the database.
 	FieldNotes = "notes"
+	// FieldCompendiumEquipmentID holds the string denoting the compendium_equipment_id field in the database.
+	FieldCompendiumEquipmentID = "compendium_equipment_id"
 	// EdgeCharacter holds the string denoting the character edge name in mutations.
 	EdgeCharacter = "character"
 	// Table holds the table name of the inventoryitem in the database.
@@ -76,6 +78,7 @@ var Columns = []string{
 	FieldAttunement,
 	FieldIsIdentified,
 	FieldNotes,
+	FieldCompendiumEquipmentID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -205,6 +208,11 @@ func ByIsIdentified(opts ...sql.OrderTermOption) OrderOption {
 // ByNotes orders the results by the notes field.
 func ByNotes(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNotes, opts...).ToFunc()
+}
+
+// ByCompendiumEquipmentID orders the results by the compendium_equipment_id field.
+func ByCompendiumEquipmentID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCompendiumEquipmentID, opts...).ToFunc()
 }
 
 // ByCharacterField orders the results by character field.

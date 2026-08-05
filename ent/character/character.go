@@ -92,6 +92,8 @@ const (
 	FieldConcentratingOn = "concentrating_on"
 	// FieldCampaignID holds the string denoting the campaign_id field in the database.
 	FieldCampaignID = "campaign_id"
+	// FieldCharacterType holds the string denoting the character_type field in the database.
+	FieldCharacterType = "character_type"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
@@ -359,6 +361,7 @@ var Columns = []string{
 	FieldExhaustionLevel,
 	FieldConcentratingOn,
 	FieldCampaignID,
+	FieldCharacterType,
 	FieldCreatedAt,
 	FieldUpdatedAt,
 }
@@ -450,6 +453,8 @@ var (
 	DefaultExhaustionLevel int
 	// DefaultConcentratingOn holds the default value on creation for the "concentrating_on" field.
 	DefaultConcentratingOn string
+	// DefaultCharacterType holds the default value on creation for the "character_type" field.
+	DefaultCharacterType string
 	// DefaultCreatedAt holds the default value on creation for the "created_at" field.
 	DefaultCreatedAt string
 	// DefaultUpdatedAt holds the default value on creation for the "updated_at" field.
@@ -662,6 +667,11 @@ func ByConcentratingOn(opts ...sql.OrderTermOption) OrderOption {
 // ByCampaignID orders the results by the campaign_id field.
 func ByCampaignID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCampaignID, opts...).ToFunc()
+}
+
+// ByCharacterType orders the results by the character_type field.
+func ByCharacterType(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCharacterType, opts...).ToFunc()
 }
 
 // ByCreatedAt orders the results by the created_at field.

@@ -254,6 +254,11 @@ func CampaignID(v int64) predicate.Character {
 	return predicate.Character(sql.FieldEQ(FieldCampaignID, v))
 }
 
+// CharacterType applies equality check predicate on the "character_type" field. It's identical to CharacterTypeEQ.
+func CharacterType(v string) predicate.Character {
+	return predicate.Character(sql.FieldEQ(FieldCharacterType, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v string) predicate.Character {
 	return predicate.Character(sql.FieldEQ(FieldCreatedAt, v))
@@ -2252,6 +2257,71 @@ func CampaignIDIsNil() predicate.Character {
 // CampaignIDNotNil applies the NotNil predicate on the "campaign_id" field.
 func CampaignIDNotNil() predicate.Character {
 	return predicate.Character(sql.FieldNotNull(FieldCampaignID))
+}
+
+// CharacterTypeEQ applies the EQ predicate on the "character_type" field.
+func CharacterTypeEQ(v string) predicate.Character {
+	return predicate.Character(sql.FieldEQ(FieldCharacterType, v))
+}
+
+// CharacterTypeNEQ applies the NEQ predicate on the "character_type" field.
+func CharacterTypeNEQ(v string) predicate.Character {
+	return predicate.Character(sql.FieldNEQ(FieldCharacterType, v))
+}
+
+// CharacterTypeIn applies the In predicate on the "character_type" field.
+func CharacterTypeIn(vs ...string) predicate.Character {
+	return predicate.Character(sql.FieldIn(FieldCharacterType, vs...))
+}
+
+// CharacterTypeNotIn applies the NotIn predicate on the "character_type" field.
+func CharacterTypeNotIn(vs ...string) predicate.Character {
+	return predicate.Character(sql.FieldNotIn(FieldCharacterType, vs...))
+}
+
+// CharacterTypeGT applies the GT predicate on the "character_type" field.
+func CharacterTypeGT(v string) predicate.Character {
+	return predicate.Character(sql.FieldGT(FieldCharacterType, v))
+}
+
+// CharacterTypeGTE applies the GTE predicate on the "character_type" field.
+func CharacterTypeGTE(v string) predicate.Character {
+	return predicate.Character(sql.FieldGTE(FieldCharacterType, v))
+}
+
+// CharacterTypeLT applies the LT predicate on the "character_type" field.
+func CharacterTypeLT(v string) predicate.Character {
+	return predicate.Character(sql.FieldLT(FieldCharacterType, v))
+}
+
+// CharacterTypeLTE applies the LTE predicate on the "character_type" field.
+func CharacterTypeLTE(v string) predicate.Character {
+	return predicate.Character(sql.FieldLTE(FieldCharacterType, v))
+}
+
+// CharacterTypeContains applies the Contains predicate on the "character_type" field.
+func CharacterTypeContains(v string) predicate.Character {
+	return predicate.Character(sql.FieldContains(FieldCharacterType, v))
+}
+
+// CharacterTypeHasPrefix applies the HasPrefix predicate on the "character_type" field.
+func CharacterTypeHasPrefix(v string) predicate.Character {
+	return predicate.Character(sql.FieldHasPrefix(FieldCharacterType, v))
+}
+
+// CharacterTypeHasSuffix applies the HasSuffix predicate on the "character_type" field.
+func CharacterTypeHasSuffix(v string) predicate.Character {
+	return predicate.Character(sql.FieldHasSuffix(FieldCharacterType, v))
+}
+
+// CharacterTypeEqualFold applies the EqualFold predicate on the "character_type" field.
+func CharacterTypeEqualFold(v string) predicate.Character {
+	return predicate.Character(sql.FieldEqualFold(FieldCharacterType, v))
+}
+
+// CharacterTypeContainsFold applies the ContainsFold predicate on the "character_type" field.
+func CharacterTypeContainsFold(v string) predicate.Character {
+	return predicate.Character(sql.FieldContainsFold(FieldCharacterType, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.

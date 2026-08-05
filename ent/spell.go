@@ -43,6 +43,8 @@ type Spell struct {
 	Source string `json:"source,omitempty"`
 	// Notes holds the value of the "notes" field.
 	Notes string `json:"notes,omitempty"`
+	// CompendiumSpellID holds the value of the "compendium_spell_id" field.
+	CompendiumSpellID *int64 `json:"compendium_spell_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the SpellQuery when eager-loading is set.
 	Edges        SpellEdges `json:"edges"`
@@ -76,7 +78,7 @@ func (*Spell) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case spell.FieldPrepared, spell.FieldAlwaysPrepared:
 			values[i] = new(sql.NullBool)
-		case spell.FieldID, spell.FieldCharacterID, spell.FieldLevel:
+		case spell.FieldID, spell.FieldCharacterID, spell.FieldLevel, spell.FieldCompendiumSpellID:
 			values[i] = new(sql.NullInt64)
 		case spell.FieldName, spell.FieldSchool, spell.FieldCastingTime, spell.FieldRange, spell.FieldComponents, spell.FieldDuration, spell.FieldDescription, spell.FieldSource, spell.FieldNotes:
 			values[i] = new(sql.NullString)
@@ -179,6 +181,13 @@ func (_m *Spell) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Notes = value.String
 			}
+		case spell.FieldCompendiumSpellID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field compendium_spell_id", values[i])
+			} else if value.Valid {
+				_m.CompendiumSpellID = new(int64)
+				*_m.CompendiumSpellID = value.Int64
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -258,6 +267,11 @@ func (_m *Spell) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("notes=")
 	builder.WriteString(_m.Notes)
+	builder.WriteString(", ")
+	if v := _m.CompendiumSpellID; v != nil {
+		builder.WriteString("compendium_spell_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

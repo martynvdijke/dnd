@@ -26,6 +26,10 @@ func CheckConcentration(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
 		return
 	}
+	if !canEditCharacterID(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	if concentratingOn == "" {
 		c.JSON(http.StatusOK, ConcentrationCheckResult{NeedsCheck: false})
 		return

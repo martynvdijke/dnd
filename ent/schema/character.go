@@ -54,6 +54,7 @@ func (Character) Fields() []ent.Field {
 		field.Int("exhaustion_level").Default(0),
 		field.String("concentrating_on").Default(""),
 		field.Int64("campaign_id").Optional(),
+		field.String("character_type").Default("player"),
 		field.String("created_at").Default(""),
 		field.String("updated_at").Default(""),
 	}

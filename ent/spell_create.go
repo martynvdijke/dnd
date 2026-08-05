@@ -188,6 +188,20 @@ func (_c *SpellCreate) SetNillableNotes(v *string) *SpellCreate {
 	return _c
 }
 
+// SetCompendiumSpellID sets the "compendium_spell_id" field.
+func (_c *SpellCreate) SetCompendiumSpellID(v int64) *SpellCreate {
+	_c.mutation.SetCompendiumSpellID(v)
+	return _c
+}
+
+// SetNillableCompendiumSpellID sets the "compendium_spell_id" field if the given value is not nil.
+func (_c *SpellCreate) SetNillableCompendiumSpellID(v *int64) *SpellCreate {
+	if v != nil {
+		_c.SetCompendiumSpellID(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *SpellCreate) SetID(v int64) *SpellCreate {
 	_c.mutation.SetID(v)
@@ -404,6 +418,10 @@ func (_c *SpellCreate) createSpec() (*Spell, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Notes(); ok {
 		_spec.SetField(spell.FieldNotes, field.TypeString, value)
 		_node.Notes = value
+	}
+	if value, ok := _c.mutation.CompendiumSpellID(); ok {
+		_spec.SetField(spell.FieldCompendiumSpellID, field.TypeInt64, value)
+		_node.CompendiumSpellID = &value
 	}
 	if nodes := _c.mutation.CharacterIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -633,6 +651,30 @@ func (u *SpellUpsert) SetNotes(v string) *SpellUpsert {
 // UpdateNotes sets the "notes" field to the value that was provided on create.
 func (u *SpellUpsert) UpdateNotes() *SpellUpsert {
 	u.SetExcluded(spell.FieldNotes)
+	return u
+}
+
+// SetCompendiumSpellID sets the "compendium_spell_id" field.
+func (u *SpellUpsert) SetCompendiumSpellID(v int64) *SpellUpsert {
+	u.Set(spell.FieldCompendiumSpellID, v)
+	return u
+}
+
+// UpdateCompendiumSpellID sets the "compendium_spell_id" field to the value that was provided on create.
+func (u *SpellUpsert) UpdateCompendiumSpellID() *SpellUpsert {
+	u.SetExcluded(spell.FieldCompendiumSpellID)
+	return u
+}
+
+// AddCompendiumSpellID adds v to the "compendium_spell_id" field.
+func (u *SpellUpsert) AddCompendiumSpellID(v int64) *SpellUpsert {
+	u.Add(spell.FieldCompendiumSpellID, v)
+	return u
+}
+
+// ClearCompendiumSpellID clears the value of the "compendium_spell_id" field.
+func (u *SpellUpsert) ClearCompendiumSpellID() *SpellUpsert {
+	u.SetNull(spell.FieldCompendiumSpellID)
 	return u
 }
 
@@ -870,6 +912,34 @@ func (u *SpellUpsertOne) SetNotes(v string) *SpellUpsertOne {
 func (u *SpellUpsertOne) UpdateNotes() *SpellUpsertOne {
 	return u.Update(func(s *SpellUpsert) {
 		s.UpdateNotes()
+	})
+}
+
+// SetCompendiumSpellID sets the "compendium_spell_id" field.
+func (u *SpellUpsertOne) SetCompendiumSpellID(v int64) *SpellUpsertOne {
+	return u.Update(func(s *SpellUpsert) {
+		s.SetCompendiumSpellID(v)
+	})
+}
+
+// AddCompendiumSpellID adds v to the "compendium_spell_id" field.
+func (u *SpellUpsertOne) AddCompendiumSpellID(v int64) *SpellUpsertOne {
+	return u.Update(func(s *SpellUpsert) {
+		s.AddCompendiumSpellID(v)
+	})
+}
+
+// UpdateCompendiumSpellID sets the "compendium_spell_id" field to the value that was provided on create.
+func (u *SpellUpsertOne) UpdateCompendiumSpellID() *SpellUpsertOne {
+	return u.Update(func(s *SpellUpsert) {
+		s.UpdateCompendiumSpellID()
+	})
+}
+
+// ClearCompendiumSpellID clears the value of the "compendium_spell_id" field.
+func (u *SpellUpsertOne) ClearCompendiumSpellID() *SpellUpsertOne {
+	return u.Update(func(s *SpellUpsert) {
+		s.ClearCompendiumSpellID()
 	})
 }
 
@@ -1273,6 +1343,34 @@ func (u *SpellUpsertBulk) SetNotes(v string) *SpellUpsertBulk {
 func (u *SpellUpsertBulk) UpdateNotes() *SpellUpsertBulk {
 	return u.Update(func(s *SpellUpsert) {
 		s.UpdateNotes()
+	})
+}
+
+// SetCompendiumSpellID sets the "compendium_spell_id" field.
+func (u *SpellUpsertBulk) SetCompendiumSpellID(v int64) *SpellUpsertBulk {
+	return u.Update(func(s *SpellUpsert) {
+		s.SetCompendiumSpellID(v)
+	})
+}
+
+// AddCompendiumSpellID adds v to the "compendium_spell_id" field.
+func (u *SpellUpsertBulk) AddCompendiumSpellID(v int64) *SpellUpsertBulk {
+	return u.Update(func(s *SpellUpsert) {
+		s.AddCompendiumSpellID(v)
+	})
+}
+
+// UpdateCompendiumSpellID sets the "compendium_spell_id" field to the value that was provided on create.
+func (u *SpellUpsertBulk) UpdateCompendiumSpellID() *SpellUpsertBulk {
+	return u.Update(func(s *SpellUpsert) {
+		s.UpdateCompendiumSpellID()
+	})
+}
+
+// ClearCompendiumSpellID clears the value of the "compendium_spell_id" field.
+func (u *SpellUpsertBulk) ClearCompendiumSpellID() *SpellUpsertBulk {
+	return u.Update(func(s *SpellUpsert) {
+		s.ClearCompendiumSpellID()
 	})
 }
 

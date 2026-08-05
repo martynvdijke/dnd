@@ -73,8 +73,10 @@ func ListCharacters(c *gin.Context) {
 		Level       int    `json:"level"`
 		HPMax       int    `json:"hp_max"`
 		HPCurrent   int    `json:"hp_current"`
-		PortraitURL string `json:"portrait_url,omitempty"`
-		RaceColor   string `json:"race_color,omitempty"`
+		PortraitURL   string `json:"portrait_url,omitempty"`
+		RaceColor     string `json:"race_color,omitempty"`
+		CharacterType string `json:"character_type"`
+		CanEdit       bool   `json:"can_edit"`
 	}
 	chars := []CharSummary{}
 	raceColors := GetRaceColorMap()
@@ -83,7 +85,7 @@ func ListCharacters(c *gin.Context) {
 		query := c.DefaultQuery("q", "")
 		if query != "" {
 			rows, err := db.DB.Query(`
-				SELECT c.id, c.user_id, c.name, c.race, c.class, c.level, c.hp_max, c.hp_current, COALESCE(c.portrait_url,'')
+				SELECT c.id, c.user_id, c.name, c.race, c.class, c.level, c.hp_max, c.hp_current, COALESCE(c.portrait_url,''), COALESCE(c.character_type,'player')
 				FROM characters c JOIN characters_fts fts ON c.id = fts.rowid
 				WHERE characters_fts MATCH ? ORDER BY c.updated_at DESC`, query)
 			if err != nil {
@@ -93,8 +95,9 @@ func ListCharacters(c *gin.Context) {
 			defer rows.Close()
 			for rows.Next() {
 				var ch CharSummary
-				rows.Scan(&ch.ID, &ch.UserID, &ch.Name, &ch.Race, &ch.Class, &ch.Level, &ch.HPMax, &ch.HPCurrent, &ch.PortraitURL)
+				rows.Scan(&ch.ID, &ch.UserID, &ch.Name, &ch.Race, &ch.Class, &ch.Level, &ch.HPMax, &ch.HPCurrent, &ch.PortraitURL, &ch.CharacterType)
 				ch.RaceColor = raceColors[ch.Race]
+				ch.CanEdit = true
 				chars = append(chars, ch)
 			}
 		} else {
@@ -104,7 +107,7 @@ func ListCharacters(c *gin.Context) {
 				return
 			}
 			for _, e := range entChars {
-				ch := CharSummary{ID: e.ID, UserID: e.UserID, Name: e.Name, Race: e.Race, Class: e.Class, Level: e.Level, HPMax: e.HpMax, HPCurrent: e.HpCurrent, PortraitURL: e.PortraitURL}
+				ch := CharSummary{ID: e.ID, UserID: e.UserID, Name: e.Name, Race: e.Race, Class: e.Class, Level: e.Level, HPMax: e.HpMax, HPCurrent: e.HpCurrent, PortraitURL: e.PortraitURL, CharacterType: e.CharacterType, CanEdit: canEditCharacter(c, e)}
 				ch.RaceColor = raceColors[ch.Race]
 				chars = append(chars, ch)
 			}
@@ -117,7 +120,7 @@ func ListCharacters(c *gin.Context) {
 			return
 		}
 		for _, e := range entChars {
-			ch := CharSummary{ID: e.ID, UserID: e.UserID, Name: e.Name, Race: e.Race, Class: e.Class, Level: e.Level, HPMax: e.HpMax, HPCurrent: e.HpCurrent, PortraitURL: e.PortraitURL}
+			ch := CharSummary{ID: e.ID, UserID: e.UserID, Name: e.Name, Race: e.Race, Class: e.Class, Level: e.Level, HPMax: e.HpMax, HPCurrent: e.HpCurrent, PortraitURL: e.PortraitURL, CharacterType: e.CharacterType, CanEdit: canEditCharacter(c, e)}
 			ch.RaceColor = raceColors[ch.Race]
 			chars = append(chars, ch)
 		}
@@ -142,14 +145,16 @@ func ListAllCharacters(c *gin.Context) {
 		Level       int    `json:"level"`
 		HPMax       int    `json:"hp_max"`
 		HPCurrent   int    `json:"hp_current"`
-		PortraitURL string `json:"portrait_url,omitempty"`
-		RaceColor   string `json:"race_color,omitempty"`
+		PortraitURL   string `json:"portrait_url,omitempty"`
+		RaceColor     string `json:"race_color,omitempty"`
+		CharacterType string `json:"character_type"`
+		CanEdit       bool   `json:"can_edit"`
 	}
 	chars := make([]CharSummary, 0)
 	raceColors := GetRaceColorMap()
 
 	rows, err := db.DB.Query(`
-		SELECT c.id, c.user_id, u.username, c.name, c.race, c.class, c.level, c.hp_max, c.hp_current, COALESCE(c.portrait_url,'')
+		SELECT c.id, c.user_id, u.username, c.name, c.race, c.class, c.level, c.hp_max, c.hp_current, COALESCE(c.portrait_url,''), COALESCE(c.character_type,'player')
 		FROM characters c
 		JOIN users u ON c.user_id = u.id
 		ORDER BY c.updated_at DESC`)
@@ -160,8 +165,9 @@ func ListAllCharacters(c *gin.Context) {
 	defer rows.Close()
 	for rows.Next() {
 		var ch CharSummary
-		rows.Scan(&ch.ID, &ch.UserID, &ch.Username, &ch.Name, &ch.Race, &ch.Class, &ch.Level, &ch.HPMax, &ch.HPCurrent, &ch.PortraitURL)
+		rows.Scan(&ch.ID, &ch.UserID, &ch.Username, &ch.Name, &ch.Race, &ch.Class, &ch.Level, &ch.HPMax, &ch.HPCurrent, &ch.PortraitURL, &ch.CharacterType)
 		ch.RaceColor = raceColors[ch.Race]
+		ch.CanEdit = true
 		chars = append(chars, ch)
 	}
 	c.JSON(http.StatusOK, chars)
@@ -169,9 +175,6 @@ func ListAllCharacters(c *gin.Context) {
 
 func GetCharacter(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	userID, _ := c.Get("user_id")
-	role, _ := c.Get("role")
-
 	entChar, err := db.Client.Character.Query().Where(character.ID(id)).Only(c.Request.Context())
 	if ent.IsNotFound(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
@@ -184,8 +187,8 @@ func GetCharacter(c *gin.Context) {
 
 	ch := entCharacterToModel(entChar)
 
-	// Authorization
-	if role != "admin" && ch.UserID != userID && !isDMOfCharacter(c, id) {
+	// Authorization — campaign members may view (read-only); edit rights depend on character_type
+	if !canViewCharacter(c, id) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -200,6 +203,7 @@ func GetCharacter(c *gin.Context) {
 	ch.Currency = loadCurrency(ctx, ch.ID)
 	ch.Classes = loadCharClasses(ctx, ch.ID)
 	computeMods(ch)
+	ch.CanEdit = canEditCharacter(c, entChar)
 
 	c.JSON(http.StatusOK, ch)
 }
@@ -215,6 +219,13 @@ func CreateCharacter(c *gin.Context) {
 
 	if strings.TrimSpace(ch.Name) == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
+		return
+	}
+	if ch.CharacterType == "" {
+		ch.CharacterType = "player"
+	}
+	if ch.CharacterType != "player" && ch.CharacterType != "linked" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "character_type must be 'player' or 'linked'"})
 		return
 	}
 	for _, score := range []int{ch.Str, ch.Dex, ch.Con, ch.Int, ch.Wis, ch.Cha} {
@@ -297,7 +308,8 @@ func CreateCharacter(c *gin.Context) {
 		SetBackstory(ch.Backstory).
 		SetPortraitURL(ch.PortraitURL).
 		SetCreatedAt(now).
-		SetUpdatedAt(now)
+		SetUpdatedAt(now).
+		SetCharacterType(ch.CharacterType)
 
 	if ch.CampaignID != nil {
 		charCreate.SetCampaignID(*ch.CampaignID)
@@ -321,11 +333,9 @@ func CreateCharacter(c *gin.Context) {
 
 func UpdateCharacter(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	userID, _ := c.Get("user_id")
-	role, _ := c.Get("role")
 
 	// Check ownership
-	entChar, err := db.Client.Character.Query().Where(character.ID(id)).Select(character.FieldUserID).Only(c.Request.Context())
+	entChar, err := db.Client.Character.Query().Where(character.ID(id)).Select(character.FieldUserID, character.FieldCharacterType).Only(c.Request.Context())
 	if ent.IsNotFound(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
 		return
@@ -334,9 +344,7 @@ func UpdateCharacter(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	ownerID := entChar.UserID
-	uid, _ := userID.(int64)
-	if role != "admin" && ownerID != uid && !isDMOfCharacter(c, id) {
+	if !canEditCharacter(c, entChar) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -344,6 +352,10 @@ func UpdateCharacter(c *gin.Context) {
 	var ch models.Character
 	if err := c.ShouldBindJSON(&ch); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if ch.CharacterType != "" && ch.CharacterType != "player" && ch.CharacterType != "linked" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "character_type must be 'player' or 'linked'"})
 		return
 	}
 	if strings.TrimSpace(ch.Name) == "" || strings.TrimSpace(ch.Race) == "" || strings.TrimSpace(ch.Class) == "" {
@@ -436,10 +448,8 @@ func UpdateCharacter(c *gin.Context) {
 
 func DeleteCharacter(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	userID, _ := c.Get("user_id")
-	role, _ := c.Get("role")
 
-	entChar, err := db.Client.Character.Query().Where(character.ID(id)).Select(character.FieldUserID).Only(c.Request.Context())
+	entChar, err := db.Client.Character.Query().Where(character.ID(id)).Select(character.FieldUserID, character.FieldCharacterType).Only(c.Request.Context())
 	if ent.IsNotFound(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
 		return
@@ -448,9 +458,7 @@ func DeleteCharacter(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	ownerID := entChar.UserID
-	uid, _ := userID.(int64)
-	if role != "admin" && ownerID != uid && !isDMOfCharacter(c, id) {
+	if !canEditCharacter(c, entChar) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -724,6 +732,90 @@ func isDMOfCharacter(c *gin.Context, characterID int64) bool {
 	return false
 }
 
+// isCampaignMemberOfCharacter reports whether the requester is a member of the
+// character's campaign (any role).
+func isCampaignMemberOfCharacter(c *gin.Context, characterID int64) bool {
+	currentUID, _ := c.Get("user_id")
+	uid, _ := currentUID.(int64)
+	if uid == 0 {
+		return false
+	}
+	entChar, err := db.Client.Character.Query().
+		Where(character.ID(characterID)).
+		Select(character.FieldCampaignID).
+		Only(c.Request.Context())
+	if err != nil || entChar.CampaignID == 0 {
+		return false
+	}
+	count, err := db.Client.CampaignMember.Query().
+		Where(
+			campaignmember.CampaignIDEQ(entChar.CampaignID),
+			campaignmember.UserIDEQ(uid),
+		).
+		Count(c.Request.Context())
+	return err == nil && count > 0
+}
+
+// canViewCharacter: admin, owner, or any member of the character's campaign.
+func canViewCharacter(c *gin.Context, characterID int64) bool {
+	role, _ := c.Get("role")
+	if role == "admin" {
+		return true
+	}
+	currentUID, _ := c.Get("user_id")
+	uid, _ := currentUID.(int64)
+	entChar, err := db.Client.Character.Query().
+		Where(character.ID(characterID)).
+		Select(character.FieldUserID).
+		Only(c.Request.Context())
+	if err != nil {
+		return false
+	}
+	if entChar.UserID == uid {
+		return true
+	}
+	return isCampaignMemberOfCharacter(c, characterID)
+}
+
+// canEditCharacter enforces character_type edit rules:
+//   - player: owner, admin, or campaign DM may edit
+//   - linked: only admin or campaign DM may edit (owner cannot)
+func canEditCharacter(c *gin.Context, e *ent.Character) bool {
+	role, _ := c.Get("role")
+	if role == "admin" {
+		return true
+	}
+	currentUID, _ := c.Get("user_id")
+	uid, _ := currentUID.(int64)
+	if e.CharacterType == "linked" {
+		return isDMOfCharacter(c, e.ID)
+	}
+	return e.UserID == uid || isDMOfCharacter(c, e.ID)
+}
+
+// canEditCharacterID loads the character and applies canEditCharacter.
+func canEditCharacterID(c *gin.Context, characterID int64) bool {
+	e, err := db.Client.Character.Query().
+		Where(character.ID(characterID)).
+		Select(character.FieldUserID, character.FieldCharacterType).
+		Only(c.Request.Context())
+	if err != nil {
+		return false
+	}
+	return canEditCharacter(c, e)
+}
+
+// canEditResourceID resolves the owning character of a sub-resource row and
+// applies canEditCharacterID. table must have a character_id column.
+func canEditResourceID(c *gin.Context, table string, rowID int64) bool {
+	var charID int64
+	err := db.DB.QueryRow(fmt.Sprintf("SELECT character_id FROM %s WHERE id=?", table), rowID).Scan(&charID)
+	if err != nil {
+		return false
+	}
+	return canEditCharacterID(c, charID)
+}
+
 // checkCharacterAccess verifies the current user owns (or is admin/DM of) the given character
 func checkCharacterAccess(c *gin.Context, characterID int64) bool {
 	userID, _ := c.Get("user_id")
@@ -782,6 +874,7 @@ func entCharacterToModel(e *ent.Character) *models.Character {
 		DeathSavesFailures:  e.DeathSavesFailures,
 		ConcentratingOn:     e.ConcentratingOn,
 		ExhaustionLevel:     e.ExhaustionLevel,
+		CharacterType:       e.CharacterType,
 	}
 	if e.CampaignID != 0 {
 		ch.CampaignID = &e.CampaignID
@@ -894,10 +987,8 @@ func loadCharClasses(ctx context.Context, characterID int64) []models.CharClass 
 
 func CreateCharacterClass(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	userID, _ := c.Get("user_id")
-	role, _ := c.Get("role")
 
-	entChar, err := db.Client.Character.Query().Where(character.ID(charID)).Select(character.FieldUserID).Only(c.Request.Context())
+	entChar, err := db.Client.Character.Query().Where(character.ID(charID)).Select(character.FieldUserID, character.FieldCharacterType).Only(c.Request.Context())
 	if ent.IsNotFound(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
 		return
@@ -906,9 +997,7 @@ func CreateCharacterClass(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	ownerID := entChar.UserID
-	uid, _ := userID.(int64)
-	if role != "admin" && ownerID != uid && !isDMOfCharacter(c, charID) {
+	if !canEditCharacter(c, entChar) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -944,8 +1033,6 @@ func CreateCharacterClass(c *gin.Context) {
 
 func UpdateCharacterClass(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("ccid"), 10, 64)
-	userID, _ := c.Get("user_id")
-	role, _ := c.Get("role")
 
 	entCC, err := db.Client.CharacterClass.Query().Where(characterclass.ID(id)).Select(characterclass.FieldCharacterID).Only(c.Request.Context())
 	if ent.IsNotFound(err) {
@@ -958,14 +1045,12 @@ func UpdateCharacterClass(c *gin.Context) {
 	}
 	charID := entCC.CharacterID
 
-	entChar, err := db.Client.Character.Query().Where(character.ID(charID)).Select(character.FieldUserID).Only(c.Request.Context())
+	entChar, err := db.Client.Character.Query().Where(character.ID(charID)).Select(character.FieldUserID, character.FieldCharacterType).Only(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "class not found"})
 		return
 	}
-	ownerID := entChar.UserID
-	uid, _ := userID.(int64)
-	if role != "admin" && ownerID != uid && !isDMOfCharacter(c, charID) {
+	if !canEditCharacter(c, entChar) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -986,8 +1071,6 @@ func UpdateCharacterClass(c *gin.Context) {
 
 func DeleteCharacterClass(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("ccid"), 10, 64)
-	userID, _ := c.Get("user_id")
-	role, _ := c.Get("role")
 
 	entCC, err := db.Client.CharacterClass.Query().Where(characterclass.ID(id)).Select(characterclass.FieldCharacterID).Only(c.Request.Context())
 	if ent.IsNotFound(err) {
@@ -1000,14 +1083,12 @@ func DeleteCharacterClass(c *gin.Context) {
 	}
 	charID := entCC.CharacterID
 
-	entChar, err := db.Client.Character.Query().Where(character.ID(charID)).Select(character.FieldUserID).Only(c.Request.Context())
+	entChar, err := db.Client.Character.Query().Where(character.ID(charID)).Select(character.FieldUserID, character.FieldCharacterType).Only(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "class not found"})
 		return
 	}
-	ownerID := entChar.UserID
-	uid, _ := userID.(int64)
-	if role != "admin" && ownerID != uid {
+	if !canEditCharacter(c, entChar) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -1192,6 +1273,10 @@ func ImportCharacterJSON(c *gin.Context) {
 
 func UpdateCurrency(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditCharacterID(c, id) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var cur models.Currency
 	if err := c.ShouldBindJSON(&cur); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -1214,6 +1299,10 @@ func UpdateCurrency(c *gin.Context) {
 
 func UpdateSpellcasting(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditCharacterID(c, id) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var sc models.Spellcasting
 	if err := c.ShouldBindJSON(&sc); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -1293,6 +1382,10 @@ func UpdateSpellcasting(c *gin.Context) {
 
 func CreateInventory(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditCharacterID(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var item models.InventoryItem
 	if err := c.ShouldBindJSON(&item); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -1329,6 +1422,10 @@ func CreateInventory(c *gin.Context) {
 
 func UpdateInventory(c *gin.Context) {
 	iid, _ := strconv.ParseInt(c.Param("iid"), 10, 64)
+	if !canEditResourceID(c, "inventory", iid) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var item models.InventoryItem
 	if err := c.ShouldBindJSON(&item); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -1368,7 +1465,7 @@ func DeleteInventory(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if !checkCharacterAccess(c, entItem.CharacterID) {
+	if !canEditCharacterID(c, entItem.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -1380,6 +1477,10 @@ func DeleteInventory(c *gin.Context) {
 
 func CreateSpell(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditCharacterID(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var sp models.Spell
 	if err := c.ShouldBindJSON(&sp); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -1413,6 +1514,10 @@ func CreateSpell(c *gin.Context) {
 
 func UpdateSpell(c *gin.Context) {
 	sid, _ := strconv.ParseInt(c.Param("sid"), 10, 64)
+	if !canEditResourceID(c, "spells", sid) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var sp models.Spell
 	if err := c.ShouldBindJSON(&sp); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -1450,7 +1555,7 @@ func DeleteSpell(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if !checkCharacterAccess(c, entSpell.CharacterID) {
+	if !canEditCharacterID(c, entSpell.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -1462,6 +1567,10 @@ func DeleteSpell(c *gin.Context) {
 
 func CreateFeature(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditCharacterID(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var f models.Feature
 	if err := c.ShouldBindJSON(&f); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -1483,6 +1592,10 @@ func CreateFeature(c *gin.Context) {
 
 func UpdateFeature(c *gin.Context) {
 	fid, _ := strconv.ParseInt(c.Param("fid"), 10, 64)
+	if !canEditResourceID(c, "character_features", fid) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var f models.Feature
 	if err := c.ShouldBindJSON(&f); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -1512,7 +1625,7 @@ func DeleteFeature(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if !checkCharacterAccess(c, entFeature.CharacterID) {
+	if !canEditCharacterID(c, entFeature.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -1526,6 +1639,10 @@ func CreateProficiency(c *gin.Context) {
 	var p models.Proficiency
 	if err := c.ShouldBindJSON(&p); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if !canEditCharacterID(c, p.CharacterID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
 	result, err := db.Client.CharacterProficiency.Create().
@@ -1551,7 +1668,7 @@ func DeleteProficiency(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if !checkCharacterAccess(c, entProf.CharacterID) {
+	if !canEditCharacterID(c, entProf.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -1752,6 +1869,10 @@ func importCharacters(ctx context.Context, userID int64, chars []models.ImportCh
 
 func UpdateExhaustion(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditCharacterID(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var req struct {
 		Level int `json:"level"`
 	}
@@ -1776,6 +1897,10 @@ func UpdateExhaustion(c *gin.Context) {
 
 func BatchPrepareSpells(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditCharacterID(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var req struct {
 		SpellIDs []int64 `json:"spell_ids"`
 	}

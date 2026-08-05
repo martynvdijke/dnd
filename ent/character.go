@@ -97,6 +97,8 @@ type Character struct {
 	ConcentratingOn string `json:"concentrating_on,omitempty"`
 	// CampaignID holds the value of the "campaign_id" field.
 	CampaignID int64 `json:"campaign_id,omitempty"`
+	// CharacterType holds the value of the "character_type" field.
+	CharacterType string `json:"character_type,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt string `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -387,7 +389,7 @@ func (*Character) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case character.FieldID, character.FieldUserID, character.FieldLevel, character.FieldXp, character.FieldStr, character.FieldDex, character.FieldCon, character.FieldInt, character.FieldWis, character.FieldCha, character.FieldAc, character.FieldInitiative, character.FieldSpeed, character.FieldHpMax, character.FieldHpCurrent, character.FieldTempHp, character.FieldHitDiceCurrent, character.FieldProficiencyBonus, character.FieldInspiration, character.FieldPassivePerception, character.FieldHpAutoCalc, character.FieldDeathSavesSuccesses, character.FieldDeathSavesFailures, character.FieldExhaustionLevel, character.FieldCampaignID:
 			values[i] = new(sql.NullInt64)
-		case character.FieldName, character.FieldRace, character.FieldClass, character.FieldSubclass, character.FieldBackground, character.FieldAlignment, character.FieldHitDice, character.FieldPersonalityTraits, character.FieldIdeals, character.FieldBonds, character.FieldFlaws, character.FieldAppearance, character.FieldBackstory, character.FieldPortraitURL, character.FieldDmNotes, character.FieldConcentratingOn, character.FieldCreatedAt, character.FieldUpdatedAt:
+		case character.FieldName, character.FieldRace, character.FieldClass, character.FieldSubclass, character.FieldBackground, character.FieldAlignment, character.FieldHitDice, character.FieldPersonalityTraits, character.FieldIdeals, character.FieldBonds, character.FieldFlaws, character.FieldAppearance, character.FieldBackstory, character.FieldPortraitURL, character.FieldDmNotes, character.FieldConcentratingOn, character.FieldCharacterType, character.FieldCreatedAt, character.FieldUpdatedAt:
 			values[i] = new(sql.NullString)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -649,6 +651,12 @@ func (_m *Character) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field campaign_id", values[i])
 			} else if value.Valid {
 				_m.CampaignID = value.Int64
+			}
+		case character.FieldCharacterType:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field character_type", values[i])
+			} else if value.Valid {
+				_m.CharacterType = value.String
 			}
 		case character.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -937,6 +945,9 @@ func (_m *Character) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("campaign_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.CampaignID))
+	builder.WriteString(", ")
+	builder.WriteString("character_type=")
+	builder.WriteString(_m.CharacterType)
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt)

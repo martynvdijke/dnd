@@ -49,6 +49,8 @@ type InventoryItem struct {
 	IsIdentified bool `json:"is_identified,omitempty"`
 	// Notes holds the value of the "notes" field.
 	Notes string `json:"notes,omitempty"`
+	// CompendiumEquipmentID holds the value of the "compendium_equipment_id" field.
+	CompendiumEquipmentID *int64 `json:"compendium_equipment_id,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the InventoryItemQuery when eager-loading is set.
 	Edges        InventoryItemEdges `json:"edges"`
@@ -84,7 +86,7 @@ func (*InventoryItem) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullBool)
 		case inventoryitem.FieldWeight:
 			values[i] = new(sql.NullFloat64)
-		case inventoryitem.FieldID, inventoryitem.FieldCharacterID, inventoryitem.FieldQuantity, inventoryitem.FieldAcBonus:
+		case inventoryitem.FieldID, inventoryitem.FieldCharacterID, inventoryitem.FieldQuantity, inventoryitem.FieldAcBonus, inventoryitem.FieldCompendiumEquipmentID:
 			values[i] = new(sql.NullInt64)
 		case inventoryitem.FieldName, inventoryitem.FieldCategory, inventoryitem.FieldDamageDice, inventoryitem.FieldDamageType, inventoryitem.FieldWeaponProperties, inventoryitem.FieldArmorType, inventoryitem.FieldDescription, inventoryitem.FieldNotes:
 			values[i] = new(sql.NullString)
@@ -205,6 +207,13 @@ func (_m *InventoryItem) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Notes = value.String
 			}
+		case inventoryitem.FieldCompendiumEquipmentID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field compendium_equipment_id", values[i])
+			} else if value.Valid {
+				_m.CompendiumEquipmentID = new(int64)
+				*_m.CompendiumEquipmentID = value.Int64
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -293,6 +302,11 @@ func (_m *InventoryItem) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("notes=")
 	builder.WriteString(_m.Notes)
+	builder.WriteString(", ")
+	if v := _m.CompendiumEquipmentID; v != nil {
+		builder.WriteString("compendium_equipment_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -4,6 +4,7 @@ type Character struct {
 	ID                int64  `json:"id"`
 	UserID            int64  `json:"user_id"`
 	CampaignID        *int64 `json:"campaign_id,omitempty"`
+	CharacterType     string `json:"character_type"`
 	Name              string `json:"name"`
 	Race              string `json:"race"`
 	Class             string `json:"class"`
@@ -52,6 +53,7 @@ type Character struct {
 	DeathSavesFailures  int    `json:"death_saves_failures"`
 	ConcentratingOn     string `json:"concentrating_on"`
 	ExhaustionLevel     int    `json:"exhaustion_level"`
+	CanEdit              bool   `json:"can_edit"`
 
 	Proficiencies []Proficiency   `json:"proficiencies,omitempty"`
 	Features      []Feature       `json:"features,omitempty"`

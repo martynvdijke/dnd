@@ -38,6 +38,8 @@ const (
 	FieldSource = "source"
 	// FieldNotes holds the string denoting the notes field in the database.
 	FieldNotes = "notes"
+	// FieldCompendiumSpellID holds the string denoting the compendium_spell_id field in the database.
+	FieldCompendiumSpellID = "compendium_spell_id"
 	// EdgeCharacter holds the string denoting the character edge name in mutations.
 	EdgeCharacter = "character"
 	// Table holds the table name of the spell in the database.
@@ -67,6 +69,7 @@ var Columns = []string{
 	FieldAlwaysPrepared,
 	FieldSource,
 	FieldNotes,
+	FieldCompendiumSpellID,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -175,6 +178,11 @@ func BySource(opts ...sql.OrderTermOption) OrderOption {
 // ByNotes orders the results by the notes field.
 func ByNotes(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldNotes, opts...).ToFunc()
+}
+
+// ByCompendiumSpellID orders the results by the compendium_spell_id field.
+func ByCompendiumSpellID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCompendiumSpellID, opts...).ToFunc()
 }
 
 // ByCharacterField orders the results by character field.

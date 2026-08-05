@@ -37,6 +37,10 @@ func CreateFeat(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	if !canEditCharacterID(c, f.CharacterID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	result, err := db.DB.Exec("INSERT INTO character_feats(character_id,name,description,prerequisites,source,level_gained) VALUES(?,?,?,?,?,?)",
 		f.CharacterID, f.Name, f.Description, f.Prerequisites, f.Source, f.LevelGained)
 	if err != nil {
@@ -49,6 +53,10 @@ func CreateFeat(c *gin.Context) {
 
 func UpdateFeat(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditResourceID(c, "character_feats", id) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var f models.CharacterFeat
 	if err := c.ShouldBindJSON(&f); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -61,6 +69,10 @@ func UpdateFeat(c *gin.Context) {
 
 func DeleteFeat(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditResourceID(c, "character_feats", id) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("DELETE FROM character_feats WHERE id=?", id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

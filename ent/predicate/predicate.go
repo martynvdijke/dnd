@@ -141,6 +141,9 @@ type Location func(*sql.Selector)
 // NPC is the predicate function for npc builders.
 type NPC func(*sql.Selector)
 
+// OTelSetting is the predicate function for otelsetting builders.
+type OTelSetting func(*sql.Selector)
+
 // OneShotAct is the predicate function for oneshotact builders.
 type OneShotAct func(*sql.Selector)
 

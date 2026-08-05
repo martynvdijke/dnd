@@ -134,6 +134,11 @@ func Notes(v string) predicate.InventoryItem {
 	return predicate.InventoryItem(sql.FieldEQ(FieldNotes, v))
 }
 
+// CompendiumEquipmentID applies equality check predicate on the "compendium_equipment_id" field. It's identical to CompendiumEquipmentIDEQ.
+func CompendiumEquipmentID(v int64) predicate.InventoryItem {
+	return predicate.InventoryItem(sql.FieldEQ(FieldCompendiumEquipmentID, v))
+}
+
 // CharacterIDEQ applies the EQ predicate on the "character_id" field.
 func CharacterIDEQ(v int64) predicate.InventoryItem {
 	return predicate.InventoryItem(sql.FieldEQ(FieldCharacterID, v))
@@ -832,6 +837,56 @@ func NotesEqualFold(v string) predicate.InventoryItem {
 // NotesContainsFold applies the ContainsFold predicate on the "notes" field.
 func NotesContainsFold(v string) predicate.InventoryItem {
 	return predicate.InventoryItem(sql.FieldContainsFold(FieldNotes, v))
+}
+
+// CompendiumEquipmentIDEQ applies the EQ predicate on the "compendium_equipment_id" field.
+func CompendiumEquipmentIDEQ(v int64) predicate.InventoryItem {
+	return predicate.InventoryItem(sql.FieldEQ(FieldCompendiumEquipmentID, v))
+}
+
+// CompendiumEquipmentIDNEQ applies the NEQ predicate on the "compendium_equipment_id" field.
+func CompendiumEquipmentIDNEQ(v int64) predicate.InventoryItem {
+	return predicate.InventoryItem(sql.FieldNEQ(FieldCompendiumEquipmentID, v))
+}
+
+// CompendiumEquipmentIDIn applies the In predicate on the "compendium_equipment_id" field.
+func CompendiumEquipmentIDIn(vs ...int64) predicate.InventoryItem {
+	return predicate.InventoryItem(sql.FieldIn(FieldCompendiumEquipmentID, vs...))
+}
+
+// CompendiumEquipmentIDNotIn applies the NotIn predicate on the "compendium_equipment_id" field.
+func CompendiumEquipmentIDNotIn(vs ...int64) predicate.InventoryItem {
+	return predicate.InventoryItem(sql.FieldNotIn(FieldCompendiumEquipmentID, vs...))
+}
+
+// CompendiumEquipmentIDGT applies the GT predicate on the "compendium_equipment_id" field.
+func CompendiumEquipmentIDGT(v int64) predicate.InventoryItem {
+	return predicate.InventoryItem(sql.FieldGT(FieldCompendiumEquipmentID, v))
+}
+
+// CompendiumEquipmentIDGTE applies the GTE predicate on the "compendium_equipment_id" field.
+func CompendiumEquipmentIDGTE(v int64) predicate.InventoryItem {
+	return predicate.InventoryItem(sql.FieldGTE(FieldCompendiumEquipmentID, v))
+}
+
+// CompendiumEquipmentIDLT applies the LT predicate on the "compendium_equipment_id" field.
+func CompendiumEquipmentIDLT(v int64) predicate.InventoryItem {
+	return predicate.InventoryItem(sql.FieldLT(FieldCompendiumEquipmentID, v))
+}
+
+// CompendiumEquipmentIDLTE applies the LTE predicate on the "compendium_equipment_id" field.
+func CompendiumEquipmentIDLTE(v int64) predicate.InventoryItem {
+	return predicate.InventoryItem(sql.FieldLTE(FieldCompendiumEquipmentID, v))
+}
+
+// CompendiumEquipmentIDIsNil applies the IsNil predicate on the "compendium_equipment_id" field.
+func CompendiumEquipmentIDIsNil() predicate.InventoryItem {
+	return predicate.InventoryItem(sql.FieldIsNull(FieldCompendiumEquipmentID))
+}
+
+// CompendiumEquipmentIDNotNil applies the NotNil predicate on the "compendium_equipment_id" field.
+func CompendiumEquipmentIDNotNil() predicate.InventoryItem {
+	return predicate.InventoryItem(sql.FieldNotNull(FieldCompendiumEquipmentID))
 }
 
 // HasCharacter applies the HasEdge predicate on the "character" edge.

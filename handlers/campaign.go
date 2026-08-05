@@ -192,7 +192,7 @@ func UnlinkLocation(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "link not found"})
 		return
 	}
-	if !checkCharacterAccess(c, cl.CharacterID) {
+	if !canEditCharacterID(c, cl.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -422,7 +422,7 @@ func UnlinkNPC(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "link not found"})
 		return
 	}
-	if !checkCharacterAccess(c, cn.CharacterID) {
+	if !canEditCharacterID(c, cn.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -508,6 +508,10 @@ func ListSessions(c *gin.Context) {
 
 func CreateSession(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditCharacterID(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var s models.Session
 	if err := c.ShouldBindJSON(&s); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -536,7 +540,7 @@ func UpdateSession(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "session not found"})
 		return
 	}
-	if !checkCharacterAccess(c, sess.CharacterID) {
+	if !canEditCharacterID(c, sess.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -563,7 +567,7 @@ func DeleteSession(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "session not found"})
 		return
 	}
-	if !checkCharacterAccess(c, sess.CharacterID) {
+	if !canEditCharacterID(c, sess.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -603,6 +607,10 @@ func ListQuests(c *gin.Context) {
 
 func CreateQuest(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditCharacterID(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var q models.Quest
 	if err := c.ShouldBindJSON(&q); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -629,6 +637,10 @@ func CreateQuest(c *gin.Context) {
 
 func UpdateQuest(c *gin.Context) {
 	qid, _ := strconv.ParseInt(c.Param("qid"), 10, 64)
+	if !canEditResourceID(c, "quests", qid) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var q models.Quest
 	if err := c.ShouldBindJSON(&q); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -653,7 +665,7 @@ func DeleteQuest(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "quest not found"})
 		return
 	}
-	if !checkCharacterAccess(c, q.CharacterID) {
+	if !canEditCharacterID(c, q.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -689,6 +701,10 @@ func ListJournal(c *gin.Context) {
 
 func CreateJournalEntry(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditCharacterID(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var j models.JournalEntry
 	if err := c.ShouldBindJSON(&j); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -714,7 +730,7 @@ func UpdateJournalEntry(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "journal entry not found"})
 		return
 	}
-	if !checkCharacterAccess(c, je.CharacterID) {
+	if !canEditCharacterID(c, je.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -738,7 +754,7 @@ func DeleteJournalEntry(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "journal entry not found"})
 		return
 	}
-	if !checkCharacterAccess(c, je.CharacterID) {
+	if !canEditCharacterID(c, je.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -1305,7 +1321,7 @@ func LogNPCInteraction(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "NPC link not found"})
 		return
 	}
-	if !checkCharacterAccess(c, cn.CharacterID) {
+	if !canEditCharacterID(c, cn.CharacterID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
@@ -1646,6 +1662,10 @@ func DoRest(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
 		return
 	}
+	if !canEditCharacter(c, char) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 
 	hpHealed := 0
 	if req.RestType == "long" {
@@ -1749,6 +1769,10 @@ func LevelUp(c *gin.Context) {
 	char, err := db.Client.Character.Get(ctx, charID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
+		return
+	}
+	if !canEditCharacter(c, char) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
 

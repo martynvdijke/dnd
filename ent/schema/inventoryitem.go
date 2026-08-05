@@ -38,6 +38,7 @@ func (InventoryItem) Fields() []ent.Field {
 		field.Bool("attunement").Default(false),
 		field.Bool("is_identified").Default(false),
 		field.String("notes").Default(""),
+		field.Int64("compendium_equipment_id").Optional().Nillable(),
 	}
 }
 

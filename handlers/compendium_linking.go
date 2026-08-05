@@ -19,6 +19,10 @@ func LinkCompendiumSpell(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid character id"})
 		return
 	}
+	if !canEditCharacterID(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 
 	compendiumSpellID, err := strconv.ParseInt(c.PostForm("compendium_spell_id"), 10, 64)
 	if err != nil {
@@ -55,6 +59,10 @@ func UnlinkCompendiumSpell(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid spell id"})
 		return
 	}
+	if !canEditResourceID(c, "spells", spellID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 
 	// Only delete if linked — prevent deleting inline-created spells
 	var compID int64
@@ -85,6 +93,10 @@ func LinkCompendiumEquipment(c *gin.Context) {
 	charID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid character id"})
+		return
+	}
+	if !canEditCharacterID(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
 
@@ -129,6 +141,10 @@ func UnlinkCompendiumEquipment(c *gin.Context) {
 	itemID, err := strconv.ParseInt(c.Param("itemId"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid item id"})
+		return
+	}
+	if !canEditResourceID(c, "inventory", itemID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
 

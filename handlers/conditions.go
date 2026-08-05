@@ -39,6 +39,10 @@ func CreateCondition(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	if !canEditCharacterID(c, cond.CharacterID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	if cond.Duration < 0 {
 		cond.Duration = 0
 	}
@@ -58,6 +62,10 @@ func CreateCondition(c *gin.Context) {
 
 func UpdateCondition(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditResourceID(c, "character_conditions", id) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var cond models.Condition
 	if err := c.ShouldBindJSON(&cond); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -70,6 +78,10 @@ func UpdateCondition(c *gin.Context) {
 
 func DeleteCondition(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditResourceID(c, "character_conditions", id) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("DELETE FROM character_conditions WHERE id=?", id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
@@ -82,6 +94,10 @@ func TickConditions(c *gin.Context) {
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if !canEditCharacterID(c, req.CharacterID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
 	if req.Count < 1 {

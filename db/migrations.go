@@ -1812,6 +1812,8 @@ func Migrate() error {
 func ApplySafeAlters() error {
 	alterStatements := []string{
 		"ALTER TABLE characters ADD COLUMN campaign_id INTEGER REFERENCES campaigns(id) ON DELETE SET NULL",
+		"ALTER TABLE characters ADD COLUMN character_type TEXT NOT NULL DEFAULT 'player'",
+		"UPDATE characters SET character_type='linked' WHERE campaign_id IS NOT NULL AND campaign_id != 0 AND EXISTS (SELECT 1 FROM campaign_members cm WHERE cm.campaign_id = characters.campaign_id AND cm.user_id != characters.user_id)",
 		"ALTER TABLE character_npcs ADD COLUMN interaction_count INTEGER NOT NULL DEFAULT 0",
 		"ALTER TABLE character_npcs ADD COLUMN last_interacted TEXT NOT NULL DEFAULT ''",
 		"ALTER TABLE characters ADD COLUMN death_saves_successes INTEGER NOT NULL DEFAULT 0",

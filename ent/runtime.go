@@ -52,6 +52,7 @@ import (
 	"villum/ent/oneshotadventure"
 	"villum/ent/oneshotitem"
 	"villum/ent/oneshotscene"
+	"villum/ent/otelsetting"
 	"villum/ent/partyitem"
 	"villum/ent/quest"
 	"villum/ent/restlog"
@@ -442,12 +443,16 @@ func init() {
 	characterDescConcentratingOn := characterFields[39].Descriptor()
 	// character.DefaultConcentratingOn holds the default value on creation for the concentrating_on field.
 	character.DefaultConcentratingOn = characterDescConcentratingOn.Default.(string)
+	// characterDescCharacterType is the schema descriptor for character_type field.
+	characterDescCharacterType := characterFields[41].Descriptor()
+	// character.DefaultCharacterType holds the default value on creation for the character_type field.
+	character.DefaultCharacterType = characterDescCharacterType.Default.(string)
 	// characterDescCreatedAt is the schema descriptor for created_at field.
-	characterDescCreatedAt := characterFields[41].Descriptor()
+	characterDescCreatedAt := characterFields[42].Descriptor()
 	// character.DefaultCreatedAt holds the default value on creation for the created_at field.
 	character.DefaultCreatedAt = characterDescCreatedAt.Default.(string)
 	// characterDescUpdatedAt is the schema descriptor for updated_at field.
-	characterDescUpdatedAt := characterFields[42].Descriptor()
+	characterDescUpdatedAt := characterFields[43].Descriptor()
 	// character.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	character.DefaultUpdatedAt = characterDescUpdatedAt.Default.(string)
 	characterclassFields := schema.CharacterClass{}.Fields()
@@ -1532,6 +1537,12 @@ func init() {
 	npcDescCreatedAt := npcFields[25].Descriptor()
 	// npc.DefaultCreatedAt holds the default value on creation for the created_at field.
 	npc.DefaultCreatedAt = npcDescCreatedAt.Default.(string)
+	otelsettingFields := schema.OTelSetting{}.Fields()
+	_ = otelsettingFields
+	// otelsettingDescEnabled is the schema descriptor for enabled field.
+	otelsettingDescEnabled := otelsettingFields[2].Descriptor()
+	// otelsetting.DefaultEnabled holds the default value on creation for the enabled field.
+	otelsetting.DefaultEnabled = otelsettingDescEnabled.Default.(bool)
 	oneshotactFields := schema.OneShotAct{}.Fields()
 	_ = oneshotactFields
 	// oneshotactDescNumber is the schema descriptor for number field.

@@ -273,6 +273,33 @@ func (_u *InventoryItemUpdate) SetNillableNotes(v *string) *InventoryItemUpdate 
 	return _u
 }
 
+// SetCompendiumEquipmentID sets the "compendium_equipment_id" field.
+func (_u *InventoryItemUpdate) SetCompendiumEquipmentID(v int64) *InventoryItemUpdate {
+	_u.mutation.ResetCompendiumEquipmentID()
+	_u.mutation.SetCompendiumEquipmentID(v)
+	return _u
+}
+
+// SetNillableCompendiumEquipmentID sets the "compendium_equipment_id" field if the given value is not nil.
+func (_u *InventoryItemUpdate) SetNillableCompendiumEquipmentID(v *int64) *InventoryItemUpdate {
+	if v != nil {
+		_u.SetCompendiumEquipmentID(*v)
+	}
+	return _u
+}
+
+// AddCompendiumEquipmentID adds value to the "compendium_equipment_id" field.
+func (_u *InventoryItemUpdate) AddCompendiumEquipmentID(v int64) *InventoryItemUpdate {
+	_u.mutation.AddCompendiumEquipmentID(v)
+	return _u
+}
+
+// ClearCompendiumEquipmentID clears the value of the "compendium_equipment_id" field.
+func (_u *InventoryItemUpdate) ClearCompendiumEquipmentID() *InventoryItemUpdate {
+	_u.mutation.ClearCompendiumEquipmentID()
+	return _u
+}
+
 // SetCharacter sets the "character" edge to the Character entity.
 func (_u *InventoryItemUpdate) SetCharacter(v *Character) *InventoryItemUpdate {
 	return _u.SetCharacterID(v.ID)
@@ -389,6 +416,15 @@ func (_u *InventoryItemUpdate) sqlSave(ctx context.Context) (_node int, err erro
 	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(inventoryitem.FieldNotes, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.CompendiumEquipmentID(); ok {
+		_spec.SetField(inventoryitem.FieldCompendiumEquipmentID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedCompendiumEquipmentID(); ok {
+		_spec.AddField(inventoryitem.FieldCompendiumEquipmentID, field.TypeInt64, value)
+	}
+	if _u.mutation.CompendiumEquipmentIDCleared() {
+		_spec.ClearField(inventoryitem.FieldCompendiumEquipmentID, field.TypeInt64)
 	}
 	if _u.mutation.CharacterCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -684,6 +720,33 @@ func (_u *InventoryItemUpdateOne) SetNillableNotes(v *string) *InventoryItemUpda
 	return _u
 }
 
+// SetCompendiumEquipmentID sets the "compendium_equipment_id" field.
+func (_u *InventoryItemUpdateOne) SetCompendiumEquipmentID(v int64) *InventoryItemUpdateOne {
+	_u.mutation.ResetCompendiumEquipmentID()
+	_u.mutation.SetCompendiumEquipmentID(v)
+	return _u
+}
+
+// SetNillableCompendiumEquipmentID sets the "compendium_equipment_id" field if the given value is not nil.
+func (_u *InventoryItemUpdateOne) SetNillableCompendiumEquipmentID(v *int64) *InventoryItemUpdateOne {
+	if v != nil {
+		_u.SetCompendiumEquipmentID(*v)
+	}
+	return _u
+}
+
+// AddCompendiumEquipmentID adds value to the "compendium_equipment_id" field.
+func (_u *InventoryItemUpdateOne) AddCompendiumEquipmentID(v int64) *InventoryItemUpdateOne {
+	_u.mutation.AddCompendiumEquipmentID(v)
+	return _u
+}
+
+// ClearCompendiumEquipmentID clears the value of the "compendium_equipment_id" field.
+func (_u *InventoryItemUpdateOne) ClearCompendiumEquipmentID() *InventoryItemUpdateOne {
+	_u.mutation.ClearCompendiumEquipmentID()
+	return _u
+}
+
 // SetCharacter sets the "character" edge to the Character entity.
 func (_u *InventoryItemUpdateOne) SetCharacter(v *Character) *InventoryItemUpdateOne {
 	return _u.SetCharacterID(v.ID)
@@ -830,6 +893,15 @@ func (_u *InventoryItemUpdateOne) sqlSave(ctx context.Context) (_node *Inventory
 	}
 	if value, ok := _u.mutation.Notes(); ok {
 		_spec.SetField(inventoryitem.FieldNotes, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.CompendiumEquipmentID(); ok {
+		_spec.SetField(inventoryitem.FieldCompendiumEquipmentID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedCompendiumEquipmentID(); ok {
+		_spec.AddField(inventoryitem.FieldCompendiumEquipmentID, field.TypeInt64, value)
+	}
+	if _u.mutation.CompendiumEquipmentIDCleared() {
+		_spec.ClearField(inventoryitem.FieldCompendiumEquipmentID, field.TypeInt64)
 	}
 	if _u.mutation.CharacterCleared() {
 		edge := &sqlgraph.EdgeSpec{

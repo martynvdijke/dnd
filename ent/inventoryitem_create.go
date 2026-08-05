@@ -230,6 +230,20 @@ func (_c *InventoryItemCreate) SetNillableNotes(v *string) *InventoryItemCreate 
 	return _c
 }
 
+// SetCompendiumEquipmentID sets the "compendium_equipment_id" field.
+func (_c *InventoryItemCreate) SetCompendiumEquipmentID(v int64) *InventoryItemCreate {
+	_c.mutation.SetCompendiumEquipmentID(v)
+	return _c
+}
+
+// SetNillableCompendiumEquipmentID sets the "compendium_equipment_id" field if the given value is not nil.
+func (_c *InventoryItemCreate) SetNillableCompendiumEquipmentID(v *int64) *InventoryItemCreate {
+	if v != nil {
+		_c.SetCompendiumEquipmentID(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *InventoryItemCreate) SetID(v int64) *InventoryItemCreate {
 	_c.mutation.SetID(v)
@@ -479,6 +493,10 @@ func (_c *InventoryItemCreate) createSpec() (*InventoryItem, *sqlgraph.CreateSpe
 	if value, ok := _c.mutation.Notes(); ok {
 		_spec.SetField(inventoryitem.FieldNotes, field.TypeString, value)
 		_node.Notes = value
+	}
+	if value, ok := _c.mutation.CompendiumEquipmentID(); ok {
+		_spec.SetField(inventoryitem.FieldCompendiumEquipmentID, field.TypeInt64, value)
+		_node.CompendiumEquipmentID = &value
 	}
 	if nodes := _c.mutation.CharacterIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
@@ -756,6 +774,30 @@ func (u *InventoryItemUpsert) SetNotes(v string) *InventoryItemUpsert {
 // UpdateNotes sets the "notes" field to the value that was provided on create.
 func (u *InventoryItemUpsert) UpdateNotes() *InventoryItemUpsert {
 	u.SetExcluded(inventoryitem.FieldNotes)
+	return u
+}
+
+// SetCompendiumEquipmentID sets the "compendium_equipment_id" field.
+func (u *InventoryItemUpsert) SetCompendiumEquipmentID(v int64) *InventoryItemUpsert {
+	u.Set(inventoryitem.FieldCompendiumEquipmentID, v)
+	return u
+}
+
+// UpdateCompendiumEquipmentID sets the "compendium_equipment_id" field to the value that was provided on create.
+func (u *InventoryItemUpsert) UpdateCompendiumEquipmentID() *InventoryItemUpsert {
+	u.SetExcluded(inventoryitem.FieldCompendiumEquipmentID)
+	return u
+}
+
+// AddCompendiumEquipmentID adds v to the "compendium_equipment_id" field.
+func (u *InventoryItemUpsert) AddCompendiumEquipmentID(v int64) *InventoryItemUpsert {
+	u.Add(inventoryitem.FieldCompendiumEquipmentID, v)
+	return u
+}
+
+// ClearCompendiumEquipmentID clears the value of the "compendium_equipment_id" field.
+func (u *InventoryItemUpsert) ClearCompendiumEquipmentID() *InventoryItemUpsert {
+	u.SetNull(inventoryitem.FieldCompendiumEquipmentID)
 	return u
 }
 
@@ -1049,6 +1091,34 @@ func (u *InventoryItemUpsertOne) SetNotes(v string) *InventoryItemUpsertOne {
 func (u *InventoryItemUpsertOne) UpdateNotes() *InventoryItemUpsertOne {
 	return u.Update(func(s *InventoryItemUpsert) {
 		s.UpdateNotes()
+	})
+}
+
+// SetCompendiumEquipmentID sets the "compendium_equipment_id" field.
+func (u *InventoryItemUpsertOne) SetCompendiumEquipmentID(v int64) *InventoryItemUpsertOne {
+	return u.Update(func(s *InventoryItemUpsert) {
+		s.SetCompendiumEquipmentID(v)
+	})
+}
+
+// AddCompendiumEquipmentID adds v to the "compendium_equipment_id" field.
+func (u *InventoryItemUpsertOne) AddCompendiumEquipmentID(v int64) *InventoryItemUpsertOne {
+	return u.Update(func(s *InventoryItemUpsert) {
+		s.AddCompendiumEquipmentID(v)
+	})
+}
+
+// UpdateCompendiumEquipmentID sets the "compendium_equipment_id" field to the value that was provided on create.
+func (u *InventoryItemUpsertOne) UpdateCompendiumEquipmentID() *InventoryItemUpsertOne {
+	return u.Update(func(s *InventoryItemUpsert) {
+		s.UpdateCompendiumEquipmentID()
+	})
+}
+
+// ClearCompendiumEquipmentID clears the value of the "compendium_equipment_id" field.
+func (u *InventoryItemUpsertOne) ClearCompendiumEquipmentID() *InventoryItemUpsertOne {
+	return u.Update(func(s *InventoryItemUpsert) {
+		s.ClearCompendiumEquipmentID()
 	})
 }
 
@@ -1508,6 +1578,34 @@ func (u *InventoryItemUpsertBulk) SetNotes(v string) *InventoryItemUpsertBulk {
 func (u *InventoryItemUpsertBulk) UpdateNotes() *InventoryItemUpsertBulk {
 	return u.Update(func(s *InventoryItemUpsert) {
 		s.UpdateNotes()
+	})
+}
+
+// SetCompendiumEquipmentID sets the "compendium_equipment_id" field.
+func (u *InventoryItemUpsertBulk) SetCompendiumEquipmentID(v int64) *InventoryItemUpsertBulk {
+	return u.Update(func(s *InventoryItemUpsert) {
+		s.SetCompendiumEquipmentID(v)
+	})
+}
+
+// AddCompendiumEquipmentID adds v to the "compendium_equipment_id" field.
+func (u *InventoryItemUpsertBulk) AddCompendiumEquipmentID(v int64) *InventoryItemUpsertBulk {
+	return u.Update(func(s *InventoryItemUpsert) {
+		s.AddCompendiumEquipmentID(v)
+	})
+}
+
+// UpdateCompendiumEquipmentID sets the "compendium_equipment_id" field to the value that was provided on create.
+func (u *InventoryItemUpsertBulk) UpdateCompendiumEquipmentID() *InventoryItemUpsertBulk {
+	return u.Update(func(s *InventoryItemUpsert) {
+		s.UpdateCompendiumEquipmentID()
+	})
+}
+
+// ClearCompendiumEquipmentID clears the value of the "compendium_equipment_id" field.
+func (u *InventoryItemUpsertBulk) ClearCompendiumEquipmentID() *InventoryItemUpsertBulk {
+	return u.Update(func(s *InventoryItemUpsert) {
+		s.ClearCompendiumEquipmentID()
 	})
 }
 

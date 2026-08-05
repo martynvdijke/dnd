@@ -62,6 +62,7 @@ import (
 	"villum/ent/oneshotadventureencounter"
 	"villum/ent/oneshotitem"
 	"villum/ent/oneshotscene"
+	"villum/ent/otelsetting"
 	"villum/ent/partyitem"
 	"villum/ent/quest"
 	"villum/ent/restlog"
@@ -177,6 +178,8 @@ type Client struct {
 	Location *LocationClient
 	// NPC is the client for interacting with the NPC builders.
 	NPC *NPCClient
+	// OTelSetting is the client for interacting with the OTelSetting builders.
+	OTelSetting *OTelSettingClient
 	// OneShotAct is the client for interacting with the OneShotAct builders.
 	OneShotAct *OneShotActClient
 	// OneShotActNPC is the client for interacting with the OneShotActNPC builders.
@@ -271,6 +274,7 @@ func (c *Client) init() {
 	c.LevelUpPlan = NewLevelUpPlanClient(c.config)
 	c.Location = NewLocationClient(c.config)
 	c.NPC = NewNPCClient(c.config)
+	c.OTelSetting = NewOTelSettingClient(c.config)
 	c.OneShotAct = NewOneShotActClient(c.config)
 	c.OneShotActNPC = NewOneShotActNPCClient(c.config)
 	c.OneShotAdventure = NewOneShotAdventureClient(c.config)
@@ -427,6 +431,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		LevelUpPlan:               NewLevelUpPlanClient(cfg),
 		Location:                  NewLocationClient(cfg),
 		NPC:                       NewNPCClient(cfg),
+		OTelSetting:               NewOTelSettingClient(cfg),
 		OneShotAct:                NewOneShotActClient(cfg),
 		OneShotActNPC:             NewOneShotActNPCClient(cfg),
 		OneShotAdventure:          NewOneShotAdventureClient(cfg),
@@ -510,6 +515,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		LevelUpPlan:               NewLevelUpPlanClient(cfg),
 		Location:                  NewLocationClient(cfg),
 		NPC:                       NewNPCClient(cfg),
+		OTelSetting:               NewOTelSettingClient(cfg),
 		OneShotAct:                NewOneShotActClient(cfg),
 		OneShotActNPC:             NewOneShotActNPCClient(cfg),
 		OneShotAdventure:          NewOneShotAdventureClient(cfg),
@@ -569,7 +575,7 @@ func (c *Client) Use(hooks ...Hook) {
 		c.CompendiumFeat, c.CompendiumRace, c.CompendiumSpell, c.CraftingRecipe,
 		c.DiceRoll, c.DowntimeActivity, c.EmailSetting, c.EncounterMonster,
 		c.EncounterTemplate, c.Faction, c.FactionReputation, c.InventoryItem,
-		c.JournalEntry, c.LevelUpPlan, c.Location, c.NPC, c.OneShotAct,
+		c.JournalEntry, c.LevelUpPlan, c.Location, c.NPC, c.OTelSetting, c.OneShotAct,
 		c.OneShotActNPC, c.OneShotAdventure, c.OneShotAdventureEncounter,
 		c.OneShotItem, c.OneShotScene, c.PartyItem, c.Quest, c.RestLog, c.Session,
 		c.SessionPlan, c.ShareLink, c.Shop, c.ShopItem, c.ShopTransaction, c.Spell,
@@ -594,7 +600,7 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.CompendiumFeat, c.CompendiumRace, c.CompendiumSpell, c.CraftingRecipe,
 		c.DiceRoll, c.DowntimeActivity, c.EmailSetting, c.EncounterMonster,
 		c.EncounterTemplate, c.Faction, c.FactionReputation, c.InventoryItem,
-		c.JournalEntry, c.LevelUpPlan, c.Location, c.NPC, c.OneShotAct,
+		c.JournalEntry, c.LevelUpPlan, c.Location, c.NPC, c.OTelSetting, c.OneShotAct,
 		c.OneShotActNPC, c.OneShotAdventure, c.OneShotAdventureEncounter,
 		c.OneShotItem, c.OneShotScene, c.PartyItem, c.Quest, c.RestLog, c.Session,
 		c.SessionPlan, c.ShareLink, c.Shop, c.ShopItem, c.ShopTransaction, c.Spell,
@@ -697,6 +703,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Location.mutate(ctx, m)
 	case *NPCMutation:
 		return c.NPC.mutate(ctx, m)
+	case *OTelSettingMutation:
+		return c.OTelSetting.mutate(ctx, m)
 	case *OneShotActMutation:
 		return c.OneShotAct.mutate(ctx, m)
 	case *OneShotActNPCMutation:
@@ -8165,6 +8173,139 @@ func (c *NPCClient) mutate(ctx context.Context, m *NPCMutation) (Value, error) {
 	}
 }
 
+// OTelSettingClient is a client for the OTelSetting schema.
+type OTelSettingClient struct {
+	config
+}
+
+// NewOTelSettingClient returns a client for the OTelSetting from the given config.
+func NewOTelSettingClient(c config) *OTelSettingClient {
+	return &OTelSettingClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `otelsetting.Hooks(f(g(h())))`.
+func (c *OTelSettingClient) Use(hooks ...Hook) {
+	c.hooks.OTelSetting = append(c.hooks.OTelSetting, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `otelsetting.Intercept(f(g(h())))`.
+func (c *OTelSettingClient) Intercept(interceptors ...Interceptor) {
+	c.inters.OTelSetting = append(c.inters.OTelSetting, interceptors...)
+}
+
+// Create returns a builder for creating a OTelSetting entity.
+func (c *OTelSettingClient) Create() *OTelSettingCreate {
+	mutation := newOTelSettingMutation(c.config, OpCreate)
+	return &OTelSettingCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of OTelSetting entities.
+func (c *OTelSettingClient) CreateBulk(builders ...*OTelSettingCreate) *OTelSettingCreateBulk {
+	return &OTelSettingCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *OTelSettingClient) MapCreateBulk(slice any, setFunc func(*OTelSettingCreate, int)) *OTelSettingCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &OTelSettingCreateBulk{err: fmt.Errorf("calling to OTelSettingClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*OTelSettingCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &OTelSettingCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for OTelSetting.
+func (c *OTelSettingClient) Update() *OTelSettingUpdate {
+	mutation := newOTelSettingMutation(c.config, OpUpdate)
+	return &OTelSettingUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *OTelSettingClient) UpdateOne(_m *OTelSetting) *OTelSettingUpdateOne {
+	mutation := newOTelSettingMutation(c.config, OpUpdateOne, withOTelSetting(_m))
+	return &OTelSettingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *OTelSettingClient) UpdateOneID(id int64) *OTelSettingUpdateOne {
+	mutation := newOTelSettingMutation(c.config, OpUpdateOne, withOTelSettingID(id))
+	return &OTelSettingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for OTelSetting.
+func (c *OTelSettingClient) Delete() *OTelSettingDelete {
+	mutation := newOTelSettingMutation(c.config, OpDelete)
+	return &OTelSettingDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *OTelSettingClient) DeleteOne(_m *OTelSetting) *OTelSettingDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *OTelSettingClient) DeleteOneID(id int64) *OTelSettingDeleteOne {
+	builder := c.Delete().Where(otelsetting.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &OTelSettingDeleteOne{builder}
+}
+
+// Query returns a query builder for OTelSetting.
+func (c *OTelSettingClient) Query() *OTelSettingQuery {
+	return &OTelSettingQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeOTelSetting},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a OTelSetting entity by its id.
+func (c *OTelSettingClient) Get(ctx context.Context, id int64) (*OTelSetting, error) {
+	return c.Query().Where(otelsetting.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *OTelSettingClient) GetX(ctx context.Context, id int64) *OTelSetting {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *OTelSettingClient) Hooks() []Hook {
+	return c.hooks.OTelSetting
+}
+
+// Interceptors returns the client interceptors.
+func (c *OTelSettingClient) Interceptors() []Interceptor {
+	return c.inters.OTelSetting
+}
+
+func (c *OTelSettingClient) mutate(ctx context.Context, m *OTelSettingMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&OTelSettingCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&OTelSettingUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&OTelSettingUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&OTelSettingDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown OTelSetting mutation op: %q", m.Op())
+	}
+}
+
 // OneShotActClient is a client for the OneShotAct schema.
 type OneShotActClient struct {
 	config
@@ -11265,10 +11406,10 @@ type (
 		CompendiumFeat, CompendiumRace, CompendiumSpell, CraftingRecipe, DiceRoll,
 		DowntimeActivity, EmailSetting, EncounterMonster, EncounterTemplate, Faction,
 		FactionReputation, InventoryItem, JournalEntry, LevelUpPlan, Location, NPC,
-		OneShotAct, OneShotActNPC, OneShotAdventure, OneShotAdventureEncounter,
-		OneShotItem, OneShotScene, PartyItem, Quest, RestLog, Session, SessionPlan,
-		ShareLink, Shop, ShopItem, ShopTransaction, Spell, Upload, UploadLink,
-		User []ent.Hook
+		OTelSetting, OneShotAct, OneShotActNPC, OneShotAdventure,
+		OneShotAdventureEncounter, OneShotItem, OneShotScene, PartyItem, Quest,
+		RestLog, Session, SessionPlan, ShareLink, Shop, ShopItem, ShopTransaction,
+		Spell, Upload, UploadLink, User []ent.Hook
 	}
 	inters struct {
 		AIEndpoint, BackupSetting, Campaign, CampaignCalendarEvent, CampaignMap,
@@ -11281,9 +11422,9 @@ type (
 		CompendiumFeat, CompendiumRace, CompendiumSpell, CraftingRecipe, DiceRoll,
 		DowntimeActivity, EmailSetting, EncounterMonster, EncounterTemplate, Faction,
 		FactionReputation, InventoryItem, JournalEntry, LevelUpPlan, Location, NPC,
-		OneShotAct, OneShotActNPC, OneShotAdventure, OneShotAdventureEncounter,
-		OneShotItem, OneShotScene, PartyItem, Quest, RestLog, Session, SessionPlan,
-		ShareLink, Shop, ShopItem, ShopTransaction, Spell, Upload, UploadLink,
-		User []ent.Interceptor
+		OTelSetting, OneShotAct, OneShotActNPC, OneShotAdventure,
+		OneShotAdventureEncounter, OneShotItem, OneShotScene, PartyItem, Quest,
+		RestLog, Session, SessionPlan, ShareLink, Shop, ShopItem, ShopTransaction,
+		Spell, Upload, UploadLink, User []ent.Interceptor
 	}
 )

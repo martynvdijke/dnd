@@ -597,6 +597,20 @@ func (_c *CharacterCreate) SetNillableCampaignID(v *int64) *CharacterCreate {
 	return _c
 }
 
+// SetCharacterType sets the "character_type" field.
+func (_c *CharacterCreate) SetCharacterType(v string) *CharacterCreate {
+	_c.mutation.SetCharacterType(v)
+	return _c
+}
+
+// SetNillableCharacterType sets the "character_type" field if the given value is not nil.
+func (_c *CharacterCreate) SetNillableCharacterType(v *string) *CharacterCreate {
+	if v != nil {
+		_c.SetCharacterType(*v)
+	}
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *CharacterCreate) SetCreatedAt(v string) *CharacterCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -1168,6 +1182,10 @@ func (_c *CharacterCreate) defaults() {
 		v := character.DefaultConcentratingOn
 		_c.mutation.SetConcentratingOn(v)
 	}
+	if _, ok := _c.mutation.CharacterType(); !ok {
+		v := character.DefaultCharacterType
+		_c.mutation.SetCharacterType(v)
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		v := character.DefaultCreatedAt
 		_c.mutation.SetCreatedAt(v)
@@ -1296,6 +1314,9 @@ func (_c *CharacterCreate) check() error {
 	}
 	if _, ok := _c.mutation.ConcentratingOn(); !ok {
 		return &ValidationError{Name: "concentrating_on", err: errors.New(`ent: missing required field "Character.concentrating_on"`)}
+	}
+	if _, ok := _c.mutation.CharacterType(); !ok {
+		return &ValidationError{Name: "character_type", err: errors.New(`ent: missing required field "Character.character_type"`)}
 	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Character.created_at"`)}
@@ -1494,6 +1515,10 @@ func (_c *CharacterCreate) createSpec() (*Character, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.CampaignID(); ok {
 		_spec.SetField(character.FieldCampaignID, field.TypeInt64, value)
 		_node.CampaignID = value
+	}
+	if value, ok := _c.mutation.CharacterType(); ok {
+		_spec.SetField(character.FieldCharacterType, field.TypeString, value)
+		_node.CharacterType = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(character.FieldCreatedAt, field.TypeString, value)
@@ -2564,6 +2589,18 @@ func (u *CharacterUpsert) ClearCampaignID() *CharacterUpsert {
 	return u
 }
 
+// SetCharacterType sets the "character_type" field.
+func (u *CharacterUpsert) SetCharacterType(v string) *CharacterUpsert {
+	u.Set(character.FieldCharacterType, v)
+	return u
+}
+
+// UpdateCharacterType sets the "character_type" field to the value that was provided on create.
+func (u *CharacterUpsert) UpdateCharacterType() *CharacterUpsert {
+	u.SetExcluded(character.FieldCharacterType)
+	return u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (u *CharacterUpsert) SetCreatedAt(v string) *CharacterUpsert {
 	u.Set(character.FieldCreatedAt, v)
@@ -3361,6 +3398,20 @@ func (u *CharacterUpsertOne) UpdateCampaignID() *CharacterUpsertOne {
 func (u *CharacterUpsertOne) ClearCampaignID() *CharacterUpsertOne {
 	return u.Update(func(s *CharacterUpsert) {
 		s.ClearCampaignID()
+	})
+}
+
+// SetCharacterType sets the "character_type" field.
+func (u *CharacterUpsertOne) SetCharacterType(v string) *CharacterUpsertOne {
+	return u.Update(func(s *CharacterUpsert) {
+		s.SetCharacterType(v)
+	})
+}
+
+// UpdateCharacterType sets the "character_type" field to the value that was provided on create.
+func (u *CharacterUpsertOne) UpdateCharacterType() *CharacterUpsertOne {
+	return u.Update(func(s *CharacterUpsert) {
+		s.UpdateCharacterType()
 	})
 }
 
@@ -4331,6 +4382,20 @@ func (u *CharacterUpsertBulk) UpdateCampaignID() *CharacterUpsertBulk {
 func (u *CharacterUpsertBulk) ClearCampaignID() *CharacterUpsertBulk {
 	return u.Update(func(s *CharacterUpsert) {
 		s.ClearCampaignID()
+	})
+}
+
+// SetCharacterType sets the "character_type" field.
+func (u *CharacterUpsertBulk) SetCharacterType(v string) *CharacterUpsertBulk {
+	return u.Update(func(s *CharacterUpsert) {
+		s.SetCharacterType(v)
+	})
+}
+
+// UpdateCharacterType sets the "character_type" field to the value that was provided on create.
+func (u *CharacterUpsertBulk) UpdateCharacterType() *CharacterUpsertBulk {
+	return u.Update(func(s *CharacterUpsert) {
+		s.UpdateCharacterType()
 	})
 }
 
