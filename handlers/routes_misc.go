@@ -115,6 +115,28 @@ func RegisterMiscAuthRoutes(r *gin.RouterGroup) {
 	r.GET("/quickref", GetQuickReference)
 }
 
+// einkActive reports whether e-ink mode should be enabled for this request:
+// explicit ?eink=1 param (persisted as a cookie), existing eink cookie, or the
+// site-wide admin setting.
+func einkActive(c *gin.Context) bool {
+	if c.Query("eink") == "1" {
+		c.SetCookie("eink", "1", 31536000, "/", "", false, true)
+		return true
+	}
+	if c.Query("eink") == "0" {
+		c.SetCookie("eink", "", -1, "/", "", false, true)
+		// Fall through: still honor an existing site-wide setting.
+	}
+	if v, err := c.Cookie("eink"); err == nil && v == "1" {
+		return true
+	}
+	var value string
+	if err := db.DB.QueryRow("SELECT value FROM app_settings WHERE key = 'eink'").Scan(&value); err == nil && value == "1" {
+		return true
+	}
+	return false
+}
+
 // RegisterStaticRoutes registers static file serving and HTML page routes.
 func RegisterStaticRoutes(r *gin.Engine, embedFS embed.FS, mediaPath string, Version string) {
 	// Serve uploaded media files
@@ -143,6 +165,11 @@ func RegisterStaticRoutes(r *gin.Engine, embedFS embed.FS, mediaPath string, Ver
 				return
 			}
 			content := strings.ReplaceAll(string(data), "{{VERSION}}", Version)
+
+			// E-ink mode: add class to the <html> element
+			if einkActive(c) {
+				content = strings.Replace(content, `<html lang="en" data-theme="light">`, `<html lang="en" data-theme="light" class="eink">`, 1)
+			}
 
 			// Conditionally inject Umami analytics script
 			if pageType == "app" || pageType == "login" || pageType == "admin" {
@@ -180,6 +207,12 @@ func RegisterStaticRoutes(r *gin.Engine, embedFS embed.FS, mediaPath string, Ver
 			return
 		}
 		content := strings.ReplaceAll(string(data), "{{VERSION}}", Version)
+
+		// E-ink mode: add class to the <html> element
+		if einkActive(c) {
+			content = strings.Replace(content, `<html lang="en" data-theme="light">`, `<html lang="en" data-theme="light" class="eink">`, 1)
+		}
+
 		script := InjectUmamiScript()
 		if script != "" {
 			content = strings.ReplaceAll(content, "</head>", script+"\n</head>")

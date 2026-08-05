@@ -1774,6 +1774,18 @@ CREATE INDEX IF NOT EXISTS idx_transfer_import_logs_user ON transfer_import_logs
 CREATE INDEX IF NOT EXISTS idx_transfer_import_logs_created ON transfer_import_logs(created_at);
 `,
 	},
+	{
+		version: 47,
+		sql: `
+-- Site-wide settings (key/value)
+CREATE TABLE IF NOT EXISTS app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL DEFAULT '0'
+);
+
+INSERT OR IGNORE INTO app_settings (key, value) VALUES ('eink', '0');
+`,
+	},
 }
 
 func Migrate() error {

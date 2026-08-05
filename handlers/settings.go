@@ -50,3 +50,33 @@ func SaveEmailSettings(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
+
+// GetEinkSetting returns the site-wide e-ink mode setting.
+func GetEinkSetting(c *gin.Context) {
+	var value string
+	err := db.DB.QueryRow("SELECT value FROM app_settings WHERE key = 'eink'").Scan(&value)
+	if err != nil {
+		value = "0"
+	}
+	c.JSON(http.StatusOK, gin.H{"enabled": value == "1"})
+}
+
+// SetEinkSetting persists the site-wide e-ink mode setting.
+func SetEinkSetting(c *gin.Context) {
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+	value := "0"
+	if req.Enabled {
+		value = "1"
+	}
+	if _, err := db.DB.Exec("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('eink', ?)", value); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save setting"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"enabled": req.Enabled})
+}

@@ -14,6 +14,7 @@ export { expose } from './expose';
 
 import {
   toggleTheme,
+  toggleEink,
 } from './theme';
 
 import {
@@ -64,6 +65,7 @@ export function initBridge(): void {
 
   // Theme
   w.toggleTheme = toggleTheme;
+  w.toggleEink = toggleEink;
 
   // DOM / UI
   w.showModal = showModal;

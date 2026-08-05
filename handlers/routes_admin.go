@@ -57,4 +57,8 @@ func RegisterAdminRoutes(r *gin.RouterGroup) {
 
 	// Search index management
 	r.GET("/search/resync", HandleAdminResyncSearchIndex)
+
+	// Site-wide settings
+	r.GET("/settings/eink", GetEinkSetting)
+	r.PUT("/settings/eink", SetEinkSetting)
 }

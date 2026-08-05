@@ -19,3 +19,13 @@ export function initTheme(): void {
   document.documentElement.setAttribute('data-theme', saved);
   updateThemeIcon();
 }
+
+export function toggleEink(): void {
+  const html = document.documentElement;
+  const active = html.classList.toggle('eink');
+  if (active) {
+    document.cookie = 'eink=1;path=/;max-age=31536000';
+  } else {
+    document.cookie = 'eink=;path=/;max-age=0';
+  }
+}

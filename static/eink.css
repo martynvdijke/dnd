@@ -1,0 +1,414 @@
+/* ─────────────────────────────────────────────────────────────
+   E-INK MODE — high-contrast, motion-free, touch-friendly theme.
+   Activated by: ?eink=1 URL param, eink cookie, or site-wide
+   admin setting (GET/PUT /api/admin/settings/eink).
+   All rules are scoped under html.eink so the normal theme is
+   never affected.
+   ───────────────────────────────────────────────────────────── */
+
+/* --- 3. No motion: kill every transition/animation/effect --- */
+html.eink *,
+html.eink *::before,
+html.eink *::after {
+  transition: none !important;
+  animation: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  filter: none !important;
+  background-image: none !important;
+}
+
+/* --- 2. High-contrast palette: #000 on #fff, #333 muted, #ccc borders --- */
+html.eink {
+  --bs-body-color: #000 !important;
+  --bs-body-bg: #fff !important;
+  --bs-secondary-color: #333 !important;
+  --bs-border-color: #ccc !important;
+}
+
+html.eink body {
+  background-color: #fff !important;
+  color: #000 !important;
+}
+
+html.eink .text-muted,
+html.eink .text-secondary,
+html.eink .form-text,
+html.eink .small,
+html.eink small {
+  color: #333 !important;
+}
+
+/* Neutralize all Bootstrap color utilities to monochrome */
+html.eink .text-primary,
+html.eink .text-success,
+html.eink .text-danger,
+html.eink .text-warning,
+html.eink .text-info,
+html.eink .text-body-secondary,
+html.eink .text-body-tertiary {
+  color: #000 !important;
+}
+
+html.eink .bg-primary,
+html.eink .bg-success,
+html.eink .bg-danger,
+html.eink .bg-warning,
+html.eink .bg-info,
+html.eink .bg-secondary,
+html.eink .bg-dark {
+  background-color: #fff !important;
+  color: #000 !important;
+  border: 1px solid #000 !important;
+}
+
+/* Cards, tables, modals: solid borders */
+html.eink .card,
+html.eink .modal-content,
+html.eink .list-group-item,
+html.eink .dropdown-menu,
+html.eink .offcanvas,
+html.eink .table,
+html.eink .table th,
+html.eink .table td {
+  background-color: #fff !important;
+  color: #000 !important;
+  border-color: #ccc !important;
+  border-radius: 0 !important;
+}
+
+html.eink .table-striped > tbody > tr:nth-of-type(odd) {
+  background-color: #fff !important;
+}
+
+html.eink .table-hover > tbody > tr:hover {
+  background-color: #f2f2f2 !important;
+}
+
+/* Forms: black on white, flat */
+html.eink .form-control,
+html.eink .form-select,
+html.eink .input-group-text {
+  background-color: #fff !important;
+  color: #000 !important;
+  border: 1px solid #000 !important;
+  border-radius: 0 !important;
+}
+
+html.eink .form-control:disabled,
+html.eink .form-select:disabled {
+  background-color: #fff !important;
+  color: #000 !important;
+}
+
+html.eink .form-check-input {
+  border-color: #000 !important;
+}
+
+/* Links: underlined black text */
+html.eink a {
+  color: #000 !important;
+  text-decoration: underline !important;
+}
+
+html.eink a.nav-link,
+html.eink .navbar a,
+html.eink .sidebar-link,
+html.eink #appSidebar a {
+  text-decoration: none !important;
+}
+
+/* Buttons: flat, bordered, no gradient/shadow */
+html.eink .btn {
+  background-color: #fff !important;
+  color: #000 !important;
+  border: 1px solid #000 !important;
+  border-radius: 0 !important;
+}
+
+html.eink .btn-primary,
+html.eink .btn-outline-primary,
+html.eink .btn-success,
+html.eink .btn-outline-success,
+html.eink .btn-danger,
+html.eink .btn-outline-danger,
+html.eink .btn-warning,
+html.eink .btn-outline-warning,
+html.eink .btn-info,
+html.eink .btn-outline-info,
+html.eink .btn-secondary,
+html.eink .btn-outline-secondary,
+html.eink .btn-gold,
+html.eink .btn-dark {
+  background-color: #fff !important;
+  color: #000 !important;
+  border: 1px solid #000 !important;
+}
+
+html.eink .btn:hover,
+html.eink .btn:focus {
+  background-color: #000 !important;
+  color: #fff !important;
+}
+
+html.eink .btn:disabled {
+  background-color: #fff !important;
+  color: #333 !important;
+  border-color: #ccc !important;
+}
+
+/* Badges: outlined, not filled */
+html.eink .badge,
+html.eink .badge-gold,
+html.eink .badge-blood,
+html.eink .badge-primary,
+html.eink .badge-success,
+html.eink .badge-danger,
+html.eink .badge-warning,
+html.eink .badge-info,
+html.eink .badge-muted,
+html.eink .badge-secondary {
+  background-color: #fff !important;
+  color: #000 !important;
+  border: 1px solid #000 !important;
+  border-radius: 0 !important;
+}
+
+/* Progress / HP bars: flat, bordered */
+html.eink .progress,
+html.eink .hp-bar {
+  background-color: #fff !important;
+  border: 2px solid #000 !important;
+  border-radius: 0 !important;
+}
+
+html.eink .progress-bar,
+html.eink .hp-bar-fill {
+  background-color: #000 !important;
+  color: #000 !important;
+  border-radius: 0 !important;
+}
+
+/* --- 4. Touch targets ≥48×48 (initiative + dice ≥56×56, 8px gaps) --- */
+html.eink .btn {
+  min-width: 48px;
+  min-height: 48px;
+}
+
+html.eink .btn-sm {
+  min-width: 48px;
+  min-height: 48px;
+}
+
+html.eink .stepper-btn,
+html.eink .exhaustion-btn {
+  min-width: 48px !important;
+  min-height: 48px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+html.eink .row > * {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+html.eink .g-3 > [class*='col'] {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+/* --- 7. Dice roller: 56×56 buttons, text labels, big results --- */
+html.eink .dice-btn {
+  min-width: 56px !important;
+  min-height: 56px !important;
+  border: 1px solid #000 !important;
+  border-radius: 0 !important;
+  background-color: #fff !important;
+  color: #000 !important;
+}
+
+html.eink .dice-btn:hover {
+  background-color: #000 !important;
+  color: #fff !important;
+}
+
+html.eink .die-label {
+  color: #000 !important;
+  font-size: 0.8rem !important;
+}
+
+html.eink .die-value {
+  color: #000 !important;
+  font-weight: bold !important;
+}
+
+html.eink .dice-result-box {
+  border: 1px solid #000 !important;
+  border-radius: 0 !important;
+  background-color: #fff !important;
+}
+
+html.eink .roll-total-anim {
+  font-size: 28px !important;
+  font-weight: bold !important;
+  color: #000 !important;
+}
+
+html.eink .roll-expression,
+html.eink .roll-text {
+  color: #333 !important;
+}
+
+html.eink .die-face {
+  border-color: #000 !important;
+  background-color: #fff !important;
+  color: #000 !important;
+}
+
+html.eink .die-dropped {
+  opacity: 1 !important;
+  text-decoration: line-through !important;
+}
+
+/* --- 6. Initiative tracker --- */
+html.eink #combatTrackerTable th,
+html.eink #combatTrackerTable td {
+  border: 1px solid #ccc !important;
+  color: #000 !important;
+}
+
+html.eink #combatTrackerTable td {
+  font-size: 20px !important;
+}
+
+html.eink #combatTrackerTable td.text-center.fw-bold {
+  font-size: 24px !important;
+  font-weight: bold !important;
+}
+
+/* Active combatant: solid black LEFT border, white background */
+html.eink #combatTrackerTable tr.table-active {
+  background-color: #fff !important;
+  border-left: 4px solid #000 !important;
+}
+
+html.eink #combatTrackerTable tr.table-active td {
+  border-left: 4px solid #000 !important;
+}
+
+/* Next / previous turn buttons ≥56×56 */
+html.eink #combatTrackerTable .btn[onclick*='advanceCombatTurn'],
+html.eink #combatTrackerTable .btn[onclick*='rollAllInitiative'],
+html.eink .btn[onclick*='advanceCombatTurn'],
+html.eink .btn[onclick*='rollAllInitiative'] {
+  min-width: 56px !important;
+  min-height: 56px !important;
+}
+
+html.eink .hp-bar-fill {
+  background-color: #000 !important;
+}
+
+/* --- 5. Character sheet --- */
+html.eink .stat-value {
+  font-size: 24px !important;
+  font-weight: bold !important;
+  color: #000 !important;
+}
+
+html.eink .stat-label {
+  font-size: 12px !important;
+  font-weight: bold !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: #333 !important;
+}
+
+html.eink .ability-box,
+html.eink .combat-stat,
+html.eink .passive-score-box,
+html.eink .exhaustion-display {
+  border: 1px solid #000 !important;
+  border-radius: 0 !important;
+  background-color: #fff !important;
+}
+
+html.eink .abil-mod {
+  font-weight: bold !important;
+}
+
+html.eink .abil-label {
+  color: #000 !important;
+}
+
+html.eink .stepper-value {
+  font-size: 20px !important;
+  font-weight: bold !important;
+  color: #000 !important;
+}
+
+html.eink .ornament {
+  display: none !important;
+}
+
+html.eink .score-value {
+  font-size: 24px !important;
+  font-weight: bold !important;
+  color: #000 !important;
+}
+
+html.eink .score-label {
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  color: #333 !important;
+}
+
+html.eink .score-breakdown {
+  color: #333 !important;
+}
+
+/* 1-2 column layout for stat grids */
+html.eink .stats-grid > .ability-column {
+  flex: 0 0 50% !important;
+  max-width: 50% !important;
+}
+
+/* HP/AC prominence */
+html.eink .combat-stat .stat-value {
+  font-size: 28px !important;
+}
+
+/* --- Misc cleanup --- */
+html.eink .skeleton,
+html.eink .skeleton-avatar,
+html.eink .skeleton-line {
+  background-color: #fff !important;
+  background-image: none !important;
+  border: 1px solid #ccc !important;
+}
+
+html.eink .offcanvas-backdrop,
+html.eink .modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+html.eink .nav-tabs .nav-link.active {
+  background-color: #fff !important;
+  color: #000 !important;
+  border: 1px solid #000 !important;
+  border-bottom-color: #fff !important;
+}
+
+html.eink .nav-tabs .nav-link {
+  color: #333 !important;
+  border-radius: 0 !important;
+}
+
+html.eink input[type='checkbox'],
+html.eink input[type='radio'] {
+  accent-color: #000 !important;
+}

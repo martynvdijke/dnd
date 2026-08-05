@@ -58,7 +58,7 @@ function showAdminTab(tab: string) {
   document.querySelectorAll('#adminTabs .nav-link').forEach(el => el.classList.remove('active'));
   const tabBtn = document.getElementById('tab' + capitalize(tab) + 'Btn');
   if (tabBtn) tabBtn.classList.add('active');
-  const allTabs = ['users', 'unified-compendium', 'backup', 'email', 'ai-endpoints', 'analytics', 'telemetry', 'events', 'import', 'logs'];
+  const allTabs = ['users', 'unified-compendium', 'backup', 'email', 'ai-endpoints', 'analytics', 'telemetry', 'events', 'import', 'e-ink', 'logs'];
   allTabs.forEach(s => {
     const parts = s.split('-').map((p, i) => i === 0 ? capitalize(p) : capitalize(p));
     const id = 'admin' + parts.join('');
@@ -74,10 +74,36 @@ function showAdminTab(tab: string) {
   if (tab === 'telemetry') loadOTelSettings();
   if (tab === 'events') { loadEventsSettings(); loadCampaignEventSettings(); }
   if (tab === 'import') { loadImportSchemas(); loadImportLogs(); }
+  if (tab === 'e-ink') loadEinkSetting();
   if (tab === 'logs') { startLogAutoRefresh(); }
   else { stopLogAutoRefresh(); }
 }
 expose('showAdminTab', showAdminTab);
+
+// ─── E-ink Mode ───
+
+async function loadEinkSetting() {
+  try {
+    const res = await api('GET', '/api/admin/settings/eink');
+    const el = document.getElementById('einkEnabled') as HTMLInputElement | null;
+    if (el) el.checked = !!res.enabled;
+  } catch {
+    toast('Failed to load e-ink setting', true);
+  }
+}
+
+async function saveEinkSetting() {
+  const el = document.getElementById('einkEnabled') as HTMLInputElement | null;
+  const enabled = !!el && el.checked;
+  try {
+    await api('PUT', '/api/admin/settings/eink', { enabled });
+    toast(enabled ? 'E-ink mode enabled site-wide' : 'E-ink mode disabled');
+  } catch {
+    toast('Failed to save e-ink setting', true);
+  }
+}
+expose('loadEinkSetting', loadEinkSetting);
+expose('saveEinkSetting', saveEinkSetting);
 
 // ─── Unified Compendium ───
 
