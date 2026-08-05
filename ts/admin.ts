@@ -72,7 +72,7 @@ function showAdminTab(tab: string) {
   if (tab === 'ai-endpoints') loadAIEndpoints();
   if (tab === 'analytics') loadUmamiSettings();
   if (tab === 'telemetry') loadOTelSettings();
-  if (tab === 'events') { loadEventsSettings(); loadCampaignEventSettings(); }
+  if (tab === 'events') { loadEventsSettings(); loadCampaignEventSettings(); loadEventsPublicLink(); }
   if (tab === 'import') { loadImportSchemas(); loadImportLogs(); }
   if (tab === 'e-ink') loadEinkSetting();
   if (tab === 'logs') { startLogAutoRefresh(); }
@@ -2093,6 +2093,19 @@ expose('clearEventsCache', async function () {
   }
 });
 
+async function loadEventsPublicLink() {
+  try {
+    const res = await api('GET', '/api/admin/events/public-link');
+    const input = document.getElementById('eventsPublicLink') as HTMLInputElement;
+    if (input) input.value = res.url || '';
+    const img = document.getElementById('eventsQRImg') as HTMLImageElement;
+    if (img) img.src = '/api/admin/events/qr';
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+}
+expose('loadEventsPublicLink', loadEventsPublicLink);
+
 expose('copyPublicLink', async function () {
   const input = document.getElementById('eventsPublicLink') as HTMLInputElement;
   try {
@@ -2119,6 +2132,57 @@ expose('downloadQR', function () {
   document.body.appendChild(a);
   a.click();
   a.remove();
+});
+
+// ─── Campaign Event Share (link + QR) ───
+
+expose('shareCampaignEvent', async function (id: number, slug: string) {
+  try {
+    const res = await api('GET', '/api/admin/events/public-link?slug=' + encodeURIComponent(slug));
+    const url = res.url || '';
+    const qrSrc = '/api/admin/events/qr?slug=' + encodeURIComponent(slug);
+    showModal('Share Event Page', `
+      <p class="text-muted">Share this campaign's public events page with players.</p>
+      <div class="mb-3">
+        <label class="form-label">Public URL</label>
+        <div class="input-group">
+          <input type="text" id="campaignShareUrl" class="form-control font-monospace" readonly value="${esc(url)}" style="font-size:0.85rem">
+          <button class="btn btn-outline-primary" id="campaignCopyLinkBtn" title="Copy to clipboard"><i class="fa-solid fa-copy me-1"></i><span id="campaignCopyLinkLabel">Copy link</span></button>
+        </div>
+      </div>
+      <div class="text-center">
+        <div class="border rounded p-2 d-inline-block bg-light">
+          <img id="campaignShareQRImg" src="${qrSrc}" alt="QR Code" width="160" height="160" style="image-rendering:pixelated">
+        </div>
+        <div class="mt-2">
+          <button class="btn btn-outline-secondary" id="campaignDownloadQRBtn"><i class="fa-solid fa-download me-1"></i>Download QR</button>
+        </div>
+      </div>
+    `);
+    document.getElementById('campaignCopyLinkBtn')!.addEventListener('click', async () => {
+      const input = document.getElementById('campaignShareUrl') as HTMLInputElement;
+      try {
+        await navigator.clipboard.writeText(input.value);
+        const label = document.getElementById('campaignCopyLinkLabel');
+        if (label) label.textContent = 'Copied!';
+        setTimeout(() => { const l = document.getElementById('campaignCopyLinkLabel'); if (l) l.textContent = 'Copy link'; }, 2000);
+      } catch {
+        input.select();
+        document.execCommand('copy');
+      }
+    });
+    document.getElementById('campaignDownloadQRBtn')!.addEventListener('click', () => {
+      const img = document.getElementById('campaignShareQRImg') as HTMLImageElement;
+      const a = document.createElement('a');
+      a.href = img.src;
+      a.download = 'events-qr-' + slug + '.png';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+  } catch (e: any) {
+    toast(e.message, true);
+  }
 });
 
 // ─── Campaign Event Settings CRUD ───
@@ -2150,6 +2214,7 @@ async function loadCampaignEventSettings() {
         <td><small class="text-muted">${sourceType === 'ical' ? '—' : (c.auth_method === 'oauth' ? 'OAuth' : 'Service Acct')}</small></td>
         <td>${c.is_active ? '<span class="text-success"><i class="fa-solid fa-check"></i></span>' : '<span class="text-muted"><i class="fa-solid fa-xmark"></i></span>'}</td>
         <td class="text-nowrap">
+          <button class="btn btn-outline-success btn-sm py-0" onclick="shareCampaignEvent(${c.id}, '${esc(c.slug)}')" title="Share link & QR"><i class="fa-solid fa-share-nodes"></i></button>
           <a href="/events/c/${esc(c.slug)}" class="btn btn-outline-info btn-sm py-0" target="_blank" title="View public page"><i class="fa-solid fa-eye"></i></a>
         </td>
         <td class="text-nowrap">
