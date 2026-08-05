@@ -1,3 +1,10 @@
+# [2.37.0](https://github.com/martynvdijke/dnd/compare/v2.36.0...v2.37.0) (2026-08-05)
+
+
+### Features
+
+* persist event color labels through cache and fix admin events settings routes ([d263694](https://github.com/martynvdijke/dnd/commit/d2636946ebf9aa64aabc8e86c28f4bf8add86308))
+
 # [2.36.0](https://github.com/martynvdijke/dnd/compare/v2.35.0...v2.36.0) (2026-08-05)
 
 
