@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log/slog"
 	"testing"
 	"time"
 )
@@ -196,5 +197,43 @@ func TestLogBufferCapAndLen(t *testing.T) {
 	lb.Append(LogEntry{Source: "d", Message: "4"})
 	if lb.Len() != 3 {
 		t.Errorf("expected len 3 after overflow, got %d", lb.Len())
+	}
+}
+
+func TestLogHandlerMinLevelFilter(t *testing.T) {
+	lb := NewLogBuffer(100)
+	h := newLogHandler(lb, slog.LevelWarn)
+	logger := slog.New(h)
+
+	logger.Debug("debug suppressed", "source", "test")
+	logger.Info("info suppressed", "source", "test")
+	logger.Warn("warn visible", "source", "test")
+	logger.Error("error visible", "source", "test")
+
+	results := lb.Query("", "", time.Time{}, 0)
+	if len(results) != 2 {
+		t.Fatalf("expected 2 entries (warn+error), got %d", len(results))
+	}
+	if results[0].Message != "error visible" || results[1].Message != "warn visible" {
+		t.Fatalf("expected [error visible warn visible] newest-first, got %v", results)
+	}
+
+	// Raising the minimum level suppresses warn as well
+	h.SetMinLevel(slog.LevelError)
+	logger.Warn("warn suppressed now")
+	logger.Error("error still visible")
+	if lb.Len() != 3 {
+		t.Fatalf("expected 3 entries after raising min level, got %d", lb.Len())
+	}
+
+	// Lowering the minimum level lets debug through again
+	h.SetMinLevel(slog.LevelDebug)
+	logger.Debug("debug visible now")
+	if lb.Len() != 4 {
+		t.Fatalf("expected 4 entries after lowering min level, got %d", lb.Len())
+	}
+	last := lb.Query("", "", time.Time{}, 1)
+	if last[0].Message != "debug visible now" {
+		t.Fatalf("expected latest entry to be the debug message, got %q", last[0].Message)
 	}
 }

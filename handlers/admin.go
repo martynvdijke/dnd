@@ -11,6 +11,7 @@ import (
 	"villum/db"
 	"villum/ent"
 	"villum/ent/user"
+	"villum/middleware"
 	"villum/models"
 )
 
@@ -179,9 +180,11 @@ func SaveBackupSettings(c *gin.Context) {
 func TriggerBackup(c *gin.Context) {
 	backupPath, err := CreateBackup()
 	if err != nil {
+		middleware.LogError("backup", "manual backup failed", "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	middleware.LogInfo("backup", "manual backup created", "path", backupPath)
 	PruneBackups()
 	c.JSON(http.StatusOK, gin.H{"path": backupPath})
 }
