@@ -99,6 +99,7 @@ func RegisterMiscAuthRoutes(r *gin.RouterGroup) {
 	r.POST("/uploads/:id/crop", HandleCropUpload)
 	r.POST("/upload-links", CreateUploadLink)
 	r.DELETE("/upload-links/:id", DeleteUploadLink)
+	r.GET("/uploads/entity/:type/:id", GetUploadsForEntity)
 
 	// Share links
 	r.POST("/share", CreateShareLink)
