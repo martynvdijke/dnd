@@ -22,7 +22,7 @@ import (
 //go:embed static/*.html static/*.css static/style.css static/js/*.js static/sw.js static/manifest.json static/fonts/*.woff2
 var staticFiles embed.FS
 
-const Version = "2.29.10"
+const Version = "2.30.0"
 
 func main() {
 	dbPath := os.Getenv("DB_PATH")

@@ -1,3 +1,29 @@
+# [2.30.0](https://github.com/martynvdijke/dnd/compare/v2.29.10...v2.30.0) (2026-08-05)
+
+
+### Bug Fixes
+
+* command palette search input never received typed queries due to duplicate id ([6a31b30](https://github.com/martynvdijke/dnd/commit/6a31b3099b0239b302b9d81e85d207d46af54854))
+* delete character children before removing character ([ec85ede](https://github.com/martynvdijke/dnd/commit/ec85ede28e8eb461560b3286147e8afb6248d4d1))
+* keep modals above sidebar and FAB z-index ([35a979d](https://github.com/martynvdijke/dnd/commit/35a979d67a8242e4fcf3bd6c35f8cc31235bd7e3))
+* queue PDF viewer modal show until hide transition completes ([04ca2e1](https://github.com/martynvdijke/dnd/commit/04ca2e14df3069741078815e7988bdbf868b5760))
+* remove duplicate locations Link button breaking e2e strict-mode locators ([370c986](https://github.com/martynvdijke/dnd/commit/370c986930c91a518b94c0fc50809e8b63b0483c))
+* render campaign NPC and encounter sections with correct template names ([67b6f15](https://github.com/martynvdijke/dnd/commit/67b6f157e9446964133a8ef532eb13fe7c879f4d))
+* restore character view permissions, idempotent resource delete, month-agnostic grid test, htmx picker URLs ([8bee9e6](https://github.com/martynvdijke/dnd/commit/8bee9e65d0b1803fd7a2952482b9d073091f3f51))
+
+
+### Features
+
+* AI endpoints — generation proxy, admin CRUD, save-to-library ([807b418](https://github.com/martynvdijke/dnd/commit/807b418af23039d652d1b38c83a5409e682cf1d0))
+* AI prompt UI — inline generation triggers for NPCs, locations, and items ([1550213](https://github.com/martynvdijke/dnd/commit/1550213f42c5ee1f98bb860e377bf150c0820f99))
+* central admin logging — structured logs for manual backups, min-level filter tests ([ee0ac56](https://github.com/martynvdijke/dnd/commit/ee0ac562cfd24d138aeab1edd945f07efeddf126))
+* character types and compendium linking — schema, migrations, and permission enforcement ([01e35c3](https://github.com/martynvdijke/dnd/commit/01e35c3c40f2a14742dc8c463ce1c6e439c05f92))
+* compendium linking UI — pickers for inventory, spells, NPCs, and locations ([b6071a9](https://github.com/martynvdijke/dnd/commit/b6071a958f39a4995665ee7aa1975c1d7e23bf49))
+* compendium unlink preserves data, global NPC/location search, party character types ([586b556](https://github.com/martynvdijke/dnd/commit/586b556bea84f0e24d165f85ae5a10b766be7c3e))
+* offline support — register service worker at root scope, cache app shell, stay on app when offline ([318b023](https://github.com/martynvdijke/dnd/commit/318b02351471e6cf984a162205034ab750ba2663))
+* read-only character sheet and party stats modal for linked characters ([65e01a6](https://github.com/martynvdijke/dnd/commit/65e01a6ceefed15a61e22f8f7b420331458c35ec))
+* self-host Google Fonts and add skeleton loading screens ([50f07a5](https://github.com/martynvdijke/dnd/commit/50f07a579f37a3ae2e1e7de7f30039b4476365e6))
+
 ## [2.29.10](https://github.com/martynvdijke/dnd/compare/v2.29.9...v2.29.10) (2026-07-31)
 
 ## [2.29.9](https://github.com/martynvdijke/dnd/compare/v2.29.8...v2.29.9) (2026-07-30)
