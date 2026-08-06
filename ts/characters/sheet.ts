@@ -49,6 +49,8 @@ export function renderSheet() {
   (window as any).renderDetails?.();
   renderDiceTab();
   applySheetReadonly();
+  ensureSheetAccordion();
+  ensureSheetQuickActions();
   (window as any).updateSaveBtnState?.();
 }
 
@@ -192,6 +194,70 @@ expose('renderStepper', renderStepper);
 expose('autoSaveField', autoSaveField);
 expose('stepperField', stepperField);
 expose('editStepperValue', editStepperValue);
+// ─── Player UX: accordion sections + sticky quick actions (player-ux-overhaul) ───
+
+function ensureSheetAccordion(): void {
+  if (!currentChar) return;
+  const c: any = currentChar;
+  const classStr = [c.race, c.subclass, c.class].filter(Boolean).join(' ');
+  const titles: Record<string, string> = { stats: 'Stats', combat: 'Combat', spells: 'Spells', inventory: 'Inventory', features: 'Features', feats: 'Feats', companions: 'Companions', crafting: 'Crafting', locations: 'Locations', npcs: 'NPCs', sessions: 'Sessions', quests: 'Quests', journal: 'Journal', notes: 'Notes', graph: 'Graph', analytics: 'Analytics', details: 'Details', dice: 'Dice Roller' };
+  for (const s of sections) {
+    const el = document.getElementById(s + 'Section') as HTMLElement | null;
+    if (!el || !el.parentElement) continue;
+    let acc = document.getElementById('sheet-acc-' + s) as HTMLElement | null;
+    if (!acc || !acc.contains(el)) {
+      if (acc) acc.remove();
+      acc = document.createElement('details');
+      acc.className = 'sheet-section-acc';
+      acc.id = 'sheet-acc-' + s;
+      const sum = document.createElement('summary');
+      sum.className = 'sheet-acc-summary';
+      sum.innerHTML = `<i class="fa-solid fa-chevron-right me-2 sheet-acc-chevron"></i><span class="sheet-acc-title">${titles[s] || s}</span><span class="badge sheet-acc-count" id="${s}SectionCount"></span>`;
+      sum.addEventListener('click', (ev) => { ev.preventDefault(); (window as any).switchTab?.(s); });
+      acc.appendChild(sum);
+      el.parentElement.insertBefore(acc, el);
+      acc.appendChild(el); // DOM move preserves listeners + htmx attributes
+    }
+    acc.classList.toggle('sheet-acc-open', currentTab === s);
+    (acc as any).open = currentTab === s;
+    const countEl = document.getElementById(s + 'SectionCount') as HTMLElement | null;
+    if (countEl) {
+      let txt = '';
+      if (s === 'stats') txt = `Lvl ${c.level} · ${classStr}`;
+      else if (s === 'combat') txt = `HP ${c.hp_current}/${c.hp_max} · AC ${c.ac}`;
+      else if (s === 'spells') { const sp = (c.spells || []).filter((x: any) => x.prepared || x.always_prepared); txt = `${sp.length} prepared`; }
+      else if (s === 'inventory') txt = `${(c.inventory || []).length} items`;
+      else if (s === 'features') txt = `${(c.features || []).length}`;
+      else if (s === 'feats') txt = `${(c.feats || []).length}`;
+      else if (s === 'companions') txt = `${(c.companions || []).length}`;
+      countEl.textContent = txt;
+      countEl.style.display = txt ? '' : 'none';
+    }
+  }
+}
+
+function ensureSheetQuickActions(): void {
+  if (!currentChar) return;
+  const sheetView = document.getElementById('sheetView');
+  if (!sheetView) return;
+  let bar = document.getElementById('sheetQuickActions') as HTMLElement | null;
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'sheetQuickActions';
+    bar.className = 'sheet-quick-actions no-print';
+    const header = sheetView.querySelector('h2') || sheetView.firstElementChild;
+    sheetView.insertBefore(bar, header ? header.nextSibling : sheetView.firstChild);
+  }
+  const sess = document.body.classList.contains('session-mode');
+  bar.innerHTML = sess
+    ? `<button class="btn btn-sm btn-danger" onclick="applyDamage()"><i class="fa-solid fa-heart-crack me-1"></i>Damage</button><button class="btn btn-sm btn-success" onclick="applyHeal()"><i class="fa-solid fa-heart-pulse me-1"></i>Heal</button><button class="btn btn-sm btn-outline-secondary" onclick="showAddCondition()"><i class="fa-solid fa-skull me-1"></i>Condition</button>`
+    : `<button class="btn btn-sm btn-outline-primary" onclick="rollAllInitiative()" title="Roll Initiative"><i class="fa-solid fa-dice-d20 me-1"></i>Initiative</button><button class="btn btn-sm btn-outline-success" onclick="doRest('short')" title="Short rest"><i class="fa-solid fa-mug-hot me-1"></i>Short Rest</button><button class="btn btn-sm btn-outline-primary" onclick="doRest('long')" title="Long rest"><i class="fa-solid fa-bed me-1"></i>Long Rest</button><button class="btn btn-sm btn-gold" onclick="doLevelUp()" title="Level up"><i class="fa-solid fa-arrow-up me-1"></i>Level Up</button>`;
+  bar.style.display = sheetCanEdit() ? '' : 'none';
+}
+
+// Re-render the quick-action bar whenever session mode (body class) changes.
+new MutationObserver(() => ensureSheetQuickActions()).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
 expose('coinStepper', coinStepper);
 expose('updateField', updateField);
 expose('updateXPBar', updateXPBar);

@@ -3744,3 +3744,43 @@ body.sidebar-collapsed .container {
   0%, 100% { box-shadow: 0 0 0 0 rgba(201, 162, 39, 0.5); }
   50% { box-shadow: 0 0 0 6px rgba(201, 162, 39, 0); }
 }
+
+/* ─── Player UX: accordion character sheet + sticky quick actions ─── */
+.sheet-section-acc {
+  border: 1px solid var(--border-light);
+  border-radius: 0.5rem;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+  background: var(--card-bg, #fff);
+}
+[data-theme="dark"] .sheet-section-acc {
+  background: var(--card-bg, #1e1e1e);
+}
+.sheet-acc-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+}
+.sheet-acc-summary::-webkit-details-marker { display: none; }
+.sheet-section-acc[open] .sheet-acc-chevron { transform: rotate(90deg); transition: transform 0.15s ease; }
+.sheet-section-acc[open] { border-color: var(--gold, #c9a227); }
+.sheet-acc-count { margin-left: auto; }
+.sheet-quick-actions {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 0.75rem;
+}
+[data-theme="dark"] .sheet-quick-actions { background: rgba(20, 20, 20, 0.92); }
+/* Session mode: only the combat section stays visible on the sheet */
+body.session-mode .sheet-section-acc:not(#sheet-acc-combat) { display: none; }

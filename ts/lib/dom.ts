@@ -56,6 +56,41 @@ export function toast(msg: string, isError = false, duration = 5000): void {
     </div>`;
   const el = document.getElementById(id)!;
   new bootstrap.Toast(el, { autohide: true, delay: duration }).show();
+
+  // Swipe-left to dismiss (touch only — mouse users unaffected).
+  let startX = 0;
+  let startY = 0;
+  let swiping = false;
+  el.addEventListener('touchstart', (e: TouchEvent) => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    swiping = true;
+  }, { passive: true });
+  el.addEventListener('touchmove', (e: TouchEvent) => {
+    if (!swiping) return;
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    if (Math.abs(dx) > Math.abs(dy) && dx < 0) {
+      el.style.transition = 'none';
+      el.style.transform = `translateX(${dx}px)`;
+      el.style.opacity = String(Math.max(0.2, 1 + dx / 120));
+    }
+  }, { passive: true });
+  el.addEventListener('touchend', (e: TouchEvent) => {
+    if (!swiping) return;
+    swiping = false;
+    const dx = e.changedTouches[0].clientX - startX;
+    if (dx < -60) {
+      el.style.transition = 'transform 0.22s ease, opacity 0.22s ease';
+      el.style.transform = 'translateX(110%)';
+      el.style.opacity = '0';
+      window.setTimeout(() => el.remove(), 230);
+    } else {
+      el.style.transition = 'transform 0.2s ease';
+      el.style.transform = '';
+      el.style.opacity = '';
+    }
+  }, { passive: true });
   setTimeout(() => el.remove(), duration + 1000);
 }
 
