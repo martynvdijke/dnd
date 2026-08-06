@@ -2,8 +2,8 @@ package db
 
 import (
 	"fmt"
-	"log"
 	"strings"
+	"villum/middleware"
 )
 
 var migrations = []struct {
@@ -1807,7 +1807,7 @@ func Migrate() error {
 	for _, m := range migrations {
 		if m.version > current {
 			migrated = true
-			log.Printf("Running migration v%d", m.version)
+			middleware.LogInfo("migration", "Running migration", "version", m.version)
 			tx, err := DB.Begin()
 			if err != nil {
 				return fmt.Errorf("begin migration v%d: %w", m.version, err)
@@ -1846,7 +1846,7 @@ func LogPageStats() {
 	}
 	_ = DB.QueryRow("PRAGMA freelist_count").Scan(&freelistCount)
 	_ = DB.QueryRow("PRAGMA page_size").Scan(&pageSize)
-	log.Printf("db: page_count=%d freelist_count=%d page_size=%d", pageCount, freelistCount, pageSize)
+	middleware.LogInfo("db", "page stats", "page_count", pageCount, "freelist_count", freelistCount, "page_size", pageSize)
 }
 
 // ApplySafeAlters runs ALTER TABLE statements that safely add columns if they don't exist.
@@ -1957,9 +1957,9 @@ func ApplySafeAlters() error {
 		"ALTER TABLE campaign_event_settings ADD COLUMN ical_url TEXT NOT NULL DEFAULT ''",
 	}
 	for _, stmt := range alterStatements {
-		log.Printf("ALTER: %s", stmt)
+		middleware.LogInfo("migration", "ALTER", "statement", stmt)
 		if _, err := DB.Exec(stmt); err != nil {
-			log.Printf("ALTER error: %v", err)
+			middleware.LogWarn("migration", "ALTER error", "error", err)
 			if !strings.Contains(err.Error(), "duplicate column") {
 				return fmt.Errorf("alter table: %w", err)
 			}

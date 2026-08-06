@@ -770,6 +770,7 @@
         </select>
         <div class="vr mx-1"></div>
         <label class="form-label mb-0 me-1" for="logSourceFilter" style="font-size:0.85rem">Source</label>
+        <input type="text" class="form-control form-control-sm" id="logSearch" placeholder="Search logs..." style="width:auto" oninput="loadLogs()">
         <select class="form-select form-select-sm" id="logSourceFilter" style="width:auto" onchange="loadLogs()">
           <option value="">All</option>
         </select>
@@ -798,7 +799,8 @@
     </div>
     <div class="card-footer text-muted small d-flex justify-content-between">
       <span id="logCount">0 entries</span>
-      <span id="logAutoRefresh">Auto-refresh: on</span>
+      <span id="logAutoRefresh" style="cursor:pointer" title="Toggle auto-refresh">Auto-refresh: on</span>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="logExportBtn" onclick="exportLogs()"><i class="fa-solid fa-download me-1"></i>Export</button>
     </div>
   </div>
 </div>

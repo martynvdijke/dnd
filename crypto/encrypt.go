@@ -8,8 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"os"
+	"villum/middleware"
 )
 
 var encryptionKey []byte
@@ -24,20 +24,20 @@ func init() {
 func Init() {
 	keyHex := os.Getenv("AI_ENCRYPTION_KEY")
 	if keyHex == "" {
-		log.Println("[crypto] AI_ENCRYPTION_KEY not set — API keys will be stored in plaintext")
+		middleware.LogWarn("crypto", "AI_ENCRYPTION_KEY not set — API keys will be stored in plaintext")
 		fallbackMode = true
 		return
 	}
 
 	key, err := hex.DecodeString(keyHex)
 	if err != nil {
-		log.Printf("[crypto] AI_ENCRYPTION_KEY is not valid hex — falling back to plaintext: %v", err)
+		middleware.LogWarn("crypto", "AI_ENCRYPTION_KEY is not valid hex — falling back to plaintext", "error", err)
 		fallbackMode = true
 		return
 	}
 
 	if len(key) != 32 {
-		log.Printf("[crypto] AI_ENCRYPTION_KEY must be 32 bytes (64 hex chars), got %d bytes — falling back to plaintext", len(key))
+		middleware.LogWarn("crypto", "AI_ENCRYPTION_KEY must be 32 bytes (64 hex chars)", "bytes", len(key))
 		fallbackMode = true
 		return
 	}

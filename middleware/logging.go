@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // LogEntry represents a single structured log entry for the in-memory buffer.
@@ -243,6 +244,11 @@ func (h *logHandler) Handle(ctx context.Context, r slog.Record) error {
 		return true
 	})
 
+	// Attach the OpenTelemetry trace id when the record carries span context.
+	if sc := trace.SpanContextFromContext(ctx); sc.IsValid() {
+		attrs["trace_id"] = sc.TraceID().String()
+	}
+
 	level := StringFromLogLevel(r.Level)
 
 	// Write to ring buffer
@@ -387,10 +393,10 @@ func InitAppLogger(capacity int, minLevel slog.Level) *AppLogger {
 }
 
 // InitAppLoggerFromEnv initializes the AppLog using environment variables:
-//   - LOG_BUFFER_SIZE: ring buffer capacity (default 5000)
+//   - LOG_BUFFER_SIZE: ring buffer capacity (default 20000)
 //   - LOG_LEVEL: minimum log level (default "warn")
 func InitAppLoggerFromEnv() *AppLogger {
-	cap := 5000
+	cap := 20000
 	if v := os.Getenv("LOG_BUFFER_SIZE"); v != "" {
 		if n, err := strconv.Atoi(v); err == nil && n > 0 {
 			cap = n

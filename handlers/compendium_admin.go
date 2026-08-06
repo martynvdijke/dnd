@@ -16,6 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
+	"villum/middleware"
 	"villum/models"
 )
 
@@ -1119,7 +1120,7 @@ func SeedCompendiumSchemas() {
 		result, err := db.DB.Exec(`UPDATE compendium_schemas SET display_name=?, fields=? WHERE type_name=?`,
 			s.DisplayName, string(fieldsJSON), s.TypeName)
 		if err != nil {
-			fmt.Printf("Warning: update schema %s: %v\n", s.TypeName, err)
+			middleware.LogWarn("compendium", "update schema failed", "type", s.TypeName, "error", err)
 			continue
 		}
 		rows, _ := result.RowsAffected()
@@ -1127,7 +1128,7 @@ func SeedCompendiumSchemas() {
 			_, err := db.DB.Exec(`INSERT INTO compendium_schemas(type_name, display_name, fields) VALUES(?,?,?)`,
 				s.TypeName, s.DisplayName, string(fieldsJSON))
 			if err != nil {
-				fmt.Printf("Warning: insert schema %s: %v\n", s.TypeName, err)
+				middleware.LogWarn("compendium", "insert schema failed", "type", s.TypeName, "error", err)
 			}
 		}
 	}

@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"context"
-	"log"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -39,7 +38,7 @@ func TraceDBQuery(ctx context.Context, operation string, fn func(context.Context
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, err.Error())
-		log.Printf("DB query error [%s]: %v (duration: %.2fms)", operation, err, duration*1000)
+		LogError("tracing", "DB query error", "operation", operation, "error", err, "duration_ms", duration*1000)
 	} else {
 		span.SetStatus(codes.Ok, "")
 	}

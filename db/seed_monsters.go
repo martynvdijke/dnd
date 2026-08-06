@@ -1,7 +1,7 @@
 package db
 
 import (
-	"log"
+	"villum/middleware"
 )
 
 func seedMonsters() {
@@ -242,5 +242,5 @@ Mind Blast (Recharge 5-6): The mind flayer magically emits psychic energy in a 6
 			m.saves, m.skills, m.vuln, m.resist, m.immun, m.condImmun,
 			m.senses, m.langs, m.abilities, m.actions, m.legendary, m.desc, "", "", "")
 	}
-	log.Printf("Seeded %d compendium monsters", len(monsters))
+	middleware.LogInfo("seed", "seeded compendium monsters", "count", len(monsters))
 }

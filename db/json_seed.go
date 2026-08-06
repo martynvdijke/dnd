@@ -3,9 +3,9 @@ package db
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
+	"villum/middleware"
 )
 
 type jsonSeedEntry struct {
@@ -30,7 +30,7 @@ func SeedJSONCategory(dataDir, category string) bool {
 
 	data, err := os.ReadFile(path)
 	if err != nil {
-		log.Printf("Warning: failed to read %s: %v", path, err)
+		middleware.LogWarn("seed", "failed to read", "path", path, "error", err)
 		return false
 	}
 
@@ -38,7 +38,7 @@ func SeedJSONCategory(dataDir, category string) bool {
 	if err := json.Unmarshal(data, &entries); err != nil {
 		var entry map[string]any
 		if err2 := json.Unmarshal(data, &entry); err2 != nil {
-			log.Printf("Warning: invalid JSON in %s: %v", path, err)
+			middleware.LogWarn("seed", "invalid JSON", "path", path, "error", err)
 			return false
 		}
 		entries = []map[string]any{entry}
@@ -56,22 +56,22 @@ func SeedJSONCategory(dataDir, category string) bool {
 		if hasForceFlag(dataDir) {
 			DB.Exec(fmt.Sprintf("DELETE FROM compendium_%s", category))
 		} else {
-			log.Printf("Skipping %s: table already has data", path)
+			middleware.LogInfo("seed", "skipping, table already has data", "path", path)
 			return true
 		}
 	}
 
 	seedFn, ok := jsonSeeders[category]
 	if !ok {
-		log.Printf("Warning: unknown compendium category: %s", category)
+		middleware.LogWarn("seed", "unknown compendium category", "category", category)
 		return false
 	}
 
 	if err := seedFn(entries); err != nil {
-		log.Printf("Warning: failed to seed %s: %v", path, err)
+		middleware.LogWarn("seed", "failed to seed", "path", path, "error", err)
 		return false
 	}
-	log.Printf("Seeded %d entries from %s", len(entries), path)
+	middleware.LogInfo("seed", "seeded entries", "count", len(entries), "path", path)
 	return true
 }
 

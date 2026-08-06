@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -22,6 +21,7 @@ import (
 	entsql "entgo.io/ent/dialect/sql"
 
 	"villum/ent"
+	"villum/middleware"
 )
 
 var tracer trace.Tracer
@@ -86,7 +86,7 @@ func TraceQueryEx(ctx context.Context, operation, query string, fn func(context.
 	}
 
 	if ms > slowQueryMS() && query != "" {
-		log.Printf("db: slow query %s took %.1fms: %s", operation, ms, truncate(query, 400))
+		middleware.LogInfo("db", "slow query", "operation", operation, "duration_ms", ms, "query", truncate(query, 400))
 		logExplainPlan(query)
 	}
 
@@ -112,7 +112,7 @@ func slowQueryMS() float64 {
 func logExplainPlan(query string) {
 	rows, err := DB.Query("EXPLAIN QUERY PLAN " + query)
 	if err != nil {
-		log.Printf("db: explain query plan failed: %v", err)
+		middleware.LogWarn("db", "explain query plan failed", "error", err)
 		return
 	}
 	defer rows.Close()
@@ -122,7 +122,7 @@ func logExplainPlan(query string) {
 		if err := rows.Scan(&id, &parent, &notUsed, &detail); err != nil {
 			break
 		}
-		log.Printf("db: explain[%d]: %s", id, detail)
+		middleware.LogInfo("db", "explain plan", "id", id, "detail", detail)
 	}
 }
 
@@ -187,9 +187,9 @@ func Init(dbPath string) error {
 		for {
 			time.Sleep(60 * time.Minute)
 			if _, err := DB.Exec("PRAGMA optimize"); err != nil {
-				log.Printf("db: PRAGMA optimize error: %v", err)
+				middleware.LogWarn("db", "PRAGMA optimize error", "error", err)
 			} else {
-				log.Printf("db: PRAGMA optimize completed")
+				middleware.LogInfo("db", "PRAGMA optimize completed")
 			}
 		}
 	}()
@@ -203,12 +203,12 @@ func Init(dbPath string) error {
 			var before, after int64
 			DB.QueryRow("PRAGMA page_count").Scan(&before)
 			if _, err := DB.Exec("PRAGMA incremental_vacuum"); err != nil {
-				log.Printf("db: incremental_vacuum error: %v", err)
+				middleware.LogWarn("db", "incremental_vacuum error", "error", err)
 				continue
 			}
 			DB.QueryRow("PRAGMA page_count").Scan(&after)
 			if lastPages >= 0 && before > after {
-				log.Printf("db: incremental_vacuum freed %d pages (%d -> %d)", before-after, before, after)
+				middleware.LogInfo("db", "incremental_vacuum freed pages", "freed", before-after, "before", before, "after", after)
 			}
 			lastPages = after
 		}
@@ -218,7 +218,7 @@ func Init(dbPath string) error {
 	go func() {
 		for {
 			time.Sleep(60 * time.Minute)
-			log.Printf("db: statement cache entries=%d", stmtCacheLen())
+			middleware.LogInfo("db", "statement cache entries", "count", stmtCacheLen())
 		}
 	}()
 

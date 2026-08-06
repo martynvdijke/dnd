@@ -771,6 +771,7 @@ async function loadLogSources() {
 async function loadLogs() {
   try {
     const sourceFilter = (document.getElementById('logSourceFilter') as HTMLSelectElement)?.value || '';
+    const searchTerm = ((document.getElementById('logSearch') as HTMLInputElement)?.value || '').toLowerCase();
     let url = '/api/admin/logs?limit=200';
     if (sourceFilter) url += '&source=' + encodeURIComponent(sourceFilter);
 
@@ -780,6 +781,7 @@ async function loadLogs() {
       : false;
 
     const logs = await api('GET', url);
+    (window as any).__lastLogs = logs || [];
     const tbody = document.getElementById('logBody')!;
     if (!logs || logs.length === 0) {
       tbody.innerHTML = '<tr><td colspan="5" class="text-muted text-center">No log entries</td></tr>';
@@ -792,7 +794,8 @@ async function loadLogs() {
       warn: 'bg-warning text-dark',
       error: 'bg-danger',
     };
-    tbody.innerHTML = logs.map((l: any, idx: number) => {
+    const filtered = searchTerm ? logs.filter((l: any) => JSON.stringify(l).toLowerCase().includes(searchTerm)) : logs;
+    tbody.innerHTML = filtered.map((l: any, idx: number) => {
       const badge = levelBadge[l.level] || 'bg-secondary';
       const ts = l.timestamp ? new Date(l.timestamp).toLocaleString() : '-';
       const hasAttrs = l.attributes && Object.keys(l.attributes).length > 0;
@@ -800,11 +803,13 @@ async function loadLogs() {
         ? Object.entries(l.attributes).map(([k, v]) => `<span class="badge bg-light text-dark me-1">${esc(k)}=${esc(String(v)).substring(0, 30)}</span>`).join('')
         : '';
       const detailId = `logDetail_${idx}`;
-      const attrsHtml = hasAttrs
+      let attrsHtml = hasAttrs
         ? '<dl class="log-detail-attrs mb-0">' +
           Object.entries(l.attributes).map(([k, v]) => `<dt>${esc(k)}</dt><dd><code>${esc(JSON.stringify(v))}</code></dd>`).join('') +
           '</dl>'
         : '<span class="text-muted">No attributes</span>';
+      const traceId = (l.attributes && (l.attributes as any)['trace_id']) || '';
+      if (traceId) attrsHtml += `<button class="btn btn-outline-secondary btn-sm mt-2" onclick="copyLogTrace('${esc(traceId)}')"><i class="fa-solid fa-copy me-1"></i>Copy trace id</button>`;
       return `<tr class="log-row" style="cursor:pointer" onclick="toggleLogDetail('${detailId}')">
         <td><span class="badge ${badge}">${esc(l.level)}</span></td>
         <td class="small">${esc(ts)}</td>
@@ -836,7 +841,66 @@ function toggleLogDetail(detailId: string) {
   const isVisible = detailRow.style.display !== 'none';
   detailRow.style.display = isVisible ? 'none' : 'table-row';
 }
+expose('loadLogs', loadLogs);
 expose('toggleLogDetail', toggleLogDetail);
+
+async function copyLogTrace(traceId: string) {
+  try {
+    await navigator.clipboard.writeText(traceId);
+    toast('Trace id copied');
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = traceId;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); toast('Trace id copied'); } catch { toast('Copy failed', true); }
+    document.body.removeChild(ta);
+  }
+}
+expose('copyLogTrace', copyLogTrace);
+
+function exportLogs() {
+  const logs: any[] = (window as any).__lastLogs || [];
+  if (!logs.length) { toast('No log entries to export', true); return; }
+  const format = (document.getElementById('logExportFormat') as HTMLSelectElement)?.value || 'json';
+  let blob: Blob;
+  let name = 'logs.json';
+  if (format === 'csv') {
+    const cols = ['level', 'source', 'timestamp', 'message', 'attributes'];
+    const rows = logs.map((l) => cols.map((c) => {
+      const v = c === 'attributes' ? JSON.stringify(l.attributes || {}) : (l[c] ?? '');
+      return '"' + String(v).replace(/"/g, '""') + '"';
+    }).join(','));
+    blob = new Blob([cols.join(',') + '\n' + rows.join('\n')], { type: 'text/csv' });
+    name = 'logs.csv';
+  } else {
+    blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Logs exported (' + logs.length + ' entries)');
+}
+expose('exportLogs', exportLogs);
+
+function toggleLogAutoRefresh() {
+  const span = document.getElementById('logAutoRefresh');
+  if (logRefreshInterval) {
+    clearInterval(logRefreshInterval);
+    logRefreshInterval = null;
+    if (span) span.textContent = 'Auto-refresh: off';
+  } else {
+    logRefreshInterval = setInterval(() => { loadLogs(); }, 5000);
+    if (span) span.textContent = 'Auto-refresh: on';
+  }
+}
+expose('toggleLogAutoRefresh', toggleLogAutoRefresh);
+document.addEventListener('click', (ev) => {
+  const t = (ev.target as HTMLElement).closest('#logAutoRefresh');
+  if (t) { ev.preventDefault(); toggleLogAutoRefresh(); }
+});
 
 async function loadLogLevel() {
   try {
