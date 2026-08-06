@@ -301,6 +301,33 @@ func GetCompendiumEntry(c *gin.Context) {
 	c.JSON(http.StatusOK, e)
 }
 
+// GetCompendiumEntryBySchema returns a single compendium entry to authenticated
+// users (read-only), verifying the entry belongs to the requested schema.
+func GetCompendiumEntryBySchema(c *gin.Context) {
+	schemaID, err1 := strconv.ParseInt(c.Param("id"), 10, 64)
+	entryID, err2 := strconv.ParseInt(c.Param("entryId"), 10, 64)
+	if err1 != nil || err2 != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	var e models.CompendiumEntry
+	var dataJSON string
+	err := db.DB.QueryRow("SELECT id, schema_id, data, created_at, updated_at FROM compendium_entries WHERE id = ?", entryID).
+		Scan(&e.ID, &e.SchemaID, &dataJSON, &e.CreatedAt, &e.UpdatedAt)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "entry not found"})
+		return
+	}
+	if e.SchemaID != schemaID {
+		c.JSON(http.StatusNotFound, gin.H{"error": "entry not found in schema"})
+		return
+	}
+	if err := json.Unmarshal([]byte(dataJSON), &e.Data); err != nil {
+		e.Data = map[string]any{}
+	}
+	c.JSON(http.StatusOK, e)
+}
+
 func CreateCompendiumEntry(c *gin.Context) {
 	schemaID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {

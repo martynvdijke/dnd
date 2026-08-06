@@ -406,6 +406,37 @@ func SearchCompendium(c *gin.Context) {
 		}
 	}
 
+	// Unified schema-based entries (compendium_entries FTS5) — appended so players
+	// can discover DM-imported content through the same search endpoint.
+	ftsWhere := "compendium_entries_fts MATCH ?"
+	ftsArgs := []any{q}
+	if typeFilter != "" {
+		ftsWhere += " AND cs.type_name = ?"
+		ftsArgs = append(ftsArgs, typeFilter)
+	}
+	rows, qErr := db.DB.Query("SELECT e.id, e.schema_id, e.data, cs.type_name FROM compendium_entries e JOIN compendium_entries_fts f ON e.id = f.rowid JOIN compendium_schemas cs ON e.schema_id = cs.id WHERE "+ftsWhere+" ORDER BY rank LIMIT 25", ftsArgs...)
+	if qErr != nil {
+		middleware.LogWarn("compendium", "unified search failed", "error", qErr)
+	} else {
+		for rows.Next() {
+			var r SearchResult
+			var schemaID int64
+			var dataJSON string
+			if err := rows.Scan(&r.ID, &schemaID, &r.Type, &dataJSON); err != nil {
+				middleware.LogWarn("compendium", "scan failed, skipping row", "type", "unified", "error", err)
+				continue
+			}
+			var data map[string]any
+			if err := json.Unmarshal([]byte(dataJSON), &data); err == nil {
+				if n, ok := data["name"].(string); ok {
+					r.Name = n
+				}
+			}
+			results = append(results, r)
+		}
+		rows.Close()
+	}
+
 	c.JSON(http.StatusOK, results)
 }
 

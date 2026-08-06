@@ -14,6 +14,8 @@ func RegisterCompendiumRoutes(r *gin.RouterGroup) {
 	r.GET("/compendium/search", SearchCompendium)
 	r.GET("/compendium/api/:category", FetchFromDnDApi)
 	r.GET("/compendium/entries-by-schema", ListUserCompendiumEntriesBySchema)
+	r.GET("/compendium/schemas", ListCompendiumSchemas)
+	r.GET("/compendium/schemas/:id/entries/:entryId", GetCompendiumEntryBySchema)
 	r.GET("/compendium/schemas/:id/entries", ListCompendiumEntries)
 }
 

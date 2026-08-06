@@ -7,6 +7,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
 	"villum/db"
 	"villum/handlers/testutil"
 	"villum/middleware"
@@ -303,4 +307,95 @@ func FuzzCompendiumSearch(f *testing.F) {
 		r.ServeHTTP(w, req)
 		_ = w.Code
 	})
+}
+
+func TestCompendiumSchemasAuthList(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+
+	seedTestRaceSchema(t)
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.GET("/compendium/schemas", ListCompendiumSchemas)
+	})
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/api/compendium/schemas", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	var out []map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+		t.Fatalf("bad json: %v", err)
+	}
+	found := false
+	for _, sc := range out {
+		if sc["type_name"] == "race" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected race schema in response: %s", rec.Body.String())
+	}
+}
+
+func seedTestRaceSchema(t *testing.T) int64 {
+	t.Helper()
+	var id int64
+	if err := db.DB.QueryRow("SELECT id FROM compendium_schemas WHERE type_name = 'race' LIMIT 1").Scan(&id); err == nil {
+		return id
+	}
+	res, err := db.DB.Exec("INSERT INTO compendium_schemas (type_name, display_name, fields, created_at, updated_at) VALUES ('race', 'Race', '{}', datetime('now'), datetime('now'))")
+	if err != nil {
+		t.Fatalf("insert schema: %v", err)
+	}
+	id, err = res.LastInsertId()
+	if err != nil {
+		t.Fatalf("lastinsertid: %v", err)
+	}
+	return id
+}
+
+func TestCompendiumEntryBySchema(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+
+	var schemaID int64 = seedTestRaceSchema(t)
+	if _, err := db.DB.Exec("INSERT INTO compendium_entries (id, schema_id, data, created_at, updated_at) VALUES (9001, ?, '{\"name\":\"Test Entry\"}', datetime('now'), datetime('now'))", schemaID); err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.GET("/compendium/schemas/:id/entries/:entryId", GetCompendiumEntryBySchema)
+	})
+
+	// correct schema -> 200 with name
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/compendium/schemas/%d/entries/9001", schemaID), nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte("Test Entry")) {
+		t.Fatalf("name missing: %s", rec.Body.String())
+	}
+
+	// wrong schema -> 404
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/api/compendium/schemas/99999/entries/9001", nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("wrong schema: expected 404, got %d", rec.Code)
+	}
+
+	// missing entry -> 404
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/compendium/schemas/%d/entries/9002", schemaID), nil)
+	r.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("missing entry: expected 404, got %d", rec.Code)
+	}
 }

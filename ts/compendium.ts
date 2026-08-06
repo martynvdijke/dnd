@@ -1,6 +1,6 @@
 // @ts-nocheck — extracted from app.ts monolith
 
-import { esc, capitalize } from './lib/dom';
+import { esc, capitalize, showModal, toast } from './lib/dom';
 import { api } from './lib/api';
 import { showView } from './navigation';
 import { expose } from './lib/expose';
@@ -119,10 +119,13 @@ export function renderSchemaEntries(schema: any): string {
     const name = esc(e.data?.name || e.data?.Name || 'Unnamed');
     const preview = entryPreview(e.data, name);
     return `
-      <div class="card mb-2">
+      <div class="card mb-2 schema-entry-card" role="button"
+           onclick="showCompendiumEntryDetail(${schema.id}, ${e.id})"
+           style="cursor:pointer">
         <div class="card-body py-2 px-3">
           <div class="d-flex justify-content-between">
             <strong>${name}</strong>
+            <span class="badge bg-secondary align-self-center"><i class="fa-solid fa-book me-1"></i>View</span>
           </div>
           <p class="mb-0 mt-1 small text-muted">${preview}</p>
         </div>
@@ -217,3 +220,111 @@ async function loadCompendiumMonsters() {
     document.getElementById('compMonsters')!.innerHTML = html;
   } catch {}
 }
+
+// ─── Player Entry Detail + Compendium Links (player-compendium-access) ───
+
+export function humanizeKey(key: string): string {
+  return key.replace(/[_-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+expose('showCompendiumEntryDetail', async function (schemaId: number, entryId: number) {
+  try {
+    const entry = await api('GET', `/api/compendium/schemas/${schemaId}/entries/${entryId}`);
+    const data = entry?.data || {};
+    const name = (data.name || data.Name || 'Compendium Entry') as string;
+    const rows = Object.entries(data)
+      .filter(([k]) => k.toLowerCase() !== 'name')
+      .map(([k, v]) => {
+        const label = esc(humanizeKey(k));
+        if (typeof v === 'string' && v.length > 80) {
+          return `<div class="mb-2"><div class="fw-bold small">${label}</div><pre style="white-space:pre-wrap;margin:0">${esc(v)}</pre></div>`;
+        }
+        const val = typeof v === 'object' && v !== null ? JSON.stringify(v) : String(v);
+        return `<div class="mb-2"><span class="fw-bold small">${label}:</span> <span>${esc(val)}</span></div>`;
+      })
+      .join('');
+    showModal(esc(name), rows || '<p class="text-muted mb-0">No details.</p>');
+  } catch (e: any) {
+    toast(e.message || 'Could not load entry', true);
+  }
+});
+
+const COMPENDIUM_LINK_RE = /\[\[compendium:([A-Za-z0-9_-]+):([^\]]+)\]\]/g;
+
+export function parseCompendiumLinksInto(rootEl: Element): void {
+  if (!rootEl || rootEl.querySelector('a.compendium-link')) return;
+  const walker = document.createTreeWalker(rootEl, NodeFilter.SHOW_TEXT);
+  const nodes: Text[] = [];
+  let n: Node | null;
+  while ((n = walker.nextNode())) nodes.push(n as Text);
+  for (const textNode of nodes) {
+    if (!COMPENDIUM_LINK_RE.test(textNode.nodeValue || '')) continue;
+    COMPENDIUM_LINK_RE.lastIndex = 0;
+    const frag = document.createDocumentFragment();
+    let last = 0;
+    let m: RegExpExecArray | null;
+    while ((m = COMPENDIUM_LINK_RE.exec(textNode.nodeValue || '')) !== null) {
+      frag.appendChild(document.createTextNode(textNode.nodeValue!.slice(last, m.index)));
+      const a = document.createElement('a');
+      a.href = '#';
+      a.className = 'compendium-link';
+      a.dataset.schema = m[1];
+      a.dataset.name = m[2];
+      a.textContent = m[2];
+      frag.appendChild(a);
+      last = m.index + m[0].length;
+    }
+    frag.appendChild(document.createTextNode(textNode.nodeValue!.slice(last)));
+    textNode.parentNode?.replaceChild(frag, textNode);
+  }
+}
+
+async function openCompendiumLink(schema: string, name: string): Promise<void> {
+  const norm = (x: string) => (x || '').toLowerCase();
+  try {
+    const hits: CompendiumSearchResult[] = await api('GET', `/api/compendium/search?q=${encodeURIComponent(name)}`);
+    const schemas: any[] = await api('GET', '/api/compendium/schemas');
+    const def = (schemas || []).find((s) => norm(s.type_name) === norm(schema));
+    const matching = (hits || []).filter((r) => norm(r.type) === norm(schema));
+    if (def) {
+      // Legacy search hits can carry legacy table ids — try each match until
+      // one resolves to a real compendium_entries row.
+      for (const h of matching) {
+        try {
+          const v: any = await api('GET', `/api/compendium/schemas/${def.id}/entries/${h.id}`);
+          if (v && v.id) { await showCompendiumEntryDetail(def.id, h.id); return; }
+        } catch (e) { /* 404 etc — try next hit */ }
+      }
+    }
+    // Fallback: entries-by-schema scan (authoritative unified ids).
+    const bySchema: any = await api('GET', '/api/compendium/entries-by-schema');
+    const es = ((bySchema && bySchema.schemas) || []).find((s: any) => norm(s.type_name) === norm(schema));
+    const entry = es && (es.entries || []).find((e: any) => norm(e.data && e.data.name) === norm(name));
+    if (entry) {
+      await showCompendiumEntryDetail(es.id, entry.id);
+      return;
+    }
+    toast('Compendium entry not found: ' + name, true);
+  } catch (e: any) {
+    toast(e.message || 'Could not open compendium entry', true);
+  }
+}
+
+// Delegate clicks once (module import time).
+document.addEventListener('click', (ev) => {
+  const target = ev.target as HTMLElement;
+  const link = target.closest?.('a.compendium-link') as HTMLAnchorElement | null;
+  if (!link) return;
+  ev.preventDefault();
+  const schema = link.dataset.schema || '';
+  const name = link.dataset.name || link.textContent || '';
+  openCompendiumLink(schema, name);
+});
+
+// Parse [[compendium:...]] links in htmx-swapped content (act/scene descriptions etc.).
+document.body.addEventListener('htmx:afterSwap', (e: any) => {
+  const el = e?.detail?.elt;
+  if (el && el.querySelector) parseCompendiumLinksInto(el);
+});
+
+expose('parseCompendiumLinksInto', parseCompendiumLinksInto);
