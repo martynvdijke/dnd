@@ -53,6 +53,9 @@ function switchView(view: ViewState): void {
   });
   updateActiveTab(view);
   updateFabForView(view);
+  if (view === 'party') {
+    (window as any).renderPartySubTabBar?.('overview');
+  }
 }
 
 /**

@@ -29,6 +29,7 @@ import './compendium';
 import './combat-tracker';
 import './encounter';
 import './party';
+import './party-subtabs';
 import './timeline';
 import './factions';
 import './character-sheet';

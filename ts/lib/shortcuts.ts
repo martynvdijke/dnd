@@ -1,11 +1,9 @@
 import { hideModal, showModal } from './dom';
 import { toggleTheme } from './theme';
 
-const sections = ['stats', 'combat', 'spells', 'inventory', 'features', 'feats', 'companions', 'crafting', 'locations', 'npcs', 'sessions', 'quests', 'journal', 'notes', 'graph', 'analytics', 'details', 'dice'];
 
-export function getSections(): string[] {
-  return sections;
-}
+import { sections, getSections } from './tabs';
+export { getSections };
 
 export function showShortcutsHelp(): void {
   showModal('Keyboard Shortcuts', `

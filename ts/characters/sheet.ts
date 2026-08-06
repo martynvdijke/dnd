@@ -14,7 +14,8 @@ import { renderCombat } from './combat';
 
 declare const htmx: any;
 
-export const sections = ['stats', 'combat', 'spells', 'inventory', 'features', 'feats', 'companions', 'crafting', 'locations', 'npcs', 'sessions', 'quests', 'journal', 'notes', 'graph', 'analytics', 'details', 'dice'];
+import { sections } from '../lib/tabs';
+export { sections };
 
 const htmxTabs = ['spells', 'features', 'feats', 'companions', 'crafting', 'notes'];
 
@@ -37,14 +38,13 @@ export function renderSheet() {
   `).join('');
 
   sections.forEach(s => {
-    const el = document.getElementById(s + 'Section')!;
-    el.style.display = s === currentTab ? 'block' : 'none';
+    const el = document.getElementById(s + 'Section');
+    if (el) el.style.display = s === currentTab ? 'block' : 'none';
   });
 
   renderStats();
   renderCombat();
-  (window as any).renderGraph?.();
-  (window as any).renderAnalytics?.();
+  // graph/analytics moved to the party view (reorganize-sheet-tabs); their section divs no longer exist
   (window as any).renderCrafting?.();
   (window as any).renderDetails?.();
   renderDiceTab();
@@ -74,6 +74,7 @@ export function switchTab(tab: string) {
   if (isDirty() && !isSaving()) {
     saveCharacter();
   }
+  if (tab === 'party') { (window as any).showView?.('party'); return; }
   setCurrentTab(tab);
   renderSheet();
   if (htmxTabs.includes(tab) && currentChar) {
@@ -90,10 +91,6 @@ export function switchTab(tab: string) {
   if (currentChar) {
     switch (tab) {
       case 'inventory': (window as any).renderInventory?.(); break;
-      case 'locations': (window as any).renderLocations?.(); break;
-      case 'npcs': (window as any).renderNPCs?.(); break;
-      case 'sessions': (window as any).renderSessions?.(); break;
-      case 'quests': (window as any).renderQuests?.(); break;
       case 'journal': (window as any).renderJournal?.(); break;
     }
     applySheetReadonly();
