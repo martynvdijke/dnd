@@ -7,6 +7,7 @@ import { expose } from '../lib/expose';
 import { currentChar, currentTab, setCurrentTab } from '../lib/state';
 import { esc, capitalize, toast } from '../lib/dom';
 import { api } from '../lib/api';
+import { markDirty, isDirty, isSaving, saveCharacter } from '../lib/save';
 import { renderDiceTab } from '../dice';
 import { renderStats, renderXPBar } from './stats';
 import { renderCombat } from './combat';
@@ -48,6 +49,7 @@ export function renderSheet() {
   (window as any).renderDetails?.();
   renderDiceTab();
   applySheetReadonly();
+  (window as any).updateSaveBtnState?.();
 }
 
 // Read-only mode for characters without edit rights (linked characters, campaign members)
@@ -66,6 +68,10 @@ function applySheetReadonly() {
 }
 
 export function switchTab(tab: string) {
+  // Save-on-tab-switch: persist any unsaved changes before rendering the next tab
+  if (isDirty() && !isSaving()) {
+    saveCharacter();
+  }
   setCurrentTab(tab);
   renderSheet();
   if (htmxTabs.includes(tab) && currentChar) {
@@ -105,9 +111,7 @@ export function renderStepper(field: string, value: number, delta: number, min?:
   </span>`;
 }
 
-// ─── Auto-save ───
-
-export let autoSaveTimer: number | null = null;
+// ─── Auto-save (thin wrappers → centralized ts/lib/save.ts) ───
 
 export function autoSaveField(field: string, el: HTMLElement) {
   const input = el as HTMLInputElement;
@@ -118,14 +122,7 @@ export function autoSaveField(field: string, el: HTMLElement) {
   const finalVal = !isNaN(num) && !isCheckbox && !isTextarea ? num : raw;
   if (!currentChar) return;
   currentChar[field] = finalVal;
-  if (autoSaveTimer) clearTimeout(autoSaveTimer);
-  autoSaveTimer = window.setTimeout(async () => {
-    try {
-      await api('PUT', `/api/characters/${currentChar.id}`, currentChar);
-    } catch (e: any) {
-      toast(e.message, true);
-    }
-  }, 800);
+  markDirty();
 }
 
 export function stepperField(field: string, delta: number, min?: number, max?: number) {
@@ -135,10 +132,7 @@ export function stepperField(field: string, delta: number, min?: number, max?: n
   if (min !== undefined) val = Math.max(min, val);
   if (max !== undefined) val = Math.min(max, val);
   currentChar[field] = val;
-  if (autoSaveTimer) clearTimeout(autoSaveTimer);
-  autoSaveTimer = window.setTimeout(async () => {
-    try { await api('PUT', `/api/characters/${currentChar.id}`, currentChar); } catch (e: any) { toast(e.message, true); }
-  }, 800);
+  markDirty();
   renderSheet();
 }
 
@@ -153,10 +147,7 @@ export function editStepperValue(field: string, el: HTMLElement) {
     const parsed = parseInt(input.value);
     if (!isNaN(parsed)) {
       currentChar[field] = parsed;
-      if (autoSaveTimer) clearTimeout(autoSaveTimer);
-      autoSaveTimer = window.setTimeout(async () => {
-        try { await api('PUT', `/api/characters/${currentChar.id}`, currentChar); } catch (e: any) { toast(e.message, true); }
-      }, 800);
+      markDirty();
     }
     renderSheet();
   };
@@ -188,10 +179,10 @@ export function updateXPBar() {
   if (container && currentChar) container.innerHTML = renderXPBar(currentChar);
 }
 
-export async function updateField(field: string, value: any) {
+export function updateField(field: string, value: any) {
   if (!currentChar) return;
   currentChar[field] = value;
-  try { await api('PUT', `/api/characters/${currentChar.id}`, currentChar); } catch (e: any) { toast(e.message, true); }
+  markDirty();
 }
 
 // Window registrations (centralized)

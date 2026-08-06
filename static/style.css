@@ -3728,3 +3728,19 @@ body.sidebar-collapsed .container {
 .cp-item { cursor: pointer; }
 .cp-item:hover { background: rgba(59, 130, 246, 0.08); }
 .cp-item .btn { cursor: pointer; }
+
+/* ─── Save button dirty state (auto-save) ─── */
+.btn-save-dirty {
+  background-color: #c9a227 !important;
+  border-color: #c9a227 !important;
+  color: #1a1a1a !important;
+  animation: save-pulse 2s ease-in-out infinite;
+}
+.btn-save-dirty:hover {
+  background-color: #b8921f !important;
+  color: #fff !important;
+}
+@keyframes save-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 162, 39, 0.5); }
+  50% { box-shadow: 0 0 0 6px rgba(201, 162, 39, 0); }
+}

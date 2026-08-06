@@ -3911,10 +3911,28 @@ import { init } from './init';
 // PWA → register service worker for offline support
 import { registerSW } from './pwa';
 
+// Centralized auto-save → dirty tracking, save button state, interval settings
+import { startAutoSave, isDirty, isSaving } from './lib/save';
+
 // These are called from inline HTML onclick — register at window level
 expose('openCampaignDashboard', function (campaignId: number, name: string) {
   (window as any).showCampaignDashboard(campaignId, name);
 });
 
+function updateSaveBtnState() {
+  const btn = document.getElementById('saveCharBtn');
+  if (!btn) return;
+  btn.className = 'btn btn-sm ' + (isSaving() ? 'btn-outline-primary btn-save-dirty' : isDirty() ? 'btn-gold btn-save-dirty' : 'btn-outline-primary');
+  const icon = btn.querySelector('i');
+  if (icon) {
+    if (isSaving()) { icon.className = 'fa-solid fa-spinner fa-spin me-1'; }
+    else { icon.className = 'fa-solid fa-floppy-disk me-1'; }
+  }
+  btn.disabled = isSaving();
+}
+expose('updateSaveBtnState', updateSaveBtnState);
+window.addEventListener('villum-savestate', updateSaveBtnState);
+
 init();
 registerSW();
+startAutoSave();
