@@ -3784,3 +3784,6 @@ body.sidebar-collapsed .container {
 [data-theme="dark"] .sheet-quick-actions { background: rgba(20, 20, 20, 0.92); }
 /* Session mode: only the combat section stays visible on the sheet */
 body.session-mode .sheet-section-acc:not(#sheet-acc-combat) { display: none; }
+
+/* revamp-character-sheets-mobile: wrap sheet header buttons on narrow screens (prevents horizontal overflow) */
+#sheetView .d-flex.gap-2.no-print { flex-wrap: wrap; }
