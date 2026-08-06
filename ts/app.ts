@@ -2948,7 +2948,15 @@ expose('deleteOneShotMonster', async function (monsterId: number) {
 });
 
 expose('showCompendiumMonsterPickerForOneShot', function (adventureId: number) {
-  showModal('Monster Compendium', `<div id="compendiumMonsterPickerContent" hx-get="/htmx/compendium-monsters/oneshot/${adventureId}" hx-trigger="load" hx-swap="innerHTML"><div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div></div>`);
+  showMonsterPicker('oneshot', adventureId, 'compendium');
+});
+
+// Unified monster picker modal (monster-management change): opens the shared
+// /htmx/monster-picker/<context>/<id> modal with Compendium / My Library tabs
+// (+ Campaign Roster for campaign contexts).
+expose('showMonsterPicker', function (context: string, contextId: number, tab?: string) {
+  const tabQ = tab ? '?tab=' + tab : '';
+  showModal('Add Monster', `<div hx-get="/htmx/monster-picker/${context}/${contextId}${tabQ}" hx-trigger="load" hx-swap="innerHTML"><div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div></div>`);
 });
 
 // One-shot monsters: compendium search first (schema-based), library as custom fallback.

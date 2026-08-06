@@ -142,21 +142,9 @@ expose('deleteEncounter', async function (id: number) {
 });
 
 expose('showEncounterMonsterPicker', async function (eid: number) {
-  const entry = await compendiumSearchModal({
-    title: 'Add Monster from Compendium',
-    schemaType: 'monster',
-    context: 'Search the compendium for a monster to add to this encounter.',
-  });
-  if (!entry) {
-    // "Create Custom" (or dismissed) → custom monster form
-    showModal('Add Custom Monster', `<div hx-get="/htmx/encounters/${eid}/monsters/new" hx-trigger="load" hx-swap="innerHTML"><div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div></div>`);
-    return;
-  }
-  try {
-    await api('POST', `/api/encounters/${eid}/import/compendium-entry`, { compendium_entry_id: entry.id, count: 1 });
-    toast(`Added ${entry.name} to encounter`);
-    (window as any).showEncounterDetail(eid);
-  } catch (e: any) { toast(e.message, true); }
+  // Unified monster picker (monster-management change): Compendium / My Library
+  // tabs + Create Custom footer button (encounter context).
+  showModal('Add Monster', `<div hx-get="/htmx/monster-picker/encounter/${eid}" hx-trigger="load" hx-swap="innerHTML"><div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div></div>`);
 });
 
 // ─── Campaign Encounter Monsters (compendium-first) ───

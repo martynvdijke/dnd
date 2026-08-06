@@ -1661,3 +1661,47 @@ func HtmxCompendiumGlobalSearch(c *gin.Context) {
 
 	renderTemplate(c, "compendium_global_search_results", data)
 }
+
+// ─── Unified Monster Picker (monster-management change) ───
+
+type htmxMonsterPickerData struct {
+	Context     string
+	ContextID   int64
+	Tab         string
+	Query       string
+	EncounterID int64
+	AdventureID int64
+	CampaignID  int64
+	ShowRoster  bool
+}
+
+// HtmxMonsterPicker renders the shared monster picker modal body for
+// oneshot / encounter / campaign contexts with Compendium, My Library,
+// and (for campaigns) Campaign Roster tabs.
+func HtmxMonsterPicker(c *gin.Context) {
+	context := c.Param("context")
+	contextID, err := strconv.ParseInt(c.Param("contextId"), 10, 64)
+	if err != nil || contextID <= 0 {
+		c.String(http.StatusBadRequest, "invalid context id")
+		return
+	}
+	data := htmxMonsterPickerData{
+		Context:   context,
+		ContextID: contextID,
+		Tab:       c.DefaultQuery("tab", "compendium"),
+		Query:     c.Query("q"),
+	}
+	switch context {
+	case "oneshot":
+		data.AdventureID = contextID
+	case "encounter":
+		data.EncounterID = contextID
+	case "campaign":
+		data.CampaignID = contextID
+		data.ShowRoster = true
+	default:
+		c.String(http.StatusBadRequest, "invalid context")
+		return
+	}
+	renderTemplate(c, "monster_picker", data)
+}

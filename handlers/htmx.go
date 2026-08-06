@@ -1741,6 +1741,7 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"POST", "/htmx/oneshot-adventures/:id/import-compendium", HtmxImportCompendiumMonsterToOneShot},
 
 		// Monster Library (HTMX)
+		{"GET", "/htmx/monster-picker/:context/:contextId", HtmxMonsterPicker},
 		{"GET", "/htmx/monster-library", HtmxListMonsterLibrary},
 		{"GET", "/htmx/monster-library/new", HtmxMonsterLibraryForm},
 		{"GET", "/htmx/monster-library/section", HtmxMonsterLibrarySection},
