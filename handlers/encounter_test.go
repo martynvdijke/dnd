@@ -135,9 +135,7 @@ func FuzzEncounterCR(f *testing.F) {
 	f.Add("")
 	f.Add("-1")
 	f.Fuzz(func(t *testing.T, cr string) {
-		testutil.NewDB(t)
-		defer testutil.CloseDB(t)
-		testutil.SeedUser(t, 1, "admin", "admin")
+		testutil.FuzzNewDB(t)
 		r := testutil.NewRouter(func(auth *gin.RouterGroup) {
 			auth.POST("/encounters/calculate-xp", CalculateEncounterXP)
 		})

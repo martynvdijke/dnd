@@ -497,9 +497,7 @@ func FuzzCharacterImport(f *testing.F) {
 	f.Add(`{"name":"","race":"","class":""}`)
 	f.Add(`invalid json`)
 	f.Fuzz(func(t *testing.T, data string) {
-		testutil.NewDB(t)
-		defer testutil.CloseDB(t)
-		testutil.SeedUser(t, 1, "admin", "admin")
+		testutil.FuzzNewDB(t)
 		r := testutil.NewRouter(func(auth *gin.RouterGroup) {
 			auth.POST("/characters", CreateCharacter)
 		})

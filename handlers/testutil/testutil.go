@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -16,6 +17,18 @@ import (
 	"villum/db"
 	"villum/middleware"
 )
+
+var fuzzDBOnce sync.Once
+
+// FuzzNewDB initializes the shared test DB once per fuzz process.
+// Fuzz workers must NOT re-init the DB per iteration (migrations + seed are
+// expensive and parallel workers race on the shared /tmp db file).
+func FuzzNewDB(t *testing.T) {
+	fuzzDBOnce.Do(func() {
+		NewDB(t)
+		SeedUser(t, 1, "admin", "admin")
+	})
+}
 
 func NewDB(t *testing.T) {
 	t.Helper()

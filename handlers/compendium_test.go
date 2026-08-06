@@ -292,9 +292,7 @@ func FuzzCompendiumSearch(f *testing.F) {
 	f.Add("a")
 	f.Add("' OR '1'='1")
 	f.Fuzz(func(t *testing.T, q string) {
-		testutil.NewDB(t)
-		defer testutil.CloseDB(t)
-		testutil.SeedUser(t, 1, "admin", "admin")
+		testutil.FuzzNewDB(t)
 		r := testutil.NewRouter(func(auth *gin.RouterGroup) {
 			auth.GET("/compendium/search", SearchCompendium)
 		})
