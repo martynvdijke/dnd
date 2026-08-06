@@ -331,6 +331,7 @@ func CreateCharacter(c *gin.Context) {
 
 	ch.ID = id
 	ch.UserID = uid
+	db.DB.Exec("PRAGMA wal_checkpoint(PASSIVE)")
 	c.JSON(http.StatusCreated, ch)
 }
 

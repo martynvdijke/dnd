@@ -755,6 +755,7 @@ func ImportCompendiumEntries(c *gin.Context) {
 		}
 	}
 
+	db.DB.Exec("PRAGMA wal_checkpoint(PASSIVE)")
 	c.JSON(http.StatusOK, gin.H{
 		"import_log_id": logID,
 		"total":         len(entries),
@@ -1961,6 +1962,7 @@ func ImportCompendiumBatchJSON(c *gin.Context) {
 	}
 
 	if dryRun {
+		db.DB.Exec("PRAGMA wal_checkpoint(PASSIVE)")
 		c.JSON(http.StatusOK, gin.H{
 			"dry_run":           true,
 			"total":             len(req.Entries),

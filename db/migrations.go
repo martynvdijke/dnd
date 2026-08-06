@@ -1803,8 +1803,10 @@ func Migrate() error {
 		current = 0
 	}
 
+	migrated := false
 	for _, m := range migrations {
 		if m.version > current {
+			migrated = true
 			log.Printf("Running migration v%d", m.version)
 			tx, err := DB.Begin()
 			if err != nil {
@@ -1824,7 +1826,27 @@ func Migrate() error {
 		}
 	}
 
+	// Compact the database file after applying any pending migrations and
+	// re-report page statistics (VACUUM cannot run inside a transaction).
+	if migrated {
+		if _, err := DB.Exec("VACUUM"); err != nil {
+			return fmt.Errorf("vacuum after migrations: %w", err)
+		}
+		LogPageStats()
+	}
+
 	return nil
+}
+
+// LogPageStats reports current SQLite page statistics (shared with db.Init).
+func LogPageStats() {
+	var pageCount, freelistCount, pageSize int
+	if err := DB.QueryRow("PRAGMA page_count").Scan(&pageCount); err != nil {
+		return
+	}
+	_ = DB.QueryRow("PRAGMA freelist_count").Scan(&freelistCount)
+	_ = DB.QueryRow("PRAGMA page_size").Scan(&pageSize)
+	log.Printf("db: page_count=%d freelist_count=%d page_size=%d", pageCount, freelistCount, pageSize)
 }
 
 // ApplySafeAlters runs ALTER TABLE statements that safely add columns if they don't exist.
@@ -1833,6 +1855,18 @@ func ApplySafeAlters() error {
 	alterStatements := []string{
 		"ALTER TABLE characters ADD COLUMN campaign_id INTEGER REFERENCES campaigns(id) ON DELETE SET NULL",
 		"ALTER TABLE characters ADD COLUMN character_type TEXT NOT NULL DEFAULT 'player'",
+		// Composite indexes for hot query patterns (must run after Schema.Create
+		// since ent owns these tables/columns).
+		"CREATE INDEX IF NOT EXISTS idx_characters_user_name_level ON characters (user_id, name, level)",
+		"CREATE INDEX IF NOT EXISTS idx_characters_campaign_name ON characters (campaign_id, name)",
+		"CREATE INDEX IF NOT EXISTS idx_spells_char_level_name ON spells (character_id, level, name)",
+		"CREATE INDEX IF NOT EXISTS idx_inventory_char_category_name ON inventory (character_id, category, name)",
+		"CREATE INDEX IF NOT EXISTS idx_sessions_char_date ON sessions (character_id, session_date)",
+		"CREATE INDEX IF NOT EXISTS idx_quests_char_status_updated ON quests (character_id, status, updated_at)",
+		"CREATE INDEX IF NOT EXISTS idx_journal_char_entry_date ON journal (character_id, entry_date)",
+		"CREATE INDEX IF NOT EXISTS idx_combat_campaign_turn ON combat_entries (campaign_id, turn_order)",
+		"CREATE INDEX IF NOT EXISTS idx_dice_rolls_user_timestamp ON dice_rolls (user_id, timestamp)",
+		"CREATE INDEX IF NOT EXISTS idx_campaigns_user_name ON campaigns (user_id, name)",
 		"UPDATE characters SET character_type='linked' WHERE campaign_id IS NOT NULL AND campaign_id != 0 AND EXISTS (SELECT 1 FROM campaign_members cm WHERE cm.campaign_id = characters.campaign_id AND cm.user_id != characters.user_id)",
 		"ALTER TABLE character_npcs ADD COLUMN interaction_count INTEGER NOT NULL DEFAULT 0",
 		"ALTER TABLE character_npcs ADD COLUMN last_interacted TEXT NOT NULL DEFAULT ''",

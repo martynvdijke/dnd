@@ -63,6 +63,17 @@ func CreateBackup() (string, error) {
 		}
 	}
 
+	// Log size savings of the VACUUM INTO snapshot vs the live database file
+	if bStat, err := os.Stat(backupPath); err == nil {
+		if dStat, err := os.Stat(dbPath); err == nil && dStat.Size() > 0 {
+			pct := (1.0 - float64(bStat.Size())/float64(dStat.Size())) * 100
+			if pct < 0 {
+				pct = 0
+			}
+			middleware.LogInfo("backup", "backup size savings", "backup_bytes", bStat.Size(), "db_bytes", dStat.Size(), "reduction_pct", pct)
+		}
+	}
+
 	return backupPath, nil
 }
 

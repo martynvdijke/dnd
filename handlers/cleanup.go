@@ -10,7 +10,7 @@ import (
 func StartDBCleanupTask() {
 	go func() {
 		for {
-			time.Sleep(1 * time.Hour)
+			time.Sleep(4 * time.Hour)
 
 			// Delete old dice roll history (older than 90 days)
 			result, err := db.DB.Exec("DELETE FROM dice_rolls WHERE timestamp < datetime('now', '-90 days')")
@@ -37,7 +37,12 @@ func StartDBCleanupTask() {
 			}
 
 			// Manually trigger WAL checkpoint to keep DB size small
-			db.DB.Exec("PRAGMA wal_checkpoint(TRUNCATE)")
+			var busy, logPages, checkpointed int
+			if err := db.DB.QueryRow("PRAGMA wal_checkpoint(TRUNCATE)").Scan(&busy, &logPages, &checkpointed); err != nil {
+				middleware.LogWarn("cleanup", "wal checkpoint failed", "error", err)
+			} else {
+				middleware.LogInfo("cleanup", "wal checkpoint", "busy", busy, "log_pages", logPages, "checkpointed", checkpointed)
+			}
 		}
 	}()
 }
