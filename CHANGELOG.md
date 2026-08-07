@@ -1,3 +1,29 @@
+# [2.40.0](https://github.com/martynvdijke/dnd/compare/v2.39.0...v2.40.0) (2026-08-07)
+
+
+### Bug Fixes
+
+* persist hp damage/heal via saveCharacter and update e2e specs for party-view tabs ([43b26bf](https://github.com/martynvdijke/dnd/commit/43b26bf7416130acb71448526ffc03726b6519f3))
+* tidy go.mod — promote rapid to direct dependency used by property tests ([597a079](https://github.com/martynvdijke/dnd/commit/597a079259db601c0cbe739f4b066190a9d44826))
+* wrap character sheet header buttons on narrow screens to prevent horizontal overflow ([1bc6091](https://github.com/martynvdijke/dnd/commit/1bc6091e482b2049ad2ef2f7b2552ffa788ddfa8))
+
+
+### Features
+
+* centralized auto-save with dirty tracking, save button, and interval settings ([1f72bb4](https://github.com/martynvdijke/dnd/commit/1f72bb4b5b3008a94adba77197c1ea68b55a5e68))
+* player compendium access — auth schema routes, entry detail, and link parsing ([b2f0f4c](https://github.com/martynvdijke/dnd/commit/b2f0f4c34230bf051fa6f9e45238803857a9b9db))
+* player UX overhaul — accordion character sheet, sticky quick actions, offline character caching, swipe-dismiss toasts ([709eaef](https://github.com/martynvdijke/dnd/commit/709eaefaa0588c9ac38fdc3e1bb432ffca950e08))
+* reorganize sheet tabs — shared sections module, campaign tabs moved into party view ([a4149df](https://github.com/martynvdijke/dnd/commit/a4149df724732e0f90cd226a8320be4b39ed8748))
+* revamp logging — env config, structured sources, trace ids, and admin log viewer upgrades ([1c11789](https://github.com/martynvdijke/dnd/commit/1c11789b5b9a71cba344abec31cbb36bab63f43b))
+* shop system — DM management UI, player browsing with markup pricing, and tests ([9e4ddb7](https://github.com/martynvdijke/dnd/commit/9e4ddb789715e8edff67664a885bc4132e8646c2))
+* unified monster picker with compendium, library, and campaign roster tabs ([ddf2a3e](https://github.com/martynvdijke/dnd/commit/ddf2a3e1fea3cdfff0f2d8d6ba89fbac8ed1756d))
+* universal search, transfer bundles, deep links, and mention backlinks ([991cb1c](https://github.com/martynvdijke/dnd/commit/991cb1c15211886f4b6704e938300792a008ac6d))
+
+
+### Performance Improvements
+
+* sqlite pragma/checkpoint/vacuum tuning, composite indexes, statement cache, query instrumentation ([9daa20f](https://github.com/martynvdijke/dnd/commit/9daa20fc817dd9ee27682ad0331262c915740607))
+
 # [2.39.0](https://github.com/martynvdijke/dnd/compare/v2.38.0...v2.39.0) (2026-08-05)
 
 
