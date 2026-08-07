@@ -13,7 +13,7 @@ const TAB_LABELS: Record<string, string> = {
 
 async function campaignMembers(): Promise<any[]> {
   let campaigns: any = null;
-  try { campaigns = await api('GET', '/api/campaigns'); } catch { campaigns = null; }
+  try { campaigns = await api('GET', '/api/party'); } catch { campaigns = null; }
   const groups = Array.isArray(campaigns) ? campaigns : (campaigns && campaigns.groups) || [];
   const seen = new Set<number>();
   const members: any[] = [];
@@ -80,10 +80,14 @@ export async function renderPartyLocations(): Promise<void> {
       for (const loc of r.items) {
         const lat = Number(loc.latitude || 0);
         const lng = Number(loc.longitude || 0);
-        if (lat !== 0 && lng !== 0) withCoords.push({ name: loc.name || 'Unknown', lat, lng, char: r.member.name });
+        if (lat !== 0 && lng !== 0) withCoords.push({ name: loc.location_name || loc.name || 'Unknown', lat, lng, char: r.member.name });
       }
       return `<div class="mb-3"><h6 class="text-gold">${esc(r.member.name)}</h6><ul class="list-unstyled">${r.items
-        .map((l: any) => `<li class="mb-1"><i class="fa-solid fa-location-dot me-1 text-muted"></i><strong>${esc(l.name || 'Unnamed')}</strong>${l.type ? ` <span class="badge bg-secondary">${esc(l.type)}</span>` : ''}${l.description ? `<div class="small text-muted">${esc(String(l.description).slice(0, 120))}</div>` : ''}</li>`)
+        .map((l: any) => {
+          const locName = l.location_name || l.name;
+          const locType = l.location_type || l.type;
+          return `<li class="mb-1"><i class="fa-solid fa-location-dot me-1 text-muted"></i><strong>${esc(locName || 'Unnamed')}</strong>${locType ? ` <span class="badge bg-secondary">${esc(locType)}</span>` : ''}${l.description ? `<div class="small text-muted">${esc(String(l.description).slice(0, 120))}</div>` : ''}</li>`;
+        })
         .join('')}</ul></div>`;
     })
     .join('');
@@ -208,8 +212,8 @@ export async function renderPartyGraph(): Promise<void> {
   });
   locRows.forEach((r) => {
     r.items.forEach((l: any) => {
-      const id = 'l' + l.id;
-      addNode(id, l.name || 'Loc', 'loc');
+      const id = 'l' + (l.location_id || l.id);
+      addNode(id, l.location_name || l.name || 'Loc', 'loc');
       links.push({ source: 'c' + r.member.id, target: id });
     });
   });

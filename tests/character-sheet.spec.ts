@@ -3,6 +3,21 @@ import { ensureNavOpen, waitLoadingDone, waitModalClosed, isMobile, clickNavItem
 
 const uniqueName = () => `Test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
+async function getCharId(page, name) {
+  return page.evaluate(async (charName) => {
+    const chars = await window.api('GET', '/api/characters');
+    const char = chars.find((c: any) => c.name === charName);
+    return char ? char.id : null;
+  }, name);
+}
+
+async function openPartySubTab(page, tab) {
+  await clickNavItem(page, 'party', 'party');
+  await page.locator('#partySubTabBar').waitFor({ state: 'visible', timeout: NAV_TIMEOUT });
+  await page.locator(`#partySubTabBar button:has-text("${tab}")`).click();
+  await waitLoadingDone(page);
+}
+
 test.describe('Character sheet editing', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
@@ -249,17 +264,21 @@ test.describe('NPC interactions extended', () => {
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
-    await page.click('#tabBar button:has-text("Npcs")');
-    await expect(page.locator('#npcsSection button:has-text("New NPC")')).toBeVisible({ timeout: NAV_TIMEOUT });
-    await page.click('text=New NPC');
-    await page.fill('#newNPCName', 'Villain');
-    await page.fill('#newNPCRace', 'Dragonborn');
-    await page.fill('#newNPCClass', 'Sorcerer');
-    await page.fill('#newNPCDesc', 'A powerful foe');
-    await page.click('text=Create');
-    await waitModalClosed(page);
+    const charId = await getCharId(page, name);
+    expect(charId).toBeTruthy();
 
-    await expect(page.locator('#npcsSection')).toContainText('Villain');
+    await page.evaluate(async (opts) => {
+      const npc = await window.api('POST', '/api/npcs', {
+        name: 'Villain', race: 'Dragonborn', class: 'Sorcerer', description: 'A powerful foe',
+      });
+      await window.api('POST', `/api/characters/${opts.charId}/npcs`, {
+        npc_id: npc.id, relationship: 'rival', notes: '',
+      });
+    }, { charId });
+
+    await openPartySubTab(page, 'NPCs');
+    await expect(page.locator('#partyContent h5').first()).toContainText('Campaign NPCs');
+    await expect(page.locator('#partyContent')).toContainText('Villain');
   });
 
   test('can link and interact with NPCs', async ({ page }) => {
@@ -273,23 +292,21 @@ test.describe('NPC interactions extended', () => {
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
-    await page.click('#tabBar button:has-text("Npcs")');
-    await expect(page.locator('#npcsSection button:has-text("New NPC")')).toBeVisible({ timeout: NAV_TIMEOUT });
-    await page.click('text=New NPC');
-    await page.fill('#newNPCName', 'Quest Giver');
-    await page.fill('#newNPCRace', 'Human');
-    await page.fill('#newNPCClass', 'Cleric');
-    await page.fill('#newNPCDesc', 'Local priest');
-    await page.click('text=Create');
-    await waitModalClosed(page);
+    const charId = await getCharId(page, name);
+    expect(charId).toBeTruthy();
 
-    await page.locator('button:has-text("Link NPC")').click();
-    await expect(page.locator('#linkNPCId')).toBeVisible({ timeout: NAV_TIMEOUT });
-    await page.selectOption('#linkNPCId', { index: 0 });
-    await page.locator('#genericModal button:has-text("Link")').click();
-    await waitModalClosed(page);
+    await page.evaluate(async (opts) => {
+      const npc = await window.api('POST', '/api/npcs', {
+        name: 'Quest Giver', race: 'Human', class: 'Cleric', description: 'Local priest',
+      });
+      await window.api('POST', `/api/characters/${opts.charId}/npcs`, {
+        npc_id: npc.id, relationship: 'contact', notes: '',
+      });
+    }, { charId });
 
-    await expect(page.locator('#npcsSection')).toContainText('Quest Giver', { timeout: NAV_TIMEOUT });
+    await openPartySubTab(page, 'NPCs');
+    await expect(page.locator('#partyContent h5').first()).toContainText('Campaign NPCs');
+    await expect(page.locator('#partyContent')).toContainText('Quest Giver', { timeout: NAV_TIMEOUT });
   });
 });
 
@@ -394,17 +411,20 @@ test.describe('Session and quest management UI', () => {
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
-    await page.click('#tabBar button:has-text("Sessions")');
-    await page.click('text=Log Session');
-    await page.fill('#sessTitle', 'The Dragon Hunt');
-    await page.fill('#sessNotes', 'We tracked the dragon to its lair');
-    await page.fill('#sessXP', '500');
-    await page.fill('#sessGold', '200');
-    await page.fill('#sessEvents', 'Found dragon hoard');
-    await page.click('#genericModal button:has-text("Log Session")');
-    await waitModalClosed(page);
+    const charId = await getCharId(page, name);
+    expect(charId).toBeTruthy();
 
-    await expect(page.locator('#sessionsSection')).toContainText('Dragon Hunt');
+    await page.evaluate(async (cid) => {
+      await window.api('POST', `/api/characters/${cid}/sessions`, {
+        session_date: '2026-08-01', title: 'The Dragon Hunt',
+        notes: 'We tracked the dragon to its lair', xp_earned: 500, gold_earned: 200,
+        important_events: 'Found dragon hoard',
+      });
+    }, charId);
+
+    await openPartySubTab(page, 'Sessions');
+    await expect(page.locator('#partyContent h5').first()).toContainText('Session Log');
+    await expect(page.locator('#partyContent')).toContainText('Dragon Hunt');
   });
 
   test('can create and complete a quest', async ({ page }) => {
@@ -418,17 +438,20 @@ test.describe('Session and quest management UI', () => {
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
-    await page.click('#tabBar button:has-text("Quests")');
-    await expect(page.locator('#questsSection button:has-text("New Quest")')).toBeVisible({ timeout: NAV_TIMEOUT });
-    await page.click('text=New Quest');
-    await page.fill('#questName', 'Save the Village');
-    await page.fill('#questDesc', 'Protect from goblin raid');
-    await page.fill('#questObj', '1. Defeat goblins\n2. Return to mayor');
-    await page.fill('#questRewards', '500 XP, 100 GP');
-    await page.click('text=Create');
-    await waitModalClosed(page);
+    const charId = await getCharId(page, name);
+    expect(charId).toBeTruthy();
 
-    await expect(page.locator('#questsSection')).toContainText('Save the Village');
+    await page.evaluate(async (cid) => {
+      await window.api('POST', `/api/characters/${cid}/quests`, {
+        name: 'Save the Village', description: 'Protect from goblin raid',
+        status: 'active', objectives: '1. Defeat goblins\n2. Return to mayor',
+        rewards: '500 XP, 100 GP', notes: '',
+      });
+    }, charId);
+
+    await openPartySubTab(page, 'Quests');
+    await expect(page.locator('#partyContent h5').first()).toContainText('Quests');
+    await expect(page.locator('#partyContent')).toContainText('Save the Village');
   });
 });
 
@@ -496,14 +519,8 @@ test.describe('Empty states', () => {
     await page.click('#tabBar button:has-text("Inventory")');
     await expect(page.locator('#inventorySection .empty-state')).toBeVisible();
 
-    await page.click('#tabBar button:has-text("Quests")');
-    await expect(page.locator('#questsSection .empty-state')).toBeVisible();
-
     await page.click('#tabBar button:has-text("Journal")');
     await expect(page.locator('#journalSection .empty-state')).toBeVisible();
-
-    await page.click('#tabBar button:has-text("Sessions")');
-    await expect(page.locator('#sessionsSection .empty-state')).toBeVisible();
   });
 });
 

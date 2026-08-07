@@ -118,7 +118,7 @@ expose('applyDamage', async function () {
   const oldHp = currentChar.hp_current;
   const newHp = Math.max(0, currentChar.hp_current - dmg);
   await updateField('hp_current', newHp);
-  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
+  await saveCharacter();
   if (currentChar.concentrating_on) {
     try {
       const conc = await api('POST', `/api/characters/${currentChar.id}/check-concentration`, { damage: dmg });
@@ -3921,7 +3921,7 @@ import { init } from './init';
 import { registerSW } from './pwa';
 
 // Centralized auto-save → dirty tracking, save button state, interval settings
-import { startAutoSave, isDirty, isSaving } from './lib/save';
+import { startAutoSave, isDirty, isSaving, saveCharacter } from './lib/save';
 
 // These are called from inline HTML onclick — register at window level
 expose('openCampaignDashboard', function (campaignId: number, name: string) {

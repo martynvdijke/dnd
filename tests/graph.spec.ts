@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { login, waitLoadingDone, waitModalClosed, NAV_TIMEOUT } from './helpers.js';
+import { login, waitLoadingDone, waitModalClosed, NAV_TIMEOUT, clickNavItem } from './helpers.js';
 
 const uniqueName = () => `G-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -8,7 +8,7 @@ test.describe('D3 Graph Visualization', () => {
     await login(page);
   });
 
-  test('character graph renders SVG in graph tab', async ({ page }) => {
+  test('party graph renders SVG', async ({ page }) => {
     const name = uniqueName();
 
     await page.click('text=New Character');
@@ -21,13 +21,25 @@ test.describe('D3 Graph Visualization', () => {
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
-    await page.click('#tabBar button:has-text("Graph")');
-    await page.waitForTimeout(1000);
+    const charId = await page.evaluate(async (charName) => {
+      const chars = await window.api('GET', '/api/characters');
+      const char = chars.find((c: any) => c.name === charName);
+      return char ? char.id : null;
+    }, name);
+    expect(charId).toBeTruthy();
 
-    const graphSection = page.locator('#graphSection');
-    await expect(graphSection).toBeVisible();
+    await page.evaluate(async (cid) => {
+      const loc = await window.api('POST', '/api/locations', { name: 'Waterdeep', type: 'city', description: 'City' });
+      await window.api('POST', `/api/characters/${cid}/locations`, { location_id: loc.id, relationship: 'home', notes: '' });
+    }, charId);
 
-    const svg = graphSection.locator('svg');
+    await clickNavItem(page, 'party', 'party');
+    await page.locator('#partySubTabBar').waitFor({ state: 'visible', timeout: NAV_TIMEOUT });
+    await page.locator('#partySubTabBar button:has-text("Graph")').click();
+    await waitLoadingDone(page);
+
+    await expect(page.locator('#partyContent h5').first()).toContainText('Campaign Graph');
+    const svg = page.locator('#partyGraphSvg svg');
     await expect(svg).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 
@@ -69,7 +81,7 @@ test.describe('D3 Graph Visualization', () => {
     await expect(svg).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 
-  test('graph nodes have text labels', async ({ page }) => {
+  test('party graph nodes have text labels', async ({ page }) => {
     const name = uniqueName();
 
     await page.click('text=New Character');
@@ -82,10 +94,25 @@ test.describe('D3 Graph Visualization', () => {
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
-    await page.click('#tabBar button:has-text("Graph")');
-    await page.waitForTimeout(1000);
+    const charId = await page.evaluate(async (charName) => {
+      const chars = await window.api('GET', '/api/characters');
+      const char = chars.find((c: any) => c.name === charName);
+      return char ? char.id : null;
+    }, name);
+    expect(charId).toBeTruthy();
 
-    const svgTexts = page.locator('#graphSection svg text');
+    await page.evaluate(async (cid) => {
+      const npc = await window.api('POST', '/api/npcs', { name: 'Luthien', race: 'Elf', class: 'Scout', description: 'Companion' });
+      await window.api('POST', `/api/characters/${cid}/npcs`, { npc_id: npc.id, relationship: 'ally', notes: '' });
+    }, charId);
+
+    await clickNavItem(page, 'party', 'party');
+    await page.locator('#partySubTabBar').waitFor({ state: 'visible', timeout: NAV_TIMEOUT });
+    await page.locator('#partySubTabBar button:has-text("Graph")').click();
+    await waitLoadingDone(page);
+
+    const svgTexts = page.locator('#partyGraphSvg svg text');
+    await expect(svgTexts.first()).toBeVisible({ timeout: NAV_TIMEOUT });
     const count = await svgTexts.count();
     expect(count).toBeGreaterThanOrEqual(1);
   });

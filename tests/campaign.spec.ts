@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { login, NAV_TIMEOUT } from './helpers.js';
+import { login, NAV_TIMEOUT, clickNavItem } from './helpers.js';
 
 const uniqueName = () => `Camp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -29,94 +29,106 @@ async function createCharAndOpen(page, name, race, cls) {
   await waitLoadingDone(page);
 }
 
+async function getCharId(page, name) {
+  return page.evaluate(async (charName) => {
+    const chars = await window.api('GET', '/api/characters');
+    const char = chars.find((c: any) => c.name === charName);
+    return char ? char.id : null;
+  }, name);
+}
+
+async function openPartySubTab(page, tab) {
+  await clickNavItem(page, 'party', 'party');
+  await page.locator('#partySubTabBar').waitFor({ state: 'visible', timeout: NAV_TIMEOUT });
+  await page.locator(`#partySubTabBar button:has-text("${tab}")`).click();
+  await waitLoadingDone(page);
+}
+
 test.describe('Campaign features', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
   });
 
-  test('Locations tab exists and can link a location', async ({ page }) => {
+  test('party view shows linked locations', async ({ page }) => {
     const name = uniqueName();
     await createCharAndOpen(page, name, 'Human', 'Wizard');
 
-    await page.click('#tabBar button:has-text("Locations")');
-    await expect(page.locator('#locationsSection h5').first()).toContainText('Locations');
+    const charId = await getCharId(page, name);
+    expect(charId).toBeTruthy();
 
-    await page.locator('#locationsSection button:has-text("New")').click();
-    await page.fill('#newLocName', 'Waterdeep');
-    await page.fill('#newLocDesc', 'The City of Splendors');
-    await page.click('text=Create');
-    await waitModalClosed(page);
-    await expect(page.locator('#locationsSection button:has-text("Link")')).toBeVisible({ timeout: 10000 });
-    await page.locator('#locationsSection button:has-text("Link")').click();
-    await page.selectOption('#linkLocId', { index: 0 });
-    await page.click('#genericModal button:has-text("Link")');
-    await waitModalClosed(page);
+    await page.evaluate(async (opts) => {
+      const loc = await window.api('POST', '/api/locations', {
+        name: 'Waterdeep', type: 'city', description: 'The City of Splendors',
+      });
+      await window.api('POST', `/api/characters/${opts.charId}/locations`, {
+        location_id: loc.id, relationship: 'home', notes: 'birthplace',
+      });
+    }, { charId });
 
-    await expect(page.locator('#locationsSection')).toContainText('Waterdeep');
+    await openPartySubTab(page, 'Locations');
+    await expect(page.locator('#partyContent h5').first()).toContainText('Campaign Locations');
+    await expect(page.locator('#partyContent')).toContainText('Waterdeep');
   });
 
-  test('NPCs tab works', async ({ page }) => {
+  test('party view shows campaign NPCs', async ({ page }) => {
     const name = uniqueName();
     await createCharAndOpen(page, name, 'Human', 'Wizard');
 
-    await page.click('#tabBar button:has-text("Npcs")');
-    await expect(page.locator('#npcsSection button:has-text("New NPC")')).toBeVisible({ timeout: NAV_TIMEOUT });
-    await expect(page.locator('#npcsSection h5').first()).toContainText('Related NPCs');
+    const charId = await getCharId(page, name);
+    expect(charId).toBeTruthy();
 
-    await page.click('text=New NPC');
-    await page.fill('#newNPCName', 'Elminster');
-    await page.fill('#newNPCRace', 'Human');
-    await page.fill('#newNPCClass', 'Wizard');
-    await page.fill('#newNPCDesc', 'The Sage of Shadowdale');
-    await page.click('text=Create');
-    await waitModalClosed(page);
+    await page.evaluate(async (opts) => {
+      const npc = await window.api('POST', '/api/npcs', {
+        name: 'Elminster', race: 'Human', class: 'Wizard', description: 'The Sage of Shadowdale',
+      });
+      await window.api('POST', `/api/characters/${opts.charId}/npcs`, {
+        npc_id: npc.id, relationship: 'mentor', notes: '',
+      });
+    }, { charId });
 
-    await page.click('text=Link NPC');
-    await page.selectOption('#linkNPCId', { index: 0 });
-    await page.click('#genericModal button:has-text("Link")');
-    await waitModalClosed(page);
-
-    await expect(page.locator('#npcsSection')).toContainText('Elminster');
+    await openPartySubTab(page, 'NPCs');
+    await expect(page.locator('#partyContent h5').first()).toContainText('Campaign NPCs');
+    await expect(page.locator('#partyContent')).toContainText('Elminster');
   });
 
-  test('Sessions tab allows logging sessions', async ({ page }) => {
+  test('party view shows logged sessions', async ({ page }) => {
     const name = uniqueName();
     await createCharAndOpen(page, name, 'Human', 'Wizard');
 
-    await page.click('#tabBar button:has-text("Sessions")');
-    await expect(page.locator('#sessionsSection button:has-text("Log Session")')).toBeVisible({ timeout: NAV_TIMEOUT });
-    await expect(page.locator('#sessionsSection h5').first()).toContainText('Session Log');
+    const charId = await getCharId(page, name);
+    expect(charId).toBeTruthy();
 
-    await page.click('text=Log Session');
-    await page.fill('#sessTitle', 'Session 1: The Beginning');
-    await page.fill('#sessNotes', 'Our heroes met in a tavern...');
-    await page.fill('#sessXP', '300');
-    await page.fill('#sessGold', '50');
-    await page.fill('#sessEvents', 'Met the mysterious stranger');
-    await page.click('#genericModal button:has-text("Log Session")');
-    await waitModalClosed(page);
+    await page.evaluate(async (opts) => {
+      await window.api('POST', `/api/characters/${opts.charId}/sessions`, {
+        session_date: '2026-08-01', title: 'Session 1: The Beginning',
+        notes: 'Our heroes met in a tavern...', xp_earned: 300, gold_earned: 50,
+        important_events: 'Met the mysterious stranger',
+      });
+    }, { charId });
 
-    await expect(page.locator('#sessionsSection')).toContainText('Session 1');
-    await expect(page.locator('#sessionsSection')).toContainText('300 XP');
+    await openPartySubTab(page, 'Sessions');
+    await expect(page.locator('#partyContent h5').first()).toContainText('Session Log');
+    await expect(page.locator('#partyContent')).toContainText('Session 1: The Beginning');
   });
 
-  test('Quests tab works', async ({ page }) => {
+  test('party view shows quests', async ({ page }) => {
     const name = uniqueName();
     await createCharAndOpen(page, name, 'Human', 'Wizard');
 
-    await page.click('#tabBar button:has-text("Quests")');
-    await expect(page.locator('#questsSection button:has-text("New Quest")')).toBeVisible({ timeout: NAV_TIMEOUT });
-    await expect(page.locator('#questsSection h5').first()).toContainText('Quests');
+    const charId = await getCharId(page, name);
+    expect(charId).toBeTruthy();
 
-    await page.click('text=New Quest');
-    await page.fill('#questName', 'Find the Lost Crown');
-    await page.fill('#questDesc', 'The king has lost his crown');
-    await page.fill('#questObj', '1. Enter the dungeon\n2. Defeat the boss');
-    await page.fill('#questRewards', '1000 XP, Royal Favor');
-    await page.click('text=Create');
-    await waitModalClosed(page);
+    await page.evaluate(async (opts) => {
+      await window.api('POST', `/api/characters/${opts.charId}/quests`, {
+        name: 'Find the Lost Crown', description: 'The king has lost his crown',
+        status: 'active', objectives: '1. Enter the dungeon\n2. Defeat the boss',
+        rewards: '1000 XP, Royal Favor',
+      });
+    }, { charId });
 
-    await expect(page.locator('#questsSection')).toContainText('Find the Lost Crown');
+    await openPartySubTab(page, 'Quests');
+    await expect(page.locator('#partyContent h5').first()).toContainText('Quests');
+    await expect(page.locator('#partyContent')).toContainText('Find the Lost Crown');
   });
 
   test('Journal tab works', async ({ page }) => {
@@ -138,34 +150,29 @@ test.describe('Campaign features', () => {
     await expect(page.locator('#journalSection')).toContainText('first day of my adventure');
   });
 
-  test('Graph tab loads visualization', async ({ page }) => {
+  test('party view loads campaign graph', async ({ page }) => {
     const name = uniqueName();
     await createCharAndOpen(page, name, 'Human', 'Wizard');
 
-    await page.click('#tabBar button:has-text("Locations")');
-    await expect(page.locator('#locationsSection h5').first()).toBeVisible();
-    await page.locator('#locationsSection button:has-text("New")').click();
-    await page.fill('#newLocName', 'Neverwinter');
-    await page.fill('#newLocDesc', 'A city');
-    await page.click('text=Create');
-    await waitModalClosed(page);
-    await expect(page.locator('#locationsSection button:has-text("Link")')).toBeVisible({ timeout: 10000 });
-    await page.locator('#locationsSection button:has-text("Link")').click();
-    await page.selectOption('#linkLocId', { index: 0 });
-    await page.click('#genericModal button:has-text("Link")');
-    await waitModalClosed(page);
+    const charId = await getCharId(page, name);
+    expect(charId).toBeTruthy();
 
-    await page.click('#tabBar button:has-text("Sessions")');
-    await expect(page.locator('#sessionsSection h5').first()).toBeVisible();
-    await page.click('text=Log Session');
-    await page.fill('#sessTitle', 'Session Test');
-    await page.fill('#sessXP', '0');
-    await page.fill('#sessGold', '0');
-    await page.click('#genericModal button:has-text("Log Session")');
-    await waitModalClosed(page);
+    await page.evaluate(async (opts) => {
+      const loc = await window.api('POST', '/api/locations', {
+        name: 'Neverwinter', type: 'city', description: 'A city',
+      });
+      await window.api('POST', `/api/characters/${opts.charId}/locations`, {
+        location_id: loc.id, relationship: 'home', notes: '',
+      });
+      await window.api('POST', `/api/characters/${opts.charId}/sessions`, {
+        session_date: '2026-08-02', title: 'Session Test', notes: '', xp_earned: 0, gold_earned: 0,
+      });
+    }, { charId });
 
-    await page.click('#tabBar button:has-text("Graph")');
-    await expect(page.locator('#graphContainer')).toBeVisible({ timeout: NAV_TIMEOUT });
+    await openPartySubTab(page, 'Graph');
+    await expect(page.locator('#partyContent h5').first()).toContainText('Campaign Graph');
+    const svg = page.locator('#partyGraphSvg svg');
+    await expect(svg).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 
   // ─── Dashboard ───

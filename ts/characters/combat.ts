@@ -31,7 +31,7 @@ export async function applyHeal() {
   const oldHp = currentChar.hp_current;
   const newHp = Math.min(currentChar.hp_max, currentChar.hp_current + heal);
   await (window as any).updateField('hp_current', newHp);
-  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
+  await (window as any).saveCharacter?.();
   (window as any).renderSheet?.();
   // Animate HP change after re-render
   const bar = document.getElementById('charHpBarFill');
