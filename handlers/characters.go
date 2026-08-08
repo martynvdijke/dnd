@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
 	"strconv"
@@ -353,8 +354,23 @@ func UpdateCharacter(c *gin.Context) {
 		return
 	}
 
+	// Read the raw body once so we can detect whether dm_notes was explicitly
+	// sent. The character sheet PUT omits the field, and DM notes must only be
+	// written by an admin or the campaign's DM.
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(body, &raw); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	_, dmNotesSent := raw["dm_notes"]
+
 	var ch models.Character
-	if err := c.ShouldBindJSON(&ch); err != nil {
+	if err := json.Unmarshal(body, &ch); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -415,6 +431,17 @@ func UpdateCharacter(c *gin.Context) {
 		upd.ClearCampaignID()
 	}
 
+	// DM notes: only persist when explicitly sent by an admin or the campaign DM.
+	if dmNotesSent {
+		role, _ := c.Get("role")
+		if role == "admin" || isDMOfCharacter(c, id) {
+			var note string
+			if json.Unmarshal(raw["dm_notes"], &note) == nil {
+				upd.SetDmNotes(note)
+			}
+		}
+	}
+
 	_, err = upd.Save(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -448,6 +475,36 @@ func UpdateCharacter(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, entCharacterToModel(updated))
+}
+
+// UpdateCharacterDMNotes persists the DM's private notes for a character.
+// Only the campaign DM or an admin may write DM notes.
+func UpdateCharacterDMNotes(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+
+	role, _ := c.Get("role")
+	if role != "admin" && !isDMOfCharacter(c, id) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "dm or admin required"})
+		return
+	}
+
+	var req struct {
+		DMNotes string `json:"dm_notes"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	_, err := db.Client.Character.UpdateOneID(id).SetDmNotes(req.DMNotes).Save(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	SendCharacterUpdate(id)
+	SendPartyUpdate()
+	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 func DeleteCharacter(c *gin.Context) {

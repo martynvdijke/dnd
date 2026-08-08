@@ -7,6 +7,11 @@ import { expose } from './lib/expose';
 
 // ─── Party View & Campaign Management ───
 
+// DM notes cache, keyed by character id, populated while rendering so notes can
+// be passed to the notes modal without fragile inline-string escaping.
+const dmNotesCache: Record<number, string> = {};
+const dmNotesNames: Record<number, string> = {};
+
 expose('showParty', async function () {
   showView('party');
   const el = document.getElementById('partyContent')!;
@@ -68,9 +73,26 @@ expose('showParty', async function () {
     html += groups.map((g:any) => {
       const own = g.id ? isOwner(g.id) : false;
       const dm = g.id ? isDm(g.id) : false;
+      // Admin can always view/edit DM notes, even for uncategorized characters.
+      const canNotes = dm || currentUser?.role === 'admin';
       const canOpen = (userId: number) => userId === currentUser?.id || currentUser?.role === 'admin' || dm;
       const partyLabel = g.party_name ? esc(g.party_name) : esc(g.name || 'Unnamed Campaign');
       const subLabel = g.party_name ? `<span class="small text-muted ms-2">Campaign: ${esc(g.name)}</span>` : '';
+
+      // Party overview summary
+      const members = g.members || [];
+      const totalHp = members.reduce((s:number, m:any) => s + (m.hp_current || 0), 0);
+      const totalHpMax = members.reduce((s:number, m:any) => s + (m.hp_max || 0), 0);
+      const avgLevel = members.length ? Math.round(members.reduce((s:number, m:any) => s + (m.level || 0), 0) / members.length) : 0;
+      const downed = members.filter((m:any) => m.status === 'down').length;
+      const injured = members.filter((m:any) => m.status === 'injured').length;
+      const summaryChips = members.length ? `
+        <div class="d-flex flex-wrap gap-3 small text-muted mt-2 mb-1">
+          <span><i class="fa-solid fa-arrow-up me-1" aria-hidden="true"></i>Avg Lv ${avgLevel}</span>
+          <span><i class="fa-solid fa-heart-pulse me-1" aria-hidden="true"></i>HP ${totalHp}/${totalHpMax}</span>
+          ${injured ? `<span style="color:var(--gold)"><i class="fa-solid fa-bandage me-1" aria-hidden="true"></i>${injured} injured</span>` : ''}
+          ${downed ? `<span style="color:var(--danger)"><i class="fa-solid fa-skull me-1" aria-hidden="true"></i>${downed} down</span>` : ''}
+        </div>` : '';
       return `<div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
           <div>
@@ -90,12 +112,17 @@ expose('showParty', async function () {
           </div>
         </div>
         <div class="card-body">
+          ${summaryChips}
           <div class="row g-3">
             ${g.members.map((m:any) => {
               const pct = m.hp_max > 0 ? Math.round((m.hp_current / m.hp_max) * 100) : 0;
               const sc = m.status === 'down' ? 'var(--danger)' : m.status === 'injured' ? 'var(--gold)' : 'var(--success)';
               const isLinked = m.character_type === 'linked';
               const clickable = canOpen(m.user_id) && !isLinked;
+              if (canNotes) {
+                dmNotesCache[m.id] = m.dm_notes || '';
+                dmNotesNames[m.id] = m.name;
+              }
               return `<div class="col-md-6 col-lg-4">
                 <div class="character-card" ${clickable ? `onclick="openChar(${m.id})"` : ''} style="${clickable ? '' : 'cursor:default;opacity:0.75'}">
                   <div class="d-flex align-items-center gap-2 mb-1">
@@ -115,7 +142,10 @@ expose('showParty', async function () {
                     <div class="hp-bar-fill" style="width:${pct}%;height:100%"></div>
                     <div class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center text-white" style="font-size:0.65rem">${m.hp_current}/${m.hp_max}</div>
                   </div>
-                  ${isLinked ? `<button class="btn btn-sm btn-outline-primary mt-2" onclick="event.stopPropagation();showCharStatsModal(${m.id})"><i class="fa-solid fa-eye me-1"></i>View Stats</button>` : ''}
+                  <div class="d-flex gap-1 mt-2">
+                    ${isLinked ? `<button class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation();showCharStatsModal(${m.id})"><i class="fa-solid fa-eye me-1"></i>View Stats</button>` : ''}
+                    ${canNotes ? `<button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation();showCharNotes(${m.id})" title="Private DM notes"><i class="fa-solid fa-note-sticky me-1"></i>DM Notes</button>` : ''}
+                  </div>
                 </div>
               </div>`;
             }).join('')}
@@ -419,6 +449,32 @@ expose('showCharStatsModal', async function (charId: number) {
         <button class="btn btn-outline-secondary" onclick="hideModal()">Close</button>
       </div>
     `);
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+});
+
+// ─── DM notes on characters ───
+
+expose('showCharNotes', function (charId: number) {
+  const name = dmNotesNames[charId] || 'Character';
+  const notes = dmNotesCache[charId] || '';
+  showModal(`DM Notes: ${esc(name)}`, `
+    <p class="small text-muted mb-2">Private notes only visible to the DM. Great for plot hooks, secrets, or observations about this character.</p>
+    <div class="mb-3">
+      <textarea class="form-control" id="dmNotesInput" rows="6">${esc(notes)}</textarea>
+    </div>
+    <button class="btn btn-gold w-100" onclick="saveCharNotes(${charId})"><i class="fa-solid fa-floppy-disk me-1"></i>Save Notes</button>
+  `);
+});
+
+expose('saveCharNotes', async function (charId: number) {
+  const value = (document.getElementById('dmNotesInput') as HTMLTextAreaElement).value;
+  try {
+    await api('PUT', `/api/characters/${charId}/dm-notes`, { dm_notes: value });
+    dmNotesCache[charId] = value;
+    hideModal();
+    toast('DM notes saved');
   } catch (e: any) {
     toast(e.message, true);
   }

@@ -1231,6 +1231,7 @@ type PartyMember struct {
 	PortraitURL   string `json:"portrait_url"`
 	CampaignID    *int64 `json:"campaign_id"`
 	CharacterType string `json:"character_type"`
+	DMNotes       string `json:"dm_notes,omitempty"`
 }
 
 func GetPartyView(c *gin.Context) {
@@ -1277,6 +1278,28 @@ func GetPartyView(c *gin.Context) {
 	uidList := make([]int64, 0, len(userSet))
 	for uid := range userSet {
 		uidList = append(uidList, uid)
+	}
+
+	// Campaign IDs where the current user is the DM (owner or member with dm role).
+	// DM notes are only exposed to admins and the campaign's DM.
+	dmCampaignIDs := make(map[int64]bool)
+	if role != "admin" {
+		for _, ca := range camps {
+			if ca.UserID == currentUID {
+				dmCampaignIDs[ca.ID] = true
+				continue
+			}
+			n, err := db.Client.CampaignMember.Query().
+				Where(
+					campaignmember.CampaignIDEQ(ca.ID),
+					campaignmember.UserIDEQ(currentUID),
+					campaignmember.RoleEQ("dm"),
+				).
+				Count(ctx)
+			if err == nil && n > 0 {
+				dmCampaignIDs[ca.ID] = true
+			}
+		}
 	}
 
 	var chars []*ent.Character
@@ -1329,6 +1352,9 @@ func GetPartyView(c *gin.Context) {
 			Status:        "alive",
 			PortraitURL:   ch.PortraitURL,
 			CharacterType: ch.CharacterType,
+		}
+		if role == "admin" || (ch.CampaignID != 0 && dmCampaignIDs[ch.CampaignID]) {
+			pm.DMNotes = ch.DmNotes
 		}
 		if pm.HPCurrent <= 0 {
 			pm.Status = "down"

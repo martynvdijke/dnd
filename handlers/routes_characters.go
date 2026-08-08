@@ -11,6 +11,7 @@ func RegisterCharacterRoutes(r *gin.RouterGroup) {
 	r.POST("/characters", CreateCharacter)
 	r.GET("/characters/:id", GetCharacter)
 	r.PUT("/characters/:id", UpdateCharacter)
+	r.PUT("/characters/:id/dm-notes", UpdateCharacterDMNotes)
 	r.DELETE("/characters/:id", DeleteCharacter)
 	r.GET("/characters/:id/export", ExportCharacter)
 	r.GET("/characters/:id/print", PrintCharacter)
