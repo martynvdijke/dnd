@@ -1,3 +1,15 @@
+# [2.41.0](https://github.com/martynvdijke/dnd/compare/v2.40.0...v2.41.0) (2026-08-08)
+
+
+### Bug Fixes
+
+* remove orphaned locations row causing blank 500px block on all views ([3ff9ec3](https://github.com/martynvdijke/dnd/commit/3ff9ec3a3398bb509de691cdd5e18ffc763ad0de))
+
+
+### Features
+
+* party overview summary and private DM notes on characters ([e7a60c1](https://github.com/martynvdijke/dnd/commit/e7a60c1c43b660b7c7781cdf09c8ce7b4c38a034))
+
 # [2.40.0](https://github.com/martynvdijke/dnd/compare/v2.39.0...v2.40.0) (2026-08-07)
 
 
