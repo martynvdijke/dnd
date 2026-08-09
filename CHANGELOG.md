@@ -1,3 +1,10 @@
+# [2.42.0](https://github.com/martynvdijke/dnd/compare/v2.41.0...v2.42.0) (2026-08-09)
+
+
+### Features
+
+* campaign-first character selection with ownership-based read-only access ([5668529](https://github.com/martynvdijke/dnd/commit/566852939f27d9ae9ca014f0b89f0cbd3fba9809))
+
 # [2.41.0](https://github.com/martynvdijke/dnd/compare/v2.40.0...v2.41.0) (2026-08-08)
 
 
