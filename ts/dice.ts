@@ -238,7 +238,7 @@ export function renderDiceTab() {
   el.innerHTML = `
     <div class="text-center dice-roller">
       <h5>Dice Roller</h5>
-      <div class="row justify-content-center mb-2">
+      <div class="row justify-content-center mb-2 g-3">
         <div class="col-md-8">
           <label class="form-label">Expression</label>
           <input class="form-control text-center" id="diceExpr" value="1d20" placeholder="e.g. 2d6+3, 4d6kh3, 1d20!" style="font-size:1.3rem;font-weight:700">

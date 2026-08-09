@@ -825,7 +825,7 @@ kbd {
   .character-grid { grid-template-columns: 1fr; }
   .nav-tabs { flex-wrap: nowrap; overflow-x: auto; }
   .nav-tabs .nav-link { white-space: nowrap; }
-  #tabBar { position: sticky; top: 56px; z-index: 10; background: var(--parchment-light); margin-bottom: 0; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+  #tabBar { position: sticky; top: 0; z-index: 10; background: var(--parchment-light); margin-bottom: 0; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
 }
 
 @media (max-width: 575.98px) {
@@ -3807,5 +3807,20 @@ body.sidebar-collapsed .container {
 /* Session mode: only the combat section stays visible on the sheet */
 body.session-mode .sheet-section-acc:not(#sheet-acc-combat) { display: none; }
 
-/* revamp-character-sheets-mobile: wrap sheet header buttons on narrow screens (prevents horizontal overflow) */
+/* revamp-character-sheets-mobile: keep sheet header buttons wrapping on tablets,
+   but on phones keep them on a single row and scroll horizontally so the header
+   does not stack into a tall multi-row block. */
 #sheetView .d-flex.gap-2.no-print { flex-wrap: wrap; }
+
+@media (max-width: 575.98px) {
+  #sheetView .d-flex.gap-2.no-print {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-width: 100%;
+    padding-bottom: 4px;
+  }
+  #sheetView .d-flex.gap-2.no-print .btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}
