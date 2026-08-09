@@ -88,6 +88,14 @@ export async function init() {
     }
     // If URL has a hash (e.g. #/compendium), navigate to that view
     // instead of default characters view
+    const selectionOk = await (window as any).validateSelection();
+    if (!selectionOk) {
+      // No valid campaign selected — the picker view is already shown.
+      connectWS();
+      api('GET', '/api/locations').then(setAllLocations).catch(() => {});
+      api('GET', '/api/npcs').then(setAllNPCs).catch(() => {});
+      return;
+    }
     if (location.hash && location.hash.length > 1) {
       navigateToInitialHash((route) => showViewFromRouter(route.view));
     } else {

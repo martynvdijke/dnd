@@ -330,6 +330,28 @@ h1 { color: var(--ink); }
 .character-card .char-detail { color: var(--ink-light); }
 .character-card .char-hp { color: var(--ink-muted); font-size: .8rem; }
 
+/* ---- Campaign / Character Picker ---- */
+
+.campaign-picker-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 110px;
+}
+.campaign-picker-card .fa-flag {
+  color: var(--gold);
+  font-size: 1.25rem;
+}
+#campaignPickerView,
+#characterPickerView {
+  max-width: 900px;
+  margin: 0 auto;
+}
+#campaignPickerList .character-card,
+#characterPickerList .character-card {
+  border-top: 3px solid var(--gold);
+}
+
 .ability-box {
   background: var(--parchment-light);
   border: 1px solid var(--border);

@@ -6,6 +6,8 @@ import "github.com/gin-gonic/gin"
 func RegisterCampaignRoutes(r *gin.RouterGroup) {
 	// Campaigns
 	r.GET("/campaigns", ListCampaigns)
+	r.GET("/campaigns/mine", ListCampaigns)
+	r.GET("/campaigns/:id/characters", ListCampaignCharacters)
 	r.POST("/campaigns", CreateCampaign)
 	r.PUT("/campaigns/:id", UpdateCampaign)
 	r.DELETE("/campaigns/:id", DeleteCampaign)

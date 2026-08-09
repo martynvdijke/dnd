@@ -2,6 +2,8 @@ import type { FABAction, ViewState } from './types';
 import { expose } from './lib/expose';
 
 const actionMap: Record<string, FABAction[]> = {
+  campaignPicker: [],
+  characterPicker: [],
   characters: [
     { id: 'new-char', label: 'New Character', icon: 'fa-plus', onclick: 'newChar()' },
     { id: 'import-char', label: 'Import Character', icon: 'fa-file-import', onclick: 'showImport()' },
@@ -12,8 +14,7 @@ const actionMap: Record<string, FABAction[]> = {
     { id: 'long-rest', label: 'Long Rest', icon: 'fa-moon', onclick: "doRest('long')" },
   ],
   dice: [
-    { id: 'roll-d20', label: 'Roll d20', icon: 'fa-dice-d20', onclick: "document.getElementById('diceExpr')?.focus()" },
-    { id: 'roll-custom', label: 'Roll Custom', icon: 'fa-calculator', onclick: "document.getElementById('diceExpr')?.focus()" },
+    { id: 'roll-dice', label: 'Roll Dice', icon: 'fa-dice-d20', onclick: "document.getElementById('diceExpr')?.focus()" },
   ],
   party: [
     { id: 'refresh', label: 'Refresh', icon: 'fa-rotate', onclick: 'showParty()' },
@@ -48,13 +49,6 @@ const sessionModeActions: FABAction[] = [
   { id: 'end-turn', label: 'End Turn', icon: 'fa-forward', onclick: 'nextTurn()' },
 ];
 
-const aiAction: FABAction = {
-  id: 'ai-gen',
-  label: 'Generate with AI',
-  icon: 'fa-wand-magic-sparkles',
-  onclick: "openAIGenModal('text', '')",
-};
-
 export function getActionsForView(view: ViewState, isSessionMode: boolean = false): FABAction[] {
   if (isSessionMode) return sessionModeActions;
   return actionMap[view] || actionMap.characters;
@@ -71,7 +65,7 @@ export function updateFabForView(view: ViewState, isSessionMode: boolean = false
   const menu = document.getElementById('fabMenu');
   if (!menu) return;
   const actions = getActionsForView(view, isSessionMode);
-  menu.innerHTML = [...actions, aiAction].map(a =>
+  menu.innerHTML = actions.map(a =>
     `<button class="fab-menu-item" onclick="${a.onclick};toggleFabMenu()">
       <i class="fa-solid ${a.icon} me-2" aria-hidden="true"></i>${a.label}
     </button>`

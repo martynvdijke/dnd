@@ -53,6 +53,10 @@ func CreateCharacterNote(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	if !canEditCharacterID(c, n.CharacterID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	if n.Title == "" {
 		n.Title = "Untitled Note"
 	}
@@ -73,6 +77,10 @@ func UpdateCharacterNote(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	if !canEditResourceID(c, "character_notes", id) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("UPDATE character_notes SET title=?, content=?, visibility=?, category=?, updated_at=datetime('now') WHERE id=?",
 		n.Title, n.Content, n.Visibility, n.Category, id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -80,6 +88,10 @@ func UpdateCharacterNote(c *gin.Context) {
 
 func DeleteCharacterNote(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditResourceID(c, "character_notes", id) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("DELETE FROM character_notes WHERE id=?", id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

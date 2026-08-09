@@ -17,6 +17,7 @@ import (
 
 	"villum/db"
 	"villum/ent"
+	"villum/ent/campaign"
 	"villum/ent/campaignmember"
 	"villum/ent/character"
 	"villum/ent/characterclass"
@@ -75,6 +76,7 @@ func ListCharacters(c *gin.Context) {
 		HPMax         int    `json:"hp_max"`
 		HPCurrent     int    `json:"hp_current"`
 		PortraitURL   string `json:"portrait_url,omitempty"`
+		CampaignID    int64  `json:"campaign_id,omitempty"`
 		RaceColor     string `json:"race_color,omitempty"`
 		CharacterType string `json:"character_type"`
 		CanEdit       bool   `json:"can_edit"`
@@ -108,7 +110,7 @@ func ListCharacters(c *gin.Context) {
 				return
 			}
 			for _, e := range entChars {
-				ch := CharSummary{ID: e.ID, UserID: e.UserID, Name: e.Name, Race: e.Race, Class: e.Class, Level: e.Level, HPMax: e.HpMax, HPCurrent: e.HpCurrent, PortraitURL: e.PortraitURL, CharacterType: e.CharacterType, CanEdit: canEditCharacter(c, e)}
+				ch := CharSummary{ID: e.ID, UserID: e.UserID, Name: e.Name, Race: e.Race, Class: e.Class, Level: e.Level, HPMax: e.HpMax, HPCurrent: e.HpCurrent, PortraitURL: e.PortraitURL, CharacterType: e.CharacterType, CampaignID: e.CampaignID, CanEdit: canEditCharacter(c, e)}
 				ch.RaceColor = raceColors[ch.Race]
 				chars = append(chars, ch)
 			}
@@ -121,12 +123,98 @@ func ListCharacters(c *gin.Context) {
 			return
 		}
 		for _, e := range entChars {
-			ch := CharSummary{ID: e.ID, UserID: e.UserID, Name: e.Name, Race: e.Race, Class: e.Class, Level: e.Level, HPMax: e.HpMax, HPCurrent: e.HpCurrent, PortraitURL: e.PortraitURL, CharacterType: e.CharacterType, CanEdit: canEditCharacter(c, e)}
+			ch := CharSummary{ID: e.ID, UserID: e.UserID, Name: e.Name, Race: e.Race, Class: e.Class, Level: e.Level, HPMax: e.HpMax, HPCurrent: e.HpCurrent, PortraitURL: e.PortraitURL, CharacterType: e.CharacterType, CampaignID: e.CampaignID, CanEdit: canEditCharacter(c, e)}
 			ch.RaceColor = raceColors[ch.Race]
 			chars = append(chars, ch)
 		}
 	}
 	c.JSON(http.StatusOK, chars)
+}
+
+// ListCampaignCharacters returns characters belonging to a campaign that the
+// current user can access (campaign owner, DM, member, or admin), each
+// annotated with `owned` so the UI can enforce read-only vs. full access.
+func ListCampaignCharacters(c *gin.Context) {
+	campaignID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid campaign id"})
+		return
+	}
+	userID, _ := c.Get("user_id")
+	currentUID, _ := userID.(int64)
+	role, _ := c.Get("role")
+	ctx := c.Request.Context()
+
+	// Access: admin, campaign owner, or campaign member may list.
+	camp, err := db.Client.Campaign.Query().
+		Where(campaign.ID(campaignID)).
+		Only(ctx)
+	if ent.IsNotFound(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
+		return
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if role != "admin" && camp.UserID != currentUID {
+		memberCount, err := db.Client.CampaignMember.Query().
+			Where(
+				campaignmember.CampaignID(campaignID),
+				campaignmember.UserID(currentUID),
+			).
+			Count(ctx)
+		if err != nil || memberCount == 0 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+			return
+		}
+	}
+
+	type CampaignCharSummary struct {
+		ID            int64  `json:"id"`
+		UserID        int64  `json:"user_id"`
+		Name          string `json:"name"`
+		Race          string `json:"race"`
+		Class         string `json:"class"`
+		Level         int    `json:"level"`
+		HPMax         int    `json:"hp_max"`
+		HPCurrent     int    `json:"hp_current"`
+		PortraitURL   string `json:"portrait_url,omitempty"`
+		RaceColor     string `json:"race_color,omitempty"`
+		CharacterType string `json:"character_type"`
+		CampaignID    int64  `json:"campaign_id"`
+		Owned         bool   `json:"owned"`
+	}
+
+	chars, err := db.Client.Character.Query().
+		Where(character.CampaignID(campaignID)).
+		Order(ent.Desc(character.FieldUpdatedAt)).
+		All(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	raceColors := GetRaceColorMap()
+	out := make([]CampaignCharSummary, 0, len(chars))
+	for _, e := range chars {
+		out = append(out, CampaignCharSummary{
+			ID:            e.ID,
+			UserID:        e.UserID,
+			Name:          e.Name,
+			Race:          e.Race,
+			Class:         e.Class,
+			Level:         e.Level,
+			HPMax:         e.HpMax,
+			HPCurrent:     e.HpCurrent,
+			PortraitURL:   e.PortraitURL,
+			RaceColor:     raceColors[e.Race],
+			CharacterType: e.CharacterType,
+			CampaignID:    e.CampaignID,
+			Owned:         canEditCharacter(c, e),
+		})
+	}
+	c.JSON(http.StatusOK, out)
 }
 
 func ListAllCharacters(c *gin.Context) {
@@ -188,11 +276,12 @@ func GetCharacter(c *gin.Context) {
 
 	ch := entCharacterToModel(entChar)
 
-	// Authorization — admin, owner, or campaign DM may view; edit rights depend on character_type
+	// Authorization — admin, owner, or any campaign member may view;
+	// edit rights are computed separately via canEditCharacter.
 	role, _ := c.Get("role")
 	uidVal, _ := c.Get("user_id")
 	uid, _ := uidVal.(int64)
-	if role != "admin" && entChar.UserID != uid && !isDMOfCharacter(c, id) {
+	if role != "admin" && entChar.UserID != uid && !isCampaignMemberOfCharacter(c, id) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}

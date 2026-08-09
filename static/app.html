@@ -91,9 +91,37 @@
 
 <div class="container mt-4">
 
+<div id="campaignPickerView" style="display:none" data-testid="campaign-picker-view">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+      <h1 class="h2 mb-0">Select a Campaign</h1>
+      <p class="text-muted mb-0">Choose a campaign to see its characters.</p>
+    </div>
+    <button class="btn btn-outline-secondary btn-sm" onclick="logout()" title="Sign out"><i class="fa-solid fa-right-from-bracket me-1" aria-hidden="true"></i>Sign Out</button>
+  </div>
+  <div id="campaignPickerList" class="row g-3"></div>
+</div>
+
+<div id="characterPickerView" style="display:none" data-testid="character-picker-view">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+      <h1 class="h2 mb-0" id="characterPickerTitle">Select a Character</h1>
+      <p class="text-muted mb-0">Shared characters are read-only; owned characters unlock full editing.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-secondary btn-sm" onclick="loadCampaignPicker()"><i class="fa-solid fa-arrow-left me-1" aria-hidden="true"></i>Campaigns</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="logout()" title="Sign out"><i class="fa-solid fa-right-from-bracket me-1" aria-hidden="true"></i>Sign Out</button>
+    </div>
+  </div>
+  <div id="characterPickerList" class="row g-3"></div>
+</div>
+
 <div id="charactersView">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-    <h1 class="h2 mb-0">Character Folio</h1>
+    <div class="d-flex align-items-center gap-2">
+      <h1 class="h2 mb-0">Character Folio</h1>
+      <button class="btn btn-outline-secondary btn-sm" id="campaignContextBtn" onclick="switchCharacter()" title="Switch character" data-testid="campaign-context-btn"><i class="fa-solid fa-flag me-1" aria-hidden="true"></i><span id="campaignContextLabel"></span></button>
+    </div>
     <div class="d-flex gap-2">
       <button class="btn btn-gold btn-sm" onclick="newChar()" data-testid="new-character"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i>New Character</button>
       <button class="btn btn-outline-primary btn-sm" onclick="showImport()"><i class="fa-solid fa-file-import me-1" aria-hidden="true"></i>Import</button>
@@ -261,9 +289,8 @@
     <i class="fa-solid fa-plus" aria-hidden="true"></i>
   </div>
   <div class="fab-menu" id="fabMenu">
-    <button class="fab-menu-item" onclick="newChar();toggleFabMenu()"><i class="fa-solid fa-plus me-2" aria-hidden="true"></i>New Character</button>
+    <button class="fab-menu-item" onclick="newChar();toggleFabMenu()"><i class="fa-solid fa-user-plus me-2" aria-hidden="true"></i>New Character</button>
     <button class="fab-menu-item" onclick="showView('dice');renderDiceTab();toggleFabMenu()"><i class="fa-solid fa-dice me-2" aria-hidden="true"></i>Roll Dice</button>
-    <button class="fab-menu-item" onclick="openAIGenModal('text', '');toggleFabMenu()"><i class="fa-solid fa-wand-magic-sparkles me-2" aria-hidden="true"></i>Generate with AI</button>
     <button class="fab-menu-item" onclick="showParty();toggleFabMenu()"><i class="fa-solid fa-flag me-2" aria-hidden="true"></i>Party View</button>
   </div>
 

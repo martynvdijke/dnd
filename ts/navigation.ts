@@ -2,6 +2,7 @@ import type { ViewState } from './types';
 import { openBottomSheet } from './bottom-sheet';
 import { updateFabForView } from './fab';
 import { navigate as routerNavigate } from './router';
+import { currentCampaign, currentUser } from './lib/state';
 import { expose } from './lib/expose';
 
 export interface ViewItem {
@@ -10,6 +11,8 @@ export interface ViewItem {
 }
 
 const views: ViewItem[] = [
+  { id: 'campaignPicker', divId: 'campaignPickerView' },
+  { id: 'characterPicker', divId: 'characterPickerView' },
   { id: 'characters', divId: 'charactersView' },
   { id: 'sheet', divId: 'sheetView' },
   { id: 'dice', divId: 'diceView' },
@@ -62,6 +65,14 @@ function switchView(view: ViewState): void {
  * Show a view and update the URL hash.
  */
 export function showView(view: ViewState): void {
+  // Gate: most app views require a selected campaign. Redirect to the
+  // campaign picker instead of rendering a useless page. Admins manage all
+  // campaigns and bypass the gate.
+  const needsCampaign = currentUser?.role !== 'admin';
+  if (needsCampaign && view !== 'campaignPicker' && view !== 'characterPicker' && !currentCampaign) {
+    (window as any).loadCampaignPicker?.();
+    return;
+  }
   switchView(view);
   if (!navigatingFromRouter && !initialLoad) {
     routerNavigate(view);

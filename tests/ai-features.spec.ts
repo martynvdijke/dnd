@@ -177,8 +177,8 @@ test.describe('AI Features', () => {
         });
       });
 
-      // FAB menu exposes the "Generate with AI" entry point (task 4.6)
-      await expect(page.locator('#fabMenu')).toContainText('Generate with AI');
+      // FAB menu no longer exposes "Generate with AI" (fab-cleanup)
+      await expect(page.locator('#fabMenu')).not.toContainText('Generate with AI');
 
       // Provide a target textarea via the NPC create modal
       await page.evaluate(() => (window as any).showCreateNPC());

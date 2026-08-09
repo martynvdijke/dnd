@@ -2776,10 +2776,20 @@ func TestCampaignDMRoleAllowsCharacterAccess(t *testing.T) {
 
 	login(t, tc, "codm", "testpass123")
 	resp = tc.get(fmt.Sprintf("/api/characters/%d", playerCharID), nil)
-	if resp.Code != 403 {
-		t.Fatalf("expected 403 for demoted user, got %d - %s", resp.Code, resp.Body.String())
+	if resp.Code != 200 {
+		t.Fatalf("demoted user cannot view player character (still a member, read-only): %d - %s", resp.Code, resp.Body.String())
 	}
-	t.Logf("Demoted user correctly denied (got %d)", resp.Code)
+	readJSON(resp, &charData)
+	if canEdit, _ := charData["can_edit"].(bool); canEdit {
+		t.Fatal("demoted user should not be able to edit the player character")
+	}
+
+	// Writes must still be denied for non-owners even though viewing is allowed
+	resp = tc.put(fmt.Sprintf("/api/characters/%d", playerCharID), map[string]any{"name": "Hijacked"})
+	if resp.Code != 403 {
+		t.Fatalf("expected 403 for demoted user write, got %d - %s", resp.Code, resp.Body.String())
+	}
+	t.Logf("Demoted user can view read-only but cannot edit (got %d)", resp.Code)
 
 	login(t, tc, adminUser, adminPass)
 	tc.del(fmt.Sprintf("/api/characters/%d", playerCharID), nil)

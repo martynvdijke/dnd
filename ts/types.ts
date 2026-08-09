@@ -1,4 +1,6 @@
 export type ViewState =
+  | 'campaignPicker'
+  | 'characterPicker'
   | 'characters'
   | 'sheet'
   | 'dice'

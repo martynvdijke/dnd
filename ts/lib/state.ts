@@ -8,12 +8,14 @@
  */
 export let currentUser: { id: number; username: string; role: string } | null = null;
 export let currentChar: any = null;
+export let currentCampaign: any = null;
 export let currentTab = 'stats';
 export let allLocations: any[] = [];
 export let allNPCs: any[] = [];
 
 export function setCurrentUser(u: typeof currentUser) { currentUser = u; }
 export function setCurrentChar(c: any) { currentChar = c; }
+export function setCurrentCampaign(c: any) { currentCampaign = c; }
 export function setCurrentTab(t: string) { currentTab = t; }
 export function setAllLocations(l: any[]) { allLocations = l; }
 export function setAllNPCs(n: any[]) { allNPCs = n; }

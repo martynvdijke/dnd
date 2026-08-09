@@ -47,6 +47,10 @@ func CreateCompanion(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "name required"})
 		return
 	}
+	if !canEditCharacterID(c, comp.CharacterID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	isAlive := 0
 	if comp.IsAlive || comp.ID == 0 {
 		isAlive = 1
@@ -65,6 +69,10 @@ func CreateCompanion(c *gin.Context) {
 
 func UpdateCompanion(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditResourceID(c, "companions", id) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var comp models.Companion
 	if err := c.ShouldBindJSON(&comp); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -83,6 +91,10 @@ func UpdateCompanion(c *gin.Context) {
 
 func DeleteCompanion(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditResourceID(c, "companions", id) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("DELETE FROM companions WHERE id=?", id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

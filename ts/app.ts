@@ -33,8 +33,9 @@ import './party-subtabs';
 import './timeline';
 import './factions';
 import './character-sheet';
+import './selection';
 import { expose } from './lib/expose';
-import { currentUser, currentChar, currentTab, allLocations, allNPCs, setCurrentChar, setCurrentTab, setAllLocations, setAllNPCs } from './lib/state';
+import { currentUser, currentChar, currentTab, allLocations, allNPCs, currentCampaign, setCurrentChar, setCurrentTab, setAllLocations, setAllNPCs, setCurrentCampaign } from './lib/state';
 
 // Expose API helper globally for E2E tests (window.api check)
 expose('api', api);
@@ -106,6 +107,23 @@ async function openChar(id: number) {
   }
 }
 expose('openChar', openChar);
+
+// ─── Campaign / Character switching ───
+
+expose('switchCampaign', function () {
+  setCurrentChar(null);
+  (window as any).loadCampaignPicker();
+});
+
+expose('switchCharacter', function () {
+  if (!currentCampaign) {
+    (window as any).loadCampaignPicker();
+    return;
+  }
+  (window as any).loadCharacterPicker(currentCampaign.id);
+});
+
+expose('getCurrentCampaign', () => currentCampaign);
 
 // ─── Character Sheet ───
 
@@ -942,6 +960,7 @@ expose('deleteChar', async function () {
 
 expose('logout', async function () {
   await api('POST', '/api/logout');
+  (window as any).clearSelection?.();
   window.location.href = '/login';
 });
 

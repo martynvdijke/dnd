@@ -1232,6 +1232,7 @@ type PartyMember struct {
 	CampaignID    *int64 `json:"campaign_id"`
 	CharacterType string `json:"character_type"`
 	DMNotes       string `json:"dm_notes,omitempty"`
+	Owned         bool   `json:"owned"`
 }
 
 func GetPartyView(c *gin.Context) {
@@ -1352,6 +1353,7 @@ func GetPartyView(c *gin.Context) {
 			Status:        "alive",
 			PortraitURL:   ch.PortraitURL,
 			CharacterType: ch.CharacterType,
+			Owned:         canEditCharacter(c, ch),
 		}
 		if role == "admin" || (ch.CampaignID != 0 && dmCampaignIDs[ch.CampaignID]) {
 			pm.DMNotes = ch.DmNotes

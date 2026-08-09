@@ -166,6 +166,20 @@ func SeedCharacter(t *testing.T, id, userID int64, name, race, class string) {
 	}
 }
 
+// SeedCharacterInCampaign inserts a character fixture assigned to a campaign.
+func SeedCharacterInCampaign(t *testing.T, id, userID, campaignID int64, name, race, class string) {
+	t.Helper()
+	_, err := db.DB.Exec(
+		`INSERT OR IGNORE INTO characters(id, user_id, name, race, class, level,
+		 str, dex, con, int, wis, cha, hp_max, hp_current, ac, initiative, speed, campaign_id)
+		 VALUES(?, ?, ?, ?, ?, 1, 10, 10, 10, 10, 10, 10, 12, 12, 10, 0, 30, ?)`,
+		id, userID, name, race, class, campaignID,
+	)
+	if err != nil {
+		t.Fatalf("seed character in campaign: %v", err)
+	}
+}
+
 func SeedCampaign(t *testing.T, id int64, name, partyName string, userID int64) {
 	t.Helper()
 	_, err := db.DB.Exec(
@@ -239,6 +253,7 @@ func CountRows(t *testing.T, table string) int {
 }
 
 // SeedCampaignMember inserts a member into an existing campaign.
+// SeedCampaignMember inserts a campaign membership fixture.
 func SeedCampaignMember(t *testing.T, campaignID, userID int64, role string) {
 	t.Helper()
 	_, err := db.DB.Exec(
