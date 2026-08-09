@@ -1,3 +1,10 @@
+## [2.42.1](https://github.com/martynvdijke/dnd/compare/v2.42.0...v2.42.1) (2026-08-09)
+
+
+### Bug Fixes
+
+* mobile layout overflow and sticky tab bar ([f0ea377](https://github.com/martynvdijke/dnd/commit/f0ea3776a762685739a5d281d1dd3b4d1b58b66c))
+
 # [2.42.0](https://github.com/martynvdijke/dnd/compare/v2.41.0...v2.42.0) (2026-08-09)
 
 
