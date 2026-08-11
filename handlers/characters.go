@@ -140,34 +140,21 @@ func ListCampaignCharacters(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid campaign id"})
 		return
 	}
-	userID, _ := c.Get("user_id")
-	currentUID, _ := userID.(int64)
-	role, _ := c.Get("role")
 	ctx := c.Request.Context()
 
 	// Access: admin, campaign owner, or campaign member may list.
-	camp, err := db.Client.Campaign.Query().
+	if _, err := db.Client.Campaign.Query().
 		Where(campaign.ID(campaignID)).
-		Only(ctx)
-	if ent.IsNotFound(err) {
+		Only(ctx); ent.IsNotFound(err) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
 		return
-	}
-	if err != nil {
+	} else if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	if role != "admin" && camp.UserID != currentUID {
-		memberCount, err := db.Client.CampaignMember.Query().
-			Where(
-				campaignmember.CampaignID(campaignID),
-				campaignmember.UserID(currentUID),
-			).
-			Count(ctx)
-		if err != nil || memberCount == 0 {
-			c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
-			return
-		}
+	if !isCampaignMember(c, campaignID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
 	}
 
 	type CampaignCharSummary struct {

@@ -171,11 +171,63 @@ expose('showParty', async function () {
   }
 });
 
+// ─── Roster picker (campaign characters) ───
+//
+// Reusable grouped multi-select for campaign rosters: player-controlled
+// characters (owned by the current user) and external characters (owned by
+// other campaign members). Loads candidates from the roster candidates
+// endpoint; characters already in the roster render pre-selected.
+
+async function loadRosterCandidates(campaignId: number): Promise<any[]> {
+  return api('GET', `/api/campaigns/${campaignId}/character-candidates`);
+}
+
+function rosterCandidateRow(ch: any): string {
+  const inRoster = !!ch.in_roster;
+  return `
+    <div class="form-check roster-candidate" data-testid="roster-candidate-${ch.id}">
+      <input class="form-check-input roster-cb" type="checkbox" id="rosterCb-${ch.id}" data-id="${ch.id}" ${inRoster ? 'checked' : ''} ${inRoster ? 'disabled' : ''}>
+      <label class="form-check-label d-flex align-items-center gap-2 flex-wrap" for="rosterCb-${ch.id}">
+        ${ch.portrait_url ? `<img src="${esc(ch.portrait_url)}" class="character-portrait" style="width:24px;height:24px;object-fit:cover;border-radius:50%" alt="">` : ''}
+        <span><strong>${esc(ch.name)}</strong></span>
+        <span class="text-muted small">${esc(ch.race)} ${esc(ch.class)} · Level ${ch.level}</span>
+        <span class="badge ${ch.owned ? 'bg-success' : 'bg-secondary'}">${ch.owned ? 'Player-controlled' : 'External'}</span>
+        ${!ch.owned ? `<span class="badge bg-info"><i class="fa-solid fa-user me-1"></i>${esc(ch.owner_username)}</span>` : ''}
+        ${inRoster ? '<span class="badge badge-gold">In roster</span>' : ''}
+      </label>
+    </div>`;
+}
+
+function rosterPickerHtml(candidates: any[]): string {
+  if (!candidates.length) {
+    return '<p class="small text-muted mb-2">No characters available yet. Create characters, then add members so their characters can join the roster.</p>';
+  }
+  const own = candidates.filter((ch: any) => ch.owned);
+  const external = candidates.filter((ch: any) => !ch.owned);
+  const section = (title: string, emptyNote: string, items: any[]) => `
+    <div class="mb-2">
+      <div class="small fw-bold text-muted mb-1">${title}</div>
+      ${items.length ? items.map(rosterCandidateRow).join('') : `<p class="small text-muted fst-italic">${emptyNote}</p>`}
+    </div>`;
+  return section('Your Characters (player-controlled)', 'No characters yet.', own) +
+         section("Campaign Members' Characters (external)", "No other members' characters yet.", external);
+}
+
+function getSelectedRosterIds(): number[] {
+  const ids: number[] = [];
+  document.querySelectorAll<HTMLInputElement>('input.roster-cb:checked:not(:disabled)').forEach((cb) => {
+    const id = parseInt(cb.dataset.id || '0', 10);
+    if (id) ids.push(id);
+  });
+  return ids;
+}
+
 expose('showCreateCampaign', function () {
   showModal('Create Campaign', `
     <div class="mb-3"><label class="form-label">Campaign Name</label><input class="form-control" id="newCampaignName"></div>
     <div class="mb-3"><label class="form-label">Party Name</label><input class="form-control" id="newPartyName" placeholder="e.g. The Dawnbringers"></div>
     <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="newCampaignDesc" rows="2"></textarea></div>
+    <div class="mb-3"><label class="form-label">DM Notes</label><textarea class="form-control" id="newCampaignDmNotes" rows="2" placeholder="Private notes for the Dungeon Master"></textarea></div>
     <button class="btn btn-primary w-100" onclick="doCreateCampaign()">Create</button>
   `);
 });
@@ -185,9 +237,36 @@ expose('doCreateCampaign', async function () {
     const name = (document.getElementById('newCampaignName') as HTMLInputElement).value;
     if (!name) { toast('Name required', true); return; }
     const partyName = (document.getElementById('newPartyName') as HTMLInputElement).value;
-    await api('POST', '/api/campaigns', { name, party_name: partyName, description: (document.getElementById('newCampaignDesc') as HTMLTextAreaElement).value });
+    const description = (document.getElementById('newCampaignDesc') as HTMLTextAreaElement).value;
+    const dmNotes = (document.getElementById('newCampaignDmNotes') as HTMLTextAreaElement).value;
+    const created = await api('POST', '/api/campaigns', { name, party_name: partyName, description, dm_notes: dmNotes });
+    // Step 2: pick characters to attach to the new campaign's roster.
+    try {
+      const candidates = await loadRosterCandidates(created.id);
+      showModal(`Roster: ${esc(created.name)}`, `
+        <p class="small text-muted mb-2">Select one or more characters to attach to this campaign. You can change the roster any time from Manage.</p>
+        ${rosterPickerHtml(candidates)}
+        <button class="btn btn-gold w-100 mt-2" data-testid="roster-picker-confirm" onclick="finishCreateCampaign(${created.id})"><i class="fa-solid fa-check me-1"></i>Done</button>
+      `);
+    } catch {
+      // Roster picker unavailable — the campaign itself was created.
+      hideModal();
+      toast('Campaign created');
+      (window as any).showParty();
+    }
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+});
+
+expose('finishCreateCampaign', async function (campaignId: number) {
+  const ids = getSelectedRosterIds();
+  try {
+    for (const id of ids) {
+      await api('POST', `/api/campaigns/${campaignId}/characters`, { character_id: id });
+    }
     hideModal();
-    toast('Campaign created');
+    toast(ids.length ? `Campaign created with ${ids.length} character(s) in the roster` : 'Campaign created');
     (window as any).showParty();
   } catch (e: any) {
     toast(e.message, true);
@@ -195,13 +274,18 @@ expose('doCreateCampaign', async function () {
 });
 
 expose('showManageCampaign', async function (campaignId: number, name: string, partyName: string = '') {
-  const [campaigns, members] = await Promise.all([
+  const [campaigns, members, roster] = await Promise.all([
     api('GET', '/api/campaigns'),
     api('GET', `/api/campaigns/${campaignId}/members`).catch(() => []),
+    api('GET', `/api/campaigns/${campaignId}/characters`).catch(() => []),
   ]);
   const c = campaigns.find((x: any) => x.id === campaignId);
+  const curName = (c && c.name) || name;
   const curPartyName = (c && c.party_name) || partyName;
   const curDesc = (c && c.description) || '';
+  const curDmNotes = (c && c.dm_notes) || '';
+  const ownerNames: Record<number, string> = {};
+  (members as any[]).forEach((m: any) => { ownerNames[m.user_id] = m.username; });
   const membersHtml = members.length
     ? `<ul class="list-group mb-3">${members.map((m: any) => {
         const isDmMember = m.role === 'dm';
@@ -222,11 +306,34 @@ expose('showManageCampaign', async function (campaignId: number, name: string, p
         </li>`;
       }).join('')}</ul>`
     : '<p class="text-muted mb-3">No members yet. Add players by username.</p>';
-  showModal(`Manage: ${esc(name)}`, `
-    <div class="mb-2"><label class="form-label small">Campaign Name</label><input class="form-control" id="editCampaignName" value="${esc(name)}"></div>
+  const rosterHtml = roster.length
+    ? `<ul class="list-group mb-3">${roster.map((ch: any) => {
+        // `owned` from the characters endpoint reflects edit rights (true for
+        // admins/DM), so derive player-controlled vs external from ownership.
+        const isOwned = ch.user_id === currentUser?.id;
+        return `
+        <li class="list-group-item d-flex justify-content-between align-items-center" data-testid="roster-member-${ch.id}">
+          <span class="d-flex align-items-center gap-2 flex-wrap">
+            ${ch.portrait_url ? `<img src="${esc(ch.portrait_url)}" class="character-portrait" style="width:24px;height:24px;object-fit:cover;border-radius:50%" alt="">` : ''}
+            <strong>${esc(ch.name)}</strong>
+            <span class="text-muted small">${esc(ch.race)} ${esc(ch.class)} · Level ${ch.level}</span>
+            <span class="badge ${isOwned ? 'bg-success' : 'bg-secondary'}">${isOwned ? 'Player-controlled' : 'External'}</span>
+            ${!isOwned ? `<span class="badge bg-info"><i class="fa-solid fa-user me-1"></i>${esc(ownerNames[ch.user_id] || '')}</span>` : ''}
+          </span>
+          <button class="btn btn-outline-danger btn-sm" data-testid="roster-remove-${ch.id}" onclick="doRemoveRosterCharacter(${campaignId}, ${ch.id})" title="Remove from roster"><i class="fa-solid fa-xmark"></i></button>
+        </li>`;
+      }).join('')}</ul>`
+    : '<p class="text-muted small mb-3">No characters in this campaign yet. Add characters to build the party.</p>';
+  showModal(`Manage: ${esc(curName)}`, `
+    <div class="mb-2"><label class="form-label small">Campaign Name</label><input class="form-control" id="editCampaignName" value="${esc(curName)}"></div>
     <div class="mb-2"><label class="form-label small">Party Name</label><input class="form-control" id="editPartyName" value="${esc(curPartyName)}" placeholder="e.g. The Dawnbringers"></div>
-    <div class="mb-3"><label class="form-label small">Description</label><textarea class="form-control" id="editCampaignDesc" rows="2">${esc(curDesc)}</textarea></div>
+    <div class="mb-2"><label class="form-label small">Description</label><textarea class="form-control" id="editCampaignDesc" rows="2">${esc(curDesc)}</textarea></div>
+    <div class="mb-3"><label class="form-label small">DM Notes</label><textarea class="form-control" id="editCampaignDmNotes" rows="2">${esc(curDmNotes)}</textarea></div>
     <button class="btn btn-gold w-100 mb-3" onclick="doUpdateCampaign(${campaignId})"><i class="fa-solid fa-floppy-disk me-1"></i>Save Settings</button>
+    <hr>
+    <h6 class="mb-2"><i class="fa-solid fa-users me-1"></i>Roster</h6>
+    ${rosterHtml}
+    <button class="btn btn-outline-primary w-100 mb-3" data-testid="roster-add-open" onclick="showRosterPicker(${campaignId})"><i class="fa-solid fa-user-plus me-1"></i>Add Characters</button>
     <hr>
     ${membersHtml}
     <div class="input-group mb-3">
@@ -242,13 +349,53 @@ expose('showManageCampaign', async function (campaignId: number, name: string, p
   }
 });
 
+expose('showRosterPicker', async function (campaignId: number) {
+  try {
+    const candidates = await loadRosterCandidates(campaignId);
+    showModal('Add Characters to Roster', `
+      <p class="small text-muted mb-2">Characters already in the roster are pre-selected. Check the ones you want to add; remove characters from the roster list.</p>
+      ${rosterPickerHtml(candidates)}
+      <button class="btn btn-gold w-100 mt-2" data-testid="roster-picker-confirm" onclick="doRosterPickerConfirm(${campaignId})"><i class="fa-solid fa-plus me-1"></i>Add Selected</button>
+    `);
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+});
+
+expose('doRosterPickerConfirm', async function (campaignId: number) {
+  const ids = getSelectedRosterIds();
+  try {
+    for (const id of ids) {
+      await api('POST', `/api/campaigns/${campaignId}/characters`, { character_id: id });
+    }
+    toast(ids.length ? `Added ${ids.length} character(s) to the roster` : 'No characters selected');
+    // Re-render the manage modal in place (hideModal+show would race
+    // Bootstrap's transition, leaving the modal closed).
+    (window as any).showManageCampaign(campaignId, '');
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+});
+
+expose('doRemoveRosterCharacter', async function (campaignId: number, characterId: number) {
+  if (!confirm('Remove this character from the campaign roster?')) return;
+  try {
+    await api('DELETE', `/api/campaigns/${campaignId}/characters/${characterId}`);
+    toast('Character removed from roster');
+    (window as any).showManageCampaign(campaignId, '');
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+});
+
 expose('doUpdateCampaign', async function (campaignId: number) {
   try {
     const name = (document.getElementById('editCampaignName') as HTMLInputElement).value;
     if (!name) { toast('Name required', true); return; }
     const partyName = (document.getElementById('editPartyName') as HTMLInputElement).value;
     const description = (document.getElementById('editCampaignDesc') as HTMLTextAreaElement).value;
-    await api('PUT', `/api/campaigns/${campaignId}`, { name, party_name: partyName, description });
+    const dmNotes = (document.getElementById('editCampaignDmNotes') as HTMLTextAreaElement).value;
+    await api('PUT', `/api/campaigns/${campaignId}`, { name, party_name: partyName, description, dm_notes: dmNotes });
     toast('Campaign updated');
     (window as any).showParty();
     hideModal();

@@ -1551,6 +1551,279 @@ func DeleteCampaign(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
+// ─── Campaign Roster ───
+
+// isCampaignMember reports whether the requester may manage the campaign:
+// admin, campaign owner, or a member of the campaign. The caller is expected
+// to have verified the campaign exists (so 404 vs 403 stays distinguishable).
+func isCampaignMember(c *gin.Context, campaignID int64) bool {
+	userID, _ := c.Get("user_id")
+	currentUID, _ := userID.(int64)
+	role, _ := c.Get("role")
+	ctx := c.Request.Context()
+
+	ca, err := db.Client.Campaign.Get(ctx, campaignID)
+	if err != nil {
+		return false
+	}
+	if role == "admin" || ca.UserID == currentUID {
+		return true
+	}
+	count, err := db.Client.CampaignMember.Query().
+		Where(
+			campaignmember.CampaignID(campaignID),
+			campaignmember.UserID(currentUID),
+		).
+		Count(ctx)
+	return err == nil && count > 0
+}
+
+// campaignMemberUserIDs returns the user ids of the campaign's members,
+// including the owner, deduplicated.
+func campaignMemberUserIDs(c *gin.Context, campaignID int64) ([]int64, error) {
+	ctx := c.Request.Context()
+	ca, err := db.Client.Campaign.Query().
+		Where(campaign.ID(campaignID)).
+		Select(campaign.FieldUserID).
+		Only(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ms, err := db.Client.CampaignMember.Query().
+		Where(campaignmember.CampaignID(campaignID)).
+		Select(campaignmember.FieldUserID).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ids := []int64{ca.UserID}
+	seen := map[int64]bool{ca.UserID: true}
+	for _, m := range ms {
+		if !seen[m.UserID] {
+			seen[m.UserID] = true
+			ids = append(ids, m.UserID)
+		}
+	}
+	return ids, nil
+}
+
+type RosterCandidate struct {
+	ID            int64  `json:"id"`
+	UserID        int64  `json:"user_id"`
+	OwnerUsername string `json:"owner_username"`
+	Name          string `json:"name"`
+	Race          string `json:"race"`
+	Class         string `json:"class"`
+	Level         int    `json:"level"`
+	PortraitURL   string `json:"portrait_url,omitempty"`
+	CharacterType string `json:"character_type"`
+	Owned         bool   `json:"owned"`
+	InRoster      bool   `json:"in_roster"`
+}
+
+// ListCampaignCharacterCandidates returns the characters a member may add to
+// the campaign roster: characters owned by the caller plus characters owned by
+// other members of the campaign. Characters already assigned to a different
+// campaign are excluded; characters in this campaign are flagged `in_roster`.
+func ListCampaignCharacterCandidates(c *gin.Context) {
+	campaignID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid campaign id"})
+		return
+	}
+	ctx := c.Request.Context()
+	userID, _ := c.Get("user_id")
+	currentUID, _ := userID.(int64)
+
+	if _, err := db.Client.Campaign.Get(ctx, campaignID); ent.IsNotFound(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
+		return
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if !isCampaignMember(c, campaignID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+
+	memberIDs, err := campaignMemberUserIDs(c, campaignID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	users, err := db.Client.User.Query().
+		Where(user.IDIn(memberIDs...)).
+		All(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	usernames := make(map[int64]string, len(users))
+	for _, u := range users {
+		usernames[u.ID] = u.Username
+	}
+
+	chars, err := db.Client.Character.Query().
+		Where(
+			character.UserIDIn(memberIDs...),
+			character.Or(
+				character.CampaignIDIsNil(),
+				character.CampaignIDEQ(campaignID),
+			),
+		).
+		Order(character.ByName()).
+		All(ctx)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	out := make([]RosterCandidate, 0, len(chars))
+	for _, ch := range chars {
+		out = append(out, RosterCandidate{
+			ID:            ch.ID,
+			UserID:        ch.UserID,
+			OwnerUsername: usernames[ch.UserID],
+			Name:          ch.Name,
+			Race:          ch.Race,
+			Class:         ch.Class,
+			Level:         ch.Level,
+			PortraitURL:   ch.PortraitURL,
+			CharacterType: ch.CharacterType,
+			Owned:         ch.UserID == currentUID,
+			InRoster:      ch.CampaignID != 0 && ch.CampaignID == campaignID,
+		})
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+// AddCampaignCharacter attaches a character to the campaign roster by setting
+// its campaign_id. Any campaign member may do this; the target character must
+// be owned by the caller or by another member of the campaign, and must not be
+// assigned to a different campaign.
+func AddCampaignCharacter(c *gin.Context) {
+	campaignID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid campaign id"})
+		return
+	}
+	var req struct {
+		CharacterID int64 `json:"character_id"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.CharacterID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "character_id required"})
+		return
+	}
+	ctx := c.Request.Context()
+	userID, _ := c.Get("user_id")
+	currentUID, _ := userID.(int64)
+
+	if _, err := db.Client.Campaign.Get(ctx, campaignID); ent.IsNotFound(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
+		return
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if !isCampaignMember(c, campaignID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+
+	ch, err := db.Client.Character.Get(ctx, req.CharacterID)
+	if ent.IsNotFound(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
+		return
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if ch.CampaignID != 0 && ch.CampaignID != campaignID {
+		c.JSON(http.StatusConflict, gin.H{"error": "character already assigned to another campaign"})
+		return
+	}
+	// The target must be owned by the caller or by a campaign member.
+	if ch.UserID != currentUID {
+		memberIDs, err := campaignMemberUserIDs(c, campaignID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		allowed := false
+		for _, id := range memberIDs {
+			if id == ch.UserID {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "character is not owned by you or a campaign member"})
+			return
+		}
+	}
+
+	if err := db.Client.Character.UpdateOneID(req.CharacterID).
+		SetCampaignID(campaignID).
+		Exec(ctx); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"ok": true})
+}
+
+// RemoveCampaignCharacter detaches a character from the campaign roster by
+// clearing its campaign_id — but only when it currently points at this
+// campaign, so a newer assignment is never clobbered.
+func RemoveCampaignCharacter(c *gin.Context) {
+	campaignID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid campaign id"})
+		return
+	}
+	characterID, err := strconv.ParseInt(c.Param("characterId"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid character id"})
+		return
+	}
+	ctx := c.Request.Context()
+
+	if _, err := db.Client.Campaign.Get(ctx, campaignID); ent.IsNotFound(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
+		return
+	} else if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if !isCampaignMember(c, campaignID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+
+	ch, err := db.Client.Character.Get(ctx, characterID)
+	if ent.IsNotFound(err) {
+		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
+		return
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if ch.CampaignID != campaignID {
+		// No-op: the character is not in this campaign (possibly moved).
+		c.JSON(http.StatusOK, gin.H{"ok": true})
+		return
+	}
+	if err := db.Client.Character.UpdateOneID(characterID).
+		ClearCampaignID().
+		Exec(ctx); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
 // ─── Campaign Members ───
 
 func ListCampaignMembers(c *gin.Context) {
