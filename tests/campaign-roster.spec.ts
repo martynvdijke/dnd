@@ -113,26 +113,28 @@ test.describe('Campaign roster management', () => {
     const externalChar = name + '-External';
 
     // Seed: member user, campaign owned by admin with member added, admin's
-    // character already in the roster. Return the campaign id (the window
-    // would be wiped by the logout/reload below).
-    const campaignId = await page.evaluate(async ({ name, member, adminChar }) => {
+    // character already in the roster. Return the ids (the window would be
+    // wiped by the logout/reload below).
+    const seed = await page.evaluate(async ({ name, member, adminChar }) => {
       await window.api('POST', '/api/admin/users', {
         username: member, password: 'testpassword123', role: 'user',
       });
       const camp = await window.api('POST', '/api/campaigns', { name, party_name: 'Shared Party' });
       await window.api('POST', `/api/campaigns/${camp.id}/members`, { username: member });
-      await window.api('POST', '/api/characters', {
+      const adminCharRes = await window.api('POST', '/api/characters', {
         name: adminChar, race: 'Dwarf', class: 'Cleric', campaign_id: camp.id,
       });
-      return camp.id;
+      return { campaignId: camp.id, adminCharId: adminCharRes.id };
     }, { name, member, adminChar });
+    const { campaignId } = seed;
 
     // Member creates their own (external) character.
     await logoutAndLoginAs(page, member, 'testpassword123');
-    await page.evaluate(async (cn) => {
-      await window.api('POST', '/api/characters', {
+    const externalCharId = await page.evaluate(async (cn) => {
+      const res = await window.api('POST', '/api/characters', {
         name: cn, race: 'Elf', class: 'Wizard',
       });
+      return res.id;
     }, externalChar);
 
     // Back to admin: open the manage modal for the campaign card.
@@ -143,10 +145,9 @@ test.describe('Campaign roster management', () => {
     await card.getByRole('button', { name: 'Manage' }).click();
 
     // Roster section shows the pre-existing admin character (player-controlled).
-    const rosterRow = page.locator('[data-testid^="roster-member-"]');
-    await expect(rosterRow.first()).toBeVisible({ timeout: NAV_TIMEOUT });
-    await expect(rosterRow.first()).toContainText(adminChar);
-    await expect(rosterRow.first()).toContainText('Player-controlled');
+    let ch = { id: seed.adminCharId };
+    await expect(page.getByTestId(`roster-member-${ch.id}`)).toContainText(adminChar, { timeout: NAV_TIMEOUT });
+    await expect(page.getByTestId(`roster-member-${ch.id}`)).toContainText('Player-controlled');
 
     // DM notes field is present (empty for this campaign).
     await expect(page.locator('#editCampaignDmNotes')).toBeVisible({ timeout: NAV_TIMEOUT });
@@ -169,10 +170,10 @@ test.describe('Campaign roster management', () => {
     // Add the external character and verify it lands in the roster list.
     await extCand.getByRole('checkbox').check();
     await pickerConfirm.click();
-    const updatedRow = page.locator('[data-testid^="roster-member-"]').filter({ hasText: externalChar });
-    await expect(updatedRow).toBeVisible({ timeout: NAV_TIMEOUT });
-    await expect(updatedRow).toContainText('External');
-    await expect(updatedRow).toContainText(member);
+    ch = { id: externalCharId };
+    await expect(page.getByTestId(`roster-member-${ch.id}`)).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(page.getByTestId(`roster-member-${ch.id}`)).toContainText('External');
+    await expect(page.getByTestId(`roster-member-${ch.id}`)).toContainText(member);
 
     // Edit DM notes via the manage form and confirm persistence.
     await page.fill('#editCampaignDmNotes', 'Updated lair notes');
@@ -185,11 +186,10 @@ test.describe('Campaign roster management', () => {
 
     // Remove the external character from the roster.
     await page.locator('#partyContent .card').filter({ hasText: name }).getByRole('button', { name: 'Manage' }).click();
-    const extMember = page.locator('[data-testid^="roster-member-"]').filter({ hasText: externalChar });
-    await expect(extMember).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(page.getByTestId(`roster-member-${ch.id}`)).toBeVisible({ timeout: NAV_TIMEOUT });
     page.once('dialog', (d) => d.accept());
-    await extMember.locator('[data-testid^="roster-remove-"]').click();
-    await expect(extMember).toHaveCount(0, { timeout: NAV_TIMEOUT });
+    await page.getByTestId(`roster-remove-${ch.id}`).click();
+    await expect(page.getByTestId(`roster-member-${ch.id}`)).toHaveCount(0, { timeout: NAV_TIMEOUT });
 
     const roster = await page.evaluate(async (cid) => {
       return window.api('GET', `/api/campaigns/${cid}/characters`);
