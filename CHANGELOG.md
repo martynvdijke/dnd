@@ -1,3 +1,10 @@
+# [2.43.0](https://github.com/martynvdijke/dnd/compare/v2.42.1...v2.43.0) (2026-08-12)
+
+
+### Features
+
+* campaign roster management with character selection and DM notes ([82b15ac](https://github.com/martynvdijke/dnd/commit/82b15ac6c8886e3e066ee1c620d434b73cca92b6))
+
 ## [2.42.1](https://github.com/martynvdijke/dnd/compare/v2.42.0...v2.42.1) (2026-08-09)
 
 
