@@ -1020,6 +1020,9 @@ func entCharacterToModel(e *ent.Character) *models.Character {
 		ConcentratingOn:     e.ConcentratingOn,
 		ExhaustionLevel:     e.ExhaustionLevel,
 		CharacterType:       e.CharacterType,
+		CompendiumRaceID:    e.CompendiumRaceID,
+		CompendiumClassID:   e.CompendiumClassID,
+		CompendiumBackgroundID: e.CompendiumBackgroundID,
 	}
 	if e.CampaignID != 0 {
 		ch.CampaignID = &e.CampaignID

@@ -32,6 +32,14 @@ func RegisterCharacterRoutes(r *gin.RouterGroup) {
 	r.DELETE("/characters/:id/inventory/:itemId/link", UnlinkCompendiumEquipment)
 	r.POST("/characters/:id/inventory/:itemId/unlink", UnlinkCompendiumEquipment)
 
+	// Race/class/background compendium linking
+	r.POST("/characters/:id/race/link", linkCharacterRace)
+	r.DELETE("/characters/:id/race/link", unlinkCharacterRace)
+	r.POST("/characters/:id/class/link", linkCharacterClass)
+	r.DELETE("/characters/:id/class/link", unlinkCharacterClass)
+	r.POST("/characters/:id/background/link", linkCharacterBackground)
+	r.DELETE("/characters/:id/background/link", unlinkCharacterBackground)
+
 	// Spells sub-resource
 	r.POST("/characters/:id/spells", CreateSpell)
 	r.PUT("/spells/:sid", UpdateSpell)

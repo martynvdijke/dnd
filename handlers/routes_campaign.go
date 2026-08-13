@@ -97,6 +97,7 @@ func RegisterDMCampaignRoutes(r *gin.RouterGroup) {
 	r.POST("/shops/:id/items", CreateShopItem)
 	r.PUT("/shop-items/:id", UpdateShopItem)
 	r.DELETE("/shop-items/:id", DeleteShopItem)
+	r.DELETE("/shop-items/:id/link", UnlinkShopItem)
 }
 
 // RegisterShopRoutes registers auth shops routes.

@@ -444,15 +444,15 @@ func init() {
 	// character.DefaultConcentratingOn holds the default value on creation for the concentrating_on field.
 	character.DefaultConcentratingOn = characterDescConcentratingOn.Default.(string)
 	// characterDescCharacterType is the schema descriptor for character_type field.
-	characterDescCharacterType := characterFields[41].Descriptor()
+	characterDescCharacterType := characterFields[44].Descriptor()
 	// character.DefaultCharacterType holds the default value on creation for the character_type field.
 	character.DefaultCharacterType = characterDescCharacterType.Default.(string)
 	// characterDescCreatedAt is the schema descriptor for created_at field.
-	characterDescCreatedAt := characterFields[42].Descriptor()
+	characterDescCreatedAt := characterFields[45].Descriptor()
 	// character.DefaultCreatedAt holds the default value on creation for the created_at field.
 	character.DefaultCreatedAt = characterDescCreatedAt.Default.(string)
 	// characterDescUpdatedAt is the schema descriptor for updated_at field.
-	characterDescUpdatedAt := characterFields[43].Descriptor()
+	characterDescUpdatedAt := characterFields[46].Descriptor()
 	// character.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	character.DefaultUpdatedAt = characterDescUpdatedAt.Default.(string)
 	characterclassFields := schema.CharacterClass{}.Fields()

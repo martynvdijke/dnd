@@ -5,6 +5,9 @@ type Character struct {
 	UserID            int64  `json:"user_id"`
 	CampaignID        *int64 `json:"campaign_id,omitempty"`
 	CharacterType     string `json:"character_type"`
+	CompendiumRaceID  *int64 `json:"compendium_race_id,omitempty"`
+	CompendiumClassID *int64 `json:"compendium_class_id,omitempty"`
+	CompendiumBackgroundID *int64 `json:"compendium_background_id,omitempty"`
 	Name              string `json:"name"`
 	Race              string `json:"race"`
 	Class             string `json:"class"`

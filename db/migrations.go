@@ -1261,7 +1261,8 @@ CREATE TABLE IF NOT EXISTS npc_item_links (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     npc_id INTEGER NOT NULL REFERENCES npcs(id) ON DELETE CASCADE,
     adventure_id INTEGER NOT NULL REFERENCES oneshot_adventures(id) ON DELETE CASCADE,
-    item_id INTEGER NOT NULL REFERENCES oneshot_items(id) ON DELETE CASCADE,
+    item_id INTEGER REFERENCES oneshot_items(id) ON DELETE CASCADE,
+    compendium_equipment_id INTEGER REFERENCES compendium_equipment(id) ON DELETE SET NULL,
     relationship_type TEXT NOT NULL DEFAULT 'owns',
     notes TEXT NOT NULL DEFAULT '',
     UNIQUE(npc_id, item_id)
@@ -1950,6 +1951,19 @@ func ApplySafeAlters() error {
 		"CREATE INDEX IF NOT EXISTS idx_inventory_compendium_equipment_id ON inventory(compendium_equipment_id)",
 		"CREATE INDEX IF NOT EXISTS idx_oneshot_monsters_compendium_monster_id ON oneshot_monsters(compendium_monster_id)",
 		"CREATE INDEX IF NOT EXISTS idx_oneshot_items_compendium_equipment_id ON oneshot_items(compendium_equipment_id)",
+		// Shop/NPC/character compendium linking
+		"ALTER TABLE shop_items ADD COLUMN compendium_equipment_id INTEGER REFERENCES compendium_equipment(id) ON DELETE SET NULL",
+		"ALTER TABLE shop_items ADD COLUMN weight REAL NOT NULL DEFAULT 0",
+		"ALTER TABLE shop_items ADD COLUMN item_rarity TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE npc_item_links ADD COLUMN compendium_equipment_id INTEGER REFERENCES compendium_equipment(id) ON DELETE SET NULL",
+		"ALTER TABLE characters ADD COLUMN compendium_race_id INTEGER REFERENCES compendium_races(id) ON DELETE SET NULL",
+		"ALTER TABLE characters ADD COLUMN compendium_class_id INTEGER REFERENCES compendium_classes(id) ON DELETE SET NULL",
+		"ALTER TABLE characters ADD COLUMN compendium_background_id INTEGER REFERENCES compendium_backgrounds(id) ON DELETE SET NULL",
+		"CREATE INDEX IF NOT EXISTS idx_shop_items_compendium_equipment_id ON shop_items(compendium_equipment_id)",
+		"CREATE INDEX IF NOT EXISTS idx_npc_item_links_compendium_equipment_id ON npc_item_links(compendium_equipment_id)",
+		"CREATE INDEX IF NOT EXISTS idx_characters_compendium_race_id ON characters(compendium_race_id)",
+		"CREATE INDEX IF NOT EXISTS idx_characters_compendium_class_id ON characters(compendium_class_id)",
+		"CREATE INDEX IF NOT EXISTS idx_characters_compendium_background_id ON characters(compendium_background_id)",
 		// Events iCal URL source support
 		"ALTER TABLE events_settings ADD COLUMN source_type TEXT NOT NULL DEFAULT 'google_api'",
 		"ALTER TABLE events_settings ADD COLUMN ical_url TEXT NOT NULL DEFAULT ''",
@@ -1963,6 +1977,48 @@ func ApplySafeAlters() error {
 			if !strings.Contains(err.Error(), "duplicate column") {
 				return fmt.Errorf("alter table: %w", err)
 			}
+		}
+	}
+	// npc_item_links.item_id was historically NOT NULL, which blocks
+	// compendium-equipment-only links. SQLite cannot drop NOT NULL via ALTER,
+	// so rebuild the table once (idempotent: skipped when item_id is nullable).
+	if err := rebuildNPCItemLinksIfNeeded(); err != nil {
+		return fmt.Errorf("rebuild npc_item_links: %w", err)
+	}
+	return nil
+}
+
+// rebuildNPCItemLinksIfNeeded recreates npc_item_links with a nullable item_id
+// and the compendium_equipment_id column for pre-existing databases.
+func rebuildNPCItemLinksIfNeeded() error {
+	var notNull int
+	err := DB.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('npc_item_links') WHERE name='item_id' AND "notnull"=1`).Scan(&notNull)
+	if err != nil {
+		return err
+	}
+	if notNull == 0 {
+		return nil
+	}
+	middleware.LogInfo("migration", "rebuilding npc_item_links for compendium links")
+	statements := []string{
+		`CREATE TABLE npc_item_links_new (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			npc_id INTEGER NOT NULL REFERENCES npcs(id) ON DELETE CASCADE,
+			adventure_id INTEGER NOT NULL REFERENCES oneshot_adventures(id) ON DELETE CASCADE,
+			item_id INTEGER REFERENCES oneshot_items(id) ON DELETE CASCADE,
+			compendium_equipment_id INTEGER REFERENCES compendium_equipment(id) ON DELETE SET NULL,
+			relationship_type TEXT NOT NULL DEFAULT 'owns',
+			notes TEXT NOT NULL DEFAULT '',
+			UNIQUE(npc_id, item_id)
+		)`,
+		`INSERT INTO npc_item_links_new(id, npc_id, adventure_id, item_id, compendium_equipment_id, relationship_type, notes)
+			SELECT id, npc_id, adventure_id, item_id, NULL, relationship_type, notes FROM npc_item_links`,
+		`DROP TABLE npc_item_links`,
+		`ALTER TABLE npc_item_links_new RENAME TO npc_item_links`,
+	}
+	for _, stmt := range statements {
+		if _, err := DB.Exec(stmt); err != nil {
+			return err
 		}
 	}
 	return nil
