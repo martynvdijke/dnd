@@ -24,19 +24,19 @@ type Shop struct {
 }
 
 type ShopItem struct {
-	ID                   int64   `json:"id"`
-	ShopID               int64   `json:"shop_id"`
-	ItemName             string  `json:"item_name"`
-	Category             string  `json:"category"`
-	PriceGP              float64 `json:"price_gp"`
-	QuantityAvailable    int     `json:"quantity_available"`
-	Description          string  `json:"description"`
-	IsMagical            bool    `json:"is_magical"`
-	AttunementRequired   bool    `json:"attunement_required"`
-	Notes                string  `json:"notes"`
-	Weight               float64 `json:"weight"`
-	ItemRarity           string  `json:"item_rarity"`
-	CompendiumEquipmentID *int64 `json:"compendium_equipment_id,omitempty"`
+	ID                    int64   `json:"id"`
+	ShopID                int64   `json:"shop_id"`
+	ItemName              string  `json:"item_name"`
+	Category              string  `json:"category"`
+	PriceGP               float64 `json:"price_gp"`
+	QuantityAvailable     int     `json:"quantity_available"`
+	Description           string  `json:"description"`
+	IsMagical             bool    `json:"is_magical"`
+	AttunementRequired    bool    `json:"attunement_required"`
+	Notes                 string  `json:"notes"`
+	Weight                float64 `json:"weight"`
+	ItemRarity            string  `json:"item_rarity"`
+	CompendiumEquipmentID *int64  `json:"compendium_equipment_id,omitempty"`
 }
 
 type ShopTransaction struct {
@@ -165,19 +165,19 @@ func ListShopItems(c *gin.Context) {
 	}
 	defer rows.Close()
 	type SI struct {
-		ID                   int64   `json:"id"`
-		ShopID               int64   `json:"shop_id"`
-		ItemName             string  `json:"item_name"`
-		Category             string  `json:"category"`
-		PriceGP              float64 `json:"price_gp"`
-		QuantityAvailable    int     `json:"quantity_available"`
-		Description          string  `json:"description"`
-		IsMagical            bool    `json:"is_magical"`
-		AttunementRequired   bool    `json:"attunement_required"`
-		Notes                string  `json:"notes"`
-		Weight               float64 `json:"weight"`
-		ItemRarity           string  `json:"item_rarity"`
-		CompendiumEquipmentID *int64 `json:"compendium_equipment_id,omitempty"`
+		ID                    int64   `json:"id"`
+		ShopID                int64   `json:"shop_id"`
+		ItemName              string  `json:"item_name"`
+		Category              string  `json:"category"`
+		PriceGP               float64 `json:"price_gp"`
+		QuantityAvailable     int     `json:"quantity_available"`
+		Description           string  `json:"description"`
+		IsMagical             bool    `json:"is_magical"`
+		AttunementRequired    bool    `json:"attunement_required"`
+		Notes                 string  `json:"notes"`
+		Weight                float64 `json:"weight"`
+		ItemRarity            string  `json:"item_rarity"`
+		CompendiumEquipmentID *int64  `json:"compendium_equipment_id,omitempty"`
 	}
 	var items []SI
 	for rows.Next() {
