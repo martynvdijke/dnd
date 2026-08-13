@@ -1,3 +1,10 @@
+# [2.44.0](https://github.com/martynvdijke/dnd/compare/v2.43.0...v2.44.0) (2026-08-13)
+
+
+### Features
+
+* public share links for notes, journal entries, maps, and uploads ([#72](https://github.com/martynvdijke/dnd/issues/72)) ([1ffc33b](https://github.com/martynvdijke/dnd/commit/1ffc33bbc5bff85354e050c650f628d22ccf9c07))
+
 # [2.43.0](https://github.com/martynvdijke/dnd/compare/v2.42.1...v2.43.0) (2026-08-12)
 
 
