@@ -1,3 +1,10 @@
+# [2.45.0](https://github.com/martynvdijke/dnd/compare/v2.44.1...v2.45.0) (2026-08-13)
+
+
+### Features
+
+* TRMNL e-ink plugin + compendium linking (shops/NPCs/character identity) ([#74](https://github.com/martynvdijke/dnd/issues/74)) ([bf92705](https://github.com/martynvdijke/dnd/commit/bf927059ed0f7a0eaba2f63e293c107daf16274c))
+
 ## [2.44.1](https://github.com/martynvdijke/dnd/compare/v2.44.0...v2.44.1) (2026-08-13)
 
 
