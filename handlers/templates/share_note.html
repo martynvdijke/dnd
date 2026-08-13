@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{{.Title}} — Shared Note</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; background: #12141a; color: #e8e6e3; margin: 0; padding: 24px; line-height: 1.55; }
+  .card { max-width: 760px; margin: 0 auto; background: #1c1f28; border: 1px solid #2b3040; border-radius: 12px; padding: 28px; }
+  h1 { margin: 0 0 8px; font-size: 1.5rem; }
+  .meta { color: #9aa3b5; font-size: .85rem; margin-bottom: 20px; }
+  .badge { display: inline-block; background: #2b3040; border-radius: 999px; padding: 2px 10px; font-size: .75rem; color: #c9d1e4; margin-right: 6px; }
+  .content { white-space: pre-wrap; word-break: break-word; }
+  .footer { margin-top: 28px; color: #6b7385; font-size: .75rem; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>{{.Title}}</h1>
+  <div class="meta">
+    {{if .Category}}<span class="badge">{{.Category}}</span>{{end}}
+    {{if .Visibility}}<span class="badge">{{.Visibility}}</span>{{end}}
+    {{if .CreatedAt}}<span>· {{.CreatedAt}}</span>{{end}}
+    {{if .OwnerName}}<span>· {{.OwnerName}}</span>{{end}}
+  </div>
+  <div class="content">{{.Content}}</div>
+  <div class="footer">Shared from Villum</div>
+</div>
+</body>
+</html>

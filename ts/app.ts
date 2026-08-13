@@ -32,6 +32,7 @@ import './party';
 import './party-subtabs';
 import './timeline';
 import './factions';
+import './share';
 import './character-sheet';
 import './selection';
 import { expose } from './lib/expose';

@@ -3506,6 +3506,29 @@ body.sidebar-collapsed .container {
   transition: opacity 0.15s;
 }
 
+.fp-share {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  width: 26px;
+  height: 26px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 0.75rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.fp-item:hover .fp-share {
+  opacity: 1;
+}
+
 /* ─── Events Page ─── */
 
 .events-list {

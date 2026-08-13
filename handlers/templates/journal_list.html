@@ -13,6 +13,7 @@
           <p class="mb-0 mt-1 small text-muted">{{truncate .Entry 200}}</p>
         </div>
         <div class="d-flex gap-1">
+          <button class="btn btn-sm btn-outline-secondary" onclick="shareEntity('journal', {{.ID}})" title="Share entry"><i class="fa-solid fa-share-nodes"></i></button>
           <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/journal/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Edit Entry';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-pen"></i></button>
           <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/journal/{{.ID}}" hx-target="#journalSection" hx-swap="innerHTML" hx-confirm="Delete this entry?"><i class="fa-solid fa-trash"></i></button>
         </div>
