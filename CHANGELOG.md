@@ -1,3 +1,10 @@
+## [2.44.1](https://github.com/martynvdijke/dnd/compare/v2.44.0...v2.44.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* make pre-commit hook robust to untracked WIP files ([#73](https://github.com/martynvdijke/dnd/issues/73)) ([93f866b](https://github.com/martynvdijke/dnd/commit/93f866b1e3df0e11b7e70a8b20aea7b15c349e62))
+
 # [2.44.0](https://github.com/martynvdijke/dnd/compare/v2.43.0...v2.44.0) (2026-08-13)
 
 
