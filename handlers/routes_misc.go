@@ -29,6 +29,10 @@ func RegisterPublicRoutes(r *gin.Engine) {
 	r.GET("/htmx/events/c/:slug/grid", EventsGridCampaignPartial)
 	// Event detail route (after campaign/c routes since literal 'ical' matches first)
 	r.GET("/events/:id", EventDetail)
+
+	// TRMNL e-ink display polling endpoints (token-guarded, read-only)
+	r.GET("/api/trmnl/character-stats", GetTRMNLCharacterStats)
+	r.GET("/api/trmnl/campaign-stats", GetTRMNLCampaignStats)
 }
 
 // RegisterAuthBoilerplate registers auth helper routes (logout, csrf, me).

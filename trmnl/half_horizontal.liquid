@@ -1,0 +1,128 @@
+<div class="layout layout--col gap">
+  <div class="columns">
+    <div class="column">
+      {% if trmnl.plugin_settings.custom_fields_values.display_mode == 'campaign' %}
+      <div class="item">
+        <div class="meta">Campaign Progress</div>
+        <div class="content">
+          <span class="value value--large">{{ IDX_1.name }}</span>
+          <span class="label">Level {{ IDX_1.level }}</span>
+        </div>
+      </div>
+      <div class="item">
+        <div class="meta">Sessions</div>
+        <div class="content">
+          <span class="value value--large">{{ IDX_1.session_count }}</span>
+        </div>
+      </div>
+      <div class="item">
+        <div class="meta">Total XP</div>
+        <div class="content">
+          <span class="value value--large">{{ IDX_1.total_xp_earned }}</span>
+          <span class="label">xp</span>
+        </div>
+      </div>
+      <div class="item">
+        <div class="meta">Total Gold</div>
+        <div class="content">
+          <span class="value value--large">{{ IDX_1.total_gold_earned }}</span>
+          <span class="label">gp</span>
+        </div>
+      </div>
+      {% else %}
+      <div class="item">
+        <div class="meta">{{ IDX_0.race }} {{ IDX_0.class }}</div>
+        <div class="content">
+          <span class="value value--large">{{ IDX_0.name }}</span>
+          <span class="label">Level {{ IDX_0.level }}</span>
+        </div>
+      </div>
+      <div class="item">
+        <div class="meta">Hit Points</div>
+        <div class="content">
+          <span class="value value--large">{{ IDX_0.hp_current }}/{{ IDX_0.hp_max }}</span>
+        </div>
+      </div>
+      <div class="item">
+        <div class="meta">Armor Class</div>
+        <div class="content">
+          <span class="value value--large">{{ IDX_0.ac }}</span>
+        </div>
+      </div>
+      <div class="item">
+        <div class="meta">Initiative</div>
+        <div class="content">
+          <span class="value value--large">{% if IDX_0.initiative > 0 %}+{% endif %}{{ IDX_0.initiative }}</span>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+    <div class="column">
+      {% if trmnl.plugin_settings.custom_fields_values.display_mode == 'campaign' %}
+      <div class="item">
+        <div class="meta">Quests</div>
+        <div class="content">
+          <span class="value value--medium">{{ IDX_1.quests.active }} active</span>
+          <span class="label">{{ IDX_1.quests.complete }} complete / {{ IDX_1.quests.failed }} failed</span>
+        </div>
+      </div>
+      <div class="item">
+        <div class="meta">Rests</div>
+        <div class="content">
+          <span class="value value--medium">{{ IDX_1.rests.short }} short / {{ IDX_1.rests.long }} long</span>
+          <span class="label">{{ IDX_1.rests.total_healed }} HP healed</span>
+        </div>
+      </div>
+      <div class="item">
+        <div class="meta">Top NPCs</div>
+        <div class="content">
+          <span class="value value--medium">{% for npc in IDX_1.top_npcs limit:3 %}{{ npc }}{% unless forloop.last %}, {% endunless %}{% endfor %}</span>
+        </div>
+      </div>
+      <div class="item">
+        <div class="meta">Dice</div>
+        <div class="content">
+          <span class="value value--medium">{{ IDX_1.dice_rolls.total_rolls }} rolls</span>
+          <span class="label">{{ IDX_1.dice_rolls.natural_20s }} nat 20s</span>
+        </div>
+      </div>
+      {% else %}
+      <div class="item">
+        <div class="meta">Ability Scores</div>
+        <div class="content">
+          <span class="value value--medium">STR {{ IDX_0.str }} <span class="label">{% if IDX_0.str_mod > 0 %}+{% endif %}{{ IDX_0.str_mod }}</span></span>
+        </div>
+      </div>
+      <div class="item">
+        <div class="content">
+          <span class="value value--medium">DEX {{ IDX_0.dex }} <span class="label">{% if IDX_0.dex_mod > 0 %}+{% endif %}{{ IDX_0.dex_mod }}</span></span>
+        </div>
+      </div>
+      <div class="item">
+        <div class="content">
+          <span class="value value--medium">CON {{ IDX_0.con }} <span class="label">{% if IDX_0.con_mod > 0 %}+{% endif %}{{ IDX_0.con_mod }}</span></span>
+        </div>
+      </div>
+      <div class="item">
+        <div class="content">
+          <span class="value value--medium">INT {{ IDX_0.int }} <span class="label">{% if IDX_0.int_mod > 0 %}+{% endif %}{{ IDX_0.int_mod }}</span></span>
+        </div>
+      </div>
+      <div class="item">
+        <div class="content">
+          <span class="value value--medium">WIS {{ IDX_0.wis }} <span class="label">{% if IDX_0.wis_mod > 0 %}+{% endif %}{{ IDX_0.wis_mod }}</span></span>
+        </div>
+      </div>
+      <div class="item">
+        <div class="content">
+          <span class="value value--medium">CHA {{ IDX_0.cha }} <span class="label">{% if IDX_0.cha_mod > 0 %}+{% endif %}{{ IDX_0.cha_mod }}</span></span>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="title_bar">
+    <img width="60" src="{{ trmnl.plugin_settings.custom_fields_values.url | default: 'https://dnd.example.com' }}/static/icon-192.png">
+    <span class="title">Villum · D&D Stats</span>
+  </div>
+</div>

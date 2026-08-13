@@ -58,7 +58,7 @@ function showAdminTab(tab: string) {
   document.querySelectorAll('#adminTabs .nav-link').forEach(el => el.classList.remove('active'));
   const tabBtn = document.getElementById('tab' + capitalize(tab) + 'Btn');
   if (tabBtn) tabBtn.classList.add('active');
-  const allTabs = ['users', 'unified-compendium', 'backup', 'email', 'ai-endpoints', 'analytics', 'telemetry', 'events', 'import', 'e-ink', 'logs'];
+  const allTabs = ['users', 'unified-compendium', 'backup', 'email', 'ai-endpoints', 'analytics', 'telemetry', 'events', 'import', 'e-ink', 'trmnl', 'logs'];
   allTabs.forEach(s => {
     const parts = s.split('-').map((p, i) => i === 0 ? capitalize(p) : capitalize(p));
     const id = 'admin' + parts.join('');
@@ -75,6 +75,7 @@ function showAdminTab(tab: string) {
   if (tab === 'events') { loadEventsSettings(); loadCampaignEventSettings(); loadEventsPublicLink(); }
   if (tab === 'import') { loadImportSchemas(); loadImportLogs(); }
   if (tab === 'e-ink') loadEinkSetting();
+  if (tab === 'trmnl') loadTrmnlSetting();
   if (tab === 'logs') { startLogAutoRefresh(); }
   else { stopLogAutoRefresh(); }
 }
@@ -104,6 +105,55 @@ async function saveEinkSetting() {
 }
 expose('loadEinkSetting', loadEinkSetting);
 expose('saveEinkSetting', saveEinkSetting);
+
+// ─── TRMNL e-ink Display ───
+
+async function loadTrmnlSetting() {
+  try {
+    const res = await api('GET', '/api/admin/settings/trmnl');
+    const el = document.getElementById('trmnlToken') as HTMLInputElement | null;
+    if (el) el.value = res.token || '';
+  } catch {
+    toast('Failed to load TRMNL token', true);
+  }
+}
+
+async function regenerateTrmnlToken() {
+  const btn = document.getElementById('trmnlRegenerateBtn') as HTMLButtonElement | null;
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-rotate fa-spin me-1" aria-hidden="true"></i>Regenerating...'; }
+  try {
+    const res = await api('PUT', '/api/admin/settings/trmnl', { regenerate: true });
+    const el = document.getElementById('trmnlToken') as HTMLInputElement | null;
+    if (el) el.value = res.token || '';
+    toast('TRMNL token regenerated');
+  } catch {
+    toast('Failed to regenerate TRMNL token', true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-rotate me-1" aria-hidden="true"></i>Regenerate Token'; }
+  }
+}
+
+async function copyTrmnlToken() {
+  const el = document.getElementById('trmnlToken') as HTMLInputElement | null;
+  const token = el?.value || '';
+  if (!token) { toast('No token to copy', true); return; }
+  try {
+    await navigator.clipboard.writeText(token);
+    toast('Token copied');
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = token;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); toast('Token copied'); } catch { toast('Failed to copy token', true); }
+    document.body.removeChild(ta);
+  }
+}
+expose('loadTrmnlSetting', loadTrmnlSetting);
+expose('regenerateTrmnlToken', regenerateTrmnlToken);
+expose('copyTrmnlToken', copyTrmnlToken);
 
 // ─── Unified Compendium ───
 

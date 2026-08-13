@@ -64,4 +64,8 @@ func RegisterAdminRoutes(r *gin.RouterGroup) {
 	// Site-wide settings
 	r.GET("/settings/eink", GetEinkSetting)
 	r.PUT("/settings/eink", SetEinkSetting)
+
+	// TRMNL e-ink display polling token
+	r.GET("/settings/trmnl", GetTRMNLSettings)
+	r.PUT("/settings/trmnl", SetTRMNLSettings)
 }
