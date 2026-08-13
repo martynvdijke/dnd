@@ -48,4 +48,37 @@ test.describe('Shops & Trading', () => {
     await page.waitForTimeout(500);
     await expect(page.locator('#shopsGrid')).toContainText(shopName);
   });
+
+  test('shop item linked from compendium snapshots data and can be unlinked', async ({ page }) => {
+    const shopName = uniqueName();
+    await page.evaluate(async (name) => {
+      const comp = await window.api('GET', '/api/compendium/equipment');
+      const entry = comp[0];
+      if (!entry) throw new Error('no compendium equipment seeded');
+      await window.api('POST', '/api/admin/shops', { name, description: 'Compendium stock', markup_percent: 100, markup_buy_percent: 50 });
+      const shops = await window.api('GET', '/api/shops');
+      const shop = shops.find((s: any) => s.name === name);
+      if (!shop) throw new Error('shop not created');
+      await window.api('POST', '/api/admin/shops/' + shop.id + '/items', {
+        item_name: 'Wrong Name', category: 'gear', price_gp: 9, quantity_available: 2, compendium_equipment_id: entry.id,
+      });
+      const items = await window.api('GET', '/api/shops/' + shop.id + '/items');
+      return { items, shopId: shop.id };
+    }, shopName).then(async (result: any) => {
+      // Name is snapshotted from the compendium entry and the link is kept.
+      const item = result.items[0];
+      expect(item.compendium_equipment_id).toBeTruthy();
+      expect(item.item_name).not.toBe('Wrong Name');
+      // Unlink preserves the data but drops the reference.
+      await page.evaluate(async (args) => {
+        await window.api('DELETE', '/api/shop-items/' + args.item.id + '/link');
+      }, { item });
+      const after = await page.evaluate(async (shopId: number) => {
+        const items = await window.api('GET', '/api/shops/' + shopId + '/items');
+        return items[0];
+      }, result.shopId);
+      expect(after.compendium_equipment_id).toBeFalsy();
+      expect(after.item_name).toBe(item.item_name);
+    });
+  });
 });

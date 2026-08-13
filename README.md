@@ -222,6 +222,35 @@ The app can fetch compendium data from the [D&D 5e API](https://www.dnd5eapi.co)
 - `GET /api/compendium/api/:category?q=searchterm`
 - Supports: equipment, spells, races, classes, monsters, features, magic-items
 
+## TRMNL e-ink Display Plugin
+
+[TRMNL](https://usetrmnl.com) is a dedicated e-ink display that polls JSON endpoints and renders Liquid templates on-device — no browser needed. Villum ships a plugin (in `trmnl/`) that shows character stats or campaign progress at a glance.
+
+### Endpoints
+
+Both endpoints are **read-only** and require the TRMNL access token as a query parameter:
+
+- `GET /api/trmnl/character-stats?token=<token>&character_id=<id>` — character name, race, class, level, XP, HP, AC, initiative, and the six ability scores with modifiers
+- `GET /api/trmnl/campaign-stats?token=<token>&character_id=<id>` — session count, total XP/gold earned, quest and rest breakdowns, top NPCs, and dice roll summary
+
+Responses are `401` without a valid token and `404` for unknown `character_id`.
+
+### Token setup
+
+1. Log in to Villum as an admin and open **Admin → TRMNL** tab
+2. The current token is displayed there — use **Regenerate** to issue a new one (the old token immediately stops working)
+3. The token is stored site-wide in `app_settings` and only readable by admins
+
+### Installing the plugin
+
+1. In the TRMNL web app, create a new plugin and upload the files from `trmnl/` (all four layouts: `full`, `half_horizontal`, `half_vertical`, `quadrant`) and `settings.yml`
+2. Set the custom fields:
+   - `url` — your Villum instance base URL (e.g., `https://dnd.example.com`)
+   - `token` — the TRMNL access token from the admin panel
+   - `character_id` — the character to display
+   - `display_mode` — `character` for character stats, `campaign` for campaign progress
+3. The plugin polls daily by default (`refresh_interval: 1440` minutes); adjust in `settings.yml` if needed
+
 ## License
 
 MIT

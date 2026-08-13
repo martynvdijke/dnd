@@ -597,6 +597,48 @@ func (_c *CharacterCreate) SetNillableCampaignID(v *int64) *CharacterCreate {
 	return _c
 }
 
+// SetCompendiumRaceID sets the "compendium_race_id" field.
+func (_c *CharacterCreate) SetCompendiumRaceID(v int64) *CharacterCreate {
+	_c.mutation.SetCompendiumRaceID(v)
+	return _c
+}
+
+// SetNillableCompendiumRaceID sets the "compendium_race_id" field if the given value is not nil.
+func (_c *CharacterCreate) SetNillableCompendiumRaceID(v *int64) *CharacterCreate {
+	if v != nil {
+		_c.SetCompendiumRaceID(*v)
+	}
+	return _c
+}
+
+// SetCompendiumClassID sets the "compendium_class_id" field.
+func (_c *CharacterCreate) SetCompendiumClassID(v int64) *CharacterCreate {
+	_c.mutation.SetCompendiumClassID(v)
+	return _c
+}
+
+// SetNillableCompendiumClassID sets the "compendium_class_id" field if the given value is not nil.
+func (_c *CharacterCreate) SetNillableCompendiumClassID(v *int64) *CharacterCreate {
+	if v != nil {
+		_c.SetCompendiumClassID(*v)
+	}
+	return _c
+}
+
+// SetCompendiumBackgroundID sets the "compendium_background_id" field.
+func (_c *CharacterCreate) SetCompendiumBackgroundID(v int64) *CharacterCreate {
+	_c.mutation.SetCompendiumBackgroundID(v)
+	return _c
+}
+
+// SetNillableCompendiumBackgroundID sets the "compendium_background_id" field if the given value is not nil.
+func (_c *CharacterCreate) SetNillableCompendiumBackgroundID(v *int64) *CharacterCreate {
+	if v != nil {
+		_c.SetCompendiumBackgroundID(*v)
+	}
+	return _c
+}
+
 // SetCharacterType sets the "character_type" field.
 func (_c *CharacterCreate) SetCharacterType(v string) *CharacterCreate {
 	_c.mutation.SetCharacterType(v)
@@ -1515,6 +1557,18 @@ func (_c *CharacterCreate) createSpec() (*Character, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.CampaignID(); ok {
 		_spec.SetField(character.FieldCampaignID, field.TypeInt64, value)
 		_node.CampaignID = value
+	}
+	if value, ok := _c.mutation.CompendiumRaceID(); ok {
+		_spec.SetField(character.FieldCompendiumRaceID, field.TypeInt64, value)
+		_node.CompendiumRaceID = &value
+	}
+	if value, ok := _c.mutation.CompendiumClassID(); ok {
+		_spec.SetField(character.FieldCompendiumClassID, field.TypeInt64, value)
+		_node.CompendiumClassID = &value
+	}
+	if value, ok := _c.mutation.CompendiumBackgroundID(); ok {
+		_spec.SetField(character.FieldCompendiumBackgroundID, field.TypeInt64, value)
+		_node.CompendiumBackgroundID = &value
 	}
 	if value, ok := _c.mutation.CharacterType(); ok {
 		_spec.SetField(character.FieldCharacterType, field.TypeString, value)
@@ -2589,6 +2643,78 @@ func (u *CharacterUpsert) ClearCampaignID() *CharacterUpsert {
 	return u
 }
 
+// SetCompendiumRaceID sets the "compendium_race_id" field.
+func (u *CharacterUpsert) SetCompendiumRaceID(v int64) *CharacterUpsert {
+	u.Set(character.FieldCompendiumRaceID, v)
+	return u
+}
+
+// UpdateCompendiumRaceID sets the "compendium_race_id" field to the value that was provided on create.
+func (u *CharacterUpsert) UpdateCompendiumRaceID() *CharacterUpsert {
+	u.SetExcluded(character.FieldCompendiumRaceID)
+	return u
+}
+
+// AddCompendiumRaceID adds v to the "compendium_race_id" field.
+func (u *CharacterUpsert) AddCompendiumRaceID(v int64) *CharacterUpsert {
+	u.Add(character.FieldCompendiumRaceID, v)
+	return u
+}
+
+// ClearCompendiumRaceID clears the value of the "compendium_race_id" field.
+func (u *CharacterUpsert) ClearCompendiumRaceID() *CharacterUpsert {
+	u.SetNull(character.FieldCompendiumRaceID)
+	return u
+}
+
+// SetCompendiumClassID sets the "compendium_class_id" field.
+func (u *CharacterUpsert) SetCompendiumClassID(v int64) *CharacterUpsert {
+	u.Set(character.FieldCompendiumClassID, v)
+	return u
+}
+
+// UpdateCompendiumClassID sets the "compendium_class_id" field to the value that was provided on create.
+func (u *CharacterUpsert) UpdateCompendiumClassID() *CharacterUpsert {
+	u.SetExcluded(character.FieldCompendiumClassID)
+	return u
+}
+
+// AddCompendiumClassID adds v to the "compendium_class_id" field.
+func (u *CharacterUpsert) AddCompendiumClassID(v int64) *CharacterUpsert {
+	u.Add(character.FieldCompendiumClassID, v)
+	return u
+}
+
+// ClearCompendiumClassID clears the value of the "compendium_class_id" field.
+func (u *CharacterUpsert) ClearCompendiumClassID() *CharacterUpsert {
+	u.SetNull(character.FieldCompendiumClassID)
+	return u
+}
+
+// SetCompendiumBackgroundID sets the "compendium_background_id" field.
+func (u *CharacterUpsert) SetCompendiumBackgroundID(v int64) *CharacterUpsert {
+	u.Set(character.FieldCompendiumBackgroundID, v)
+	return u
+}
+
+// UpdateCompendiumBackgroundID sets the "compendium_background_id" field to the value that was provided on create.
+func (u *CharacterUpsert) UpdateCompendiumBackgroundID() *CharacterUpsert {
+	u.SetExcluded(character.FieldCompendiumBackgroundID)
+	return u
+}
+
+// AddCompendiumBackgroundID adds v to the "compendium_background_id" field.
+func (u *CharacterUpsert) AddCompendiumBackgroundID(v int64) *CharacterUpsert {
+	u.Add(character.FieldCompendiumBackgroundID, v)
+	return u
+}
+
+// ClearCompendiumBackgroundID clears the value of the "compendium_background_id" field.
+func (u *CharacterUpsert) ClearCompendiumBackgroundID() *CharacterUpsert {
+	u.SetNull(character.FieldCompendiumBackgroundID)
+	return u
+}
+
 // SetCharacterType sets the "character_type" field.
 func (u *CharacterUpsert) SetCharacterType(v string) *CharacterUpsert {
 	u.Set(character.FieldCharacterType, v)
@@ -3398,6 +3524,90 @@ func (u *CharacterUpsertOne) UpdateCampaignID() *CharacterUpsertOne {
 func (u *CharacterUpsertOne) ClearCampaignID() *CharacterUpsertOne {
 	return u.Update(func(s *CharacterUpsert) {
 		s.ClearCampaignID()
+	})
+}
+
+// SetCompendiumRaceID sets the "compendium_race_id" field.
+func (u *CharacterUpsertOne) SetCompendiumRaceID(v int64) *CharacterUpsertOne {
+	return u.Update(func(s *CharacterUpsert) {
+		s.SetCompendiumRaceID(v)
+	})
+}
+
+// AddCompendiumRaceID adds v to the "compendium_race_id" field.
+func (u *CharacterUpsertOne) AddCompendiumRaceID(v int64) *CharacterUpsertOne {
+	return u.Update(func(s *CharacterUpsert) {
+		s.AddCompendiumRaceID(v)
+	})
+}
+
+// UpdateCompendiumRaceID sets the "compendium_race_id" field to the value that was provided on create.
+func (u *CharacterUpsertOne) UpdateCompendiumRaceID() *CharacterUpsertOne {
+	return u.Update(func(s *CharacterUpsert) {
+		s.UpdateCompendiumRaceID()
+	})
+}
+
+// ClearCompendiumRaceID clears the value of the "compendium_race_id" field.
+func (u *CharacterUpsertOne) ClearCompendiumRaceID() *CharacterUpsertOne {
+	return u.Update(func(s *CharacterUpsert) {
+		s.ClearCompendiumRaceID()
+	})
+}
+
+// SetCompendiumClassID sets the "compendium_class_id" field.
+func (u *CharacterUpsertOne) SetCompendiumClassID(v int64) *CharacterUpsertOne {
+	return u.Update(func(s *CharacterUpsert) {
+		s.SetCompendiumClassID(v)
+	})
+}
+
+// AddCompendiumClassID adds v to the "compendium_class_id" field.
+func (u *CharacterUpsertOne) AddCompendiumClassID(v int64) *CharacterUpsertOne {
+	return u.Update(func(s *CharacterUpsert) {
+		s.AddCompendiumClassID(v)
+	})
+}
+
+// UpdateCompendiumClassID sets the "compendium_class_id" field to the value that was provided on create.
+func (u *CharacterUpsertOne) UpdateCompendiumClassID() *CharacterUpsertOne {
+	return u.Update(func(s *CharacterUpsert) {
+		s.UpdateCompendiumClassID()
+	})
+}
+
+// ClearCompendiumClassID clears the value of the "compendium_class_id" field.
+func (u *CharacterUpsertOne) ClearCompendiumClassID() *CharacterUpsertOne {
+	return u.Update(func(s *CharacterUpsert) {
+		s.ClearCompendiumClassID()
+	})
+}
+
+// SetCompendiumBackgroundID sets the "compendium_background_id" field.
+func (u *CharacterUpsertOne) SetCompendiumBackgroundID(v int64) *CharacterUpsertOne {
+	return u.Update(func(s *CharacterUpsert) {
+		s.SetCompendiumBackgroundID(v)
+	})
+}
+
+// AddCompendiumBackgroundID adds v to the "compendium_background_id" field.
+func (u *CharacterUpsertOne) AddCompendiumBackgroundID(v int64) *CharacterUpsertOne {
+	return u.Update(func(s *CharacterUpsert) {
+		s.AddCompendiumBackgroundID(v)
+	})
+}
+
+// UpdateCompendiumBackgroundID sets the "compendium_background_id" field to the value that was provided on create.
+func (u *CharacterUpsertOne) UpdateCompendiumBackgroundID() *CharacterUpsertOne {
+	return u.Update(func(s *CharacterUpsert) {
+		s.UpdateCompendiumBackgroundID()
+	})
+}
+
+// ClearCompendiumBackgroundID clears the value of the "compendium_background_id" field.
+func (u *CharacterUpsertOne) ClearCompendiumBackgroundID() *CharacterUpsertOne {
+	return u.Update(func(s *CharacterUpsert) {
+		s.ClearCompendiumBackgroundID()
 	})
 }
 
@@ -4382,6 +4592,90 @@ func (u *CharacterUpsertBulk) UpdateCampaignID() *CharacterUpsertBulk {
 func (u *CharacterUpsertBulk) ClearCampaignID() *CharacterUpsertBulk {
 	return u.Update(func(s *CharacterUpsert) {
 		s.ClearCampaignID()
+	})
+}
+
+// SetCompendiumRaceID sets the "compendium_race_id" field.
+func (u *CharacterUpsertBulk) SetCompendiumRaceID(v int64) *CharacterUpsertBulk {
+	return u.Update(func(s *CharacterUpsert) {
+		s.SetCompendiumRaceID(v)
+	})
+}
+
+// AddCompendiumRaceID adds v to the "compendium_race_id" field.
+func (u *CharacterUpsertBulk) AddCompendiumRaceID(v int64) *CharacterUpsertBulk {
+	return u.Update(func(s *CharacterUpsert) {
+		s.AddCompendiumRaceID(v)
+	})
+}
+
+// UpdateCompendiumRaceID sets the "compendium_race_id" field to the value that was provided on create.
+func (u *CharacterUpsertBulk) UpdateCompendiumRaceID() *CharacterUpsertBulk {
+	return u.Update(func(s *CharacterUpsert) {
+		s.UpdateCompendiumRaceID()
+	})
+}
+
+// ClearCompendiumRaceID clears the value of the "compendium_race_id" field.
+func (u *CharacterUpsertBulk) ClearCompendiumRaceID() *CharacterUpsertBulk {
+	return u.Update(func(s *CharacterUpsert) {
+		s.ClearCompendiumRaceID()
+	})
+}
+
+// SetCompendiumClassID sets the "compendium_class_id" field.
+func (u *CharacterUpsertBulk) SetCompendiumClassID(v int64) *CharacterUpsertBulk {
+	return u.Update(func(s *CharacterUpsert) {
+		s.SetCompendiumClassID(v)
+	})
+}
+
+// AddCompendiumClassID adds v to the "compendium_class_id" field.
+func (u *CharacterUpsertBulk) AddCompendiumClassID(v int64) *CharacterUpsertBulk {
+	return u.Update(func(s *CharacterUpsert) {
+		s.AddCompendiumClassID(v)
+	})
+}
+
+// UpdateCompendiumClassID sets the "compendium_class_id" field to the value that was provided on create.
+func (u *CharacterUpsertBulk) UpdateCompendiumClassID() *CharacterUpsertBulk {
+	return u.Update(func(s *CharacterUpsert) {
+		s.UpdateCompendiumClassID()
+	})
+}
+
+// ClearCompendiumClassID clears the value of the "compendium_class_id" field.
+func (u *CharacterUpsertBulk) ClearCompendiumClassID() *CharacterUpsertBulk {
+	return u.Update(func(s *CharacterUpsert) {
+		s.ClearCompendiumClassID()
+	})
+}
+
+// SetCompendiumBackgroundID sets the "compendium_background_id" field.
+func (u *CharacterUpsertBulk) SetCompendiumBackgroundID(v int64) *CharacterUpsertBulk {
+	return u.Update(func(s *CharacterUpsert) {
+		s.SetCompendiumBackgroundID(v)
+	})
+}
+
+// AddCompendiumBackgroundID adds v to the "compendium_background_id" field.
+func (u *CharacterUpsertBulk) AddCompendiumBackgroundID(v int64) *CharacterUpsertBulk {
+	return u.Update(func(s *CharacterUpsert) {
+		s.AddCompendiumBackgroundID(v)
+	})
+}
+
+// UpdateCompendiumBackgroundID sets the "compendium_background_id" field to the value that was provided on create.
+func (u *CharacterUpsertBulk) UpdateCompendiumBackgroundID() *CharacterUpsertBulk {
+	return u.Update(func(s *CharacterUpsert) {
+		s.UpdateCompendiumBackgroundID()
+	})
+}
+
+// ClearCompendiumBackgroundID clears the value of the "compendium_background_id" field.
+func (u *CharacterUpsertBulk) ClearCompendiumBackgroundID() *CharacterUpsertBulk {
+	return u.Update(func(s *CharacterUpsert) {
+		s.ClearCompendiumBackgroundID()
 	})
 }
 

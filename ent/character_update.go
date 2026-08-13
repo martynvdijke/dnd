@@ -778,6 +778,87 @@ func (_u *CharacterUpdate) ClearCampaignID() *CharacterUpdate {
 	return _u
 }
 
+// SetCompendiumRaceID sets the "compendium_race_id" field.
+func (_u *CharacterUpdate) SetCompendiumRaceID(v int64) *CharacterUpdate {
+	_u.mutation.ResetCompendiumRaceID()
+	_u.mutation.SetCompendiumRaceID(v)
+	return _u
+}
+
+// SetNillableCompendiumRaceID sets the "compendium_race_id" field if the given value is not nil.
+func (_u *CharacterUpdate) SetNillableCompendiumRaceID(v *int64) *CharacterUpdate {
+	if v != nil {
+		_u.SetCompendiumRaceID(*v)
+	}
+	return _u
+}
+
+// AddCompendiumRaceID adds value to the "compendium_race_id" field.
+func (_u *CharacterUpdate) AddCompendiumRaceID(v int64) *CharacterUpdate {
+	_u.mutation.AddCompendiumRaceID(v)
+	return _u
+}
+
+// ClearCompendiumRaceID clears the value of the "compendium_race_id" field.
+func (_u *CharacterUpdate) ClearCompendiumRaceID() *CharacterUpdate {
+	_u.mutation.ClearCompendiumRaceID()
+	return _u
+}
+
+// SetCompendiumClassID sets the "compendium_class_id" field.
+func (_u *CharacterUpdate) SetCompendiumClassID(v int64) *CharacterUpdate {
+	_u.mutation.ResetCompendiumClassID()
+	_u.mutation.SetCompendiumClassID(v)
+	return _u
+}
+
+// SetNillableCompendiumClassID sets the "compendium_class_id" field if the given value is not nil.
+func (_u *CharacterUpdate) SetNillableCompendiumClassID(v *int64) *CharacterUpdate {
+	if v != nil {
+		_u.SetCompendiumClassID(*v)
+	}
+	return _u
+}
+
+// AddCompendiumClassID adds value to the "compendium_class_id" field.
+func (_u *CharacterUpdate) AddCompendiumClassID(v int64) *CharacterUpdate {
+	_u.mutation.AddCompendiumClassID(v)
+	return _u
+}
+
+// ClearCompendiumClassID clears the value of the "compendium_class_id" field.
+func (_u *CharacterUpdate) ClearCompendiumClassID() *CharacterUpdate {
+	_u.mutation.ClearCompendiumClassID()
+	return _u
+}
+
+// SetCompendiumBackgroundID sets the "compendium_background_id" field.
+func (_u *CharacterUpdate) SetCompendiumBackgroundID(v int64) *CharacterUpdate {
+	_u.mutation.ResetCompendiumBackgroundID()
+	_u.mutation.SetCompendiumBackgroundID(v)
+	return _u
+}
+
+// SetNillableCompendiumBackgroundID sets the "compendium_background_id" field if the given value is not nil.
+func (_u *CharacterUpdate) SetNillableCompendiumBackgroundID(v *int64) *CharacterUpdate {
+	if v != nil {
+		_u.SetCompendiumBackgroundID(*v)
+	}
+	return _u
+}
+
+// AddCompendiumBackgroundID adds value to the "compendium_background_id" field.
+func (_u *CharacterUpdate) AddCompendiumBackgroundID(v int64) *CharacterUpdate {
+	_u.mutation.AddCompendiumBackgroundID(v)
+	return _u
+}
+
+// ClearCompendiumBackgroundID clears the value of the "compendium_background_id" field.
+func (_u *CharacterUpdate) ClearCompendiumBackgroundID() *CharacterUpdate {
+	_u.mutation.ClearCompendiumBackgroundID()
+	return _u
+}
+
 // SetCharacterType sets the "character_type" field.
 func (_u *CharacterUpdate) SetCharacterType(v string) *CharacterUpdate {
 	_u.mutation.SetCharacterType(v)
@@ -1899,6 +1980,33 @@ func (_u *CharacterUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.CampaignIDCleared() {
 		_spec.ClearField(character.FieldCampaignID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.CompendiumRaceID(); ok {
+		_spec.SetField(character.FieldCompendiumRaceID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedCompendiumRaceID(); ok {
+		_spec.AddField(character.FieldCompendiumRaceID, field.TypeInt64, value)
+	}
+	if _u.mutation.CompendiumRaceIDCleared() {
+		_spec.ClearField(character.FieldCompendiumRaceID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.CompendiumClassID(); ok {
+		_spec.SetField(character.FieldCompendiumClassID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedCompendiumClassID(); ok {
+		_spec.AddField(character.FieldCompendiumClassID, field.TypeInt64, value)
+	}
+	if _u.mutation.CompendiumClassIDCleared() {
+		_spec.ClearField(character.FieldCompendiumClassID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.CompendiumBackgroundID(); ok {
+		_spec.SetField(character.FieldCompendiumBackgroundID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedCompendiumBackgroundID(); ok {
+		_spec.AddField(character.FieldCompendiumBackgroundID, field.TypeInt64, value)
+	}
+	if _u.mutation.CompendiumBackgroundIDCleared() {
+		_spec.ClearField(character.FieldCompendiumBackgroundID, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.CharacterType(); ok {
 		_spec.SetField(character.FieldCharacterType, field.TypeString, value)
@@ -3720,6 +3828,87 @@ func (_u *CharacterUpdateOne) ClearCampaignID() *CharacterUpdateOne {
 	return _u
 }
 
+// SetCompendiumRaceID sets the "compendium_race_id" field.
+func (_u *CharacterUpdateOne) SetCompendiumRaceID(v int64) *CharacterUpdateOne {
+	_u.mutation.ResetCompendiumRaceID()
+	_u.mutation.SetCompendiumRaceID(v)
+	return _u
+}
+
+// SetNillableCompendiumRaceID sets the "compendium_race_id" field if the given value is not nil.
+func (_u *CharacterUpdateOne) SetNillableCompendiumRaceID(v *int64) *CharacterUpdateOne {
+	if v != nil {
+		_u.SetCompendiumRaceID(*v)
+	}
+	return _u
+}
+
+// AddCompendiumRaceID adds value to the "compendium_race_id" field.
+func (_u *CharacterUpdateOne) AddCompendiumRaceID(v int64) *CharacterUpdateOne {
+	_u.mutation.AddCompendiumRaceID(v)
+	return _u
+}
+
+// ClearCompendiumRaceID clears the value of the "compendium_race_id" field.
+func (_u *CharacterUpdateOne) ClearCompendiumRaceID() *CharacterUpdateOne {
+	_u.mutation.ClearCompendiumRaceID()
+	return _u
+}
+
+// SetCompendiumClassID sets the "compendium_class_id" field.
+func (_u *CharacterUpdateOne) SetCompendiumClassID(v int64) *CharacterUpdateOne {
+	_u.mutation.ResetCompendiumClassID()
+	_u.mutation.SetCompendiumClassID(v)
+	return _u
+}
+
+// SetNillableCompendiumClassID sets the "compendium_class_id" field if the given value is not nil.
+func (_u *CharacterUpdateOne) SetNillableCompendiumClassID(v *int64) *CharacterUpdateOne {
+	if v != nil {
+		_u.SetCompendiumClassID(*v)
+	}
+	return _u
+}
+
+// AddCompendiumClassID adds value to the "compendium_class_id" field.
+func (_u *CharacterUpdateOne) AddCompendiumClassID(v int64) *CharacterUpdateOne {
+	_u.mutation.AddCompendiumClassID(v)
+	return _u
+}
+
+// ClearCompendiumClassID clears the value of the "compendium_class_id" field.
+func (_u *CharacterUpdateOne) ClearCompendiumClassID() *CharacterUpdateOne {
+	_u.mutation.ClearCompendiumClassID()
+	return _u
+}
+
+// SetCompendiumBackgroundID sets the "compendium_background_id" field.
+func (_u *CharacterUpdateOne) SetCompendiumBackgroundID(v int64) *CharacterUpdateOne {
+	_u.mutation.ResetCompendiumBackgroundID()
+	_u.mutation.SetCompendiumBackgroundID(v)
+	return _u
+}
+
+// SetNillableCompendiumBackgroundID sets the "compendium_background_id" field if the given value is not nil.
+func (_u *CharacterUpdateOne) SetNillableCompendiumBackgroundID(v *int64) *CharacterUpdateOne {
+	if v != nil {
+		_u.SetCompendiumBackgroundID(*v)
+	}
+	return _u
+}
+
+// AddCompendiumBackgroundID adds value to the "compendium_background_id" field.
+func (_u *CharacterUpdateOne) AddCompendiumBackgroundID(v int64) *CharacterUpdateOne {
+	_u.mutation.AddCompendiumBackgroundID(v)
+	return _u
+}
+
+// ClearCompendiumBackgroundID clears the value of the "compendium_background_id" field.
+func (_u *CharacterUpdateOne) ClearCompendiumBackgroundID() *CharacterUpdateOne {
+	_u.mutation.ClearCompendiumBackgroundID()
+	return _u
+}
+
 // SetCharacterType sets the "character_type" field.
 func (_u *CharacterUpdateOne) SetCharacterType(v string) *CharacterUpdateOne {
 	_u.mutation.SetCharacterType(v)
@@ -4871,6 +5060,33 @@ func (_u *CharacterUpdateOne) sqlSave(ctx context.Context) (_node *Character, er
 	}
 	if _u.mutation.CampaignIDCleared() {
 		_spec.ClearField(character.FieldCampaignID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.CompendiumRaceID(); ok {
+		_spec.SetField(character.FieldCompendiumRaceID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedCompendiumRaceID(); ok {
+		_spec.AddField(character.FieldCompendiumRaceID, field.TypeInt64, value)
+	}
+	if _u.mutation.CompendiumRaceIDCleared() {
+		_spec.ClearField(character.FieldCompendiumRaceID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.CompendiumClassID(); ok {
+		_spec.SetField(character.FieldCompendiumClassID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedCompendiumClassID(); ok {
+		_spec.AddField(character.FieldCompendiumClassID, field.TypeInt64, value)
+	}
+	if _u.mutation.CompendiumClassIDCleared() {
+		_spec.ClearField(character.FieldCompendiumClassID, field.TypeInt64)
+	}
+	if value, ok := _u.mutation.CompendiumBackgroundID(); ok {
+		_spec.SetField(character.FieldCompendiumBackgroundID, field.TypeInt64, value)
+	}
+	if value, ok := _u.mutation.AddedCompendiumBackgroundID(); ok {
+		_spec.AddField(character.FieldCompendiumBackgroundID, field.TypeInt64, value)
+	}
+	if _u.mutation.CompendiumBackgroundIDCleared() {
+		_spec.ClearField(character.FieldCompendiumBackgroundID, field.TypeInt64)
 	}
 	if value, ok := _u.mutation.CharacterType(); ok {
 		_spec.SetField(character.FieldCharacterType, field.TypeString, value)

@@ -8,7 +8,7 @@ expose('bootstrap', bootstrap);
 import { showView, setCurrentView, getCurrentView } from './navigation';
 import { toggleFabMenu, updateFabForView } from './fab';
 import { initBridge } from './lib/bridge';
-import { esc, capitalize, showModal, hideModal, toast } from './lib/dom';
+import { esc, capitalize, showModal, hideModal, toast, openCompendiumPicker } from './lib/dom';
 import { FilePicker } from './file-picker';
 import { initTheme } from './lib/theme';
 import { api, setCsrfToken, getCsrfToken } from './lib/api';
@@ -480,13 +480,34 @@ function renderDetails() {
       </div>
     </div>
     <div class="row g-3">
-      <div class="col-md-4"><label class="form-label">Race</label><input class="form-control form-control-sm" value="${esc(c.race)}" oninput="autoSaveField('race',this)"></div>
-      <div class="col-md-4"><label class="form-label">Class</label><input class="form-control form-control-sm" value="${esc(c.class)}" oninput="autoSaveField('class',this)"></div>
+      <div class="col-md-4">
+        <label class="form-label">Race ${c.compendium_race_id ? '<span class="badge badge-compendium" title="Linked from compendium"><i class="fa-solid fa-book me-1"></i></span>' : ''}</label>
+        <div class="input-group input-group-sm">
+          <input class="form-control form-control-sm" value="${esc(c.race)}" oninput="autoSaveField('race',this)">
+          <button class="btn btn-outline-gold" onclick="linkCharIdentity('race')" title="Link race from compendium"><i class="fa-solid fa-book"></i></button>
+          ${c.compendium_race_id ? `<button class="btn btn-outline-secondary" onclick="unlinkCharIdentity('race')" title="Unlink race from compendium"><i class="fa-solid fa-link-slash"></i></button>` : ''}
+        </div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Class ${c.compendium_class_id ? '<span class="badge badge-compendium" title="Linked from compendium"><i class="fa-solid fa-book me-1"></i></span>' : ''}</label>
+        <div class="input-group input-group-sm">
+          <input class="form-control form-control-sm" value="${esc(c.class)}" oninput="autoSaveField('class',this)">
+          <button class="btn btn-outline-gold" onclick="linkCharIdentity('class')" title="Link class from compendium"><i class="fa-solid fa-book"></i></button>
+          ${c.compendium_class_id ? `<button class="btn btn-outline-secondary" onclick="unlinkCharIdentity('class')" title="Unlink class from compendium"><i class="fa-solid fa-link-slash"></i></button>` : ''}
+        </div>
+      </div>
       <div class="col-md-4"><label class="form-label">Subclass</label><input class="form-control form-control-sm" value="${esc(c.subclass)}" oninput="autoSaveField('subclass',this)"></div>
     </div>
     <div class="row g-3 mt-1">
       <div class="col-md-4"><label class="form-label">Level</label><input class="form-control form-control-sm" type="number" value="${c.level}" oninput="autoSaveField('level',this)"></div>
-      <div class="col-md-4"><label class="form-label">Background</label><input class="form-control form-control-sm" value="${esc(c.background)}" oninput="autoSaveField('background',this)"></div>
+      <div class="col-md-4">
+        <label class="form-label">Background ${c.compendium_background_id ? '<span class="badge badge-compendium" title="Linked from compendium"><i class="fa-solid fa-book me-1"></i></span>' : ''}</label>
+        <div class="input-group input-group-sm">
+          <input class="form-control form-control-sm" value="${esc(c.background)}" oninput="autoSaveField('background',this)">
+          <button class="btn btn-outline-gold" onclick="linkCharIdentity('background')" title="Link background from compendium"><i class="fa-solid fa-book"></i></button>
+          ${c.compendium_background_id ? `<button class="btn btn-outline-secondary" onclick="unlinkCharIdentity('background')" title="Unlink background from compendium"><i class="fa-solid fa-link-slash"></i></button>` : ''}
+        </div>
+      </div>
       <div class="col-md-4"><label class="form-label">Alignment</label><input class="form-control form-control-sm" value="${esc(c.alignment)}" oninput="autoSaveField('alignment',this)"></div>
     </div>
     <div class="mt-2 form-check">
@@ -1840,6 +1861,7 @@ expose('showShopDetail', async function (shopId: number) {
                 <div>
                   <span class="fw-bold">${esc(i.name)}</span>
                   ${i.category ? `<span class="badge badge-muted ms-1" style="font-size:0.6rem">${esc(i.category)}</span>` : ''}
+                  ${i.compendium_equipment_id ? `<span class="badge badge-compendium ms-1" title="Linked from compendium" style="font-size:0.6rem"><i class="fa-solid fa-book me-1"></i></span>` : ''}
                   ${i.quantity > 0
                     ? `<span class="badge badge-gold ms-1" style="font-size:0.6rem">x${i.quantity}</span>`
                     : `<span class="badge bg-danger ms-1" style="font-size:0.6rem">Out of stock</span>`}
@@ -1850,6 +1872,7 @@ expose('showShopDetail', async function (shopId: number) {
                   ${i.quantity > 0 && hasChar ? `<button class="btn btn-sm btn-gold py-0 px-1" onclick="buyItem(${shopId}, ${i.id})" style="font-size:0.65rem">Buy</button>` : ''}
                   ${isDM ? `
                     <button class="btn btn-sm btn-outline-primary py-0 px-1" onclick="editShopItem(${i.id})" title="Edit" style="font-size:0.65rem"><i class="fa-solid fa-pen"></i></button>
+                    ${i.compendium_equipment_id ? `<button class="btn btn-sm btn-outline-secondary py-0 px-1" onclick="unlinkShopItem(${shopId}, ${i.id})" title="Unlink from compendium" style="font-size:0.65rem"><i class="fa-solid fa-link-slash"></i></button>` : ''}
                     <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteShopItem(${i.id})" title="Remove" style="font-size:0.65rem"><i class="fa-solid fa-trash"></i></button>
                   ` : ''}
                 </div>
@@ -1874,6 +1897,7 @@ expose('showShopDetail', async function (shopId: number) {
 expose('showAddShopItem', async function (shopId: number) {
   await ensureCompendiumEquipment();
   showModal('Add Shop Item', `
+    <input type="hidden" id="shopItemCompId" value="">
     <div class="mb-3"><label class="form-label">Item Name</label>
       <input class="form-control" id="shopItemName" list="compEquipSuggestions" placeholder="Start typing for compendium suggestions...">
       <datalist id="compEquipSuggestions">
@@ -1894,6 +1918,7 @@ expose('showAddShopItem', async function (shopId: number) {
     <div class="d-flex gap-2">
       <button class="btn btn-outline-gold btn-sm flex-grow-1" onclick="pickCompItem('shopItemName')"><i class="fa-solid fa-book me-1"></i>From Compendium</button>
     </div>
+    <div id="shopItemLinkStatus" class="small text-muted mt-1"></div>
     <div class="mt-3">
       <button class="btn btn-primary w-100" onclick="saveShopItem(${shopId})"><i class="fa-solid fa-plus me-1"></i>Add Item</button>
     </div>
@@ -1905,7 +1930,7 @@ expose('pickCompItem', function (inputId: string) {
     <div class="mb-3"><input class="form-control" id="compPickSearch" placeholder="Search equipment..." oninput="filterCompPick()"></div>
     <div id="compPickList" style="max-height:300px;overflow-y:auto">
       ${compendiumEquipment.map((i: any) => `
-        <div class="inv-item comp-pick-item" data-name="${esc(i.name)}" data-cost="${i.cost || i.price || 1}" data-cat="${i.category || ''}"
+        <div class="inv-item comp-pick-item" data-id="${i.id}" data-name="${esc(i.name)}" data-cost="${i.cost || i.price || 1}" data-cat="${i.category || ''}"
              onclick="selectCompPick('${inputId}')" style="cursor:pointer">
           <div><span class="fw-bold small">${esc(i.name)}</span>
             <span class="text-muted small">${i.cost ? i.cost + ' gp' : ''} ${i.category ? '· ' + esc(i.category) : ''}</span></div>
@@ -1914,6 +1939,18 @@ expose('pickCompItem', function (inputId: string) {
     </div>
   `);
 });
+
+// Records the picked compendium item id on the shop item form and updates the status line.
+function shopItemSetLink(id: number | null, name: string) {
+  const hidden = document.getElementById('shopItemCompId') as HTMLInputElement;
+  if (hidden) hidden.value = id ? String(id) : '';
+  const status = document.getElementById('shopItemLinkStatus');
+  if (status) {
+    status.innerHTML = id
+      ? `<span class="badge badge-compendium"><i class="fa-solid fa-book me-1"></i>Linked from compendium: ${esc(name)}</span>`
+      : '';
+  }
+}
 
 expose('filterCompPick', function () {
   const q = (document.getElementById('compPickSearch') as HTMLInputElement)?.value?.toLowerCase() || '';
@@ -1924,16 +1961,15 @@ expose('filterCompPick', function () {
 });
 
 expose('selectCompPick', function (inputId: string) {
-  const selected = document.querySelector('.comp-pick-item[style*="display: none"]') ? null : null;
-  const el = document.querySelector('.comp-pick-item:not([style*="display: none"])') as HTMLElement;
-  // Clicked the one visible item, fill the input
   const active = document.activeElement as HTMLElement;
   if (active && active.classList.contains('comp-pick-item')) {
+    const id = parseInt(active.getAttribute('data-id') || '0', 10);
     const name = active.getAttribute('data-name') || '';
     const cost = active.getAttribute('data-cost') || '1';
     const cat = active.getAttribute('data-cat') || '';
     const input = document.getElementById(inputId) as HTMLInputElement;
     if (input) input.value = name;
+    shopItemSetLink(id, name);
     const priceInput = document.getElementById('shopItemPrice') as HTMLInputElement;
     if (priceInput && priceInput.value === '1') priceInput.value = cost;
     const catSelect = document.getElementById('shopItemCat') as HTMLSelectElement;
@@ -1948,11 +1984,13 @@ document.addEventListener('click', function compPickHandler(e) {
   const item = target.closest('.comp-pick-item') as HTMLElement;
   if (item) {
     const inputId = item.closest('[onclick*="selectCompPick"]')?.getAttribute('onclick')?.match(/'([^']+)'/)?.pop() || 'shopItemName';
+    const id = parseInt(item.getAttribute('data-id') || '0', 10);
     const name = item.getAttribute('data-name') || '';
     const cost = item.getAttribute('data-cost') || '1';
     const cat = item.getAttribute('data-cat') || '';
     const input = document.getElementById(inputId) as HTMLInputElement;
     if (input) input.value = name;
+    shopItemSetLink(id, name);
     const priceInput = document.getElementById('shopItemPrice') as HTMLInputElement;
     if (priceInput && priceInput.value === '1') priceInput.value = cost;
     const catSelect = document.getElementById('shopItemCat') as HTMLSelectElement;
@@ -1965,6 +2003,9 @@ expose('saveShopItem', async function (shopId: number, itemId?: number) {
   const name = (document.getElementById('shopItemName') as HTMLInputElement).value;
   if (!name) { toast('Item name is required', true); return; }
 
+  const compIdEl = document.getElementById('shopItemCompId') as HTMLInputElement;
+  const compId = compIdEl ? parseInt(compIdEl.value || '0', 10) : 0;
+
   const data: any = {
     name,
     description: (document.getElementById('shopItemDesc') as HTMLTextAreaElement).value,
@@ -1973,6 +2014,7 @@ expose('saveShopItem', async function (shopId: number, itemId?: number) {
     category: (document.getElementById('shopItemCat') as HTMLSelectElement).value,
     properties: '{}',
   };
+  if (compId > 0) data.compendium_equipment_id = compId;
 
   try {
     if (itemId) {
@@ -1983,6 +2025,16 @@ expose('saveShopItem', async function (shopId: number, itemId?: number) {
       toast('Item added to shop');
     }
     hideModal();
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+});
+
+expose('unlinkShopItem', async function (shopId: number, itemId: number) {
+  try {
+    await api('DELETE', `/api/shop-items/${itemId}/link`);
+    toast('Unlinked from compendium (item kept)');
+    (window as any).showShopDetail(shopId);
   } catch (e: any) {
     toast(e.message, true);
   }
@@ -2001,6 +2053,7 @@ expose('editShopItem', async function (itemId: number) {
       const item = items.find((i: any) => i.id === itemId);
       if (item) {
         showModal('Edit Shop Item', `
+          <input type="hidden" id="shopItemCompId" value="${item.compendium_equipment_id || ''}">
           <div class="mb-3"><label class="form-label">Item Name</label><input class="form-control" id="shopItemName" value="${esc(item.name)}"></div>
           <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="shopItemDesc" rows="2">${esc(item.description)}</textarea></div>
           <div class="row g-3 mb-3">
@@ -2014,7 +2067,13 @@ expose('editShopItem', async function (itemId: number) {
                 ).join('')}
               </select></div>
           </div>
-          <button class="btn btn-primary w-100" onclick="saveShopItem(${shop.id}, ${itemId})"><i class="fa-solid fa-save me-1"></i>Save Changes</button>
+          <div class="d-flex gap-2 mb-2">
+            <button class="btn btn-outline-gold btn-sm flex-grow-1" onclick="pickCompItem('shopItemName')"><i class="fa-solid fa-book me-1"></i>${item.compendium_equipment_id ? 'Relink from Compendium' : 'From Compendium'}</button>
+          </div>
+          <div id="shopItemLinkStatus" class="small text-muted mt-1">
+            ${item.compendium_equipment_id ? '<span class="badge badge-compendium"><i class="fa-solid fa-book me-1"></i>Linked from compendium</span>' : ''}
+          </div>
+          <button class="btn btn-primary w-100 mt-2" onclick="saveShopItem(${shop.id}, ${itemId})"><i class="fa-solid fa-save me-1"></i>Save Changes</button>
         `);
         return;
       }
@@ -3412,6 +3471,55 @@ expose('unlinkNPCFromItem', async function (linkId: number) {
   toast('Link removed');
   const itemsCard = document.querySelector('[hx-get*="/items"]');
   if (itemsCard) htmx.trigger(itemsCard, 'load');
+});
+
+// ─── Compendium Equipment → NPC Links ───
+
+expose('showLinkCompendiumItemToNPC', function (adventureId: number) {
+  openCompendiumPicker({
+    title: 'Link Compendium Item to NPC',
+    placeholder: 'Search equipment...',
+    search: (q) => api('GET', `/api/compendium/equipment?q=${encodeURIComponent(q)}`),
+    render: (e: any) => `<div><span class="fw-bold">${esc(e.name)}</span>
+      ${e.category ? `<span class="text-muted small ms-1">${esc(e.category)}</span>` : ''}
+      ${e.item_rarity ? `<span class="text-muted small"> · ${esc(e.item_rarity)}</span>` : ''}
+      ${e.weight ? `<span class="text-muted small"> · ${e.weight} lbs</span>` : ''}</div>`,
+    onPick: (e: any) => showLinkCompendiumItemToNPCPick(adventureId, e),
+  });
+});
+
+expose('showLinkCompendiumItemToNPCPick', async function (adventureId: number, item: any) {
+  showModal(`Link "${esc(item.name)}" to NPC`, `
+    <p class="text-muted small mb-3">Find an NPC in this adventure to link:</p>
+    <div class="mb-3"><input class="form-control" id="npcCompLinkSearch" placeholder="Search NPCs..." oninput="searchNPCsForCompendiumLink(${adventureId}, ${item.id})"></div>
+    <div id="npcCompLinkResults" class="mb-3" style="max-height:300px;overflow-y:auto"></div>
+  `);
+  (window as any).searchNPCsForCompendiumLink(adventureId, item.id);
+});
+
+expose('searchNPCsForCompendiumLink', async function (adventureId: number, compId: number) {
+  const q = (document.getElementById('npcCompLinkSearch') as HTMLInputElement)?.value?.trim() || '';
+  const resultsEl = document.getElementById('npcCompLinkResults');
+  if (!resultsEl) return;
+  try {
+    const npcs = await api('GET', `/api/oneshot-adventures/${adventureId}/npcs${q ? '?q=' + encodeURIComponent(q) : ''}`);
+    resultsEl.innerHTML = npcs.length ? npcs.map((n: any) => `
+      <div class="list-group-item py-2 px-0 d-flex justify-content-between align-items-center">
+        <div><strong>${esc(n.npc_name || n.name)}</strong></div>
+        <button class="btn btn-sm btn-outline-primary" onclick="linkCompendiumItemToNPC(${adventureId}, ${n.npc_id || n.id}, ${compId})">Link</button>
+      </div>
+    `).join('') : '<div class="text-muted small">No NPCs found in this adventure.</div>';
+  } catch { resultsEl.innerHTML = '<div class="text-danger small">Search failed.</div>'; }
+});
+
+expose('linkCompendiumItemToNPC', async function (adventureId: number, npcId: number, compId: number) {
+  try {
+    await api('POST', `/api/oneshot-adventures/${adventureId}/npc-item-links`, { npc_id: npcId, compendium_equipment_id: compId });
+    hideModal();
+    toast('NPC linked to compendium item');
+  } catch (e: any) {
+    toast(e.message, true);
+  }
 });
 
 // ─── Polymorphic File Uploads ───

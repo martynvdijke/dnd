@@ -184,6 +184,50 @@ export function updateField(field: string, value: any) {
   markDirty();
 }
 
+// ─── Compendium links for race/class/background (link-compendium-equipment-shops-npcs) ───
+
+const IDENTITY_LINK = {
+  race: { field: 'race', linkField: 'compendium_race_id', form: 'compendium_race_id', type: 'race' },
+  class: { field: 'class', linkField: 'compendium_class_id', form: 'compendium_class_id', type: 'class' },
+  background: { field: 'background', linkField: 'compendium_background_id', form: 'compendium_background_id', type: 'background' },
+} as const;
+
+export function linkCharIdentity(which: string) {
+  if (!currentChar) return;
+  const def = (IDENTITY_LINK as any)[which];
+  if (!def) return;
+  openCompendiumPicker({
+    title: `Link ${capitalize(which)} from Compendium`,
+    placeholder: `Search ${def.type}s...`,
+    search: (q) => api('GET', `/api/compendium/search?q=${encodeURIComponent(q)}&type=${def.type}`),
+    render: (e: any) => `<div><span class="fw-bold">${esc(e.name)}</span>${e.source ? `<span class="text-muted small ms-1">${esc(e.source)}</span>` : ''}</div>`,
+    onPick: async (e: any) => {
+      try {
+        const fd = new FormData();
+        fd.append(def.form, String(e.id));
+        const res = await fetch(`/api/characters/${currentChar.id}/${which}/link`, { method: 'POST', body: fd, credentials: 'include' });
+        if (!res.ok) throw new Error(((await res.json().catch(() => ({}))) as any).error || 'Link failed');
+        currentChar[def.field] = e.name;
+        currentChar[def.linkField] = e.id;
+        markDirty();
+        toast(`${capitalize(which)} linked from compendium`);
+      } catch (err: any) { toast(err.message, true); }
+    },
+  });
+}
+
+export async function unlinkCharIdentity(which: string) {
+  if (!currentChar) return;
+  const def = (IDENTITY_LINK as any)[which];
+  if (!def) return;
+  try {
+    await api('DELETE', `/api/characters/${currentChar.id}/${which}/link`);
+    currentChar[def.linkField] = null;
+    markDirty();
+    toast(`${capitalize(which)} unlinked (text kept)`);
+  } catch (e: any) { toast(e.message, true); }
+}
+
 // Window registrations (centralized)
 expose('renderSheet', renderSheet);
 expose('switchTab', switchTab);
@@ -191,6 +235,8 @@ expose('renderStepper', renderStepper);
 expose('autoSaveField', autoSaveField);
 expose('stepperField', stepperField);
 expose('editStepperValue', editStepperValue);
+expose('linkCharIdentity', linkCharIdentity);
+expose('unlinkCharIdentity', unlinkCharIdentity);
 // ─── Player UX: accordion sections + sticky quick actions (player-ux-overhaul) ───
 
 function ensureSheetAccordion(): void {

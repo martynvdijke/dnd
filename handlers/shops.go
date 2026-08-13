@@ -24,16 +24,19 @@ type Shop struct {
 }
 
 type ShopItem struct {
-	ID                 int64   `json:"id"`
-	ShopID             int64   `json:"shop_id"`
-	ItemName           string  `json:"item_name"`
-	Category           string  `json:"category"`
-	PriceGP            float64 `json:"price_gp"`
-	QuantityAvailable  int     `json:"quantity_available"`
-	Description        string  `json:"description"`
-	IsMagical          bool    `json:"is_magical"`
-	AttunementRequired bool    `json:"attunement_required"`
-	Notes              string  `json:"notes"`
+	ID                    int64   `json:"id"`
+	ShopID                int64   `json:"shop_id"`
+	ItemName              string  `json:"item_name"`
+	Category              string  `json:"category"`
+	PriceGP               float64 `json:"price_gp"`
+	QuantityAvailable     int     `json:"quantity_available"`
+	Description           string  `json:"description"`
+	IsMagical             bool    `json:"is_magical"`
+	AttunementRequired    bool    `json:"attunement_required"`
+	Notes                 string  `json:"notes"`
+	Weight                float64 `json:"weight"`
+	ItemRarity            string  `json:"item_rarity"`
+	CompendiumEquipmentID *int64  `json:"compendium_equipment_id,omitempty"`
 }
 
 type ShopTransaction struct {
@@ -155,34 +158,49 @@ func DeleteShop(c *gin.Context) {
 
 func ListShopItems(c *gin.Context) {
 	shopID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	rows, err := db.DB.Query("SELECT id,shop_id,item_name,category,price_gp,quantity_available,description,is_magical,attunement_required,notes FROM shop_items WHERE shop_id=? ORDER BY item_name", shopID)
+	rows, err := db.DB.Query("SELECT id,shop_id,item_name,category,price_gp,quantity_available,description,is_magical,attunement_required,notes,COALESCE(weight,0),COALESCE(item_rarity,''),compendium_equipment_id FROM shop_items WHERE shop_id=? ORDER BY item_name", shopID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	defer rows.Close()
 	type SI struct {
-		ID                 int64   `json:"id"`
-		ShopID             int64   `json:"shop_id"`
-		ItemName           string  `json:"item_name"`
-		Category           string  `json:"category"`
-		PriceGP            float64 `json:"price_gp"`
-		QuantityAvailable  int     `json:"quantity_available"`
-		Description        string  `json:"description"`
-		IsMagical          bool    `json:"is_magical"`
-		AttunementRequired bool    `json:"attunement_required"`
-		Notes              string  `json:"notes"`
+		ID                    int64   `json:"id"`
+		ShopID                int64   `json:"shop_id"`
+		ItemName              string  `json:"item_name"`
+		Category              string  `json:"category"`
+		PriceGP               float64 `json:"price_gp"`
+		QuantityAvailable     int     `json:"quantity_available"`
+		Description           string  `json:"description"`
+		IsMagical             bool    `json:"is_magical"`
+		AttunementRequired    bool    `json:"attunement_required"`
+		Notes                 string  `json:"notes"`
+		Weight                float64 `json:"weight"`
+		ItemRarity            string  `json:"item_rarity"`
+		CompendiumEquipmentID *int64  `json:"compendium_equipment_id,omitempty"`
 	}
 	var items []SI
 	for rows.Next() {
 		var it SI
 		var isMag, att int
-		rows.Scan(&it.ID, &it.ShopID, &it.ItemName, &it.Category, &it.PriceGP, &it.QuantityAvailable, &it.Description, &isMag, &att, &it.Notes)
+		var compID *int64
+		if err := rows.Scan(&it.ID, &it.ShopID, &it.ItemName, &it.Category, &it.PriceGP, &it.QuantityAvailable, &it.Description, &isMag, &att, &it.Notes, &it.Weight, &it.ItemRarity, &compID); err != nil {
+			continue
+		}
 		it.IsMagical = isMag == 1
 		it.AttunementRequired = att == 1
+		it.CompendiumEquipmentID = compID
 		items = append(items, it)
 	}
 	c.JSON(http.StatusOK, items)
+}
+
+// compendiumEquipmentSnapshot loads a compendium equipment entry and returns the
+// display fields to snapshot onto a shop item (or character inventory on buy).
+func compendiumEquipmentSnapshot(id int64) (name, category, description, rarity string, weight float64, err error) {
+	err = db.DB.QueryRow(`SELECT name, COALESCE(category,''), COALESCE(description,''), COALESCE(item_rarity,''), COALESCE(weight,0) FROM compendium_equipment WHERE id=?`, id).
+		Scan(&name, &category, &description, &rarity, &weight)
+	return
 }
 
 func CreateShopItem(c *gin.Context) {
@@ -192,6 +210,18 @@ func CreateShopItem(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	if it.CompendiumEquipmentID != nil && *it.CompendiumEquipmentID > 0 {
+		name, category, description, rarity, weight, err := compendiumEquipmentSnapshot(*it.CompendiumEquipmentID)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "compendium equipment not found"})
+			return
+		}
+		it.ItemName = name
+		it.Category = category
+		it.Description = description
+		it.ItemRarity = rarity
+		it.Weight = weight
+	}
 	isMag := 0
 	if it.IsMagical {
 		isMag = 1
@@ -200,8 +230,12 @@ func CreateShopItem(c *gin.Context) {
 	if it.AttunementRequired {
 		att = 1
 	}
-	_, err := db.DB.Exec("INSERT INTO shop_items(shop_id,item_name,category,price_gp,quantity_available,description,is_magical,attunement_required,notes) VALUES(?,?,?,?,?,?,?,?,?)",
-		shopID, it.ItemName, it.Category, it.PriceGP, it.QuantityAvailable, it.Description, isMag, att, it.Notes)
+	var compID any
+	if it.CompendiumEquipmentID != nil && *it.CompendiumEquipmentID > 0 {
+		compID = *it.CompendiumEquipmentID
+	}
+	_, err := db.DB.Exec("INSERT INTO shop_items(shop_id,item_name,category,price_gp,quantity_available,description,is_magical,attunement_required,notes,weight,item_rarity,compendium_equipment_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
+		shopID, it.ItemName, it.Category, it.PriceGP, it.QuantityAvailable, it.Description, isMag, att, it.Notes, it.Weight, it.ItemRarity, compID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -216,6 +250,18 @@ func UpdateShopItem(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	if it.CompendiumEquipmentID != nil && *it.CompendiumEquipmentID > 0 {
+		name, category, description, rarity, weight, err := compendiumEquipmentSnapshot(*it.CompendiumEquipmentID)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "compendium equipment not found"})
+			return
+		}
+		it.ItemName = name
+		it.Category = category
+		it.Description = description
+		it.ItemRarity = rarity
+		it.Weight = weight
+	}
 	isMag := 0
 	if it.IsMagical {
 		isMag = 1
@@ -224,9 +270,33 @@ func UpdateShopItem(c *gin.Context) {
 	if it.AttunementRequired {
 		att = 1
 	}
-	_, err := db.DB.Exec("UPDATE shop_items SET item_name=?,category=?,price_gp=?,quantity_available=?,description=?,is_magical=?,attunement_required=?,notes=? WHERE id=?",
-		it.ItemName, it.Category, it.PriceGP, it.QuantityAvailable, it.Description, isMag, att, it.Notes, id)
+	var compID any
+	if it.CompendiumEquipmentID != nil && *it.CompendiumEquipmentID > 0 {
+		compID = *it.CompendiumEquipmentID
+	}
+	_, err := db.DB.Exec("UPDATE shop_items SET item_name=?,category=?,price_gp=?,quantity_available=?,description=?,is_magical=?,attunement_required=?,notes=?,weight=?,item_rarity=?,compendium_equipment_id=? WHERE id=?",
+		it.ItemName, it.Category, it.PriceGP, it.QuantityAvailable, it.Description, isMag, att, it.Notes, it.Weight, it.ItemRarity, compID, id)
 	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// UnlinkShopItem removes the compendium reference from a shop item, preserving its data.
+// DELETE /shop-items/:id/link
+func UnlinkShopItem(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var compID *int64
+	if err := db.DB.QueryRow("SELECT compendium_equipment_id FROM shop_items WHERE id=?", id).Scan(&compID); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "shop item not found"})
+		return
+	}
+	if compID == nil || *compID == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "item is not linked from compendium"})
+		return
+	}
+	if _, err := db.DB.Exec("UPDATE shop_items SET compendium_equipment_id = NULL WHERE id=?", id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -257,7 +327,10 @@ func BuyItem(c *gin.Context) {
 	var itemName string
 	var priceGP float64
 	var qtyAvail int
-	err := db.DB.QueryRow("SELECT item_name, price_gp, quantity_available FROM shop_items WHERE id=? AND shop_id=?", req.ItemID, shopID).Scan(&itemName, &priceGP, &qtyAvail)
+	var category, description string
+	var weight float64
+	var compID *int64
+	err := db.DB.QueryRow("SELECT item_name, price_gp, quantity_available, COALESCE(category,''), COALESCE(description,''), COALESCE(weight,0), compendium_equipment_id FROM shop_items WHERE id=? AND shop_id=?", req.ItemID, shopID).Scan(&itemName, &priceGP, &qtyAvail, &category, &description, &weight, &compID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "item not found"})
 		return
@@ -289,7 +362,12 @@ func BuyItem(c *gin.Context) {
 	// Process transaction
 	tx, _ := db.DB.Begin()
 	tx.Exec("UPDATE character_currency SET gp = gp - ? WHERE character_id=?", totalPrice, req.CharacterID)
-	tx.Exec("INSERT INTO inventory(character_id,name,quantity,category) VALUES(?,?,?,'gear')", req.CharacterID, itemName, req.Quantity)
+	if compID != nil && *compID > 0 {
+		tx.Exec("INSERT INTO inventory(character_id,name,quantity,weight,category,description,compendium_equipment_id) VALUES(?,?,?,?,?,?,?)",
+			req.CharacterID, itemName, req.Quantity, weight, category, description, *compID)
+	} else {
+		tx.Exec("INSERT INTO inventory(character_id,name,quantity,category) VALUES(?,?,?,'gear')", req.CharacterID, itemName, req.Quantity)
+	}
 	if qtyAvail >= 0 {
 		tx.Exec("UPDATE shop_items SET quantity_available = quantity_available - ? WHERE id=?", req.Quantity, req.ItemID)
 	}

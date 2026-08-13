@@ -254,6 +254,21 @@ func CampaignID(v int64) predicate.Character {
 	return predicate.Character(sql.FieldEQ(FieldCampaignID, v))
 }
 
+// CompendiumRaceID applies equality check predicate on the "compendium_race_id" field. It's identical to CompendiumRaceIDEQ.
+func CompendiumRaceID(v int64) predicate.Character {
+	return predicate.Character(sql.FieldEQ(FieldCompendiumRaceID, v))
+}
+
+// CompendiumClassID applies equality check predicate on the "compendium_class_id" field. It's identical to CompendiumClassIDEQ.
+func CompendiumClassID(v int64) predicate.Character {
+	return predicate.Character(sql.FieldEQ(FieldCompendiumClassID, v))
+}
+
+// CompendiumBackgroundID applies equality check predicate on the "compendium_background_id" field. It's identical to CompendiumBackgroundIDEQ.
+func CompendiumBackgroundID(v int64) predicate.Character {
+	return predicate.Character(sql.FieldEQ(FieldCompendiumBackgroundID, v))
+}
+
 // CharacterType applies equality check predicate on the "character_type" field. It's identical to CharacterTypeEQ.
 func CharacterType(v string) predicate.Character {
 	return predicate.Character(sql.FieldEQ(FieldCharacterType, v))
@@ -2257,6 +2272,156 @@ func CampaignIDIsNil() predicate.Character {
 // CampaignIDNotNil applies the NotNil predicate on the "campaign_id" field.
 func CampaignIDNotNil() predicate.Character {
 	return predicate.Character(sql.FieldNotNull(FieldCampaignID))
+}
+
+// CompendiumRaceIDEQ applies the EQ predicate on the "compendium_race_id" field.
+func CompendiumRaceIDEQ(v int64) predicate.Character {
+	return predicate.Character(sql.FieldEQ(FieldCompendiumRaceID, v))
+}
+
+// CompendiumRaceIDNEQ applies the NEQ predicate on the "compendium_race_id" field.
+func CompendiumRaceIDNEQ(v int64) predicate.Character {
+	return predicate.Character(sql.FieldNEQ(FieldCompendiumRaceID, v))
+}
+
+// CompendiumRaceIDIn applies the In predicate on the "compendium_race_id" field.
+func CompendiumRaceIDIn(vs ...int64) predicate.Character {
+	return predicate.Character(sql.FieldIn(FieldCompendiumRaceID, vs...))
+}
+
+// CompendiumRaceIDNotIn applies the NotIn predicate on the "compendium_race_id" field.
+func CompendiumRaceIDNotIn(vs ...int64) predicate.Character {
+	return predicate.Character(sql.FieldNotIn(FieldCompendiumRaceID, vs...))
+}
+
+// CompendiumRaceIDGT applies the GT predicate on the "compendium_race_id" field.
+func CompendiumRaceIDGT(v int64) predicate.Character {
+	return predicate.Character(sql.FieldGT(FieldCompendiumRaceID, v))
+}
+
+// CompendiumRaceIDGTE applies the GTE predicate on the "compendium_race_id" field.
+func CompendiumRaceIDGTE(v int64) predicate.Character {
+	return predicate.Character(sql.FieldGTE(FieldCompendiumRaceID, v))
+}
+
+// CompendiumRaceIDLT applies the LT predicate on the "compendium_race_id" field.
+func CompendiumRaceIDLT(v int64) predicate.Character {
+	return predicate.Character(sql.FieldLT(FieldCompendiumRaceID, v))
+}
+
+// CompendiumRaceIDLTE applies the LTE predicate on the "compendium_race_id" field.
+func CompendiumRaceIDLTE(v int64) predicate.Character {
+	return predicate.Character(sql.FieldLTE(FieldCompendiumRaceID, v))
+}
+
+// CompendiumRaceIDIsNil applies the IsNil predicate on the "compendium_race_id" field.
+func CompendiumRaceIDIsNil() predicate.Character {
+	return predicate.Character(sql.FieldIsNull(FieldCompendiumRaceID))
+}
+
+// CompendiumRaceIDNotNil applies the NotNil predicate on the "compendium_race_id" field.
+func CompendiumRaceIDNotNil() predicate.Character {
+	return predicate.Character(sql.FieldNotNull(FieldCompendiumRaceID))
+}
+
+// CompendiumClassIDEQ applies the EQ predicate on the "compendium_class_id" field.
+func CompendiumClassIDEQ(v int64) predicate.Character {
+	return predicate.Character(sql.FieldEQ(FieldCompendiumClassID, v))
+}
+
+// CompendiumClassIDNEQ applies the NEQ predicate on the "compendium_class_id" field.
+func CompendiumClassIDNEQ(v int64) predicate.Character {
+	return predicate.Character(sql.FieldNEQ(FieldCompendiumClassID, v))
+}
+
+// CompendiumClassIDIn applies the In predicate on the "compendium_class_id" field.
+func CompendiumClassIDIn(vs ...int64) predicate.Character {
+	return predicate.Character(sql.FieldIn(FieldCompendiumClassID, vs...))
+}
+
+// CompendiumClassIDNotIn applies the NotIn predicate on the "compendium_class_id" field.
+func CompendiumClassIDNotIn(vs ...int64) predicate.Character {
+	return predicate.Character(sql.FieldNotIn(FieldCompendiumClassID, vs...))
+}
+
+// CompendiumClassIDGT applies the GT predicate on the "compendium_class_id" field.
+func CompendiumClassIDGT(v int64) predicate.Character {
+	return predicate.Character(sql.FieldGT(FieldCompendiumClassID, v))
+}
+
+// CompendiumClassIDGTE applies the GTE predicate on the "compendium_class_id" field.
+func CompendiumClassIDGTE(v int64) predicate.Character {
+	return predicate.Character(sql.FieldGTE(FieldCompendiumClassID, v))
+}
+
+// CompendiumClassIDLT applies the LT predicate on the "compendium_class_id" field.
+func CompendiumClassIDLT(v int64) predicate.Character {
+	return predicate.Character(sql.FieldLT(FieldCompendiumClassID, v))
+}
+
+// CompendiumClassIDLTE applies the LTE predicate on the "compendium_class_id" field.
+func CompendiumClassIDLTE(v int64) predicate.Character {
+	return predicate.Character(sql.FieldLTE(FieldCompendiumClassID, v))
+}
+
+// CompendiumClassIDIsNil applies the IsNil predicate on the "compendium_class_id" field.
+func CompendiumClassIDIsNil() predicate.Character {
+	return predicate.Character(sql.FieldIsNull(FieldCompendiumClassID))
+}
+
+// CompendiumClassIDNotNil applies the NotNil predicate on the "compendium_class_id" field.
+func CompendiumClassIDNotNil() predicate.Character {
+	return predicate.Character(sql.FieldNotNull(FieldCompendiumClassID))
+}
+
+// CompendiumBackgroundIDEQ applies the EQ predicate on the "compendium_background_id" field.
+func CompendiumBackgroundIDEQ(v int64) predicate.Character {
+	return predicate.Character(sql.FieldEQ(FieldCompendiumBackgroundID, v))
+}
+
+// CompendiumBackgroundIDNEQ applies the NEQ predicate on the "compendium_background_id" field.
+func CompendiumBackgroundIDNEQ(v int64) predicate.Character {
+	return predicate.Character(sql.FieldNEQ(FieldCompendiumBackgroundID, v))
+}
+
+// CompendiumBackgroundIDIn applies the In predicate on the "compendium_background_id" field.
+func CompendiumBackgroundIDIn(vs ...int64) predicate.Character {
+	return predicate.Character(sql.FieldIn(FieldCompendiumBackgroundID, vs...))
+}
+
+// CompendiumBackgroundIDNotIn applies the NotIn predicate on the "compendium_background_id" field.
+func CompendiumBackgroundIDNotIn(vs ...int64) predicate.Character {
+	return predicate.Character(sql.FieldNotIn(FieldCompendiumBackgroundID, vs...))
+}
+
+// CompendiumBackgroundIDGT applies the GT predicate on the "compendium_background_id" field.
+func CompendiumBackgroundIDGT(v int64) predicate.Character {
+	return predicate.Character(sql.FieldGT(FieldCompendiumBackgroundID, v))
+}
+
+// CompendiumBackgroundIDGTE applies the GTE predicate on the "compendium_background_id" field.
+func CompendiumBackgroundIDGTE(v int64) predicate.Character {
+	return predicate.Character(sql.FieldGTE(FieldCompendiumBackgroundID, v))
+}
+
+// CompendiumBackgroundIDLT applies the LT predicate on the "compendium_background_id" field.
+func CompendiumBackgroundIDLT(v int64) predicate.Character {
+	return predicate.Character(sql.FieldLT(FieldCompendiumBackgroundID, v))
+}
+
+// CompendiumBackgroundIDLTE applies the LTE predicate on the "compendium_background_id" field.
+func CompendiumBackgroundIDLTE(v int64) predicate.Character {
+	return predicate.Character(sql.FieldLTE(FieldCompendiumBackgroundID, v))
+}
+
+// CompendiumBackgroundIDIsNil applies the IsNil predicate on the "compendium_background_id" field.
+func CompendiumBackgroundIDIsNil() predicate.Character {
+	return predicate.Character(sql.FieldIsNull(FieldCompendiumBackgroundID))
+}
+
+// CompendiumBackgroundIDNotNil applies the NotNil predicate on the "compendium_background_id" field.
+func CompendiumBackgroundIDNotNil() predicate.Character {
+	return predicate.Character(sql.FieldNotNull(FieldCompendiumBackgroundID))
 }
 
 // CharacterTypeEQ applies the EQ predicate on the "character_type" field.

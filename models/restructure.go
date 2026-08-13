@@ -90,14 +90,15 @@ type OneShotMonster struct {
 }
 
 type NPCItemLink struct {
-	ID               int64  `json:"id"`
-	NPCID            int64  `json:"npc_id"`
-	AdventureID      int64  `json:"adventure_id"`
-	ItemID           int64  `json:"item_id"`
-	RelationshipType string `json:"relationship_type"`
-	Notes            string `json:"notes"`
-	ItemName         string `json:"item_name,omitempty"`
-	NPCName          string `json:"npc_name,omitempty"`
+	ID                    int64  `json:"id"`
+	NPCID                 int64  `json:"npc_id"`
+	AdventureID           int64  `json:"adventure_id"`
+	ItemID                int64  `json:"item_id"`
+	CompendiumEquipmentID *int64 `json:"compendium_equipment_id,omitempty"`
+	RelationshipType      string `json:"relationship_type"`
+	Notes                 string `json:"notes"`
+	ItemName              string `json:"item_name,omitempty"`
+	NPCName               string `json:"npc_name,omitempty"`
 }
 
 type OneShotPlayerCharacter struct {

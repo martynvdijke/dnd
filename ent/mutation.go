@@ -10059,149 +10059,155 @@ func (m *CampaignWikiPageMutation) ResetEdge(name string) error {
 // CharacterMutation represents an operation that mutates the Character nodes in the graph.
 type CharacterMutation struct {
 	config
-	op                         Op
-	typ                        string
-	id                         *int64
-	name                       *string
-	race                       *string
-	class                      *string
-	subclass                   *string
-	level                      *int
-	addlevel                   *int
-	xp                         *int
-	addxp                      *int
-	background                 *string
-	alignment                  *string
-	str                        *int
-	addstr                     *int
-	dex                        *int
-	adddex                     *int
-	con                        *int
-	addcon                     *int
-	int                        *int
-	addint                     *int
-	wis                        *int
-	addwis                     *int
-	cha                        *int
-	addcha                     *int
-	ac                         *int
-	addac                      *int
-	initiative                 *int
-	addinitiative              *int
-	speed                      *int
-	addspeed                   *int
-	hp_max                     *int
-	addhp_max                  *int
-	hp_current                 *int
-	addhp_current              *int
-	temp_hp                    *int
-	addtemp_hp                 *int
-	hit_dice                   *string
-	hit_dice_current           *int
-	addhit_dice_current        *int
-	proficiency_bonus          *int
-	addproficiency_bonus       *int
-	inspiration                *int
-	addinspiration             *int
-	passive_perception         *int
-	addpassive_perception      *int
-	personality_traits         *string
-	ideals                     *string
-	bonds                      *string
-	flaws                      *string
-	appearance                 *string
-	backstory                  *string
-	portrait_url               *string
-	dm_notes                   *string
-	hp_auto_calc               *int
-	addhp_auto_calc            *int
-	death_saves_successes      *int
-	adddeath_saves_successes   *int
-	death_saves_failures       *int
-	adddeath_saves_failures    *int
-	exhaustion_level           *int
-	addexhaustion_level        *int
-	concentrating_on           *string
-	campaign_id                *int64
-	addcampaign_id             *int64
-	character_type             *string
-	created_at                 *string
-	updated_at                 *string
-	clearedFields              map[string]struct{}
-	user                       *int64
-	cleareduser                bool
-	currency                   map[int]struct{}
-	removedcurrency            map[int]struct{}
-	clearedcurrency            bool
-	proficiencies              map[int64]struct{}
-	removedproficiencies       map[int64]struct{}
-	clearedproficiencies       bool
-	features                   map[int64]struct{}
-	removedfeatures            map[int64]struct{}
-	clearedfeatures            bool
-	spellcasting               map[int64]struct{}
-	removedspellcasting        map[int64]struct{}
-	clearedspellcasting        bool
-	spells                     map[int64]struct{}
-	removedspells              map[int64]struct{}
-	clearedspells              bool
-	inventory                  map[int64]struct{}
-	removedinventory           map[int64]struct{}
-	clearedinventory           bool
-	classes                    map[int64]struct{}
-	removedclasses             map[int64]struct{}
-	clearedclasses             bool
-	conditions                 map[int64]struct{}
-	removedconditions          map[int64]struct{}
-	clearedconditions          bool
-	feats                      map[int64]struct{}
-	removedfeats               map[int64]struct{}
-	clearedfeats               bool
-	companions                 map[int64]struct{}
-	removedcompanions          map[int64]struct{}
-	clearedcompanions          bool
-	notes                      map[int64]struct{}
-	removednotes               map[int64]struct{}
-	clearednotes               bool
-	resources                  map[int64]struct{}
-	removedresources           map[int64]struct{}
-	clearedresources           bool
-	crafting                   map[int64]struct{}
-	removedcrafting            map[int64]struct{}
-	clearedcrafting            bool
-	sessions                   map[int64]struct{}
-	removedsessions            map[int64]struct{}
-	clearedsessions            bool
-	quests                     map[int64]struct{}
-	removedquests              map[int64]struct{}
-	clearedquests              bool
-	journal                    map[int64]struct{}
-	removedjournal             map[int64]struct{}
-	clearedjournal             bool
-	rest_logs                  map[int64]struct{}
-	removedrest_logs           map[int64]struct{}
-	clearedrest_logs           bool
-	downtime_activities        map[int64]struct{}
-	removeddowntime_activities map[int64]struct{}
-	cleareddowntime_activities bool
-	level_up_plans             map[int64]struct{}
-	removedlevel_up_plans      map[int64]struct{}
-	clearedlevel_up_plans      bool
-	character_locations        map[int64]struct{}
-	removedcharacter_locations map[int64]struct{}
-	clearedcharacter_locations bool
-	character_npcs             map[int64]struct{}
-	removedcharacter_npcs      map[int64]struct{}
-	clearedcharacter_npcs      bool
-	faction_reputations        map[int64]struct{}
-	removedfaction_reputations map[int64]struct{}
-	clearedfaction_reputations bool
-	combat_entries             map[int64]struct{}
-	removedcombat_entries      map[int64]struct{}
-	clearedcombat_entries      bool
-	done                       bool
-	oldValue                   func(context.Context) (*Character, error)
-	predicates                 []predicate.Character
+	op                          Op
+	typ                         string
+	id                          *int64
+	name                        *string
+	race                        *string
+	class                       *string
+	subclass                    *string
+	level                       *int
+	addlevel                    *int
+	xp                          *int
+	addxp                       *int
+	background                  *string
+	alignment                   *string
+	str                         *int
+	addstr                      *int
+	dex                         *int
+	adddex                      *int
+	con                         *int
+	addcon                      *int
+	int                         *int
+	addint                      *int
+	wis                         *int
+	addwis                      *int
+	cha                         *int
+	addcha                      *int
+	ac                          *int
+	addac                       *int
+	initiative                  *int
+	addinitiative               *int
+	speed                       *int
+	addspeed                    *int
+	hp_max                      *int
+	addhp_max                   *int
+	hp_current                  *int
+	addhp_current               *int
+	temp_hp                     *int
+	addtemp_hp                  *int
+	hit_dice                    *string
+	hit_dice_current            *int
+	addhit_dice_current         *int
+	proficiency_bonus           *int
+	addproficiency_bonus        *int
+	inspiration                 *int
+	addinspiration              *int
+	passive_perception          *int
+	addpassive_perception       *int
+	personality_traits          *string
+	ideals                      *string
+	bonds                       *string
+	flaws                       *string
+	appearance                  *string
+	backstory                   *string
+	portrait_url                *string
+	dm_notes                    *string
+	hp_auto_calc                *int
+	addhp_auto_calc             *int
+	death_saves_successes       *int
+	adddeath_saves_successes    *int
+	death_saves_failures        *int
+	adddeath_saves_failures     *int
+	exhaustion_level            *int
+	addexhaustion_level         *int
+	concentrating_on            *string
+	campaign_id                 *int64
+	addcampaign_id              *int64
+	compendium_race_id          *int64
+	addcompendium_race_id       *int64
+	compendium_class_id         *int64
+	addcompendium_class_id      *int64
+	compendium_background_id    *int64
+	addcompendium_background_id *int64
+	character_type              *string
+	created_at                  *string
+	updated_at                  *string
+	clearedFields               map[string]struct{}
+	user                        *int64
+	cleareduser                 bool
+	currency                    map[int]struct{}
+	removedcurrency             map[int]struct{}
+	clearedcurrency             bool
+	proficiencies               map[int64]struct{}
+	removedproficiencies        map[int64]struct{}
+	clearedproficiencies        bool
+	features                    map[int64]struct{}
+	removedfeatures             map[int64]struct{}
+	clearedfeatures             bool
+	spellcasting                map[int64]struct{}
+	removedspellcasting         map[int64]struct{}
+	clearedspellcasting         bool
+	spells                      map[int64]struct{}
+	removedspells               map[int64]struct{}
+	clearedspells               bool
+	inventory                   map[int64]struct{}
+	removedinventory            map[int64]struct{}
+	clearedinventory            bool
+	classes                     map[int64]struct{}
+	removedclasses              map[int64]struct{}
+	clearedclasses              bool
+	conditions                  map[int64]struct{}
+	removedconditions           map[int64]struct{}
+	clearedconditions           bool
+	feats                       map[int64]struct{}
+	removedfeats                map[int64]struct{}
+	clearedfeats                bool
+	companions                  map[int64]struct{}
+	removedcompanions           map[int64]struct{}
+	clearedcompanions           bool
+	notes                       map[int64]struct{}
+	removednotes                map[int64]struct{}
+	clearednotes                bool
+	resources                   map[int64]struct{}
+	removedresources            map[int64]struct{}
+	clearedresources            bool
+	crafting                    map[int64]struct{}
+	removedcrafting             map[int64]struct{}
+	clearedcrafting             bool
+	sessions                    map[int64]struct{}
+	removedsessions             map[int64]struct{}
+	clearedsessions             bool
+	quests                      map[int64]struct{}
+	removedquests               map[int64]struct{}
+	clearedquests               bool
+	journal                     map[int64]struct{}
+	removedjournal              map[int64]struct{}
+	clearedjournal              bool
+	rest_logs                   map[int64]struct{}
+	removedrest_logs            map[int64]struct{}
+	clearedrest_logs            bool
+	downtime_activities         map[int64]struct{}
+	removeddowntime_activities  map[int64]struct{}
+	cleareddowntime_activities  bool
+	level_up_plans              map[int64]struct{}
+	removedlevel_up_plans       map[int64]struct{}
+	clearedlevel_up_plans       bool
+	character_locations         map[int64]struct{}
+	removedcharacter_locations  map[int64]struct{}
+	clearedcharacter_locations  bool
+	character_npcs              map[int64]struct{}
+	removedcharacter_npcs       map[int64]struct{}
+	clearedcharacter_npcs       bool
+	faction_reputations         map[int64]struct{}
+	removedfaction_reputations  map[int64]struct{}
+	clearedfaction_reputations  bool
+	combat_entries              map[int64]struct{}
+	removedcombat_entries       map[int64]struct{}
+	clearedcombat_entries       bool
+	done                        bool
+	oldValue                    func(context.Context) (*Character, error)
+	predicates                  []predicate.Character
 }
 
 var _ ent.Mutation = (*CharacterMutation)(nil)
@@ -12222,6 +12228,216 @@ func (m *CharacterMutation) ResetCampaignID() {
 	delete(m.clearedFields, character.FieldCampaignID)
 }
 
+// SetCompendiumRaceID sets the "compendium_race_id" field.
+func (m *CharacterMutation) SetCompendiumRaceID(i int64) {
+	m.compendium_race_id = &i
+	m.addcompendium_race_id = nil
+}
+
+// CompendiumRaceID returns the value of the "compendium_race_id" field in the mutation.
+func (m *CharacterMutation) CompendiumRaceID() (r int64, exists bool) {
+	v := m.compendium_race_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCompendiumRaceID returns the old "compendium_race_id" field's value of the Character entity.
+// If the Character object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CharacterMutation) OldCompendiumRaceID(ctx context.Context) (v *int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCompendiumRaceID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCompendiumRaceID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCompendiumRaceID: %w", err)
+	}
+	return oldValue.CompendiumRaceID, nil
+}
+
+// AddCompendiumRaceID adds i to the "compendium_race_id" field.
+func (m *CharacterMutation) AddCompendiumRaceID(i int64) {
+	if m.addcompendium_race_id != nil {
+		*m.addcompendium_race_id += i
+	} else {
+		m.addcompendium_race_id = &i
+	}
+}
+
+// AddedCompendiumRaceID returns the value that was added to the "compendium_race_id" field in this mutation.
+func (m *CharacterMutation) AddedCompendiumRaceID() (r int64, exists bool) {
+	v := m.addcompendium_race_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearCompendiumRaceID clears the value of the "compendium_race_id" field.
+func (m *CharacterMutation) ClearCompendiumRaceID() {
+	m.compendium_race_id = nil
+	m.addcompendium_race_id = nil
+	m.clearedFields[character.FieldCompendiumRaceID] = struct{}{}
+}
+
+// CompendiumRaceIDCleared returns if the "compendium_race_id" field was cleared in this mutation.
+func (m *CharacterMutation) CompendiumRaceIDCleared() bool {
+	_, ok := m.clearedFields[character.FieldCompendiumRaceID]
+	return ok
+}
+
+// ResetCompendiumRaceID resets all changes to the "compendium_race_id" field.
+func (m *CharacterMutation) ResetCompendiumRaceID() {
+	m.compendium_race_id = nil
+	m.addcompendium_race_id = nil
+	delete(m.clearedFields, character.FieldCompendiumRaceID)
+}
+
+// SetCompendiumClassID sets the "compendium_class_id" field.
+func (m *CharacterMutation) SetCompendiumClassID(i int64) {
+	m.compendium_class_id = &i
+	m.addcompendium_class_id = nil
+}
+
+// CompendiumClassID returns the value of the "compendium_class_id" field in the mutation.
+func (m *CharacterMutation) CompendiumClassID() (r int64, exists bool) {
+	v := m.compendium_class_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCompendiumClassID returns the old "compendium_class_id" field's value of the Character entity.
+// If the Character object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CharacterMutation) OldCompendiumClassID(ctx context.Context) (v *int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCompendiumClassID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCompendiumClassID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCompendiumClassID: %w", err)
+	}
+	return oldValue.CompendiumClassID, nil
+}
+
+// AddCompendiumClassID adds i to the "compendium_class_id" field.
+func (m *CharacterMutation) AddCompendiumClassID(i int64) {
+	if m.addcompendium_class_id != nil {
+		*m.addcompendium_class_id += i
+	} else {
+		m.addcompendium_class_id = &i
+	}
+}
+
+// AddedCompendiumClassID returns the value that was added to the "compendium_class_id" field in this mutation.
+func (m *CharacterMutation) AddedCompendiumClassID() (r int64, exists bool) {
+	v := m.addcompendium_class_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearCompendiumClassID clears the value of the "compendium_class_id" field.
+func (m *CharacterMutation) ClearCompendiumClassID() {
+	m.compendium_class_id = nil
+	m.addcompendium_class_id = nil
+	m.clearedFields[character.FieldCompendiumClassID] = struct{}{}
+}
+
+// CompendiumClassIDCleared returns if the "compendium_class_id" field was cleared in this mutation.
+func (m *CharacterMutation) CompendiumClassIDCleared() bool {
+	_, ok := m.clearedFields[character.FieldCompendiumClassID]
+	return ok
+}
+
+// ResetCompendiumClassID resets all changes to the "compendium_class_id" field.
+func (m *CharacterMutation) ResetCompendiumClassID() {
+	m.compendium_class_id = nil
+	m.addcompendium_class_id = nil
+	delete(m.clearedFields, character.FieldCompendiumClassID)
+}
+
+// SetCompendiumBackgroundID sets the "compendium_background_id" field.
+func (m *CharacterMutation) SetCompendiumBackgroundID(i int64) {
+	m.compendium_background_id = &i
+	m.addcompendium_background_id = nil
+}
+
+// CompendiumBackgroundID returns the value of the "compendium_background_id" field in the mutation.
+func (m *CharacterMutation) CompendiumBackgroundID() (r int64, exists bool) {
+	v := m.compendium_background_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCompendiumBackgroundID returns the old "compendium_background_id" field's value of the Character entity.
+// If the Character object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CharacterMutation) OldCompendiumBackgroundID(ctx context.Context) (v *int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCompendiumBackgroundID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCompendiumBackgroundID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCompendiumBackgroundID: %w", err)
+	}
+	return oldValue.CompendiumBackgroundID, nil
+}
+
+// AddCompendiumBackgroundID adds i to the "compendium_background_id" field.
+func (m *CharacterMutation) AddCompendiumBackgroundID(i int64) {
+	if m.addcompendium_background_id != nil {
+		*m.addcompendium_background_id += i
+	} else {
+		m.addcompendium_background_id = &i
+	}
+}
+
+// AddedCompendiumBackgroundID returns the value that was added to the "compendium_background_id" field in this mutation.
+func (m *CharacterMutation) AddedCompendiumBackgroundID() (r int64, exists bool) {
+	v := m.addcompendium_background_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// ClearCompendiumBackgroundID clears the value of the "compendium_background_id" field.
+func (m *CharacterMutation) ClearCompendiumBackgroundID() {
+	m.compendium_background_id = nil
+	m.addcompendium_background_id = nil
+	m.clearedFields[character.FieldCompendiumBackgroundID] = struct{}{}
+}
+
+// CompendiumBackgroundIDCleared returns if the "compendium_background_id" field was cleared in this mutation.
+func (m *CharacterMutation) CompendiumBackgroundIDCleared() bool {
+	_, ok := m.clearedFields[character.FieldCompendiumBackgroundID]
+	return ok
+}
+
+// ResetCompendiumBackgroundID resets all changes to the "compendium_background_id" field.
+func (m *CharacterMutation) ResetCompendiumBackgroundID() {
+	m.compendium_background_id = nil
+	m.addcompendium_background_id = nil
+	delete(m.clearedFields, character.FieldCompendiumBackgroundID)
+}
+
 // SetCharacterType sets the "character_type" field.
 func (m *CharacterMutation) SetCharacterType(s string) {
 	m.character_type = &s
@@ -13633,7 +13849,7 @@ func (m *CharacterMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CharacterMutation) Fields() []string {
-	fields := make([]string, 0, 43)
+	fields := make([]string, 0, 46)
 	if m.user != nil {
 		fields = append(fields, character.FieldUserID)
 	}
@@ -13754,6 +13970,15 @@ func (m *CharacterMutation) Fields() []string {
 	if m.campaign_id != nil {
 		fields = append(fields, character.FieldCampaignID)
 	}
+	if m.compendium_race_id != nil {
+		fields = append(fields, character.FieldCompendiumRaceID)
+	}
+	if m.compendium_class_id != nil {
+		fields = append(fields, character.FieldCompendiumClassID)
+	}
+	if m.compendium_background_id != nil {
+		fields = append(fields, character.FieldCompendiumBackgroundID)
+	}
 	if m.character_type != nil {
 		fields = append(fields, character.FieldCharacterType)
 	}
@@ -13851,6 +14076,12 @@ func (m *CharacterMutation) Field(name string) (ent.Value, bool) {
 		return m.ConcentratingOn()
 	case character.FieldCampaignID:
 		return m.CampaignID()
+	case character.FieldCompendiumRaceID:
+		return m.CompendiumRaceID()
+	case character.FieldCompendiumClassID:
+		return m.CompendiumClassID()
+	case character.FieldCompendiumBackgroundID:
+		return m.CompendiumBackgroundID()
 	case character.FieldCharacterType:
 		return m.CharacterType()
 	case character.FieldCreatedAt:
@@ -13946,6 +14177,12 @@ func (m *CharacterMutation) OldField(ctx context.Context, name string) (ent.Valu
 		return m.OldConcentratingOn(ctx)
 	case character.FieldCampaignID:
 		return m.OldCampaignID(ctx)
+	case character.FieldCompendiumRaceID:
+		return m.OldCompendiumRaceID(ctx)
+	case character.FieldCompendiumClassID:
+		return m.OldCompendiumClassID(ctx)
+	case character.FieldCompendiumBackgroundID:
+		return m.OldCompendiumBackgroundID(ctx)
 	case character.FieldCharacterType:
 		return m.OldCharacterType(ctx)
 	case character.FieldCreatedAt:
@@ -14241,6 +14478,27 @@ func (m *CharacterMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCampaignID(v)
 		return nil
+	case character.FieldCompendiumRaceID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCompendiumRaceID(v)
+		return nil
+	case character.FieldCompendiumClassID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCompendiumClassID(v)
+		return nil
+	case character.FieldCompendiumBackgroundID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCompendiumBackgroundID(v)
+		return nil
 	case character.FieldCharacterType:
 		v, ok := value.(string)
 		if !ok {
@@ -14339,6 +14597,15 @@ func (m *CharacterMutation) AddedFields() []string {
 	if m.addcampaign_id != nil {
 		fields = append(fields, character.FieldCampaignID)
 	}
+	if m.addcompendium_race_id != nil {
+		fields = append(fields, character.FieldCompendiumRaceID)
+	}
+	if m.addcompendium_class_id != nil {
+		fields = append(fields, character.FieldCompendiumClassID)
+	}
+	if m.addcompendium_background_id != nil {
+		fields = append(fields, character.FieldCompendiumBackgroundID)
+	}
 	return fields
 }
 
@@ -14393,6 +14660,12 @@ func (m *CharacterMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedExhaustionLevel()
 	case character.FieldCampaignID:
 		return m.AddedCampaignID()
+	case character.FieldCompendiumRaceID:
+		return m.AddedCompendiumRaceID()
+	case character.FieldCompendiumClassID:
+		return m.AddedCompendiumClassID()
+	case character.FieldCompendiumBackgroundID:
+		return m.AddedCompendiumBackgroundID()
 	}
 	return nil, false
 }
@@ -14563,6 +14836,27 @@ func (m *CharacterMutation) AddField(name string, value ent.Value) error {
 		}
 		m.AddCampaignID(v)
 		return nil
+	case character.FieldCompendiumRaceID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCompendiumRaceID(v)
+		return nil
+	case character.FieldCompendiumClassID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCompendiumClassID(v)
+		return nil
+	case character.FieldCompendiumBackgroundID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.AddCompendiumBackgroundID(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Character numeric field %s", name)
 }
@@ -14573,6 +14867,15 @@ func (m *CharacterMutation) ClearedFields() []string {
 	var fields []string
 	if m.FieldCleared(character.FieldCampaignID) {
 		fields = append(fields, character.FieldCampaignID)
+	}
+	if m.FieldCleared(character.FieldCompendiumRaceID) {
+		fields = append(fields, character.FieldCompendiumRaceID)
+	}
+	if m.FieldCleared(character.FieldCompendiumClassID) {
+		fields = append(fields, character.FieldCompendiumClassID)
+	}
+	if m.FieldCleared(character.FieldCompendiumBackgroundID) {
+		fields = append(fields, character.FieldCompendiumBackgroundID)
 	}
 	return fields
 }
@@ -14590,6 +14893,15 @@ func (m *CharacterMutation) ClearField(name string) error {
 	switch name {
 	case character.FieldCampaignID:
 		m.ClearCampaignID()
+		return nil
+	case character.FieldCompendiumRaceID:
+		m.ClearCompendiumRaceID()
+		return nil
+	case character.FieldCompendiumClassID:
+		m.ClearCompendiumClassID()
+		return nil
+	case character.FieldCompendiumBackgroundID:
+		m.ClearCompendiumBackgroundID()
 		return nil
 	}
 	return fmt.Errorf("unknown Character nullable field %s", name)
@@ -14718,6 +15030,15 @@ func (m *CharacterMutation) ResetField(name string) error {
 		return nil
 	case character.FieldCampaignID:
 		m.ResetCampaignID()
+		return nil
+	case character.FieldCompendiumRaceID:
+		m.ResetCompendiumRaceID()
+		return nil
+	case character.FieldCompendiumClassID:
+		m.ResetCompendiumClassID()
+		return nil
+	case character.FieldCompendiumBackgroundID:
+		m.ResetCompendiumBackgroundID()
 		return nil
 	case character.FieldCharacterType:
 		m.ResetCharacterType()

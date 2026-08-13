@@ -364,6 +364,9 @@ var (
 		{Name: "exhaustion_level", Type: field.TypeInt, Default: 0},
 		{Name: "concentrating_on", Type: field.TypeString, Default: ""},
 		{Name: "campaign_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "compendium_race_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "compendium_class_id", Type: field.TypeInt64, Nullable: true},
+		{Name: "compendium_background_id", Type: field.TypeInt64, Nullable: true},
 		{Name: "character_type", Type: field.TypeString, Default: "player"},
 		{Name: "created_at", Type: field.TypeString, Default: ""},
 		{Name: "updated_at", Type: field.TypeString, Default: ""},
@@ -377,7 +380,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "characters_users_characters",
-				Columns:    []*schema.Column{CharactersColumns[43]},
+				Columns:    []*schema.Column{CharactersColumns[46]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -386,7 +389,7 @@ var (
 			{
 				Name:    "character_user_id",
 				Unique:  false,
-				Columns: []*schema.Column{CharactersColumns[43]},
+				Columns: []*schema.Column{CharactersColumns[46]},
 			},
 		},
 	}

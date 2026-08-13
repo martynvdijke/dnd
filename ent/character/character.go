@@ -92,6 +92,12 @@ const (
 	FieldConcentratingOn = "concentrating_on"
 	// FieldCampaignID holds the string denoting the campaign_id field in the database.
 	FieldCampaignID = "campaign_id"
+	// FieldCompendiumRaceID holds the string denoting the compendium_race_id field in the database.
+	FieldCompendiumRaceID = "compendium_race_id"
+	// FieldCompendiumClassID holds the string denoting the compendium_class_id field in the database.
+	FieldCompendiumClassID = "compendium_class_id"
+	// FieldCompendiumBackgroundID holds the string denoting the compendium_background_id field in the database.
+	FieldCompendiumBackgroundID = "compendium_background_id"
 	// FieldCharacterType holds the string denoting the character_type field in the database.
 	FieldCharacterType = "character_type"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
@@ -361,6 +367,9 @@ var Columns = []string{
 	FieldExhaustionLevel,
 	FieldConcentratingOn,
 	FieldCampaignID,
+	FieldCompendiumRaceID,
+	FieldCompendiumClassID,
+	FieldCompendiumBackgroundID,
 	FieldCharacterType,
 	FieldCreatedAt,
 	FieldUpdatedAt,
@@ -667,6 +676,21 @@ func ByConcentratingOn(opts ...sql.OrderTermOption) OrderOption {
 // ByCampaignID orders the results by the campaign_id field.
 func ByCampaignID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCampaignID, opts...).ToFunc()
+}
+
+// ByCompendiumRaceID orders the results by the compendium_race_id field.
+func ByCompendiumRaceID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCompendiumRaceID, opts...).ToFunc()
+}
+
+// ByCompendiumClassID orders the results by the compendium_class_id field.
+func ByCompendiumClassID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCompendiumClassID, opts...).ToFunc()
+}
+
+// ByCompendiumBackgroundID orders the results by the compendium_background_id field.
+func ByCompendiumBackgroundID(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCompendiumBackgroundID, opts...).ToFunc()
 }
 
 // ByCharacterType orders the results by the character_type field.

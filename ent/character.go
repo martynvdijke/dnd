@@ -97,6 +97,12 @@ type Character struct {
 	ConcentratingOn string `json:"concentrating_on,omitempty"`
 	// CampaignID holds the value of the "campaign_id" field.
 	CampaignID int64 `json:"campaign_id,omitempty"`
+	// CompendiumRaceID holds the value of the "compendium_race_id" field.
+	CompendiumRaceID *int64 `json:"compendium_race_id,omitempty"`
+	// CompendiumClassID holds the value of the "compendium_class_id" field.
+	CompendiumClassID *int64 `json:"compendium_class_id,omitempty"`
+	// CompendiumBackgroundID holds the value of the "compendium_background_id" field.
+	CompendiumBackgroundID *int64 `json:"compendium_background_id,omitempty"`
 	// CharacterType holds the value of the "character_type" field.
 	CharacterType string `json:"character_type,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
@@ -387,7 +393,7 @@ func (*Character) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case character.FieldID, character.FieldUserID, character.FieldLevel, character.FieldXp, character.FieldStr, character.FieldDex, character.FieldCon, character.FieldInt, character.FieldWis, character.FieldCha, character.FieldAc, character.FieldInitiative, character.FieldSpeed, character.FieldHpMax, character.FieldHpCurrent, character.FieldTempHp, character.FieldHitDiceCurrent, character.FieldProficiencyBonus, character.FieldInspiration, character.FieldPassivePerception, character.FieldHpAutoCalc, character.FieldDeathSavesSuccesses, character.FieldDeathSavesFailures, character.FieldExhaustionLevel, character.FieldCampaignID:
+		case character.FieldID, character.FieldUserID, character.FieldLevel, character.FieldXp, character.FieldStr, character.FieldDex, character.FieldCon, character.FieldInt, character.FieldWis, character.FieldCha, character.FieldAc, character.FieldInitiative, character.FieldSpeed, character.FieldHpMax, character.FieldHpCurrent, character.FieldTempHp, character.FieldHitDiceCurrent, character.FieldProficiencyBonus, character.FieldInspiration, character.FieldPassivePerception, character.FieldHpAutoCalc, character.FieldDeathSavesSuccesses, character.FieldDeathSavesFailures, character.FieldExhaustionLevel, character.FieldCampaignID, character.FieldCompendiumRaceID, character.FieldCompendiumClassID, character.FieldCompendiumBackgroundID:
 			values[i] = new(sql.NullInt64)
 		case character.FieldName, character.FieldRace, character.FieldClass, character.FieldSubclass, character.FieldBackground, character.FieldAlignment, character.FieldHitDice, character.FieldPersonalityTraits, character.FieldIdeals, character.FieldBonds, character.FieldFlaws, character.FieldAppearance, character.FieldBackstory, character.FieldPortraitURL, character.FieldDmNotes, character.FieldConcentratingOn, character.FieldCharacterType, character.FieldCreatedAt, character.FieldUpdatedAt:
 			values[i] = new(sql.NullString)
@@ -651,6 +657,27 @@ func (_m *Character) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field campaign_id", values[i])
 			} else if value.Valid {
 				_m.CampaignID = value.Int64
+			}
+		case character.FieldCompendiumRaceID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field compendium_race_id", values[i])
+			} else if value.Valid {
+				_m.CompendiumRaceID = new(int64)
+				*_m.CompendiumRaceID = value.Int64
+			}
+		case character.FieldCompendiumClassID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field compendium_class_id", values[i])
+			} else if value.Valid {
+				_m.CompendiumClassID = new(int64)
+				*_m.CompendiumClassID = value.Int64
+			}
+		case character.FieldCompendiumBackgroundID:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field compendium_background_id", values[i])
+			} else if value.Valid {
+				_m.CompendiumBackgroundID = new(int64)
+				*_m.CompendiumBackgroundID = value.Int64
 			}
 		case character.FieldCharacterType:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -945,6 +972,21 @@ func (_m *Character) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("campaign_id=")
 	builder.WriteString(fmt.Sprintf("%v", _m.CampaignID))
+	builder.WriteString(", ")
+	if v := _m.CompendiumRaceID; v != nil {
+		builder.WriteString("compendium_race_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.CompendiumClassID; v != nil {
+		builder.WriteString("compendium_class_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.CompendiumBackgroundID; v != nil {
+		builder.WriteString("compendium_background_id=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("character_type=")
 	builder.WriteString(_m.CharacterType)

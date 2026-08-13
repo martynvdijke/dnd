@@ -1,0 +1,35 @@
+---
+strategy: polling
+no_screen_padding: 'no'
+dark_mode: 'no'
+polling_verb: get
+framework_version: 2.3.7
+polling_url: "https://dnd.example.com/api/trmnl/character-stats\r\nhttps://dnd.example.com/api/trmnl/campaign-stats"
+refresh_interval: 1440
+custom_fields:
+  - keyname: url
+    field_type: url
+    name: Instance URL
+    description: Base URL of your Villum instance (e.g. https://dnd.example.com)
+    placeholder: https://dnd.example.com
+    help_text: Used for asset references when polling from this instance.
+  - keyname: token
+    field_type: string
+    name: Access token
+    description: TRMNL access token from the Villum admin settings
+    placeholder: Paste token from the admin panel
+    help_text: Generate or regenerate it in the Villum admin panel under TRMNL.
+  - keyname: character_id
+    field_type: string
+    name: Character ID
+    description: Numeric ID of the character to display
+    placeholder: "1"
+    help_text: Shown in the character URL when viewing a character in Villum.
+  - keyname: display_mode
+    field_type: string
+    name: Display mode
+    description: Show character stats or campaign progress
+    placeholder: character
+    help_text: "character or campaign"
+name: Villum - D&D Stats
+description: Shows D&D character stats or campaign progress on a TRMNL display.
