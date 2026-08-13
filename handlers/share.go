@@ -25,8 +25,19 @@ type ShareLinkResponse struct {
 	URL        string `json:"url"`
 	EntityType string `json:"entity_type"`
 	EntityID   int64  `json:"entity_id"`
+	Label      string `json:"label,omitempty"`
 	CreatedAt  string `json:"created_at"`
 	ExpiresAt  string `json:"expires_at,omitempty"`
+}
+
+// supportedShareTypes are the entity types that can be shared via share_links.
+var supportedShareTypes = map[string]bool{
+	"character": true,
+	"party":     true,
+	"note":      true,
+	"journal":   true,
+	"map":       true,
+	"upload":    true,
 }
 
 func generateToken() string {
@@ -35,44 +46,124 @@ func generateToken() string {
 	return hex.EncodeToString(b)
 }
 
-func CreateShareLink(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+// userCanAccessCharacter reports whether the user owns the character, is a DM
+// of its campaign, or is an admin (mirrors checkCharacterAccess).
+func userCanAccessCharacter(c *gin.Context, characterID int64) bool {
+	return checkCharacterAccess(c, characterID)
+}
 
+// userCanAccessCampaign reports whether the user owns the campaign, is a
+// member of it, or is an admin.
+func userCanAccessCampaign(c *gin.Context, campaignID int64) bool {
+	role, _ := c.Get("role")
+	if role == "admin" {
+		return true
+	}
+	userID, _ := c.Get("user_id")
+	uid, _ := userID.(int64)
+	var ownerID int64
+	err := db.DB.QueryRow("SELECT user_id FROM campaigns WHERE id=?", campaignID).Scan(&ownerID)
+	if err != nil {
+		return false
+	}
+	if ownerID == uid {
+		return true
+	}
+	var count int
+	db.DB.QueryRow("SELECT COUNT(*) FROM campaign_members WHERE campaign_id=? AND user_id=?", campaignID, uid).Scan(&count)
+	return count > 0
+}
+
+// canShareEntity verifies the user may create a share link for the entity.
+// Admins bypass all ownership checks. Unsupported types are denied.
+func canShareEntity(c *gin.Context, entityType string, entityID int64) bool {
+	role, _ := c.Get("role")
+	if role == "admin" {
+		return true
+	}
+	userID, _ := c.Get("user_id")
+	uid, _ := userID.(int64)
+
+	switch entityType {
+	case "character":
+		return checkCharacterAccess(c, entityID)
+	case "party":
+		return userCanAccessCampaign(c, entityID)
+	case "note":
+		var charID int64
+		err := db.DB.QueryRow("SELECT character_id FROM character_notes WHERE id=?", entityID).Scan(&charID)
+		return err == nil && checkCharacterAccess(c, charID)
+	case "journal":
+		var charID int64
+		err := db.DB.QueryRow("SELECT character_id FROM journal WHERE id=?", entityID).Scan(&charID)
+		return err == nil && checkCharacterAccess(c, charID)
+	case "map":
+		var campaignID int64
+		err := db.DB.QueryRow("SELECT campaign_id FROM campaign_maps WHERE id=?", entityID).Scan(&campaignID)
+		return err == nil && userCanAccessCampaign(c, campaignID)
+	case "upload":
+		return canShareUpload(uid, entityID)
+	}
+	return false
+}
+
+// canShareUpload resolves upload ownership through owner_type/owner_id.
+// Legacy uploads with empty owner_type are admin-only (no ownership chain).
+func canShareUpload(uid int64, uploadID int64) bool {
+	var ownerType string
+	var ownerID int64
+	err := db.DB.QueryRow("SELECT owner_type, owner_id FROM uploads WHERE id=?", uploadID).Scan(&ownerType, &ownerID)
+	if err != nil {
+		return false
+	}
+	switch ownerType {
+	case "":
+		return false // no ownership chain → admin only
+	}
+	// Per-owner-type ownership resolution.
+	switch ownerType {
+	case "character":
+		var n int
+		db.DB.QueryRow("SELECT COUNT(*) FROM characters WHERE id=? AND user_id=?", ownerID, uid).Scan(&n)
+		return n > 0
+	case "npc":
+		var n int
+		db.DB.QueryRow("SELECT COUNT(*) FROM npcs WHERE id=? AND user_id=?", ownerID, uid).Scan(&n)
+		return n > 0
+	case "campaign", "party":
+		var n int
+		db.DB.QueryRow(`SELECT COUNT(*) FROM campaigns WHERE id=? AND (user_id=? OR id IN (SELECT campaign_id FROM campaign_members WHERE user_id=?))`, ownerID, uid, uid).Scan(&n)
+		return n > 0
+	case "oneshot":
+		var n int
+		db.DB.QueryRow("SELECT COUNT(*) FROM oneshot_adventures WHERE id=? AND user_id=?", ownerID, uid).Scan(&n)
+		return n > 0
+	case "item":
+		var n int
+		db.DB.QueryRow("SELECT COUNT(*) FROM oneshot_items oi JOIN oneshot_adventures oa ON oa.id=oi.adventure_id WHERE oi.id=? AND oa.user_id=?", ownerID, uid).Scan(&n)
+		return n > 0
+	}
+	return false
+}
+
+func CreateShareLink(c *gin.Context) {
 	var req ShareLinkRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	if req.EntityType != "character" && req.EntityType != "party" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "entity_type must be 'character' or 'party'"})
+	if !supportedShareTypes[req.EntityType] {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "unsupported entity_type"})
 		return
 	}
 
-	if req.EntityType == "character" {
-		if !checkCharacterAccess(c, req.EntityID) {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "access denied"})
-			return
-		}
-	} else {
-		var ownerID int64
-		err := db.DB.QueryRow("SELECT user_id FROM campaigns WHERE id=?", req.EntityID).Scan(&ownerID)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
-			return
-		}
-		role, _ := c.Get("role")
-		uid, _ := userID.(int64)
-		if role != "admin" && ownerID != uid {
-			var count int
-			db.DB.QueryRow("SELECT COUNT(*) FROM campaign_members WHERE campaign_id=? AND user_id=?", req.EntityID, uid).Scan(&count)
-			if count == 0 {
-				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "access denied"})
-				return
-			}
-		}
+	if !canShareEntity(c, req.EntityType, req.EntityID) {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
 	}
 
+	userID, _ := c.Get("user_id")
 	token := generateToken()
 
 	var expiresAt *string
@@ -100,6 +191,7 @@ func CreateShareLink(c *gin.Context) {
 		URL:        url,
 		EntityType: req.EntityType,
 		EntityID:   req.EntityID,
+		Label:      shareEntityLabel(req.EntityType, req.EntityID),
 		CreatedAt:  time.Now().UTC().Format("2006-01-02 15:04:05"),
 	}
 	if expiresAt != nil {
@@ -114,26 +206,74 @@ type SharedCharacterView struct {
 	OwnerName string `json:"owner_name"`
 }
 
-func GetSharedEntity(c *gin.Context) {
-	token := c.Param("token")
+// SharedNoteView carries note fields into the public share page template.
+type SharedNoteView struct {
+	Title      string
+	Content    string
+	Visibility string
+	Category   string
+	CreatedAt  string
+	OwnerName  string
+}
 
-	var entityType string
-	var entityID int64
-	var expiresAt sql.NullString
-	var createdBy int64
-	err := db.DB.QueryRow("SELECT entity_type, entity_id, created_by, expires_at FROM share_links WHERE token=?", token).
-		Scan(&entityType, &entityID, &createdBy, &expiresAt)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "share link not found"})
-		return
+// SharedJournalView carries journal entry fields into the public share page template.
+type SharedJournalView struct {
+	Title     string
+	Entry     string
+	EntryDate string
+	CreatedAt string
+	OwnerName string
+}
+
+// shareEntityLabel returns a human-readable name for a shared entity, used in
+// share-link listings and creation responses.
+func shareEntityLabel(entityType string, entityID int64) string {
+	var label string
+	switch entityType {
+	case "character":
+		db.DB.QueryRow("SELECT name FROM characters WHERE id=?", entityID).Scan(&label)
+	case "party":
+		db.DB.QueryRow("SELECT name FROM campaigns WHERE id=?", entityID).Scan(&label)
+	case "note":
+		db.DB.QueryRow("SELECT title FROM character_notes WHERE id=?", entityID).Scan(&label)
+	case "journal":
+		db.DB.QueryRow("SELECT title FROM journal WHERE id=?", entityID).Scan(&label)
+	case "map":
+		db.DB.QueryRow("SELECT name FROM campaign_maps WHERE id=?", entityID).Scan(&label)
+	case "upload":
+		db.DB.QueryRow("SELECT url FROM uploads WHERE id=?", entityID).Scan(&label)
 	}
+	return label
+}
 
+// lookupShare resolves the entity_type/entity_id/expiry for a token, returning
+// false if the token is unknown or expired. expired=true distinguishes 410
+// from 404.
+func lookupShare(token string) (entityType string, entityID int64, expired bool, ok bool) {
+	var expiresAt sql.NullString
+	err := db.DB.QueryRow("SELECT entity_type, entity_id, expires_at FROM share_links WHERE token=?", token).
+		Scan(&entityType, &entityID, &expiresAt)
+	if err != nil {
+		return "", 0, false, false
+	}
 	if expiresAt.Valid && expiresAt.String != "" {
 		expTime, err := time.Parse("2006-01-02 15:04:05", expiresAt.String)
 		if err == nil && time.Now().UTC().After(expTime) {
-			c.AbortWithStatusJSON(http.StatusGone, gin.H{"error": "share link has expired"})
-			return
+			return entityType, entityID, true, true
 		}
+	}
+	return entityType, entityID, false, true
+}
+
+func GetSharedEntity(c *gin.Context) {
+	entityType, entityID, expired, ok := lookupShare(c.Param("token"))
+	if !ok {
+		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "share link not found"})
+		return
+	}
+	if expired {
+		c.AbortWithStatusJSON(http.StatusGone, gin.H{"error": "share link has expired"})
+		return
 	}
 
 	switch entityType {
@@ -228,6 +368,107 @@ func GetSharedEntity(c *gin.Context) {
 			"members": members,
 		})
 
+	case "note":
+		var note struct {
+			ID            int64  `json:"id"`
+			Title         string `json:"title"`
+			Content       string `json:"content"`
+			Visibility    string `json:"visibility"`
+			Category      string `json:"category"`
+			CreatedAt     string `json:"created_at"`
+			CharacterID   int64  `json:"character_id"`
+			CharacterName string `json:"character_name"`
+			OwnerName     string `json:"owner_name"`
+		}
+		err := db.DB.QueryRow(`
+			SELECT cn.id, cn.title, cn.content, cn.visibility, cn.category, COALESCE(cn.created_at,''),
+				cn.character_id, COALESCE(ch.name,''), COALESCE(u.username,'')
+			FROM character_notes cn
+			JOIN characters ch ON ch.id = cn.character_id
+			LEFT JOIN users u ON u.id = ch.user_id
+			WHERE cn.id=?`, entityID).
+			Scan(&note.ID, &note.Title, &note.Content, &note.Visibility, &note.Category, &note.CreatedAt,
+				&note.CharacterID, &note.CharacterName, &note.OwnerName)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "note not found"})
+			return
+		}
+		c.JSON(http.StatusOK, note)
+
+	case "journal":
+		var entry struct {
+			ID            int64  `json:"id"`
+			Title         string `json:"title"`
+			Entry         string `json:"entry"`
+			EntryDate     string `json:"entry_date"`
+			CreatedAt     string `json:"created_at"`
+			CharacterID   int64  `json:"character_id"`
+			CharacterName string `json:"character_name"`
+			OwnerName     string `json:"owner_name"`
+		}
+		err := db.DB.QueryRow(`
+			SELECT j.id, j.title, j.entry, COALESCE(j.entry_date,''), COALESCE(j.created_at,''),
+				j.character_id, COALESCE(ch.name,''), COALESCE(u.username,'')
+			FROM journal j
+			JOIN characters ch ON ch.id = j.character_id
+			LEFT JOIN users u ON u.id = ch.user_id
+			WHERE j.id=?`, entityID).
+			Scan(&entry.ID, &entry.Title, &entry.Entry, &entry.EntryDate, &entry.CreatedAt,
+				&entry.CharacterID, &entry.CharacterName, &entry.OwnerName)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "journal entry not found"})
+			return
+		}
+		c.JSON(http.StatusOK, entry)
+
+	case "map":
+		var m CampaignMap
+		var campaignName string
+		err := db.DB.QueryRow(`
+			SELECT m.id, m.campaign_id, m.name, COALESCE(m.image_url,''), m.width, m.height, m.grid_size, m.is_active,
+				COALESCE(c.name,'')
+			FROM campaign_maps m LEFT JOIN campaigns c ON c.id = m.campaign_id
+			WHERE m.id=?`, entityID).
+			Scan(&m.ID, &m.CampaignID, &m.Name, &m.ImageURL, &m.Width, &m.Height, &m.GridSize, &m.IsActive, &campaignName)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "map not found"})
+			return
+		}
+
+		rows, err := db.DB.Query(`
+			SELECT id, map_id, name, type, x, y, COALESCE(icon,''), COALESCE(color,''), COALESCE(description,'')
+			FROM campaign_map_pins WHERE map_id=? AND is_hidden=0 ORDER BY sort_order, name`, entityID)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		defer rows.Close()
+
+		var pins []MapPin
+		for rows.Next() {
+			var p MapPin
+			rows.Scan(&p.ID, &p.MapID, &p.Name, &p.Type, &p.X, &p.Y, &p.Icon, &p.Color, &p.Description)
+			pins = append(pins, p)
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"map":           m,
+			"campaign_name": campaignName,
+			"pins":          pins,
+		})
+
+	case "upload":
+		var u models.Upload
+		err := db.DB.QueryRow(`
+			SELECT id, hash, ext, url, COALESCE(resized_url,''), COALESCE(thumbnail_url,''), owner_type, owner_id, COALESCE(created_at,'')
+			FROM uploads WHERE id=?`, entityID).
+			Scan(&u.ID, &u.Hash, &u.Ext, &u.URL, &u.ResizedURL, &u.ThumbnailURL, &u.OwnerType, &u.OwnerID, &u.CreatedAt)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "upload not found"})
+			return
+		}
+		c.JSON(http.StatusOK, u)
+
 	default:
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "unknown entity type"})
 	}
@@ -257,6 +498,7 @@ func ListShareLinks(c *gin.Context) {
 		var createdBy int64
 		var expiresAt string
 		rows.Scan(&sl.Token, &sl.EntityType, &sl.EntityID, &createdBy, &sl.CreatedAt, &expiresAt)
+		sl.Label = shareEntityLabel(sl.EntityType, sl.EntityID)
 		if expiresAt != "" {
 			sl.ExpiresAt = expiresAt
 		}
@@ -288,4 +530,105 @@ func DeleteShareLink(c *gin.Context) {
 
 	db.DB.Exec("DELETE FROM share_links WHERE token=?", token)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// GetSharedPage renders a public HTML page for a shared entity (note, journal,
+// map, upload). Pages are server-rendered with html/template autoescaping and
+// marked noindex. character/party shares remain JSON-only.
+func GetSharedPage(c *gin.Context) {
+	entityType, entityID, expired, ok := lookupShare(c.Param("token"))
+	if !ok {
+		c.String(http.StatusNotFound, "Share link not found.")
+		return
+	}
+	if expired {
+		c.String(http.StatusGone, "Share link has expired.")
+		return
+	}
+
+	switch entityType {
+	case "note":
+		var note SharedNoteView
+		err := db.DB.QueryRow(`
+			SELECT cn.title, cn.content, cn.visibility, cn.category, COALESCE(cn.created_at,''), COALESCE(u.username,'')
+			FROM character_notes cn JOIN characters ch ON ch.id = cn.character_id
+			LEFT JOIN users u ON u.id = ch.user_id WHERE cn.id=?`, entityID).
+			Scan(&note.Title, &note.Content, &note.Visibility, &note.Category, &note.CreatedAt, &note.OwnerName)
+		if err != nil {
+			c.String(http.StatusNotFound, "Note not found.")
+			return
+		}
+		renderSharePage(c, "share_note.html", note)
+
+	case "journal":
+		var entry SharedJournalView
+		err := db.DB.QueryRow(`
+			SELECT j.title, j.entry, COALESCE(j.entry_date,''), COALESCE(j.created_at,''), COALESCE(u.username,'')
+			FROM journal j JOIN characters ch ON ch.id = j.character_id
+			LEFT JOIN users u ON u.id = ch.user_id WHERE j.id=?`, entityID).
+			Scan(&entry.Title, &entry.Entry, &entry.EntryDate, &entry.CreatedAt, &entry.OwnerName)
+		if err != nil {
+			c.String(http.StatusNotFound, "Journal entry not found.")
+			return
+		}
+		renderSharePage(c, "share_journal.html", entry)
+
+	case "map":
+		var m CampaignMap
+		var campaignName string
+		err := db.DB.QueryRow(`
+			SELECT m.id, m.name, COALESCE(m.image_url,''), m.width, m.height, m.grid_size, COALESCE(c.name,'')
+			FROM campaign_maps m LEFT JOIN campaigns c ON c.id = m.campaign_id WHERE m.id=?`, entityID).
+			Scan(&m.ID, &m.Name, &m.ImageURL, &m.Width, &m.Height, &m.GridSize, &campaignName)
+		if err != nil {
+			c.String(http.StatusNotFound, "Map not found.")
+			return
+		}
+
+		rows, err := db.DB.Query(`
+			SELECT id, name, type, x, y, COALESCE(icon,''), COALESCE(color,''), COALESCE(description,'')
+			FROM campaign_map_pins WHERE map_id=? AND is_hidden=0 ORDER BY sort_order, name`, entityID)
+		if err != nil {
+			c.String(http.StatusInternalServerError, "Failed to load map pins.")
+			return
+		}
+		defer rows.Close()
+
+		var pins []MapPin
+		for rows.Next() {
+			var p MapPin
+			rows.Scan(&p.ID, &p.Name, &p.Type, &p.X, &p.Y, &p.Icon, &p.Color, &p.Description)
+			pins = append(pins, p)
+		}
+
+		renderSharePage(c, "share_map.html", gin.H{
+			"map":           m,
+			"campaign_name": campaignName,
+			"pins":          pins,
+		})
+
+	case "upload":
+		var u models.Upload
+		err := db.DB.QueryRow(`
+			SELECT id, ext, url, COALESCE(resized_url,''), COALESCE(thumbnail_url,'')
+			FROM uploads WHERE id=?`, entityID).
+			Scan(&u.ID, &u.Ext, &u.URL, &u.ResizedURL, &u.ThumbnailURL)
+		if err != nil {
+			c.String(http.StatusNotFound, "File not found.")
+			return
+		}
+		renderSharePage(c, "share_upload.html", u)
+
+	default:
+		c.String(http.StatusBadRequest, "This share type has no public page.")
+	}
+}
+
+// renderSharePage executes a share template (full HTML document) from the
+// embedded template set with html/template autoescaping.
+func renderSharePage(c *gin.Context, name string, data any) {
+	c.Header("Content-Type", "text/html; charset=utf-8")
+	if err := htmxTemplates.ExecuteTemplate(c.Writer, name, data); err != nil {
+		c.String(http.StatusInternalServerError, "template error: %v", err)
+	}
 }

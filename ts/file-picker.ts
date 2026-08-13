@@ -138,6 +138,7 @@ export class FilePicker {
         <div class="fp-item" data-url="${esc(u.url)}">
           <img src="${esc(thumbUrl)}" alt="" loading="lazy">
           <div class="fp-check"><i class="fa-solid fa-check"></i></div>
+          <button class="fp-share" data-id="${esc(String(u.id))}" data-url="${esc(u.url)}" title="Share file" onclick="event.stopPropagation();shareEntity('upload', ${Number(u.id)})"><i class="fa-solid fa-share-nodes"></i></button>
         </div>
       `;
     }).join('');

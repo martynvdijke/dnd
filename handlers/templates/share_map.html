@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{{.map.Name}} — Shared Map</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; background: #12141a; color: #e8e6e3; margin: 0; padding: 24px; line-height: 1.55; }
+  .card { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  .meta { color: #9aa3b5; font-size: .85rem; margin-bottom: 16px; }
+  .mapwrap { position: relative; display: inline-block; max-width: 100%; background: #1c1f28; border: 1px solid #2b3040; border-radius: 12px; overflow: hidden; }
+  .mapwrap img { display: block; max-width: 100%; height: auto; }
+  .pin { position: absolute; transform: translate(-50%, -50%); width: 22px; height: 22px; border-radius: 50% 50% 50% 0; transform: translate(-50%, -100%) rotate(-45deg); background: #c0392b; border: 2px solid #fff; cursor: pointer; }
+  .pin::after { content: ""; position: absolute; top: 6px; left: 6px; width: 6px; height: 6px; border-radius: 50%; background: #fff; }
+  .pins { margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+  .pin-card { background: #1c1f28; border: 1px solid #2b3040; border-radius: 10px; padding: 12px; }
+  .pin-card h3 { margin: 0 0 4px; font-size: .95rem; }
+  .pin-card p { margin: 0; color: #9aa3b5; font-size: .85rem; white-space: pre-wrap; }
+  .footer { margin-top: 24px; color: #6b7385; font-size: .75rem; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>{{.map.Name}}</h1>
+  <div class="meta">{{if .campaign_name}}{{.campaign_name}}{{end}}</div>
+  {{if .map.ImageURL}}
+  <div class="mapwrap" style="width: {{if .map.Width}}{{.map.Width}}{{else}}100{{end}}px;">
+    <img src="{{.map.ImageURL}}" alt="{{.map.Name}}" style="width: {{if .map.Width}}{{.map.Width}}{{else}}100{{end}}px;">
+    {{range .pins}}
+    <div class="pin" style="left: {{if .X}}{{.X}}{{else}}0{{end}}px; top: {{if .Y}}{{.Y}}{{else}}0{{end}}px;" title="{{.Name}}{{if .Description}}: {{.Description}}{{end}}"></div>
+    {{end}}
+  </div>
+  {{else}}
+  <p class="meta">This map has no image.</p>
+  {{end}}
+  {{if .pins}}
+  <div class="pins">
+    {{range .pins}}
+    <div class="pin-card">
+      <h3>{{.Name}}</h3>
+      {{if .Description}}<p>{{.Description}}</p>{{end}}
+    </div>
+    {{end}}
+  </div>
+  {{end}}
+  <div class="footer">Shared from Villum</div>
+</div>
+</body>
+</html>

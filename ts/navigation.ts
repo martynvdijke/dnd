@@ -119,6 +119,7 @@ export function showMoreNav(): void {
   const content = `
     <div class="d-flex flex-column gap-1">
       <button class="btn btn-outline-primary w-100 text-start" onclick="showEncounterBuilder();closeBottomSheet()"><i class="fa-solid fa-crosshairs me-2" aria-hidden="true"></i>Encounters</button>
+      <button class="btn btn-outline-primary w-100 text-start" onclick="openSharedLinks();closeBottomSheet()"><i class="fa-solid fa-share-nodes me-2" aria-hidden="true"></i>Shared Links</button>
       <button class="btn btn-outline-primary w-100 text-start" onclick="showCombatTracker();closeBottomSheet()" style="${show('combatNavItem')}"><i class="fa-solid fa-swords me-2" aria-hidden="true"></i>Combat</button>
       <button class="btn btn-outline-primary w-100 text-start" onclick="showTimeline();closeBottomSheet()"><i class="fa-solid fa-timeline me-2" aria-hidden="true"></i>Timeline</button>
       <button class="btn btn-outline-primary w-100 text-start" onclick="showOneShots();closeBottomSheet()" style="${show('oneshotNavItem')}"><i class="fa-solid fa-scroll me-2" aria-hidden="true"></i>One-Shots</button>
