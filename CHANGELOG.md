@@ -1,3 +1,10 @@
+## [2.46.1](https://github.com/martynvdijke/dnd/compare/v2.46.0...v2.46.1) (2026-08-14)
+
+
+### Bug Fixes
+
+* render dice roller on router navigation to #/dice ([#76](https://github.com/martynvdijke/dnd/issues/76)) ([b195340](https://github.com/martynvdijke/dnd/commit/b195340dc50d8861db2747219f37e4ccb306e2c7)), closes [#diceViewSection](https://github.com/martynvdijke/dnd/issues/diceViewSection)
+
 # [2.46.0](https://github.com/martynvdijke/dnd/compare/v2.45.0...v2.46.0) (2026-08-14)
 
 
