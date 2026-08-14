@@ -15,11 +15,12 @@
         <span class="fw-bold">{{.Name}}</span>
         <span class="badge badge-blood ms-1">Level {{.Level}}</span>
         {{if .School}}<span class="badge badge-gold ms-1">{{.School}}</span>{{end}}
+        {{if eq .Source "entry"}}{{if .SchemaName}}<span class="badge bg-info ms-1">{{.SchemaName}}</span>{{end}}{{end}}
         <p class="mb-0 small text-muted">{{truncate .Description 120}}</p>
       </div>
       <button class="btn btn-sm btn-success ms-2"
         hx-post="/htmx/compendium/spells/link?character_id={{$.CharacterID}}"
-        hx-vals='{"compendium_spell_id":"{{.ID}}"}'
+        hx-vals='{{if eq .Source "entry"}}{"compendium_entry_id":"{{.ID}}"}{{else}}{"compendium_spell_id":"{{.ID}}"}{{end}}'
         hx-target="#spellsSection"
         hx-swap="innerHTML"
         hx-on:click="bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).hide()">

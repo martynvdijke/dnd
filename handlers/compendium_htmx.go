@@ -769,7 +769,7 @@ func HtmxMonsterLibrarySection(c *gin.Context) {
 type htmxCompendiumSpellPickerData struct {
 	CharacterID int64
 	Query       string
-	Spells      []models.CompendiumSpell
+	Spells      []compendiumSpellPickerItem
 	Page        int
 	PageSize    int
 	TotalCount  int
@@ -798,30 +798,12 @@ func HtmxCompendiumSpellPicker(c *gin.Context) {
 	}
 
 	if q != "" {
-		var totalCount int
-		err := db.DB.QueryRow(`SELECT COUNT(*) FROM compendium_spells WHERE name LIKE ?`, "%"+q+"%").Scan(&totalCount)
-		if err == nil {
-			data.TotalCount = totalCount
-			totalPages := (totalCount + pageSize - 1) / pageSize
-			if totalPages < 1 {
-				totalPages = 1
-			}
-			data.TotalPages = totalPages
-		}
-
-		rows, err := db.DB.Query(`SELECT id, name, level, school, casting_time, "range", components, duration,
-			description, higher_levels, classes, source_page,
-			COALESCE(system,''), COALESCE(source,''), COALESCE(publisher,'')
-			FROM compendium_spells WHERE name LIKE ? ORDER BY level, name LIMIT ? OFFSET ?`, "%"+q+"%", pageSize, offset)
-		if err == nil && rows != nil {
-			defer rows.Close()
-			for rows.Next() {
-				var s models.CompendiumSpell
-				rows.Scan(&s.ID, &s.Name, &s.Level, &s.School, &s.CastingTime, &s.Range, &s.Components, &s.Duration,
-					&s.Description, &s.HigherLevels, &s.Classes, &s.SourcePage,
-					&s.System, &s.Source, &s.Publisher)
-				data.Spells = append(data.Spells, s)
-			}
+		spells, totalCount := queryCompendiumSpellsUnion(q, pageSize, offset)
+		data.Spells = spells
+		data.TotalCount = totalCount
+		data.TotalPages = (totalCount + pageSize - 1) / pageSize
+		if data.TotalPages < 1 {
+			data.TotalPages = 1
 		}
 	}
 
@@ -833,7 +815,7 @@ func HtmxCompendiumSpellPicker(c *gin.Context) {
 type htmxCompendiumEquipmentPickerData struct {
 	CharacterID int64
 	Query       string
-	Items       []models.CompendiumEquipment
+	Items       []compendiumEquipmentPickerItem
 	Page        int
 	PageSize    int
 	TotalCount  int
@@ -862,28 +844,12 @@ func HtmxCompendiumEquipmentPicker(c *gin.Context) {
 	}
 
 	if q != "" {
-		var totalCount int
-		err := db.DB.QueryRow(`SELECT COUNT(*) FROM compendium_equipment WHERE name LIKE ?`, "%"+q+"%").Scan(&totalCount)
-		if err == nil {
-			data.TotalCount = totalCount
-			totalPages := (totalCount + pageSize - 1) / pageSize
-			if totalPages < 1 {
-				totalPages = 1
-			}
-			data.TotalPages = totalPages
-		}
-
-		rows, err := db.DB.Query(`SELECT id, name, category, cost, weight, description, source_page,
-			COALESCE(system,''), COALESCE(source,''), COALESCE(item_type,''), COALESCE(item_rarity,''), COALESCE(publisher,'')
-			FROM compendium_equipment WHERE name LIKE ? ORDER BY name LIMIT ? OFFSET ?`, "%"+q+"%", pageSize, offset)
-		if err == nil && rows != nil {
-			defer rows.Close()
-			for rows.Next() {
-				var e models.CompendiumEquipment
-				rows.Scan(&e.ID, &e.Name, &e.Category, &e.Cost, &e.Weight, &e.Description, &e.SourcePage,
-					&e.System, &e.Source, &e.ItemType, &e.ItemRarity, &e.Publisher)
-				data.Items = append(data.Items, e)
-			}
+		items, totalCount := queryCompendiumEquipmentUnion(q, pageSize, offset)
+		data.Items = items
+		data.TotalCount = totalCount
+		data.TotalPages = (totalCount + pageSize - 1) / pageSize
+		if data.TotalPages < 1 {
+			data.TotalPages = 1
 		}
 	}
 
@@ -913,32 +879,64 @@ func HtmxCompendiumEquipmentPickerForOneShot(c *gin.Context) {
 	}
 
 	if q != "" {
-		var totalCount int
-		err := db.DB.QueryRow(`SELECT COUNT(*) FROM compendium_equipment WHERE name LIKE ?`, "%"+q+"%").Scan(&totalCount)
-		if err == nil {
-			data.TotalCount = totalCount
-			totalPages := (totalCount + pageSize - 1) / pageSize
-			if totalPages < 1 {
-				totalPages = 1
-			}
-			data.TotalPages = totalPages
-		}
-
-		rows, err := db.DB.Query(`SELECT id, name, category, cost, weight, description, source_page,
-			COALESCE(system,''), COALESCE(source,''), COALESCE(item_type,''), COALESCE(item_rarity,''), COALESCE(publisher,'')
-			FROM compendium_equipment WHERE name LIKE ? ORDER BY name LIMIT ? OFFSET ?`, "%"+q+"%", pageSize, offset)
-		if err == nil && rows != nil {
-			defer rows.Close()
-			for rows.Next() {
-				var e models.CompendiumEquipment
-				rows.Scan(&e.ID, &e.Name, &e.Category, &e.Cost, &e.Weight, &e.Description, &e.SourcePage,
-					&e.System, &e.Source, &e.ItemType, &e.ItemRarity, &e.Publisher)
-				data.Items = append(data.Items, e)
-			}
+		items, totalCount := queryCompendiumEquipmentUnion(q, pageSize, offset)
+		data.Items = items
+		data.TotalCount = totalCount
+		data.TotalPages = (totalCount + pageSize - 1) / pageSize
+		if data.TotalPages < 1 {
+			data.TotalPages = 1
 		}
 	}
 
 	renderTemplate(c, "compendium_equipment_picker_oneshot", data)
+}
+
+// ─── Compendium Feature Picker (HTMX) ───
+
+type htmxCompendiumFeaturePickerData struct {
+	CharacterID int64
+	Query       string
+	Items       []compendiumFeaturePickerItem
+	Page        int
+	PageSize    int
+	TotalCount  int
+	TotalPages  int
+}
+
+// HtmxCompendiumFeaturePicker renders a picker of generic compendium entries to
+// link as character features.
+func HtmxCompendiumFeaturePicker(c *gin.Context) {
+	charID, _ := strconv.ParseInt(c.Query("character_id"), 10, 64)
+	q := strings.TrimSpace(c.Query("q"))
+	page, _ := strconv.Atoi(c.Query("page"))
+	pageSize, _ := strconv.Atoi(c.Query("page_size"))
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 || pageSize > 100 {
+		pageSize = 20
+	}
+	offset := (page - 1) * pageSize
+
+	data := htmxCompendiumFeaturePickerData{
+		CharacterID: charID,
+		Query:       q,
+		Page:        page,
+		PageSize:    pageSize,
+	}
+
+	if q != "" {
+		items, totalCount := queryCompendiumEntriesForFeatures(q, pageSize, offset)
+		data.Items = items
+		data.TotalCount = totalCount
+		data.TotalPages = (totalCount + pageSize - 1) / pageSize
+		if data.TotalPages < 1 {
+			data.TotalPages = 1
+		}
+	}
+
+	renderTemplate(c, "compendium_feature_picker", data)
 }
 
 // ─── Compendium Spell Browse (HTMX) ───

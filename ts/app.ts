@@ -2915,13 +2915,14 @@ expose('showCompendiumEquipmentPickerForOneShot', function (adventureId: number)
   showModal('Equipment Compendium', `<div id="compendiumEquipmentPickerContent" hx-get="/htmx/compendium/equipment/picker-oneshot/${adventureId}" hx-trigger="load" hx-swap="innerHTML"><div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div></div>`);
 });
 
-expose('importCompendiumEquipmentToOneShot', async function (equipmentId: number, adventureId: number, quantity: number) {
+expose('importCompendiumEquipmentToOneShot', async function (equipmentId: number, adventureId: number, quantity: number, source?: string) {
   try {
-    await api('POST', `/api/oneshot-adventures/${adventureId}/import/compendium-equipment`, {
-      compendium_equipment_id: equipmentId,
-      adventure_id: adventureId,
-      quantity: quantity || 1,
-    });
+    const body: Record<string, any> = source === 'entry'
+      ? { compendium_entry_id: equipmentId }
+      : { compendium_equipment_id: equipmentId };
+    body.adventure_id = adventureId;
+    body.quantity = quantity || 1;
+    await api('POST', `/api/oneshot-adventures/${adventureId}/import/compendium-equipment`, body);
     toast('Equipment added to one-shot');
     bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).hide();
     const itemsCard = document.querySelector('[hx-get*="/items"]');

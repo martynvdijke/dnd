@@ -15,12 +15,14 @@
       {{if .School}}<span class="badge badge-gold ms-1">{{.School}}</span>{{end}}
       {{if .CastingTime}}<span class="badge badge-muted ms-1">{{.CastingTime}}</span>{{end}}
       {{if .Duration}}<span class="badge badge-muted ms-1">{{.Duration}}</span>{{end}}
-      {{if .CompendiumSpellID}}<span class="badge bg-info ms-1"><i class="fa-solid fa-book me-1"></i>Compendium</span>{{end}}
+      {{if or .CompendiumSpellID .CompendiumEntryID}}<span class="badge bg-info ms-1"><i class="fa-solid fa-book me-1"></i>Compendium</span>{{end}}
       <p class="mb-0 small text-muted">{{truncate .Description 150}}</p>
     </div>
     <div class="d-flex gap-1">
+      {{if or .CompendiumSpellID .CompendiumEntryID}}
       {{if .CompendiumSpellID}}
       <button class="btn btn-sm btn-outline-info" hx-get="/compendium/card/spell/{{.CompendiumSpellID}}" hx-target="#cardContainer" hx-swap="beforeend"><i class="fa-solid fa-eye"></i></button>
+      {{end}}
       <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/spells/{{.ID}}/compendium-unlink?character_id={{$.CharacterID}}" hx-target="#spellsSection" hx-swap="innerHTML" hx-confirm="Remove this linked spell?"><i class="fa-solid fa-unlink"></i></button>
       {{else}}
       <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/spells/{{.ID}}/edit" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Edit Spell';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-pen"></i></button>

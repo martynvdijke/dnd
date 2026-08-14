@@ -206,6 +206,7 @@ func ImportCompendiumEntryToOneShot(c *gin.Context) {
 func ImportCompendiumEquipmentToOneShot(c *gin.Context) {
 	var req struct {
 		CompendiumEquipmentID int64  `json:"compendium_equipment_id"`
+		CompendiumEntryID     int64  `json:"compendium_entry_id"`
 		AdventureID           int64  `json:"adventure_id"`
 		ActID                 *int64 `json:"act_id,omitempty"`
 		SceneID               *int64 `json:"scene_id,omitempty"`
@@ -219,6 +220,24 @@ func ImportCompendiumEquipmentToOneShot(c *gin.Context) {
 		req.Quantity = 1
 	}
 
+	// Generic schema entry branch: snapshot the entry JSON.
+	if req.CompendiumEntryID > 0 {
+		snap, err := loadCompendiumEntry(req.CompendiumEntryID)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "compendium entry not found"})
+			return
+		}
+		result, err := db.DB.Exec(`INSERT INTO oneshot_items(adventure_id, act_id, scene_id, name, description, category, quantity, weight, price_gp, is_magical, compendium_entry_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
+			req.AdventureID, req.ActID, req.SceneID, snap.Name, snap.Description, snap.Category, req.Quantity, snap.Weight, parsePriceGP(snap.Cost), false, req.CompendiumEntryID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		id, _ := result.LastInsertId()
+		c.JSON(http.StatusCreated, gin.H{"id": id})
+		return
+	}
+
 	var e models.CompendiumEquipment
 	err := db.DB.QueryRow(`SELECT id, name, category, cost, weight, description, source_page,
 		COALESCE(system,''), COALESCE(source,''), COALESCE(item_type,''), COALESCE(item_rarity,''), COALESCE(publisher,'')
@@ -230,27 +249,7 @@ func ImportCompendiumEquipmentToOneShot(c *gin.Context) {
 		return
 	}
 
-	priceGP := 0.0
-	if e.Cost != "" {
-		parts := strings.Fields(e.Cost)
-		if len(parts) > 0 {
-			if val, err := strconv.ParseFloat(parts[0], 64); err == nil {
-				priceGP = val
-				if len(parts) > 1 {
-					switch strings.ToLower(parts[1]) {
-					case "cp":
-						priceGP = priceGP / 100
-					case "sp":
-						priceGP = priceGP / 10
-					case "ep":
-						priceGP = priceGP * 2
-					case "pp":
-						priceGP = priceGP * 10
-					}
-				}
-			}
-		}
-	}
+	priceGP := parsePriceGP(e.Cost)
 
 	isMagical := strings.EqualFold(e.ItemRarity, "rare") || strings.EqualFold(e.ItemRarity, "very rare") || strings.EqualFold(e.ItemRarity, "legendary") || strings.EqualFold(e.ItemRarity, "artifact")
 

@@ -84,12 +84,13 @@ type Proficiency struct {
 }
 
 type Feature struct {
-	ID          int64  `json:"id"`
-	CharacterID int64  `json:"character_id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Source      string `json:"source"`
-	LevelGained int    `json:"level_gained"`
+	ID                int64  `json:"id"`
+	CharacterID       int64  `json:"character_id"`
+	Name              string `json:"name"`
+	Description       string `json:"description"`
+	Source            string `json:"source"`
+	LevelGained       int    `json:"level_gained"`
+	CompendiumEntryID *int64 `json:"compendium_entry_id,omitempty"`
 }
 
 type Spellcasting struct {
@@ -133,6 +134,7 @@ type Spell struct {
 	Source            string `json:"source"`
 	Notes             string `json:"notes"`
 	CompendiumSpellID *int64 `json:"compendium_spell_id,omitempty"`
+	CompendiumEntryID *int64 `json:"compendium_entry_id,omitempty"`
 }
 
 type InventoryItem struct {
@@ -154,6 +156,7 @@ type InventoryItem struct {
 	IsIdentified          bool    `json:"is_identified"`
 	Notes                 string  `json:"notes"`
 	CompendiumEquipmentID *int64  `json:"compendium_equipment_id,omitempty"`
+	CompendiumEntryID     *int64  `json:"compendium_entry_id,omitempty"`
 }
 
 type DiceRoll struct {
