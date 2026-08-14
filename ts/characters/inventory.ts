@@ -101,13 +101,13 @@ export function renderInventory() {
               ${i.damage_dice && (i.is_identified !== false) ? `<span class="badge badge-blood ms-1">${esc(i.damage_dice)} ${esc(i.damage_type)}</span>` : ''}
               ${i.ac_bonus > 0 && (i.is_identified !== false) ? `<span class="badge badge-gold ms-1">AC+${i.ac_bonus}</span>` : ''}
               ${i.is_identified === false && i.damage_dice ? `<span class="badge badge-muted ms-1">???</span>` : ''}
-              ${i.compendium_equipment_id ? '<span class="badge badge-compendium ms-1" title="Linked from compendium"><i class="fa-solid fa-book me-1"></i></span>' : ''}
+              ${(i.compendium_equipment_id || i.compendium_entry_id) ? '<span class="badge badge-compendium ms-1" title="Linked from compendium"><i class="fa-solid fa-book me-1"></i></span>' : ''}
             </div>
             <div class="d-flex gap-1">
               ${i.is_identified === false ? `<button class="btn-identify" onclick="toggleIdentify(${i.id})" title="Identify item">🔍 ID</button>` : ''}
               ${i.magic && i.is_identified !== false ? `<button class="btn-identify" onclick="toggleIdentify(${i.id})" title="Mark unidentified">🔮</button>` : ''}
               <button class="btn btn-sm btn-outline-primary" onclick="editInventory(${i.id},'${esc(i.name)}',${i.quantity},'${esc(i.category)}',${i.weight},${i.equipped})" title="Edit"><i class="fa-solid fa-pen"></i></button>
-              ${i.compendium_equipment_id ? `<button class="btn btn-sm btn-outline-secondary" onclick="unlinkCompendiumItem(${i.id})" title="Unlink from compendium"><i class="fa-solid fa-link-slash"></i></button>` : ''}
+              ${(i.compendium_equipment_id || i.compendium_entry_id) ? `<button class="btn btn-sm btn-outline-secondary" onclick="unlinkCompendiumItem(${i.id})" title="Unlink from compendium"><i class="fa-solid fa-link-slash"></i></button>` : ''}
               <button class="btn btn-sm btn-outline-secondary" onclick="toggleEquip(${i.id})" title="${i.equipped ? 'Unequip' : 'Equip'}"><i class="fa-solid fa-shield-halved"></i></button>
               <button class="btn btn-sm btn-outline-danger" onclick="deleteInventory(${i.id})" title="Remove"><i class="fa-solid fa-trash"></i></button>
             </div>
@@ -127,14 +127,15 @@ expose('openInventoryPicker', function () {
     render: (e: any) => `<div><span class="fw-bold">${esc(e.name)}</span>
       ${e.category ? `<span class="text-muted small ms-1">${esc(e.category)}</span>` : ''}
       ${e.item_rarity ? `<span class="text-muted small"> · ${esc(e.item_rarity)}</span>` : ''}
-      ${e.weight ? `<span class="text-muted small"> · ${e.weight} lbs</span>` : ''}</div>`,
+      ${e.weight ? `<span class="text-muted small"> · ${e.weight} lbs</span>` : ''}
+      ${e.source === 'entry' && e.schema_name ? `<span class="badge bg-info ms-1">${esc(e.schema_name)}</span>` : ''}</div>`,
     onPick: (e: any) => { linkCompendiumItem(e).catch((err: Error) => toast(err.message, true)); },
   });
 });
 
 async function linkCompendiumItem(item: any) {
   const fd = new FormData();
-  fd.append('compendium_equipment_id', String(item.id));
+  fd.append(item.source === 'entry' ? 'compendium_entry_id' : 'compendium_equipment_id', String(item.id));
   fd.append('quantity', '1');
   const headers: Record<string, string> = {};
   const csrf = getCsrfToken();

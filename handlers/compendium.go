@@ -151,14 +151,47 @@ func ListCompendiumEquipment(c *gin.Context) {
 		return
 	}
 	defer rows.Close()
-	var out = make([]models.CompendiumEquipment, 0)
+	out := make([]compendiumEquipmentPickerItem, 0)
 	for rows.Next() {
 		var e models.CompendiumEquipment
 		if err := rows.Scan(&e.ID, &e.Name, &e.Category, &e.Cost, &e.Weight, &e.Description, &e.SourcePage, &e.System, &e.Source, &e.ItemType, &e.ItemRarity, &e.Publisher); err != nil {
 			middleware.LogWarn("compendium", "scan failed, skipping equipment", "error", err)
 			continue
 		}
-		out = append(out, e)
+		out = append(out, compendiumEquipmentPickerItem{CompendiumEquipment: e, Source: "equipment"})
+	}
+
+	// Append generic schema entries so imported items are linkable too.
+	equery := `SELECT e.id, COALESCE(json_extract(e.data,'$.name'),''),
+		COALESCE(json_extract(e.data,'$.category'), json_extract(e.data,'$.type'), json_extract(e.data,'$.item_type'), json_extract(e.data,'$.subtype'),''),
+		COALESCE(json_extract(e.data,'$.cost'), json_extract(e.data,'$.price'), json_extract(e.data,'$.value'),''),
+		COALESCE(CAST(json_extract(e.data,'$.weight') AS REAL),0),
+		COALESCE(json_extract(e.data,'$.description'), json_extract(e.data,'$.desc'),''),
+		'', '', '', '', '', '', COALESCE(s.display_name,'')
+		FROM compendium_entries e LEFT JOIN compendium_schemas s ON s.id=e.schema_id
+		WHERE COALESCE(json_extract(e.data,'$.name'),'') <> ''`
+	eargs := []any{}
+	if cat := c.Query("category"); cat != "" {
+		equery += " AND COALESCE(json_extract(e.data,'$.category'), json_extract(e.data,'$.type'), json_extract(e.data,'$.item_type'), json_extract(e.data,'$.subtype'),'') = ?"
+		eargs = append(eargs, cat)
+	}
+	if q := c.Query("q"); q != "" {
+		equery += " AND json_extract(e.data,'$.name') LIKE ?"
+		eargs = append(eargs, "%"+q+"%")
+	}
+	equery += " ORDER BY json_extract(e.data,'$.name')"
+	erows, err := db.DB.Query(equery, eargs...)
+	if err == nil {
+		defer erows.Close()
+		for erows.Next() {
+			var e models.CompendiumEquipment
+			var schemaName string
+			if err := erows.Scan(&e.ID, &e.Name, &e.Category, &e.Cost, &e.Weight, &e.Description, &e.SourcePage, &e.System, &e.Source, &e.ItemType, &e.ItemRarity, &e.Publisher, &schemaName); err != nil {
+				middleware.LogWarn("compendium", "entry scan failed, skipping", "error", err)
+				continue
+			}
+			out = append(out, compendiumEquipmentPickerItem{CompendiumEquipment: e, Source: "entry", SchemaName: schemaName})
+		}
 	}
 	c.JSON(http.StatusOK, out)
 }

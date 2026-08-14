@@ -559,7 +559,12 @@ func HtmxListFeatures(c *gin.Context) {
 		c.String(http.StatusBadRequest, "character_id required")
 		return
 	}
-	frows, err := db.DB.Query("SELECT id, character_id, name, description, source, level_gained FROM character_features WHERE character_id=? ORDER BY level_gained, name", charID)
+	renderHtmxFeaturesList(c, charID)
+}
+
+// renderHtmxFeaturesList renders the htmx features list partial for a character.
+func renderHtmxFeaturesList(c *gin.Context, charID string) {
+	frows, err := db.DB.Query("SELECT id, character_id, name, description, source, level_gained, COALESCE(compendium_entry_id,0) FROM character_features WHERE character_id=? ORDER BY level_gained, name", charID)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -568,7 +573,11 @@ func HtmxListFeatures(c *gin.Context) {
 	var feats []models.Feature
 	for frows.Next() {
 		var f models.Feature
-		frows.Scan(&f.ID, &f.CharacterID, &f.Name, &f.Description, &f.Source, &f.LevelGained)
+		var entryID int64
+		frows.Scan(&f.ID, &f.CharacterID, &f.Name, &f.Description, &f.Source, &f.LevelGained, &entryID)
+		if entryID > 0 {
+			f.CompendiumEntryID = &entryID
+		}
 		feats = append(feats, f)
 	}
 	prows, err := db.DB.Query("SELECT id, character_id, type, name FROM character_proficiencies WHERE character_id=? ORDER BY type, name", charID)
@@ -597,6 +606,16 @@ func HtmxCreateFeature(c *gin.Context) {
 	charID := c.PostForm("character_id")
 	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
 		c.String(http.StatusForbidden, "access denied")
+		return
+	}
+	if entryID, ok := formLinkID(c, "compendium_entry_id"); ok {
+		cid, _ := strconv.ParseInt(charID, 10, 64)
+		if st, msg := featureLinkInsert(cid, entryID, getIntParam(c, "level_gained", 1)); msg != "" {
+			c.String(st, msg)
+			return
+		}
+		c.Request.URL.RawQuery = "character_id=" + charID
+		HtmxListFeatures(c)
 		return
 	}
 	db.DB.Exec("INSERT INTO character_features(character_id,name,description,source,level_gained) VALUES(?,?,?,?,?)",
@@ -663,7 +682,7 @@ func HtmxListInventory(c *gin.Context) {
 
 // renderHtmxInventoryList renders the htmx inventory list partial for a character.
 func renderHtmxInventoryList(c *gin.Context, charID string) {
-	rows, err := db.DB.Query("SELECT id, character_id, name, quantity, weight, category, description, is_equipped, is_magical, attunement, COALESCE(compendium_equipment_id,0) FROM inventory WHERE character_id=? ORDER BY category, name", charID)
+	rows, err := db.DB.Query("SELECT id, character_id, name, quantity, weight, category, description, is_equipped, is_magical, attunement, COALESCE(compendium_equipment_id,0), COALESCE(compendium_entry_id,0) FROM inventory WHERE character_id=? ORDER BY category, name", charID)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -672,10 +691,13 @@ func renderHtmxInventoryList(c *gin.Context, charID string) {
 	var items []models.InventoryItem
 	for rows.Next() {
 		var i models.InventoryItem
-		var compID int64
-		rows.Scan(&i.ID, &i.CharacterID, &i.Name, &i.Quantity, &i.Weight, &i.Category, &i.Description, &i.IsEquipped, &i.IsMagical, &i.Attunement, &compID)
+		var compID, entryID int64
+		rows.Scan(&i.ID, &i.CharacterID, &i.Name, &i.Quantity, &i.Weight, &i.Category, &i.Description, &i.IsEquipped, &i.IsMagical, &i.Attunement, &compID, &entryID)
 		if compID > 0 {
 			i.CompendiumEquipmentID = &compID
+		}
+		if entryID > 0 {
+			i.CompendiumEntryID = &entryID
 		}
 		items = append(items, i)
 	}
@@ -755,7 +777,7 @@ func HtmxListSpells(c *gin.Context) {
 
 // renderHtmxSpellsList renders the htmx spells list partial for a character.
 func renderHtmxSpellsList(c *gin.Context, charID string) {
-	rows, err := db.DB.Query("SELECT id, character_id, name, level, school, casting_time, range, components, duration, description, prepared, always_prepared, source, notes, COALESCE(compendium_spell_id,0) FROM spells WHERE character_id=? ORDER BY level, name", charID)
+	rows, err := db.DB.Query("SELECT id, character_id, name, level, school, casting_time, range, components, duration, description, prepared, always_prepared, source, notes, COALESCE(compendium_spell_id,0), COALESCE(compendium_entry_id,0) FROM spells WHERE character_id=? ORDER BY level, name", charID)
 	if err != nil {
 		c.String(http.StatusInternalServerError, err.Error())
 		return
@@ -764,10 +786,13 @@ func renderHtmxSpellsList(c *gin.Context, charID string) {
 	var spells []models.Spell
 	for rows.Next() {
 		var s models.Spell
-		var compID int64
-		rows.Scan(&s.ID, &s.CharacterID, &s.Name, &s.Level, &s.School, &s.CastingTime, &s.Range, &s.Components, &s.Duration, &s.Description, &s.Prepared, &s.AlwaysPrepared, &s.Source, &s.Notes, &compID)
+		var compID, entryID int64
+		rows.Scan(&s.ID, &s.CharacterID, &s.Name, &s.Level, &s.School, &s.CastingTime, &s.Range, &s.Components, &s.Duration, &s.Description, &s.Prepared, &s.AlwaysPrepared, &s.Source, &s.Notes, &compID, &entryID)
 		if compID > 0 {
 			s.CompendiumSpellID = &compID
+		}
+		if entryID > 0 {
+			s.CompendiumEntryID = &entryID
 		}
 		spells = append(spells, s)
 	}
@@ -1773,6 +1798,9 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"DELETE", "/htmx/spells/:id/compendium-unlink", HtmxUnlinkCompendiumSpell},
 		{"POST", "/htmx/compendium/equipment/link", HtmxLinkCompendiumEquipment},
 		{"DELETE", "/htmx/inventory/:id/compendium-unlink", HtmxUnlinkCompendiumEquipment},
+		{"GET", "/htmx/compendium/features/picker", HtmxCompendiumFeaturePicker},
+		{"POST", "/htmx/compendium/features/link", HtmxLinkCompendiumFeature},
+		{"DELETE", "/htmx/features/:id/compendium-unlink", HtmxUnlinkCompendiumFeature},
 
 		// Compendium Card (HTMX partial)
 		{"GET", "/htmx/compendium/card/:type/:id", HtmxCompendiumCard},

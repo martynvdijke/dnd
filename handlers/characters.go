@@ -1044,14 +1044,38 @@ func loadProficiencies(ctx context.Context, characterID int64) []models.Proficie
 	return out
 }
 
+// loadEntryIDs returns map[rowID]entryID for rows of a character table that are
+// linked to a generic compendium entry. The ent schemas predate the
+// compendium_entry_id column, so it is read via supplementary raw SQL.
+func loadEntryIDs(table string, characterID int64) map[int64]int64 {
+	m := map[int64]int64{}
+	rows, err := db.DB.Query("SELECT id, compendium_entry_id FROM "+table+" WHERE character_id=? AND compendium_entry_id IS NOT NULL", characterID)
+	if err != nil {
+		return m
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id, eid int64
+		if rows.Scan(&id, &eid) == nil {
+			m[id] = eid
+		}
+	}
+	return m
+}
+
 func loadFeatures(ctx context.Context, characterID int64) []models.Feature {
 	ents, err := db.Client.CharacterFeature.Query().Where(characterfeature.CharacterID(characterID)).All(ctx)
 	if err != nil {
 		return nil
 	}
 	out := make([]models.Feature, 0, len(ents))
+	entryIDs := loadEntryIDs("character_features", characterID)
 	for _, e := range ents {
-		out = append(out, models.Feature{ID: e.ID, CharacterID: e.CharacterID, Name: e.Name, Description: e.Description, Source: e.Source, LevelGained: e.LevelGained})
+		f := models.Feature{ID: e.ID, CharacterID: e.CharacterID, Name: e.Name, Description: e.Description, Source: e.Source, LevelGained: e.LevelGained}
+		if eid, ok := entryIDs[e.ID]; ok {
+			f.CompendiumEntryID = &eid
+		}
+		out = append(out, f)
 	}
 	return out
 }
@@ -1084,13 +1108,18 @@ func loadSpells(ctx context.Context, characterID int64) []models.Spell {
 		return nil
 	}
 	out := make([]models.Spell, 0, len(ents))
+	entryIDs := loadEntryIDs("spells", characterID)
 	for _, e := range ents {
-		out = append(out, models.Spell{
+		s := models.Spell{
 			ID: e.ID, CharacterID: e.CharacterID, Name: e.Name, Level: e.Level, School: e.School,
 			CastingTime: e.CastingTime, Range: e.Range, Components: e.Components, Duration: e.Duration,
 			Description: e.Description, Prepared: e.Prepared, AlwaysPrepared: e.AlwaysPrepared, Source: e.Source, Notes: e.Notes,
 			CompendiumSpellID: e.CompendiumSpellID,
-		})
+		}
+		if eid, ok := entryIDs[e.ID]; ok {
+			s.CompendiumEntryID = &eid
+		}
+		out = append(out, s)
 	}
 	return out
 }
@@ -1101,14 +1130,19 @@ func loadInventory(ctx context.Context, characterID int64) []models.InventoryIte
 		return nil
 	}
 	out := make([]models.InventoryItem, 0, len(ents))
+	entryIDs := loadEntryIDs("inventory", characterID)
 	for _, e := range ents {
-		out = append(out, models.InventoryItem{
+		it := models.InventoryItem{
 			ID: e.ID, CharacterID: e.CharacterID, Name: e.Name, Quantity: e.Quantity, Weight: e.Weight,
 			Category: e.Category, DamageDice: e.DamageDice, DamageType: e.DamageType, WeaponProperties: e.WeaponProperties,
 			ACBonus: e.AcBonus, ArmorType: e.ArmorType, Description: e.Description,
 			IsEquipped: e.IsEquipped, IsMagical: e.IsMagical, Attunement: e.Attunement, IsIdentified: e.IsIdentified, Notes: e.Notes,
 			CompendiumEquipmentID: e.CompendiumEquipmentID,
-		})
+		}
+		if eid, ok := entryIDs[e.ID]; ok {
+			it.CompendiumEntryID = &eid
+		}
+		out = append(out, it)
 	}
 	return out
 }

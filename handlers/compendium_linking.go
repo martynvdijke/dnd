@@ -30,21 +30,33 @@ func spellLinkInsert(charID, compendiumSpellID int64) (int, string) {
 	return 0, ""
 }
 
-// unlinkSpellRef nulls the compendium reference on a spell, preserving its data.
+// unlinkSpellRef nulls the compendium references on a spell, preserving its data.
 func unlinkSpellRef(spellID int64) (int, string) {
-	var compID int64
-	err := db.DB.QueryRow("SELECT COALESCE(compendium_spell_id,0) FROM spells WHERE id=?", spellID).Scan(&compID)
+	var compID, entryID int64
+	err := db.DB.QueryRow("SELECT COALESCE(compendium_spell_id,0), COALESCE(compendium_entry_id,0) FROM spells WHERE id=?", spellID).Scan(&compID, &entryID)
 	if err != nil {
 		return http.StatusNotFound, "spell not found"
 	}
-	if compID == 0 {
+	if compID == 0 && entryID == 0 {
 		return http.StatusBadRequest, "spell is not linked from compendium"
 	}
-	_, err = db.DB.Exec("UPDATE spells SET compendium_spell_id = NULL WHERE id=?", spellID)
+	_, err = db.DB.Exec("UPDATE spells SET compendium_spell_id = NULL, compendium_entry_id = NULL WHERE id=?", spellID)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error()
 	}
 	return 0, ""
+}
+
+// formLinkID returns the first non-empty numeric id posted under any of the given form keys.
+func formLinkID(c *gin.Context, keys ...string) (int64, bool) {
+	for _, k := range keys {
+		if v := c.PostForm(k); v != "" {
+			if id, err := strconv.ParseInt(v, 10, 64); err == nil && id > 0 {
+				return id, true
+			}
+		}
+	}
+	return 0, false
 }
 
 // LinkCompendiumSpell creates a spell row for a character linked to a compendium spell.
@@ -57,6 +69,14 @@ func LinkCompendiumSpell(c *gin.Context) {
 	}
 	if !canEditCharacterID(c, charID) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+	if entryID, ok := formLinkID(c, "compendium_entry_id"); ok {
+		if st, msg := entrySpellLinkInsert(charID, entryID); msg != "" {
+			c.JSON(st, gin.H{"error": msg})
+			return
+		}
+		c.JSON(http.StatusCreated, gin.H{"status": "linked"})
 		return
 	}
 	compendiumSpellID, err := strconv.ParseInt(c.PostForm("compendium_spell_id"), 10, 64)
@@ -82,6 +102,14 @@ func HtmxLinkCompendiumSpell(c *gin.Context) {
 	}
 	if !canEditCharacterID(c, cid) {
 		c.String(http.StatusForbidden, "access denied")
+		return
+	}
+	if entryID, ok := formLinkID(c, "compendium_entry_id"); ok {
+		if st, msg := entrySpellLinkInsert(cid, entryID); msg != "" {
+			c.String(st, msg)
+			return
+		}
+		renderHtmxSpellsList(c, charID)
 		return
 	}
 	compID, err := strconv.ParseInt(c.PostForm("compendium_spell_id"), 10, 64)
@@ -160,17 +188,17 @@ func itemLinkInsert(charID, compendiumEquipmentID int64, quantity int) (int, str
 	return 0, ""
 }
 
-// unlinkItemRef nulls the compendium reference on an inventory item, preserving its data.
+// unlinkItemRef nulls the compendium references on an inventory item, preserving its data.
 func unlinkItemRef(itemID int64) (int, string) {
-	var compID int64
-	err := db.DB.QueryRow("SELECT COALESCE(compendium_equipment_id,0) FROM inventory WHERE id=?", itemID).Scan(&compID)
+	var compID, entryID int64
+	err := db.DB.QueryRow("SELECT COALESCE(compendium_equipment_id,0), COALESCE(compendium_entry_id,0) FROM inventory WHERE id=?", itemID).Scan(&compID, &entryID)
 	if err != nil {
 		return http.StatusNotFound, "item not found"
 	}
-	if compID == 0 {
+	if compID == 0 && entryID == 0 {
 		return http.StatusBadRequest, "item is not linked from compendium"
 	}
-	_, err = db.DB.Exec("UPDATE inventory SET compendium_equipment_id = NULL WHERE id=?", itemID)
+	_, err = db.DB.Exec("UPDATE inventory SET compendium_equipment_id = NULL, compendium_entry_id = NULL WHERE id=?", itemID)
 	if err != nil {
 		return http.StatusInternalServerError, err.Error()
 	}
@@ -189,17 +217,25 @@ func LinkCompendiumEquipment(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-	compendiumEquipmentID, err := strconv.ParseInt(c.PostForm("compendium_equipment_id"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "compendium_equipment_id required"})
-		return
-	}
 	quantity := 1
 	if q := c.PostForm("quantity"); q != "" {
 		quantity, _ = strconv.Atoi(q)
 		if quantity < 1 {
 			quantity = 1
 		}
+	}
+	if entryID, ok := formLinkID(c, "compendium_entry_id"); ok {
+		if st, msg := entryItemLinkInsert(charID, entryID, quantity); msg != "" {
+			c.JSON(st, gin.H{"error": msg})
+			return
+		}
+		c.JSON(http.StatusCreated, gin.H{"status": "linked"})
+		return
+	}
+	compendiumEquipmentID, err := strconv.ParseInt(c.PostForm("compendium_equipment_id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "compendium_equipment_id required"})
+		return
 	}
 	if st, msg := itemLinkInsert(charID, compendiumEquipmentID, quantity); msg != "" {
 		c.JSON(st, gin.H{"error": msg})
@@ -221,17 +257,25 @@ func HtmxLinkCompendiumEquipment(c *gin.Context) {
 		c.String(http.StatusForbidden, "access denied")
 		return
 	}
-	compID, err := strconv.ParseInt(c.PostForm("compendium_equipment_id"), 10, 64)
-	if err != nil {
-		c.String(http.StatusBadRequest, "compendium_equipment_id required")
-		return
-	}
 	quantity := 1
 	if q := c.PostForm("quantity"); q != "" {
 		quantity, _ = strconv.Atoi(q)
 		if quantity < 1 {
 			quantity = 1
 		}
+	}
+	if entryID, ok := formLinkID(c, "compendium_entry_id"); ok {
+		if st, msg := entryItemLinkInsert(cid, entryID, quantity); msg != "" {
+			c.String(st, msg)
+			return
+		}
+		renderHtmxInventoryList(c, charID)
+		return
+	}
+	compID, err := strconv.ParseInt(c.PostForm("compendium_equipment_id"), 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, "compendium_equipment_id required")
+		return
 	}
 	if st, msg := itemLinkInsert(cid, compID, quantity); msg != "" {
 		c.String(st, msg)
