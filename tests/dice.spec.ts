@@ -20,6 +20,24 @@ test.describe('Dice rolling', () => {
     await expect(result).toContainText('2d6+3');
   });
 
+  test('dice roller renders on direct #/dice deep link and reload', async ({ page }) => {
+    // Router navigation (deep link / reload / back-forward) must render the
+    // roller too — the dice view has no static content in app.html.
+    await page.goto('/#/dice');
+    await expect(page.locator('#diceView h1')).toContainText('Dice Roller');
+    await expect(page.locator('#diceExpr')).toBeVisible();
+    await expect(page.locator('#dice3dContainer')).toBeVisible();
+
+    // Reloading while on #/dice (initial-hash navigation) must re-render.
+    await page.reload();
+    await expect(page.locator('#diceExpr')).toBeVisible();
+
+    const input = page.locator('#diceExpr');
+    await input.fill('1d20');
+    await page.click('text=Roll the Bones');
+    await expect(page.locator('#diceResult')).toBeVisible({ timeout: 10000 });
+  });
+
   test('saves dice roll history', async ({ page }) => {
     await clickNavItem(page, 'dice', 'dice');
     const input = page.locator('#diceExpr');
