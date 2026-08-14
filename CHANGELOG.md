@@ -1,3 +1,10 @@
+# [2.46.0](https://github.com/martynvdijke/dnd/compare/v2.45.0...v2.46.0) (2026-08-14)
+
+
+### Features
+
+* link imported compendium entries to characters and one-shots ([#75](https://github.com/martynvdijke/dnd/issues/75)) ([bc51fca](https://github.com/martynvdijke/dnd/commit/bc51fca91aa448afa97ad8f7f5ea3ac08c5326fe))
+
 # [2.45.0](https://github.com/martynvdijke/dnd/compare/v2.44.1...v2.45.0) (2026-08-13)
 
 
