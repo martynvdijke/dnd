@@ -58,6 +58,19 @@ function switchView(view: ViewState): void {
   updateFabForView(view);
   if (view === 'party') {
     (window as any).renderPartySubTabBar?.('overview');
+  } else if (view === 'dice') {
+    // The dice view has no static content (see #diceViewSection in
+    // app.html); renderDiceTab() must run when arriving via router
+    // navigation (deep links, reloads, back/forward) so the roller is
+    // not an empty shell. Guard on emptiness: direct onclick handlers
+    // (sidebar/FAB) call renderDiceTab() themselves, and switchView can
+    // be re-entered by the async hashchange that showView triggers —
+    // re-rendering an already-populated section would wipe the user's
+    // typed expression.
+    const section = document.getElementById('diceViewSection');
+    if (section && section.children.length === 0) {
+      (window as any).renderDiceTab?.();
+    }
   }
 }
 
