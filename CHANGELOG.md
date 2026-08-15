@@ -1,3 +1,10 @@
+# [2.48.0](https://github.com/martynvdijke/dnd/compare/v2.47.0...v2.48.0) (2026-08-15)
+
+
+### Features
+
+* add TRMNL party roster view + trmnlp lint/push pipeline ([#79](https://github.com/martynvdijke/dnd/issues/79)) ([d3adf19](https://github.com/martynvdijke/dnd/commit/d3adf194ead86af2a886dd80da286d0c4e807c52))
+
 # [2.47.0](https://github.com/martynvdijke/dnd/compare/v2.46.2...v2.47.0) (2026-08-15)
 
 
