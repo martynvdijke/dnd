@@ -1,4 +1,9 @@
-const CACHE_NAME = 'villum-v2';
+// {{VERSION}} is substituted at serve time by the /sw.js handler (see
+// RegisterStaticRoutes) with the app version. Every release therefore
+// produces different sw.js bytes, which is what makes browsers detect
+// and install the updated service worker instead of serving the old
+// cached bundle forever.
+const CACHE_NAME = 'villum-v3-{{VERSION}}';
 const CDN_CACHE = 'villum-cdn-v1';
 
 // CDN origins to cache-first

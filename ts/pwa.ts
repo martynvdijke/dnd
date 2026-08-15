@@ -3,6 +3,17 @@ const SW_VERSION = 'v1';
 
 export function registerSW(): void {
   if (!('serviceWorker' in navigator)) return;
+  // Reload once when an updated service worker (a new release) takes
+  // control, so users get the fresh bundle without a manual refresh.
+  // The first-ever install also claims the page; guard on whether the
+  // page was already controlled so first visits don't double-load.
+  const wasControlled = !!navigator.serviceWorker.controller;
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!wasControlled || refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
   navigator.serviceWorker.register('/sw.js', { scope: '/' })
     .then(() => console.log('[SW] registered'))
     .catch((err) => console.warn('[SW] registration failed:', err));
