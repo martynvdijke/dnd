@@ -1,3 +1,10 @@
+## [2.46.2](https://github.com/martynvdijke/dnd/compare/v2.46.1...v2.46.2) (2026-08-15)
+
+
+### Bug Fixes
+
+* always refresh app on new release via versioned service worker ([#77](https://github.com/martynvdijke/dnd/issues/77)) ([b17e5d1](https://github.com/martynvdijke/dnd/commit/b17e5d1ba807647feb602c096649007d61a043d6))
+
 ## [2.46.1](https://github.com/martynvdijke/dnd/compare/v2.46.0...v2.46.1) (2026-08-14)
 
 
