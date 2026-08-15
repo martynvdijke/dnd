@@ -159,7 +159,15 @@ func RegisterStaticRoutes(r *gin.Engine, embedFS embed.FS, mediaPath string, Ver
 			c.String(http.StatusNotFound, "not found")
 			return
 		}
-		c.Data(http.StatusOK, "application/javascript", data)
+		// Stamp the app version into the cache name so the SW bytes change
+		// on every release — that's what makes browsers detect and install
+		// the updated worker (and thus the fresh app bundle) instead of
+		// serving the old cached one forever.
+		content := strings.ReplaceAll(string(data), "{{VERSION}}", Version)
+		// Force revalidation on every navigation; without this the browser
+		// only re-checks the SW script about once per 24h.
+		c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
+		c.Data(http.StatusOK, "application/javascript", []byte(content))
 	})
 
 	// Serve HTML pages with version substitution and optional analytics injection
