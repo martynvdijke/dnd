@@ -1,3 +1,10 @@
+# [2.47.0](https://github.com/martynvdijke/dnd/compare/v2.46.2...v2.47.0) (2026-08-15)
+
+
+### Features
+
+* add character resources tracking to the sheet ([ce405d5](https://github.com/martynvdijke/dnd/commit/ce405d571b85cc835a83beec30fdbb9d86ecc149))
+
 ## [2.46.2](https://github.com/martynvdijke/dnd/compare/v2.46.1...v2.46.2) (2026-08-15)
 
 
