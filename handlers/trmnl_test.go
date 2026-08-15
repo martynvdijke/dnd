@@ -19,6 +19,7 @@ func trmnlPublicRouter() *gin.Engine {
 	return testutil.NewRouter(func(auth *gin.RouterGroup) {
 		auth.GET("/trmnl/character-stats", GetTRMNLCharacterStats)
 		auth.GET("/trmnl/campaign-stats", GetTRMNLCampaignStats)
+		auth.GET("/trmnl/characters", GetTRMNLCharacterRoster)
 	})
 }
 
@@ -177,6 +178,71 @@ func TestTRMNLCampaignStats(t *testing.T) {
 	// No mutation: GET-only polling
 	if n := testutil.CountRows(t, "sessions"); n != 0 {
 		t.Fatalf("expected 0 session rows after polling, got %d", n)
+	}
+}
+
+func TestTRMNLCharacterRoster(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCharacter(t, 1, 1, "Thorgar", "Dwarf", "Fighter")
+	testutil.SeedCharacter(t, 2, 1, "Aldric", "Human", "Wizard")
+
+	var settings map[string]any
+	w := testutil.Get(t, trmnlAdminRouter(), "/api/admin/settings/trmnl")
+	testutil.AssertStatus(t, w, 200)
+	testutil.ParseJSON(t, w, &settings)
+	token := settings["token"].(string)
+
+	r := trmnlPublicRouter()
+
+	// No token -> 401
+	w2 := testutil.Get(t, r, "/api/trmnl/characters")
+	testutil.AssertStatus(t, w2, 401)
+
+	// Wrong token -> 401
+	w3 := testutil.Get(t, r, "/api/trmnl/characters?token=wrongtoken")
+	testutil.AssertStatus(t, w3, 401)
+
+	// Valid token -> 200 with JSON array, ordered by name
+	w4 := testutil.Get(t, r, "/api/trmnl/characters?token="+token)
+	testutil.AssertStatus(t, w4, 200)
+	var roster []map[string]any
+	testutil.ParseJSON(t, w4, &roster)
+	if len(roster) != 2 {
+		t.Fatalf("expected 2 characters in roster, got %d: %s", len(roster), w4.Body.String())
+	}
+	// ORDER BY name: Aldric (id 2) before Thorgar (id 1)
+	testutil.AssertField(t, roster[0], "id", float64(2))
+	testutil.AssertField(t, roster[0], "name", "Aldric")
+	testutil.AssertField(t, roster[0], "race", "Human")
+	testutil.AssertField(t, roster[0], "class", "Wizard")
+	testutil.AssertField(t, roster[0], "character_type", "player")
+	testutil.AssertField(t, roster[1], "id", float64(1))
+	testutil.AssertField(t, roster[1], "name", "Thorgar")
+	testutil.AssertField(t, roster[1], "race", "Dwarf")
+	testutil.AssertField(t, roster[1], "class", "Fighter")
+	testutil.AssertField(t, roster[1], "character_type", "player")
+
+	// Spot-check stat fields on the first row (seeded defaults: level 1,
+	// str 10 -> str_mod 0, hp 12/12, ac 10, initiative 0)
+	for _, row := range roster {
+		testutil.AssertField(t, row, "level", float64(1))
+		testutil.AssertField(t, row, "hp_current", float64(12))
+		testutil.AssertField(t, row, "hp_max", float64(12))
+		testutil.AssertField(t, row, "ac", float64(10))
+		testutil.AssertField(t, row, "initiative", float64(0))
+		testutil.AssertField(t, row, "str", float64(10))
+		testutil.AssertField(t, row, "str_mod", float64(0))
+		if _, ok := row["subclass"]; !ok {
+			t.Fatalf("expected subclass field in roster row: %+v", row)
+		}
+	}
+
+	// No mutation: GET-only polling
+	if n := testutil.CountRows(t, "characters"); n != 2 {
+		t.Fatalf("expected 2 character rows after polling, got %d", n)
 	}
 }
 

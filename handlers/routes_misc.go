@@ -33,6 +33,7 @@ func RegisterPublicRoutes(r *gin.Engine) {
 	// TRMNL e-ink display polling endpoints (token-guarded, read-only)
 	r.GET("/api/trmnl/character-stats", GetTRMNLCharacterStats)
 	r.GET("/api/trmnl/campaign-stats", GetTRMNLCampaignStats)
+	r.GET("/api/trmnl/characters", GetTRMNLCharacterRoster)
 }
 
 // RegisterAuthBoilerplate registers auth helper routes (logout, csrf, me).

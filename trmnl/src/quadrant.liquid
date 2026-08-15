@@ -1,5 +1,25 @@
 <div class="layout layout--col gap">
-  {% if trmnl.plugin_settings.custom_fields_values.display_mode == 'campaign' %}
+  {% if trmnl.plugin_settings.custom_fields_values.display_mode == 'roster' %}
+  <div class="grid grid--cols-1">
+    <div class="item">
+      <div class="meta">Party Roster</div>
+      <div class="content">
+        <span class="value value--medium">{{ IDX_2.size }} Characters</span>
+      </div>
+    </div>
+  </div>
+  <div class="grid grid--cols-2">
+    {% for ch in IDX_2 %}
+    <div class="item">
+      <div class="meta">{{ ch.race }} {{ ch.class }}</div>
+      <div class="content">
+        <span class="value value--medium">{{ ch.name }}</span>
+        <span class="label">L{{ ch.level }} · HP {{ ch.hp_current }}/{{ ch.hp_max }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% elsif trmnl.plugin_settings.custom_fields_values.display_mode == 'campaign' %}
   <div class="grid grid--cols-1">
     <div class="item">
       <div class="meta">Campaign Progress</div>

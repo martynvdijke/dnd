@@ -1,7 +1,23 @@
 <div class="layout layout--col gap">
   <div class="columns">
     <div class="column">
-      {% if trmnl.plugin_settings.custom_fields_values.display_mode == 'campaign' %}
+      {% if trmnl.plugin_settings.custom_fields_values.display_mode == 'roster' %}
+      <div class="item">
+        <div class="meta">Party Roster</div>
+        <div class="content">
+          <span class="value value--large">{{ IDX_2.size }} Characters</span>
+        </div>
+      </div>
+      {% for ch in IDX_2 %}
+      <div class="item">
+        <div class="meta">{{ ch.race }} {{ ch.class }}{% if ch.subclass %} · {{ ch.subclass }}{% endif %}</div>
+        <div class="content">
+          <span class="value value--medium">{{ ch.name }}</span>
+          <span class="label">Level {{ ch.level }} · HP {{ ch.hp_current }}/{{ ch.hp_max }}</span>
+        </div>
+      </div>
+      {% endfor %}
+      {% elsif trmnl.plugin_settings.custom_fields_values.display_mode == 'campaign' %}
       <div class="item">
         <div class="meta">Campaign Progress</div>
         <div class="content">
@@ -58,7 +74,22 @@
       {% endif %}
     </div>
     <div class="column">
-      {% if trmnl.plugin_settings.custom_fields_values.display_mode == 'campaign' %}
+      {% if trmnl.plugin_settings.custom_fields_values.display_mode == 'roster' %}
+      <div class="item">
+        <div class="meta">Party Stats</div>
+        <div class="content">
+          <span class="value value--medium">AC / XP per character</span>
+        </div>
+      </div>
+      {% for ch in IDX_2 %}
+      <div class="item">
+        <div class="content">
+          <span class="value value--medium">{{ ch.name }}</span>
+          <span class="label">AC {{ ch.ac }} · {{ ch.xp }} xp</span>
+        </div>
+      </div>
+      {% endfor %}
+      {% elsif trmnl.plugin_settings.custom_fields_values.display_mode == 'campaign' %}
       <div class="item">
         <div class="meta">Quests</div>
         <div class="content">
