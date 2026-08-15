@@ -78,3 +78,65 @@ func TestResourceCRUD(t *testing.T) {
 		testutil.AssertStatus(t, w, 200)
 	})
 }
+
+// TestDoRestRecoversResources verifies that taking a rest via DoRest restores
+// resources with rest recovery, while consumables (max=0) never refill.
+func TestDoRestRecoversResources(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCharacter(t, 1, 1, "RestHero", "Human", "Monk")
+
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.POST("/characters/:id/rest", DoRest)
+		auth.GET("/characters/:id/resources", ListCharacterResources)
+		auth.POST("/characters/:id/resources", CreateCharacterResource)
+	})
+
+	// Ki points recover on both rests; rations (max=0) are consumables.
+	testutil.PostJSON(t, r, "/api/characters/1/resources", map[string]any{
+		"name": "Ki", "current": 1, "max": 5,
+		"short_rest_recovery": 1, "long_rest_recovery": 5,
+	})
+	testutil.PostJSON(t, r, "/api/characters/1/resources", map[string]any{
+		"name": "Rations", "current": 3, "max": 0,
+		"short_rest_recovery": 1, "long_rest_recovery": 1,
+	})
+
+	currentByName := func() map[string]int {
+		t.Helper()
+		w := testutil.Get(t, r, "/api/characters/1/resources")
+		testutil.AssertStatus(t, w, 200)
+		var list []map[string]any
+		testutil.ParseJSON(t, w, &list)
+		cur := map[string]int{}
+		for _, res := range list {
+			cur[res["name"].(string)] = int(res["current"].(float64))
+		}
+		return cur
+	}
+
+	t.Run("short rest recovers short_rest_recovery only", func(t *testing.T) {
+		w := testutil.PostJSON(t, r, "/api/characters/1/rest", map[string]any{"rest_type": "short"})
+		testutil.AssertStatus(t, w, 200)
+		cur := currentByName()
+		if cur["Ki"] != 2 {
+			t.Errorf("Ki current = %d, want 2 after short rest", cur["Ki"])
+		}
+		if cur["Rations"] != 3 {
+			t.Errorf("Rations current = %d, want 3 (consumables never refill)", cur["Rations"])
+		}
+	})
+
+	t.Run("long rest recovers to max", func(t *testing.T) {
+		w := testutil.PostJSON(t, r, "/api/characters/1/rest", map[string]any{"rest_type": "long"})
+		testutil.AssertStatus(t, w, 200)
+		cur := currentByName()
+		if cur["Ki"] != 5 {
+			t.Errorf("Ki current = %d, want 5 (max) after long rest", cur["Ki"])
+		}
+		if cur["Rations"] != 3 {
+			t.Errorf("Rations current = %d, want 3 (consumables never refill)", cur["Rations"])
+		}
+	})
+}

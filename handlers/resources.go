@@ -91,6 +91,18 @@ func DeleteCharacterResource(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
+// recoverResourcesForRest restores resource current values by their rest recovery
+// amounts (short_rest_recovery for short rests, long_rest_recovery for long rests).
+// Resources without a max (consumables such as rations) are never touched, since
+// MIN(max, ...) with max=0 would otherwise zero them out.
+func recoverResourcesForRest(charID int64, restType string) {
+	col := "long_rest_recovery"
+	if restType == "short" {
+		col = "short_rest_recovery"
+	}
+	db.DB.Exec("UPDATE character_resources SET current = MIN(max, current + "+col+") WHERE character_id=? AND max > 0", charID)
+}
+
 func RecoverResourcesOnRest(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	if !canEditCharacterID(c, charID) {
@@ -105,18 +117,7 @@ func RecoverResourcesOnRest(c *gin.Context) {
 		return
 	}
 
-	var col string
-	if req.RestType == "short" {
-		col = "short_rest_recovery"
-	} else {
-		col = "long_rest_recovery"
-	}
-
-	_, err := db.DB.Exec("UPDATE character_resources SET current = MIN(max, current + "+col+") WHERE character_id=?", charID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
+	recoverResourcesForRest(charID, req.RestType)
 
 	// If long rest, also reset spell slots
 	if req.RestType == "long" {

@@ -2104,6 +2104,9 @@ func DoRest(c *gin.Context) {
 			Save(ctx)
 	}
 
+	// Restore resources that recover on rest (spell slots, ki, etc.)
+	recoverResourcesForRest(charID, req.RestType)
+
 	db.Client.RestLog.Create().
 		SetCharacterID(charID).
 		SetRestType(req.RestType).

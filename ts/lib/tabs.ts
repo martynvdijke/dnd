@@ -6,6 +6,7 @@ export const sections = [
   'combat',
   'spells',
   'inventory',
+  'resources',
   'features',
   'feats',
   'companions',
