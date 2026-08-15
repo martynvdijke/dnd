@@ -32,4 +32,4 @@ custom_fields:
     placeholder: roster
     help_text: "character, campaign or roster"
 name: Villum - D&D Stats
-description: Shows D&D character stats, campaign progress, or the full party roster on a TRMNL display.
+description: Villum D&D stats for TRMNL
