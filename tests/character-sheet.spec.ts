@@ -376,7 +376,7 @@ test.describe('Import/export edge cases', () => {
     await page.waitForTimeout(500);
   });
 
-  test('character sheet shows currency tab', async ({ page }) => {
+  test('character sheet tracks wealth and resources', async ({ page }) => {
     const name = uniqueName();
     await page.click('text=New Character');
     await page.fill('#newName', name);
@@ -388,10 +388,54 @@ test.describe('Import/export edge cases', () => {
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
 
-    await page.click('#tabBar button:has-text("Details")');
-    const text = await page.locator('#detailsSection').textContent();
+    // Wealth lives on the Resources tab
+    await page.click('#tabBar button:has-text("Resources")');
+    await expect(page.locator('[data-testid="resources-total"]')).toBeVisible({ timeout: NAV_TIMEOUT });
+    const text = await page.locator('#resourcesSection').textContent();
     expect(text).toContain('CP');
     expect(text).toContain('GP');
+    await expect(page.locator('[data-testid="resources-total"]')).toHaveText(/0 gp/);
+
+    // Coin steppers update the total
+    await page.click('#resourcesSection button[aria-label="Increase GP"]');
+    await expect(page.locator('[data-testid="resources-total"]')).toHaveText(/1 gp/);
+
+    // Add a consumable resource (no max — never refills on rest)
+    await page.click('[data-testid="resource-add"]');
+    await expect(page.locator('[data-testid="resource-name-input"]')).toBeVisible({ timeout: NAV_TIMEOUT });
+    await page.fill('[data-testid="resource-name-input"]', 'Rations');
+    await page.fill('[data-testid="resource-current-input"]', '3');
+    await page.fill('[data-testid="resource-max-input"]', '0');
+    await page.click('[data-testid="resource-save"]');
+    await waitModalClosed(page);
+
+    const rationsRow = page.locator('[data-testid="resource-row"]').filter({ hasText: 'Rations' });
+    await expect(rationsRow).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(rationsRow).toContainText('3');
+
+    // Stepper decrements and persists
+    await rationsRow.locator('button[aria-label="Decrease Rations"]').click();
+    await expect(rationsRow).toContainText('2');
+
+    // Add a replenishable resource with rest recovery amounts
+    await page.click('[data-testid="resource-add"]');
+    await page.fill('[data-testid="resource-name-input"]', 'Ki Points');
+    await page.fill('[data-testid="resource-current-input"]', '1');
+    await page.fill('[data-testid="resource-max-input"]', '5');
+    await page.fill('[data-testid="resource-short-recovery-input"]', '1');
+    await page.fill('[data-testid="resource-long-recovery-input"]', '5');
+    await page.click('[data-testid="resource-save"]');
+    await waitModalClosed(page);
+
+    const kiRow = page.locator('[data-testid="resource-row"]').filter({ hasText: 'Ki Points' });
+    await expect(kiRow).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(kiRow).toContainText('+1 SR');
+    await expect(kiRow).toContainText('+5 LR');
+
+    // Remove the resource
+    page.once('dialog', dialog => dialog.accept());
+    await kiRow.locator('button[title="Remove"]').click();
+    await expect(kiRow).not.toBeVisible({ timeout: NAV_TIMEOUT });
   });
 });
 

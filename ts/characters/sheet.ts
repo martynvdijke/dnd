@@ -11,6 +11,7 @@ import { markDirty, isDirty, isSaving, saveCharacter } from '../lib/save';
 import { renderDiceTab } from '../dice';
 import { renderStats, renderXPBar } from './stats';
 import { renderCombat } from './combat';
+import { wealthTotalGp } from './resources';
 
 declare const htmx: any;
 
@@ -91,6 +92,7 @@ export function switchTab(tab: string) {
   if (currentChar) {
     switch (tab) {
       case 'inventory': (window as any).renderInventory?.(); break;
+      case 'resources': (window as any).renderResources?.(); break;
       case 'journal': (window as any).renderJournal?.(); break;
     }
     applySheetReadonly();
@@ -171,6 +173,7 @@ export async function coinStepper(coin: string, delta: number) {
     toast(`${coin.toUpperCase()} ${delta > 0 ? '+' : ''}${delta}`);
   } catch (e: any) { toast(e.message, true); }
   renderSheet();
+  if (currentTab === 'resources') { (window as any).renderResources?.(); }
 }
 
 export function updateXPBar() {
@@ -243,7 +246,7 @@ function ensureSheetAccordion(): void {
   if (!currentChar) return;
   const c: any = currentChar;
   const classStr = [c.race, c.subclass, c.class].filter(Boolean).join(' ');
-  const titles: Record<string, string> = { stats: 'Stats', combat: 'Combat', spells: 'Spells', inventory: 'Inventory', features: 'Features', feats: 'Feats', companions: 'Companions', crafting: 'Crafting', locations: 'Locations', npcs: 'NPCs', sessions: 'Sessions', quests: 'Quests', journal: 'Journal', notes: 'Notes', graph: 'Graph', analytics: 'Analytics', details: 'Details', dice: 'Dice Roller' };
+  const titles: Record<string, string> = { stats: 'Stats', combat: 'Combat', spells: 'Spells', inventory: 'Inventory', resources: 'Resources', features: 'Features', feats: 'Feats', companions: 'Companions', crafting: 'Crafting', locations: 'Locations', npcs: 'NPCs', sessions: 'Sessions', quests: 'Quests', journal: 'Journal', notes: 'Notes', graph: 'Graph', analytics: 'Analytics', details: 'Details', dice: 'Dice Roller' };
   for (const s of sections) {
     const el = document.getElementById(s + 'Section') as HTMLElement | null;
     if (!el || !el.parentElement) continue;
@@ -270,6 +273,7 @@ function ensureSheetAccordion(): void {
       else if (s === 'combat') txt = `HP ${c.hp_current}/${c.hp_max} · AC ${c.ac}`;
       else if (s === 'spells') { const sp = (c.spells || []).filter((x: any) => x.prepared || x.always_prepared); txt = `${sp.length} prepared`; }
       else if (s === 'inventory') txt = `${(c.inventory || []).length} items`;
+      else if (s === 'resources') { const total = wealthTotalGp(); txt = total > 0 ? `${Math.round(total * 100) / 100} gp` : ''; }
       else if (s === 'features') txt = `${(c.features || []).length}`;
       else if (s === 'feats') txt = `${(c.feats || []).length}`;
       else if (s === 'companions') txt = `${(c.companions || []).length}`;

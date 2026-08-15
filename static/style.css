@@ -3140,6 +3140,88 @@ body.sidebar-collapsed .container {
   font-size: 1rem;
 }
 
+/* ─── Character Resources ─── */
+
+.resource-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+  background: var(--parchment-light);
+}
+
+[data-theme="dark"] .resource-row {
+  background: transparent;
+}
+
+.resource-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background: rgba(184,150,62,0.15);
+  color: var(--gold);
+  font-size: 1.05rem;
+}
+
+.resource-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.resource-rest-badges {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+}
+
+.resource-value {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.resource-icon-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.resource-icon-option:hover {
+  border-color: var(--gold);
+}
+
+.resource-icon-option.selected {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(184,150,62,0.35);
+  color: var(--gold);
+}
+
+@media (max-width: 575.98px) {
+  .resource-row {
+    flex-wrap: wrap;
+  }
+  .resource-value {
+    margin-left: 3rem;
+  }
+}
+
 /* ─── Mobile responsive column overrides for stats section ─── */
 
 @media (max-width: 767.98px) {

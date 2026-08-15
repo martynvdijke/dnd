@@ -538,17 +538,6 @@ function renderDetails() {
     `).join('')}
     <div class="mb-3"><label class="form-label">Backstory</label>
     <textarea class="form-control form-control-sm" rows="4" oninput="autoSaveField('backstory',this)">${esc(c.backstory)}</textarea></div>
-    <h5 class="mt-4">Currency <small class="text-muted fw-normal">(tap +/− to adjust)</small></h5>
-    <div class="row g-3">
-      ${['cp','sp','ep','gp','pp'].map(coin => `
-        <div class="col-4 col-md-2"><label class="form-label small">${coin.toUpperCase()}</label>
-        <div class="currency-stepper">
-          <button class="stepper-btn" onclick="coinStepper('${coin}', -1)" aria-label="Decrease ${coin.toUpperCase()}">−</button>
-          <span class="stepper-value" id="coin${coin}">${c.currency?.[coin]||0}</span>
-          <button class="stepper-btn" onclick="coinStepper('${coin}', 1)" aria-label="Increase ${coin.toUpperCase()}">+</button>
-        </div></div>
-      `).join('')}
-    </div>
     <div class="mt-3">
       <button class="btn btn-outline-primary btn-sm" onclick="shareCharacter()"><i class="fa-solid fa-share-nodes me-1"></i>Share Character</button>
     </div>`;
