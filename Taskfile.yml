@@ -71,3 +71,9 @@ tasks:
       - rm -f villum-server
       - rm -f villum.db*
       - rm -rf playwright-report test-results static/js/*
+
+  trmnl:lint:
+    desc: Lint the TRMNL plugin with trmnlp (requires ruby + trmnl_preview gem)
+    cmds:
+      - gem install trmnl_preview
+      - cd trmnl && trmnlp lint

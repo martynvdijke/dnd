@@ -4,7 +4,7 @@ no_screen_padding: 'no'
 dark_mode: 'no'
 polling_verb: get
 framework_version: 2.3.7
-polling_url: "https://dnd.example.com/api/trmnl/character-stats\r\nhttps://dnd.example.com/api/trmnl/campaign-stats"
+polling_url: "https://dnd.example.com/api/trmnl/character-stats\r\nhttps://dnd.example.com/api/trmnl/campaign-stats\r\nhttps://dnd.example.com/api/trmnl/characters"
 refresh_interval: 1440
 custom_fields:
   - keyname: url
@@ -28,8 +28,8 @@ custom_fields:
   - keyname: display_mode
     field_type: string
     name: Display mode
-    description: Show character stats or campaign progress
-    placeholder: character
-    help_text: "character or campaign"
+    description: Show character stats, campaign progress, or the full party roster
+    placeholder: roster
+    help_text: "character, campaign or roster"
 name: Villum - D&D Stats
-description: Shows D&D character stats or campaign progress on a TRMNL display.
+description: Shows D&D character stats, campaign progress, or the full party roster on a TRMNL display.

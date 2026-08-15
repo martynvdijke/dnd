@@ -234,6 +234,59 @@ func GetTRMNLCampaignStats(c *gin.Context) {
 	c.JSON(http.StatusOK, mergeTRMNLCampaignStats(campaign, charStats))
 }
 
+// TRMNLCharacterRosterEntry is one character row in the party roster payload.
+// It embeds the core character stats and adds the id and character type.
+type TRMNLCharacterRosterEntry struct {
+	ID            int64  `json:"id"`
+	CharacterType string `json:"character_type"`
+	TRMNLCharacterStats
+}
+
+// GetTRMNLCharacterRoster is a public polling endpoint returning the full
+// party roster — every character with their core stats — for TRMNL displays.
+func GetTRMNLCharacterRoster(c *gin.Context) {
+	if !trmnlTokenValid(c) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	rows, err := db.DB.Query(`
+		SELECT id, name, race, class, subclass, level, xp, hp_current, hp_max,
+		       ac, initiative, str, dex, con, int, wis, cha,
+		       COALESCE(character_type, 'player')
+		FROM characters ORDER BY name`)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load characters"})
+		return
+	}
+	defer rows.Close()
+
+	roster := make([]TRMNLCharacterRosterEntry, 0)
+	for rows.Next() {
+		var e TRMNLCharacterRosterEntry
+		if err := rows.Scan(
+			&e.ID, &e.Name, &e.Race, &e.Class, &e.Subclass, &e.Level, &e.XP,
+			&e.HPCurrent, &e.HPMax, &e.AC, &e.Initiative,
+			&e.Str, &e.Dex, &e.Con, &e.Int, &e.Wis, &e.Cha,
+			&e.CharacterType,
+		); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load characters"})
+			return
+		}
+		e.StrMod = abilityModifier(e.Str)
+		e.DexMod = abilityModifier(e.Dex)
+		e.ConMod = abilityModifier(e.Con)
+		e.IntMod = abilityModifier(e.Int)
+		e.WisMod = abilityModifier(e.Wis)
+		e.ChaMod = abilityModifier(e.Cha)
+		roster = append(roster, e)
+	}
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load characters"})
+		return
+	}
+	c.JSON(http.StatusOK, roster)
+}
+
 // mergeTRMNLCampaignStats combines campaign progress stats with the core
 // character fields into a single flat payload.
 func mergeTRMNLCampaignStats(campaign CharacterStats, char TRMNLCharacterStats) TRMNLCampaignStats {

@@ -224,14 +224,15 @@ The app can fetch compendium data from the [D&D 5e API](https://www.dnd5eapi.co)
 
 ## TRMNL e-ink Display Plugin
 
-[TRMNL](https://usetrmnl.com) is a dedicated e-ink display that polls JSON endpoints and renders Liquid templates on-device — no browser needed. Villum ships a plugin (in `trmnl/`) that shows character stats or campaign progress at a glance.
+[TRMNL](https://usetrmnl.com) is a dedicated e-ink display that polls JSON endpoints and renders Liquid templates on-device — no browser needed. Villum ships a plugin (in `trmnl/`) that shows character stats, campaign progress, or the full party roster at a glance.
 
 ### Endpoints
 
-Both endpoints are **read-only** and require the TRMNL access token as a query parameter:
+All endpoints are **read-only** and require the TRMNL access token as a query parameter:
 
 - `GET /api/trmnl/character-stats?token=<token>&character_id=<id>` — character name, race, class, level, XP, HP, AC, initiative, and the six ability scores with modifiers
 - `GET /api/trmnl/campaign-stats?token=<token>&character_id=<id>` — session count, total XP/gold earned, quest and rest breakdowns, top NPCs, and dice roll summary
+- `GET /api/trmnl/characters?token=<token>` — the full party roster: every character's name, race, class, subclass, level, XP, HP, AC, initiative, ability scores, and character type, ordered by name
 
 Responses are `401` without a valid token and `404` for unknown `character_id`.
 
@@ -243,13 +244,19 @@ Responses are `401` without a valid token and `404` for unknown `character_id`.
 
 ### Installing the plugin
 
-1. In the TRMNL web app, create a new plugin and upload the files from `trmnl/` (all four layouts: `full`, `half_horizontal`, `half_vertical`, `quadrant`) and `settings.yml`
+1. In the TRMNL web app, create a new plugin and upload the files from `trmnl/src/` (all four layouts: `full`, `half_horizontal`, `half_vertical`, `quadrant`) and `settings.yml`
 2. Set the custom fields:
    - `url` — your Villum instance base URL (e.g., `https://dnd.example.com`)
    - `token` — the TRMNL access token from the admin panel
-   - `character_id` — the character to display
-   - `display_mode` — `character` for character stats, `campaign` for campaign progress
+   - `character_id` — the character to display (not used in `roster` mode)
+   - `display_mode` — `character` for character stats, `campaign` for campaign progress, or `roster` for the full party list
 3. The plugin polls daily by default (`refresh_interval: 1440` minutes); adjust in `settings.yml` if needed
+
+### Plugin releases
+
+The plugin lives in `trmnl/` as a [trmnlp](https://github.com/usetrmnl/trmnlp) project (`trmnl/src/` + `trmnl/.trmnlp.yml`). It is linted on every PR (`trmnlp lint` in the `trml` CI job) and published to TRMNL on release (`trmnlp push --force`).
+
+To publish, set the `TRMNL_API_KEY` GitHub secret (stored as `TRML_TOKEN` in the release workflow — the same secret name used by the other Martyn van Dijke TRMNL plugins). Without it, the `trml` release job fails loudly, so set it before the next release.
 
 ## License
 
