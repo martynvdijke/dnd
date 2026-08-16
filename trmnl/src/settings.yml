@@ -5,6 +5,7 @@ dark_mode: 'no'
 polling_verb: get
 framework_version: 2.3.7
 polling_url: "https://dnd.example.com/api/trmnl/character-stats\r\nhttps://dnd.example.com/api/trmnl/campaign-stats\r\nhttps://dnd.example.com/api/trmnl/characters"
+id: 443731
 refresh_interval: 1440
 custom_fields:
   - keyname: url
