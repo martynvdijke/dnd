@@ -1,3 +1,10 @@
+## [2.48.2](https://github.com/martynvdijke/dnd/compare/v2.48.1...v2.48.2) (2026-08-16)
+
+
+### Bug Fixes
+
+* **trmnl:** improve compact responsive layouts ([#81](https://github.com/martynvdijke/dnd/issues/81)) ([f33de06](https://github.com/martynvdijke/dnd/commit/f33de067048b3f80cab916e8478630a0cc6eb4b0))
+
 ## [2.48.1](https://github.com/martynvdijke/dnd/compare/v2.48.0...v2.48.1) (2026-08-16)
 
 
