@@ -1,18 +1,20 @@
-<div class="layout layout--col gap">
+<div class="layout layout--col layout--stretch gap--xsmall">
   {% if trmnl.plugin_settings.custom_fields_values.display_mode == 'roster' %}
   <div class="grid grid--cols-1">
     <div class="item">
-      <div class="meta">Party Roster</div>
+      <div class="meta"></div>
       <div class="content">
-        <span class="value value--medium">{{ IDX_2.size }} Characters</span>
+        <span class="label">Party Roster</span>
+        <span class="value value--small">{{ IDX_2.size }} Characters</span>
       </div>
     </div>
   </div>
   <div class="grid grid--cols-2">
     {% for ch in IDX_2 %}
     <div class="item">
-      <div class="meta">{{ ch.race }} {{ ch.class }}</div>
+      <div class="meta"></div>
       <div class="content">
+        <span class="label">{{ ch.race }} {{ ch.class }}</span>
         <span class="value value--medium">{{ ch.name }}</span>
         <span class="label">L{{ ch.level }} · HP {{ ch.hp_current }}/{{ ch.hp_max }}</span>
       </div>
@@ -22,74 +24,84 @@
   {% elsif trmnl.plugin_settings.custom_fields_values.display_mode == 'campaign' %}
   <div class="grid grid--cols-1">
     <div class="item">
-      <div class="meta">Campaign Progress</div>
+      <div class="meta"></div>
       <div class="content">
-        <span class="value value--medium">{{ IDX_1.name }}</span>
+        <span class="label">Campaign Progress</span>
+        <span class="value value--small">{{ IDX_1.name }}</span>
         <span class="label">Level {{ IDX_1.level }}</span>
       </div>
     </div>
   </div>
   <div class="grid grid--cols-2">
     <div class="item">
-      <div class="meta">Sessions</div>
+      <div class="meta"></div>
       <div class="content">
-        <span class="value value--medium">{{ IDX_1.session_count }}</span>
+        <span class="label">Sessions</span>
+        <span class="value value--small">{{ IDX_1.session_count }}</span>
       </div>
     </div>
     <div class="item">
-      <div class="meta">Total XP</div>
+      <div class="meta"></div>
       <div class="content">
-        <span class="value value--medium">{{ IDX_1.total_xp_earned }}</span>
+        <span class="label">Total XP</span>
+        <span class="value value--small">{{ IDX_1.total_xp_earned }}</span>
         <span class="label">xp</span>
       </div>
     </div>
     <div class="item">
-      <div class="meta">Total Gold</div>
+      <div class="meta"></div>
       <div class="content">
-        <span class="value value--medium">{{ IDX_1.total_gold_earned }}</span>
+        <span class="label">Total Gold</span>
+        <span class="value value--small">{{ IDX_1.total_gold_earned }}</span>
         <span class="label">gp</span>
       </div>
     </div>
     <div class="item">
-      <div class="meta">Hit Points</div>
+      <div class="meta"></div>
       <div class="content">
-        <span class="value value--medium">{{ IDX_1.hp_current }}/{{ IDX_1.hp_max }}</span>
+        <span class="label">Hit Points</span>
+        <span class="value value--small">{{ IDX_1.hp_current }}/{{ IDX_1.hp_max }}</span>
       </div>
     </div>
   </div>
   {% else %}
   <div class="grid grid--cols-1">
     <div class="item">
-      <div class="meta">{{ IDX_0.race }} {{ IDX_0.class }}</div>
+      <div class="meta"></div>
       <div class="content">
-        <span class="value value--medium">{{ IDX_0.name }}</span>
+        <span class="label">{{ IDX_0.race }} {{ IDX_0.class }}</span>
+        <span class="value value--small">{{ IDX_0.name }}</span>
         <span class="label">Level {{ IDX_0.level }}</span>
       </div>
     </div>
   </div>
   <div class="grid grid--cols-2">
     <div class="item">
-      <div class="meta">Hit Points</div>
+      <div class="meta"></div>
       <div class="content">
-        <span class="value value--medium">{{ IDX_0.hp_current }}/{{ IDX_0.hp_max }}</span>
+        <span class="label">Hit Points</span>
+        <span class="value value--small">{{ IDX_0.hp_current }}/{{ IDX_0.hp_max }}</span>
       </div>
     </div>
     <div class="item">
-      <div class="meta">Armor Class</div>
+      <div class="meta"></div>
       <div class="content">
-        <span class="value value--medium">{{ IDX_0.ac }}</span>
+        <span class="label">Armor Class</span>
+        <span class="value value--small">{{ IDX_0.ac }}</span>
       </div>
     </div>
     <div class="item">
-      <div class="meta">Initiative</div>
+      <div class="meta"></div>
       <div class="content">
-        <span class="value value--medium">{% if IDX_0.initiative > 0 %}+{% endif %}{{ IDX_0.initiative }}</span>
+        <span class="label">Initiative</span>
+        <span class="value value--small">{% if IDX_0.initiative > 0 %}+{% endif %}{{ IDX_0.initiative }}</span>
       </div>
     </div>
     <div class="item">
-      <div class="meta">Experience</div>
+      <div class="meta"></div>
       <div class="content">
-        <span class="value value--medium">{{ IDX_0.xp }}</span>
+        <span class="label">Experience</span>
+        <span class="value value--small">{{ IDX_0.xp }}</span>
         <span class="label">xp</span>
       </div>
     </div>
