@@ -1,3 +1,10 @@
+## [2.48.1](https://github.com/martynvdijke/dnd/compare/v2.48.0...v2.48.1) (2026-08-16)
+
+
+### Bug Fixes
+
+* **trmnl:** pin plugin ID and gate trmnlp push on release ([f3faaa9](https://github.com/martynvdijke/dnd/commit/f3faaa9d8cf59c8f3f58bcb86a34c9c935131213))
+
 # [2.48.0](https://github.com/martynvdijke/dnd/compare/v2.47.0...v2.48.0) (2026-08-15)
 
 
