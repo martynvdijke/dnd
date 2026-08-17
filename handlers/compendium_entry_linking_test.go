@@ -150,6 +150,26 @@ func TestPickersIncludeGenericEntries(t *testing.T) {
 	})
 }
 
+func TestSpellPickerFiltersAndRejectsEquipment(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCharacter(t, 1, 1, "Hero", "Elf", "Wizard")
+	spellSchema := seedTestEntrySchema(t, "homebrew_spells", "Homebrew Spells")
+	equipmentSchema := seedTestEntrySchema(t, "homebrew_equipment", "Homebrew Equipment")
+	seedTestEntry(t, 9101, spellSchema, `{"name":"Wizard Bolt","level":2,"school":"Evocation","classes":["Wizard"]}`)
+	seedTestEntry(t, 9102, spellSchema, `{"name":"Cleric Light","level":5,"school":"Light","classes":["Cleric"]}`)
+	seedTestEntry(t, 9103, equipmentSchema, `{"name":"Wizard Staff","category":"Weapon","weight":4}`)
+
+	items, total := queryCompendiumSpellsUnion("Wizard Bolt", "Wizard", "1-3", 20, 0)
+	if total != 1 || len(items) != 1 || items[0].ID != 9101 {
+		t.Fatalf("filtered spell picker = total %d, items %#v", total, items)
+	}
+	if status, _ := entrySpellLinkInsert(1, 9103); status != http.StatusBadRequest {
+		t.Fatalf("equipment link status = %d, want %d", status, http.StatusBadRequest)
+	}
+}
+
 // The character-sheet picker API must also surface generic entries so the
 // client-rendered inventory picker can link them.
 func TestListCompendiumEquipmentIncludesEntries(t *testing.T) {

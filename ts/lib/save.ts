@@ -2,7 +2,7 @@
 // Extracted from characters/sheet.ts (improve-auto-save).
 import { expose } from './expose';
 import { currentChar, setCurrentChar } from './state';
-import { showModal, toast } from './dom';
+import { toast } from './dom';
 import { api } from './api';
 
 let sheetDirty = false;
@@ -10,20 +10,25 @@ let saving = false;
 let schedulerHandle: number | null = null;
 let saveTimer: number | null = null;
 
-const INTERVAL_KEY = 'villum-autosave-interval';
+let serverInterval = 12;
+let settingsLoaded = false;
 
 export function getAutoSaveInterval(): number {
-  const raw = localStorage.getItem(INTERVAL_KEY);
-  const n = parseInt(raw || '', 10);
-  return !isNaN(n) && n >= 5 && n <= 300 ? n : 12;
+  return serverInterval;
 }
 
-export function setAutoSaveInterval(seconds: number): void {
-  const s = Math.min(300, Math.max(5, Math.round(seconds)));
-  localStorage.setItem(INTERVAL_KEY, String(s));
+async function loadAutoSaveInterval(): Promise<void> {
+  try {
+    const result = await api('GET', '/api/settings/autosave');
+    const value = Number(result?.interval);
+    serverInterval = Number.isInteger(value) && value >= 5 && value <= 300 ? value : 12;
+  } catch {
+    serverInterval = 12;
+  }
+  settingsLoaded = true;
   if (schedulerHandle !== null) {
     window.clearInterval(schedulerHandle);
-    schedulerHandle = window.setInterval(autoSaveScheduler, s * 1000);
+    schedulerHandle = window.setInterval(autoSaveScheduler, getAutoSaveInterval() * 1000);
   }
   window.dispatchEvent(new CustomEvent('villum-savestate'));
 }
@@ -76,6 +81,7 @@ function autoSaveScheduler(): void {
 
 export function startAutoSave(): void {
   ensureScheduler();
+  if (!settingsLoaded) void loadAutoSaveInterval();
   window.dispatchEvent(new CustomEvent('villum-savestate'));
 }
 
@@ -90,25 +96,6 @@ export function stopAutoSave(): void {
   }
 }
 
-export function openAutoSaveSettings(): void {
-  const current = getAutoSaveInterval();
-  showModal('Auto-save settings', `<div class="mb-2">
-    <label class="form-label" for="autosaveInterval">Auto-save interval (seconds)</label>
-    <input type="range" id="autosaveInterval" min="5" max="300" step="5" class="form-range" value="${current}">
-    <div class="d-flex justify-content-between"><span class="text-muted small">5s</span><span id="autosaveIntervalLabel" class="fw-bold">${current}s</span><span class="text-muted small">300s</span></div>
-  </div>`);
-  const slider = document.getElementById('autosaveInterval') as HTMLInputElement;
-  const label = document.getElementById('autosaveIntervalLabel');
-  const update = () => {
-    const v = parseInt(slider.value, 10);
-    setAutoSaveInterval(v);
-    if (label) label.textContent = v + 's';
-  };
-  slider.addEventListener('input', update);
-}
-
 expose('saveCharacter', saveCharacter);
 expose('isDirty', isDirty);
 expose('isSaving', isSaving);
-expose('setAutoSaveInterval', setAutoSaveInterval);
-expose('openAutoSaveSettings', openAutoSaveSettings);

@@ -58,7 +58,7 @@ function showAdminTab(tab: string) {
   document.querySelectorAll('#adminTabs .nav-link').forEach(el => el.classList.remove('active'));
   const tabBtn = document.getElementById('tab' + capitalize(tab) + 'Btn');
   if (tabBtn) tabBtn.classList.add('active');
-  const allTabs = ['users', 'unified-compendium', 'backup', 'email', 'ai-endpoints', 'analytics', 'telemetry', 'events', 'import', 'e-ink', 'trmnl', 'logs'];
+  const allTabs = ['users', 'unified-compendium', 'backup', 'email', 'ai-endpoints', 'analytics', 'telemetry', 'events', 'import', 'e-ink', 'settings', 'trmnl', 'logs'];
   allTabs.forEach(s => {
     const parts = s.split('-').map((p, i) => i === 0 ? capitalize(p) : capitalize(p));
     const id = 'admin' + parts.join('');
@@ -75,6 +75,7 @@ function showAdminTab(tab: string) {
   if (tab === 'events') { loadEventsSettings(); loadCampaignEventSettings(); loadEventsPublicLink(); }
   if (tab === 'import') { loadImportSchemas(); loadImportLogs(); }
   if (tab === 'e-ink') loadEinkSetting();
+  if (tab === 'settings') loadAutoSaveSetting();
   if (tab === 'trmnl') loadTrmnlSetting();
   if (tab === 'logs') { startLogAutoRefresh(); }
   else { stopLogAutoRefresh(); }
@@ -105,6 +106,30 @@ async function saveEinkSetting() {
 }
 expose('loadEinkSetting', loadEinkSetting);
 expose('saveEinkSetting', saveEinkSetting);
+
+async function loadAutoSaveSetting() {
+  try {
+    const res = await api('GET', '/api/admin/settings/autosave');
+    const el = document.getElementById('autosaveInterval') as HTMLInputElement | null;
+    if (el) el.value = String(res.interval ?? 12);
+  } catch {
+    toast('Failed to load auto-save setting', true);
+  }
+}
+
+async function saveAutoSaveSetting() {
+  const el = document.getElementById('autosaveInterval') as HTMLInputElement | null;
+  const interval = Number(el?.value || 12);
+  try {
+    const res = await api('PUT', '/api/admin/settings/autosave', { interval });
+    if (el) el.value = String(res.interval);
+    toast('Auto-save setting saved site-wide');
+  } catch {
+    toast('Failed to save auto-save setting', true);
+  }
+}
+expose('loadAutoSaveSetting', loadAutoSaveSetting);
+expose('saveAutoSaveSetting', saveAutoSaveSetting);
 
 // ─── TRMNL e-ink Display ───
 

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -8,6 +9,52 @@ import (
 	"villum/db"
 	"villum/models"
 )
+
+const defaultAutoSaveInterval = 12
+
+func normalizedAutoSaveInterval(value any) int {
+	n, ok := value.(float64)
+	if !ok || n != float64(int(n)) {
+		return defaultAutoSaveInterval
+	}
+	interval := int(n)
+	if interval < 5 {
+		return 5
+	}
+	if interval > 300 {
+		return 300
+	}
+	return interval
+}
+
+func GetAutoSaveSetting(c *gin.Context) {
+	interval := defaultAutoSaveInterval
+	var value string
+	if err := db.DB.QueryRow("SELECT value FROM app_settings WHERE key = 'autosave_interval'").Scan(&value); err == nil {
+		var decoded any
+		if json.Unmarshal([]byte(value), &decoded) == nil {
+			interval = normalizedAutoSaveInterval(decoded)
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"interval": interval})
+}
+
+func SetAutoSaveSetting(c *gin.Context) {
+	var req map[string]any
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+	interval := defaultAutoSaveInterval
+	if raw, ok := req["interval"]; ok {
+		interval = normalizedAutoSaveInterval(raw)
+	}
+	if _, err := db.DB.Exec("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('autosave_interval', ?)", interval); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save setting"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"interval": interval})
+}
 
 func GetEmailSettings(c *gin.Context) {
 	var s models.EmailSettings
