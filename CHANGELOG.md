@@ -1,3 +1,10 @@
+# [2.49.0](https://github.com/martynvdijke/dnd/compare/v2.48.2...v2.49.0) (2026-08-17)
+
+
+### Features
+
+* add spell picker filters and admin autosave ([#82](https://github.com/martynvdijke/dnd/issues/82)) ([15a78d8](https://github.com/martynvdijke/dnd/commit/15a78d8f87ceda61fd810e58716b4cb8ffd77511))
+
 ## [2.48.2](https://github.com/martynvdijke/dnd/compare/v2.48.1...v2.48.2) (2026-08-16)
 
 
