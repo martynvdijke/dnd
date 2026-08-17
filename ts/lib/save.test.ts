@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getAutoSaveInterval, setAutoSaveInterval, markDirty, markClean, isDirty, isSaving, startAutoSave, stopAutoSave, saveCharacter } from './save';
+import { getAutoSaveInterval, markDirty, markClean, isDirty, isSaving, startAutoSave, stopAutoSave, saveCharacter } from './save';
 import { setCurrentChar } from './state';
 
 // Mock api so saveCharacter does not hit the network
@@ -21,6 +21,7 @@ describe('lib/save', () => {
   beforeEach(() => {
     localStorageMock.clear();
     apiMock.mockReset();
+    apiMock.mockResolvedValue({ interval: 12 });
     markClean();
     stopAutoSave();
     setCurrentChar({ id: 1, name: 'Test', race: 'Human', class: 'Wizard', level: 1 } as any);
@@ -32,16 +33,6 @@ describe('lib/save', () => {
 
   it('getAutoSaveInterval defaults to 12', () => {
     expect(getAutoSaveInterval()).toBe(12);
-  });
-
-  it('getAutoSaveInterval reads stored value', () => {
-    localStorageMock.setItem('villum-autosave-interval', '30');
-    expect(getAutoSaveInterval()).toBe(30);
-  });
-
-  it('setAutoSaveInterval writes localStorage', () => {
-    setAutoSaveInterval(45);
-    expect(localStorageMock.getItem('villum-autosave-interval')).toBe('45');
   });
 
   it('markDirty/markClean toggle dirty flag', () => {
@@ -61,21 +52,19 @@ describe('lib/save', () => {
     await p;
     expect(isSaving()).toBe(false);
     expect(isDirty()).toBe(false);
-    expect(apiMock).toHaveBeenCalledTimes(1);
-    expect(apiMock.mock.calls[0][0]).toBe('PUT');
-    expect(apiMock.mock.calls[0][1]).toBe('/api/characters/1');
+    expect(apiMock.mock.calls.some((call: unknown[]) => call[0] === 'PUT' && call[1] === '/api/characters/1')).toBe(true);
   });
 
   it('scheduler saves when dirty and stops when clean', () => {
     vi.useFakeTimers();
     startAutoSave();
     markDirty();
-    expect(apiMock).not.toHaveBeenCalled();
+    expect(apiMock.mock.calls.filter((call: unknown[]) => call[0] === 'PUT')).toHaveLength(0);
     vi.advanceTimersByTime(12000);
-    expect(apiMock).toHaveBeenCalledTimes(1);
+    expect(apiMock.mock.calls.filter((call: unknown[]) => call[0] === 'PUT')).toHaveLength(1);
     // after save success, dirty is false — next tick no call
     vi.advanceTimersByTime(12000);
-    expect(apiMock).toHaveBeenCalledTimes(1);
+    expect(apiMock.mock.calls.filter((call: unknown[]) => call[0] === 'PUT')).toHaveLength(1);
   });
 
   it('stopAutoSave halts the scheduler', () => {
@@ -84,7 +73,7 @@ describe('lib/save', () => {
     markDirty(); // starts scheduler via ensureScheduler
     stopAutoSave(); // must clear the running interval
     vi.advanceTimersByTime(60000);
-    expect(apiMock).not.toHaveBeenCalled();
+    expect(apiMock.mock.calls.filter((call: unknown[]) => call[0] === 'PUT')).toHaveLength(0);
   });
 });
 
@@ -92,6 +81,7 @@ describe('autoSaveField integration (7.2)', () => {
   beforeEach(() => {
     localStorageMock.clear();
     apiMock.mockReset();
+    apiMock.mockResolvedValue({ interval: 12 });
     markClean();
     stopAutoSave();
     setCurrentChar({ id: 1, name: 'Test', race: 'Human', class: 'Wizard', level: 1 } as any);

@@ -1,11 +1,36 @@
 {{define "compendium_spell_picker"}}
 <div class="mb-3">
+  <div class="row g-2">
+  <div class="col-12 col-md-6">
   <input type="text" class="form-control" id="compendiumSpellSearch" placeholder="Search spells..." value="{{.Query}}"
     hx-get="/htmx/compendium/spells/picker?character_id={{.CharacterID}}"
     hx-trigger="keyup changed delay:300ms"
     hx-target="#compendiumSpellResults"
     hx-swap="innerHTML"
-    name="q">
+    name="q" hx-include="#compendiumSpellClass,#compendiumSpellLevel">
+  </div>
+  <div class="col-6 col-md-3">
+    <select class="form-select" id="compendiumSpellClass" name="class"
+      hx-get="/htmx/compendium/spells/picker?character_id={{.CharacterID}}"
+      hx-trigger="change" hx-target="#compendiumSpellResults" hx-swap="innerHTML"
+      hx-include="#compendiumSpellSearch,#compendiumSpellLevel">
+      <option value="">All Classes</option>
+      {{range .Classes}}<option value="{{.}}"{{if eq $.Class .}} selected{{end}}>{{.}}</option>{{end}}
+    </select>
+  </div>
+  <div class="col-6 col-md-3">
+    <select class="form-select" id="compendiumSpellLevel" name="level"
+      hx-get="/htmx/compendium/spells/picker?character_id={{.CharacterID}}"
+      hx-trigger="change" hx-target="#compendiumSpellResults" hx-swap="innerHTML"
+      hx-include="#compendiumSpellSearch,#compendiumSpellClass">
+      <option value="">All Levels</option>
+      <option value="0"{{if eq .Level "0"}} selected{{end}}>Cantrip</option>
+      <option value="1-3"{{if eq .Level "1-3"}} selected{{end}}>1st–3rd</option>
+      <option value="4-6"{{if eq .Level "4-6"}} selected{{end}}>4th–6th</option>
+      <option value="7-9"{{if eq .Level "7-9"}} selected{{end}}>7th–9th</option>
+    </select>
+  </div>
+  </div>
 </div>
 <div id="compendiumSpellResults">
   {{if .Spells}}
@@ -33,7 +58,7 @@
     <div class="d-flex justify-content-center align-items-center gap-2 mt-3">
       {{if gt .Page 1}}
       <button class="btn btn-sm btn-outline-primary pagination-btn"
-        hx-get="/htmx/compendium/spells/picker?character_id={{$.CharacterID}}&page={{sub .Page 1}}&page_size={{.PageSize}}&q={{.Query}}"
+        hx-get="/htmx/compendium/spells/picker?character_id={{$.CharacterID}}&page={{sub .Page 1}}&page_size={{.PageSize}}&q={{.Query}}&class={{.Class}}&level={{.Level}}"
         hx-target="#compendiumSpellResults"
         hx-swap="innerHTML">
         <i class="fa-solid fa-chevron-left"></i> Previous
@@ -42,7 +67,7 @@
       <span class="text-muted small">Page {{.Page}} of {{.TotalPages}}</span>
       {{if lt .Page .TotalPages}}
       <button class="btn btn-sm btn-outline-primary pagination-btn"
-        hx-get="/htmx/compendium/spells/picker?character_id={{$.CharacterID}}&page={{add .Page 1}}&page_size={{.PageSize}}&q={{.Query}}"
+        hx-get="/htmx/compendium/spells/picker?character_id={{$.CharacterID}}&page={{add .Page 1}}&page_size={{.PageSize}}&q={{.Query}}&class={{.Class}}&level={{.Level}}"
         hx-target="#compendiumSpellResults"
         hx-swap="innerHTML">
         Next <i class="fa-solid fa-chevron-right"></i>
@@ -51,8 +76,8 @@
     </div>
     {{end}}
 
-  {{else if .Query}}
-    <div class="text-center text-muted py-4">No spells found for "{{.Query}}"</div>
+  {{else if or .Query .Class .Level}}
+    <div class="text-center text-muted py-4">No spells found for the selected filters</div>
   {{else}}
     <div class="text-center text-muted py-4">Type a spell name to search</div>
   {{end}}

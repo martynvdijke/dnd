@@ -175,19 +175,43 @@ func queryCompendiumEquipmentUnion(q string, limit, offset int) ([]compendiumEqu
 }
 
 // queryCompendiumSpellsUnion searches legacy spells AND generic entries.
-func queryCompendiumSpellsUnion(q string, limit, offset int) ([]compendiumSpellPickerItem, int) {
-	like := "%" + q + "%"
-	var total int
-	db.DB.QueryRow(`SELECT COUNT(*) FROM compendium_spells WHERE name LIKE ?`, like).Scan(&total)
-	var entryTotal int
-	db.DB.QueryRow(`SELECT COUNT(*) FROM compendium_entries WHERE json_extract(data,'$.name') LIKE ?`, like).Scan(&entryTotal)
+func queryCompendiumSpellsUnion(q, class, level string, limit, offset int) ([]compendiumSpellPickerItem, int) {
+	legacyWhere := []string{"name LIKE ?"}
+	legacyArgs := []any{"%" + q + "%"}
+	entryWhere := []string{"json_extract(data,'$.name') LIKE ?"}
+	entryArgs := []any{"%" + q + "%"}
+	if class != "" {
+		legacyWhere = append(legacyWhere, "classes LIKE ?")
+		legacyArgs = append(legacyArgs, "%"+class+"%")
+		entryWhere = append(entryWhere, "json_extract(data,'$.classes') LIKE ?")
+		entryArgs = append(entryArgs, "%"+class+"%")
+	}
+	if from, to, ok := spellPickerLevelRange(level); ok {
+		legacyWhere = append(legacyWhere, "level >= ? AND level <= ?")
+		legacyArgs = append(legacyArgs, from, to)
+		entryWhere = append(entryWhere, "CAST(json_extract(data,'$.level') AS INTEGER) >= ? AND CAST(json_extract(data,'$.level') AS INTEGER) <= ?")
+		entryArgs = append(entryArgs, from, to)
+	}
+
+	legacyFilter := strings.Join(legacyWhere, " AND ")
+	entryFilter := strings.Join(entryWhere, " AND ")
+	entrySpellFilter := `(
+		LOWER(COALESCE(s.display_name,'')) LIKE '%spell%'
+		OR json_extract(data,'$.school') IS NOT NULL
+		OR json_extract(data,'$.casting_time') IS NOT NULL
+		OR json_extract(data,'$.castingTime') IS NOT NULL
+		OR json_extract(data,'$.classes') IS NOT NULL
+	)`
+	var total, entryTotal int
+	db.DB.QueryRow("SELECT COUNT(*) FROM compendium_spells WHERE "+legacyFilter, legacyArgs...).Scan(&total)
+	db.DB.QueryRow("SELECT COUNT(*) FROM compendium_entries e LEFT JOIN compendium_schemas s ON s.id=e.schema_id WHERE "+strings.ReplaceAll(entryFilter, "data", "e.data")+" AND "+strings.ReplaceAll(entrySpellFilter, "data", "e.data"), entryArgs...).Scan(&entryTotal)
 	total += entryTotal
 
-	rows, err := db.DB.Query(`SELECT * FROM (
+	query := `SELECT * FROM (
 		SELECT id, name, level, school, casting_time, "range", components, duration, description, higher_levels, classes, source_page,
 			COALESCE(system,''), COALESCE(source,''), COALESCE(publisher,''),
 			'spell' AS src_kind, '' AS schema_name
-		FROM compendium_spells WHERE name LIKE ?
+		FROM compendium_spells WHERE ` + legacyFilter + `
 		UNION ALL
 		SELECT e.id,
 			COALESCE(json_extract(e.data,'$.name'),''),
@@ -203,8 +227,16 @@ func queryCompendiumSpellsUnion(q string, limit, offset int) ([]compendiumSpellP
 			'', '', '', '',
 			'entry', COALESCE(s.display_name,'')
 		FROM compendium_entries e LEFT JOIN compendium_schemas s ON s.id=e.schema_id
-		WHERE json_extract(e.data,'$.name') LIKE ?
-	) ORDER BY level, name LIMIT ? OFFSET ?`, like, like, limit, offset)
+		WHERE (` + strings.ReplaceAll(entryFilter, "data", "e.data") + `) AND (
+			LOWER(COALESCE(s.display_name,'')) LIKE '%spell%'
+			OR json_extract(e.data,'$.school') IS NOT NULL
+			OR json_extract(e.data,'$.casting_time') IS NOT NULL
+			OR json_extract(e.data,'$.castingTime') IS NOT NULL
+			OR json_extract(e.data,'$.classes') IS NOT NULL
+		)
+	) ORDER BY level, name LIMIT ? OFFSET ?`
+	args := append(append(legacyArgs, entryArgs...), limit, offset)
+	rows, err := db.DB.Query(query, args...)
 	if err != nil {
 		return nil, total
 	}
@@ -219,6 +251,21 @@ func queryCompendiumSpellsUnion(q string, limit, offset int) ([]compendiumSpellP
 		items = append(items, it)
 	}
 	return items, total
+}
+
+func spellPickerLevelRange(level string) (int, int, bool) {
+	switch level {
+	case "0":
+		return 0, 0, true
+	case "1-3":
+		return 1, 3, true
+	case "4-6":
+		return 4, 6, true
+	case "7-9":
+		return 7, 9, true
+	default:
+		return 0, 0, false
+	}
 }
 
 // queryCompendiumEntriesForFeatures searches generic entries for the features picker.
@@ -266,6 +313,18 @@ func entryItemLinkInsert(charID, entryID int64, quantity int) (int, string) {
 
 // entrySpellLinkInsert snapshots a generic compendium entry into the character's spellbook.
 func entrySpellLinkInsert(charID, entryID int64) (int, string) {
+	var isSpell int
+	if err := db.DB.QueryRow(`SELECT COUNT(*) FROM compendium_entries e
+		LEFT JOIN compendium_schemas s ON s.id=e.schema_id
+		WHERE e.id=? AND (
+			LOWER(COALESCE(s.display_name,'')) LIKE '%spell%'
+			OR json_extract(e.data,'$.school') IS NOT NULL
+			OR json_extract(e.data,'$.casting_time') IS NOT NULL
+			OR json_extract(e.data,'$.castingTime') IS NOT NULL
+			OR json_extract(e.data,'$.classes') IS NOT NULL
+		)`, entryID).Scan(&isSpell); err != nil || isSpell == 0 {
+		return http.StatusBadRequest, "compendium entry is not a spell"
+	}
 	snap, err := loadCompendiumEntry(entryID)
 	if err != nil {
 		return http.StatusNotFound, "compendium entry not found"

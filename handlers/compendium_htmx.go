@@ -769,6 +769,9 @@ func HtmxMonsterLibrarySection(c *gin.Context) {
 type htmxCompendiumSpellPickerData struct {
 	CharacterID int64
 	Query       string
+	Class       string
+	Level       string
+	Classes     []string
 	Spells      []compendiumSpellPickerItem
 	Page        int
 	PageSize    int
@@ -779,6 +782,8 @@ type htmxCompendiumSpellPickerData struct {
 func HtmxCompendiumSpellPicker(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Query("character_id"), 10, 64)
 	q := strings.TrimSpace(c.Query("q"))
+	class := strings.TrimSpace(c.Query("class"))
+	level := strings.TrimSpace(c.Query("level"))
 	page, _ := strconv.Atoi(c.Query("page"))
 	pageSize, _ := strconv.Atoi(c.Query("page_size"))
 
@@ -793,12 +798,15 @@ func HtmxCompendiumSpellPicker(c *gin.Context) {
 	data := htmxCompendiumSpellPickerData{
 		CharacterID: charID,
 		Query:       q,
+		Class:       class,
+		Level:       level,
+		Classes:     getDistinctSpellClasses(),
 		Page:        page,
 		PageSize:    pageSize,
 	}
 
-	if q != "" {
-		spells, totalCount := queryCompendiumSpellsUnion(q, pageSize, offset)
+	if q != "" || class != "" || level != "" {
+		spells, totalCount := queryCompendiumSpellsUnion(q, class, level, pageSize, offset)
 		data.Spells = spells
 		data.TotalCount = totalCount
 		data.TotalPages = (totalCount + pageSize - 1) / pageSize
@@ -1121,16 +1129,8 @@ func HtmxCompendiumSpellBrowse(c *gin.Context) {
 }
 
 func getDistinctSpellClasses() []string {
-	rows, err := db.DB.Query("SELECT DISTINCT classes FROM compendium_spells WHERE classes != '' ORDER BY classes")
-	if err != nil {
-		return nil
-	}
-	defer rows.Close()
-
 	classSet := make(map[string]bool)
-	for rows.Next() {
-		var classes string
-		rows.Scan(&classes)
+	addClasses := func(classes string) {
 		// Parse JSON array like ["Artificer","Bard","Cleric"]
 		cls := strings.Trim(classes, "[]")
 		parts := strings.Split(cls, ",")
@@ -1138,6 +1138,26 @@ func getDistinctSpellClasses() []string {
 			name := strings.Trim(strings.TrimSpace(p), "\"")
 			if name != "" {
 				classSet[name] = true
+			}
+		}
+	}
+	rows, err := db.DB.Query("SELECT DISTINCT classes FROM compendium_spells WHERE classes != '' ORDER BY classes")
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var classes string
+			if rows.Scan(&classes) == nil {
+				addClasses(classes)
+			}
+		}
+	}
+	entryRows, err := db.DB.Query("SELECT DISTINCT json_extract(data,'$.classes') FROM compendium_entries WHERE json_extract(data,'$.classes') IS NOT NULL")
+	if err == nil {
+		defer entryRows.Close()
+		for entryRows.Next() {
+			var classes string
+			if entryRows.Scan(&classes) == nil {
+				addClasses(classes)
 			}
 		}
 	}

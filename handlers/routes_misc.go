@@ -53,6 +53,8 @@ func RegisterBackupRoutes(r *gin.RouterGroup) {
 
 // RegisterMiscAuthRoutes registers miscellaneous auth-protected routes.
 func RegisterMiscAuthRoutes(r *gin.RouterGroup) {
+	r.GET("/settings/autosave", GetAutoSaveSetting)
+
 	// Dice
 	r.POST("/roll", HandleRoll)
 	r.POST("/roll/check", HandleCheckRoll)

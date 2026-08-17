@@ -42,6 +42,7 @@
   <li class="nav-item"><button class="nav-link" id="tabEventsBtn" onclick="showAdminTab('events')"><i class="fa-solid fa-calendar-days me-1" aria-hidden="true"></i>Public Events</button></li>
   <li class="nav-item"><button class="nav-link" id="tabImportBtn" onclick="showAdminTab('import')"><i class="fa-solid fa-upload me-1" aria-hidden="true"></i>Import</button></li>
   <li class="nav-item"><button class="nav-link" id="tabEinkBtn" onclick="showAdminTab('e-ink')"><i class="fa-solid fa-palette me-1" aria-hidden="true"></i>E-ink</button></li>
+  <li class="nav-item"><button class="nav-link" id="tabSettingsBtn" onclick="showAdminTab('settings')"><i class="fa-solid fa-sliders me-1" aria-hidden="true"></i>Settings</button></li>
   <li class="nav-item"><button class="nav-link" id="tabTrmnlBtn" onclick="showAdminTab('trmnl')"><i class="fa-solid fa-tablet-screen-button me-1" aria-hidden="true"></i>TRMNL</button></li>
   <li class="nav-item"><button class="nav-link" id="tabLogsBtn" onclick="showAdminTab('logs')"><i class="fa-solid fa-list me-1" aria-hidden="true"></i>Logs</button></li>
 </ul>
@@ -754,6 +755,19 @@
       </div>
       <p class="text-muted small mb-3">E-ink mode renders the app in high-contrast black-on-white with no animations, flat borders, and larger touch targets. Users can also enable it per-device by visiting the app with <code>?eink=1</code> (or disable with <code>?eink=0</code>).</p>
       <button class="btn btn-primary" onclick="saveEinkSetting()"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Save</button>
+    </div>
+  </div>
+</div>
+<div id="adminSettings" style="display:none">
+  <div class="card">
+    <div class="card-header"><i class="fa-solid fa-sliders me-2" aria-hidden="true"></i>Application Settings</div>
+    <div class="card-body">
+      <label class="form-label" for="autosaveInterval">Character auto-save interval (seconds)</label>
+      <div class="row g-2 align-items-center">
+        <div class="col-auto"><input type="number" id="autosaveInterval" class="form-control" min="5" max="300" step="1" style="width:130px"></div>
+        <div class="col-auto"><button class="btn btn-primary" onclick="saveAutoSaveSetting()"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Save</button></div>
+      </div>
+      <p class="text-muted small mt-2 mb-0">This site-wide value controls how often dirty character sheets are saved automatically.</p>
     </div>
   </div>
 </div>
