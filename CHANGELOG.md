@@ -1,3 +1,11 @@
+## [2.49.1](https://github.com/martynvdijke/dnd/compare/v2.49.0...v2.49.1) (2026-08-18)
+
+
+### Bug Fixes
+
+* **deps:** update all non-major dependencies ([f4833fc](https://github.com/martynvdijke/dnd/commit/f4833fcbc58ae5ac6d9c81c79b051c8935ade083))
+* **deps:** update github.com/dop251/goja digest to 493f220 ([6eda52d](https://github.com/martynvdijke/dnd/commit/6eda52dbf3ecd4343b06f5c72ed8457a08b80ac7))
+
 # [2.49.0](https://github.com/martynvdijke/dnd/compare/v2.48.2...v2.49.0) (2026-08-17)
 
 
