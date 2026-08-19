@@ -1,10 +1,7 @@
 package handlers
 
 import (
-	"crypto/rand"
-	"crypto/subtle"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"math"
 	"net/http"
@@ -14,91 +11,6 @@ import (
 
 	"villum/db"
 )
-
-const trmnlTokenKey = "trmnl_token"
-
-// getOrCreateTRMNLToken returns the site-wide TRMNL polling token, generating
-// and persisting a new one on first read.
-func getOrCreateTRMNLToken() (string, error) {
-	var token string
-	err := db.DB.QueryRow("SELECT value FROM app_settings WHERE key = ?", trmnlTokenKey).Scan(&token)
-	if err == nil && token != "" {
-		return token, nil
-	}
-	b := make([]byte, 32)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	token = hex.EncodeToString(b)
-	if _, err := db.DB.Exec("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", trmnlTokenKey, token); err != nil {
-		return "", err
-	}
-	return token, nil
-}
-
-// regenerateTRMNLToken generates a fresh token, replacing the stored value.
-func regenerateTRMNLToken() (string, error) {
-	b := make([]byte, 32)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	token := hex.EncodeToString(b)
-	if _, err := db.DB.Exec("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)", trmnlTokenKey, token); err != nil {
-		return "", err
-	}
-	return token, nil
-}
-
-// trmnlTokenValid reports whether the request's `token` query param matches
-// the stored TRMNL token, using a constant-time comparison.
-func trmnlTokenValid(c *gin.Context) bool {
-	stored, err := getOrCreateTRMNLToken()
-	if err != nil {
-		return false
-	}
-	given := c.Query("token")
-	if given == "" {
-		return false
-	}
-	return subtle.ConstantTimeCompare([]byte(given), []byte(stored)) == 1
-}
-
-// GetTRMNLSettings returns the current TRMNL token (auto-creating on first read).
-func GetTRMNLSettings(c *gin.Context) {
-	token, err := getOrCreateTRMNLToken()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read TRMNL token"})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"token": token})
-}
-
-// SetTRMNLSettings persists TRMNL settings. A request body of
-// {"regenerate": true} replaces the stored token with a new one.
-func SetTRMNLSettings(c *gin.Context) {
-	var req struct {
-		Regenerate bool `json:"regenerate"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
-		return
-	}
-	if !req.Regenerate {
-		token, err := getOrCreateTRMNLToken()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read TRMNL token"})
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"token": token})
-		return
-	}
-	token, err := regenerateTRMNLToken()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to regenerate TRMNL token"})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"token": token})
-}
 
 type TRMNLCharacterStats struct {
 	Name       string `json:"name"`
@@ -155,10 +67,6 @@ func loadTRMNLCharacterStats(charID int64) (TRMNLCharacterStats, error) {
 // GetTRMNLCharacterStats is a public polling endpoint returning a character's
 // core stats (ability scores, HP/AC, level, XP) for TRMNL e-ink displays.
 func GetTRMNLCharacterStats(c *gin.Context) {
-	if !trmnlTokenValid(c) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
 	charID, err := strconv.ParseInt(c.Query("character_id"), 10, 64)
 	if err != nil || charID <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid character_id"})
@@ -208,10 +116,6 @@ type TRMNLCampaignStats struct {
 // GetTRMNLCampaignStats is a public polling endpoint returning campaign
 // progress stats for a character (sessions, XP/gold, quests, rests, NPCs).
 func GetTRMNLCampaignStats(c *gin.Context) {
-	if !trmnlTokenValid(c) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
 	charID, err := strconv.ParseInt(c.Query("character_id"), 10, 64)
 	if err != nil || charID <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid character_id"})
@@ -245,10 +149,6 @@ type TRMNLCharacterRosterEntry struct {
 // GetTRMNLCharacterRoster is a public polling endpoint returning the full
 // party roster — every character with their core stats — for TRMNL displays.
 func GetTRMNLCharacterRoster(c *gin.Context) {
-	if !trmnlTokenValid(c) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
 	rows, err := db.DB.Query(`
 		SELECT id, name, race, class, subclass, level, xp, hp_current, hp_max,
 		       ac, initiative, str, dex, con, int, wis, cha,

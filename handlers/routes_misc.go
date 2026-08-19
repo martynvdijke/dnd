@@ -30,7 +30,7 @@ func RegisterPublicRoutes(r *gin.Engine) {
 	// Event detail route (after campaign/c routes since literal 'ical' matches first)
 	r.GET("/events/:id", EventDetail)
 
-	// TRMNL e-ink display polling endpoints (token-guarded, read-only)
+	// TRMNL e-ink display polling endpoints (public, read-only)
 	r.GET("/api/trmnl/character-stats", GetTRMNLCharacterStats)
 	r.GET("/api/trmnl/campaign-stats", GetTRMNLCampaignStats)
 	r.GET("/api/trmnl/characters", GetTRMNLCharacterRoster)

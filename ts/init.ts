@@ -13,7 +13,8 @@ import { initRouter, navigateToInitialHash } from './router';
 import { initBridge } from './lib/bridge';
 import { initTheme } from './lib/theme';
 import { initShortcuts } from './lib/shortcuts';
-import { api, setCsrfToken, getCsrfToken } from './lib/api';
+import { api, setCsrfToken, getCsrfToken, setApiToken, getApiToken } from './lib/api';
+import { showLoading, hideLoading } from './lib/dom';
 import { initSearch } from './search';
 import { initAIClickHandler } from './ai';
 import { initPdfViewerCleanup } from './pdf-viewer';
@@ -47,6 +48,44 @@ function connectWS() {
   ws.onerror = () => ws?.close();
 }
 
+// ─── API token bootstrap ───
+
+const API_TOKEN_KEY = 'villum-api-token';
+
+// ensureApiToken provisions a user API token for the web app and stores the
+// one-time secret in localStorage. Token lifecycle endpoints are session +
+// CSRF protected, so this works before any token exists. Failures are
+// non-fatal: mutations will surface a 401 that the user can recover from.
+// The token is scoped to the current user, so it is stored under a
+// user-specific key and never reused across a user switch.
+async function ensureApiToken(username: string): Promise<void> {
+  try {
+    const key = `${API_TOKEN_KEY}-${username}`;
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      setApiToken(stored);
+      return;
+    }
+    const tokens = await api('GET', '/api/tokens');
+    const active = Array.isArray(tokens)
+      ? tokens.find((t: any) => !t.revoked_at && (!t.expires_at || new Date(t.expires_at) > new Date()))
+      : null;
+    if (active) {
+      // An active token exists but its secret was never stored locally
+      // (e.g. created from another device) — rotate to obtain a fresh secret.
+      const rotated = await api('POST', `/api/tokens/${active.id}/rotate`);
+      localStorage.setItem(key, rotated.token);
+      setApiToken(rotated.token);
+      return;
+    }
+    const created = await api('POST', '/api/tokens', { name: 'web-app' });
+    localStorage.setItem(key, created.token);
+    setApiToken(created.token);
+  } catch {
+    // Token bootstrap must not break the app shell.
+  }
+}
+
 // ─── Init — called from app.ts after imports ───
 
 export async function init() {
@@ -60,6 +99,15 @@ export async function init() {
   // Initialize hash router — handles back/forward and bookmarks
   initRouter((route) => showViewFromRouter(route.view));
   try {
+    // Hold the loading overlay open across the entire bootstrap (user/me,
+    // csrf-token, and API-token provisioning) so the UI is not considered
+    // "loaded" until the mutation token is ready. Otherwise a test or user
+    // could fire a mutation before the token exists and get a 401.
+    // __apiReady is the authoritative signal for tests: it flips to true only
+    // after the API token is provisioned (the overlay alone is unreliable due
+    // to its 200ms debounce).
+    (window as any).__apiReady = false;
+    showLoading();
     const user = await api('GET', '/api/user/me');
     setCurrentUser(user);
     const tokenRes = await api('GET', '/api/csrf-token');
@@ -67,7 +115,15 @@ export async function init() {
     document.querySelector('meta[name="csrf-token"]')?.setAttribute('content', getCsrfToken());
     document.body.addEventListener('htmx:configRequest', (e: any) => {
       e.detail.headers['X-CSRF-Token'] = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || getCsrfToken();
+      const method = (e.detail.verb || 'get').toUpperCase();
+      const token = getApiToken();
+      if (token && method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+        e.detail.headers['Authorization'] = `Bearer ${token}`;
+      }
     });
+    await ensureApiToken(user.username);
+    hideLoading();
+    (window as any).__apiReady = true;
     document.getElementById('userName')!.textContent = user.username;
 
     // Top navbar visibility
@@ -106,6 +162,9 @@ export async function init() {
     api('GET', '/api/locations').then(setAllLocations).catch(() => {});
     api('GET', '/api/npcs').then(setAllNPCs).catch(() => {});
   } catch (err) {
+    // Ensure the loading overlay is never left stuck if bootstrap fails.
+    hideLoading();
+    (window as any).__apiReady = true;
     // Offline (service worker serving the cached shell): stay on the app
     // instead of redirecting to /login — cached assets keep the UI usable.
     if (navigator.onLine === false) {

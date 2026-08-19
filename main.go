@@ -86,6 +86,7 @@ func main() {
 
 	// Replace in-memory session store with SQLite-backed persistence
 	middleware.Store = middleware.NewDBSessionStore(db.DB)
+	middleware.TokenDB = db.DB
 	middleware.StartCleanupTask()
 	handlers.StartBackupScheduler()
 	handlers.StartDBCleanupTask()
@@ -139,14 +140,14 @@ func main() {
 	ws.Use(middleware.AuthRequired())
 	handlers.RegisterWebSocketRoutes(ws)
 
-	// HTMX endpoints (auth + CSRF)
+	// HTMX endpoints (auth + CSRF + API token on mutations)
 	htmxGroup := r.Group("/")
-	htmxGroup.Use(middleware.AuthRequired(), middleware.CSRFRequired())
+	htmxGroup.Use(middleware.AuthRequired(), middleware.APITokenRequired(), middleware.CSRFRequired())
 	handlers.HtmxRegisterRoutes(htmxGroup)
 
 	// Authenticated routes
 	auth := r.Group("/api")
-	auth.Use(middleware.AuthRequired(), middleware.CSRFRequired())
+	auth.Use(middleware.AuthRequired(), middleware.APITokenRequired(), middleware.CSRFRequired())
 	{
 		handlers.RegisterAuthBoilerplate(auth)
 		handlers.RegisterCharacterRoutes(auth)
@@ -160,9 +161,16 @@ func main() {
 		handlers.RegisterTransferRoutes(auth)
 	}
 
+	// API token lifecycle (session + CSRF protected, but NOT API-token
+	// protected: a user must be able to create their first token without
+	// already holding one)
+	tokenGroup := r.Group("/api")
+	tokenGroup.Use(middleware.AuthRequired(), middleware.CSRFRequired())
+	handlers.RegisterTokenRoutes(tokenGroup)
+
 	// DM / One-Shot routes (DM or admin only)
 	dm := r.Group("/api")
-	dm.Use(middleware.AuthRequired(), middleware.DMRequired(), middleware.CSRFRequired())
+	dm.Use(middleware.AuthRequired(), middleware.DMRequired(), middleware.APITokenRequired(), middleware.CSRFRequired())
 	{
 		handlers.RegisterDMCharacterRoutes(dm)
 		handlers.RegisterDMCompendiumRoutes(dm)
@@ -173,7 +181,7 @@ func main() {
 
 	// Admin routes
 	admin := r.Group("/api/admin")
-	admin.Use(middleware.AuthRequired(), middleware.AdminRequired(), middleware.CSRFRequired())
+	admin.Use(middleware.AuthRequired(), middleware.AdminRequired(), middleware.APITokenRequired(), middleware.CSRFRequired())
 	{
 		handlers.RegisterAdminRoutes(admin)
 		handlers.RegisterAdminAIRoutes(admin)

@@ -14,7 +14,11 @@ export async function ensureNavOpen(page: Page) {
 export async function waitLoadingDone(page: Page, timeout: number = 15000) {
   // First ensure the SPA has initialized and the API module is available
   await page.waitForFunction(() => typeof (window as any).api !== 'undefined', { timeout });
-  // Then wait for the loading overlay to disappear
+  // Then wait for the API token to be provisioned (authoritative signal set by
+  // init() after ensureApiToken completes). The loading overlay alone is
+  // unreliable because of its 200ms debounce.
+  await page.waitForFunction(() => (window as any).__apiReady === true, { timeout });
+  // Finally wait for the loading overlay to disappear
   await page.waitForFunction(() => {
     const o = document.getElementById('loadingOverlay');
     return o && o.classList.contains('d-none');
@@ -35,6 +39,27 @@ export async function login(page: Page, timeout: number = LOGIN_TIMEOUT) {
     page.getByTestId('login-submit').click(),
   ]);
   await waitLoadingDone(page, timeout);
+}
+
+/**
+ * Create (or reuse) an API token for the logged-in session and return its
+ * secret. Mutating API routes require a bearer API token in addition to the
+ * session cookie, so direct `page.request` mutations must attach it.
+ */
+export async function getApiToken(page: Page): Promise<string> {
+  const csrfResp = await page.request.get('/api/csrf-token');
+  const csrfData = await csrfResp.json();
+  const csrf = csrfData.token;
+
+  const createResp = await page.request.post('/api/tokens', {
+    data: { name: 'e2e-test' },
+    headers: { 'X-CSRF-Token': csrf },
+  });
+  if (createResp.status() !== 201) {
+    throw new Error(`failed to create API token: ${createResp.status()}`);
+  }
+  const data = await createResp.json();
+  return data.token;
 }
 
 export async function waitModalClosed(page: Page) {

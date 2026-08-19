@@ -14,12 +14,6 @@ custom_fields:
     description: Base URL of your Villum instance (e.g. https://dnd.example.com)
     placeholder: https://dnd.example.com
     help_text: Used for asset references when polling from this instance.
-  - keyname: token
-    field_type: string
-    name: Access token
-    description: TRMNL access token from the Villum admin settings
-    placeholder: Paste token from the admin panel
-    help_text: Generate or regenerate it in the Villum admin panel under TRMNL.
   - keyname: character_id
     field_type: string
     name: Character ID

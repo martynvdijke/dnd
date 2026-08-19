@@ -11,7 +11,7 @@ import { initBridge } from './lib/bridge';
 import { esc, capitalize, showModal, hideModal, toast, openCompendiumPicker } from './lib/dom';
 import { FilePicker } from './file-picker';
 import { initTheme } from './lib/theme';
-import { api, setCsrfToken, getCsrfToken } from './lib/api';
+import { api, setCsrfToken, getCsrfToken, getApiToken, clearApiToken } from './lib/api';
 import { initShortcuts, showShortcutsHelp, getSections } from './lib/shortcuts';
 import { renderSheet, updateField } from './characters/sheet';
 import { renderStats } from './characters/stats';
@@ -893,7 +893,7 @@ expose('doImport', async function () {
     if (fileEl.files && fileEl.files[0]) {
       const form = new FormData();
       form.append('file', fileEl.files[0]);
-      const res = await fetch('/api/characters/import', { method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken() }, credentials: 'include', body: form });
+      const res = await fetch('/api/characters/import', { method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken(), ...(getApiToken() ? { 'Authorization': `Bearer ${getApiToken()}` } : {}) }, credentials: 'include', body: form });
       result = await res.json();
     } else if (jsonEl.value.trim()) {
       result = await api('POST', '/api/characters/import', JSON.parse(jsonEl.value));
@@ -971,6 +971,8 @@ expose('deleteChar', async function () {
 
 expose('logout', async function () {
   await api('POST', '/api/logout');
+  clearApiToken();
+  if (currentUser?.username) localStorage.removeItem(`villum-api-token-${currentUser.username}`);
   (window as any).clearSelection?.();
   window.location.href = '/login';
 });
@@ -984,7 +986,7 @@ expose('uploadPortrait', async function () {
   form.append('image', input.files[0]);
   try {
     const res = await fetch('/api/upload', {
-      method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken() }, credentials: 'include', body: form,
+      method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken(), ...(getApiToken() ? { 'Authorization': `Bearer ${getApiToken()}` } : {}) }, credentials: 'include', body: form,
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Upload failed');
@@ -1470,7 +1472,7 @@ expose('uploadCompPortrait', async function (id: number) {
   form.append('image', input.files[0]);
   try {
     const res = await fetch('/api/upload', {
-      method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken() }, credentials: 'include', body: form,
+      method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken(), ...(getApiToken() ? { 'Authorization': `Bearer ${getApiToken()}` } : {}) }, credentials: 'include', body: form,
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Upload failed');
@@ -3533,7 +3535,7 @@ expose('doUpload', async function (ownerType: string, ownerId: number) {
   form.append('owner_id', String(ownerId));
   try {
     const res = await fetch('/api/upload', { method: 'POST', body: form,
-      headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || getCsrfToken() }
+      headers: { 'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || getCsrfToken(), ...(getApiToken() ? { 'Authorization': `Bearer ${getApiToken()}` } : {}) }
     });
     if (!res.ok) throw new Error((await res.json()).error || 'Upload failed');
     hideModal();

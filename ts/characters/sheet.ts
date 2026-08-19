@@ -6,7 +6,7 @@
 import { expose } from '../lib/expose';
 import { currentChar, currentTab, setCurrentTab } from '../lib/state';
 import { esc, capitalize, toast } from '../lib/dom';
-import { api } from '../lib/api';
+import { api, getApiToken } from '../lib/api';
 import { markDirty, isDirty, isSaving, saveCharacter } from '../lib/save';
 import { renderDiceTab } from '../dice';
 import { renderStats, renderXPBar } from './stats';
@@ -208,7 +208,10 @@ export function linkCharIdentity(which: string) {
       try {
         const fd = new FormData();
         fd.append(def.form, String(e.id));
-        const res = await fetch(`/api/characters/${currentChar.id}/${which}/link`, { method: 'POST', body: fd, credentials: 'include' });
+        const headers: Record<string, string> = {};
+        const apiToken = getApiToken();
+        if (apiToken) headers['Authorization'] = `Bearer ${apiToken}`;
+        const res = await fetch(`/api/characters/${currentChar.id}/${which}/link`, { method: 'POST', body: fd, headers, credentials: 'include' });
         if (!res.ok) throw new Error(((await res.json().catch(() => ({}))) as any).error || 'Link failed');
         currentChar[def.field] = e.name;
         currentChar[def.linkField] = e.id;

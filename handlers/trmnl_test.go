@@ -8,13 +8,6 @@ import (
 	"villum/handlers/testutil"
 )
 
-func trmnlAdminRouter() *gin.Engine {
-	return testutil.NewRouter(func(auth *gin.RouterGroup) {
-		auth.GET("/admin/settings/trmnl", GetTRMNLSettings)
-		auth.PUT("/admin/settings/trmnl", SetTRMNLSettings)
-	})
-}
-
 func trmnlPublicRouter() *gin.Engine {
 	return testutil.NewRouter(func(auth *gin.RouterGroup) {
 		auth.GET("/trmnl/character-stats", GetTRMNLCharacterStats)
@@ -23,92 +16,20 @@ func trmnlPublicRouter() *gin.Engine {
 	})
 }
 
-func TestTRMNLTokenAutoCreate(t *testing.T) {
-	testutil.NewDB(t)
-	defer testutil.CloseDB(t)
-
-	r := trmnlAdminRouter()
-	w := testutil.Get(t, r, "/api/admin/settings/trmnl")
-	testutil.AssertStatus(t, w, 200)
-
-	var first map[string]any
-	testutil.ParseJSON(t, w, &first)
-	token, ok := first["token"].(string)
-	if !ok || token == "" {
-		t.Fatalf("expected non-empty token, got %+v", first)
-	}
-
-	// Second read returns the same stored token.
-	w2 := testutil.Get(t, r, "/api/admin/settings/trmnl")
-	testutil.AssertStatus(t, w2, 200)
-	var second map[string]any
-	testutil.ParseJSON(t, w2, &second)
-	if second["token"] != token {
-		t.Fatalf("expected same token on second read, got %v then %v", token, second["token"])
-	}
-}
-
-func TestTRMNLTokenRegenerate(t *testing.T) {
-	testutil.NewDB(t)
-	defer testutil.CloseDB(t)
-
-	r := trmnlAdminRouter()
-	w := testutil.Get(t, r, "/api/admin/settings/trmnl")
-	testutil.AssertStatus(t, w, 200)
-	var before map[string]any
-	testutil.ParseJSON(t, w, &before)
-	oldToken := before["token"].(string)
-
-	w2 := testutil.PutJSON(t, r, "/api/admin/settings/trmnl", map[string]any{"regenerate": true})
-	testutil.AssertStatus(t, w2, 200)
-	var after map[string]any
-	testutil.ParseJSON(t, w2, &after)
-	newToken, ok := after["token"].(string)
-	if !ok || newToken == "" {
-		t.Fatalf("expected non-empty regenerated token, got %+v", after)
-	}
-	if newToken == oldToken {
-		t.Fatalf("expected regenerated token to differ, both %q", newToken)
-	}
-
-	// Stored value replaced: GET now returns the new token.
-	w3 := testutil.Get(t, r, "/api/admin/settings/trmnl")
-	testutil.AssertStatus(t, w3, 200)
-	var current map[string]any
-	testutil.ParseJSON(t, w3, &current)
-	if current["token"] != newToken {
-		t.Fatalf("expected stored token %q, got %v", newToken, current["token"])
-	}
-}
-
-func TestTRMNLCharacterStats(t *testing.T) {
+func TestTRMNLCharacterStatsPublic(t *testing.T) {
 	testutil.NewDB(t)
 	defer testutil.CloseDB(t)
 
 	testutil.SeedUser(t, 1, "admin", "admin")
 	testutil.SeedCharacter(t, 1, 1, "Thorgar", "Dwarf", "Fighter")
 
-	var settings map[string]any
-	w := testutil.Get(t, trmnlAdminRouter(), "/api/admin/settings/trmnl")
-	testutil.AssertStatus(t, w, 200)
-	testutil.ParseJSON(t, w, &settings)
-	token := settings["token"].(string)
-
 	r := trmnlPublicRouter()
 
-	// No token -> 401
-	w2 := testutil.Get(t, r, "/api/trmnl/character-stats?character_id=1")
-	testutil.AssertStatus(t, w2, 401)
-
-	// Wrong token -> 401
-	w3 := testutil.Get(t, r, "/api/trmnl/character-stats?character_id=1&token=wrongtoken")
-	testutil.AssertStatus(t, w3, 401)
-
-	// Valid token + known character -> 200 with stat fields
-	w4 := testutil.Get(t, r, "/api/trmnl/character-stats?character_id=1&token="+token)
-	testutil.AssertStatus(t, w4, 200)
+	// No credentials -> 200 (public read)
+	w := testutil.Get(t, r, "/api/trmnl/character-stats?character_id=1")
+	testutil.AssertStatus(t, w, 200)
 	var stats map[string]any
-	testutil.ParseJSON(t, w4, &stats)
+	testutil.ParseJSON(t, w, &stats)
 	testutil.AssertField(t, stats, "name", "Thorgar")
 	testutil.AssertField(t, stats, "race", "Dwarf")
 	testutil.AssertField(t, stats, "class", "Fighter")
@@ -121,8 +42,8 @@ func TestTRMNLCharacterStats(t *testing.T) {
 	testutil.AssertField(t, stats, "str_mod", float64(0))
 
 	// Unknown character -> 404
-	w5 := testutil.Get(t, r, "/api/trmnl/character-stats?character_id=999&token="+token)
-	testutil.AssertStatus(t, w5, 404)
+	w2 := testutil.Get(t, r, "/api/trmnl/character-stats?character_id=999")
+	testutil.AssertStatus(t, w2, 404)
 
 	// No mutation: character row count unchanged by polling
 	if n := testutil.CountRows(t, "characters"); n != 1 {
@@ -130,34 +51,20 @@ func TestTRMNLCharacterStats(t *testing.T) {
 	}
 }
 
-func TestTRMNLCampaignStats(t *testing.T) {
+func TestTRMNLCampaignStatsPublic(t *testing.T) {
 	testutil.NewDB(t)
 	defer testutil.CloseDB(t)
 
 	testutil.SeedUser(t, 1, "admin", "admin")
 	testutil.SeedCharacter(t, 1, 1, "Thorgar", "Dwarf", "Fighter")
 
-	var settings map[string]any
-	w := testutil.Get(t, trmnlAdminRouter(), "/api/admin/settings/trmnl")
-	testutil.AssertStatus(t, w, 200)
-	testutil.ParseJSON(t, w, &settings)
-	token := settings["token"].(string)
-
 	r := trmnlPublicRouter()
 
-	// Missing token -> 401
-	w2 := testutil.Get(t, r, "/api/trmnl/campaign-stats?character_id=1")
-	testutil.AssertStatus(t, w2, 401)
-
-	// Unknown character -> 404
-	w3 := testutil.Get(t, r, "/api/trmnl/campaign-stats?character_id=999&token="+token)
-	testutil.AssertStatus(t, w3, 404)
-
-	// Valid token + known character -> 200 with campaign fields
-	w4 := testutil.Get(t, r, "/api/trmnl/campaign-stats?character_id=1&token="+token)
-	testutil.AssertStatus(t, w4, 200)
+	// No credentials -> 200 (public read)
+	w := testutil.Get(t, r, "/api/trmnl/campaign-stats?character_id=1")
+	testutil.AssertStatus(t, w, 200)
 	var stats map[string]any
-	testutil.ParseJSON(t, w4, &stats)
+	testutil.ParseJSON(t, w, &stats)
 	testutil.AssertField(t, stats, "name", "Thorgar")
 	testutil.AssertField(t, stats, "session_count", float64(0))
 	testutil.AssertField(t, stats, "total_xp_earned", float64(0))
@@ -175,13 +82,17 @@ func TestTRMNLCampaignStats(t *testing.T) {
 		t.Fatalf("expected top_npcs in campaign stats: %+v", stats)
 	}
 
+	// Unknown character -> 404
+	w2 := testutil.Get(t, r, "/api/trmnl/campaign-stats?character_id=999")
+	testutil.AssertStatus(t, w2, 404)
+
 	// No mutation: GET-only polling
 	if n := testutil.CountRows(t, "sessions"); n != 0 {
 		t.Fatalf("expected 0 session rows after polling, got %d", n)
 	}
 }
 
-func TestTRMNLCharacterRoster(t *testing.T) {
+func TestTRMNLCharacterRosterPublic(t *testing.T) {
 	testutil.NewDB(t)
 	defer testutil.CloseDB(t)
 
@@ -189,29 +100,15 @@ func TestTRMNLCharacterRoster(t *testing.T) {
 	testutil.SeedCharacter(t, 1, 1, "Thorgar", "Dwarf", "Fighter")
 	testutil.SeedCharacter(t, 2, 1, "Aldric", "Human", "Wizard")
 
-	var settings map[string]any
-	w := testutil.Get(t, trmnlAdminRouter(), "/api/admin/settings/trmnl")
-	testutil.AssertStatus(t, w, 200)
-	testutil.ParseJSON(t, w, &settings)
-	token := settings["token"].(string)
-
 	r := trmnlPublicRouter()
 
-	// No token -> 401
-	w2 := testutil.Get(t, r, "/api/trmnl/characters")
-	testutil.AssertStatus(t, w2, 401)
-
-	// Wrong token -> 401
-	w3 := testutil.Get(t, r, "/api/trmnl/characters?token=wrongtoken")
-	testutil.AssertStatus(t, w3, 401)
-
-	// Valid token -> 200 with JSON array, ordered by name
-	w4 := testutil.Get(t, r, "/api/trmnl/characters?token="+token)
-	testutil.AssertStatus(t, w4, 200)
+	// No credentials -> 200 with JSON array, ordered by name
+	w := testutil.Get(t, r, "/api/trmnl/characters")
+	testutil.AssertStatus(t, w, 200)
 	var roster []map[string]any
-	testutil.ParseJSON(t, w4, &roster)
+	testutil.ParseJSON(t, w, &roster)
 	if len(roster) != 2 {
-		t.Fatalf("expected 2 characters in roster, got %d: %s", len(roster), w4.Body.String())
+		t.Fatalf("expected 2 characters in roster, got %d: %s", len(roster), w.Body.String())
 	}
 	// ORDER BY name: Aldric (id 2) before Thorgar (id 1)
 	testutil.AssertField(t, roster[0], "id", float64(2))

@@ -43,7 +43,6 @@
   <li class="nav-item"><button class="nav-link" id="tabImportBtn" onclick="showAdminTab('import')"><i class="fa-solid fa-upload me-1" aria-hidden="true"></i>Import</button></li>
   <li class="nav-item"><button class="nav-link" id="tabEinkBtn" onclick="showAdminTab('e-ink')"><i class="fa-solid fa-palette me-1" aria-hidden="true"></i>E-ink</button></li>
   <li class="nav-item"><button class="nav-link" id="tabSettingsBtn" onclick="showAdminTab('settings')"><i class="fa-solid fa-sliders me-1" aria-hidden="true"></i>Settings</button></li>
-  <li class="nav-item"><button class="nav-link" id="tabTrmnlBtn" onclick="showAdminTab('trmnl')"><i class="fa-solid fa-tablet-screen-button me-1" aria-hidden="true"></i>TRMNL</button></li>
   <li class="nav-item"><button class="nav-link" id="tabLogsBtn" onclick="showAdminTab('logs')"><i class="fa-solid fa-list me-1" aria-hidden="true"></i>Logs</button></li>
 </ul>
 
@@ -759,7 +758,7 @@
   </div>
 </div>
 <div id="adminSettings" style="display:none">
-  <div class="card">
+  <div class="card mb-3">
     <div class="card-header"><i class="fa-solid fa-sliders me-2" aria-hidden="true"></i>Application Settings</div>
     <div class="card-body">
       <label class="form-label" for="autosaveInterval">Character auto-save interval (seconds)</label>
@@ -770,6 +769,44 @@
       <p class="text-muted small mt-2 mb-0">This site-wide value controls how often dirty character sheets are saved automatically.</p>
     </div>
   </div>
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="fa-solid fa-key me-2" aria-hidden="true"></i>API Tokens</span>
+      <button class="btn btn-primary btn-sm" onclick="showCreateTokenForm()"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i>Create Token</button>
+    </div>
+    <div class="card-body">
+      <p class="text-muted small mb-3">API tokens authorize application mutations (character, campaign, wiki, upload, and other writes) alongside your login session. The secret is shown only once at creation — store it somewhere safe. Revoke or rotate a token at any time.</p>
+      <div id="createTokenForm" style="display:none" class="mb-3 p-3 border rounded">
+        <div class="row g-2 align-items-end">
+          <div class="col-auto">
+            <label class="form-label mb-1" for="newTokenName">Name</label>
+            <input type="text" id="newTokenName" class="form-control" placeholder="e.g. laptop, CI, phone" style="width:200px">
+          </div>
+          <div class="col-auto">
+            <label class="form-label mb-1" for="newTokenExpiry">Expires in (days, 0 = never)</label>
+            <input type="number" id="newTokenExpiry" class="form-control" min="0" value="0" style="width:130px">
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-success" onclick="createApiToken()"><i class="fa-solid fa-check me-1" aria-hidden="true"></i>Create</button>
+            <button class="btn btn-outline-secondary" onclick="hideCreateTokenForm()">Cancel</button>
+          </div>
+        </div>
+      </div>
+      <div id="newTokenSecret" style="display:none" class="mb-3 p-3 border rounded bg-dark text-light">
+        <p class="mb-2"><strong>Token created — copy it now, it will not be shown again:</strong></p>
+        <div class="input-group">
+          <input type="text" class="form-control font-monospace" id="newTokenSecretValue" readonly>
+          <button class="btn btn-outline-light" type="button" onclick="copyNewTokenSecret()" title="Copy secret"><i class="fa-solid fa-copy me-1" aria-hidden="true"></i>Copy</button>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead><tr><th>Name</th><th>Prefix</th><th>Created</th><th>Expires</th><th>Last Used</th><th>Status</th><th style="width:180px">Actions</th></tr></thead>
+          <tbody id="apiTokensTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 <div id="adminTrmnl" style="display:none">
   <div class="card">
@@ -777,12 +814,7 @@
       <span><i class="fa-solid fa-tablet-screen-button me-2" aria-hidden="true"></i>TRMNL e-ink Display</span>
     </div>
     <div class="card-body">
-      <p class="text-muted small mb-3">This token lets a <a href="https://usetrmnl.com" target="_blank" rel="noopener">TRMNL</a> e-ink display poll the public read-only stats endpoints (<code>/api/trmnl/character-stats</code> and <code>/api/trmnl/campaign-stats</code>) without a login session. Paste it into the plugin's <code>token</code> custom field. If the token is ever compromised, regenerate it and update the plugin.</p>
-      <div class="input-group mb-3">
-        <input type="text" class="form-control font-monospace" id="trmnlToken" readonly>
-        <button class="btn btn-outline-secondary" type="button" id="trmnlCopyBtn" onclick="copyTrmnlToken()" title="Copy token"><i class="fa-solid fa-copy me-1" aria-hidden="true"></i>Copy</button>
-      </div>
-      <button class="btn btn-warning" id="trmnlRegenerateBtn" onclick="regenerateTrmnlToken()"><i class="fa-solid fa-rotate me-1" aria-hidden="true"></i>Regenerate Token</button>
+      <p class="text-muted small mb-0">The TRMNL polling endpoints (<code>/api/trmnl/character-stats</code>, <code>/api/trmnl/campaign-stats</code>, and <code>/api/trmnl/characters</code>) are public and require no token. Application writes require a user API token managed from the app settings.</p>
     </div>
   </div>
 </div>

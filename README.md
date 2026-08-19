@@ -228,26 +228,30 @@ The app can fetch compendium data from the [D&D 5e API](https://www.dnd5eapi.co)
 
 ### Endpoints
 
-All endpoints are **read-only** and require the TRMNL access token as a query parameter:
+All endpoints are **read-only** and **public** — no token or session is required to poll them:
 
-- `GET /api/trmnl/character-stats?token=<token>&character_id=<id>` — character name, race, class, level, XP, HP, AC, initiative, and the six ability scores with modifiers
-- `GET /api/trmnl/campaign-stats?token=<token>&character_id=<id>` — session count, total XP/gold earned, quest and rest breakdowns, top NPCs, and dice roll summary
-- `GET /api/trmnl/characters?token=<token>` — the full party roster: every character's name, race, class, subclass, level, XP, HP, AC, initiative, ability scores, and character type, ordered by name
+- `GET /api/trmnl/character-stats?character_id=<id>` — character name, race, class, level, XP, HP, AC, initiative, and the six ability scores with modifiers
+- `GET /api/trmnl/campaign-stats?character_id=<id>` — session count, total XP/gold earned, quest and rest breakdowns, top NPCs, and dice roll summary
+- `GET /api/trmnl/characters` — the full party roster: every character's name, race, class, subclass, level, XP, HP, AC, initiative, ability scores, and character type, ordered by name
 
-Responses are `401` without a valid token and `404` for unknown `character_id`.
+Responses are `404` for unknown `character_id`. Because these endpoints are public, they expose the configured read data by design — do not put sensitive information in character names or stats if you expose your instance publicly.
 
-### Token setup
+### API tokens for writes
 
-1. Log in to Villum as an admin and open **Admin → TRMNL** tab
-2. The current token is displayed there — use **Regenerate** to issue a new one (the old token immediately stops working)
-3. The token is stored site-wide in `app_settings` and only readable by admins
+All mutating API routes (character, campaign, wiki, upload, companion, link, timeline, condition, transfer, and every other create/update/delete) require both a signed-in user session **and** a bearer API token. Tokens are user-scoped and managed from the app's **Settings** page (or the admin panel):
+
+- **Create** a token to receive a one-time secret (`vlt_...`). Only the SHA-256 hash is stored; the secret is never shown again.
+- **List** tokens to see metadata (name, prefix, created/expires/last-used, status) — never the secret.
+- **Revoke** a token to invalidate it immediately.
+- **Rotate** a token to issue a new secret while keeping its metadata.
+
+Send the token on mutating requests as `Authorization: Bearer <secret>`. GET requests (including the public TRMNL reads) do not require a token.
 
 ### Installing the plugin
 
 1. In the TRMNL web app, create a new plugin and upload the files from `trmnl/src/` (all four layouts: `full`, `half_horizontal`, `half_vertical`, `quadrant`) and `settings.yml`
 2. Set the custom fields:
    - `url` — your Villum instance base URL (e.g., `https://dnd.example.com`)
-   - `token` — the TRMNL access token from the admin panel
    - `character_id` — the character to display (not used in `roster` mode)
    - `display_mode` — `character` for character stats, `campaign` for campaign progress, or `roster` for the full party list
 3. The plugin polls daily by default (`refresh_interval: 1440` minutes); adjust in `settings.yml` if needed

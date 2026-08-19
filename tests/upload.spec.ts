@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { login, NAV_TIMEOUT } from './helpers.js';
+import { login, NAV_TIMEOUT, getApiToken } from './helpers.js';
 import { deflateSync } from 'zlib';
 
 function makeTestPNG(): Buffer {
@@ -60,6 +60,7 @@ test.describe('File upload and media gallery', () => {
     test.slow();
     const pngBytes = makeTestPNG();
     const csrf = await getCSRFToken(page);
+    const apiToken = await getApiToken(page);
     const filename = `test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.png`;
 
     const resp = await page.request.post('/api/upload', {
@@ -72,6 +73,7 @@ test.describe('File upload and media gallery', () => {
       },
       headers: {
         'X-CSRF-Token': csrf,
+        Authorization: `Bearer ${apiToken}`,
       },
     });
     expect(resp.status()).toBe(200);
@@ -85,6 +87,7 @@ test.describe('File upload and media gallery', () => {
     test.slow();
     const pngBytes = makeTestPNG();
     const csrf = await getCSRFToken(page);
+    const apiToken = await getApiToken(page);
     const filename2 = `test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}.png`;
 
     // Upload an image
@@ -98,6 +101,7 @@ test.describe('File upload and media gallery', () => {
       },
       headers: {
         'X-CSRF-Token': csrf,
+        Authorization: `Bearer ${apiToken}`,
       },
     });
     expect(uploadResp.status()).toBe(200);
@@ -114,6 +118,7 @@ test.describe('File upload and media gallery', () => {
       },
       headers: {
         'X-CSRF-Token': csrf,
+        Authorization: `Bearer ${apiToken}`,
       },
     });
     expect(linkResp.status()).toBe(201);
@@ -125,6 +130,7 @@ test.describe('File upload and media gallery', () => {
     const deleteResp = await page.request.delete(`/api/upload-links/${linkData.id}`, {
       headers: {
         'X-CSRF-Token': csrf,
+        Authorization: `Bearer ${apiToken}`,
       },
     });
     expect(deleteResp.status()).toBe(204);
