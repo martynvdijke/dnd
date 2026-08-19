@@ -19,6 +19,10 @@ export function getApiToken(): string {
   return apiToken;
 }
 
+export function clearApiToken(): void {
+  apiToken = '';
+}
+
 export async function api(method: string, path: string, body?: any): Promise<any> {
   showLoading();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };

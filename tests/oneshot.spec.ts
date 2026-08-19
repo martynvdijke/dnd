@@ -15,10 +15,17 @@ async function apiFetch(page, url, opts = {}) {
       token = tdata.token || '';
     }
     if (token) headers['X-CSRF-Token'] = token;
-    // Mutating routes require a bearer API token (stored by the SPA on login).
+    // Mutating routes require a bearer API token (stored by the SPA on login
+    // under a user-scoped key).
     const verb = (method || 'GET').toUpperCase();
     if (verb !== 'GET' && verb !== 'HEAD' && verb !== 'OPTIONS') {
-      const apiToken = localStorage.getItem('villum-api-token');
+      let apiToken = localStorage.getItem('villum-api-token');
+      if (!apiToken) {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('villum-api-token-')) { apiToken = localStorage.getItem(k); break; }
+        }
+      }
       if (apiToken) headers['Authorization'] = `Bearer ${apiToken}`;
     }
     const resp = await fetch(url, {

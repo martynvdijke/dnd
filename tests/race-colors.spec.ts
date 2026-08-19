@@ -95,6 +95,7 @@ test.describe('File Picker and Portrait Upload', () => {
 
   test('upload API works for portrait images', async ({ page }) => {
     const csrf = await getCSRFToken(page);
+    const apiToken = await getApiToken(page);
     // Create a minimal valid PNG
     const pngHeader = Buffer.from([
       0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
@@ -107,7 +108,7 @@ test.describe('File Picker and Portrait Upload', () => {
           buffer: pngHeader,
         },
       },
-      headers: { 'X-CSRF-Token': csrf },
+      headers: { 'X-CSRF-Token': csrf, Authorization: `Bearer ${apiToken}` },
     });
     expect(resp.status()).toBe(200);
     const data = await resp.json();

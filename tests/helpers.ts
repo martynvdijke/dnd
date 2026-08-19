@@ -14,7 +14,11 @@ export async function ensureNavOpen(page: Page) {
 export async function waitLoadingDone(page: Page, timeout: number = 15000) {
   // First ensure the SPA has initialized and the API module is available
   await page.waitForFunction(() => typeof (window as any).api !== 'undefined', { timeout });
-  // Then wait for the loading overlay to disappear
+  // Then wait for the API token to be provisioned (authoritative signal set by
+  // init() after ensureApiToken completes). The loading overlay alone is
+  // unreliable because of its 200ms debounce.
+  await page.waitForFunction(() => (window as any).__apiReady === true, { timeout });
+  // Finally wait for the loading overlay to disappear
   await page.waitForFunction(() => {
     const o = document.getElementById('loadingOverlay');
     return o && o.classList.contains('d-none');

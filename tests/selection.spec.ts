@@ -4,6 +4,7 @@ import { login, NAV_TIMEOUT, clickNavItem } from './helpers.js';
 const uniqueName = () => `Sel-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
 async function waitLoadingDone(page) {
+  await page.waitForFunction(() => (window as any).__apiReady === true, { timeout: NAV_TIMEOUT }).catch(() => {});
   await page.waitForFunction(() => {
     const o = document.getElementById('loadingOverlay');
     return o && o.classList.contains('d-none');
@@ -121,18 +122,21 @@ test.describe('Campaign-first character selection', () => {
     const setup = await setupCampaignForMember(page, member);
     await logoutAndLoginAs(page, setup.username, setup.password);
 
-    const status = await page.evaluate(async ({ cid }) => {
+    const status = await page.evaluate(async ({ cid, username }) => {
+      // The member's API token is stored by the SPA under a user-scoped key.
+      const apiToken = localStorage.getItem(`villum-api-token-${username}`) || '';
       const res = await fetch(`/api/characters/${cid}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          ...(apiToken ? { 'Authorization': `Bearer ${apiToken}` } : {}),
         },
         credentials: 'include',
         body: JSON.stringify({ name: 'Hijacked' }),
       });
       return res.status;
-    }, { cid: setup.charId });
+    }, { cid: setup.charId, username: setup.username });
     expect(status).toBe(403);
   });
 

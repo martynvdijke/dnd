@@ -11,7 +11,7 @@ import { initBridge } from './lib/bridge';
 import { esc, capitalize, showModal, hideModal, toast, openCompendiumPicker } from './lib/dom';
 import { FilePicker } from './file-picker';
 import { initTheme } from './lib/theme';
-import { api, setCsrfToken, getCsrfToken } from './lib/api';
+import { api, setCsrfToken, getCsrfToken, clearApiToken } from './lib/api';
 import { initShortcuts, showShortcutsHelp, getSections } from './lib/shortcuts';
 import { renderSheet, updateField } from './characters/sheet';
 import { renderStats } from './characters/stats';
@@ -971,6 +971,8 @@ expose('deleteChar', async function () {
 
 expose('logout', async function () {
   await api('POST', '/api/logout');
+  clearApiToken();
+  if (currentUser?.username) localStorage.removeItem(`villum-api-token-${currentUser.username}`);
   (window as any).clearSelection?.();
   window.location.href = '/login';
 });

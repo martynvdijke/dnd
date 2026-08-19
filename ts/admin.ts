@@ -22,11 +22,12 @@ async function api(method: string, path: string, body?: any): Promise<any> {
 }
 
 // ensureApiToken provisions a user API token for the admin panel and stores
-// the one-time secret in localStorage. Failures are non-fatal: mutations will
-// surface a 401 that the user can recover from.
+// the one-time secret in localStorage under a user-scoped key. Failures are
+// non-fatal: mutations will surface a 401 that the user can recover from.
 async function ensureApiToken(): Promise<void> {
   try {
-    const stored = localStorage.getItem('villum-api-token');
+    const key = `villum-api-token-${currentUser?.username || 'admin'}`;
+    const stored = localStorage.getItem(key);
     if (stored) {
       apiToken = stored;
       return;
@@ -37,12 +38,12 @@ async function ensureApiToken(): Promise<void> {
       : null;
     if (active) {
       const rotated = await api('POST', `/api/tokens/${active.id}/rotate`);
-      localStorage.setItem('villum-api-token', rotated.token);
+      localStorage.setItem(key, rotated.token);
       apiToken = rotated.token;
       return;
     }
     const created = await api('POST', '/api/tokens', { name: 'admin-panel' });
-    localStorage.setItem('villum-api-token', created.token);
+    localStorage.setItem(key, created.token);
     apiToken = created.token;
   } catch {
     // Token bootstrap must not break the admin shell.
@@ -2073,6 +2074,8 @@ function toast(msg: string, isError = false) {
 
 expose('logout', async function () {
   await api('POST', '/api/logout');
+  apiToken = '';
+  localStorage.removeItem(`villum-api-token-${currentUser?.username || 'admin'}`);
   window.location.href = '/login';
 });
 
