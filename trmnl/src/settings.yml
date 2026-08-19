@@ -3,7 +3,7 @@ strategy: polling
 no_screen_padding: 'no'
 dark_mode: 'no'
 polling_verb: get
-framework_version: 2.3.7
+framework_version: latest
 polling_url: "https://dnd.example.com/api/trmnl/character-stats\r\nhttps://dnd.example.com/api/trmnl/campaign-stats\r\nhttps://dnd.example.com/api/trmnl/characters"
 id: 443731
 refresh_interval: 1440
@@ -32,5 +32,13 @@ custom_fields:
     description: Show character stats, campaign progress, or the full party roster
     placeholder: roster
     help_text: "character, campaign or roster"
+  - keyname: bio
+    name: About This Plugin
+    category: entertainment
+    field_type: author_bio
+    description: I am running a D&D campaign with friends, this pulls our character stats and campaign progress from my Villum instance into my trmnl.
+    github_url: https://github.com/martynvdijke/dnd
+    learn_more_url: https://github.com/martynvdijke/dnd
+    email_address: martyn@vandijke.xyz
 name: Villum - D&D Stats
 description: Villum D&D stats for TRMNL
