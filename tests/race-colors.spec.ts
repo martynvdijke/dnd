@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { login, NAV_TIMEOUT } from './helpers.js';
+import { login, NAV_TIMEOUT, getApiToken } from './helpers.js';
 
 async function getCSRFToken(page: any): Promise<string> {
   const resp = await page.request.get('/api/csrf-token');
@@ -28,13 +28,14 @@ test.describe('Race Colors', () => {
 
   test('PUT /api/race-colors updates colors', async ({ page }) => {
     const csrf = await getCSRFToken(page);
+    const apiToken = await getApiToken(page);
     const newColors = [
       { race_name: 'Elf', color: '#00FF00' },
       { race_name: 'Dwarf', color: '#0000FF' },
     ];
     const putResp = await page.request.put('/api/race-colors', {
       data: newColors,
-      headers: { 'X-CSRF-Token': csrf },
+      headers: { 'X-CSRF-Token': csrf, Authorization: `Bearer ${apiToken}` },
     });
     expect(putResp.status()).toBe(200);
     const data = await putResp.json();
@@ -54,14 +55,15 @@ test.describe('Race Colors', () => {
   test('race colors appear in character list', async ({ page }) => {
     // Create a character with a known race
     const csrf = await getCSRFToken(page);
+    const apiToken = await getApiToken(page);
     await page.request.put('/api/race-colors', {
       data: [{ race_name: 'TestElf', color: '#AA00AA' }],
-      headers: { 'X-CSRF-Token': csrf },
+      headers: { 'X-CSRF-Token': csrf, Authorization: `Bearer ${apiToken}` },
     });
 
     await page.request.post('/api/characters', {
       data: { name: 'RaceColorChar', race: 'TestElf', class: 'Wizard', level: 1, str: 10, dex: 10, con: 10, int: 14, wis: 10, cha: 10, hp_max: 10, hp_current: 10 },
-      headers: { 'X-CSRF-Token': csrf },
+      headers: { 'X-CSRF-Token': csrf, Authorization: `Bearer ${apiToken}` },
     });
 
     // Navigate to character list

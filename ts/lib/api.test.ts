@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { api, setCsrfToken, getCsrfToken } from './api';
+import { api, setCsrfToken, getCsrfToken, setApiToken, getApiToken } from './api';
 
 describe('api client', () => {
   const originalFetch = globalThis.fetch;
@@ -8,6 +8,7 @@ describe('api client', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     setCsrfToken('');
+    setApiToken('');
   });
 
   afterEach(() => {
@@ -39,6 +40,39 @@ describe('api client', () => {
     const opts = (globalThis.fetch as any).mock.calls[0][1];
     expect(opts.headers['X-CSRF-Token']).toBe('abc123');
     expect(getCsrfToken()).toBe('abc123');
+  });
+
+  it('attaches Authorization bearer header on non-GET when api token is set', async () => {
+    setApiToken('vlt_secret123');
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({}),
+    }) as any;
+    await api('POST', '/api/roll', { expression: '1d20' });
+    const opts = (globalThis.fetch as any).mock.calls[0][1];
+    expect(opts.headers['Authorization']).toBe('Bearer vlt_secret123');
+    expect(getApiToken()).toBe('vlt_secret123');
+  });
+
+  it('does not attach Authorization header on GET', async () => {
+    setApiToken('vlt_secret123');
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({}),
+    }) as any;
+    await api('GET', '/api/search');
+    const opts = (globalThis.fetch as any).mock.calls[0][1];
+    expect(opts.headers['Authorization']).toBeUndefined();
+  });
+
+  it('does not attach Authorization header when no api token is set', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({}),
+    }) as any;
+    await api('POST', '/api/roll', { expression: '1d20' });
+    const opts = (globalThis.fetch as any).mock.calls[0][1];
+    expect(opts.headers['Authorization']).toBeUndefined();
   });
 
   it('serializes body as JSON when provided', async () => {

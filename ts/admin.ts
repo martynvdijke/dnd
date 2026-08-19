@@ -2,11 +2,15 @@ import { expose } from './lib/expose';
 (() => {
 
 let csrfToken = '';
+let apiToken = '';
 let currentUser: any = null;
 
 async function api(method: string, path: string, body?: any): Promise<any> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+  if (apiToken && method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+    headers['Authorization'] = `Bearer ${apiToken}`;
+  }
   const opts: RequestInit = { method, headers, credentials: 'include' };
   if (body !== undefined) opts.body = JSON.stringify(body);
   const res = await fetch(path, opts);
@@ -15,6 +19,34 @@ async function api(method: string, path: string, body?: any): Promise<any> {
     throw new Error(err.error || 'Request failed');
   }
   return res.json();
+}
+
+// ensureApiToken provisions a user API token for the admin panel and stores
+// the one-time secret in localStorage. Failures are non-fatal: mutations will
+// surface a 401 that the user can recover from.
+async function ensureApiToken(): Promise<void> {
+  try {
+    const stored = localStorage.getItem('villum-api-token');
+    if (stored) {
+      apiToken = stored;
+      return;
+    }
+    const tokens = await api('GET', '/api/tokens');
+    const active = Array.isArray(tokens)
+      ? tokens.find((t: any) => !t.revoked_at && (!t.expires_at || new Date(t.expires_at) > new Date()))
+      : null;
+    if (active) {
+      const rotated = await api('POST', `/api/tokens/${active.id}/rotate`);
+      localStorage.setItem('villum-api-token', rotated.token);
+      apiToken = rotated.token;
+      return;
+    }
+    const created = await api('POST', '/api/tokens', { name: 'admin-panel' });
+    localStorage.setItem('villum-api-token', created.token);
+    apiToken = created.token;
+  } catch {
+    // Token bootstrap must not break the admin shell.
+  }
 }
 
 function toggleTheme() {
@@ -45,6 +77,7 @@ async function init() {
     }
     const tokenRes = await api('GET', '/api/csrf-token');
     csrfToken = tokenRes.token;
+    await ensureApiToken();
     showAdminTab('users');
     loadUsers();
   } catch {
@@ -58,7 +91,7 @@ function showAdminTab(tab: string) {
   document.querySelectorAll('#adminTabs .nav-link').forEach(el => el.classList.remove('active'));
   const tabBtn = document.getElementById('tab' + capitalize(tab) + 'Btn');
   if (tabBtn) tabBtn.classList.add('active');
-  const allTabs = ['users', 'unified-compendium', 'backup', 'email', 'ai-endpoints', 'analytics', 'telemetry', 'events', 'import', 'e-ink', 'settings', 'trmnl', 'logs'];
+  const allTabs = ['users', 'unified-compendium', 'backup', 'email', 'ai-endpoints', 'analytics', 'telemetry', 'events', 'import', 'e-ink', 'settings', 'logs'];
   allTabs.forEach(s => {
     const parts = s.split('-').map((p, i) => i === 0 ? capitalize(p) : capitalize(p));
     const id = 'admin' + parts.join('');
@@ -75,8 +108,7 @@ function showAdminTab(tab: string) {
   if (tab === 'events') { loadEventsSettings(); loadCampaignEventSettings(); loadEventsPublicLink(); }
   if (tab === 'import') { loadImportSchemas(); loadImportLogs(); }
   if (tab === 'e-ink') loadEinkSetting();
-  if (tab === 'settings') loadAutoSaveSetting();
-  if (tab === 'trmnl') loadTrmnlSetting();
+  if (tab === 'settings') { loadAutoSaveSetting(); loadApiTokens(); }
   if (tab === 'logs') { startLogAutoRefresh(); }
   else { stopLogAutoRefresh(); }
 }
@@ -131,54 +163,136 @@ async function saveAutoSaveSetting() {
 expose('loadAutoSaveSetting', loadAutoSaveSetting);
 expose('saveAutoSaveSetting', saveAutoSaveSetting);
 
-// ─── TRMNL e-ink Display ───
+// ─── API Tokens ───
 
-async function loadTrmnlSetting() {
+async function loadApiTokens() {
   try {
-    const res = await api('GET', '/api/admin/settings/trmnl');
-    const el = document.getElementById('trmnlToken') as HTMLInputElement | null;
-    if (el) el.value = res.token || '';
+    const tokens = await api('GET', '/api/tokens');
+    const tbody = document.getElementById('apiTokensTable');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    if (!Array.isArray(tokens) || tokens.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-muted text-center py-3">No API tokens yet. Create one to authorize application writes.</td></tr>';
+      return;
+    }
+    for (const t of tokens) {
+      const revoked = !!t.revoked_at;
+      const expired = !!t.expires_at && new Date(t.expires_at) <= new Date();
+      const status = revoked ? '<span class="badge bg-danger">Revoked</span>'
+        : expired ? '<span class="badge bg-warning text-dark">Expired</span>'
+        : '<span class="badge bg-success">Active</span>';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escapeHtml(t.name || '—')}</td>
+        <td><code>${escapeHtml(t.prefix || '')}…</code></td>
+        <td>${escapeHtml(formatDate(t.created_at))}</td>
+        <td>${t.expires_at ? escapeHtml(formatDate(t.expires_at)) : 'Never'}</td>
+        <td>${t.last_used_at ? escapeHtml(formatDate(t.last_used_at)) : '—'}</td>
+        <td>${status}</td>
+        <td>
+          ${revoked || expired ? '' : `<button class="btn btn-sm btn-outline-warning me-1" onclick="rotateApiToken(${t.id})" title="Rotate secret"><i class="fa-solid fa-rotate me-1" aria-hidden="true"></i>Rotate</button><button class="btn btn-sm btn-outline-danger" onclick="revokeApiToken(${t.id})" title="Revoke token"><i class="fa-solid fa-ban me-1" aria-hidden="true"></i>Revoke</button>`}
+        </td>`;
+      tbody.appendChild(tr);
+    }
   } catch {
-    toast('Failed to load TRMNL token', true);
+    toast('Failed to load API tokens', true);
   }
 }
 
-async function regenerateTrmnlToken() {
-  const btn = document.getElementById('trmnlRegenerateBtn') as HTMLButtonElement | null;
-  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-rotate fa-spin me-1" aria-hidden="true"></i>Regenerating...'; }
+function showCreateTokenForm() {
+  const form = document.getElementById('createTokenForm');
+  const secret = document.getElementById('newTokenSecret');
+  if (form) form.style.display = 'block';
+  if (secret) secret.style.display = 'none';
+}
+
+function hideCreateTokenForm() {
+  const form = document.getElementById('createTokenForm');
+  if (form) form.style.display = 'none';
+}
+
+async function createApiToken() {
+  const nameEl = document.getElementById('newTokenName') as HTMLInputElement | null;
+  const expiryEl = document.getElementById('newTokenExpiry') as HTMLInputElement | null;
+  const name = nameEl?.value.trim() || '';
+  const expiresInDays = Math.max(0, Number(expiryEl?.value || 0));
   try {
-    const res = await api('PUT', '/api/admin/settings/trmnl', { regenerate: true });
-    const el = document.getElementById('trmnlToken') as HTMLInputElement | null;
-    if (el) el.value = res.token || '';
-    toast('TRMNL token regenerated');
+    const res = await api('POST', '/api/tokens', { name, expires_in_days: expiresInDays });
+    const secretEl = document.getElementById('newTokenSecretValue') as HTMLInputElement | null;
+    if (secretEl) secretEl.value = res.token || '';
+    const secretBox = document.getElementById('newTokenSecret');
+    if (secretBox) secretBox.style.display = 'block';
+    hideCreateTokenForm();
+    if (nameEl) nameEl.value = '';
+    toast('Token created — copy the secret now');
+    loadApiTokens();
   } catch {
-    toast('Failed to regenerate TRMNL token', true);
-  } finally {
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-rotate me-1" aria-hidden="true"></i>Regenerate Token'; }
+    toast('Failed to create token', true);
   }
 }
 
-async function copyTrmnlToken() {
-  const el = document.getElementById('trmnlToken') as HTMLInputElement | null;
-  const token = el?.value || '';
-  if (!token) { toast('No token to copy', true); return; }
+async function revokeApiToken(id: number) {
+  if (!confirm('Revoke this API token? It will stop working immediately.')) return;
   try {
-    await navigator.clipboard.writeText(token);
-    toast('Token copied');
+    await api('DELETE', `/api/tokens/${id}`);
+    toast('Token revoked');
+    loadApiTokens();
+  } catch {
+    toast('Failed to revoke token', true);
+  }
+}
+
+async function rotateApiToken(id: number) {
+  if (!confirm('Rotate this API token? The current secret will stop working immediately.')) return;
+  try {
+    const res = await api('POST', `/api/tokens/${id}/rotate`);
+    const secretEl = document.getElementById('newTokenSecretValue') as HTMLInputElement | null;
+    if (secretEl) secretEl.value = res.token || '';
+    const secretBox = document.getElementById('newTokenSecret');
+    if (secretBox) secretBox.style.display = 'block';
+    toast('Token rotated — copy the new secret now');
+    loadApiTokens();
+  } catch {
+    toast('Failed to rotate token', true);
+  }
+}
+
+async function copyNewTokenSecret() {
+  const el = document.getElementById('newTokenSecretValue') as HTMLInputElement | null;
+  const secret = el?.value || '';
+  if (!secret) { toast('No secret to copy', true); return; }
+  try {
+    await navigator.clipboard.writeText(secret);
+    toast('Secret copied');
   } catch {
     const ta = document.createElement('textarea');
-    ta.value = token;
+    ta.value = secret;
     ta.style.position = 'fixed';
     ta.style.opacity = '0';
     document.body.appendChild(ta);
     ta.select();
-    try { document.execCommand('copy'); toast('Token copied'); } catch { toast('Failed to copy token', true); }
+    try { document.execCommand('copy'); toast('Secret copied'); } catch { toast('Failed to copy secret', true); }
     document.body.removeChild(ta);
   }
 }
-expose('loadTrmnlSetting', loadTrmnlSetting);
-expose('regenerateTrmnlToken', regenerateTrmnlToken);
-expose('copyTrmnlToken', copyTrmnlToken);
+
+function formatDate(value: string): string {
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return value;
+  return d.toLocaleString();
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] as string));
+}
+
+expose('loadApiTokens', loadApiTokens);
+expose('showCreateTokenForm', showCreateTokenForm);
+expose('hideCreateTokenForm', hideCreateTokenForm);
+expose('createApiToken', createApiToken);
+expose('revokeApiToken', revokeApiToken);
+expose('rotateApiToken', rotateApiToken);
+expose('copyNewTokenSecret', copyNewTokenSecret);
 
 // ─── Unified Compendium ───
 

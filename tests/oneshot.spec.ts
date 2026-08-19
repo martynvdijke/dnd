@@ -15,6 +15,12 @@ async function apiFetch(page, url, opts = {}) {
       token = tdata.token || '';
     }
     if (token) headers['X-CSRF-Token'] = token;
+    // Mutating routes require a bearer API token (stored by the SPA on login).
+    const verb = (method || 'GET').toUpperCase();
+    if (verb !== 'GET' && verb !== 'HEAD' && verb !== 'OPTIONS') {
+      const apiToken = localStorage.getItem('villum-api-token');
+      if (apiToken) headers['Authorization'] = `Bearer ${apiToken}`;
+    }
     const resp = await fetch(url, {
       method: method || 'GET',
       headers,

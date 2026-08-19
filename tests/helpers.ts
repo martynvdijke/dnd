@@ -37,6 +37,27 @@ export async function login(page: Page, timeout: number = LOGIN_TIMEOUT) {
   await waitLoadingDone(page, timeout);
 }
 
+/**
+ * Create (or reuse) an API token for the logged-in session and return its
+ * secret. Mutating API routes require a bearer API token in addition to the
+ * session cookie, so direct `page.request` mutations must attach it.
+ */
+export async function getApiToken(page: Page): Promise<string> {
+  const csrfResp = await page.request.get('/api/csrf-token');
+  const csrfData = await csrfResp.json();
+  const csrf = csrfData.token;
+
+  const createResp = await page.request.post('/api/tokens', {
+    data: { name: 'e2e-test' },
+    headers: { 'X-CSRF-Token': csrf },
+  });
+  if (createResp.status() !== 201) {
+    throw new Error(`failed to create API token: ${createResp.status()}`);
+  }
+  const data = await createResp.json();
+  return data.token;
+}
+
 export async function waitModalClosed(page: Page) {
   await page.waitForFunction(() => {
     const modal = document.getElementById('genericModal');
