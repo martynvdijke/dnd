@@ -913,6 +913,15 @@ test.describe('One-Shot Content Features', () => {
     async function createDialog(page, sceneId, speaker, text) {
       return page.evaluate(async ({ sceneId, speaker, text }) => {
         const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+        // Mutating routes require a bearer API token (stored by the SPA on
+        // login under a user-scoped key).
+        let apiToken = localStorage.getItem('villum-api-token');
+        if (!apiToken) {
+          for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k && k.startsWith('villum-api-token-')) { apiToken = localStorage.getItem(k); break; }
+          }
+        }
         const formData = new URLSearchParams();
         formData.append('speaker', speaker);
         formData.append('dialog_text', text);
@@ -921,6 +930,7 @@ test.describe('One-Shot Content Features', () => {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             'X-CSRF-Token': csrf,
+            ...(apiToken ? { 'Authorization': `Bearer ${apiToken}` } : {}),
           },
           body: formData.toString(),
         });

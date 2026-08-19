@@ -10,7 +10,7 @@
  * Drag-and-drop an image onto the modal to upload it, then auto-select.
  */
 import { esc } from './lib/dom';
-import { getCsrfToken } from './lib/api';
+import { getCsrfToken, getApiToken } from './lib/api';
 
 export class FilePicker {
   private static modalEl: HTMLElement | null = null;
@@ -165,7 +165,7 @@ export class FilePicker {
       form.append('image', file);
       const res = await fetch('/api/upload', {
         method: 'POST',
-        headers: { 'X-CSRF-Token': getCsrfToken() },
+        headers: { 'X-CSRF-Token': getCsrfToken(), ...(getApiToken() ? { 'Authorization': `Bearer ${getApiToken()}` } : {}) },
         credentials: 'include',
         body: form,
       });

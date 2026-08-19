@@ -2,7 +2,7 @@
 import { expose } from '../lib/expose';
 import { currentChar, allNPCs, setAllNPCs } from '../lib/state';
 import { esc, showModal, hideModal, toast, openCompendiumPicker } from '../lib/dom';
-import { api, getCsrfToken } from '../lib/api';
+import { api, getCsrfToken, getApiToken } from '../lib/api';
 import { FilePicker } from '../file-picker';
 
 // ─── NPCs ───
@@ -172,7 +172,7 @@ expose('uploadNewNPCPortrait', async function () {
   form.append('image', input.files[0]);
   try {
     const res = await fetch('/api/upload', {
-      method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken() }, credentials: 'include', body: form,
+      method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken(), ...(getApiToken() ? { 'Authorization': `Bearer ${getApiToken()}` } : {}) }, credentials: 'include', body: form,
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Upload failed');

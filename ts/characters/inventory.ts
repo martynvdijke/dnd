@@ -2,7 +2,7 @@
 import { expose } from '../lib/expose';
 import { currentChar, setCurrentChar } from '../lib/state';
 import { esc, capitalize, toast, openCompendiumPicker } from '../lib/dom';
-import { api, getCsrfToken } from '../lib/api';
+import { api, getCsrfToken, getApiToken } from '../lib/api';
 
 export async function updateCurrency() {
   if (!currentChar) return;
@@ -140,6 +140,8 @@ async function linkCompendiumItem(item: any) {
   const headers: Record<string, string> = {};
   const csrf = getCsrfToken();
   if (csrf) headers['X-CSRF-Token'] = csrf;
+  const apiToken = getApiToken();
+  if (apiToken) headers['Authorization'] = `Bearer ${apiToken}`;
   const res = await fetch(`/api/characters/${currentChar.id}/inventory/link`, { method: 'POST', body: fd, headers, credentials: 'include' });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Link failed');
   setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
