@@ -1,3 +1,10 @@
+# [2.50.0](https://github.com/martynvdijke/dnd/compare/v2.49.3...v2.50.0) (2026-08-19)
+
+
+### Features
+
+* **api:** require bearer API tokens for mutations and make TRMNL reads public ([#87](https://github.com/martynvdijke/dnd/issues/87)) ([e1559b5](https://github.com/martynvdijke/dnd/commit/e1559b53bb0bbaa3282880de9d1435f7a3ab7649))
+
 ## [2.49.3](https://github.com/martynvdijke/dnd/compare/v2.49.2...v2.49.3) (2026-08-19)
 
 ## [2.49.2](https://github.com/martynvdijke/dnd/compare/v2.49.1...v2.49.2) (2026-08-18)
