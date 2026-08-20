@@ -109,7 +109,7 @@ function showAdminTab(tab: string) {
   if (tab === 'events') { loadEventsSettings(); loadCampaignEventSettings(); loadEventsPublicLink(); }
   if (tab === 'import') { loadImportSchemas(); loadImportLogs(); }
   if (tab === 'e-ink') loadEinkSetting();
-  if (tab === 'settings') { loadAutoSaveSetting(); loadApiTokens(); }
+  if (tab === 'settings') { loadAutoSaveSetting(); loadApiTokens(); loadAISetting(); }
   if (tab === 'logs') { startLogAutoRefresh(); }
   else { stopLogAutoRefresh(); }
 }
@@ -139,6 +139,32 @@ async function saveEinkSetting() {
 }
 expose('loadEinkSetting', loadEinkSetting);
 expose('saveEinkSetting', saveEinkSetting);
+
+// ─── AI Features ───
+
+async function loadAISetting() {
+  try {
+    const res = await api('GET', '/api/admin/settings/ai');
+    const el = document.getElementById('aiEnabled') as HTMLInputElement | null;
+    if (el) el.checked = !!res.enabled;
+  } catch {
+    toast('Failed to load AI setting', true);
+  }
+}
+
+async function saveAISetting() {
+  const el = document.getElementById('aiEnabled') as HTMLInputElement | null;
+  const enabled = !!el && el.checked;
+  try {
+    await api('PUT', '/api/admin/settings/ai', { enabled });
+    document.body.classList.toggle('ai-disabled', !enabled);
+    toast(enabled ? 'AI features enabled site-wide' : 'AI features disabled site-wide');
+  } catch {
+    toast('Failed to save AI setting', true);
+  }
+}
+expose('loadAISetting', loadAISetting);
+expose('saveAISetting', saveAISetting);
 
 async function loadAutoSaveSetting() {
   try {

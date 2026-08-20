@@ -49,6 +49,10 @@ func HandleListEnabledAIEndpoints(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "type must be 'text' or 'image'"})
 		return
 	}
+	if !aiEnabled(c.Request.Context()) {
+		c.JSON(http.StatusOK, []interface{}{})
+		return
+	}
 	endpoints, err := db.ListEnabledAIEndpoints(c.Request.Context(), endpointType)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list AI endpoints"})
@@ -236,6 +240,10 @@ func DeleteAIEndpoint(c *gin.Context) {
 }
 
 func TestAIEndpoint(c *gin.Context) {
+	if !aiEnabled(c.Request.Context()) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "AI features are disabled"})
+		return
+	}
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid endpoint ID"})
@@ -335,6 +343,10 @@ type textGenResponse struct {
 }
 
 func HandleTextGeneration(c *gin.Context) {
+	if !aiEnabled(c.Request.Context()) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "AI features are disabled"})
+		return
+	}
 	var req textGenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
@@ -464,6 +476,10 @@ type imageGenResponse struct {
 }
 
 func HandleImageGeneration(c *gin.Context) {
+	if !aiEnabled(c.Request.Context()) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "AI features are disabled"})
+		return
+	}
 	var req imageGenRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
@@ -606,6 +622,10 @@ type saveImageResponse struct {
 
 // SaveGeneratedImage downloads an AI-generated image and stores it in the media library.
 func SaveGeneratedImage(c *gin.Context) {
+	if !aiEnabled(c.Request.Context()) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "AI features are disabled"})
+		return
+	}
 	var req saveImageRequest
 	if err := c.ShouldBindJSON(&req); err != nil || req.URL == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "url is required"})
@@ -686,4 +706,10 @@ func SaveGeneratedImage(c *gin.Context) {
 	middleware.LogInfo("ai", "generated image saved", "file", filename, "bytes", len(data))
 
 	c.JSON(http.StatusOK, saveImageResponse{URL: "/media/ai/" + filename})
+}
+
+// GetAIEnabled exposes the site-wide AI feature toggle to authenticated
+// clients (DM-facing UI reads this to hide AI controls when disabled).
+func GetAIEnabled(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"enabled": aiEnabled(c.Request.Context())})
 }

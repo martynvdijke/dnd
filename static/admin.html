@@ -771,6 +771,19 @@
   </div>
   <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
+      <span><i class="fa-solid fa-robot me-2" aria-hidden="true"></i>AI Features</span>
+    </div>
+    <div class="card-body">
+      <div class="form-check form-switch mb-3">
+        <input class="form-check-input" type="checkbox" id="aiEnabled">
+        <label class="form-check-label" for="aiEnabled">Enable AI features site-wide</label>
+      </div>
+      <p class="text-muted small mb-3">When enabled, DMs can generate text and images via configured AI endpoints. Turn this off to disable all LLM-backed AI features across the app. Endpoints stay configured and can be re-enabled at any time.</p>
+      <button class="btn btn-primary" onclick="saveAISetting()"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Save</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
       <span><i class="fa-solid fa-key me-2" aria-hidden="true"></i>API Tokens</span>
       <button class="btn btn-primary btn-sm" onclick="showCreateTokenForm()"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i>Create Token</button>
     </div>

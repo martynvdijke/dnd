@@ -3834,6 +3834,10 @@ body.sidebar-collapsed .container {
 /* AI generation modal sits above stacked modals (NPC create/edit, etc.) */
 #aiGenModal { z-index: 1065; }
 
+/* When the backend AI feature toggle is off, suppress all AI generation
+   triggers (including ones rendered dynamically into modals). */
+.ai-disabled .ai-generate-btn { display: none !important; }
+
 /* ─── Read-only character sheet (linked characters / campaign members without edit rights) ─── */
 #sheetView.readonly input,
 #sheetView.readonly textarea,
