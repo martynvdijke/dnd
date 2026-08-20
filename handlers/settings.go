@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
@@ -126,4 +127,39 @@ func SetEinkSetting(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"enabled": req.Enabled})
+}
+
+// GetAISetting returns the site-wide AI feature toggle.
+func GetAISetting(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"enabled": aiEnabled(c.Request.Context())})
+}
+
+// SetAISetting persists the site-wide AI feature toggle.
+func SetAISetting(c *gin.Context) {
+	var req struct {
+		Enabled bool `json:"enabled"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+	value := "0"
+	if req.Enabled {
+		value = "1"
+	}
+	if _, err := db.DB.Exec("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('ai_enabled', ?)", value); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save setting"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"enabled": req.Enabled})
+}
+
+// aiEnabled reports whether the LLM-backed AI features are enabled site-wide.
+func aiEnabled(ctx context.Context) bool {
+	var value string
+	if err := db.DB.QueryRow("SELECT value FROM app_settings WHERE key = 'ai_enabled'").Scan(&value); err != nil {
+		// Missing setting defaults to enabled (preserve historical behavior).
+		return true
+	}
+	return value == "1"
 }

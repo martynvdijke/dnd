@@ -220,4 +220,47 @@ test.describe('AI Features', () => {
       }, created.id);
     });
   });
+
+  // ─── Disabled Toggle ───
+
+  test.describe('Disabled Toggle', () => {
+    test.afterEach(async ({ page }) => {
+      // Always restore the default (enabled) state so other tests are unaffected.
+      await page.evaluate(async () => {
+        try { await (window as any).api('PUT', '/api/admin/settings/ai', { enabled: true }); } catch {}
+      });
+    });
+
+    test('disabling AI hides UI controls and rejects generation', async ({ page }) => {
+      await page.evaluate(async () => {
+        return (window as any).api('PUT', '/api/admin/settings/ai', { enabled: false });
+      });
+
+      // Reload so the SPA re-reads the toggle and hides AI controls.
+      await page.reload();
+      await page.waitForFunction(() => (window as any).__apiReady === true, null, { timeout: 15000 });
+
+      // Open the NPC create modal and confirm the AI buttons are suppressed.
+      await page.evaluate(() => (window as any).showCreateNPC());
+      await page.waitForSelector('#newNPCDesc');
+      await expect(page.locator('.ai-generate-btn').first()).toBeHidden();
+
+      // The generation endpoint must be rejected while disabled.
+      const gen: any = await page.evaluate(async () => {
+        try {
+          await (window as any).api('POST', '/api/ai/generate/text', { prompt: 'Hello' });
+          return { ok: true };
+        } catch (e) {
+          return { ok: false, error: String(e) };
+        }
+      });
+      expect(gen.ok).toBe(false);
+
+      // The enabled-endpoints list is empty while disabled.
+      const eps: any[] = await page.evaluate(async () => {
+        return (window as any).api('GET', '/api/ai/endpoints?type=text');
+      });
+      expect(eps).toEqual([]);
+    });
+  });
 });

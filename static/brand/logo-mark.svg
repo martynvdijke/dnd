@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Villum dragon d20 crest</title>
+  <desc id="desc">A gold twenty-sided die held in a stylized oxblood dragon crest.</desc>
+  <path fill="#8B0000" d="M128 12c-18 19-42 22-67 27 5 18-1 34-20 47 15 10 22 24 19 43 20-3 35 5 46 22 9-13 16-30 22-52 6 22 13 39 22 52 11-17 26-25 46-22-3-19 4-33 19-43-19-13-25-29-20-47-25-5-49-8-67-27Z"/>
+  <path fill="#5C0000" d="M61 39c-4 20-14 33-31 45 15 12 21 25 18 44 20-2 36 6 48 22-5-25-7-46-5-64-11-17-21-32-30-47Zm134 0c4 20 14 33 31 45-15 12-21 25-18 44-20-2-36 6-48 22 5-25-7-46-5-64 11-17 21-32 30-47Z" opacity=".9"/>
+  <path fill="#F4EBDD" stroke="#B8963E" stroke-width="8" stroke-linejoin="round" d="m128 57 53 39-20 66h-66l-20-66 53-39Z"/>
+  <path fill="none" stroke="#B8963E" stroke-width="5" stroke-linejoin="round" d="M128 57v105m-53-66 53 28 53-28M95 162l33-38 33 38"/>
+  <path fill="#8B0000" d="M116 107h24l-4 18h-16l-4-18Z"/>
+  <path fill="#D4B96A" d="m128 20 4 9 10 1-8 7 2 10-8-5-8 5 2-10-8-7 10-1 4-9Z"/>
+</svg>

@@ -10,6 +10,17 @@ import { expose } from './lib/expose';
 export let aiGenLastResult: string | null = null;
 export let aiGenLastImageUrl: string | null = null;
 
+// ─── Feature toggle ───
+// Mirrors the backend site-wide AI setting. When false, all AI UI is
+// suppressed (buttons hidden via the `ai-disabled` body class) and the
+// generation modal refuses to open.
+export let aiEnabled = true;
+
+export function setAIEnabled(v: boolean): void {
+  aiEnabled = v;
+  document.body.classList.toggle('ai-disabled', !v);
+}
+
 const AI_DEFAULT_SYSTEM_PROMPT = 'You are a helpful assistant for a D&D website called villum. You help DMs create compelling narratives, NPCs, locations, items, and other TTRPG content. Be creative and concise.';
 
 // ─── Modal ───
@@ -32,6 +43,10 @@ function aiShowModal(): void {
 }
 
 export function openAIGenModal(mode: string, targetId: string, promptHint?: string, title?: string) {
+  if (!aiEnabled) {
+    toast('AI features are disabled', true);
+    return;
+  }
   aiGenLastResult = null;
   aiGenLastImageUrl = null;
   document.getElementById('aiGenResult')!.style.display = 'none';
@@ -81,6 +96,7 @@ async function fetchAIEndpoints(type: string) {
 
 export function initAIClickHandler() {
   document.addEventListener('click', function (e: MouseEvent) {
+    if (!aiEnabled) return;
     const btn = (e.target as HTMLElement).closest('.ai-generate-btn') as HTMLElement;
     if (!btn) return;
     e.preventDefault();

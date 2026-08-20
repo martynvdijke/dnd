@@ -16,7 +16,7 @@ import { initShortcuts } from './lib/shortcuts';
 import { api, setCsrfToken, getCsrfToken, setApiToken, getApiToken } from './lib/api';
 import { showLoading, hideLoading } from './lib/dom';
 import { initSearch } from './search';
-import { initAIClickHandler } from './ai';
+import { initAIClickHandler, setAIEnabled } from './ai';
 import { initPdfViewerCleanup } from './pdf-viewer';
 import { setCurrentUser, setAllLocations, setAllNPCs } from './lib/state';
 import { initSpellCompendium } from './spell-compendium';
@@ -122,6 +122,13 @@ export async function init() {
       }
     });
     await ensureApiToken(user.username);
+    // Pull the backend AI feature toggle so the UI can hide AI controls.
+    try {
+      const aiRes: any = await api('GET', '/api/ai/enabled');
+      setAIEnabled(!!aiRes.enabled);
+    } catch {
+      // Non-fatal: default to enabled if the flag can't be read.
+    }
     hideLoading();
     (window as any).__apiReady = true;
     document.getElementById('userName')!.textContent = user.username;

@@ -193,7 +193,12 @@ export function openResourceForm(id?: number) {
     opt.classList.add('selected');
     (document.getElementById('resourceIcon') as HTMLInputElement).value = opt.dataset.icon || 'fa-bolt';
   });
-  setTimeout(() => (document.getElementById('resourceName') as HTMLInputElement)?.focus(), 50);
+  setTimeout(() => {
+    // The form may have been removed before the delayed focus runs (for
+    // example while navigating away or when the DOM realm is torn down).
+    if (typeof document === 'undefined') return;
+    (document.getElementById('resourceName') as HTMLInputElement | null)?.focus();
+  }, 50);
 }
 
 export async function saveResourceForm() {

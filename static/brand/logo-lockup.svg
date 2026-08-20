@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 180" role="img" aria-labelledby="title desc">
+  <title id="title">Villum</title>
+  <desc id="desc">Villum dragon d20 crest and wordmark.</desc>
+  <use href="logo-mark.svg" x="8" y="8" width="164" height="164"/>
+  <text x="190" y="103" fill="#8B0000" font-family="Georgia, serif" font-size="82" letter-spacing="3">villum</text>
+  <text x="195" y="139" fill="#8A7020" font-family="Georgia, serif" font-size="18" letter-spacing="5">D&amp;D CHARACTER FOLIO</text>
+</svg>

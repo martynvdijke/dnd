@@ -87,6 +87,11 @@
   --radius-sm: 4px;
 }
 
+.brand-lockup { display: inline-flex; align-items: center; gap: .35rem; }
+.brand-mark { width: 1.65em; height: 1.65em; object-fit: contain; vertical-align: middle; }
+.brand-lockup-centered { justify-content: center; gap: .45rem; }
+.sidebar-brand .brand-mark { width: 1.8rem; height: 1.8rem; }
+
 [data-theme="dark"] {
   --parchment: #2c1810;
   --parchment-dark: #1a0f0a;
@@ -3833,6 +3838,10 @@ body.sidebar-collapsed .container {
 
 /* AI generation modal sits above stacked modals (NPC create/edit, etc.) */
 #aiGenModal { z-index: 1065; }
+
+/* When the backend AI feature toggle is off, suppress all AI generation
+   triggers (including ones rendered dynamically into modals). */
+.ai-disabled .ai-generate-btn { display: none !important; }
 
 /* ─── Read-only character sheet (linked characters / campaign members without edit rights) ─── */
 #sheetView.readonly input,

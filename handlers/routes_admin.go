@@ -65,6 +65,8 @@ func RegisterAdminRoutes(r *gin.RouterGroup) {
 	// Site-wide settings
 	r.GET("/settings/eink", GetEinkSetting)
 	r.PUT("/settings/eink", SetEinkSetting)
+	r.GET("/settings/ai", GetAISetting)
+	r.PUT("/settings/ai", SetAISetting)
 	r.GET("/settings/autosave", GetAutoSaveSetting)
 	r.PUT("/settings/autosave", SetAutoSaveSetting)
 }
