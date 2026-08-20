@@ -87,6 +87,11 @@
   --radius-sm: 4px;
 }
 
+.brand-lockup { display: inline-flex; align-items: center; gap: .35rem; }
+.brand-mark { width: 1.65em; height: 1.65em; object-fit: contain; vertical-align: middle; }
+.brand-lockup-centered { justify-content: center; gap: .45rem; }
+.sidebar-brand .brand-mark { width: 1.8rem; height: 1.8rem; }
+
 [data-theme="dark"] {
   --parchment: #2c1810;
   --parchment-dark: #1a0f0a;
