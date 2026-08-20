@@ -12,6 +12,23 @@ vi.mock('./lib/api', () => ({
   api: (...args: any[]) => mockApi(...args),
 }));
 
+// Keep these tests focused on transfer rendering. Real Bootstrap modals
+// schedule transition timers that can outlive happy-dom's per-test document.
+vi.mock('./lib/dom', () => ({
+  esc: (value: string | null | undefined) => {
+    if (!value) return '';
+    const el = document.createElement('div');
+    el.textContent = value;
+    return el.innerHTML;
+  },
+  showModal: (title: string, bodyHtml: string) => {
+    document.getElementById('genericModalTitle')!.textContent = title;
+    document.getElementById('genericModalBody')!.innerHTML = bodyHtml;
+  },
+  hideModal: vi.fn(),
+  toast: vi.fn(),
+}));
+
 // Setup DOM environment
 beforeEach(() => {
   document.body.innerHTML = `
