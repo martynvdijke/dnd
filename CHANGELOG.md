@@ -1,3 +1,10 @@
+# [2.51.0](https://github.com/martynvdijke/dnd/compare/v2.50.0...v2.51.0) (2026-08-20)
+
+
+### Features
+
+* **ai:** add backend-controlled toggle to disable all AI features ([#88](https://github.com/martynvdijke/dnd/issues/88)) ([8716dea](https://github.com/martynvdijke/dnd/commit/8716dea11fbb56a1e0857552d1da42fe361142bc))
+
 # [2.50.0](https://github.com/martynvdijke/dnd/compare/v2.49.3...v2.50.0) (2026-08-19)
 
 
