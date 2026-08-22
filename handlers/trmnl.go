@@ -6,6 +6,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -214,4 +215,99 @@ func mergeTRMNLCampaignStats(campaign CharacterStats, char TRMNLCharacterStats) 
 		WisMod:         char.WisMod,
 		ChaMod:         char.ChaMod,
 	}
+}
+
+// TRMNLCombatEntry is one combatant row in the initiative ladder payload.
+type TRMNLCombatEntry struct {
+	ID              int64    `json:"id"`
+	Name            string   `json:"name"`
+	Type            string   `json:"type"`
+	InitiativeTotal int      `json:"initiative_total"`
+	HPCurrent       int      `json:"hp_current"`
+	HPMax           int      `json:"hp_max"`
+	AC              int      `json:"ac"`
+	IsActive        bool     `json:"is_active"`
+	Conditions      []string `json:"conditions"`
+}
+
+// TRMNLCombatStatus is the payload for the combat polling endpoint.
+type TRMNLCombatStatus struct {
+	CampaignID int64              `json:"campaign_id"`
+	Entries    []TRMNLCombatEntry `json:"entries"`
+}
+
+// resolveTRMNLConditions parses the condition_ids CSV column and returns the
+// canonical names of tokens matching the built-in 5e condition types
+// (case-insensitive). Unknown or empty tokens are skipped so stale data can't
+// fail a poll.
+func resolveTRMNLConditions(csv string) []string {
+	names := make([]string, 0)
+	if strings.TrimSpace(csv) == "" {
+		return names
+	}
+	known := make(map[string]string, len(ConditionTypes))
+	for _, ct := range ConditionTypes {
+		known[strings.ToLower(ct)] = ct
+	}
+	for _, tok := range strings.Split(csv, ",") {
+		tok = strings.TrimSpace(tok)
+		if tok == "" {
+			continue
+		}
+		if name, ok := known[strings.ToLower(tok)]; ok {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
+// GetTRMNLCombatStatus is a public polling endpoint returning the live
+// initiative ladder for a campaign's combat tracker, ordered exactly like the
+// web tracker (initiative_roll DESC, turn_order ASC). Without a campaign_id it
+// responds 200 with an empty entry list so the idle screen renders.
+func GetTRMNLCombatStatus(c *gin.Context) {
+	var campaignID int64
+	if v := c.Query("campaign_id"); v != "" {
+		parsed, err := strconv.ParseInt(v, 10, 64)
+		if err != nil || parsed <= 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid campaign_id"})
+			return
+		}
+		campaignID = parsed
+	}
+
+	status := TRMNLCombatStatus{CampaignID: campaignID, Entries: make([]TRMNLCombatEntry, 0)}
+	if campaignID > 0 {
+		rows, err := db.DB.Query(`
+			SELECT id, name, type, initiative_roll, initiative_mod,
+			       hp_current, hp_max, ac, is_active, COALESCE(condition_ids, '')
+			FROM combat_entries WHERE campaign_id = ?
+			ORDER BY initiative_roll DESC, turn_order ASC`, campaignID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load combat entries"})
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var e TRMNLCombatEntry
+			var isActive int
+			var roll, mod int
+			var condCSV string
+			if err := rows.Scan(&e.ID, &e.Name, &e.Type, &roll, &mod,
+				&e.HPCurrent, &e.HPMax, &e.AC, &isActive, &condCSV); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load combat entries"})
+				return
+			}
+			e.InitiativeTotal = roll + mod
+			e.IsActive = isActive == 1
+			e.Conditions = resolveTRMNLConditions(condCSV)
+			status.Entries = append(status.Entries, e)
+		}
+		if err := rows.Err(); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to load combat entries"})
+			return
+		}
+	}
+	c.JSON(http.StatusOK, status)
 }

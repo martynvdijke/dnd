@@ -34,6 +34,7 @@ func RegisterPublicRoutes(r *gin.Engine) {
 	r.GET("/api/trmnl/character-stats", GetTRMNLCharacterStats)
 	r.GET("/api/trmnl/campaign-stats", GetTRMNLCampaignStats)
 	r.GET("/api/trmnl/characters", GetTRMNLCharacterRoster)
+	r.GET("/api/trmnl/combat", GetTRMNLCombatStatus)
 }
 
 // RegisterAuthBoilerplate registers auth helper routes (logout, csrf, me).

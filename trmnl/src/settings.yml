@@ -4,7 +4,7 @@ no_screen_padding: 'no'
 dark_mode: 'no'
 polling_verb: get
 framework_version: latest
-polling_url: "https://dnd.example.com/api/trmnl/character-stats\r\nhttps://dnd.example.com/api/trmnl/campaign-stats\r\nhttps://dnd.example.com/api/trmnl/characters"
+polling_url: "https://dnd.example.com/api/trmnl/character-stats\r\nhttps://dnd.example.com/api/trmnl/campaign-stats\r\nhttps://dnd.example.com/api/trmnl/characters\r\nhttps://dnd.example.com/api/trmnl/combat"
 id: 443731
 refresh_interval: 1440
 custom_fields:
@@ -20,12 +20,18 @@ custom_fields:
     description: Numeric ID of the character to display
     placeholder: "1"
     help_text: Shown in the character URL when viewing a character in Villum.
+  - keyname: campaign_id
+    field_type: string
+    name: Campaign ID
+    description: Numeric ID of the campaign whose combat tracker to display
+    placeholder: "1"
+    help_text: Used by the combat display mode to poll the live initiative order.
   - keyname: display_mode
     field_type: string
     name: Display mode
-    description: Show character stats, campaign progress, or the full party roster
+    description: Show character stats, campaign progress, the full party roster, or the live combat tracker
     placeholder: roster
-    help_text: "character, campaign or roster"
+    help_text: "character, campaign, roster or combat"
   - keyname: bio
     name: About This Plugin
     category: entertainment
