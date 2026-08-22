@@ -4,6 +4,7 @@ go 1.26.2
 
 require (
 	entgo.io/ent v0.14.6
+	github.com/SherClockHolmes/webpush-go v1.4.0
 	github.com/dop251/goja v0.0.0-20260806115107-493f22071ef6
 	github.com/gin-gonic/gin v1.12.0
 	github.com/gorilla/websocket v1.5.3
@@ -40,7 +41,6 @@ require (
 	cloud.google.com/go/auth v0.23.0 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
-	github.com/SherClockHolmes/webpush-go v1.4.0 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
