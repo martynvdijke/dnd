@@ -90,6 +90,8 @@ func main() {
 	middleware.StartCleanupTask()
 	handlers.StartBackupScheduler()
 	handlers.StartDBCleanupTask()
+	pushStop := make(chan struct{})
+	handlers.StartPushReminderScheduler(pushStop)
 
 	port := os.Getenv("PORT")
 	if port == "" {

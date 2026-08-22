@@ -57,6 +57,11 @@ func RegisterMiscAuthRoutes(r *gin.RouterGroup) {
 	r.GET("/settings/autosave", GetAutoSaveSetting)
 	r.GET("/ai/enabled", GetAIEnabled)
 
+	// Web Push subscriptions
+	r.POST("/push/subscribe", SubscribePush)
+	r.POST("/push/unsubscribe", UnsubscribePush)
+	r.GET("/push/vapid-public-key", GetVapidPublicKey)
+
 	// Dice
 	r.POST("/roll", HandleRoll)
 	r.POST("/roll/check", HandleCheckRoll)

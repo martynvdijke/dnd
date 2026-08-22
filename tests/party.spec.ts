@@ -164,4 +164,27 @@ test.describe('Party Management', () => {
     await expect(page.locator('#partyContent')).toContainText(name, { timeout: NAV_TIMEOUT });
     await expect(page.locator('#partyContent')).toContainText('Party View', { timeout: NAV_TIMEOUT });
   });
+
+  test('campaign manage modal toggles push notifications mute', async ({ page }) => {
+    const name = uniqueName();
+    const created = await page.evaluate(async (n) => {
+      return (window as any).api('POST', '/api/campaigns', { name: n, description: 'mute toggle test' });
+    }, name);
+    expect(created.id).toBeGreaterThan(0);
+
+    // Open the manage-campaign modal
+    await page.evaluate((id) => (window as any).showManageCampaign(id, ''), created.id);
+    const toggle = page.locator('[data-testid="push-mute-toggle"]');
+    await expect(toggle).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(toggle).toContainText('On');
+
+    // Mute, then reopen — state persists server-side
+    await toggle.click();
+    await page.waitForTimeout(500);
+    await page.evaluate((id) => (window as any).showManageCampaign(id, ''), created.id);
+    await expect(page.locator('[data-testid="push-mute-toggle"]')).toContainText('Muted', { timeout: NAV_TIMEOUT });
+
+    // Unmute to restore default state
+    await page.locator('[data-testid="push-mute-toggle"]').click();
+  });
 });

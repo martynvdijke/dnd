@@ -17,6 +17,11 @@ func RegisterAdminRoutes(r *gin.RouterGroup) {
 	r.POST("/test-email", TestEmail)
 	r.POST("/campaign-highlights", SendCampaignHighlights)
 
+	// Web Push settings
+	r.GET("/push-settings", GetPushSettings)
+	r.POST("/push-settings", SavePushSettings)
+	r.POST("/test-push", TestPush)
+
 	// Shop management (admin access — global)
 	r.POST("/shops", CreateShop)
 	r.PUT("/shops/:id", UpdateShop)

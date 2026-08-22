@@ -76,6 +76,10 @@ func RegisterCampaignRoutes(r *gin.RouterGroup) {
 	r.DELETE("/recaps/:id", DeleteCampaignRecap)
 	r.POST("/campaigns/:id/recaps/generate", GenerateCampaignRecap)
 	r.POST("/recaps/:id/mark-sent", MarkRecapAsSent)
+
+	// Per-user push mute for a campaign
+	r.GET("/campaigns/:id/push-mute", GetCampaignPushMute)
+	r.PUT("/campaigns/:id/push-mute", SetCampaignPushMute)
 }
 
 // RegisterDM Campaign routes
