@@ -1,3 +1,10 @@
+# [2.53.0](https://github.com/martynvdijke/dnd/compare/v2.52.0...v2.53.0) (2026-08-22)
+
+
+### Features
+
+* add web push notifications with VAPID config, recap alerts, and session reminders ([#91](https://github.com/martynvdijke/dnd/issues/91)) ([65a5288](https://github.com/martynvdijke/dnd/commit/65a52880c7fe606f35c79c600b5b0017e7ece54d))
+
 # [2.52.0](https://github.com/martynvdijke/dnd/compare/v2.51.0...v2.52.0) (2026-08-22)
 
 
