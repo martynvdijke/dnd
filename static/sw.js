@@ -109,3 +109,52 @@ self.addEventListener('fetch', (event) => {
     return new Response('Offline', { status: 503 });
   }));
 });
+
+// ─── Web Push ───
+
+// Payload JSON: {title, body, url, tag}. A malformed payload still shows a
+// generic notification rather than dropping the message silently.
+self.addEventListener('push', (event) => {
+  let title = 'Villum';
+  let body = 'You have a new notification.';
+  let url = '/';
+  let tag;
+  try {
+    const data = event.data ? event.data.json() : {};
+    if (data.title) title = String(data.title);
+    if (data.body) body = String(data.body);
+    if (data.url) url = String(data.url);
+    if (data.tag) tag = String(data.tag);
+  } catch (err) {
+    // Keep fallbacks; never throw out of a push handler.
+  }
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      tag,
+      icon: '/static/brand/logo-mark.svg',
+      badge: '/static/brand/logo-mark.svg',
+      data: { url },
+    })
+  );
+});
+
+// Click: focus an existing window at `url` if one exists, otherwise open it.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const target = (event.notification.data && event.notification.data.url) || '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) {
+          client.focus();
+          if ('navigate' in client && client.url !== new URL(target, self.location.origin).href) {
+            try { client.navigate(target); } catch (err) { /* older browsers */ }
+          }
+          return;
+        }
+      }
+      return self.clients.openWindow(target);
+    })
+  );
+});

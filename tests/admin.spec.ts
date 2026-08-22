@@ -141,4 +141,19 @@ test.describe('Admin panel', () => {
     await expect(page.locator('#adminBackup .card-header').first()).toContainText('Backup Settings');
     await expect(page.locator('#backupEnabled')).toBeVisible();
   });
+
+  test('push tab loads VAPID settings and saves', async ({ page }) => {
+    test.slow();
+    await goToAdmin(page);
+    await page.click('#adminTabs button:has-text("Push")');
+    const publicKey = page.locator('[data-testid="push-public-key"]');
+    await expect(publicKey).toBeVisible();
+    await expect(page.locator('[data-testid="push-save-settings"]')).toBeVisible();
+    await expect(page.locator('[data-testid="push-test-send"]')).toBeVisible();
+
+    // Saving auto-generates VAPID keys when none exist; the public key is
+    // echoed back into the (readonly) field either way.
+    await page.locator('[data-testid="push-save-settings"]').click();
+    await expect(publicKey).toHaveValue(/.+/, { timeout: NAV_TIMEOUT });
+  });
 });

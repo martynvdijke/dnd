@@ -92,7 +92,7 @@ function showAdminTab(tab: string) {
   document.querySelectorAll('#adminTabs .nav-link').forEach(el => el.classList.remove('active'));
   const tabBtn = document.getElementById('tab' + capitalize(tab) + 'Btn');
   if (tabBtn) tabBtn.classList.add('active');
-  const allTabs = ['users', 'unified-compendium', 'backup', 'email', 'ai-endpoints', 'analytics', 'telemetry', 'events', 'import', 'e-ink', 'settings', 'logs'];
+  const allTabs = ['users', 'unified-compendium', 'backup', 'email', 'push', 'ai-endpoints', 'analytics', 'telemetry', 'events', 'import', 'e-ink', 'settings', 'logs'];
   allTabs.forEach(s => {
     const parts = s.split('-').map((p, i) => i === 0 ? capitalize(p) : capitalize(p));
     const id = 'admin' + parts.join('');
@@ -103,6 +103,7 @@ function showAdminTab(tab: string) {
   if (tab === 'unified-compendium') loadUnifiedCompendium();
   if (tab === 'backup') { loadBackupSettings(); loadBackupList(); }
   if (tab === 'email') loadEmailSettings();
+  if (tab === 'push') loadPushSettings();
   if (tab === 'ai-endpoints') loadAIEndpoints();
   if (tab === 'analytics') loadUmamiSettings();
   if (tab === 'telemetry') loadOTelSettings();
@@ -1468,6 +1469,43 @@ expose('testEmailSettings', async function () {
       test: true,
     });
     toast('Test email sent! Check your inbox.');
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+});
+
+// ─── Web Push Settings ───
+
+async function loadPushSettings() {
+  try {
+    const s = await api('GET', '/api/admin/push-settings');
+    (document.getElementById('pushPublicKey') as HTMLInputElement).value = s.public_key || '';
+    (document.getElementById('pushSubject') as HTMLInputElement).value = s.subject || '';
+    (document.getElementById('pushLeadMinutes') as HTMLInputElement).value = s.lead_minutes ?? 60;
+    (document.getElementById('pushSessionLeadDays') as HTMLInputElement).value = s.session_lead_days ?? 1;
+  } catch {}
+}
+
+expose('savePushSettings', async function () {
+  try {
+    const s = await api('POST', '/api/admin/push-settings', {
+      subject: (document.getElementById('pushSubject') as HTMLInputElement).value,
+      lead_minutes: +(document.getElementById('pushLeadMinutes') as HTMLInputElement).value || undefined,
+      session_lead_days: +(document.getElementById('pushSessionLeadDays') as HTMLInputElement).value,
+      generate_keys: (document.getElementById('pushGenerateKeys') as HTMLInputElement).checked,
+    });
+    (document.getElementById('pushPublicKey') as HTMLInputElement).value = s.public_key || '';
+    (document.getElementById('pushGenerateKeys') as HTMLInputElement).checked = false;
+    toast('Push settings saved');
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+});
+
+expose('testPushNotification', async function () {
+  try {
+    const r = await api('POST', '/api/admin/test-push');
+    toast(`Test push sent to ${r.sent} subscription${r.sent === 1 ? '' : 's'}`);
   } catch (e: any) {
     toast(e.message, true);
   }

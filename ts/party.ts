@@ -274,10 +274,11 @@ expose('finishCreateCampaign', async function (campaignId: number) {
 });
 
 expose('showManageCampaign', async function (campaignId: number, name: string, partyName: string = '') {
-  const [campaigns, members, roster] = await Promise.all([
+  const [campaigns, members, roster, muteState] = await Promise.all([
     api('GET', '/api/campaigns'),
     api('GET', `/api/campaigns/${campaignId}/members`).catch(() => []),
     api('GET', `/api/campaigns/${campaignId}/characters`).catch(() => []),
+    api('GET', `/api/campaigns/${campaignId}/push-mute`).catch(() => ({ muted: false })),
   ]);
   const c = campaigns.find((x: any) => x.id === campaignId);
   const curName = (c && c.name) || name;
@@ -286,6 +287,19 @@ expose('showManageCampaign', async function (campaignId: number, name: string, p
   const curDmNotes = (c && c.dm_notes) || '';
   const ownerNames: Record<number, string> = {};
   (members as any[]).forEach((m: any) => { ownerNames[m.user_id] = m.username; });
+  const pushMuted = !!(muteState && muteState.muted);
+  const notificationsHtml = `
+    <hr>
+    <h6 class="mb-2"><i class="fa-solid fa-bell me-1"></i>Notifications</h6>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <span class="small text-muted">Push notifications for this campaign</span>
+      <button class="btn btn-sm ${pushMuted ? 'btn-outline-secondary' : 'btn-outline-gold'}"
+              data-testid="push-mute-toggle"
+              onclick="doTogglePushMute(${campaignId}, ${!pushMuted})"
+              title="${pushMuted ? 'Notifications are muted' : 'Notifications are on'}">
+        <i class="fa-solid ${pushMuted ? 'fa-bell-slash' : 'fa-bell'} me-1"></i>${pushMuted ? 'Muted' : 'On'}
+      </button>
+    </div>`;
   const membersHtml = members.length
     ? `<ul class="list-group mb-3">${members.map((m: any) => {
         const isDmMember = m.role === 'dm';
@@ -336,6 +350,7 @@ expose('showManageCampaign', async function (campaignId: number, name: string, p
     <button class="btn btn-outline-primary w-100 mb-3" data-testid="roster-add-open" onclick="showRosterPicker(${campaignId})"><i class="fa-solid fa-user-plus me-1"></i>Add Characters</button>
     <hr>
     ${membersHtml}
+    ${notificationsHtml}
     <div class="input-group mb-3">
       <input class="form-control" id="addMemberUsername" placeholder="Username to add">
       <button class="btn btn-gold" onclick="doAddMember(${campaignId})"><i class="fa-solid fa-plus"></i></button>
@@ -446,6 +461,16 @@ expose('doRemoveMember', async function (campaignId: number, userId: number) {
   if (!confirm('Remove this member?')) return;
   try {
     await api('DELETE', `/api/campaigns/${campaignId}/members/${userId}`);
+    (window as any).showManageCampaign(campaignId, '');
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+});
+
+expose('doTogglePushMute', async function (campaignId: number, muted: boolean) {
+  try {
+    await api('PUT', `/api/campaigns/${campaignId}/push-mute`, { muted });
+    toast(muted ? 'Notifications muted for this campaign' : 'Notifications on for this campaign');
     (window as any).showManageCampaign(campaignId, '');
   } catch (e: any) {
     toast(e.message, true);

@@ -79,6 +79,7 @@ func CreateCampaignRecap(c *gin.Context) {
 		return
 	}
 	id, _ := result.LastInsertId()
+	NotifyCampaignRecapPublished(campaignID, id, req.Title)
 	c.JSON(http.StatusCreated, gin.H{"id": id})
 }
 
@@ -292,6 +293,11 @@ func getCurrentTimestamp() string {
 
 func MarkRecapAsSent(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var campaignID int64
+	var title string
+	if err := db.DB.QueryRow("SELECT campaign_id,title FROM campaign_recaps WHERE id=?", id).Scan(&campaignID, &title); err == nil {
+		NotifyCampaignRecapPublished(campaignID, id, title)
+	}
 	db.DB.Exec("UPDATE campaign_recaps SET is_sent=1 WHERE id=?", id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
