@@ -1,3 +1,10 @@
+# [2.52.0](https://github.com/martynvdijke/dnd/compare/v2.51.0...v2.52.0) (2026-08-22)
+
+
+### Features
+
+* add public TRMNL combat status endpoint and combat display mode ([#90](https://github.com/martynvdijke/dnd/issues/90)) ([b0c0cbe](https://github.com/martynvdijke/dnd/commit/b0c0cbecc8e887b3022f767f62aaca155e33f787))
+
 # [2.51.0](https://github.com/martynvdijke/dnd/compare/v2.50.0...v2.51.0) (2026-08-20)
 
 
