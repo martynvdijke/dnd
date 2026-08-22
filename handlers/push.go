@@ -401,12 +401,12 @@ func GetPushSettings(c *gin.Context) {
 	_, hasPriv := appSetting(settingVapidPrivateKey)
 	subject, _ := appSetting(settingVapidSubject)
 	c.JSON(http.StatusOK, gin.H{
-		"public_key":          pub,
-		"has_public_key":      hasPub && pub != "",
-		"has_private_key":     hasPriv,
-		"subject":             subject,
-		"lead_minutes":        pushReminderLeadMinutes(),
-		"session_lead_days":   pushSessionReminderLeadDays(),
+		"public_key":        pub,
+		"has_public_key":    hasPub && pub != "",
+		"has_private_key":   hasPriv,
+		"subject":           subject,
+		"lead_minutes":      pushReminderLeadMinutes(),
+		"session_lead_days": pushSessionReminderLeadDays(),
 	})
 }
 
@@ -500,18 +500,18 @@ func TestPush(c *gin.Context) {
 // ─── Session reminder scheduler (hybrid sources) ───
 
 type feedEventRow struct {
-	EventID     string
-	CampaignID  int64
-	Title       string
-	StartTime   string
-	AllDay      int
+	EventID    string
+	CampaignID int64
+	Title      string
+	StartTime  string
+	AllDay     int
 }
 
 type localSessionRow struct {
-	ID        int64
+	ID         int64
 	CampaignID int64
-	Title     string
-	EventDate string
+	Title      string
+	EventDate  string
 }
 
 // recordReminderSent marks an event as reminded (dedup marker). Returns true
