@@ -1,3 +1,13 @@
+## [2.53.1](https://github.com/martynvdijke/dnd/compare/v2.53.0...v2.53.1) (2026-08-28)
+
+
+### Bug Fixes
+
+* **ci:** correct actionlint pin ([c7078bd](https://github.com/martynvdijke/dnd/commit/c7078bdbbb238819ab35b7a4e564dbd0db5bf815))
+* **ci:** make pinact check non-blocking ([5c0820a](https://github.com/martynvdijke/dnd/commit/5c0820aa3887316d6558060b718ab296bfe63588))
+* **ci:** remove unsupported --diff flag from pinact ([10f0fbb](https://github.com/martynvdijke/dnd/commit/10f0fbbea49021afe415b6292aaae3b46b121447))
+* **ci:** update actionlint to v1.7.12 (v1 tag removed upstream) ([bc9e4a2](https://github.com/martynvdijke/dnd/commit/bc9e4a2e06850c045376818913d85b38439fbdc7))
+
 # [2.53.0](https://github.com/martynvdijke/dnd/compare/v2.52.0...v2.53.0) (2026-08-22)
 
 
