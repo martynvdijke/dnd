@@ -5,7 +5,7 @@ go 1.26.2
 require (
 	entgo.io/ent v0.14.6
 	github.com/SherClockHolmes/webpush-go v1.4.0
-	github.com/dop251/goja v0.0.0-20260806115107-493f22071ef6
+	github.com/dop251/goja v0.0.0-20260901132549-43234fa61381
 	github.com/gin-gonic/gin v1.12.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/prometheus/client_golang v1.24.1
