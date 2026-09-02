@@ -1,3 +1,10 @@
+## [2.53.4](https://github.com/martynvdijke/dnd/compare/v2.53.3...v2.53.4) (2026-09-02)
+
+
+### Bug Fixes
+
+* build dice bundle in CI and remove tracked artifact ([43410fe](https://github.com/martynvdijke/dnd/commit/43410feefcc04c3c266327e8cd4da56ecd97d50d))
+
 ## [2.53.3](https://github.com/martynvdijke/dnd/compare/v2.53.2...v2.53.3) (2026-09-02)
 
 
