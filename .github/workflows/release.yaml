@@ -136,7 +136,7 @@ jobs:
 
   notify:
     needs: [ci, release]
-    if: ${{ always() }}
+    if: ${{ !cancelled() }}
     name: Gotify Notification
     runs-on: ubuntu-latest
     steps:
@@ -170,4 +170,4 @@ jobs:
   otel:
     uses: ./.github/workflows/otel.yaml
     needs: [ci, release, notify, trml]
-    if: ${{ always() }}
+    if: ${{ !cancelled() }}
