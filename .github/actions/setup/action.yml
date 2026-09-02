@@ -1,0 +1,44 @@
+name: Setup
+description: Checkout, setup Go (cached) and Node, install deps and build bundles
+
+inputs:
+  go-version:
+    description: Go version
+    required: false
+    default: '1.26.x'
+  node-version:
+    description: Node.js version
+    required: false
+    default: '24'
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+      with:
+        go-version: ${{ inputs.go-version }}
+        cache: true
+        cache-dependency-path: go.sum
+
+    - name: Set up Node.js
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'npm'
+
+    - name: Download Go dependencies
+      shell: bash
+      run: go mod download
+
+    - name: Install Node dependencies
+      shell: bash
+      run: npm ci
+
+    - name: Build embedded static bundles
+      shell: bash
+      run: npm run build:vite
+
+    - name: Build dice bundle
+      shell: bash
+      run: npm run build:dice

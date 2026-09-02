@@ -15,19 +15,6 @@ jobs:
       - name: Stale Branches
         uses: crs-k/stale-branches@138918e25f06d439bf76db5305a591d8a3c03678 # v10.0.0
   otel:
-    permissions:
-      contents: read # Required. To access the private repository
-      actions: read # Required. To read workflow runs
-      pull-requests: read # Optional. To read PR labels
-      checks: read # Optional. To read run annotations
-    if: always()
-    name: OpenTelemetry Export Trace
-    runs-on: ubuntu-latest
+    uses: ./.github/workflows/otel.yaml
     needs: [stale_branches]
-    steps:
-      - name: Export workflow
-        uses: corentinmusard/otel-cicd-action@895874bfae14f840e3032f1a14c3f2b45c93f4af # v4
-        with:
-          otlpEndpoint: ${{ secrets.OTLP_ENDPOINT }}
-          otlpHeaders: ${{ secrets.OTLP_HEADERS }}
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
+    if: ${{ !cancelled() }}

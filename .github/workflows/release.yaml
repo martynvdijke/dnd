@@ -11,7 +11,6 @@ concurrency:
 jobs:
   ci:
     uses: ./.github/workflows/ci.yaml
-    secrets: inherit
     permissions:
       contents: write
       pull-requests: write
@@ -137,7 +136,7 @@ jobs:
 
   notify:
     needs: [ci, release]
-    if: ${{ always() }}
+    if: ${{ !cancelled() }}
     name: Gotify Notification
     runs-on: ubuntu-latest
     steps:
@@ -169,19 +168,6 @@ jobs:
           notification_message: 'The release workflow has failed. ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
           notification_priority: 5
   otel:
-    permissions:
-      contents: read # Required. To access the private repository
-      actions: read # Required. To read workflow runs
-      pull-requests: read # Optional. To read PR labels
-      checks: read # Optional. To read run annotations
-    if: always()
-    name: OpenTelemetry Export Trace
-    runs-on: ubuntu-latest
+    uses: ./.github/workflows/otel.yaml
     needs: [ci, release, notify, trml]
-    steps:
-      - name: Export workflow
-        uses: corentinmusard/otel-cicd-action@895874bfae14f840e3032f1a14c3f2b45c93f4af # v4
-        with:
-          otlpEndpoint: ${{ secrets.OTLP_ENDPOINT }}
-          otlpHeaders: ${{ secrets.OTLP_HEADERS }}
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
+    if: ${{ !cancelled() }}
