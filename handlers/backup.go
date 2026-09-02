@@ -13,6 +13,8 @@ import (
 	"villum/middleware"
 )
 
+const backupTick = 1 * time.Hour
+
 func getBackupDir() string {
 	dbPath := getDBPath()
 	if dbPath == "" {
@@ -103,7 +105,7 @@ func SetDBPath(path string) {
 func StartBackupScheduler() {
 	go func() {
 		for {
-			time.Sleep(1 * time.Hour)
+			time.Sleep(backupTick)
 			checkAndBackup()
 		}
 	}()

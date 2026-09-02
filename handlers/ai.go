@@ -26,6 +26,17 @@ import (
 
 const DefaultSystemPrompt = "You are a helpful assistant for a D&D website called villum. You help DMs create compelling narratives, NPCs, locations, items, and other TTRPG content. Be creative and concise."
 
+const (
+	aiTestTimeout  = 30 * time.Second
+	aiTextTimeout  = 60 * time.Second
+	aiImageTimeout = 120 * time.Second
+	aiFetchTimeout = 60 * time.Second
+)
+
+func newAIClient(timeout time.Duration) *http.Client {
+	return &http.Client{Timeout: timeout}
+}
+
 func ListAIEndpoints(c *gin.Context) {
 	endpoints, err := db.GetAIEndpoints(c.Request.Context())
 	if err != nil {
@@ -265,7 +276,7 @@ func TestAIEndpoint(c *gin.Context) {
 
 	middleware.LogDebug("ai", "ai endpoint test start", "endpoint_id", id, "model", endpoint.Model, "type", endpoint.Type)
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := newAIClient(aiTestTimeout)
 
 	if endpoint.Type == "text" {
 		payload := map[string]any{
@@ -418,7 +429,7 @@ func HandleTextGeneration(c *gin.Context) {
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 
-	client := &http.Client{Timeout: 60 * time.Second}
+	client := newAIClient(aiTextTimeout)
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		errMsg := fmt.Sprintf("AI provider request failed: %s", sanitizeError(err))
@@ -553,7 +564,7 @@ func HandleImageGeneration(c *gin.Context) {
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 
-	client := &http.Client{Timeout: 120 * time.Second}
+	client := newAIClient(aiImageTimeout)
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		errMsg := fmt.Sprintf("AI provider request failed: %s", sanitizeError(err))
@@ -651,7 +662,7 @@ func SaveGeneratedImage(c *gin.Context) {
 		}
 	}
 
-	client := &http.Client{Timeout: 60 * time.Second}
+	client := newAIClient(aiFetchTimeout)
 	resp, err := client.Get(req.URL)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": sanitizeError(err)})
