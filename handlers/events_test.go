@@ -652,8 +652,14 @@ func TestEventsGridPartial(t *testing.T) {
 	})
 
 	t.Run("shows Today button when viewing another month", func(t *testing.T) {
-		prev := time.Now().AddDate(0, -1, 0).Format("2006-01")
-		w := testutil.Get(t, r, "/htmx/events/grid?month="+prev)
+		prev := time.Now().AddDate(0, -1, 0)
+		db.ClearCache("")
+		events := []googlecalendar.Event{
+			{ID: "today-prev", Title: "Prev Month Event", StartTime: time.Date(prev.Year(), prev.Month(), 10, 12, 0, 0, 0, time.UTC)},
+		}
+		db.SetCachedEvents(events, "")
+		db.SaveEventSettings(db.EventSettings{CalendarID: "test@example.com"})
+		w := testutil.Get(t, r, "/htmx/events/grid?month="+prev.Format("2006-01"))
 		testutil.AssertStatus(t, w, 200)
 		body := w.Body.String()
 		if !contains(body, "Jump to today") {
@@ -662,6 +668,13 @@ func TestEventsGridPartial(t *testing.T) {
 	})
 
 	t.Run("hides Today button on current month", func(t *testing.T) {
+		now := time.Now()
+		db.ClearCache("")
+		events := []googlecalendar.Event{
+			{ID: "today-cur", Title: "Current Month Event", StartTime: time.Date(now.Year(), now.Month(), 10, 12, 0, 0, 0, time.UTC)},
+		}
+		db.SetCachedEvents(events, "")
+		db.SaveEventSettings(db.EventSettings{CalendarID: "test@example.com"})
 		w := testutil.Get(t, r, "/htmx/events/grid")
 		testutil.AssertStatus(t, w, 200)
 		body := w.Body.String()

@@ -8,6 +8,7 @@
     "test": "go test -tags sqlite_fts5 ./...",
     "test:e2e": "npx playwright test",
     "build:vite": "vite build && ENTRY=pwa vite build && ENTRY=admin vite build && ENTRY=setup vite build && ENTRY=login vite build",
+    "build:dice": "esbuild dice/roller-entry.js --bundle --format=iife --global-name=__diceBundle --platform=browser --external:crypto --outfile=dice/bundle.js",
     "typecheck": "npx tsc --noEmit",
     "build:ts": "npm run build:vite && npm run typecheck",
     "watch:ts": "vite build --watch"
@@ -29,6 +30,7 @@
     "@playwright/test": "^1.59.1",
     "@vitest/coverage-v8": "^4.1.10",
     "happy-dom": "^20.10.3",
+    "esbuild": "^0.27.0",
     "typescript": "^7.0.0",
     "vite": "^8.0.0",
     "vitest": "^4.1.9"
