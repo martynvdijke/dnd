@@ -137,7 +137,6 @@ jobs:
   notify:
     needs: [ci, release]
     if: ${{ always() }}
-    secrets: inherit
     name: Gotify Notification
     runs-on: ubuntu-latest
     steps:
