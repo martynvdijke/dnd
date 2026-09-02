@@ -13,7 +13,9 @@ jobs:
     name: OpenTelemetry Export Trace
     runs-on: ubuntu-latest
     steps:
+      - run: echo "otel"
       - name: Export workflow
+        if: false
         uses: corentinmusard/otel-cicd-action@895874bfae14f840e3032f1a14c3f2b45c93f4af # v4
         with:
           otlpEndpoint: ''
