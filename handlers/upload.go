@@ -76,7 +76,12 @@ func HandleUpload(c *gin.Context) {
 	ownerIDStr := c.PostForm("owner_id")
 	var ownerID int64
 	if ownerIDStr != "" {
-		ownerID, _ = strconv.ParseInt(ownerIDStr, 10, 64)
+		var err error
+		ownerID, err = strconv.ParseInt(ownerIDStr, 10, 64)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid owner_id"})
+			return
+		}
 	}
 	allowedOwnerTypes := map[string]bool{"party": true, "item": true, "oneshot": true, "character": true, "npc": true, "campaign": true, "": true}
 	if !allowedOwnerTypes[ownerType] {

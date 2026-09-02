@@ -1970,9 +1970,7 @@ func HtmxGetPacingDashboard(c *gin.Context) {
 	}
 
 	db.DB.QueryRow("SELECT COUNT(*) FROM oneshot_acts WHERE adventure_id=?", s.AdventureID).Scan(&s.TotalActs)
-	var sceneCount int
-	db.DB.QueryRow("SELECT COUNT(*) FROM oneshot_scenes sc JOIN oneshot_acts a ON a.id=sc.act_id WHERE a.adventure_id=?", s.AdventureID).Scan(&sceneCount)
-	_ = sceneCount
+	db.DB.QueryRow("SELECT COUNT(*) FROM oneshot_scenes sc JOIN oneshot_acts a ON a.id=sc.act_id WHERE a.adventure_id=?", s.AdventureID).Scan(&s.TotalScenes)
 
 	rows, err := db.DB.Query(`
 		SELECT st.id, st.session_id, st.scene_id, st.elapsed_seconds, st.status, COALESCE(st.started_at,''), COALESCE(st.completed_at,''),
@@ -3213,9 +3211,6 @@ func HtmxGetSessionFlow(c *gin.Context) {
 	var totalTime int
 	for _, a := range adv.Acts {
 		totalTime += a.EstimatedMinutes
-		for _, s := range a.Scenes {
-			_ = s
-		}
 	}
 
 	renderTemplate(c, "oneshot_session_flow.html", gin.H{

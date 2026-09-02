@@ -95,7 +95,6 @@ func GetCampaignDashboard(c *gin.Context) {
 	}
 
 	db.DB.QueryRow("SELECT COUNT(*) FROM campaign_members WHERE campaign_id=?", campaignID).Scan(&dash.TotalMembers)
-	_ = dash.TotalMembers
 
 	db.DB.QueryRow("SELECT COUNT(*) FROM character_conditions cc JOIN characters c ON cc.character_id=c.id WHERE c.campaign_id=?", campaignID).Scan(&dash.ActiveConditions)
 

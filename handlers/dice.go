@@ -30,23 +30,23 @@ type HandlerResult struct {
 }
 
 var (
-	dicePool *dice.Pool
-	diceOnce sync.Once
+	dicePool    *dice.Pool
+	diceOnce    sync.Once
+	diceInitErr error
 )
 
 func getDicePool() *dice.Pool {
 	diceOnce.Do(func() {
-		var err error
-		dicePool, err = dice.NewPool(2)
-		if err != nil {
-			// Will be caught at handler time
-			panic(fmt.Sprintf("failed to init dice engine: %v", err))
-		}
+		dicePool, diceInitErr = dice.NewPool(2)
 	})
 	return dicePool
 }
 
 func HandleRoll(c *gin.Context) {
+	if diceInitErr != nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "dice engine unavailable"})
+		return
+	}
 	var req DiceRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})

@@ -87,7 +87,11 @@ func GetUploadsForEntity(c *gin.Context) {
 		rows.Scan(&item.ID, &item.Hash, &item.Ext, &item.URL, &item.ResizedURL,
 			&item.ThumbnailURL, &ownerTypeStr, &ownerIDStr, &item.CreatedAt, &item.LinkID)
 		item.OwnerType = ownerTypeStr
-		item.OwnerID, _ = strconv.ParseInt(ownerIDStr, 10, 64)
+		if parsed, err := strconv.ParseInt(ownerIDStr, 10, 64); err == nil {
+			item.OwnerID = parsed
+		} else if ownerIDStr != "" {
+			item.OwnerID = 0
+		}
 		item.IsPDF = item.Ext == ".pdf"
 		uploads = append(uploads, item)
 	}

@@ -74,14 +74,12 @@ func ImportCompendiumMonsterToEncounter(c *gin.Context) {
 
 	// Fetch compendium monster for stat block
 	var cm models.CompendiumMonster
-	var isFull int
 	err := db.DB.QueryRow("SELECT id,name,ac,hp,cr,source,description FROM compendium_monsters WHERE id=?", req.CompendiumMonsterID).
 		Scan(&cm.ID, &cm.Name, &cm.AC, &cm.HP, &cm.CR, &cm.Source, &cm.Description)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "compendium monster not found"})
 		return
 	}
-	_ = isFull
 
 	result, err := db.DB.Exec(`INSERT INTO encounter_monsters(encounter_id, name, count, cr, ac, hp, source, notes, compendium_monster_id) VALUES(?,?,?,?,?,?,?,?,?)`,
 		encounterID, cm.Name, req.Count, cm.CR, cm.AC, cm.HP, cm.Source, "", req.CompendiumMonsterID)

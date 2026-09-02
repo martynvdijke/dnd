@@ -1,0 +1,17 @@
+name: OTel Export
+
+on:
+  workflow_call:
+
+jobs:
+  otel:
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+      checks: read
+    name: OpenTelemetry Export Trace
+    runs-on: ubuntu-latest
+    steps:
+      # uses: corentinmusard/otel-cicd-action@v4 (actual action disabled due to reusable startup issue, see inline)
+      - run: echo "otel export stub - corentinmusard/otel-cicd-action@v4"

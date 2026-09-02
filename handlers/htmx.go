@@ -921,7 +921,7 @@ func HtmxLinkNPCForm(c *gin.Context) {
 		var n models.NPC
 		rows.Scan(&n.ID, &n.Name, &n.Race, &n.Class, &n.Description, &n.Notes,
 			&n.Str, &n.Dex, &n.Con, &n.Int, &n.Wis, &n.Cha, &n.HPMax, &n.HPCurrent, &n.IsAlive, &n.CreatedAt, &n.PortraitURL)
-		_ = n.UserID
+		// n.UserID already filtered by WHERE user_id=?; no additional auth check needed here
 		all = append(all, n)
 	}
 	renderTemplate(c, "npcs_link_form.html", htmxNPCData{CharacterID: cid, AllNPCs: all})
@@ -1522,7 +1522,12 @@ func HtmxMediaGallery(c *gin.Context) {
 		rows.Scan(&item.ID, &item.Hash, &item.Ext, &item.URL, &item.ResizedURL,
 			&item.ThumbnailURL, &ownerTypeStr, &ownerIDStr, &item.CreatedAt, &item.LinkID)
 		item.OwnerType = ownerTypeStr
-		item.OwnerID, _ = strconv.ParseInt(ownerIDStr, 10, 64)
+		if parsed, err := strconv.ParseInt(ownerIDStr, 10, 64); err == nil {
+			item.OwnerID = parsed
+		} else if ownerIDStr != "" {
+			// corrupt owner_id in DB — treat as 0 and continue
+			item.OwnerID = 0
+		}
 		item.IsPDF = item.Ext == ".pdf"
 		uploads = append(uploads, item)
 	}

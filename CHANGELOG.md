@@ -1,3 +1,10 @@
+## [2.53.5](https://github.com/martynvdijke/dnd/compare/v2.53.4...v2.53.5) (2026-09-02)
+
+
+### Bug Fixes
+
+* sanitize wiki markdown rendering with DOMPurify ([#95](https://github.com/martynvdijke/dnd/issues/95)) ([b285744](https://github.com/martynvdijke/dnd/commit/b2857442d6523da2bf8a063eee435489a7682248))
+
 ## [2.53.4](https://github.com/martynvdijke/dnd/compare/v2.53.3...v2.53.4) (2026-09-02)
 
 

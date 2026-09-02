@@ -7,10 +7,12 @@ import (
 	"villum/middleware"
 )
 
+const cleanupInterval = 4 * time.Hour
+
 func StartDBCleanupTask() {
 	go func() {
 		for {
-			time.Sleep(4 * time.Hour)
+			time.Sleep(cleanupInterval)
 
 			// Delete old dice roll history (older than 90 days)
 			result, err := db.DB.Exec("DELETE FROM dice_rolls WHERE timestamp < datetime('now', '-90 days')")

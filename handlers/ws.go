@@ -13,6 +13,13 @@ import (
 	"villum/middleware"
 )
 
+const (
+	wsReadLimit     = 4096
+	wsReadDeadline  = 60 * time.Second
+	wsPingInterval  = 30 * time.Second
+	wsWriteDeadline = 10 * time.Second
+)
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
@@ -175,10 +182,10 @@ func (c *WSClient) readPump() {
 		c.hub.Unregister(c)
 		c.conn.Close()
 	}()
-	c.conn.SetReadLimit(4096)
-	c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	c.conn.SetReadLimit(wsReadLimit)
+	c.conn.SetReadDeadline(time.Now().Add(wsReadDeadline))
 	c.conn.SetPongHandler(func(string) error {
-		c.conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		c.conn.SetReadDeadline(time.Now().Add(wsReadDeadline))
 		return nil
 	})
 	for {
@@ -190,7 +197,7 @@ func (c *WSClient) readPump() {
 }
 
 func (c *WSClient) writePump() {
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(wsPingInterval)
 	defer func() {
 		ticker.Stop()
 		c.conn.Close()
@@ -202,12 +209,12 @@ func (c *WSClient) writePump() {
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-			c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			c.conn.SetWriteDeadline(time.Now().Add(wsWriteDeadline))
 			if err := c.conn.WriteMessage(websocket.TextMessage, msg); err != nil {
 				return
 			}
 		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			c.conn.SetWriteDeadline(time.Now().Add(wsWriteDeadline))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}

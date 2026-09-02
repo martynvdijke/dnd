@@ -137,8 +137,19 @@ func (s *DBSessionStore) Get(sessionID string) *models.AuthSession {
 		return nil // not found or DB error
 	}
 
-	sess.CreatedAt, _ = time.Parse(time.RFC3339, createdAt)
-	sess.ExpiresAt, _ = time.Parse(time.RFC3339, expiresAt)
+	var parseErr error
+	sess.CreatedAt, parseErr = time.Parse(time.RFC3339, createdAt)
+	if parseErr != nil {
+		log.Printf("DBSessionStore.Get: corrupt created_at for session %s: %v", sessionID, parseErr)
+		s.Delete(sessionID)
+		return nil
+	}
+	sess.ExpiresAt, parseErr = time.Parse(time.RFC3339, expiresAt)
+	if parseErr != nil {
+		log.Printf("DBSessionStore.Get: corrupt expires_at for session %s: %v", sessionID, parseErr)
+		s.Delete(sessionID)
+		return nil
+	}
 
 	if time.Now().After(sess.ExpiresAt) {
 		s.Delete(sessionID)
