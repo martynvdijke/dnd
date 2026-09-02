@@ -14,9 +14,9 @@ import (
 )
 
 const (
-	wsReadLimit    = 4096
-	wsReadDeadline = 60 * time.Second
-	wsPingInterval = 30 * time.Second
+	wsReadLimit     = 4096
+	wsReadDeadline  = 60 * time.Second
+	wsPingInterval  = 30 * time.Second
 	wsWriteDeadline = 10 * time.Second
 )
 
