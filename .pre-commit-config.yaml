@@ -12,14 +12,14 @@ repos:
     hooks:
       - id: go-vet
         name: go vet
-        entry: go vet -tags fts5 ./...
+        entry: go vet -tags sqlite_fts5 ./...
         language: system
         types: [go]
         pass_filenames: false
 
       - id: go-build
         name: go build
-        entry: go build -tags fts5 -o /dev/null ./...
+        entry: go build -tags sqlite_fts5 -o /dev/null ./...
         language: system
         types: [go]
         pass_filenames: false
