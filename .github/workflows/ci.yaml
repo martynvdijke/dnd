@@ -69,9 +69,10 @@ jobs:
               # nav-* testids are constructed dynamically in helpers.ts (nav-${nav});
               # accept them when the nav id appears in tests alongside the template
               case "$tid" in
-                nav-*)
-                  suffix="${tid#nav-}"
-                  if grep -rq 'nav-\${nav}' tests/helpers.ts && grep -rq -- "$suffix" tests/; then
+                 nav-*)
+                   suffix="${tid#nav-}"
+                   # shellcheck disable=SC2016
+                   if grep -rq 'nav-\${nav}' tests/helpers.ts && grep -rq -- "$suffix" tests/; then
                     continue
                   fi
                   ;;

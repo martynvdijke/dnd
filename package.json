@@ -5,13 +5,12 @@
   "type": "module",
   "scripts": {
     "test:unit": "npx vitest run",
-    "test": "go test -tags fts5 ./...",
+    "test": "go test -tags sqlite_fts5 ./...",
     "test:e2e": "npx playwright test",
     "build:vite": "vite build && ENTRY=pwa vite build && ENTRY=admin vite build && ENTRY=setup vite build && ENTRY=login vite build",
     "typecheck": "npx tsc --noEmit",
     "build:ts": "npm run build:vite && npm run typecheck",
-    "watch:ts": "vite build --watch",
-    "dev:ts": "vite build --watch"
+    "watch:ts": "vite build --watch"
   },
   "dependencies": {
     "@dice-roller/rpg-dice-roller": "^5.5.1",

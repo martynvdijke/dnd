@@ -20,12 +20,20 @@ tasks:
   test:
     desc: Run Go unit tests
     cmds:
-      - go test -v ./...
+      - go test -tags sqlite_fts5 -v ./...
+
+  test:unit:
+    desc: Run TypeScript unit tests (mirror of npm run test:unit)
+    cmds:
+      - npm run test:unit
 
   test:e2e:
     desc: Run Playwright end-to-end tests
+    vars:
+      VERSION: { sh: 'git describe --tags --always 2>/dev/null || echo 0.0.0-dev' }
     cmds:
       - rm -f villum.db villum.db-wal villum.db-shm
+      - go build -tags sqlite_fts5 -ldflags "-X main.Version={{.VERSION}}" -o villum-server .
       - npx playwright test
 
   build:vite:
@@ -46,9 +54,11 @@ tasks:
 
   build:
     desc: Build Go binary
+    vars:
+      VERSION: { sh: 'git describe --tags --always 2>/dev/null || echo 0.0.0-dev' }
     cmds:
       - task: build:ts
-      - go build -o villum-server .
+      - go build -tags sqlite_fts5 -ldflags "-X main.Version={{.VERSION}}" -o villum-server .
 
   run:
     desc: Run the application
@@ -71,6 +81,20 @@ tasks:
       - rm -f villum-server
       - rm -f villum.db*
       - rm -rf playwright-report test-results static/js/*
+
+  ci:
+    desc: Full CI parity suite (mirrors ci.yaml job order)
+    cmds:
+      - go mod tidy
+      - git diff --exit-code go.mod go.sum
+      - task: build:vite
+      - task: typecheck
+      - go vet -tags sqlite_fts5 ./...
+      - gofmt -l . | grep -q . && { echo "gofmt needed"; gofmt -l .; exit 1; } || true
+      - go test -tags sqlite_fts5 -coverprofile=coverage.out -covermode=atomic -coverpkg=./handlers/...,./middleware/... ./...
+      - npx vitest run --coverage
+      - task: build
+      - task: test:e2e
 
   trmnl:lint:
     desc: Lint the TRMNL plugin with trmnlp (requires ruby + trmnl_preview gem)
