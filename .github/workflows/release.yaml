@@ -137,6 +137,7 @@ jobs:
   notify:
     needs: [ci, release]
     if: ${{ always() }}
+    secrets: inherit
     name: Gotify Notification
     runs-on: ubuntu-latest
     steps:
@@ -171,3 +172,4 @@ jobs:
     uses: ./.github/workflows/otel.yaml
     needs: [ci, release, notify, trml]
     if: ${{ always() }}
+    secrets: inherit

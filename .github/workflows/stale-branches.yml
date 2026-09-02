@@ -18,3 +18,4 @@ jobs:
     uses: ./.github/workflows/otel.yaml
     needs: [stale_branches]
     if: ${{ always() }}
+    secrets: inherit

@@ -2,6 +2,11 @@ name: OTel Export
 
 on:
   workflow_call:
+    secrets:
+      OTLP_ENDPOINT:
+        required: false
+      OTLP_HEADERS:
+        required: false
 
 jobs:
   otel:
