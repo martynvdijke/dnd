@@ -219,7 +219,12 @@ func LinkCompendiumEquipment(c *gin.Context) {
 	}
 	quantity := 1
 	if q := c.PostForm("quantity"); q != "" {
-		quantity, _ = strconv.Atoi(q)
+		var err error
+		quantity, err = strconv.Atoi(q)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid quantity"})
+			return
+		}
 		if quantity < 1 {
 			quantity = 1
 		}
@@ -259,7 +264,12 @@ func HtmxLinkCompendiumEquipment(c *gin.Context) {
 	}
 	quantity := 1
 	if q := c.PostForm("quantity"); q != "" {
-		quantity, _ = strconv.Atoi(q)
+		var err error
+		quantity, err = strconv.Atoi(q)
+		if err != nil {
+			c.String(http.StatusBadRequest, "invalid quantity")
+			return
+		}
 		if quantity < 1 {
 			quantity = 1
 		}

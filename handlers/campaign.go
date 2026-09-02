@@ -33,6 +33,8 @@ import (
 	"villum/models"
 )
 
+const campaignGraphLimit = 50
+
 type CampaignMemberResponse struct {
 	UserID   int64  `json:"user_id"`
 	Username string `json:"username"`
@@ -288,7 +290,7 @@ func SearchNPCs(c *gin.Context) {
 	if q != "" {
 		query = query.Where(npc.NameContainsFold(q))
 	}
-	npcs, err := query.Order(npc.ByName()).Limit(50).All(c.Request.Context())
+	npcs, err := query.Order(npc.ByName()).Limit(campaignGraphLimit).All(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -315,7 +317,7 @@ func SearchLocations(c *gin.Context) {
 	if q != "" {
 		query = query.Where(location.NameContainsFold(q))
 	}
-	locs, err := query.Order(location.ByName()).Limit(50).All(c.Request.Context())
+	locs, err := query.Order(location.ByName()).Limit(campaignGraphLimit).All(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

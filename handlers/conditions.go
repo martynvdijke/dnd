@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -188,10 +187,6 @@ func GetActiveConditionSummary(c *gin.Context) {
 	for rows.Next() {
 		var c models.Condition
 		rows.Scan(&c.ID, &c.CharacterID, &c.Name, &c.Type, &c.Duration, &c.DurationType)
-		durStr := fmt.Sprintf("%d %s", c.Duration, c.DurationType)
-		if c.DurationType == "permanent" {
-			durStr = "perm"
-		}
 		icon := "fa-circle"
 		if i, ok := iconMap[c.Type]; ok {
 			icon = i
@@ -205,7 +200,6 @@ func GetActiveConditionSummary(c *gin.Context) {
 			Duration: c.Duration, DurationType: c.DurationType,
 			Icon: icon, Color: color,
 		})
-		_ = durStr
 	}
 	c.JSON(http.StatusOK, out)
 }

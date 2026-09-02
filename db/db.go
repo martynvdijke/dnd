@@ -24,6 +24,11 @@ import (
 	"villum/middleware"
 )
 
+const (
+	backupInterval = 60 * time.Minute
+	vacuumInterval = 168 * time.Hour
+)
+
 var tracer trace.Tracer
 
 const tracerName = "villum.db"
@@ -185,7 +190,7 @@ func Init(dbPath string) error {
 	// Start background PRAGMA optimize every 60 minutes
 	go func() {
 		for {
-			time.Sleep(60 * time.Minute)
+			time.Sleep(backupInterval)
 			if _, err := DB.Exec("PRAGMA optimize"); err != nil {
 				middleware.LogWarn("db", "PRAGMA optimize error", "error", err)
 			} else {
@@ -199,7 +204,7 @@ func Init(dbPath string) error {
 	go func() {
 		lastPages := int64(-1)
 		for {
-			time.Sleep(168 * time.Hour)
+			time.Sleep(vacuumInterval)
 			var before, after int64
 			DB.QueryRow("PRAGMA page_count").Scan(&before)
 			if _, err := DB.Exec("PRAGMA incremental_vacuum"); err != nil {
@@ -217,7 +222,7 @@ func Init(dbPath string) error {
 	// Log statement-cache stats every 60 minutes
 	go func() {
 		for {
-			time.Sleep(60 * time.Minute)
+			time.Sleep(backupInterval)
 			middleware.LogInfo("db", "statement cache entries", "count", stmtCacheLen())
 		}
 	}()
