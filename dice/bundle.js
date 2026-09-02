@@ -32,22 +32,6 @@ var __diceBundle = (() => {
     mod3
   ));
 
-  // node_modules/@babel/runtime/helpers/extends.js
-  var require_extends = __commonJS({
-    "node_modules/@babel/runtime/helpers/extends.js"(exports, module) {
-      function _extends8() {
-        return module.exports = _extends8 = Object.assign ? Object.assign.bind() : function(n) {
-          for (var e3 = 1; e3 < arguments.length; e3++) {
-            var t = arguments[e3];
-            for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]);
-          }
-          return n;
-        }, module.exports.__esModule = true, module.exports["default"] = module.exports, _extends8.apply(null, arguments);
-      }
-      module.exports = _extends8, module.exports.__esModule = true, module.exports["default"] = module.exports;
-    }
-  });
-
   // node_modules/typed-function/lib/umd/typed-function.js
   var require_typed_function = __commonJS({
     "node_modules/typed-function/lib/umd/typed-function.js"(exports, module) {
@@ -1273,68 +1257,6 @@ var __diceBundle = (() => {
     }
   });
 
-  // node_modules/@babel/runtime/helpers/typeof.js
-  var require_typeof = __commonJS({
-    "node_modules/@babel/runtime/helpers/typeof.js"(exports, module) {
-      function _typeof(o) {
-        "@babel/helpers - typeof";
-        return module.exports = _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o2) {
-          return typeof o2;
-        } : function(o2) {
-          return o2 && "function" == typeof Symbol && o2.constructor === Symbol && o2 !== Symbol.prototype ? "symbol" : typeof o2;
-        }, module.exports.__esModule = true, module.exports["default"] = module.exports, _typeof(o);
-      }
-      module.exports = _typeof, module.exports.__esModule = true, module.exports["default"] = module.exports;
-    }
-  });
-
-  // node_modules/@babel/runtime/helpers/toPrimitive.js
-  var require_toPrimitive = __commonJS({
-    "node_modules/@babel/runtime/helpers/toPrimitive.js"(exports, module) {
-      var _typeof = require_typeof()["default"];
-      function toPrimitive(t, r) {
-        if ("object" != _typeof(t) || !t) return t;
-        var e3 = t[Symbol.toPrimitive];
-        if (void 0 !== e3) {
-          var i2 = e3.call(t, r || "default");
-          if ("object" != _typeof(i2)) return i2;
-          throw new TypeError("@@toPrimitive must return a primitive value.");
-        }
-        return ("string" === r ? String : Number)(t);
-      }
-      module.exports = toPrimitive, module.exports.__esModule = true, module.exports["default"] = module.exports;
-    }
-  });
-
-  // node_modules/@babel/runtime/helpers/toPropertyKey.js
-  var require_toPropertyKey = __commonJS({
-    "node_modules/@babel/runtime/helpers/toPropertyKey.js"(exports, module) {
-      var _typeof = require_typeof()["default"];
-      var toPrimitive = require_toPrimitive();
-      function toPropertyKey(t) {
-        var i2 = toPrimitive(t, "string");
-        return "symbol" == _typeof(i2) ? i2 : i2 + "";
-      }
-      module.exports = toPropertyKey, module.exports.__esModule = true, module.exports["default"] = module.exports;
-    }
-  });
-
-  // node_modules/@babel/runtime/helpers/defineProperty.js
-  var require_defineProperty = __commonJS({
-    "node_modules/@babel/runtime/helpers/defineProperty.js"(exports, module) {
-      var toPropertyKey = require_toPropertyKey();
-      function _defineProperty19(e3, r, t) {
-        return (r = toPropertyKey(r)) in e3 ? Object.defineProperty(e3, r, {
-          value: t,
-          enumerable: true,
-          configurable: true,
-          writable: true
-        }) : e3[r] = t, e3;
-      }
-      module.exports = _defineProperty19, module.exports.__esModule = true, module.exports["default"] = module.exports;
-    }
-  });
-
   // node_modules/javascript-natural-sort/naturalSort.js
   var require_naturalSort = __commonJS({
     "node_modules/javascript-natural-sort/naturalSort.js"(exports, module) {
@@ -1375,7 +1297,7 @@ var __diceBundle = (() => {
   var require_dist = __commonJS({
     "node_modules/escape-latex/dist/index.js"(exports, module) {
       "use strict";
-      var _extends8 = Object.assign || function(target) {
+      var _extends2 = Object.assign || function(target) {
         for (var i2 = 1; i2 < arguments.length; i2++) {
           var source = arguments[i2];
           for (var key in source) {
@@ -1407,13 +1329,13 @@ var __diceBundle = (() => {
         "\n": "\\newline{}"
       };
       var defaultEscapeMapFn = function defaultEscapeMapFn2(defaultEscapes2, formatEscapes2) {
-        return _extends8({}, defaultEscapes2, formatEscapes2);
+        return _extends2({}, defaultEscapes2, formatEscapes2);
       };
       module.exports = function(str) {
         var _ref = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : {}, _ref$preserveFormatti = _ref.preserveFormatting, preserveFormatting = _ref$preserveFormatti === void 0 ? false : _ref$preserveFormatti, _ref$escapeMapFn = _ref.escapeMapFn, escapeMapFn = _ref$escapeMapFn === void 0 ? defaultEscapeMapFn : _ref$escapeMapFn;
         var runningStr = String(str);
         var result = "";
-        var escapes = escapeMapFn(_extends8({}, defaultEscapes), preserveFormatting ? _extends8({}, formatEscapes) : {});
+        var escapes = escapeMapFn(_extends2({}, defaultEscapes), preserveFormatting ? _extends2({}, formatEscapes) : {});
         var escapeKeys = Object.keys(escapes);
         var _loop = function _loop2() {
           var specialCharFound = false;
@@ -2131,8 +2053,16 @@ var __diceBundle = (() => {
     }
   });
 
-  // node_modules/mathjs/lib/esm/entry/configReadonly.js
-  var import_extends = __toESM(require_extends(), 1);
+  // node_modules/@babel/runtime/helpers/esm/extends.js
+  function _extends() {
+    return _extends = Object.assign ? Object.assign.bind() : function(n) {
+      for (var e3 = 1; e3 < arguments.length; e3++) {
+        var t = arguments[e3];
+        for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]);
+      }
+      return n;
+    }, _extends.apply(null, arguments);
+  }
 
   // node_modules/mathjs/lib/esm/core/config.js
   var DEFAULT_CONFIG = {
@@ -2627,7 +2557,7 @@ var __diceBundle = (() => {
     }
     return Object.freeze(DEFAULT_CONFIG);
   };
-  (0, import_extends.default)(config, DEFAULT_CONFIG, {
+  _extends(config, DEFAULT_CONFIG, {
     MATRIX_OPTIONS,
     NUMBER_OPTIONS
   });
@@ -7894,9 +7824,6 @@ var __diceBundle = (() => {
     isClass: true
   });
 
-  // node_modules/mathjs/lib/esm/utils/array.js
-  var import_extends2 = __toESM(require_extends(), 1);
-
   // node_modules/mathjs/lib/esm/utils/bignumber/formatter.js
   function formatBigNumberToBase(n, base, size2) {
     var BigNumberCtor = n.constructor;
@@ -8693,7 +8620,7 @@ var __diceBundle = (() => {
     }
   }
   function clone3(array) {
-    return (0, import_extends2.default)([], array);
+    return _extends([], array);
   }
 
   // node_modules/mathjs/lib/esm/utils/optimizeCallback.js
@@ -16885,8 +16812,45 @@ var __diceBundle = (() => {
     });
   });
 
+  // node_modules/@babel/runtime/helpers/esm/typeof.js
+  function _typeof(o) {
+    "@babel/helpers - typeof";
+    return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o2) {
+      return typeof o2;
+    } : function(o2) {
+      return o2 && "function" == typeof Symbol && o2.constructor === Symbol && o2 !== Symbol.prototype ? "symbol" : typeof o2;
+    }, _typeof(o);
+  }
+
+  // node_modules/@babel/runtime/helpers/esm/toPrimitive.js
+  function toPrimitive(t, r) {
+    if ("object" != _typeof(t) || !t) return t;
+    var e3 = t[Symbol.toPrimitive];
+    if (void 0 !== e3) {
+      var i2 = e3.call(t, r || "default");
+      if ("object" != _typeof(i2)) return i2;
+      throw new TypeError("@@toPrimitive must return a primitive value.");
+    }
+    return ("string" === r ? String : Number)(t);
+  }
+
+  // node_modules/@babel/runtime/helpers/esm/toPropertyKey.js
+  function toPropertyKey(t) {
+    var i2 = toPrimitive(t, "string");
+    return "symbol" == _typeof(i2) ? i2 : i2 + "";
+  }
+
+  // node_modules/@babel/runtime/helpers/esm/defineProperty.js
+  function _defineProperty(e3, r, t) {
+    return (r = toPropertyKey(r)) in e3 ? Object.defineProperty(e3, r, {
+      value: t,
+      enumerable: true,
+      configurable: true,
+      writable: true
+    }) : e3[r] = t, e3;
+  }
+
   // node_modules/mathjs/lib/esm/function/numeric/solveODE.js
-  var import_defineProperty = __toESM(require_defineProperty(), 1);
   function ownKeys(e3, r) {
     var t = Object.keys(e3);
     if (Object.getOwnPropertySymbols) {
@@ -16901,7 +16865,7 @@ var __diceBundle = (() => {
     for (var r = 1; r < arguments.length; r++) {
       var t = null != arguments[r] ? arguments[r] : {};
       r % 2 ? ownKeys(Object(t), true).forEach(function(r2) {
-        (0, import_defineProperty.default)(e3, r2, t[r2]);
+        _defineProperty(e3, r2, t[r2]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e3, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function(r2) {
         Object.defineProperty(e3, r2, Object.getOwnPropertyDescriptor(t, r2));
       });
@@ -20653,10 +20617,6 @@ var __diceBundle = (() => {
     isClass: true
   });
 
-  // node_modules/mathjs/lib/esm/type/unit/Unit.js
-  var import_defineProperty2 = __toESM(require_defineProperty(), 1);
-  var import_extends3 = __toESM(require_extends(), 1);
-
   // node_modules/mathjs/lib/esm/utils/lruQueue.js
   function lruQueue(limit) {
     var size2 = 0;
@@ -20780,7 +20740,7 @@ var __diceBundle = (() => {
     for (var r = 1; r < arguments.length; r++) {
       var t = null != arguments[r] ? arguments[r] : {};
       r % 2 ? ownKeys2(Object(t), true).forEach(function(r2) {
-        (0, import_defineProperty2.default)(e3, r2, t[r2]);
+        _defineProperty(e3, r2, t[r2]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e3, Object.getOwnPropertyDescriptors(t)) : ownKeys2(Object(t)).forEach(function(r2) {
         Object.defineProperty(e3, r2, Object.getOwnPropertyDescriptor(t, r2));
       });
@@ -20831,7 +20791,7 @@ var __diceBundle = (() => {
         this.fixPrefix = valuelessUnit.fixPrefix;
         this.skipAutomaticSimplification = valuelessUnit.skipAutomaticSimplification;
         this.dimensions = valuelessUnit.dimensions.slice(0);
-        this.units = valuelessUnit.units.map((u2) => (0, import_extends3.default)({}, u2));
+        this.units = valuelessUnit.units.map((u2) => _extends({}, u2));
       } else {
         throw new TypeError("Second parameter in Unit constructor must be a string or valueless Unit");
       }
@@ -22331,9 +22291,9 @@ var __diceBundle = (() => {
         }
       }
     };
-    PREFIXES.SHORTLONG = (0, import_extends3.default)({}, PREFIXES.SHORT, PREFIXES.LONG);
-    PREFIXES.BINARY_SHORT = (0, import_extends3.default)({}, PREFIXES.BINARY_SHORT_SI, PREFIXES.BINARY_SHORT_IEC);
-    PREFIXES.BINARY_LONG = (0, import_extends3.default)({}, PREFIXES.BINARY_LONG_SI, PREFIXES.BINARY_LONG_IEC);
+    PREFIXES.SHORTLONG = _extends({}, PREFIXES.SHORT, PREFIXES.LONG);
+    PREFIXES.BINARY_SHORT = _extends({}, PREFIXES.BINARY_SHORT_SI, PREFIXES.BINARY_SHORT_IEC);
+    PREFIXES.BINARY_LONG = _extends({}, PREFIXES.BINARY_LONG_SI, PREFIXES.BINARY_LONG_IEC);
     var BASE_DIMENSIONS = ["MASS", "LENGTH", "TIME", "CURRENT", "TEMPERATURE", "LUMINOUS_INTENSITY", "AMOUNT_OF_SUBSTANCE", "ANGLE", "BIT"];
     var BASE_UNITS = {
       NONE: {
@@ -25918,9 +25878,6 @@ var __diceBundle = (() => {
     isNode: true
   });
 
-  // node_modules/mathjs/lib/esm/expression/node/AccessorNode.js
-  var import_defineProperty3 = __toESM(require_defineProperty(), 1);
-
   // node_modules/mathjs/lib/esm/expression/transform/utils/errorTransform.js
   function errorTransform(err) {
     if (err && err.isIndexError) {
@@ -26117,7 +26074,7 @@ var __diceBundle = (() => {
         return new AccessorNode2(json.object, json.index);
       }
     }
-    (0, import_defineProperty3.default)(AccessorNode2, "name", name209);
+    _defineProperty(AccessorNode2, "name", name209);
     return AccessorNode2;
   }, {
     isClass: true,
@@ -26125,7 +26082,6 @@ var __diceBundle = (() => {
   });
 
   // node_modules/mathjs/lib/esm/expression/node/ArrayNode.js
-  var import_defineProperty4 = __toESM(require_defineProperty(), 1);
   var name210 = "ArrayNode";
   var dependencies211 = ["Node"];
   var createArrayNode = /* @__PURE__ */ factory(name210, dependencies211, (_ref) => {
@@ -26281,15 +26237,12 @@ var __diceBundle = (() => {
         return itemsToTex(this.items, false);
       }
     }
-    (0, import_defineProperty4.default)(ArrayNode2, "name", name210);
+    _defineProperty(ArrayNode2, "name", name210);
     return ArrayNode2;
   }, {
     isClass: true,
     isNode: true
   });
-
-  // node_modules/mathjs/lib/esm/expression/node/AssignmentNode.js
-  var import_defineProperty5 = __toESM(require_defineProperty(), 1);
 
   // node_modules/mathjs/lib/esm/expression/node/utils/assign.js
   function assignFactory(_ref) {
@@ -26886,7 +26839,7 @@ var __diceBundle = (() => {
         return object + index2 + "=" + value;
       }
     }
-    (0, import_defineProperty5.default)(AssignmentNode2, "name", name211);
+    _defineProperty(AssignmentNode2, "name", name211);
     return AssignmentNode2;
   }, {
     isClass: true,
@@ -26894,7 +26847,6 @@ var __diceBundle = (() => {
   });
 
   // node_modules/mathjs/lib/esm/expression/node/BlockNode.js
-  var import_defineProperty6 = __toESM(require_defineProperty(), 1);
   var name212 = "BlockNode";
   var dependencies213 = ["ResultSet", "Node"];
   var createBlockNode = /* @__PURE__ */ factory(name212, dependencies213, (_ref) => {
@@ -27060,7 +27012,7 @@ var __diceBundle = (() => {
         }).join("\\;\\;\n");
       }
     }
-    (0, import_defineProperty6.default)(BlockNode2, "name", name212);
+    _defineProperty(BlockNode2, "name", name212);
     return BlockNode2;
   }, {
     isClass: true,
@@ -27068,7 +27020,6 @@ var __diceBundle = (() => {
   });
 
   // node_modules/mathjs/lib/esm/expression/node/ConditionalNode.js
-  var import_defineProperty7 = __toESM(require_defineProperty(), 1);
   var name213 = "ConditionalNode";
   var dependencies214 = ["Node"];
   var createConditionalNode = /* @__PURE__ */ factory(name213, dependencies214, (_ref) => {
@@ -27260,15 +27211,12 @@ var __diceBundle = (() => {
         return "\\begin{cases} {" + this.trueExpr.toTex(options) + "}, &\\quad{\\text{if }\\;" + this.condition.toTex(options) + "}\\\\{" + this.falseExpr.toTex(options) + "}, &\\quad{\\text{otherwise}}\\end{cases}";
       }
     }
-    (0, import_defineProperty7.default)(ConditionalNode2, "name", name213);
+    _defineProperty(ConditionalNode2, "name", name213);
     return ConditionalNode2;
   }, {
     isClass: true,
     isNode: true
   });
-
-  // node_modules/mathjs/lib/esm/expression/node/ConstantNode.js
-  var import_defineProperty8 = __toESM(require_defineProperty(), 1);
 
   // node_modules/mathjs/lib/esm/utils/latex.js
   var import_escape_latex = __toESM(require_dist(), 1);
@@ -27914,7 +27862,7 @@ var __diceBundle = (() => {
         }
       }
     }
-    (0, import_defineProperty8.default)(ConstantNode2, "name", name214);
+    _defineProperty(ConstantNode2, "name", name214);
     return ConstantNode2;
   }, {
     isClass: true,
@@ -27922,7 +27870,6 @@ var __diceBundle = (() => {
   });
 
   // node_modules/mathjs/lib/esm/expression/node/FunctionAssignmentNode.js
-  var import_defineProperty9 = __toESM(require_defineProperty(), 1);
   var name215 = "FunctionAssignmentNode";
   var dependencies216 = ["typed", "Node"];
   var createFunctionAssignmentNode = /* @__PURE__ */ factory(name215, dependencies216, (_ref) => {
@@ -28127,7 +28074,7 @@ var __diceBundle = (() => {
         return "\\mathrm{" + this.name + "}\\left(" + this.params.map(toSymbol).join(",") + "\\right)=" + expr;
       }
     }
-    (0, import_defineProperty9.default)(FunctionAssignmentNode2, "name", name215);
+    _defineProperty(FunctionAssignmentNode2, "name", name215);
     return FunctionAssignmentNode2;
   }, {
     isClass: true,
@@ -28135,7 +28082,6 @@ var __diceBundle = (() => {
   });
 
   // node_modules/mathjs/lib/esm/expression/node/IndexNode.js
-  var import_defineProperty10 = __toESM(require_defineProperty(), 1);
   var name216 = "IndexNode";
   var dependencies217 = ["Node", "size"];
   var createIndexNode = /* @__PURE__ */ factory(name216, dependencies217, (_ref) => {
@@ -28318,7 +28264,7 @@ var __diceBundle = (() => {
         return this.dotNotation ? "." + this.getObjectProperty() : "_{" + dimensions.join(",") + "}";
       }
     }
-    (0, import_defineProperty10.default)(IndexNode2, "name", name216);
+    _defineProperty(IndexNode2, "name", name216);
     return IndexNode2;
   }, {
     isClass: true,
@@ -28326,7 +28272,6 @@ var __diceBundle = (() => {
   });
 
   // node_modules/mathjs/lib/esm/expression/node/ObjectNode.js
-  var import_defineProperty11 = __toESM(require_defineProperty(), 1);
   var name217 = "ObjectNode";
   var dependencies218 = ["Node"];
   var createObjectNode = /* @__PURE__ */ factory(name217, dependencies218, (_ref) => {
@@ -28495,15 +28440,12 @@ var __diceBundle = (() => {
         return tex;
       }
     }
-    (0, import_defineProperty11.default)(ObjectNode2, "name", name217);
+    _defineProperty(ObjectNode2, "name", name217);
     return ObjectNode2;
   }, {
     isClass: true,
     isNode: true
   });
-
-  // node_modules/mathjs/lib/esm/expression/node/OperatorNode.js
-  var import_defineProperty12 = __toESM(require_defineProperty(), 1);
 
   // node_modules/mathjs/lib/esm/utils/scope.js
   function createSubScope(parentScope, args) {
@@ -29020,7 +28962,7 @@ var __diceBundle = (() => {
         return this.type + ":" + this.fn;
       }
     }
-    (0, import_defineProperty12.default)(OperatorNode2, "name", name218);
+    _defineProperty(OperatorNode2, "name", name218);
     return OperatorNode2;
   }, {
     isClass: true,
@@ -29028,7 +28970,6 @@ var __diceBundle = (() => {
   });
 
   // node_modules/mathjs/lib/esm/expression/node/ParenthesisNode.js
-  var import_defineProperty13 = __toESM(require_defineProperty(), 1);
   var name219 = "ParenthesisNode";
   var dependencies220 = ["Node"];
   var createParenthesisNode = /* @__PURE__ */ factory(name219, dependencies220, (_ref) => {
@@ -29161,7 +29102,7 @@ var __diceBundle = (() => {
         return this.content.toTex(options);
       }
     }
-    (0, import_defineProperty13.default)(ParenthesisNode2, "name", name219);
+    _defineProperty(ParenthesisNode2, "name", name219);
     return ParenthesisNode2;
   }, {
     isClass: true,
@@ -29169,7 +29110,6 @@ var __diceBundle = (() => {
   });
 
   // node_modules/mathjs/lib/esm/expression/node/RangeNode.js
-  var import_defineProperty14 = __toESM(require_defineProperty(), 1);
   var name220 = "RangeNode";
   var dependencies221 = ["Node"];
   var createRangeNode = /* @__PURE__ */ factory(name220, dependencies221, (_ref) => {
@@ -29386,7 +29326,7 @@ var __diceBundle = (() => {
         return str;
       }
     }
-    (0, import_defineProperty14.default)(RangeNode2, "name", name220);
+    _defineProperty(RangeNode2, "name", name220);
     return RangeNode2;
   }, {
     isClass: true,
@@ -29394,7 +29334,6 @@ var __diceBundle = (() => {
   });
 
   // node_modules/mathjs/lib/esm/expression/node/RelationalNode.js
-  var import_defineProperty15 = __toESM(require_defineProperty(), 1);
   var name221 = "RelationalNode";
   var dependencies222 = ["Node"];
   var createRelationalNode = /* @__PURE__ */ factory(name221, dependencies222, (_ref) => {
@@ -29572,7 +29511,7 @@ var __diceBundle = (() => {
         return ret;
       }
     }
-    (0, import_defineProperty15.default)(RelationalNode2, "name", name221);
+    _defineProperty(RelationalNode2, "name", name221);
     return RelationalNode2;
   }, {
     isClass: true,
@@ -29748,7 +29687,6 @@ var __diceBundle = (() => {
   });
 
   // node_modules/mathjs/lib/esm/expression/node/FunctionNode.js
-  var import_defineProperty16 = __toESM(require_defineProperty(), 1);
   var name223 = "FunctionNode";
   var dependencies224 = ["math", "Node", "SymbolNode"];
   var createFunctionNode = /* @__PURE__ */ factory(name223, dependencies224, (_ref) => {
@@ -30132,11 +30070,11 @@ var __diceBundle = (() => {
       }
     }
     _FunctionNode = FunctionNode2;
-    (0, import_defineProperty16.default)(FunctionNode2, "name", name223);
-    (0, import_defineProperty16.default)(FunctionNode2, "onUndefinedFunction", function(name318) {
+    _defineProperty(FunctionNode2, "name", name223);
+    _defineProperty(FunctionNode2, "onUndefinedFunction", function(name318) {
       throw new Error("Undefined function " + name318);
     });
-    (0, import_defineProperty16.default)(FunctionNode2, "fromJSON", function(json) {
+    _defineProperty(FunctionNode2, "fromJSON", function(json) {
       return new _FunctionNode(json.fn, json.args);
     });
     return FunctionNode2;
@@ -30146,7 +30084,6 @@ var __diceBundle = (() => {
   });
 
   // node_modules/mathjs/lib/esm/expression/parse.js
-  var import_extends4 = __toESM(require_extends(), 1);
   var name224 = "parse";
   var dependencies225 = ["typed", "numeric", "config", "AccessorNode", "ArrayNode", "AssignmentNode", "BlockNode", "ConditionalNode", "ConstantNode", "FunctionAssignmentNode", "FunctionNode", "IndexNode", "ObjectNode", "OperatorNode", "ParenthesisNode", "RangeNode", "RelationalNode", "SymbolNode"];
   var createParse = /* @__PURE__ */ factory(name224, dependencies225, (_ref) => {
@@ -30482,7 +30419,7 @@ var __diceBundle = (() => {
     };
     function parseStart(expression, extraNodes) {
       var state = initialState();
-      (0, import_extends4.default)(state, {
+      _extends(state, {
         expression,
         extraNodes
       });
@@ -30816,23 +30753,23 @@ var __diceBundle = (() => {
       var tokenStates = [];
       while (true) {
         if (state.token === "/" && rule2Node(last)) {
-          tokenStates.push((0, import_extends4.default)({}, state));
+          tokenStates.push(_extends({}, state));
           getTokenSkipNewline(state);
           if (state.tokenType === TOKENTYPE.NUMBER) {
-            tokenStates.push((0, import_extends4.default)({}, state));
+            tokenStates.push(_extends({}, state));
             getTokenSkipNewline(state);
             if (state.tokenType === TOKENTYPE.SYMBOL || state.token === "(" || state.token === "in") {
-              (0, import_extends4.default)(state, tokenStates.pop());
+              _extends(state, tokenStates.pop());
               tokenStates.pop();
               last = parseUnary(state);
               node = new OperatorNode2("/", "divide", [node, last]);
             } else {
               tokenStates.pop();
-              (0, import_extends4.default)(state, tokenStates.pop());
+              _extends(state, tokenStates.pop());
               break;
             }
           } else {
-            (0, import_extends4.default)(state, tokenStates.pop());
+            _extends(state, tokenStates.pop());
             break;
           }
         } else {
@@ -31600,7 +31537,6 @@ var __diceBundle = (() => {
   });
 
   // node_modules/mathjs/lib/esm/function/algebra/decomposition/qr.js
-  var import_extends5 = __toESM(require_extends(), 1);
   var name230 = "qr";
   var dependencies231 = ["typed", "matrix", "zeros", "identity", "isZero", "equal", "sign", "sqrt", "conj", "unaryMinus", "addScalar", "divideScalar", "multiplyScalar", "subtractScalar", "complex"];
   var createQr = /* @__PURE__ */ factory(name230, dependencies231, (_ref) => {
@@ -31621,7 +31557,7 @@ var __diceBundle = (() => {
       subtractScalar: subtractScalar2,
       complex: complex2
     } = _ref;
-    return (0, import_extends5.default)(typed3(name230, {
+    return _extends(typed3(name230, {
       DenseMatrix: function DenseMatrix2(m) {
         return _denseQR(m);
       },
@@ -36477,9 +36413,6 @@ var __diceBundle = (() => {
     }
   });
 
-  // node_modules/mathjs/lib/esm/function/matrix/eigs.js
-  var import_extends6 = __toESM(require_extends(), 1);
-
   // node_modules/mathjs/lib/esm/function/matrix/eigs/complexEigs.js
   function createComplexEigs(_ref) {
     var {
@@ -37263,7 +37196,7 @@ var __diceBundle = (() => {
         var useOpts = {
           matricize: true
         };
-        (0, import_extends6.default)(useOpts, opts);
+        _extends(useOpts, opts);
         return doEigs(mat, useOpts);
       }
     });
@@ -39495,7 +39428,6 @@ var __diceBundle = (() => {
   }
 
   // node_modules/mathjs/lib/esm/function/algebra/simplify/util.js
-  var import_defineProperty17 = __toESM(require_defineProperty(), 1);
   function ownKeys3(e3, r) {
     var t = Object.keys(e3);
     if (Object.getOwnPropertySymbols) {
@@ -39510,7 +39442,7 @@ var __diceBundle = (() => {
     for (var r = 1; r < arguments.length; r++) {
       var t = null != arguments[r] ? arguments[r] : {};
       r % 2 ? ownKeys3(Object(t), true).forEach(function(r2) {
-        (0, import_defineProperty17.default)(e3, r2, t[r2]);
+        _defineProperty(e3, r2, t[r2]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e3, Object.getOwnPropertyDescriptors(t)) : ownKeys3(Object(t)).forEach(function(r2) {
         Object.defineProperty(e3, r2, Object.getOwnPropertyDescriptor(t, r2));
       });
@@ -42767,7 +42699,6 @@ var __diceBundle = (() => {
   }
 
   // node_modules/mathjs/lib/esm/expression/transform/mapSlices.transform.js
-  var import_defineProperty18 = __toESM(require_defineProperty(), 1);
   function ownKeys4(e3, r) {
     var t = Object.keys(e3);
     if (Object.getOwnPropertySymbols) {
@@ -42782,7 +42713,7 @@ var __diceBundle = (() => {
     for (var r = 1; r < arguments.length; r++) {
       var t = null != arguments[r] ? arguments[r] : {};
       r % 2 ? ownKeys4(Object(t), true).forEach(function(r2) {
-        (0, import_defineProperty18.default)(e3, r2, t[r2]);
+        _defineProperty(e3, r2, t[r2]);
       }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e3, Object.getOwnPropertyDescriptors(t)) : ownKeys4(Object(t)).forEach(function(r2) {
         Object.defineProperty(e3, r2, Object.getOwnPropertyDescriptor(t, r2));
       });
@@ -45621,7 +45552,6 @@ var __diceBundle = (() => {
   });
 
   // node_modules/mathjs/lib/esm/entry/impureFunctionsAny.generated.js
-  var import_extends7 = __toESM(require_extends(), 1);
   var math = {};
   var mathWithTransform = {};
   var classes = {};
@@ -45852,7 +45782,7 @@ var __diceBundle = (() => {
     mathWithTransform,
     typed: typed2
   });
-  (0, import_extends7.default)(math, {
+  _extends(math, {
     e: e2,
     false: _false,
     fineStructure,
@@ -46164,7 +46094,7 @@ var __diceBundle = (() => {
     lyap,
     config
   });
-  (0, import_extends7.default)(mathWithTransform, math, {
+  _extends(mathWithTransform, math, {
     mapSlices: createMapSlicesTransform({
       isInteger: isInteger2,
       typed: typed2
@@ -46332,7 +46262,7 @@ var __diceBundle = (() => {
       variance
     })
   });
-  (0, import_extends7.default)(classes, {
+  _extends(classes, {
     BigNumber,
     Complex: Complex2,
     Fraction: Fraction2,
