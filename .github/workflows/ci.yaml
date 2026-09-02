@@ -190,4 +190,3 @@ jobs:
     uses: ./.github/workflows/otel.yaml
     needs: [e2e, trml]
     if: ${{ always() }}
-    secrets: inherit
