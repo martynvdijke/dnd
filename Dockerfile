@@ -8,7 +8,7 @@ COPY dice/roller-entry.js dice/roller-entry.js
 RUN npm run build:ts
 RUN npm run build:dice
 
-FROM golang:1.26-alpine AS builder
+FROM golang:1.27-alpine AS builder
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
