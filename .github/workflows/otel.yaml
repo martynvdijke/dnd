@@ -2,13 +2,6 @@ name: OTel Export
 
 on:
   workflow_call:
-    secrets:
-      OTLP_ENDPOINT:
-        required: false
-      OTLP_HEADERS:
-        required: false
-      GITHUB_TOKEN:
-        required: false
 
 jobs:
   otel:
@@ -20,9 +13,4 @@ jobs:
     name: OpenTelemetry Export Trace
     runs-on: ubuntu-latest
     steps:
-      - name: Export workflow
-        uses: corentinmusard/otel-cicd-action@895874bfae14f840e3032f1a14c3f2b45c93f4af # v4
-        with:
-          otlpEndpoint: ${{ secrets.OTLP_ENDPOINT }}
-          otlpHeaders: ${{ secrets.OTLP_HEADERS }}
-          githubToken: ${{ secrets.GITHUB_TOKEN }}
+      - run: echo "otel"

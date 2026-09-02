@@ -22,4 +22,3 @@ jobs:
     uses: ./.github/workflows/otel.yaml
     needs: [renovate]
     if: ${{ always() }}
-    secrets: inherit
