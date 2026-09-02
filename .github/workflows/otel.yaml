@@ -7,6 +7,8 @@ on:
         required: false
       OTLP_HEADERS:
         required: false
+      GITHUB_TOKEN:
+        required: false
 
 jobs:
   otel:
