@@ -16,6 +16,6 @@ jobs:
       - name: Export workflow
         uses: corentinmusard/otel-cicd-action@895874bfae14f840e3032f1a14c3f2b45c93f4af # v4
         with:
-          otlpEndpoint: ${{ secrets.OTLP_ENDPOINT }}
-          otlpHeaders: ${{ secrets.OTLP_HEADERS }}
+          otlpEndpoint: ''
+          otlpHeaders: ''
           githubToken: ${{ github.token }}
