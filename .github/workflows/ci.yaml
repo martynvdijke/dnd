@@ -186,7 +186,6 @@ jobs:
         working-directory: trmnl
         run: trmnlp lint
 
-  otel-export:
+  otel:
     uses: ./.github/workflows/otel.yaml
     needs: [e2e, trml]
-    if: ${{ always() }}
