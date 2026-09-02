@@ -2,6 +2,7 @@ name: OTel Export
 
 on:
   workflow_call:
+    secrets: inherit
 
 jobs:
   otel:
