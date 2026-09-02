@@ -43,19 +43,35 @@ export function hideModal(): void {
   document.body.style.removeProperty('padding-right');
 }
 
-export function toast(msg: string, isError = false, duration = 5000): void {
+export type ToastOpts = { html?: boolean; isError?: boolean; duration?: number };
+export function toast(msg: string, opts?: ToastOpts | boolean, duration = 5000): void {
+  let html = false;
+  let isError = false;
+  let dur = duration;
+  if (typeof opts === 'boolean') {
+    isError = opts;
+  } else if (opts && typeof opts === 'object') {
+    html = !!opts.html;
+    if (typeof opts.isError === 'boolean') isError = opts.isError;
+    if (typeof opts.duration === 'number') dur = opts.duration;
+  }
+  // Back-compat: toast(msg, isError, duration) where second arg is boolean
+  // If third arg meaning duration was passed positionally with boolean second, use it.
+  // When opts is boolean, duration param already holds the positional duration.
+  dur = dur ?? duration;
+  const safe = html ? msg : esc(msg);
   const container = document.getElementById('toastContainer')!;
   const id = 'toast-' + Date.now();
   const bg = isError ? 'bg-danger' : 'bg-success';
   container.innerHTML += `
     <div class="toast align-items-center text-white ${bg} border-0 mb-2" id="${id}" role="alert">
       <div class="d-flex">
-        <div class="toast-body">${msg}</div>
+        <div class="toast-body">${safe}</div>
         <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
       </div>
     </div>`;
   const el = document.getElementById(id)!;
-  new bootstrap.Toast(el, { autohide: true, delay: duration }).show();
+  new bootstrap.Toast(el, { autohide: true, delay: dur }).show();
 
   // Swipe-left to dismiss (touch only — mouse users unaffected).
   let startX = 0;
@@ -91,7 +107,7 @@ export function toast(msg: string, isError = false, duration = 5000): void {
       el.style.opacity = '';
     }
   }, { passive: true });
-  setTimeout(() => el.remove(), duration + 1000);
+  setTimeout(() => el.remove(), dur + 1000);
 }
 
 export function showLoading(): void {

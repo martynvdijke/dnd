@@ -1,7 +1,7 @@
 // @ts-nocheck — legacy monolith being split into modules, pre-existing type errors
 import * as d3 from 'd3';
 import Chart from 'chart.js/auto';
-import { marked } from 'marked';
+import { renderMarkdown } from './lib/markdown';
 import L from 'leaflet';
 import * as bootstrap from 'bootstrap';
 expose('bootstrap', bootstrap);
@@ -2696,7 +2696,7 @@ expose('loadWikiPage', async function (pageId: number) {
   try {
     const page = await api('GET', `/api/wiki/${pageId}`);
     const el = document.getElementById('wikiPageContent')!;
-    const renderContent = marked.parse(page.content);
+    const renderContent = renderMarkdown(page.content);
     el.innerHTML = `
       <div class="p-3">
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
