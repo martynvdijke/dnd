@@ -1,3 +1,10 @@
+## [2.53.3](https://github.com/martynvdijke/dnd/compare/v2.53.2...v2.53.3) (2026-09-02)
+
+
+### Bug Fixes
+
+* align local dev gates with CI parity ([#93](https://github.com/martynvdijke/dnd/issues/93)) ([148352b](https://github.com/martynvdijke/dnd/commit/148352b7b32d48a21e252d041306416520a4c891))
+
 ## [2.53.2](https://github.com/martynvdijke/dnd/compare/v2.53.1...v2.53.2) (2026-08-30)
 
 ## [2.53.1](https://github.com/martynvdijke/dnd/compare/v2.53.0...v2.53.1) (2026-08-28)
