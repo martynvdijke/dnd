@@ -1,3 +1,13 @@
+## [2.53.6](https://github.com/martynvdijke/dnd/compare/v2.53.5...v2.53.6) (2026-09-02)
+
+
+### Bug Fixes
+
+* **deps:** update github.com/dop251/goja digest to 43234fa ([#89](https://github.com/martynvdijke/dnd/issues/89)) ([84ba850](https://github.com/martynvdijke/dnd/commit/84ba85068a97dfb8d374259c8e581511fc00d10c))
+* harden Go error handling — dice 503, session parse, dead code, magic consts ([095e377](https://github.com/martynvdijke/dnd/commit/095e377ccc9a44faa58f1d2ee06b03a48b2d6564))
+* restore release workflow secrets and otel inline to fix startup failure ([#98](https://github.com/martynvdijke/dnd/issues/98)) ([4d8d584](https://github.com/martynvdijke/dnd/commit/4d8d5849762f88de3c8cb5892325bec96217cabb))
+* revert ci workflow permissions and concurrency to fix release reusable call ([#99](https://github.com/martynvdijke/dnd/issues/99)) ([76c10ba](https://github.com/martynvdijke/dnd/commit/76c10ba68064837c4e860d293025377b1de21ec8))
+
 ## [2.53.5](https://github.com/martynvdijke/dnd/compare/v2.53.4...v2.53.5) (2026-09-02)
 
 
