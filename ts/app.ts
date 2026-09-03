@@ -8,7 +8,7 @@ expose('bootstrap', bootstrap);
 import { showView, setCurrentView, getCurrentView } from './navigation';
 import { toggleFabMenu, updateFabForView } from './fab';
 import { initBridge } from './lib/bridge';
-import { esc, capitalize, showModal, hideModal, toast, openCompendiumPicker } from './lib/dom';
+import { esc, attrEscape, capitalize, showModal, hideModal, toast, openCompendiumPicker } from './lib/dom';
 import { FilePicker } from './file-picker';
 import { initTheme } from './lib/theme';
 import { api, setCsrfToken, getCsrfToken, getApiToken, clearApiToken } from './lib/api';
@@ -1242,7 +1242,7 @@ async function renderFeats() {
                   <p class="mb-0 mt-1 small text-muted">${esc(f.description)}</p>
                 </div>
                 <div class="d-flex gap-1">
-                  <button class="btn btn-sm btn-outline-primary" onclick="showEditFeat(${f.id},'${esc(f.name)}','${esc(f.description)}','${esc(f.prerequisites)}','${esc(f.source)}',${f.level_gained})"><i class="fa-solid fa-pen"></i></button>
+                  <button class="btn btn-sm btn-outline-primary js-edit-feat" data-id="${f.id}" data-name="${esc(f.name)}" data-desc="${esc(f.description)}" data-prereq="${esc(f.prerequisites)}" data-source="${esc(f.source)}" data-level="${f.level_gained}"><i class="fa-solid fa-pen"></i></button>
                   <button class="btn btn-sm btn-outline-danger" onclick="deleteFeat(${f.id})"><i class="fa-solid fa-trash"></i></button>
                 </div>
               </div>
@@ -1250,6 +1250,9 @@ async function renderFeats() {
           </div>`).join('')
           : '<div class="empty-state"><i class="fa-solid fa-star fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Feats</p><p class="small text-muted">Track your character feats here (distinct from class/race features).</p></div>'}
       </div>`;
+    el.querySelectorAll<HTMLButtonElement>('.js-edit-feat').forEach(btn => {
+      btn.addEventListener('click', () => (window as any).showEditFeat(Number(btn.dataset.id), btn.dataset.name || '', btn.dataset.desc || '', btn.dataset.prereq || '', btn.dataset.source || '', Number(btn.dataset.level)));
+    });
   } catch { el.innerHTML = '<div class="empty-state"><p class="small text-muted">Could not load feats.</p></div>'; }
 }
 
@@ -2280,10 +2283,13 @@ expose('loadFactionReputations', async function () {
             <div class="hp-bar-fill" style="width:${pct}%;height:100%;background:${color}"></div>
           </div>
           <span class="fw-bold" style="color:${color}">${r.standing >= 0 ? '+' : ''}${r.standing}</span>
-          <button class="btn btn-sm btn-outline-primary" onclick="editReputation(${r.character_id}, ${r.faction_id}, ${r.standing}, '${esc(r.rank)}', '${esc(r.notes)}')"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-sm btn-outline-primary js-edit-rep" data-cid="${r.character_id}" data-fid="${r.faction_id}" data-standing="${r.standing}" data-rank="${esc(r.rank)}" data-notes="${esc(r.notes)}"><i class="fa-solid fa-pen"></i></button>
         </div>
       </div>`;
     }).join('') : '<p class="text-muted small">No reputation tracked for this character. Click a faction to set reputation.</p>';
+    list.querySelectorAll<HTMLButtonElement>('.js-edit-rep').forEach(btn => {
+      btn.addEventListener('click', () => (window as any).editReputation(Number(btn.dataset.cid), Number(btn.dataset.fid), Number(btn.dataset.standing), btn.dataset.rank || '', btn.dataset.notes || ''));
+    });
   } catch {}
 });
 
@@ -2400,8 +2406,12 @@ expose('startRecipe', async function (recipeId: number) {
       ${tools.length ? `<div class="mb-2"><span class="text-muted small">Tools:</span> ${tools.map((t: string) => `<span class="badge badge-muted me-1" style="font-size:0.6rem">${esc(t)}</span>`).join('')}</div>` : ''}
       ${materials.length ? `<div class="mb-2"><span class="text-muted small">Materials:</span><ul class="small mb-0">${materials.map((m: any) => `<li>${esc(m.name)} x${m.quantity}${m.consumed ? ' (consumed)' : ''}</li>`).join('')}</ul></div>` : ''}
       <div class="mb-2"><span class="text-muted small">Result:</span> <strong>${esc(recipe.result_item_name)}</strong> x${recipe.result_quantity}</div>
-      <button class="btn btn-gold w-100 mt-2" onclick="confirmStartRecipe(${recipe.id},'${esc(recipe.name)}',${recipe.crafting_time_hours},${recipe.difficulty_dc})"><i class="fa-solid fa-hammer me-1"></i>Begin Crafting</button>
+      <button class="btn btn-gold w-100 mt-2 js-confirm-recipe" data-id="${recipe.id}" data-name="${esc(recipe.name)}" data-hours="${recipe.crafting_time_hours}" data-dc="${recipe.difficulty_dc}"><i class="fa-solid fa-hammer me-1"></i>Begin Crafting</button>
     `);
+    setTimeout(() => {
+      const btn = document.querySelector<HTMLButtonElement>('.js-confirm-recipe');
+      if (btn) btn.addEventListener('click', () => (window as any).confirmStartRecipe(Number(btn.dataset.id), btn.dataset.name || '', Number(btn.dataset.hours), Number(btn.dataset.dc)));
+    }, 0);
   } catch (e: any) { toast(e.message, true); }
 });
 
@@ -2626,7 +2636,7 @@ expose('showWiki', async function (campaignId?: number) {
 
     let sidebarHtml = '<div class="list-group list-group-flush">';
     for (const p of rootPages) {
-      sidebarHtml += `<a href="#" class="list-group-item list-group-item-action py-1" onclick="loadWikiPage(${p.id});if(window.innerWidth<768){const o=document.getElementById('wikiOffcanvas');if(o){bootstrap.Offcanvas.getInstance(o)?.hide()}}">${esc(p.title)}</a>
+      sidebarHtml += `<a href="#" class="list-group-item list-group-item-action py-1" onclick="loadWikiPage(${p.id});if(window.innerWidth<768){const o=document.getElementById('wikiOffcanvas');if(o){bootstrap.Offcanvas.getInstance(o)?.hide()}}">${attrEscape(p.title)}</a>
         ${buildWikiChildren(p.id, childMap, 1)}`;
     }
     sidebarHtml += '</div>';
@@ -2687,7 +2697,7 @@ function buildWikiChildren(parentId: number, childMap: Record<number, any[]>, de
   if (!children.length) return '';
   const pad = depth * 16;
   return children.map((c: any) =>
-    `<a href="#" class="list-group-item list-group-item-action py-1 ps-${3 + depth}" style="padding-left:${pad + 16}px!important;font-size:0.9rem" onclick="loadWikiPage(${c.id});if(window.innerWidth<768){const o=document.getElementById('wikiOffcanvas');if(o){bootstrap.Offcanvas.getInstance(o)?.hide()}}">↳ ${esc(c.title)}</a>
+    `<a href="#" class="list-group-item list-group-item-action py-1 ps-${3 + depth}" style="padding-left:${pad + 16}px!important;font-size:0.9rem" onclick="loadWikiPage(${c.id});if(window.innerWidth<768){const o=document.getElementById('wikiOffcanvas');if(o){bootstrap.Offcanvas.getInstance(o)?.hide()}}">↳ ${attrEscape(c.title)}</a>
     ${buildWikiChildren(c.id, childMap, depth + 1)}`
   ).join('');
 }
@@ -2702,7 +2712,7 @@ expose('loadWikiPage', async function (pageId: number) {
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
           <h3 class="mb-0">${esc(page.title)}</h3>
           <div class="d-flex gap-1">
-            <button class="btn btn-sm btn-outline-primary" onclick="showEditWikiPage(${page.id},'${esc(page.title)}','${esc(page.content.replace(/'/g, "\\'"))}','${page.visibility}')"><i class="fa-solid fa-pen"></i></button>
+            <button class="btn btn-sm btn-outline-primary js-edit-wiki" data-id="${page.id}" data-visibility="${esc(page.visibility)}"><i class="fa-solid fa-pen"></i></button>
             <button class="btn btn-sm btn-outline-danger" onclick="deleteWikiPage(${page.id})"><i class="fa-solid fa-trash"></i></button>
           </div>
         </div>
@@ -2710,6 +2720,15 @@ expose('loadWikiPage', async function (pageId: number) {
         <div class="wiki-content">${renderContent}</div>
         <div class="small text-muted mt-3">Updated: ${page.updated_at}</div>
       </div>`;
+    // cache page content to avoid interpolation XSS
+    (el as any)._wikiPage = page;
+    const editBtn = el.querySelector<HTMLButtonElement>('.js-edit-wiki');
+    if (editBtn) {
+      editBtn.addEventListener('click', () => {
+        const p = (el as any)._wikiPage;
+        (window as any).showEditWikiPage(p.id, p.title, p.content, p.visibility);
+      });
+    }
   } catch (e: any) { toast(e.message, true); }
 });
 
@@ -3322,7 +3341,7 @@ expose('showActMonsters', async function (actId: number) {
       ${monsters.length ? monsters.map((m: any) => `
         <div class="inv-item">
           <div>${m.compendium_monster_id
-            ? `<a href="javascript:void(0)" onclick="htmx.ajax('GET','/compendium/card/monster/${m.compendium_monster_id}',{target:'#cardContainer',swap:'beforeend'})" class="text-decoration-none"><strong>${esc(m.name)}</strong></a>`
+            ? `<a href="javascript:void(0)" onclick="htmx.ajax('GET','/compendium/card/monster/${m.compendium_monster_id}',{target:'#cardContainer',swap:'beforeend'})" class="text-decoration-none"><strong>${attrEscape(m.name)}</strong></a>`
             : `<strong>${esc(m.name)}</strong>`}
           <span class="badge bg-danger">CR ${esc(m.cr)}</span> <span class="text-muted small">AC ${m.ac} · HP ${m.hp}</span></div>
           <button class="btn btn-sm btn-outline-danger" onclick="deleteOneShotMonster(${m.id})"><i class="fa-solid fa-trash"></i></button>
@@ -3344,7 +3363,7 @@ expose('showSceneMonsters', async function (sceneId: number) {
       ${monsters.length ? monsters.map((m: any) => `
         <div class="inv-item">
           <div>${m.compendium_monster_id
-            ? `<a href="javascript:void(0)" onclick="htmx.ajax('GET','/compendium/card/monster/${m.compendium_monster_id}',{target:'#cardContainer',swap:'beforeend'})" class="text-decoration-none"><strong>${esc(m.name)}</strong></a>`
+            ? `<a href="javascript:void(0)" onclick="htmx.ajax('GET','/compendium/card/monster/${m.compendium_monster_id}',{target:'#cardContainer',swap:'beforeend'})" class="text-decoration-none"><strong>${attrEscape(m.name)}</strong></a>`
             : `<strong>${esc(m.name)}</strong>`}
           <span class="badge bg-danger">CR ${esc(m.cr || '0')}</span> <span class="text-muted small">AC ${m.ac} · HP ${m.hp}</span></div>
           <button class="btn btn-sm btn-outline-danger" onclick="deleteOneShotMonster(${m.id})"><i class="fa-solid fa-trash"></i></button>

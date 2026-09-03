@@ -1,4 +1,5 @@
 import { expose } from './lib/expose';
+import { esc, attrEscape } from './lib/dom';
 (() => {
 
 let csrfToken = '';
@@ -211,11 +212,11 @@ async function loadApiTokens() {
         : '<span class="badge bg-success">Active</span>';
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${escapeHtml(t.name || '—')}</td>
-        <td><code>${escapeHtml(t.prefix || '')}…</code></td>
-        <td>${escapeHtml(formatDate(t.created_at))}</td>
-        <td>${t.expires_at ? escapeHtml(formatDate(t.expires_at)) : 'Never'}</td>
-        <td>${t.last_used_at ? escapeHtml(formatDate(t.last_used_at)) : '—'}</td>
+        <td>${esc(t.name || '—')}</td>
+        <td><code>${esc(t.prefix || '')}…</code></td>
+        <td>${esc(formatDate(t.created_at))}</td>
+        <td>${t.expires_at ? esc(formatDate(t.expires_at)) : 'Never'}</td>
+        <td>${t.last_used_at ? esc(formatDate(t.last_used_at)) : '—'}</td>
         <td>${status}</td>
         <td>
           ${revoked || expired ? '' : `<button class="btn btn-sm btn-outline-warning me-1" onclick="rotateApiToken(${t.id})" title="Rotate secret"><i class="fa-solid fa-rotate me-1" aria-hidden="true"></i>Rotate</button><button class="btn btn-sm btn-outline-danger" onclick="revokeApiToken(${t.id})" title="Revoke token"><i class="fa-solid fa-ban me-1" aria-hidden="true"></i>Revoke</button>`}
@@ -310,9 +311,7 @@ function formatDate(value: string): string {
   return d.toLocaleString();
 }
 
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch] as string));
-}
+
 
 expose('loadApiTokens', loadApiTokens);
 expose('showCreateTokenForm', showCreateTokenForm);
@@ -348,13 +347,16 @@ async function loadUnifiedCompendium() {
         <td>${s.fields ? s.fields.length : 0}</td>
         <td><span class="badge badge-primary">${s.entry_count || 0}</span></td>
         <td class="text-nowrap">
-          <button class="btn btn-outline-primary btn-sm py-0" onclick="browseSchema(${s.id},'${esc(s.display_name)}')" title="Browse entries"><i class="fa-solid fa-list"></i></button>
+          <button class="btn btn-outline-primary btn-sm py-0 js-browse-schema" data-schema-id="${s.id}" data-schema-name="${attrEscape(s.display_name)}" title="Browse entries"><i class="fa-solid fa-list"></i></button>
           <button class="btn btn-outline-info btn-sm py-0" onclick="editSchema(${s.id})" title="Edit schema"><i class="fa-solid fa-pen"></i></button>
           <button class="btn btn-outline-warning btn-sm py-0" onclick="openImportForSchemaId(${s.id})" title="Import"><i class="fa-solid fa-upload"></i></button>
           <button class="btn btn-outline-danger btn-sm py-0" onclick="deleteSchema(${s.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>
         </td>
       </tr>`;
     }).join('');
+    tbody.querySelectorAll<HTMLButtonElement>('.js-browse-schema').forEach(btn => {
+      btn.addEventListener('click', () => browseSchema(Number(btn.dataset.schemaId), btn.dataset.schemaName || ''));
+    });
   } catch (e: any) {
     tbody.innerHTML = '<tr><td colspan="6" class="text-danger text-center">Failed to load schemas: ' + esc(e.message) + '</td></tr>';
   }
@@ -1026,8 +1028,8 @@ async function loadLogs() {
           '</dl>'
         : '<span class="text-muted">No attributes</span>';
       const traceId = (l.attributes && (l.attributes as any)['trace_id']) || '';
-      if (traceId) attrsHtml += `<button class="btn btn-outline-secondary btn-sm mt-2" onclick="copyLogTrace('${esc(traceId)}')"><i class="fa-solid fa-copy me-1"></i>Copy trace id</button>`;
-      return `<tr class="log-row" style="cursor:pointer" onclick="toggleLogDetail('${detailId}')">
+      if (traceId) attrsHtml += `<button class="btn btn-outline-secondary btn-sm mt-2 js-copy-trace" data-trace-id="${attrEscape(traceId)}"><i class="fa-solid fa-copy me-1"></i>Copy trace id</button>`;
+      return `<tr class="log-row js-toggle-log-detail" style="cursor:pointer" data-detail-id="${attrEscape(detailId)}">
         <td><span class="badge ${badge}">${esc(l.level)}</span></td>
         <td class="small">${esc(ts)}</td>
         <td><code class="small">${esc(l.source || '-')}</code></td>
@@ -1043,6 +1045,12 @@ async function loadLogs() {
     const totalCount = (logs[0] as any)._total !== undefined ? (logs[0] as any)._total : entryCount;
     document.getElementById('logCount')!.textContent = entryCount + ' entries' + (totalCount > entryCount ? ` (showing last ${entryCount})` : '');
 
+    tbody.querySelectorAll<HTMLButtonElement>('.js-copy-trace').forEach(btn => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); copyLogTrace(btn.dataset.traceId || ''); });
+    });
+    tbody.querySelectorAll<HTMLTableRowElement>('.js-toggle-log-detail').forEach(row => {
+      row.addEventListener('click', () => toggleLogDetail(row.dataset.detailId || ''));
+    });
     // Auto-scroll if user was at bottom
     if (wasAtBottom && tableContainer) {
       tableContainer.scrollTop = tableContainer.scrollHeight;
@@ -1159,12 +1167,15 @@ async function loadUsers() {
         <td><span class="badge ${u.role === 'admin' ? 'badge-blood' : 'badge-gold'}">${u.role}</span></td>
         <td>${u.created_at}</td>
         <td>
-          <button class="btn btn-outline-primary btn-sm" onclick="editUser(${u.id},'${esc(u.username)}','${esc(u.display_name)}','${esc(u.email)}','${u.role}')"><i class="fa-solid fa-pen"></i></button>
+          <button class="btn btn-outline-primary btn-sm js-edit-user" data-id="${u.id}" data-username="${attrEscape(u.username)}" data-display="${attrEscape(u.display_name)}" data-email="${attrEscape(u.email)}" data-role="${attrEscape(u.role)}"><i class="fa-solid fa-pen"></i></button>
           <button class="btn btn-outline-danger btn-sm" onclick="deleteUser(${u.id})"><i class="fa-solid fa-trash"></i></button>
           <button class="btn btn-outline-secondary btn-sm" onclick="resetPass(${u.id})"><i class="fa-solid fa-key"></i></button>
         </td>
       </tr>
     `).join('');
+    tbody.querySelectorAll<HTMLButtonElement>('.js-edit-user').forEach(btn => {
+      btn.addEventListener('click', () => (window as any).editUser(Number(btn.dataset.id), btn.dataset.username || '', btn.dataset.display || '', btn.dataset.email || '', btn.dataset.role || ''));
+    });
   } catch (e: any) {
     toast(e.message, true);
   }
@@ -2104,12 +2115,6 @@ function hideModal() {
   getModal().hide();
 }
 
-function esc(s: string): string {
-  const div = document.createElement('div');
-  div.textContent = s;
-  return div.innerHTML;
-}
-
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
@@ -2534,7 +2539,7 @@ async function loadCampaignEventSettings() {
         <td><small class="text-muted">${sourceType === 'ical' ? '—' : (c.auth_method === 'oauth' ? 'OAuth' : 'Service Acct')}</small></td>
         <td>${c.is_active ? '<span class="text-success"><i class="fa-solid fa-check"></i></span>' : '<span class="text-muted"><i class="fa-solid fa-xmark"></i></span>'}</td>
         <td class="text-nowrap">
-          <button class="btn btn-outline-success btn-sm py-0" onclick="shareCampaignEvent(${c.id}, '${esc(c.slug)}')" title="Share link & QR"><i class="fa-solid fa-share-nodes"></i></button>
+          <button class="btn btn-outline-success btn-sm py-0 js-share-campaign-event" data-id="${c.id}" data-slug="${attrEscape(c.slug)}" title="Share link & QR"><i class="fa-solid fa-share-nodes"></i></button>
           <a href="/events/c/${esc(c.slug)}" class="btn btn-outline-info btn-sm py-0" target="_blank" title="View public page"><i class="fa-solid fa-eye"></i></a>
         </td>
         <td class="text-nowrap">
@@ -2544,6 +2549,10 @@ async function loadCampaignEventSettings() {
         </td>
       </tr>`;
     }).join('');
+    const tbody2 = document.getElementById('campaignEventBody')!;
+    tbody2.querySelectorAll<HTMLButtonElement>('.js-share-campaign-event').forEach(btn => {
+      btn.addEventListener('click', () => (window as any).shareCampaignEvent(Number(btn.dataset.id), btn.dataset.slug || ''));
+    });
   } catch (e: any) {
     const tbody = document.getElementById('campaignEventBody');
     if (tbody) tbody.innerHTML = '<tr><td colspan="9" class="text-danger text-center">Failed to load: ' + esc(e.message) + '</td></tr>';

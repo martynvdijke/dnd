@@ -1,21 +1,27 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
-const entry = process.env.ENTRY || 'app';
+const dir = import.meta.dirname;
 
 export default defineConfig({
   build: {
     outDir: 'static/js',
-    emptyOutDir: false,
-    lib: {
-      entry: resolve(__dirname, `ts/${entry}.ts`),
-      name: entry === 'app' ? 'Villum' : 'PWA',
-      formats: ['iife'],
-      fileName: () => `${entry}.js`,
-    },
+    emptyOutDir: true,
     rollupOptions: {
+      input: {
+        app: resolve(dir, 'ts/app.ts'),
+        admin: resolve(dir, 'ts/admin.ts'),
+        pwa: resolve(dir, 'ts/pwa.ts'),
+        setup: resolve(dir, 'ts/setup.ts'),
+        login: resolve(dir, 'ts/login.ts'),
+      },
       output: {
-        extend: true,
+        entryFileNames: '[name].js',
+        chunkFileNames: 'chunks/[name]-[hash].js',
+        format: 'es',
+        manualChunks(id) {
+          if (id.includes('ts/lib/') || id.includes('dompurify')) return 'shared';
+        },
       },
     },
     sourcemap: false,

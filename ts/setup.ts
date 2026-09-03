@@ -63,12 +63,12 @@ async function init() {
         credentials: 'include',
       });
 
-      console.log('Setup POST response:', res.status, res.statusText);
+      if (import.meta.env.DEV) console.log('Setup POST response:', res.status, res.statusText);
       if (res.ok) {
         window.location.href = '/';
       } else {
         const text = await res.text();
-        console.error('Setup POST failed:', res.status, text);
+        if (import.meta.env.DEV) console.error('Setup POST failed:', res.status, text);
         errorDiv.textContent = text || 'Setup failed';
         errorDiv.classList.remove('d-none');
       }

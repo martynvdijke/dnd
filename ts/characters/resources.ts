@@ -6,7 +6,7 @@
  */
 import { expose } from '../lib/expose';
 import { currentChar } from '../lib/state';
-import { esc, toast, showModal, hideModal } from '../lib/dom';
+import { esc, attrEscape, toast, showModal, hideModal } from '../lib/dom';
 import { api } from '../lib/api';
 
 const COINS = ['cp', 'sp', 'ep', 'gp', 'pp'];
@@ -85,9 +85,9 @@ function renderResourceRow(r: any): string {
       </div>
       <div class="resource-value">
         <span class="stepper">
-          <button class="stepper-btn" onclick="resourceStepper(${r.id}, -1)" aria-label="Decrease ${esc(r.name)}">−</button>
+          <button class="stepper-btn" onclick="resourceStepper(${r.id}, -1)" aria-label="Decrease ${attrEscape(r.name)}">−</button>
           <span class="stepper-value" onclick="resourceSetValue(${r.id}, this)">${r.current}</span>
-          <button class="stepper-btn" onclick="resourceStepper(${r.id}, 1)" aria-label="Increase ${esc(r.name)}">+</button>
+          <button class="stepper-btn" onclick="resourceStepper(${r.id}, 1)" aria-label="Increase ${attrEscape(r.name)}">+</button>
         </span>
         ${hasMax ? `<span class="text-muted small">/ ${r.max}</span>` : ''}
       </div>

@@ -1,7 +1,7 @@
 // @ts-nocheck — extracted from app.ts monolith (address-tech-debt-and-ux)
 import { expose } from '../lib/expose';
 import { currentChar, setCurrentChar } from '../lib/state';
-import { esc, showModal } from '../lib/dom';
+import { esc, attrEscape, showModal } from '../lib/dom';
 import { api } from '../lib/api';
 
 export function renderSpells() {
@@ -45,7 +45,7 @@ export function renderSpells() {
                   <span class="badge badge-gold ms-1">${esc(s.school)}</span>
                 </div>
                 <div class="d-flex gap-1">
-                  <button class="btn btn-sm btn-outline-primary" onclick="editSpell(${s.id},'${esc(s.name)}',${s.level},'${esc(s.school)}',${s.prepared},'${esc(s.components||'')}','${esc(s.range||'')}','${esc(s.casting_time||'')}','${esc(s.duration||'')}','${esc(s.description||'')}')"><i class="fa-solid fa-pen"></i></button>
+                  <button class="btn btn-sm btn-outline-primary" onclick="editSpell(${s.id},'${attrEscape(s.name)}',${s.level},'${attrEscape(s.school)}',${s.prepared},'${attrEscape(s.components||'')}','${attrEscape(s.range||'')}','${attrEscape(s.casting_time||'')}','${attrEscape(s.duration||'')}','${attrEscape(s.description||'')}')"><i class="fa-solid fa-pen"></i></button>
                   <button class="btn btn-sm btn-outline-danger" onclick="deleteSpell(${s.id})"><i class="fa-solid fa-trash"></i></button>
                 </div>
               </div>

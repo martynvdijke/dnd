@@ -6,7 +6,7 @@
  * with CSS keyframes while numbers cycle rapidly via JS, then settle with a
  * satisfying pop-in when the server result arrives.
  */
-import { esc, toast } from './lib/dom';
+import { esc, attrEscape, toast } from './lib/dom';
 import { api } from './lib/api';
 import { getCurrentView } from './navigation';
 import { currentChar } from './lib/state';
@@ -246,7 +246,7 @@ export function renderDiceTab() {
       </div>
       <div class="dice-quick-btns mb-3">
         ${DICE_NOTATION_PRESETS.map(p =>
-          `<button class="btn btn-sm dice-btn" onclick="setDiceExpr('${esc(p.expr)}')" title="${p.sub ? p.sub : p.expr}">
+          `<button class="btn btn-sm dice-btn" onclick="setDiceExpr('${attrEscape(p.expr)}')" title="${p.sub ? p.sub : p.expr}">
             ${p.icon ? `<i class="${p.icon} me-1"></i>` : ''}${esc(p.label)}
           </button>`
         ).join('')}

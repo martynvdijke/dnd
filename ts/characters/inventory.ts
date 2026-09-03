@@ -1,7 +1,7 @@
 // @ts-nocheck — extracted from app.ts monolith (address-tech-debt-and-ux)
 import { expose } from '../lib/expose';
 import { currentChar, setCurrentChar } from '../lib/state';
-import { esc, capitalize, toast, openCompendiumPicker } from '../lib/dom';
+import { esc, attrEscape, capitalize, toast, openCompendiumPicker } from '../lib/dom';
 import { api, getCsrfToken, getApiToken } from '../lib/api';
 
 export async function updateCurrency() {
@@ -106,7 +106,7 @@ export function renderInventory() {
             <div class="d-flex gap-1">
               ${i.is_identified === false ? `<button class="btn-identify" onclick="toggleIdentify(${i.id})" title="Identify item">🔍 ID</button>` : ''}
               ${i.magic && i.is_identified !== false ? `<button class="btn-identify" onclick="toggleIdentify(${i.id})" title="Mark unidentified">🔮</button>` : ''}
-              <button class="btn btn-sm btn-outline-primary" onclick="editInventory(${i.id},'${esc(i.name)}',${i.quantity},'${esc(i.category)}',${i.weight},${i.equipped})" title="Edit"><i class="fa-solid fa-pen"></i></button>
+              <button class="btn btn-sm btn-outline-primary" onclick="editInventory(${i.id},'${attrEscape(i.name)}',${i.quantity},'${attrEscape(i.category)}',${i.weight},${i.equipped})" title="Edit"><i class="fa-solid fa-pen"></i></button>
               ${(i.compendium_equipment_id || i.compendium_entry_id) ? `<button class="btn btn-sm btn-outline-secondary" onclick="unlinkCompendiumItem(${i.id})" title="Unlink from compendium"><i class="fa-solid fa-link-slash"></i></button>` : ''}
               <button class="btn btn-sm btn-outline-secondary" onclick="toggleEquip(${i.id})" title="${i.equipped ? 'Unequip' : 'Equip'}"><i class="fa-solid fa-shield-halved"></i></button>
               <button class="btn btn-sm btn-outline-danger" onclick="deleteInventory(${i.id})" title="Remove"><i class="fa-solid fa-trash"></i></button>
