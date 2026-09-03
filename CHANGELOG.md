@@ -1,3 +1,10 @@
+## [2.53.7](https://github.com/martynvdijke/dnd/compare/v2.53.6...v2.53.7) (2026-09-03)
+
+
+### Bug Fixes
+
+* harden TS XSS residual — jsEscape, esc dedup, console DEV guard, vite shared chunks ([#100](https://github.com/martynvdijke/dnd/issues/100)) ([f3b8f5f](https://github.com/martynvdijke/dnd/commit/f3b8f5f01c46fce729859b4537cd08cc6ed4af85))
+
 ## [2.53.6](https://github.com/martynvdijke/dnd/compare/v2.53.5...v2.53.6) (2026-09-02)
 
 
