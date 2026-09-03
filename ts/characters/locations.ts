@@ -1,7 +1,7 @@
 // Extracted from app.ts — Locations section (address-tech-debt-and-ux)
 import { expose } from '../lib/expose';
 import { currentChar, allLocations, setAllLocations } from '../lib/state';
-import { esc, showModal, hideModal, toast } from '../lib/dom';
+import { esc, attrEscape, showModal, hideModal, toast } from '../lib/dom';
 import { api } from '../lib/api';
 import L from 'leaflet';
 
@@ -168,7 +168,7 @@ expose('showLinkLocation', function () {
           <div><span class="fw-bold">${esc(l.name)}</span>
             ${l.type ? `<span class="text-muted small ms-1">${esc(l.type)}</span>` : ''}
             ${l.description ? `<span class="text-muted small"> — ${esc(l.description).substring(0, 60)}</span>` : ''}</div>
-          <button class="btn btn-sm btn-outline-primary" onclick="pickSearchedLocation(${l.id},'${esc(l.name)}')">Use</button>
+          <button class="btn btn-sm btn-outline-primary" onclick="pickSearchedLocation(${l.id},'${attrEscape(l.name)}')">Use</button>
         </div>`).join('') : '<div class="text-muted small fst-italic p-2">No locations found.</div>';
     }, 250);
   });

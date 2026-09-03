@@ -1,7 +1,7 @@
 // Extracted from app.ts — NPCs section (address-tech-debt-and-ux)
 import { expose } from '../lib/expose';
 import { currentChar, allNPCs, setAllNPCs } from '../lib/state';
-import { esc, showModal, hideModal, toast, openCompendiumPicker } from '../lib/dom';
+import { esc, attrEscape, showModal, hideModal, toast, openCompendiumPicker } from '../lib/dom';
 import { api, getCsrfToken, getApiToken } from '../lib/api';
 import { FilePicker } from '../file-picker';
 
@@ -76,7 +76,7 @@ expose('showLinkNPC', function () {
         <div class="cp-item d-flex justify-content-between align-items-center p-2 border-bottom">
           <div><span class="fw-bold">${esc(n.name)}</span>
             ${n.race ? `<span class="text-muted small ms-1">${esc(n.race)}${n.class ? ' ' + esc(n.class) : ''}</span>` : ''}</div>
-          <button class="btn btn-sm btn-outline-primary" onclick="pickSearchedNPC(${n.id},'${esc(n.name)}')">Use</button>
+          <button class="btn btn-sm btn-outline-primary" onclick="pickSearchedNPC(${n.id},'${attrEscape(n.name)}')">Use</button>
         </div>`).join('') : '<div class="text-muted small fst-italic p-2">No NPCs found.</div>';
     }, 250);
   });

@@ -1,6 +1,6 @@
 // @ts-nocheck — extracted from app.ts, window-level self-registration
 import { showView } from './navigation';
-import { esc, showModal, hideModal, toast } from './lib/dom';
+import { esc, attrEscape, showModal, hideModal, toast } from './lib/dom';
 import { api } from './lib/api';
 import { currentUser, currentChar } from './lib/state';
 import { expose } from './lib/expose';
@@ -50,7 +50,7 @@ expose('showParty', async function () {
                 <div class="d-flex gap-1">
                   <span class="badge badge-gold">${factions.length} factions</span>
                   ${fileCount ? `<span class="badge bg-info">${fileCount} files</span>` : ''}
-                  <button class="btn btn-sm btn-outline-primary" onclick="renameParty(${p.id},'${esc(p.name)}','${esc(p.description)}')"><i class="fa-solid fa-pen"></i></button>
+                  <button class="btn btn-sm btn-outline-primary js-rename-party" data-id="${p.id}" data-name="${attrEscape(p.name)}" data-desc="${attrEscape(p.description || '')}"><i class="fa-solid fa-pen"></i></button>
                   <button class="btn btn-sm btn-outline-danger" onclick="deleteParty(${p.id})"><i class="fa-solid fa-trash"></i></button>
                 </div>
               </div>
@@ -103,8 +103,8 @@ expose('showParty', async function () {
           <div class="d-flex align-items-center gap-2">
             <span class="badge badge-gold">${g.members.length} members</span>
             ${g.id && (own || dm) ? `
-              <button class="btn btn-outline-gold btn-sm" onclick="showCampaignDashboard(${g.id},'${esc(g.name)}')" title="Dashboard"><i class="fa-solid fa-chart-simple"></i></button>
-              <button class="btn btn-outline-primary btn-sm" onclick="showManageCampaign(${g.id},'${esc(g.name)}','${esc(g.party_name || '')}')" title="Manage"><i class="fa-solid fa-users-gear"></i></button>
+              <button class="btn btn-outline-gold btn-sm js-campaign-dashboard" data-id="${g.id}" data-name="${attrEscape(g.name)}" title="Dashboard"><i class="fa-solid fa-chart-simple"></i></button>
+              <button class="btn btn-outline-primary btn-sm js-manage-campaign" data-id="${g.id}" data-name="${attrEscape(g.name)}" data-party="${attrEscape(g.party_name || '')}" title="Manage"><i class="fa-solid fa-users-gear"></i></button>
               <button class="btn btn-outline-info btn-sm" onclick="shareParty(${g.id})" title="Share Party"><i class="fa-solid fa-share-nodes"></i></button>
             ` : ''}
             ${g.id && own ? `<button class="btn btn-outline-danger btn-sm" onclick="deleteCampaign(${g.id})" title="Delete"><i class="fa-solid fa-trash"></i></button>` : ''}
@@ -166,6 +166,15 @@ expose('showParty', async function () {
     }).join('') || '<div class="empty-state"><i class="fa-solid fa-flag fa-2x mb-2 d-block text-muted"></i>No characters yet. Create a campaign and add members to build your party!</div>';
 
     el.innerHTML = html;
+    el.querySelectorAll<HTMLButtonElement>('.js-rename-party').forEach(btn => {
+      btn.addEventListener('click', () => (window as any).renameParty(Number(btn.dataset.id), btn.dataset.name || '', btn.dataset.desc || ''));
+    });
+    el.querySelectorAll<HTMLButtonElement>('.js-campaign-dashboard').forEach(btn => {
+      btn.addEventListener('click', () => (window as any).showCampaignDashboard(Number(btn.dataset.id), btn.dataset.name || ''));
+    });
+    el.querySelectorAll<HTMLButtonElement>('.js-manage-campaign').forEach(btn => {
+      btn.addEventListener('click', () => (window as any).showManageCampaign(Number(btn.dataset.id), btn.dataset.name || '', btn.dataset.party || ''));
+    });
   } catch (e:any) {
     el.innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Failed: ${esc(e.message)}</p></div>`;
   }
@@ -428,10 +437,16 @@ function searchUsers(q: string) {
       const users = await api('GET', `/api/users/search?q=${encodeURIComponent(q)}`);
       const el = document.getElementById('userSuggestions')!;
       el.innerHTML = users.map((u: any) =>
-        `<div class="d-flex justify-content-between align-items-center p-1 border-bottom" style="cursor:pointer" onclick="document.getElementById('addMemberUsername')!.value='${esc(u.username)}';el.innerHTML=''">
+        `<div class="d-flex justify-content-between align-items-center p-1 border-bottom js-user-suggestion" style="cursor:pointer" data-username="${attrEscape(u.username)}">
           <span>${esc(u.username)}</span>
         </div>`
       ).join('');
+      el.querySelectorAll<HTMLElement>('.js-user-suggestion').forEach(row => {
+        row.addEventListener('click', () => {
+          (document.getElementById('addMemberUsername') as HTMLInputElement)!.value = row.dataset.username || '';
+          el.innerHTML = '';
+        });
+      });
     } catch {}
   }, 300);
 }
@@ -555,10 +570,14 @@ expose('shareCharacter', async function () {
         <button class="btn btn-gold" onclick="copyShareUrl()"><i class="fa-solid fa-copy"></i></button>
       </div>
       <div class="d-flex gap-2">
-        <button class="btn btn-primary flex-grow-1" onclick="window.open('mailto:?subject=Check out my character ${esc(currentChar.name)}&body=${encodeURIComponent(result.url)}','_blank')"><i class="fa-solid fa-envelope me-1"></i>Email</button>
+        <button class="btn btn-primary flex-grow-1 js-share-mail" data-name="${attrEscape(currentChar.name)}" data-url="${attrEscape(result.url)}"><i class="fa-solid fa-envelope me-1"></i>Email</button>
         <button class="btn btn-outline-secondary" onclick="hideModal()">Close</button>
       </div>
     `);
+    setTimeout(() => {
+      const btn = document.querySelector<HTMLButtonElement>('.js-share-mail');
+      if (btn) btn.addEventListener('click', () => window.open(`mailto:?subject=Check out my character ${encodeURIComponent(btn.dataset.name || '')}&body=${encodeURIComponent(btn.dataset.url || '')}`, '_blank'));
+    }, 0);
   } catch (e: any) {
     toast(e.message, true);
   }
@@ -659,7 +678,7 @@ expose('sendCampaignHighlights', async function (campaignId: number) {
       ? `Sent to ${result.sent} recipients, but ${result.errors.length} failed.`
       : `Campaign highlights sent to ${result.sent} recipient(s)!`;
     toast(msg);
-    if (result.errors) console.warn('Email errors:', result.errors);
+    if (result.errors && import.meta.env.DEV) console.warn('Email errors:', result.errors);
   } catch (e: any) {
     toast(e.message, true);
   }

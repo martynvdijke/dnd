@@ -5,6 +5,7 @@ import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { api } from './lib/api';
 import { expose } from './lib/expose';
+import { attrEscape } from './lib/dom';
 
 export interface MentionItem {
   id: number;
@@ -36,11 +37,7 @@ export function serializeMentions(html: string): string {
 export function parseMentions(text: string): string {
   if (!text) return text;
   return text.replace(/\[\[entity:([A-Za-z0-9_-]+):(\d+)(?:\|([^\]]*))?\]\]/g, (m, type, id, label) =>
-    `<span class="mention-chip" data-mention data-type="${escAttr(type)}" data-id="${escAttr(id)}">@${escAttr(label || type)}</span>`);
-}
-
-function escAttr(s: string): string {
-  return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    `<span class="mention-chip" data-mention data-type="${attrEscape(type)}" data-id="${attrEscape(id)}">@${attrEscape(label || type)}</span>`);
 }
 
 // Lightweight "@" suggestion plugin (no @tiptap/suggestion dependency): renders a floating
@@ -123,7 +120,7 @@ declare module '@tiptap/core' {
 export function renderMentionChips(text: string): string {
   if (!text) return text;
   return text.replace(/\[\[entity:([A-Za-z0-9_-]+):(\d+)(?:\|([^\]]*))?\]\]/g, (m, type, id, label) =>
-    `<a class="mention-chip compendium-link" data-schema="${escAttr(type)}" data-name="${escAttr(label || type)}" href="#">@${escAttr(label || type)}</a>`);
+    `<a class="mention-chip compendium-link" data-schema="${attrEscape(type)}" data-name="${attrEscape(label || type)}" href="#">@${attrEscape(label || type)}</a>`);
 }
 
 expose('mentionSearch', mentionSearch);

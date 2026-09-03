@@ -10,7 +10,7 @@
  *  - Keyboard navigation (arrow keys + Enter)
  */
 
-import { esc, toast } from './lib/dom';
+import { esc, attrEscape, toast } from './lib/dom';
 import { api } from './lib/api';
 import { expose } from './lib/expose';
 
@@ -207,7 +207,7 @@ function renderRecents(): void {
       <button class="btn btn-sm btn-link text-muted p-0 ms-2" onclick="window.__clearRecents()">Clear</button>
     </div>
     ${recents.map((q, i) => `
-      <div class="cp-result-item" data-index="${i}" onclick="window.__searchRecent('${esc(q)}')">
+      <div class="cp-result-item" data-index="${i}" onclick="window.__searchRecent('${attrEscape(q)}')">
         <i class="fa-solid fa-clock-rotate-left cp-result-icon text-muted"></i>
         <div class="cp-result-body">
           <div class="cp-result-name">${esc(q)}</div>
@@ -284,7 +284,7 @@ export async function doSearch(query?: string): Promise<void> {
 
     resultsEl.innerHTML = results.map((r, i) => `
       <div class="cp-result-item search-result-item ${i === 0 ? 'selected' : ''}" data-index="${i}"
-           onclick="window.__searchNavigate('${r.entity_type}',${r.entity_id},'${esc(r.name)}')"
+           onclick="window.__searchNavigate('${r.entity_type}',${r.entity_id},'${attrEscape(r.name)}')"
            onmouseenter="__searchHover(${i})">
         <i class="fa-solid ${ENTITY_ICONS[r.entity_type] || 'fa-file'} cp-result-icon"></i>
         <div class="cp-result-body">

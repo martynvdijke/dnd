@@ -1,6 +1,6 @@
 // @ts-nocheck — extracted from app.ts, window-level self-registration
 import { showView } from './navigation';
-import { esc, showModal, hideModal, toast } from './lib/dom';
+import { esc, attrEscape, showModal, hideModal, toast } from './lib/dom';
 import { api } from './lib/api';
 import { expose } from './lib/expose';
 import { compendiumSearchModal } from './compendium-search';
@@ -101,7 +101,7 @@ expose('showEncounterDetail', async function (id: number) {
           <div class="inv-item">
             <div>
               ${m.compendium_monster_id
-                ? `<a href="javascript:void(0)" onclick="htmx.ajax('GET','/compendium/card/monster/${m.compendium_monster_id}',{target:'#cardContainer',swap:'beforeend'})" class="fw-bold text-decoration-none">${esc(m.name)}</a>`
+                ? `<a href="javascript:void(0)" onclick="htmx.ajax('GET','/compendium/card/monster/${m.compendium_monster_id}',{target:'#cardContainer',swap:'beforeend'})" class="fw-bold text-decoration-none">${attrEscape(m.name)}</a>`
                 : `<span class="fw-bold">${esc(m.name)}</span>`}
               <span class="badge badge-blood ms-1">x${m.count}</span>
               <span class="badge badge-gold ms-1">CR ${esc(m.cr)}</span>

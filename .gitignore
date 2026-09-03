@@ -19,5 +19,8 @@ tmp/*
 coverage.out
 static/js/*.js
 static/js/*.js.map
+static/js/chunks/
+static/js/**/*.js
+static/js/**/*.js.map
 coverage/
 dice/bundle.js

@@ -15,8 +15,8 @@ export function registerSW(): void {
     window.location.reload();
   });
   navigator.serviceWorker.register('/sw.js', { scope: '/' })
-    .then(() => console.log('[SW] registered'))
-    .catch((err) => console.warn('[SW] registration failed:', err));
+    .then(() => { if (import.meta.env.DEV) console.log('[SW] registered'); })
+    .catch((err) => { if (import.meta.env.DEV) console.warn('[SW] registration failed:', err); });
 }
 
 export function captureInstallPrompt(): void {
@@ -35,7 +35,7 @@ export function captureInstallPrompt(): void {
 
   window.addEventListener('appinstalled', () => {
     expose('_deferredInstallPrompt', null);
-    console.log('[PWA] installed');
+    if (import.meta.env.DEV) console.log('[PWA] installed');
   });
 }
 
