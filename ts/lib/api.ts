@@ -23,7 +23,7 @@ export function clearApiToken(): void {
   apiToken = '';
 }
 
-export async function api(method: string, path: string, body?: any): Promise<any> {
+export async function api<T = any>(method: string, path: string, body?: unknown): Promise<T> {
   showLoading();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (csrfToken) headers['X-CSRF-Token'] = csrfToken;

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Character resources & wealth rendering — coin counters (gold, silver, etc.)
  * and tracked resources (rations, arrows, ki points, spell charges...).
@@ -18,27 +17,38 @@ const ICONS = [
   'fa-shield-halved', 'fa-wand-sparkles', 'fa-gem', 'fa-scroll', 'fa-crosshairs',
 ];
 
-let resources: any[] = [];
+interface CharacterResource {
+  id: number;
+  name: string;
+  current: number;
+  max: number;
+  short_rest_recovery: number;
+  long_rest_recovery: number;
+  icon: string;
+  sort_order: number;
+}
+
+let resources: CharacterResource[] = [];
 let editingId: number | null = null;
 
 export function wealthTotalGp(): number {
-  const cur = (currentChar && currentChar.currency) || {};
+  const cur = ((currentChar as Record<string, unknown> | null)?.['currency'] as Record<string, number> | undefined) || {};
   return COINS.reduce((s, coin) => s + ((cur[coin] || 0) * GP_VALUES[coin]), 0);
 }
 
-async function loadResources() {
+async function loadResources(): Promise<void> {
   if (!currentChar) return;
   try {
-    resources = await api('GET', `/api/characters/${currentChar.id}/resources`);
+    resources = await api<CharacterResource[]>('GET', `/api/characters/${(currentChar as { id: number }).id}/resources`);
   } catch { resources = []; }
 }
 
-export async function renderResources() {
+export async function renderResources(): Promise<void> {
   if (!currentChar) return;
   const el = document.getElementById('resourcesSection');
   if (!el) return;
   await loadResources();
-  const cur = currentChar.currency || {};
+  const cur = ((currentChar as Record<string, unknown>)['currency'] as Record<string, number> | undefined) || {};
   const total = wealthTotalGp();
   el.innerHTML = `
     <div class="d-flex justify-content-between align-items-center">
@@ -66,12 +76,15 @@ export async function renderResources() {
         ? resources.map(r => renderResourceRow(r)).join('')
         : '<div class="empty-state"><i class="fa-solid fa-box-open fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Resources</p><p class="small text-muted">Track rations, arrows, ki points, spell charges and more.</p></div>'}
     </div>`;
-  document.getElementById('resourceHint')!.innerHTML = resources.some(r => r.short_rest_recovery > 0 || r.long_rest_recovery > 0)
-    ? '<i class="fa-solid fa-mug-hot me-1"></i>Resources with rest recovery refill automatically on Short/Long Rest.'
-    : '';
+  const hint = document.getElementById('resourceHint');
+  if (hint) {
+    hint.innerHTML = resources.some(r => r.short_rest_recovery > 0 || r.long_rest_recovery > 0)
+      ? '<i class="fa-solid fa-mug-hot me-1"></i>Resources with rest recovery refill automatically on Short/Long Rest.'
+      : '';
+  }
 }
 
-function renderResourceRow(r: any): string {
+function renderResourceRow(r: CharacterResource): string {
   const hasMax = r.max > 0;
   return `
     <div class="resource-row" data-testid="resource-row">
@@ -98,8 +111,8 @@ function renderResourceRow(r: any): string {
     </div>`;
 }
 
-async function saveResource(r: any) {
-  await api('PUT', `/api/resources/${r.id}`, {
+async function saveResource(r: CharacterResource): Promise<void> {
+  await api<void>('PUT', `/api/resources/${r.id}`, {
     name: r.name,
     current: r.current,
     max: r.max,
@@ -110,42 +123,43 @@ async function saveResource(r: any) {
   });
 }
 
-export async function resourceStepper(id: number, delta: number) {
+export async function resourceStepper(id: number, delta: number): Promise<void> {
   const r = resources.find(x => x.id === id);
   if (!r) return;
   const max = r.max > 0 ? r.max : Infinity;
   r.current = Math.max(0, Math.min(max, (r.current || 0) + delta));
   try {
     await saveResource(r);
-  } catch (e: any) { toast(e.message, true); }
+  } catch (e) { toast((e as Error).message, true); }
   await renderResources();
 }
 
-export function resourceSetValue(id: number, el: HTMLElement) {
+export function resourceSetValue(id: number, el: HTMLElement): void {
   const r = resources.find(x => x.id === id);
   if (!r) return;
   el.innerHTML = `<input type="number" class="form-control stepper-inline-input" value="${r.current}" style="width:70px">`;
-  const input = el.querySelector('input')!;
+  const input = el.querySelector('input');
+  if (!input) return;
   input.focus();
   input.select();
-  const save = async () => {
+  const save = async (): Promise<void> => {
     const parsed = parseInt(input.value);
     if (!isNaN(parsed)) {
       r.current = Math.max(0, r.max > 0 ? Math.min(r.max, parsed) : parsed);
       try {
         await saveResource(r);
-      } catch (e: any) { toast(e.message, true); }
+      } catch (e) { toast((e as Error).message, true); }
     }
     await renderResources();
   };
-  input.addEventListener('blur', save);
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); save(); }
-    if (e.key === 'Escape') { renderResources(); }
+  input.addEventListener('blur', () => { void save(); });
+  input.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.key === 'Enter') { e.preventDefault(); void save(); }
+    if (e.key === 'Escape') { void renderResources(); }
   });
 }
 
-export function openResourceForm(id?: number) {
+export function openResourceForm(id?: number): void {
   const r = id ? resources.find(x => x.id === id) : null;
   editingId = id ?? null;
   showModal(r ? 'Edit Resource' : 'Add Resource', `
@@ -191,18 +205,16 @@ export function openResourceForm(id?: number) {
     if (!opt) return;
     picker.querySelectorAll('.resource-icon-option').forEach(o => o.classList.remove('selected'));
     opt.classList.add('selected');
-    (document.getElementById('resourceIcon') as HTMLInputElement).value = opt.dataset.icon || 'fa-bolt';
+    (document.getElementById('resourceIcon') as HTMLInputElement).value = opt.dataset['icon'] || 'fa-bolt';
   });
   setTimeout(() => {
-    // The form may have been removed before the delayed focus runs (for
-    // example while navigating away or when the DOM realm is torn down).
     if (typeof document === 'undefined') return;
     (document.getElementById('resourceName') as HTMLInputElement | null)?.focus();
   }, 50);
 }
 
-export async function saveResourceForm() {
-  const nameEl = document.getElementById('resourceName') as HTMLInputElement;
+export async function saveResourceForm(): Promise<void> {
+  const nameEl = document.getElementById('resourceName') as HTMLInputElement | null;
   const name = nameEl?.value.trim();
   if (!name) { toast('Resource name is required', true); return; }
   const max = parseInt((document.getElementById('resourceMax') as HTMLInputElement).value || '0') || 0;
@@ -211,7 +223,6 @@ export async function saveResourceForm() {
     name,
     current: parseInt((document.getElementById('resourceCurrent') as HTMLInputElement).value || '0') || 0,
     max,
-    // Resources without a max are consumables — they never refill on a rest.
     short_rest_recovery: hasMax ? (parseInt((document.getElementById('resourceShortRecovery') as HTMLInputElement).value || '0') || 0) : 0,
     long_rest_recovery: hasMax ? (parseInt((document.getElementById('resourceLongRecovery') as HTMLInputElement).value || '0') || 0) : 0,
     icon: (document.getElementById('resourceIcon') as HTMLInputElement).value || 'fa-bolt',
@@ -219,24 +230,24 @@ export async function saveResourceForm() {
   };
   try {
     if (editingId) {
-      await api('PUT', `/api/resources/${editingId}`, body);
+      await api<void>('PUT', `/api/resources/${editingId}`, body);
       toast('Resource updated');
     } else {
-      await api('POST', `/api/characters/${currentChar.id}/resources`, body);
+      await api<void>('POST', `/api/characters/${(currentChar as { id: number }).id}/resources`, body);
       toast(`Added ${name}`);
     }
     hideModal();
     await renderResources();
-  } catch (e: any) { toast(e.message, true); }
+  } catch (e) { toast((e as Error).message, true); }
 }
 
-export async function deleteResource(id: number) {
+export async function deleteResource(id: number): Promise<void> {
   if (!confirm('Remove this resource?')) return;
   try {
-    await api('DELETE', `/api/resources/${id}`);
+    await api<void>('DELETE', `/api/resources/${id}`);
     toast('Resource removed');
     await renderResources();
-  } catch (e: any) { toast(e.message, true); }
+  } catch (e) { toast((e as Error).message, true); }
 }
 
 // Window registrations (centralized)

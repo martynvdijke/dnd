@@ -8,6 +8,10 @@
  *
  * This module intentionally has no imports to avoid circular dependencies.
  */
-export function expose(name: string, value: any): void {
-  (window as any)[name] = value;
+export function expose(name: string, value: unknown): void {
+  (window as unknown as Record<string, unknown>)[name] = value;
+}
+
+export function exposeTyped<K extends keyof Window>(name: K, value: Window[K]): void {
+  (window as unknown as Record<string, unknown>)[name as string] = value;
 }
