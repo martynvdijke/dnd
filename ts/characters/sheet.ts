@@ -7,6 +7,7 @@ import { expose } from '../lib/expose';
 import { currentChar, currentTab, setCurrentTab } from '../lib/state';
 import { esc, capitalize, toast } from '../lib/dom';
 import { api, getApiToken } from '../lib/api';
+import type { Character } from '../lib/api-types';
 import { markDirty, isDirty, isSaving, saveCharacter } from '../lib/save';
 import { renderDiceTab } from '../dice';
 import { renderStats, renderXPBar } from './stats';
@@ -169,7 +170,7 @@ export async function coinStepper(coin: string, delta: number) {
   const updates: Record<string, number> = {};
   ['cp','sp','ep','gp','pp'].forEach(c => { updates[c] = currency[c] || 0; });
   try {
-    await api('PUT', `/api/characters/${currentChar.id}/currency`, updates);
+    await api<void>('PUT', `/api/characters/${currentChar.id}/currency`, updates);
     toast(`${coin.toUpperCase()} ${delta > 0 ? '+' : ''}${delta}`);
   } catch (e: any) { toast(e.message, true); }
   renderSheet();
@@ -202,7 +203,7 @@ export function linkCharIdentity(which: string) {
   openCompendiumPicker({
     title: `Link ${capitalize(which)} from Compendium`,
     placeholder: `Search ${def.type}s...`,
-    search: (q) => api('GET', `/api/compendium/search?q=${encodeURIComponent(q)}&type=${def.type}`),
+    search: (q) => api<unknown[]>('GET', `/api/compendium/search?q=${encodeURIComponent(q)}&type=${def.type}`),
     render: (e: any) => `<div><span class="fw-bold">${esc(e.name)}</span>${e.source ? `<span class="text-muted small ms-1">${esc(e.source)}</span>` : ''}</div>`,
     onPick: async (e: any) => {
       try {
@@ -227,7 +228,7 @@ export async function unlinkCharIdentity(which: string) {
   const def = (IDENTITY_LINK as any)[which];
   if (!def) return;
   try {
-    await api('DELETE', `/api/characters/${currentChar.id}/${which}/link`);
+    await api<void>('DELETE', `/api/characters/${currentChar.id}/${which}/link`);
     currentChar[def.linkField] = null;
     markDirty();
     toast(`${capitalize(which)} unlinked (text kept)`);

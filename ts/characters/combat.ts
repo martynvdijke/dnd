@@ -8,6 +8,7 @@ import { expose } from '../lib/expose';
 import { currentChar, setCurrentChar } from '../lib/state';
 import { esc, toast } from '../lib/dom';
 import { api } from '../lib/api';
+import type { Character } from '../lib/api-types';
 import { animateHpChange } from '../lib/animations';
 
 // ─── Roll / Combat Actions ───
@@ -15,7 +16,7 @@ import { animateHpChange } from '../lib/animations';
 export async function rollCheck(type: string, name: string, adv: string) {
   if (!currentChar) return;
   try {
-    const result = await api('POST', '/api/roll/check', {
+    const result = await api<{ text: string }>('POST', '/api/roll/check', {
       character_id: currentChar.id, type, name, advantage: adv,
     });
     toast(result.text);
@@ -46,9 +47,9 @@ export async function doRest(type: string) {
   if (!currentChar) return;
   try {
     const oldHp = currentChar.hp_current;
-    const result = await api('POST', `/api/characters/${currentChar.id}/rest`, { rest_type: type, hit_dice_count: type === 'short' ? 1 : 0 });
+    const result = await api<{ hp_healed: number }>('POST', `/api/characters/${currentChar.id}/rest`, { rest_type: type, hit_dice_count: type === 'short' ? 1 : 0 });
     toast(`${type} rest: healed ${result.hp_healed} HP`);
-    setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
+    setCurrentChar(await api<Character>('GET', `/api/characters/${currentChar.id}`));
     (window as any).renderSheet?.();
     // Animate HP change after re-render
     const bar = document.getElementById('charHpBarFill');
@@ -65,9 +66,9 @@ export async function doRest(type: string) {
 export async function doLevelUp() {
   if (!currentChar) return;
   try {
-    const result = await api('POST', `/api/characters/${currentChar.id}/levelup`);
+    const result = await api<{ new_level: number; hp_gain: number }>('POST', `/api/characters/${currentChar.id}/levelup`);
     toast(`Level Up! Now level ${result.new_level} (+${result.hp_gain} HP)`);
-    setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
+    setCurrentChar(await api<Character>('GET', `/api/characters/${currentChar.id}`));
     (window as any).renderSheet?.();
   } catch (e: any) {
     toast(e.message, true);
@@ -153,7 +154,7 @@ export function renderCombat() {
 export async function loadConditionBadges() {
   if (!currentChar) return;
   try {
-    const conds = await api('GET', `/api/conditions/summary?character_id=${currentChar.id}`);
+    const conds = await api<Array<{ id: number; type: string; name: string; duration: number; duration_type: string }>>('GET', `/api/conditions/summary?character_id=${currentChar.id}`);
     const el = document.getElementById('conditionBadges');
     if (!el) return;
     if (!conds.length) {

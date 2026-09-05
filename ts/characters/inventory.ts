@@ -3,14 +3,15 @@ import { expose } from '../lib/expose';
 import { currentChar, setCurrentChar } from '../lib/state';
 import { esc, attrEscape, capitalize, toast, openCompendiumPicker } from '../lib/dom';
 import { api, getCsrfToken, getApiToken } from '../lib/api';
+import type { Character } from '../lib/api-types';
 
 export async function updateCurrency() {
   if (!currentChar) return;
   const coins = ['cp','sp','ep','gp','pp'];
   const updates: Record<string,number> = {};
   coins.forEach(c => { updates[c] = +(document.getElementById('coin' + c) as HTMLInputElement)?.value || 0; });
-  await api('PUT', `/api/characters/${currentChar.id}/currency`, updates);
-  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
+  await api<void>('PUT', `/api/characters/${currentChar.id}/currency`, updates);
+  setCurrentChar(await api<Character>('GET', `/api/characters/${currentChar.id}`));
   toast('Currency updated');
 }
 
@@ -123,7 +124,7 @@ expose('openInventoryPicker', function () {
   openCompendiumPicker({
     title: 'Link from Compendium',
     placeholder: 'Search equipment...',
-    search: (q) => api('GET', `/api/compendium/equipment?q=${encodeURIComponent(q)}`),
+    search: (q) => api<unknown[]>('GET', `/api/compendium/equipment?q=${encodeURIComponent(q)}`),
     render: (e: any) => `<div><span class="fw-bold">${esc(e.name)}</span>
       ${e.category ? `<span class="text-muted small ms-1">${esc(e.category)}</span>` : ''}
       ${e.item_rarity ? `<span class="text-muted small"> · ${esc(e.item_rarity)}</span>` : ''}
@@ -144,14 +145,14 @@ async function linkCompendiumItem(item: any) {
   if (apiToken) headers['Authorization'] = `Bearer ${apiToken}`;
   const res = await fetch(`/api/characters/${currentChar.id}/inventory/link`, { method: 'POST', body: fd, headers, credentials: 'include' });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Link failed');
-  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
+  setCurrentChar(await api<Character>('GET', `/api/characters/${currentChar.id}`));
   renderInventory();
   toast(`Linked ${item.name} to inventory`);
 }
 
 expose('unlinkCompendiumItem', async function (itemId: number) {
-  await api('DELETE', `/api/characters/${currentChar.id}/inventory/${itemId}/link`);
-  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
+  await api<void>('DELETE', `/api/characters/${currentChar.id}/inventory/${itemId}/link`);
+  setCurrentChar(await api<Character>('GET', `/api/characters/${currentChar.id}`));
   renderInventory();
   toast('Unlinked from compendium (item kept)');
 });

@@ -148,6 +148,16 @@ export function hideLoading(): void {
   if (overlay) overlay.classList.add('d-none');
 }
 
+export function $id<T extends HTMLElement>(id: string): T | null {
+  return document.getElementById(id) as T | null;
+}
+
+export function $idStrict<T extends HTMLElement>(id: string): T {
+  const el = document.getElementById(id) as T | null;
+  if (!el) throw new Error(`Missing required element: #${id}`);
+  return el;
+}
+
 export interface CompendiumPickerOptions {
   title: string;
   placeholder: string;

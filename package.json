@@ -10,6 +10,7 @@
     "build:vite": "vite build",
     "build:dice": "esbuild dice/roller-entry.js --bundle --format=iife --global-name=__diceBundle --platform=browser --external:crypto --outfile=dice/bundle.js",
     "typecheck": "npx tsc --noEmit",
+    "lint:nocheck": "node scripts/check-nocheck.js",
     "build:ts": "npm run build:vite && npm run typecheck",
     "watch:ts": "vite build --watch"
   },

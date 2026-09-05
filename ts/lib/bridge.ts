@@ -58,7 +58,7 @@ import {
 } from '../ai';
 
 export function initBridge(): void {
-  const w = window as any;
+  const w = window as unknown as Record<string, unknown>;
 
   // Navigation
   w.showView = showView;
@@ -73,7 +73,7 @@ export function initBridge(): void {
   w.toast = toast;
 
   // Bootstrap (external lib)
-  w.bootstrap = (window as any).bootstrap;
+  w.bootstrap = window.bootstrap;
 
   // Dice
   w.setDiceExpr = setDiceExpr;

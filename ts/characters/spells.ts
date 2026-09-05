@@ -3,6 +3,7 @@ import { expose } from '../lib/expose';
 import { currentChar, setCurrentChar } from '../lib/state';
 import { esc, attrEscape, showModal } from '../lib/dom';
 import { api } from '../lib/api';
+import type { Character } from '../lib/api-types';
 
 export function renderSpells() {
   const spells = currentChar.spells || [];
@@ -68,8 +69,8 @@ export async function updateSpellcasting(field:string, value:any) {
   if (!currentChar) return;
   const sc = currentChar.spellcasting || {};
   sc[field] = value;
-  await api('PUT', `/api/characters/${currentChar.id}/spellcasting`, sc);
-  setCurrentChar(await api('GET', `/api/characters/${currentChar.id}`));
+  await api<void>('PUT', `/api/characters/${currentChar.id}/spellcasting`, sc);
+  setCurrentChar(await api<Character>('GET', `/api/characters/${currentChar.id}`));
   renderSpells();
 }
 
@@ -77,7 +78,7 @@ export async function updateSpellSlot(level:number) {
   if (!currentChar) return;
   const sc = currentChar.spellcasting || {};
   sc[`slots_${level}_used`] = +(document.getElementById(`slotUse${level}`) as HTMLInputElement).value || 0;
-  await api('PUT', `/api/characters/${currentChar.id}/spellcasting`, sc);
+  await api<void>('PUT', `/api/characters/${currentChar.id}/spellcasting`, sc);
 }
 
 export function showPrepareSpells() {

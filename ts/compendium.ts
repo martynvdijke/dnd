@@ -2,6 +2,7 @@
 
 import { esc, capitalize, showModal, toast } from './lib/dom';
 import { api } from './lib/api';
+import type { CompendiumEntry, CompendiumSchema, CompendiumSearchResult } from './lib/api-types';
 import { showView } from './navigation';
 import { expose } from './lib/expose';
 
@@ -61,7 +62,7 @@ let activeSchemaTab: string | null = null;
 
 async function loadCompendiumSchemaTypes() {
   try {
-    const resp = await api('GET', '/api/compendium/entries-by-schema');
+    const resp = await api<{ schemas: CompendiumSchema[] }>('GET', '/api/compendium/entries-by-schema');
     const schemas: any[] = resp.schemas || [];
     const section = document.getElementById('compSchemaSection');
     const tabsEl = document.getElementById('compSchemaTabs');
@@ -229,7 +230,7 @@ export function humanizeKey(key: string): string {
 
 expose('showCompendiumEntryDetail', async function (schemaId: number, entryId: number) {
   try {
-    const entry = await api('GET', `/api/compendium/schemas/${schemaId}/entries/${entryId}`);
+    const entry = await api<CompendiumEntry>('GET', `/api/compendium/schemas/${schemaId}/entries/${entryId}`);
     const data = entry?.data || {};
     const name = (data.name || data.Name || 'Compendium Entry') as string;
     const rows = Object.entries(data)
@@ -282,8 +283,8 @@ export function parseCompendiumLinksInto(rootEl: Element): void {
 async function openCompendiumLink(schema: string, name: string): Promise<void> {
   const norm = (x: string) => (x || '').toLowerCase();
   try {
-    const hits: CompendiumSearchResult[] = await api('GET', `/api/compendium/search?q=${encodeURIComponent(name)}`);
-    const schemas: any[] = await api('GET', '/api/compendium/schemas');
+    const hits: CompendiumSearchResult[] = await api<CompendiumSearchResult[]>('GET', `/api/compendium/search?q=${encodeURIComponent(name)}`);
+    const schemas: CompendiumSchema[] = await api<CompendiumSchema[]>('GET', '/api/compendium/schemas');
     const def = (schemas || []).find((s) => norm(s.type_name) === norm(schema));
     const matching = (hits || []).filter((r) => norm(r.type) === norm(schema));
     if (def) {
@@ -291,13 +292,13 @@ async function openCompendiumLink(schema: string, name: string): Promise<void> {
       // one resolves to a real compendium_entries row.
       for (const h of matching) {
         try {
-          const v: any = await api('GET', `/api/compendium/schemas/${def.id}/entries/${h.id}`);
+          const v: CompendiumEntry = await api<CompendiumEntry>('GET', `/api/compendium/schemas/${def.id}/entries/${h.id}`);
           if (v && v.id) { await showCompendiumEntryDetail(def.id, h.id); return; }
         } catch (e) { /* 404 etc — try next hit */ }
       }
     }
     // Fallback: entries-by-schema scan (authoritative unified ids).
-    const bySchema: any = await api('GET', '/api/compendium/entries-by-schema');
+    const bySchema = await api<{ schemas: CompendiumSchema[] }>('GET', '/api/compendium/entries-by-schema');
     const es = ((bySchema && bySchema.schemas) || []).find((s: any) => norm(s.type_name) === norm(schema));
     const entry = es && (es.entries || []).find((e: any) => norm(e.data && e.data.name) === norm(name));
     if (entry) {
