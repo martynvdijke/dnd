@@ -1,4 +1,5 @@
 // @ts-nocheck — legacy monolith being split into modules, pre-existing type errors
+import { expose } from './lib/expose';
 import { renderMarkdown } from './lib/markdown';
 import L from 'leaflet';
 import * as bootstrap from 'bootstrap';
@@ -33,7 +34,6 @@ import './factions';
 import './share';
 import './character-sheet';
 import './selection';
-import { expose } from './lib/expose';
 import { currentUser, currentChar, currentTab, allLocations, allNPCs, currentCampaign, setCurrentChar, setCurrentTab, setAllLocations, setAllNPCs, setCurrentCampaign } from './lib/state';
 
 // Expose API helper globally for E2E tests (window.api check)

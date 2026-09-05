@@ -129,9 +129,9 @@ export async function init() {
     } catch {
       // Non-fatal: default to enabled if the flag can't be read.
     }
+    document.getElementById('userName')!.textContent = user.username;
     hideLoading();
     (window as any).__apiReady = true;
-    document.getElementById('userName')!.textContent = user.username;
 
     // Top navbar visibility
     const show = (id: string) => { const el = document.getElementById(id); if (el) el.style.display = ''; };

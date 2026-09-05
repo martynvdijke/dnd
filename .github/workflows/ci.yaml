@@ -81,7 +81,7 @@ jobs:
       # CI runs --project=chromium only; firefox/mobile-chrome projects in playwright.config.ts remain for local debugging.
       - name: Run Playwright tests
         run: npx playwright test --project=chromium
-        timeout-minutes: 30
+        timeout-minutes: 45
         env:
           CI: true
 

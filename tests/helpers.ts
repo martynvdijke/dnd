@@ -23,6 +23,12 @@ export async function waitLoadingDone(page: Page, timeout: number = 15000) {
     const o = document.getElementById('loadingOverlay');
     return o && o.classList.contains('d-none');
   }, { timeout });
+  // Ensure the user name has been populated (init sets it before flipping __apiReady,
+  // but keep an explicit wait to harden against races or slow DOM updates).
+  await page.waitForFunction(() => {
+    const el = document.getElementById('userName');
+    return el && (el.textContent?.trim().length ?? 0) > 0;
+  }, { timeout });
 }
 
 /**
