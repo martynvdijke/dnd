@@ -4,19 +4,13 @@ import (
 	"context"
 	"embed"
 	"log"
-	"log/slog"
 	"os"
-	"path/filepath"
 
-	"github.com/gin-gonic/gin"
-	"go.opentelemetry.io/contrib/bridges/otelslog"
-	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"golang.org/x/crypto/bcrypt"
 
 	"villum/db"
 	"villum/ent/user"
 	"villum/handlers"
-	"villum/middleware"
 )
 
 //go:embed static/*.html static/*.css static/style.css static/js/*.js static/js/chunks/*.js static/sw.js static/manifest.json static/fonts/*.woff2 static/brand/*.svg
@@ -39,19 +33,7 @@ func main() {
 	}
 	defer db.Close()
 
-	// Media path setup
-	mediaPath := os.Getenv("MEDIA_PATH")
-	if mediaPath == "" {
-		basePath := filepath.Dir(dbPath)
-		if basePath == "." {
-			basePath = "."
-		}
-		mediaPath = filepath.Join(basePath, "media")
-	}
-	if err := os.MkdirAll(mediaPath, 0755); err != nil {
-		log.Printf("Warning: could not create media directory: %v", err)
-	}
-	handlers.SetMediaPath(mediaPath)
+	mediaPath := initMedia(dbPath)
 
 	db.Seed()
 	handlers.SeedCompendiumSchemas()
@@ -84,114 +66,15 @@ func main() {
 
 	handlers.SetDBPath(dbPath)
 
-	// Replace in-memory session store with SQLite-backed persistence
-	middleware.Store = middleware.NewDBSessionStore(db.DB)
-	middleware.TokenDB = db.DB
-	middleware.StartCleanupTask()
-	handlers.StartBackupScheduler()
-	handlers.StartDBCleanupTask()
-	pushStop := make(chan struct{})
-	handlers.StartPushReminderScheduler(pushStop)
+	_ = registerSchedulers()
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "6270"
 	}
 
-	r := gin.New()
-	r.Use(middleware.RequestLogger(), gin.Recovery())
-	r.Use(middleware.SecurityHeaders())
-
-	// Initialize structured application logger
-	middleware.InitAppLoggerFromEnv()
-	handlers.InitLogSettings()
-	if middleware.AppLog != nil {
-		middleware.AppLog.Info("system", "AppLogger initialized")
-	}
-
-	tp, promExporter, lp, err := initTelemetry()
-	if err != nil {
-		log.Printf("Warning: telemetry init failed (%v), running without OTel", err)
-	}
-	if tp != nil {
-		// otelgin creates spans for all incoming requests
-		r.Use(otelgin.Middleware("villum"))
-		defer func() {
-			shutdownTelemetry(tp, lp)
-		}()
-
-		// Wire OTel log bridge — sends structured logs via the OTel Logs SDK
-		if lp != nil && middleware.AppLog != nil {
-			otelHandler := otelslog.NewHandler("villum", otelslog.WithLoggerProvider(lp))
-			middleware.AppLog.Handler().SetExportFn(func(ctx context.Context, r slog.Record) {
-				_ = otelHandler.Handle(ctx, r)
-			})
-			middleware.AppLog.Info("system", "OTel log bridge enabled")
-		}
-	}
-	// Initialize OTel metrics middleware (records both Prometheus and OTel metrics)
-	om := initOTelMetrics()
-	r.Use(newOTelMetricsMiddleware(om))
-	_ = promExporter // OTel Prometheus exporter is registered with the metrics pipeline
-
-	// Public routes
-	handlers.RegisterPublicRoutes(r)
-
-	// WebSocket (auth required, no CSRF)
-	ws := r.Group("/api")
-	ws.Use(middleware.AuthRequired())
-	handlers.RegisterWebSocketRoutes(ws)
-
-	// HTMX endpoints (auth + CSRF + API token on mutations)
-	htmxGroup := r.Group("/")
-	htmxGroup.Use(middleware.AuthRequired(), middleware.APITokenRequired(), middleware.CSRFRequired())
-	handlers.HtmxRegisterRoutes(htmxGroup)
-
-	// Authenticated routes
-	auth := r.Group("/api")
-	auth.Use(middleware.AuthRequired(), middleware.APITokenRequired(), middleware.CSRFRequired())
-	{
-		handlers.RegisterAuthBoilerplate(auth)
-		handlers.RegisterCharacterRoutes(auth)
-		handlers.RegisterCombatRoutes(auth)
-		handlers.RegisterEncounterRoutes(auth)
-		handlers.RegisterCompendiumRoutes(auth)
-		handlers.RegisterCampaignRoutes(auth)
-		handlers.RegisterShopRoutes(auth)
-		handlers.RegisterBackupRoutes(auth)
-		handlers.RegisterMiscAuthRoutes(auth)
-		handlers.RegisterTransferRoutes(auth)
-	}
-
-	// API token lifecycle (session + CSRF protected, but NOT API-token
-	// protected: a user must be able to create their first token without
-	// already holding one)
-	tokenGroup := r.Group("/api")
-	tokenGroup.Use(middleware.AuthRequired(), middleware.CSRFRequired())
-	handlers.RegisterTokenRoutes(tokenGroup)
-
-	// DM / One-Shot routes (DM or admin only)
-	dm := r.Group("/api")
-	dm.Use(middleware.AuthRequired(), middleware.DMRequired(), middleware.APITokenRequired(), middleware.CSRFRequired())
-	{
-		handlers.RegisterDMCharacterRoutes(dm)
-		handlers.RegisterDMCompendiumRoutes(dm)
-		handlers.RegisterDMOneShotRoutes(dm)
-		handlers.RegisterDMCampaignRoutes(dm)
-		handlers.RegisterDMARoutes(dm)
-	}
-
-	// Admin routes
-	admin := r.Group("/api/admin")
-	admin.Use(middleware.AuthRequired(), middleware.AdminRequired(), middleware.APITokenRequired(), middleware.CSRFRequired())
-	{
-		handlers.RegisterAdminRoutes(admin)
-		handlers.RegisterAdminAIRoutes(admin)
-		handlers.RegisterAdminCompendiumRoutes(admin)
-	}
-
-	// Static & HTML page serving
-	handlers.RegisterStaticRoutes(r, staticFiles, mediaPath, Version)
+	r, shutdown := setupRouter(mediaPath)
+	defer shutdown()
 
 	log.Printf("villum v%s starting on :%s", Version, port)
 	if err := r.Run(":" + port); err != nil {
