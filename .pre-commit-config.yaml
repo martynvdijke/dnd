@@ -36,3 +36,11 @@ repos:
         entry: npx vitest run
         language: system
         pass_filenames: false
+
+      - id: ci-parity
+        name: full CI parity suite
+        entry: task ci
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

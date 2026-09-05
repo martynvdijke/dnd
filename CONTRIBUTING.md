@@ -9,6 +9,7 @@ enforces and the conventions e2e and unit tests should follow.
 go mod download
 npm install
 npm run build:vite   # builds static bundles (go:embed requires them before `go build`)
+prek install && prek install --hook-type pre-push
 ```
 
 Run the server locally:
@@ -25,29 +26,27 @@ AUTO_SETUP=true ./villum-server
 | `npm run build:vite` | Build all frontend entry bundles               |
 | `npm run typecheck`  | `tsc --noEmit` across `ts/**`                  |
 | `npm run build:ts`   | `build:vite` + `typecheck`                     |
-| `npm test`           | Go tests with the FTS5 tag (`go test -tags fts5 ./...`) |
+| `npm test`           | Go tests with the FTS5 tag (`go test -tags sqlite_fts5 ./...`) |
 | `npm run test:unit`  | Vitest unit tests                              |
 | `npm run test:e2e`   | Playwright e2e                                 |
 | `npm run typecheck`  | See above                                      |
+| `task ci`            | Full CI-parity suite (all gates via `scripts/ci/`) |
 
 ### CI-parity check before pushing
 
-The CI pipeline runs all of the following. Run them locally first:
+Run the single parity command:
 
 ```sh
-go mod tidy && git diff --exit-code go.mod go.sum
-gofmt -l . && test -z "$(gofmt -l .)"
-go test ./...
-go test -tags sqlite_fts5 ./...
-go vet -tags sqlite_fts5 ./...
-npx tsc --noEmit
-npx vitest run
-npm run build:vite
+task ci
 ```
 
-Remember to rebuild `./villum-server` after any change to `ts/` or `static/`
-before running Playwright locally — the binary embeds the static files, so a
-stale binary serves stale assets.
+This invokes `scripts/ci/run-all.sh`, which runs every CI gate in order (tidy, fmt, vet, build:vite+typecheck, data-testid lint, Go coverage, vitest coverage, server build, e2e chromium, Docker smoke test) and fails fast on the first failure. CI calls the same `scripts/ci/*.sh` scripts, so local and CI are identical by construction.
+
+Hooks: the `prek` pre-push hook runs `task ci` automatically on every `git push` (~30 min including e2e). Install it once per clone with `prek install --hook-type pre-push` (and `prek install` for pre-commit). Bypass only when necessary with `git push --no-verify`.
+
+CI rule: every gate in `.github/workflows/ci.yaml` must call a script under `scripts/ci/` — no inline duplication of gate commands.
+
+`task test:e2e` rebuilds `./villum-server` first (via `deps: [build]` and the script) — the binary embeds static assets, so a stale binary serves stale assets. `scripts/ci/test-e2e.sh` also rebuilds before Playwright.
 
 ## Test standards
 
