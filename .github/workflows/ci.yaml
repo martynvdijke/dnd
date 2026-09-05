@@ -26,43 +26,19 @@ jobs:
         uses: ./.github/actions/setup
 
       - name: Check go.mod is tidy
-        run: |
-          go mod tidy
-          git diff --exit-code go.mod go.sum
+        run: scripts/ci/check-tidy.sh
 
       - name: Vet
-        run: go vet -tags sqlite_fts5 ./...
+        run: scripts/ci/check-vet.sh
 
       - name: Check formatting
-        run: |
-          gofmt -l .
-          test -z "$(gofmt -l .)"
+        run: scripts/ci/check-fmt.sh
 
       - name: Typecheck TypeScript
-        run: npm run typecheck
+        run: scripts/ci/check-ts.sh
 
       - name: Verify data-testids are referenced by tests
-        run: |
-          FAIL=0
-          while read -r tid; do
-            [ -z "$tid" ] && continue
-            if ! grep -rq -- "$tid" tests/; then
-              # nav-* testids are constructed dynamically in helpers.ts (nav-${nav});
-              # accept them when the nav id appears in tests alongside the template
-              case "$tid" in
-                 nav-*)
-                   suffix="${tid#nav-}"
-                   # shellcheck disable=SC2016
-                   if grep -rq 'nav-\${nav}' tests/helpers.ts && grep -rq -- "$suffix" tests/; then
-                    continue
-                  fi
-                  ;;
-              esac
-              echo "data-testid \"$tid\" has no test reference"
-              FAIL=1
-            fi
-          done < <(grep -rhoE 'data-testid="[^"]+"' ts/ static/app.html static/login.html static/admin.html | sed 's/.*="\(.*\)"/\1/' | sort -u)
-          exit $FAIL
+        run: scripts/ci/check-testid.sh
 
   unit-test:
     needs: lint-typecheck
@@ -73,33 +49,7 @@ jobs:
         uses: ./.github/actions/setup
 
       - name: Run Tests with Coverage
-        run:
-          go test -tags "sqlite_fts5" -v -coverprofile=coverage.out -covermode=atomic -coverpkg=./handlers/...,./middleware/... ./...
-
-      - name: Check Per-Package Coverage Thresholds
-        run: |
-          go tool cover -func=coverage.out | tee /dev/stderr | awk '
-            /^total:/ {
-              gsub(/%/, "", $3)
-              if ($3 + 0 < 20) {
-                printf "FAIL: total coverage %.1f%% < 20%% threshold\n", $3
-                exit 1
-              }
-              printf "PASS: total coverage %.1f%% >= 20%% threshold\n", $3
-            }'
-          awk '/^mode:/{print; next} $1 ~ /^villum\/handlers\//{print}' coverage.out > /tmp/handlers.out
-          awk '/^mode:/{print; next} $1 ~ /^villum\/middleware\//{print}' coverage.out > /tmp/middleware.out
-          H=$(go tool cover -func=/tmp/handlers.out | awk '/^total:/ { gsub(/%/, "", $3); printf "%.1f", $3 }')
-          M=$(go tool cover -func=/tmp/middleware.out | awk '/^total:/ { gsub(/%/, "", $3); printf "%.1f", $3 }')
-          printf "handlers/ coverage: %s%% (threshold 30%%)\n" "$H"
-          printf "middleware/ coverage: %s%% (threshold 25%%)\n" "$M"
-          awk -v h="$H" -v m="$M" 'BEGIN {
-            fail = 0
-            if (h + 0 < 30) { print "FAIL: handlers/ coverage below 30% threshold"; fail = 1 }
-            if (m + 0 < 25) { print "FAIL: middleware/ coverage below 25% threshold"; fail = 1 }
-            exit fail
-          }'
-          go tool cover -func=coverage.out | awk '/^total:/ { gsub(/%/, "", $3); printf "%.1f\n", $3 }' > /tmp/cov-total.txt
+        run: scripts/ci/test-go.sh
 
       - name: Upload Coverage Artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -109,7 +59,7 @@ jobs:
           retention-days: 30
 
       - name: Run TypeScript unit tests with coverage
-        run: npx vitest run --coverage
+        run: scripts/ci/test-vitest.sh
 
   e2e:
     needs: unit-test
@@ -119,14 +69,11 @@ jobs:
       - name: Setup
         uses: ./.github/actions/setup
 
-      - name: Typecheck TypeScript
-        run: npm run typecheck
-
       - name: Build server binary
-        run: go build -tags sqlite_fts5 -o villum-server .
+        run: scripts/ci/build-server.sh
 
       - name: Docker build smoke test
-        run: docker build . --file Dockerfile --tag dnd-smoke:test
+        run: scripts/ci/test-docker.sh
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium

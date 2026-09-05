@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+set -e
+go vet -tags sqlite_fts5 ./...
