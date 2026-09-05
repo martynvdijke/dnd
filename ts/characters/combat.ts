@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Character combat rendering — HP/AC, damage/heal, rest, death saves, conditions.
  * Extracted from app.ts (address-tech-debt-and-ux). Replaces the earlier
@@ -13,89 +12,96 @@ import { animateHpChange } from '../lib/animations';
 
 // ─── Roll / Combat Actions ───
 
-export async function rollCheck(type: string, name: string, adv: string) {
+export async function rollCheck(type: string, name: string, adv: string): Promise<void> {
   if (!currentChar) return;
   try {
     const result = await api<{ text: string }>('POST', '/api/roll/check', {
-      character_id: currentChar.id, type, name, advantage: adv,
+      character_id: (currentChar as Character).id, type, name, advantage: adv,
     });
     toast(result.text);
-  } catch (e: any) {
-    toast(e.message, true);
+  } catch (e) {
+    toast((e as Error).message, true);
   }
 }
 
-export async function applyHeal() {
+export async function applyHeal(): Promise<void> {
   if (!currentChar) return;
-  const heal = parseInt((document.getElementById('healInput') as HTMLInputElement)?.value || '0');
+  const heal = parseInt((document.getElementById('healInput') as HTMLInputElement | null)?.value || '0');
   if (!heal) return;
-  const oldHp = currentChar.hp_current;
-  const newHp = Math.min(currentChar.hp_max, currentChar.hp_current + heal);
-  await (window as any).updateField('hp_current', newHp);
-  await (window as any).saveCharacter?.();
-  (window as any).renderSheet?.();
-  // Animate HP change after re-render
+  const c = currentChar as Character & { hp_current: number; hp_max: number };
+  const oldHp = c.hp_current;
+  const newHp = Math.min(c.hp_max, c.hp_current + heal);
+  await (window.updateField as (f: string, v: unknown) => void)('hp_current', newHp);
+  await (window.saveCharacter as (() => Promise<void>) | undefined)?.();
+  (window.renderSheet as (() => void) | undefined)?.();
   const bar = document.getElementById('charHpBarFill');
   const hpText = document.getElementById('charHpText');
   if (bar && hpText) {
-    bar.style.width = Math.max(0, Math.min(100, (oldHp / currentChar.hp_max) * 100)) + '%';
-    animateHpChange(hpText, bar, oldHp, currentChar.hp_current, currentChar.hp_max);
+    bar.style.width = Math.max(0, Math.min(100, (oldHp / c.hp_max) * 100)) + '%';
+    animateHpChange(hpText, bar, oldHp, (currentChar as Character & { hp_current: number }).hp_current, c.hp_max);
   }
 }
 
-export async function doRest(type: string) {
+export async function doRest(type: string): Promise<void> {
   if (!currentChar) return;
   try {
-    const oldHp = currentChar.hp_current;
-    const result = await api<{ hp_healed: number }>('POST', `/api/characters/${currentChar.id}/rest`, { rest_type: type, hit_dice_count: type === 'short' ? 1 : 0 });
+    const c = currentChar as Character & { hp_current: number; hp_max: number };
+    const oldHp = c.hp_current;
+    const result = await api<{ hp_healed: number }>('POST', `/api/characters/${c.id}/rest`, { rest_type: type, hit_dice_count: type === 'short' ? 1 : 0 });
     toast(`${type} rest: healed ${result.hp_healed} HP`);
-    setCurrentChar(await api<Character>('GET', `/api/characters/${currentChar.id}`));
-    (window as any).renderSheet?.();
-    // Animate HP change after re-render
+    setCurrentChar(await api<Character>('GET', `/api/characters/${c.id}`));
+    (window.renderSheet as (() => void) | undefined)?.();
     const bar = document.getElementById('charHpBarFill');
     const hpText = document.getElementById('charHpText');
+    const updated = currentChar as Character & { hp_current: number; hp_max: number };
     if (bar && hpText && result.hp_healed > 0) {
-      bar.style.width = Math.max(0, Math.min(100, (oldHp / currentChar.hp_max) * 100)) + '%';
-      animateHpChange(hpText, bar, oldHp, currentChar.hp_current, currentChar.hp_max);
+      bar.style.width = Math.max(0, Math.min(100, (oldHp / updated.hp_max) * 100)) + '%';
+      animateHpChange(hpText, bar, oldHp, updated.hp_current, updated.hp_max);
     }
-  } catch (e: any) {
-    toast(e.message, true);
+  } catch (e) {
+    toast((e as Error).message, true);
   }
 }
 
-export async function doLevelUp() {
+export async function doLevelUp(): Promise<void> {
   if (!currentChar) return;
   try {
-    const result = await api<{ new_level: number; hp_gain: number }>('POST', `/api/characters/${currentChar.id}/levelup`);
+    const c = currentChar as Character;
+    const result = await api<{ new_level: number; hp_gain: number }>('POST', `/api/characters/${c.id}/levelup`);
     toast(`Level Up! Now level ${result.new_level} (+${result.hp_gain} HP)`);
-    setCurrentChar(await api<Character>('GET', `/api/characters/${currentChar.id}`));
-    (window as any).renderSheet?.();
-  } catch (e: any) {
-    toast(e.message, true);
+    setCurrentChar(await api<Character>('GET', `/api/characters/${c.id}`));
+    (window.renderSheet as (() => void) | undefined)?.();
+  } catch (e) {
+    toast((e as Error).message, true);
   }
 }
 
 // ─── Combat Section Update for conditions and concentration ───
 
-export function renderCombat() {
-  const c = currentChar;
-  const el = document.getElementById('combatSection')!;
-  const pct = c.hp_max > 0 ? Math.round((c.hp_current / c.hp_max) * 100) : 0;
+export function renderCombat(): void {
+  const c = currentChar as (Character & Record<string, unknown>) | null;
+  if (!c) return;
+  const el = document.getElementById('combatSection');
+  if (!el) return;
+  const hpMax = (c['hp_max'] as number) || 0;
+  const hpCurrent = (c['hp_current'] as number) || 0;
+  const tempHp = (c['temp_hp'] as number) || 0;
+  const pct = hpMax > 0 ? Math.round((hpCurrent / hpMax) * 100) : 0;
   el.innerHTML = `
     <div class="combat-stack row g-3">
-      <div class="combat-stat-row col-4"><div class="combat-stat" title="Armor Class"><div class="stat-label">AC</div><div class="stat-value">${(window as any).renderStepper('ac', c.ac, 1, 0, undefined, 'AC')}</div></div></div>
-      <div class="combat-stat-row col-4"><div class="combat-stat" title="Initiative modifier"><div class="stat-label">Initiative</div><div class="stat-value">${(window as any).renderStepper('initiative', c.initiative, 1, undefined, undefined, 'Initiative')}</div></div></div>
-      <div class="combat-stat-row col-4"><div class="combat-stat" title="Movement speed"><div class="stat-label">Speed</div><div class="stat-value">${(window as any).renderStepper('speed', c.speed, 5, 0, undefined, 'Speed')}</div></div></div>
+      <div class="combat-stat-row col-4"><div class="combat-stat" title="Armor Class"><div class="stat-label">AC</div><div class="stat-value">${window.renderStepper('ac', c['ac'] as number, 1, 0, undefined, 'AC')}</div></div></div>
+      <div class="combat-stat-row col-4"><div class="combat-stat" title="Initiative modifier"><div class="stat-label">Initiative</div><div class="stat-value">${window.renderStepper('initiative', c['initiative'] as number, 1, undefined, undefined, 'Initiative')}</div></div></div>
+      <div class="combat-stat-row col-4"><div class="combat-stat" title="Movement speed"><div class="stat-label">Speed</div><div class="stat-value">${window.renderStepper('speed', c['speed'] as number, 5, 0, undefined, 'Speed')}</div></div></div>
     </div>
     <h5 class="mt-3">Hit Points</h5>
-    <div class="hp-bar position-relative mb-2" title="${c.hp_current} / ${c.hp_max} HP${c.temp_hp > 0 ? ' (+' + c.temp_hp + ' temporary)' : ''}">
+    <div class="hp-bar position-relative mb-2" title="${hpCurrent} / ${hpMax} HP${tempHp > 0 ? ' (+' + tempHp + ' temporary)' : ''}">
       <div class="hp-bar-fill" id="charHpBarFill" style="width:${pct}%"></div>
-      <div class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center text-white small fw-bold" id="charHpText" style="font-size:0.8rem">${c.hp_current} / ${c.hp_max}${c.temp_hp > 0 ? ' (+' + c.temp_hp + ' temp)' : ''}</div>
+      <div class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center text-white small fw-bold" id="charHpText" style="font-size:0.8rem">${hpCurrent} / ${hpMax}${tempHp > 0 ? ' (+' + tempHp + ' temp)' : ''}</div>
     </div>
     <div class="row g-2">
-      <div class="col-4"><label class="form-label small">HP Max</label>${(window as any).renderStepper('hp_max', c.hp_max, 1, 1, undefined, 'HP Max', 'lg')}</div>
-      <div class="col-4"><label class="form-label small">Current</label>${(window as any).renderStepper('hp_current', c.hp_current, 1, 0, undefined, 'HP Current', 'lg')}</div>
-      <div class="col-4"><label class="form-label small">Temp HP</label>${(window as any).renderStepper('temp_hp', c.temp_hp, 1, 0, undefined, 'Temp HP', 'lg')}</div>
+      <div class="col-4"><label class="form-label small">HP Max</label>${window.renderStepper('hp_max', hpMax, 1, 1, undefined, 'HP Max', 'lg')}</div>
+      <div class="col-4"><label class="form-label small">Current</label>${window.renderStepper('hp_current', hpCurrent, 1, 0, undefined, 'HP Current', 'lg')}</div>
+      <div class="col-4"><label class="form-label small">Temp HP</label>${window.renderStepper('temp_hp', tempHp, 1, 0, undefined, 'Temp HP', 'lg')}</div>
     </div>
     <div class="row g-2 mt-2">
       <div class="col-6">
@@ -125,36 +131,35 @@ export function renderCombat() {
     <h5 class="mt-3">Saving Throws <small class="text-muted fw-normal">(click to roll)</small></h5>
     <div class="d-flex flex-wrap gap-1 mb-3">
       ${['str','dex','con','int','wis','cha'].map(a => {
-        const mod = (c as any)[`${a}_mod`];
-        const total = c.proficiency_bonus + mod;
+        const mod = (c[`${a}_mod`] as number | undefined) ?? 0;
+        const total = ((c['proficiency_bonus'] as number) || 0) + mod;
         const sign = total >= 0 ? '+' : '';
         return `<span class="badge badge-gold" style="cursor:pointer;font-size:0.85rem;padding:0.4rem 0.6rem" onclick="rollCheck('save','${a}','normal')">${a.toUpperCase()} ${sign}${total}</span>`;
       }).join('')}
     </div>
     <h5 class="mt-3">Death Saves</h5>
     <div class="row g-2">
-      <div class="col-6"><label class="form-label small">Successes</label>${(window as any).renderStepper('death_saves_successes', c.death_saves_successes, 1, 0, 3, 'Death Save Successes')}</div>
-      <div class="col-6"><label class="form-label small">Failures</label>${(window as any).renderStepper('death_saves_failures', c.death_saves_failures, 1, 0, 3, 'Death Save Failures')}</div>
+      <div class="col-6"><label class="form-label small">Successes</label>${window.renderStepper('death_saves_successes', c['death_saves_successes'] as number, 1, 0, 3, 'Death Save Successes')}</div>
+      <div class="col-6"><label class="form-label small">Failures</label>${window.renderStepper('death_saves_failures', c['death_saves_failures'] as number, 1, 0, 3, 'Death Save Failures')}</div>
     </div>
     <h5 class="mt-3">Concentration</h5>
-    <div class="form-check"><input type="checkbox" class="form-check-input" id="concentrationCb" ${c.concentrating ? 'checked' : ''} onchange="autoSaveField('concentrating',this)"><label class="form-check-label" for="concentrationCb">Concentrating on a spell</label></div>
+    <div class="form-check"><input type="checkbox" class="form-check-input" id="concentrationCb" ${c['concentrating'] ? 'checked' : ''} onchange="autoSaveField('concentrating',this)"><label class="form-check-label" for="concentrationCb">Concentrating on a spell</label></div>
     <div class="mt-2">
       <label class="form-label small">Concentrating On</label>
-      <input class="form-control form-control-sm" value="${esc(c.concentrating_on)}" oninput="autoSaveField('concentrating_on',this)" placeholder="e.g. Hunter's Mark" style="min-height:44px;font-size:1rem">
+      <input class="form-control form-control-sm" value="${esc(c['concentrating_on'] as string | null)}" oninput="autoSaveField('concentrating_on',this)" placeholder="e.g. Hunter's Mark" style="min-height:44px;font-size:1rem">
     </div>
     <h5 class="mt-3">Hit Dice</h5>
     <div class="row g-2">
-      <div class="col-6"><label class="form-label small">Total</label>${(window as any).renderStepper('hit_dice_total', c.hit_dice_total, 1, 0, undefined, 'Hit Dice Total')}</div>
-      <div class="col-6"><label class="form-label small">Used</label>${(window as any).renderStepper('hit_dice_used', c.hit_dice_used, 1, 0, undefined, 'Hit Dice Used')}</div>
+      <div class="col-6"><label class="form-label small">Total</label>${window.renderStepper('hit_dice_total', c['hit_dice_total'] as number, 1, 0, undefined, 'Hit Dice Total')}</div>
+      <div class="col-6"><label class="form-label small">Used</label>${window.renderStepper('hit_dice_used', c['hit_dice_used'] as number, 1, 0, undefined, 'Hit Dice Used')}</div>
     </div>`;
-  // Load condition badges async
-  loadConditionBadges();
+  void loadConditionBadges();
 }
 
-export async function loadConditionBadges() {
+export async function loadConditionBadges(): Promise<void> {
   if (!currentChar) return;
   try {
-    const conds = await api<Array<{ id: number; type: string; name: string; duration: number; duration_type: string }>>('GET', `/api/conditions/summary?character_id=${currentChar.id}`);
+    const conds = await api<Array<{ id: number; type: string; name: string; duration: number; duration_type: string }>>('GET', `/api/conditions/summary?character_id=${(currentChar as Character).id}`);
     const el = document.getElementById('conditionBadges');
     if (!el) return;
     if (!conds.length) {
@@ -177,7 +182,7 @@ export async function loadConditionBadges() {
       restrained: '#ffd700', stunned: '#ff4500', unconscious: '#2f4f4f',
       concentration: '#4169e1',
     };
-    el.innerHTML = '<div class="d-flex flex-wrap gap-1 mb-2">' + conds.map((cond: any) => {
+    el.innerHTML = '<div class="d-flex flex-wrap gap-1 mb-2">' + conds.map((cond) => {
       const icon = iconMap[cond.type] || 'fa-circle';
       const color = colorMap[cond.type] || '#b8963e';
       const durStr = cond.duration_type === 'permanent' ? 'perm' : cond.duration + cond.duration_type.substring(0, 1);
@@ -186,7 +191,7 @@ export async function loadConditionBadges() {
         <a href="#" onclick="deleteCondition(${cond.id});return false" class="text-white text-decoration-none ms-1">×</a>
       </span>`;
     }).join('') + '</div>';
-  } catch {}
+  } catch { /* ignore */ }
 }
 
 // Window registrations (centralized)

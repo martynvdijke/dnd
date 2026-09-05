@@ -1,28 +1,39 @@
-// @ts-nocheck — extracted from app.ts monolith
-
 import { esc, showModal, hideModal, toast } from './lib/dom';
 import { api } from './lib/api';
 import { showView } from './navigation';
 import { animateHpChange, animateTurnChange } from './lib/animations';
 import { expose } from './lib/expose';
 
+interface CombatEntry {
+  id: number;
+  name: string;
+  type: string;
+  ac: number;
+  hp_current: number;
+  hp_max: number;
+  initiative_roll: number;
+  initiative_mod: number;
+  turn_order: number;
+  is_active: boolean;
+  [key: string]: unknown;
+}
+
 // ─── Combat Tracker ───
 
-expose('showCombatTracker', async function () {
+expose('showCombatTracker', async function (): Promise<void> {
   showView('combatTracker');
   const el = document.getElementById('combatTrackerContent')!;
   el.innerHTML = '<div class="ornament">✧ Loading combat tracker... ✧</div>';
   try {
-    const [entries, campaigns] = await Promise.all([
-      api('GET', '/api/combat'),
-      api('GET', '/api/campaigns'),
+    const [entries, _campaigns] = await Promise.all([
+      api<CombatEntry[]>('GET', '/api/combat'),
+      api<unknown[]>('GET', '/api/campaigns'),
     ]);
     if (!entries.length) {
       el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-swords fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Combatants</p><p class="small text-muted">Add combat entries from a character sheet or create them here.</p><button class="btn btn-gold btn-sm mt-2" onclick="showAddCombatEntry()"><i class="fa-solid fa-plus me-1"></i>Add Combatant</button></div>';
       return;
     }
-    const sorted = [...entries].sort((a: any, b: any) => b.initiative_roll - a.initiative_roll || b.turn_order - a.turn_order);
-    const isActive = (entry: any) => entry.is_active;
+    const sorted = [...entries].sort((a, b) => b.initiative_roll - a.initiative_roll || b.turn_order - a.turn_order);
 
     let html = `<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
       <div class="d-flex gap-2">
@@ -87,19 +98,20 @@ expose('showCombatTracker', async function () {
     }
     html += '</tbody></table></div>';
     el.innerHTML = html;
-  } catch (e: any) {
-    el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(e.message)}</p></div>`;
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(msg)}</p></div>`;
   }
 });
 
-async function findCombatEntry(id: number): Promise<any> {
-  const entries = await api('GET', '/api/combat');
-  return entries.find((e: any) => e.id === id);
+async function findCombatEntry(id: number): Promise<CombatEntry | undefined> {
+  const entries = await api<CombatEntry[]>('GET', '/api/combat');
+  return entries.find((entry) => entry.id === id);
 }
 
-expose('combatTrackerDamage', async function (id: number) {
-  const input = document.getElementById('qdamage-' + id) as HTMLInputElement;
-  const dmg = parseInt(input?.value || '0');
+expose('combatTrackerDamage', async function (id: number): Promise<void> {
+  const input = document.getElementById('qdamage-' + id) as HTMLInputElement | null;
+  const dmg = parseInt(input?.value || '0', 10);
   if (!dmg) return;
   try {
     const entry = await findCombatEntry(id);
@@ -107,23 +119,22 @@ expose('combatTrackerDamage', async function (id: number) {
     const oldHp = entry.hp_current;
     entry.hp_current = Math.max(0, entry.hp_current - dmg);
     await api('PUT', '/api/combat/' + id, entry);
-    await (window as any).showCombatTracker();
-    // Animate HP change after re-render
+    await window.showCombatTracker();
     const row = document.getElementById('ce-' + id);
     if (row) {
-      const bar = row.querySelector('.hp-bar-fill') as HTMLElement;
-      const hpText = row.querySelector('span.small') as HTMLElement;
+      const bar = row.querySelector('.hp-bar-fill') as HTMLElement | null;
+      const hpText = row.querySelector('span.small') as HTMLElement | null;
       if (bar && hpText) {
         bar.style.width = Math.max(0, Math.min(100, (oldHp / entry.hp_max) * 100)) + '%';
         animateHpChange(hpText, bar, oldHp, entry.hp_current, entry.hp_max);
       }
     }
-  } catch (e: any) { toast(e.message, true); }
+  } catch (e: unknown) { toast(e instanceof Error ? e.message : String(e), true); }
 });
 
-expose('combatTrackerHeal', async function (id: number) {
-  const input = document.getElementById('qdamage-' + id) as HTMLInputElement;
-  const heal = parseInt(input?.value || '0');
+expose('combatTrackerHeal', async function (id: number): Promise<void> {
+  const input = document.getElementById('qdamage-' + id) as HTMLInputElement | null;
+  const heal = parseInt(input?.value || '0', 10);
   if (!heal) return;
   try {
     const entry = await findCombatEntry(id);
@@ -131,69 +142,66 @@ expose('combatTrackerHeal', async function (id: number) {
     const oldHp = entry.hp_current;
     entry.hp_current = Math.min(entry.hp_max, entry.hp_current + heal);
     await api('PUT', '/api/combat/' + id, entry);
-    await (window as any).showCombatTracker();
-    // Animate HP change after re-render
+    await window.showCombatTracker();
     const row = document.getElementById('ce-' + id);
     if (row) {
-      const bar = row.querySelector('.hp-bar-fill') as HTMLElement;
-      const hpText = row.querySelector('span.small') as HTMLElement;
+      const bar = row.querySelector('.hp-bar-fill') as HTMLElement | null;
+      const hpText = row.querySelector('span.small') as HTMLElement | null;
       if (bar && hpText) {
         bar.style.width = Math.max(0, Math.min(100, (oldHp / entry.hp_max) * 100)) + '%';
         animateHpChange(hpText, bar, oldHp, entry.hp_current, entry.hp_max);
       }
     }
-  } catch (e: any) { toast(e.message, true); }
+  } catch (e: unknown) { toast(e instanceof Error ? e.message : String(e), true); }
 });
 
-expose('toggleCombatActive', async function (id: number) {
+expose('toggleCombatActive', async function (id: number): Promise<void> {
   try {
     const entry = await findCombatEntry(id);
     if (!entry) { toast('Entry not found', true); return; }
     entry.is_active = !entry.is_active;
     await api('PUT', '/api/combat/' + id, entry);
-    (window as any).showCombatTracker();
-  } catch (e: any) { toast(e.message, true); }
+    window.showCombatTracker();
+  } catch (e: unknown) { toast(e instanceof Error ? e.message : String(e), true); }
 });
 
-expose('deleteCombatEntry', async function (id: number) {
+expose('deleteCombatEntry', async function (id: number): Promise<void> {
   if (!confirm('Remove this combatant?')) return;
   try {
     await api('DELETE', '/api/combat/' + id);
-    (window as any).showCombatTracker();
-  } catch (e: any) { toast(e.message, true); }
+    window.showCombatTracker();
+  } catch (e: unknown) { toast(e instanceof Error ? e.message : String(e), true); }
 });
 
-expose('rollAllInitiative', async function () {
+expose('rollAllInitiative', async function (): Promise<void> {
   try {
-    const entries = await api('GET', '/api/combat');
+    const entries = await api<CombatEntry[]>('GET', '/api/combat');
     for (const e of entries) {
-      const result = await api('POST', '/api/roll', { expression: '1d20' });
+      const result = await api<{ total: number }>('POST', '/api/roll', { expression: '1d20' });
       const roll = (result.total || 0) + (e.initiative_mod || 0);
       e.initiative_roll = roll;
-      try { await api('PUT', '/api/combat/' + e.id, e); } catch {}
+      try { await api('PUT', '/api/combat/' + e.id, e); } catch { /* ignore per-entry */ }
     }
-    (window as any).showCombatTracker();
+    window.showCombatTracker();
     toast('Initiative rolled for all combatants');
-  } catch (e: any) { toast(e.message, true); }
+  } catch (e: unknown) { toast(e instanceof Error ? e.message : String(e), true); }
 });
 
-expose('advanceCombatTurn', async function () {
+expose('advanceCombatTurn', async function (): Promise<void> {
   try {
-    // Find the currently active row before advancing
     const prevActiveRow = document.querySelector('tr.table-active') as HTMLElement | null;
-    const result = await api('POST', '/api/combat/next-turn');
-    await (window as any).showCombatTracker();
-    // Animate turn change after re-render
+    const result = await api<{ current_entry?: { name: string } }>('POST', '/api/combat/next-turn');
+    await window.showCombatTracker();
     const nextActiveRow = document.querySelector('tr.table-active') as HTMLElement | null;
     if (nextActiveRow) {
       const isMonster = nextActiveRow.querySelector('.fa-dragon') !== null;
       animateTurnChange(prevActiveRow, nextActiveRow, isMonster);
     }
     toast(result.current_entry ? `Turn: ${result.current_entry.name}` : 'Turn advanced');
-  } catch (e: any) { toast(e.message, true); }
+  } catch (e: unknown) { toast(e instanceof Error ? e.message : String(e), true); }
 });
 
-expose('showAddCombatEntry', function () {
+expose('showAddCombatEntry', function (): void {
   showModal('Add Combatant', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="ceName"></div>
     <div class="row g-3 mb-3">
@@ -209,7 +217,7 @@ expose('showAddCombatEntry', function () {
   `);
 });
 
-expose('saveNewCombatEntry', async function () {
+expose('saveNewCombatEntry', async function (): Promise<void> {
   await api('POST', '/api/combat', {
     name: (document.getElementById('ceName') as HTMLInputElement).value,
     type: (document.getElementById('ceType') as HTMLSelectElement).value,
@@ -219,24 +227,24 @@ expose('saveNewCombatEntry', async function () {
     initiative_mod: +(document.getElementById('ceInitMod') as HTMLInputElement).value || 0,
   });
   hideModal();
-  (window as any).showCombatTracker();
+  window.showCombatTracker();
   toast('Combatant added');
 });
 
 let draggedCombatId: number | null = null;
 
-expose('dragCombatEntry', function (ev: any, id: number) {
+expose('dragCombatEntry', function (ev: DragEvent, id: number): void {
   draggedCombatId = id;
-  ev.dataTransfer.effectAllowed = 'move';
+  if (ev.dataTransfer) ev.dataTransfer.effectAllowed = 'move';
 });
 
-expose('dropCombatEntry', async function (ev: any, targetId: number) {
+expose('dropCombatEntry', async function (ev: DragEvent, targetId: number): Promise<void> {
   ev.preventDefault();
   if (draggedCombatId === null || draggedCombatId === targetId) return;
   try {
-    const entries: any[] = await api('GET', '/api/combat');
-    const dragged = entries.find((e: any) => e.id === draggedCombatId);
-    const target = entries.find((e: any) => e.id === targetId);
+    const entries = await api<CombatEntry[]>('GET', '/api/combat');
+    const dragged = entries.find((e) => e.id === draggedCombatId);
+    const target = entries.find((e) => e.id === targetId);
     if (!dragged || !target) return;
     const tempOrder = dragged.turn_order;
     dragged.turn_order = target.turn_order;
@@ -244,7 +252,7 @@ expose('dropCombatEntry', async function (ev: any, targetId: number) {
     await api('PUT', '/api/combat/' + dragged.id, dragged);
     await api('PUT', '/api/combat/' + target.id, target);
     draggedCombatId = null;
-    (window as any).showCombatTracker();
+    window.showCombatTracker();
     toast('Reordered');
-  } catch (e: any) { toast(e.message, true); }
+  } catch (e: unknown) { toast(e instanceof Error ? e.message : String(e), true); }
 });

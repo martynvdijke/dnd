@@ -1,4 +1,3 @@
-// @ts-nocheck — extracted from app.ts, window-level self-registration
 import { showView } from './navigation';
 import { esc, attrEscape, showModal, hideModal, toast } from './lib/dom';
 import { api } from './lib/api';
@@ -9,6 +8,12 @@ import { expose } from './lib/expose';
 
 // DM notes cache, keyed by character id, populated while rendering so notes can
 // be passed to the notes modal without fragile inline-string escaping.
+interface RosterCandidate { id: number; name: string; race: string; class: string; level: number; portrait_url?: string | null; owned: boolean; in_roster?: boolean; owner_username?: string; }
+interface PartyGroup { id?: number; name?: string; party_name?: string; owner_name?: string; members: PartyMember[] }
+interface PartyMember { id: number; name: string; race: string; class: string; level: number; hp_current: number; hp_max: number; ac: number; status: string; character_type?: string; user_id: number; owner_name?: string; portrait_url?: string | null; race_color?: string; dm_notes?: string }
+interface FactionInfo { id: number; name: string; type?: string }
+interface CampaignInfo { id: number; name: string; party_name?: string; description?: string; dm_notes?: string; user_id?: number; my_role?: string }
+
 const dmNotesCache: Record<number, string> = {};
 const dmNotesNames: Record<number, string> = {};
 
@@ -22,7 +27,7 @@ expose('showParty', async function () {
       api('GET', '/api/campaigns'),
     ]);
 
-    const getCampaign = (campaignId: number) => campaigns.find((c: any) => c.id === campaignId);
+    const getCampaign = (campaignId: number) => campaigns.find((c: CampaignInfo) => c.id === campaignId);
     const isOwner = (campaignId: number) => { const c = getCampaign(campaignId); return c && c.user_id === currentUser?.id; };
     const isDm = (campaignId: number) => { const c = getCampaign(campaignId); return c && (c.my_role === 'dm' || c.user_id === currentUser?.id); };
 
@@ -56,7 +61,7 @@ expose('showParty', async function () {
               </div>
               ${factions.length ? `<div class="card-body py-2">
                 <div class="small"><strong>Factions:</strong></div>
-                <div class="d-flex flex-wrap gap-1 mt-1">${factions.map((f: any) =>
+                <div class="d-flex flex-wrap gap-1 mt-1">${factions.map((f: FactionInfo) =>
                   `<span class="badge bg-light text-dark border">${esc(f.name)}${f.type ? ` <span class="text-muted">(${esc(f.type)})</span>` : ''}</span>`
                 ).join('')}</div>
               </div>` : ''}
@@ -70,7 +75,7 @@ expose('showParty', async function () {
     }
 
     // Campaign-based party groups
-    html += groups.map((g:any) => {
+    html += groups.map((g: PartyGroup) => {
       const own = g.id ? isOwner(g.id) : false;
       const dm = g.id ? isDm(g.id) : false;
       // Admin can always view/edit DM notes, even for uncategorized characters.
@@ -81,11 +86,11 @@ expose('showParty', async function () {
 
       // Party overview summary
       const members = g.members || [];
-      const totalHp = members.reduce((s:number, m:any) => s + (m.hp_current || 0), 0);
-      const totalHpMax = members.reduce((s:number, m:any) => s + (m.hp_max || 0), 0);
-      const avgLevel = members.length ? Math.round(members.reduce((s:number, m:any) => s + (m.level || 0), 0) / members.length) : 0;
-      const downed = members.filter((m:any) => m.status === 'down').length;
-      const injured = members.filter((m:any) => m.status === 'injured').length;
+      const totalHp = members.reduce((s:number, m: PartyMember) => s + (m.hp_current || 0), 0);
+      const totalHpMax = members.reduce((s:number, m: PartyMember) => s + (m.hp_max || 0), 0);
+      const avgLevel = members.length ? Math.round(members.reduce((s:number, m: PartyMember) => s + (m.level || 0), 0) / members.length) : 0;
+      const downed = members.filter((m: PartyMember) => m.status === 'down').length;
+      const injured = members.filter((m: PartyMember) => m.status === 'injured').length;
       const summaryChips = members.length ? `
         <div class="d-flex flex-wrap gap-3 small text-muted mt-2 mb-1">
           <span><i class="fa-solid fa-arrow-up me-1" aria-hidden="true"></i>Avg Lv ${avgLevel}</span>
@@ -114,7 +119,7 @@ expose('showParty', async function () {
         <div class="card-body">
           ${summaryChips}
           <div class="row g-3">
-            ${g.members.map((m:any) => {
+            ${g.members.map((m: PartyMember) => {
               const pct = m.hp_max > 0 ? Math.round((m.hp_current / m.hp_max) * 100) : 0;
               const sc = m.status === 'down' ? 'var(--danger)' : m.status === 'injured' ? 'var(--gold)' : 'var(--success)';
               const isLinked = m.character_type === 'linked';
@@ -175,8 +180,8 @@ expose('showParty', async function () {
     el.querySelectorAll<HTMLButtonElement>('.js-manage-campaign').forEach(btn => {
       btn.addEventListener('click', () => (window as any).showManageCampaign(Number(btn.dataset.id), btn.dataset.name || '', btn.dataset.party || ''));
     });
-  } catch (e:any) {
-    el.innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Failed: ${esc(e.message)}</p></div>`;
+  } catch (e: unknown) {
+    el.innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Failed: ${esc(e instanceof Error ? e.message : String(e))}</p></div>`;
   }
 });
 
@@ -187,11 +192,11 @@ expose('showParty', async function () {
 // other campaign members). Loads candidates from the roster candidates
 // endpoint; characters already in the roster render pre-selected.
 
-async function loadRosterCandidates(campaignId: number): Promise<any[]> {
+async function loadRosterCandidates(campaignId: number): Promise<RosterCandidate[]> {
   return api('GET', `/api/campaigns/${campaignId}/character-candidates`);
 }
 
-function rosterCandidateRow(ch: any): string {
+function rosterCandidateRow(ch: RosterCandidate): string {
   const inRoster = !!ch.in_roster;
   return `
     <div class="form-check roster-candidate" data-testid="roster-candidate-${ch.id}">
@@ -207,13 +212,13 @@ function rosterCandidateRow(ch: any): string {
     </div>`;
 }
 
-function rosterPickerHtml(candidates: any[]): string {
+function rosterPickerHtml(candidates: RosterCandidate[]): string {
   if (!candidates.length) {
     return '<p class="small text-muted mb-2">No characters available yet. Create characters, then add members so their characters can join the roster.</p>';
   }
-  const own = candidates.filter((ch: any) => ch.owned);
-  const external = candidates.filter((ch: any) => !ch.owned);
-  const section = (title: string, emptyNote: string, items: any[]) => `
+  const own = candidates.filter((ch: RosterCandidate) => ch.owned);
+  const external = candidates.filter((ch: RosterCandidate) => !ch.owned);
+  const section = (title: string, emptyNote: string, items: RosterCandidate[]) => `
     <div class="mb-2">
       <div class="small fw-bold text-muted mb-1">${title}</div>
       ${items.length ? items.map(rosterCandidateRow).join('') : `<p class="small text-muted fst-italic">${emptyNote}</p>`}
@@ -263,8 +268,8 @@ expose('doCreateCampaign', async function () {
       toast('Campaign created');
       (window as any).showParty();
     }
-  } catch (e: any) {
-    toast(e.message, true);
+  } catch (e: unknown) {
+    toast(e instanceof Error ? e.message : String(e), true);
   }
 });
 
@@ -277,8 +282,8 @@ expose('finishCreateCampaign', async function (campaignId: number) {
     hideModal();
     toast(ids.length ? `Campaign created with ${ids.length} character(s) in the roster` : 'Campaign created');
     (window as any).showParty();
-  } catch (e: any) {
-    toast(e.message, true);
+  } catch (e: unknown) {
+    toast(e instanceof Error ? e.message : String(e), true);
   }
 });
 
@@ -289,13 +294,13 @@ expose('showManageCampaign', async function (campaignId: number, name: string, p
     api('GET', `/api/campaigns/${campaignId}/characters`).catch(() => []),
     api('GET', `/api/campaigns/${campaignId}/push-mute`).catch(() => ({ muted: false })),
   ]);
-  const c = campaigns.find((x: any) => x.id === campaignId);
+  const c = campaigns.find((x: CampaignInfo) => x.id === campaignId);
   const curName = (c && c.name) || name;
   const curPartyName = (c && c.party_name) || partyName;
   const curDesc = (c && c.description) || '';
   const curDmNotes = (c && c.dm_notes) || '';
   const ownerNames: Record<number, string> = {};
-  (members as any[]).forEach((m: any) => { ownerNames[m.user_id] = m.username; });
+  (members as Array<{user_id:number;username:string}>).forEach((m) => { ownerNames[m.user_id] = m.username; });
   const pushMuted = !!(muteState && muteState.muted);
   const notificationsHtml = `
     <hr>
@@ -310,7 +315,7 @@ expose('showManageCampaign', async function (campaignId: number, name: string, p
       </button>
     </div>`;
   const membersHtml = members.length
-    ? `<ul class="list-group mb-3">${members.map((m: any) => {
+    ? `<ul class="list-group mb-3">${members.map((m: {username:string; user_id:number; role:string}) => {
         const isDmMember = m.role === 'dm';
         return `<li class="list-group-item d-flex justify-content-between align-items-center">
           <span>
@@ -330,7 +335,7 @@ expose('showManageCampaign', async function (campaignId: number, name: string, p
       }).join('')}</ul>`
     : '<p class="text-muted mb-3">No members yet. Add players by username.</p>';
   const rosterHtml = roster.length
-    ? `<ul class="list-group mb-3">${roster.map((ch: any) => {
+    ? `<ul class="list-group mb-3">${roster.map((ch: RosterCandidate & {user_id:number}) => {
         // `owned` from the characters endpoint reflects edit rights (true for
         // admins/DM), so derive player-controlled vs external from ownership.
         const isOwned = ch.user_id === currentUser?.id;
@@ -381,8 +386,8 @@ expose('showRosterPicker', async function (campaignId: number) {
       ${rosterPickerHtml(candidates)}
       <button class="btn btn-gold w-100 mt-2" data-testid="roster-picker-confirm" onclick="doRosterPickerConfirm(${campaignId})"><i class="fa-solid fa-plus me-1"></i>Add Selected</button>
     `);
-  } catch (e: any) {
-    toast(e.message, true);
+  } catch (e: unknown) {
+    toast(e instanceof Error ? e.message : String(e), true);
   }
 });
 
@@ -396,8 +401,8 @@ expose('doRosterPickerConfirm', async function (campaignId: number) {
     // Re-render the manage modal in place (hideModal+show would race
     // Bootstrap's transition, leaving the modal closed).
     (window as any).showManageCampaign(campaignId, '');
-  } catch (e: any) {
-    toast(e.message, true);
+  } catch (e: unknown) {
+    toast(e instanceof Error ? e.message : String(e), true);
   }
 });
 
@@ -407,8 +412,8 @@ expose('doRemoveRosterCharacter', async function (campaignId: number, characterI
     await api('DELETE', `/api/campaigns/${campaignId}/characters/${characterId}`);
     toast('Character removed from roster');
     (window as any).showManageCampaign(campaignId, '');
-  } catch (e: any) {
-    toast(e.message, true);
+  } catch (e: unknown) {
+    toast(e instanceof Error ? e.message : String(e), true);
   }
 });
 
@@ -423,12 +428,12 @@ expose('doUpdateCampaign', async function (campaignId: number) {
     toast('Campaign updated');
     (window as any).showParty();
     hideModal();
-  } catch (e: any) {
-    toast(e.message, true);
+  } catch (e: unknown) {
+    toast(e instanceof Error ? e.message : String(e), true);
   }
 });
 
-let searchTimeout: any = null;
+let searchTimeout: ReturnType<typeof setTimeout> | undefined = undefined;
 function searchUsers(q: string) {
   clearTimeout(searchTimeout);
   if (q.length < 2) { document.getElementById('userSuggestions')!.innerHTML = ''; return; }
@@ -436,7 +441,7 @@ function searchUsers(q: string) {
     try {
       const users = await api('GET', `/api/users/search?q=${encodeURIComponent(q)}`);
       const el = document.getElementById('userSuggestions')!;
-      el.innerHTML = users.map((u: any) =>
+      el.innerHTML = users.map((u: {username:string}) =>
         `<div class="d-flex justify-content-between align-items-center p-1 border-bottom js-user-suggestion" style="cursor:pointer" data-username="${attrEscape(u.username)}">
           <span>${esc(u.username)}</span>
         </div>`
@@ -458,8 +463,8 @@ expose('doAddMember', async function (campaignId: number) {
     await api('POST', `/api/campaigns/${campaignId}/members`, { username });
     toast('Member added');
     (window as any).showManageCampaign(campaignId, '');
-  } catch (e: any) {
-    toast(e.message, true);
+  } catch (e: unknown) {
+    toast(e instanceof Error ? e.message : String(e), true);
   }
 });
 
@@ -467,8 +472,8 @@ expose('doToggleDm', async function (campaignId: number, userId: number, newRole
   try {
     await api('PUT', `/api/campaigns/${campaignId}/members/${userId}`, { role: newRole });
     (window as any).showManageCampaign(campaignId, '');
-  } catch (e: any) {
-    toast(e.message, true);
+  } catch (e: unknown) {
+    toast(e instanceof Error ? e.message : String(e), true);
   }
 });
 
@@ -477,8 +482,8 @@ expose('doRemoveMember', async function (campaignId: number, userId: number) {
   try {
     await api('DELETE', `/api/campaigns/${campaignId}/members/${userId}`);
     (window as any).showManageCampaign(campaignId, '');
-  } catch (e: any) {
-    toast(e.message, true);
+  } catch (e: unknown) {
+    toast(e instanceof Error ? e.message : String(e), true);
   }
 });
 
@@ -487,8 +492,8 @@ expose('doTogglePushMute', async function (campaignId: number, muted: boolean) {
     await api('PUT', `/api/campaigns/${campaignId}/push-mute`, { muted });
     toast(muted ? 'Notifications muted for this campaign' : 'Notifications on for this campaign');
     (window as any).showManageCampaign(campaignId, '');
-  } catch (e: any) {
-    toast(e.message, true);
+  } catch (e: unknown) {
+    toast(e instanceof Error ? e.message : String(e), true);
   }
 });
 
@@ -498,8 +503,8 @@ expose('deleteCampaign', async function (campaignId: number) {
     await api('DELETE', `/api/campaigns/${campaignId}`);
     toast('Campaign deleted');
     (window as any).showParty();
-  } catch (e: any) {
-    toast(e.message, true);
+  } catch (e: unknown) {
+    toast(e instanceof Error ? e.message : String(e), true);
   }
 });
 
@@ -522,7 +527,7 @@ expose('doCreateParty', async function () {
     hideModal();
     toast('Party created');
     (window as any).showParty();
-  } catch (e: any) { toast(e.message, true); }
+  } catch (e: unknown) { toast(e instanceof Error ? e.message : String(e), true); }
 });
 
 expose('renameParty', function (id: number, name: string, description: string) {
@@ -542,7 +547,7 @@ expose('doRenameParty', async function (id: number) {
     hideModal();
     toast('Party updated');
     (window as any).showParty();
-  } catch (e: any) { toast(e.message, true); }
+  } catch (e: unknown) { toast(e instanceof Error ? e.message : String(e), true); }
 });
 
 expose('deleteParty', async function (id: number) {
@@ -551,7 +556,7 @@ expose('deleteParty', async function (id: number) {
     await api('DELETE', `/api/parties/${id}`);
     toast('Party deleted');
     (window as any).showParty();
-  } catch (e: any) { toast(e.message, true); }
+  } catch (e: unknown) { toast(e instanceof Error ? e.message : String(e), true); }
 });
 
 // ─── Share & Email ───
@@ -578,8 +583,8 @@ expose('shareCharacter', async function () {
       const btn = document.querySelector<HTMLButtonElement>('.js-share-mail');
       if (btn) btn.addEventListener('click', () => window.open(`mailto:?subject=Check out my character ${encodeURIComponent(btn.dataset.name || '')}&body=${encodeURIComponent(btn.dataset.url || '')}`, '_blank'));
     }, 0);
-  } catch (e: any) {
-    toast(e.message, true);
+  } catch (e: unknown) {
+    toast(e instanceof Error ? e.message : String(e), true);
   }
 });
 
@@ -608,8 +613,8 @@ expose('shareParty', async function (campaignId: number) {
         <button class="btn btn-outline-secondary" onclick="hideModal()">Close</button>
       </div>
     `);
-  } catch (e: any) {
-    toast(e.message, true);
+  } catch (e: unknown) {
+    toast(e instanceof Error ? e.message : String(e), true);
   }
 });
 
@@ -617,7 +622,7 @@ expose('shareParty', async function (campaignId: number) {
 
 expose('showCharStatsModal', async function (charId: number) {
   try {
-    const c: any = await api('GET', `/api/characters/${charId}`);
+    const c = await api<Record<string, unknown>>('GET', `/api/characters/${charId}`);
     const mod = (s: number) => Math.floor((s - 10) / 2);
     const statBox = (label: string, val: number) => `
       <div class="text-center px-3 py-2 border rounded">
@@ -626,22 +631,22 @@ expose('showCharStatsModal', async function (charId: number) {
         <div class="small text-muted">${mod(val) >= 0 ? '+' : ''}${mod(val)}</div>
       </div>`;
     const skills = c.skills
-      ? `<div class="mt-1">${esc(c.skills)}</div>`
+      ? `<div class="mt-1">${esc(c.skills as string)}</div>`
       : '<div class="mt-1 text-muted small">None</div>';
-    showModal(`Stats: ${esc(c.name)}`, `
+    showModal(`Stats: ${esc(c.name as string)}`, `
       <div class="mb-3 small text-muted">
-        ${esc(c.race)} ${esc(c.class)}${c.subclass ? ` (${esc(c.subclass)})` : ''} · Level ${c.level} · ${c.hp_current}/${c.hp_max} HP · AC ${c.ac}
+        ${esc(c.race as string)} ${esc(c.class as string)}${c.subclass ? ` (${esc(c.subclass as string)})` : ''} · Level ${c.level as number} · ${c.hp_current as number}/${c.hp_max as number} HP · AC ${c.ac as number}
       </div>
       <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
-        ${statBox('STR', c.str)}${statBox('DEX', c.dex)}${statBox('CON', c.con)}${statBox('INT', c.int)}${statBox('WIS', c.wis)}${statBox('CHA', c.cha)}
+        ${statBox('STR', c.str as number)}${statBox('DEX', c.dex as number)}${statBox('CON', c.con as number)}${statBox('INT', c.int as number)}${statBox('WIS', c.wis as number)}${statBox('CHA', c.cha as number)}
       </div>
       <div class="small"><strong>Skills:</strong>${skills}</div>
       <div class="d-flex justify-content-end mt-3">
         <button class="btn btn-outline-secondary" onclick="hideModal()">Close</button>
       </div>
     `);
-  } catch (e: any) {
-    toast(e.message, true);
+  } catch (e: unknown) {
+    toast(e instanceof Error ? e.message : String(e), true);
   }
 });
 
@@ -666,8 +671,8 @@ expose('saveCharNotes', async function (charId: number) {
     dmNotesCache[charId] = value;
     hideModal();
     toast('DM notes saved');
-  } catch (e: any) {
-    toast(e.message, true);
+  } catch (e: unknown) {
+    toast(e instanceof Error ? e.message : String(e), true);
   }
 });
 
@@ -679,7 +684,7 @@ expose('sendCampaignHighlights', async function (campaignId: number) {
       : `Campaign highlights sent to ${result.sent} recipient(s)!`;
     toast(msg);
     if (result.errors && import.meta.env.DEV) console.warn('Email errors:', result.errors);
-  } catch (e: any) {
-    toast(e.message, true);
+  } catch (e: unknown) {
+    toast(e instanceof Error ? e.message : String(e), true);
   }
 });

@@ -1,11 +1,10 @@
-// @ts-nocheck
 /**
  * Character sheet rendering — tab bar, section switching, steppers, auto-save.
  * Extracted from app.ts (address-tech-debt-and-ux).
  */
 import { expose } from '../lib/expose';
 import { currentChar, currentTab, setCurrentTab } from '../lib/state';
-import { esc, capitalize, toast } from '../lib/dom';
+import { esc, capitalize, toast, openCompendiumPicker } from '../lib/dom';
 import { api, getApiToken } from '../lib/api';
 import type { Character } from '../lib/api-types';
 import { markDirty, isDirty, isSaving, saveCharacter } from '../lib/save';
@@ -14,30 +13,38 @@ import { renderStats, renderXPBar } from './stats';
 import { renderCombat } from './combat';
 import { wealthTotalGp } from './resources';
 
-declare const htmx: any;
+declare const htmx: { process: (el: Element) => void };
 
 import { sections } from '../lib/tabs';
 export { sections };
 
 const htmxTabs = ['spells', 'features', 'feats', 'companions', 'crafting', 'notes'];
 
-export function renderSheet() {
-  if (!currentChar) return;
-  const c = currentChar;
-  const multi = c.classes && c.classes.length > 0;
-  const classStr = multi
-    ? c.classes.map((cc: any) => `${cc.class}${cc.subclass ? ' (' + cc.subclass + ')' : ''} ${cc.level}`).join(' / ')
-    : `${c.class}${c.subclass ? ' (' + c.subclass + ')' : ''}`;
-  document.getElementById('sheetName')!.innerHTML = c.portrait_url
-    ? `<img src="${esc(c.portrait_url)}" class="character-portrait me-2" alt="">${esc(c.name)}`
-    : esc(c.name);
-  document.getElementById('sheetSubtitle')!.textContent =
-    `${c.race} ${classStr} · Level ${c.level}`;
+type CharRecord = Character & Record<string, unknown>;
 
-  const tabBar = document.getElementById('tabBar')!;
-  tabBar.innerHTML = sections.map(s => `
-    <li class="nav-item"><button class="nav-link ${s === currentTab ? 'active' : ''}" onclick="switchTab('${s}')">${capitalize(s)}</button></li>
-  `).join('');
+export function renderSheet(): void {
+  if (!currentChar) return;
+  const c = currentChar as CharRecord;
+  const classes = c['classes'] as Array<{ class: string; subclass?: string; level: number }> | undefined;
+  const multi = classes && classes.length > 0;
+  const classStr = multi
+    ? classes.map((cc) => `${cc.class}${cc.subclass ? ' (' + cc.subclass + ')' : ''} ${cc.level}`).join(' / ')
+    : `${c['class'] as string}${c['subclass'] ? ' (' + (c['subclass'] as string) + ')' : ''}`;
+  const sheetName = document.getElementById('sheetName');
+  if (sheetName) {
+    sheetName.innerHTML = c['portrait_url']
+      ? `<img src="${esc(c['portrait_url'] as string)}" class="character-portrait me-2" alt="">${esc(c['name'] as string)}`
+      : esc(c['name'] as string);
+  }
+  const subtitle = document.getElementById('sheetSubtitle');
+  if (subtitle) subtitle.textContent = `${c['race'] as string} ${classStr} · Level ${c['level'] as number}`;
+
+  const tabBar = document.getElementById('tabBar');
+  if (tabBar) {
+    tabBar.innerHTML = sections.map(s => `
+      <li class="nav-item"><button class="nav-link ${s === currentTab ? 'active' : ''}" onclick="switchTab('${s}')">${capitalize(s)}</button></li>
+    `).join('');
+  }
 
   sections.forEach(s => {
     const el = document.getElementById(s + 'Section');
@@ -46,55 +53,52 @@ export function renderSheet() {
 
   renderStats();
   renderCombat();
-  // graph/analytics moved to the party view (reorganize-sheet-tabs); their section divs no longer exist
-  (window as any).renderCrafting?.();
-  (window as any).renderDetails?.();
+  (window.renderCrafting as (() => void) | undefined)?.();
+  (window.renderDetails as (() => void) | undefined)?.();
   renderDiceTab();
   applySheetReadonly();
   ensureSheetAccordion();
   ensureSheetQuickActions();
-  (window as any).updateSaveBtnState?.();
+  (window.updateSaveBtnState as (() => void) | undefined)?.();
 }
 
 // Read-only mode for characters without edit rights (linked characters, campaign members)
 function sheetCanEdit(): boolean {
-  return (window as any).canEditCharacter !== false;
+  return window.canEditCharacter !== false;
 }
 
-function applySheetReadonly() {
+function applySheetReadonly(): void {
   const el = document.getElementById('sheetView');
   if (!el) return;
   const ro = !sheetCanEdit();
   el.classList.toggle('readonly', ro);
   if (ro) {
-    el.querySelectorAll('input, textarea, select').forEach((i: any) => { i.disabled = true; });
+    el.querySelectorAll('input, textarea, select').forEach((i) => { (i as HTMLInputElement).disabled = true; });
   }
 }
 
-export function switchTab(tab: string) {
-  // Save-on-tab-switch: persist any unsaved changes before rendering the next tab
+export function switchTab(tab: string): void {
   if (isDirty() && !isSaving()) {
-    saveCharacter();
+    void saveCharacter();
   }
-  if (tab === 'party') { (window as any).showView?.('party'); return; }
+  if (tab === 'party') { (window.showView as ((v: string) => void) | undefined)?.('party'); return; }
   setCurrentTab(tab);
   renderSheet();
   if (htmxTabs.includes(tab) && currentChar) {
     const el = document.getElementById(tab + 'Section');
     if (el) {
-      el.setAttribute('hx-get', `/htmx/${tab}?character_id=${currentChar.id}`);
+      el.setAttribute('hx-get', `/htmx/${tab}?character_id=${(currentChar as Character).id}`);
       el.setAttribute('hx-trigger', 'load');
       el.setAttribute('hx-swap', 'innerHTML');
       el.innerHTML = '<div class="ornament">✧ Loading... ✧</div>';
       htmx.process(el);
     }
   }
-  // Client-side rendering for tabs
   if (currentChar) {
     switch (tab) {
-      case 'inventory': (window as any).renderInventory?.(); break;
-      case 'resources': (window as any).renderResources?.(); break;
-      case 'journal': (window as any).renderJournal?.(); break;
+      case 'inventory': (window.renderInventory as (() => void) | undefined)?.(); break;
+      case 'resources': (window.renderResources as (() => void) | undefined)?.(); break;
+      case 'journal': (window as unknown as Record<string, (() => void) | undefined>)['renderJournal']?.(); break;
     }
     applySheetReadonly();
   }
@@ -115,76 +119,80 @@ export function renderStepper(field: string, value: number, delta: number, min?:
 
 // ─── Auto-save (thin wrappers → centralized ts/lib/save.ts) ───
 
-export function autoSaveField(field: string, el: HTMLElement) {
+export function autoSaveField(field: string, el: HTMLElement): void {
   const input = el as HTMLInputElement;
   const isCheckbox = input.type === 'checkbox';
   const isTextarea = el.tagName === 'TEXTAREA';
-  const raw = isCheckbox ? input.checked : (el as any).value;
+  const raw: unknown = isCheckbox ? input.checked : (el as HTMLInputElement).value;
   const num = parseFloat(String(raw));
-  const finalVal = !isNaN(num) && !isCheckbox && !isTextarea ? num : raw;
+  const finalVal: unknown = !isNaN(num) && !isCheckbox && !isTextarea ? num : raw;
   if (!currentChar) return;
-  currentChar[field] = finalVal;
+  (currentChar as CharRecord)[field] = finalVal;
   markDirty();
 }
 
-export function stepperField(field: string, delta: number, min?: number, max?: number) {
+export function stepperField(field: string, delta: number, min?: number, max?: number): void {
   if (!currentChar) return;
-  let val = currentChar[field] ?? 0;
+  const rec = currentChar as CharRecord;
+  let val = (rec[field] as number | undefined) ?? 0;
   val += delta;
   if (min !== undefined) val = Math.max(min, val);
   if (max !== undefined) val = Math.min(max, val);
-  currentChar[field] = val;
+  rec[field] = val;
   markDirty();
   renderSheet();
 }
 
-export function editStepperValue(field: string, el: HTMLElement) {
+export function editStepperValue(field: string, el: HTMLElement): void {
   if (!currentChar) return;
-  const current = currentChar[field] ?? 0;
+  const rec = currentChar as CharRecord;
+  const current = (rec[field] as number | undefined) ?? 0;
   el.innerHTML = `<input type="number" class="form-control stepper-inline-input" value="${current}">`;
-  const input = el.querySelector('input')!;
+  const input = el.querySelector('input');
+  if (!input) return;
   input.focus();
   input.select();
-  const save = () => {
+  const save = (): void => {
     const parsed = parseInt(input.value);
     if (!isNaN(parsed)) {
-      currentChar[field] = parsed;
+      rec[field] = parsed;
       markDirty();
     }
     renderSheet();
   };
   input.addEventListener('blur', save);
-  input.addEventListener('keydown', (e) => {
+  input.addEventListener('keydown', (e: KeyboardEvent) => {
     if (e.key === 'Enter') { e.preventDefault(); save(); }
     if (e.key === 'Escape') { renderSheet(); }
   });
 }
 
-export async function coinStepper(coin: string, delta: number) {
+export async function coinStepper(coin: string, delta: number): Promise<void> {
   if (!currentChar) return;
-  const currency = currentChar.currency || {};
+  const rec = currentChar as CharRecord;
+  const currency = (rec['currency'] as Record<string, number> | undefined) || {};
   const current = currency[coin] || 0;
   const newVal = Math.max(0, current + delta);
   currency[coin] = newVal;
-  currentChar.currency = currency;
+  rec['currency'] = currency;
   const updates: Record<string, number> = {};
   ['cp','sp','ep','gp','pp'].forEach(c => { updates[c] = currency[c] || 0; });
   try {
-    await api<void>('PUT', `/api/characters/${currentChar.id}/currency`, updates);
+    await api<void>('PUT', `/api/characters/${(currentChar as Character).id}/currency`, updates);
     toast(`${coin.toUpperCase()} ${delta > 0 ? '+' : ''}${delta}`);
-  } catch (e: any) { toast(e.message, true); }
+  } catch (e) { toast((e as Error).message, true); }
   renderSheet();
-  if (currentTab === 'resources') { (window as any).renderResources?.(); }
+  if (currentTab === 'resources') { (window.renderResources as (() => void) | undefined)?.(); }
 }
 
-export function updateXPBar() {
+export function updateXPBar(): void {
   const container = document.getElementById('xpBarContainer');
-  if (container && currentChar) container.innerHTML = renderXPBar(currentChar);
+  if (container && currentChar) container.innerHTML = renderXPBar(currentChar as unknown as Record<string, unknown>);
 }
 
-export function updateField(field: string, value: any) {
+export function updateField(field: string, value: unknown): void {
   if (!currentChar) return;
-  currentChar[field] = value;
+  (currentChar as CharRecord)[field] = value;
   markDirty();
 }
 
@@ -196,43 +204,47 @@ const IDENTITY_LINK = {
   background: { field: 'background', linkField: 'compendium_background_id', form: 'compendium_background_id', type: 'background' },
 } as const;
 
-export function linkCharIdentity(which: string) {
+type IdentityKey = keyof typeof IDENTITY_LINK;
+
+export function linkCharIdentity(which: string): void {
   if (!currentChar) return;
-  const def = (IDENTITY_LINK as any)[which];
+  const def = (IDENTITY_LINK as Record<string, typeof IDENTITY_LINK[IdentityKey]>)[which];
   if (!def) return;
   openCompendiumPicker({
     title: `Link ${capitalize(which)} from Compendium`,
     placeholder: `Search ${def.type}s...`,
     search: (q) => api<unknown[]>('GET', `/api/compendium/search?q=${encodeURIComponent(q)}&type=${def.type}`),
-    render: (e: any) => `<div><span class="fw-bold">${esc(e.name)}</span>${e.source ? `<span class="text-muted small ms-1">${esc(e.source)}</span>` : ''}</div>`,
-    onPick: async (e: any) => {
-      try {
-        const fd = new FormData();
-        fd.append(def.form, String(e.id));
-        const headers: Record<string, string> = {};
-        const apiToken = getApiToken();
-        if (apiToken) headers['Authorization'] = `Bearer ${apiToken}`;
-        const res = await fetch(`/api/characters/${currentChar.id}/${which}/link`, { method: 'POST', body: fd, headers, credentials: 'include' });
-        if (!res.ok) throw new Error(((await res.json().catch(() => ({}))) as any).error || 'Link failed');
-        currentChar[def.field] = e.name;
-        currentChar[def.linkField] = e.id;
-        markDirty();
-        toast(`${capitalize(which)} linked from compendium`);
-      } catch (err: any) { toast(err.message, true); }
+    render: (e: Record<string, unknown>) => `<div><span class="fw-bold">${esc(e['name'] as string)}</span>${e['source'] ? `<span class="text-muted small ms-1">${esc(e['source'] as string)}</span>` : ''}</div>`,
+    onPick: (e: Record<string, unknown>) => {
+      void (async () => {
+        try {
+          const fd = new FormData();
+          fd.append(def.form, String(e['id']));
+          const headers: Record<string, string> = {};
+          const apiToken = getApiToken();
+          if (apiToken) headers['Authorization'] = `Bearer ${apiToken}`;
+          const res = await fetch(`/api/characters/${(currentChar as Character).id}/${which}/link`, { method: 'POST', body: fd, headers, credentials: 'include' });
+          if (!res.ok) throw new Error(((await res.json().catch(() => ({}))) as { error?: string }).error || 'Link failed');
+          (currentChar as CharRecord)[def.field] = e['name'] as string;
+          (currentChar as CharRecord)[def.linkField] = e['id'] as number | string;
+          markDirty();
+          toast(`${capitalize(which)} linked from compendium`);
+        } catch (err) { toast((err as Error).message, true); }
+      })();
     },
   });
 }
 
-export async function unlinkCharIdentity(which: string) {
+export async function unlinkCharIdentity(which: string): Promise<void> {
   if (!currentChar) return;
-  const def = (IDENTITY_LINK as any)[which];
+  const def = (IDENTITY_LINK as Record<string, typeof IDENTITY_LINK[IdentityKey]>)[which];
   if (!def) return;
   try {
-    await api<void>('DELETE', `/api/characters/${currentChar.id}/${which}/link`);
-    currentChar[def.linkField] = null;
+    await api<void>('DELETE', `/api/characters/${(currentChar as Character).id}/${which}/link`);
+    (currentChar as CharRecord)[def.linkField] = null;
     markDirty();
     toast(`${capitalize(which)} unlinked (text kept)`);
-  } catch (e: any) { toast(e.message, true); }
+  } catch (e) { toast((e as Error).message, true); }
 }
 
 // Window registrations (centralized)
@@ -248,8 +260,8 @@ expose('unlinkCharIdentity', unlinkCharIdentity);
 
 function ensureSheetAccordion(): void {
   if (!currentChar) return;
-  const c: any = currentChar;
-  const classStr = [c.race, c.subclass, c.class].filter(Boolean).join(' ');
+  const c = currentChar as CharRecord;
+  const classStr = [(c['race'] as string), (c['subclass'] as string), (c['class'] as string)].filter(Boolean).join(' ');
   const titles: Record<string, string> = { stats: 'Stats', combat: 'Combat', spells: 'Spells', inventory: 'Inventory', resources: 'Resources', features: 'Features', feats: 'Feats', companions: 'Companions', crafting: 'Crafting', locations: 'Locations', npcs: 'NPCs', sessions: 'Sessions', quests: 'Quests', journal: 'Journal', notes: 'Notes', graph: 'Graph', analytics: 'Analytics', details: 'Details', dice: 'Dice Roller' };
   for (const s of sections) {
     const el = document.getElementById(s + 'Section') as HTMLElement | null;
@@ -263,24 +275,24 @@ function ensureSheetAccordion(): void {
       const sum = document.createElement('summary');
       sum.className = 'sheet-acc-summary';
       sum.innerHTML = `<i class="fa-solid fa-chevron-right me-2 sheet-acc-chevron"></i><span class="sheet-acc-title">${titles[s] || s}</span><span class="badge sheet-acc-count" id="${s}SectionCount"></span>`;
-      sum.addEventListener('click', (ev) => { ev.preventDefault(); (window as any).switchTab?.(s); });
+      sum.addEventListener('click', (ev) => { ev.preventDefault(); (window.switchTab as ((t: string) => void) | undefined)?.(s); });
       acc.appendChild(sum);
       el.parentElement.insertBefore(acc, el);
-      acc.appendChild(el); // DOM move preserves listeners + htmx attributes
+      acc.appendChild(el);
     }
     acc.classList.toggle('sheet-acc-open', currentTab === s);
-    (acc as any).open = currentTab === s;
+    (acc as HTMLDetailsElement).open = currentTab === s;
     const countEl = document.getElementById(s + 'SectionCount') as HTMLElement | null;
     if (countEl) {
       let txt = '';
-      if (s === 'stats') txt = `Lvl ${c.level} · ${classStr}`;
-      else if (s === 'combat') txt = `HP ${c.hp_current}/${c.hp_max} · AC ${c.ac}`;
-      else if (s === 'spells') { const sp = (c.spells || []).filter((x: any) => x.prepared || x.always_prepared); txt = `${sp.length} prepared`; }
-      else if (s === 'inventory') txt = `${(c.inventory || []).length} items`;
+      if (s === 'stats') txt = `Lvl ${c['level'] as number} · ${classStr}`;
+      else if (s === 'combat') txt = `HP ${c['hp_current'] as number}/${c['hp_max'] as number} · AC ${c['ac'] as number}`;
+      else if (s === 'spells') { const sp = ((c['spells'] as Array<Record<string, unknown>> | undefined) || []).filter((x) => x['prepared'] || x['always_prepared']); txt = `${sp.length} prepared`; }
+      else if (s === 'inventory') txt = `${((c['inventory'] as unknown[]) || []).length} items`;
       else if (s === 'resources') { const total = wealthTotalGp(); txt = total > 0 ? `${Math.round(total * 100) / 100} gp` : ''; }
-      else if (s === 'features') txt = `${(c.features || []).length}`;
-      else if (s === 'feats') txt = `${(c.feats || []).length}`;
-      else if (s === 'companions') txt = `${(c.companions || []).length}`;
+      else if (s === 'features') txt = `${((c['features'] as unknown[]) || []).length}`;
+      else if (s === 'feats') txt = `${((c['feats'] as unknown[]) || []).length}`;
+      else if (s === 'companions') txt = `${((c['companions'] as unknown[]) || []).length}`;
       countEl.textContent = txt;
       countEl.style.display = txt ? '' : 'none';
     }

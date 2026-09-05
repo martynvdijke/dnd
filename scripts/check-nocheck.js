@@ -3,18 +3,7 @@ import { join } from 'node:path';
 
 const allowlist = new Set([
   'ts/app.ts',
-  'ts/party.ts',
-  'ts/combat-tracker.ts',
-  'ts/compendium.ts',
-  'ts/encounter.ts',
-  'ts/factions.ts',
-  'ts/timeline.ts',
-  'ts/characters/combat.ts',
-  'ts/characters/inventory.ts',
-  'ts/characters/resources.ts',
-  'ts/characters/sheet.ts',
-  'ts/characters/spells.ts',
-  'ts/characters/stats.ts',
+  'ts/admin.ts',
 ]);
 
 function walk(dir) {

@@ -33,7 +33,37 @@ declare global {
     regenerateWithAI: () => void;
     insertAIGenResult: () => void;
     replaceAIGenResult: () => void;
-    htmx: { process: (el: Element) => void } & Record<string, unknown>;
+    htmx: { process: (el: Element) => void; trigger: (el: Element, event: string) => void; ajax: (method: string, path: string, opts: unknown) => void } & Record<string, unknown>;
+    showCombatTracker: () => Promise<void>;
+    showEncounterBuilder: () => Promise<void>;
+    showEncounterDetail: (id: number) => Promise<void>;
+    showParty: () => Promise<void>;
+    showManageCampaign: (id: number, name: string, partyName?: string) => Promise<void>;
+    showFactions: () => void;
+    showTimeline: () => void;
+    loadCompendiumTab: (tab: string) => void;
+    renameParty: (id: number, name: string, desc: string) => void;
+    showCampaignDashboard: (id: number, name: string) => void;
+    showCharStatsModal: (id: number) => Promise<void>;
+    showCharNotes: (id: number) => void;
+    renderStepper: (field: string, value: number, delta: number, min?: number, max?: number, label?: string, size?: string) => string;
+    renderStats: () => void;
+    renderCombat: () => void;
+    renderResources: () => Promise<void> | void;
+    renderInventory: () => void;
+    renderSheet: () => void;
+    renderSpells: () => void;
+    updateField: (field: string, value: unknown) => void;
+    saveCharacter: () => Promise<void>;
+    autoSaveField: (field: string, el: HTMLElement) => void;
+    stepperField: (field: string, delta: number, min?: number, max?: number) => void;
+    editStepperValue: (field: string, el: HTMLElement) => void;
+    coinStepper: (coin: string, delta: number) => Promise<void>;
+    updateSaveBtnState: () => void;
+    canEditCharacter: boolean;
+    renderCrafting: () => void;
+    renderDetails: () => void;
+    updateXPBar: () => void;
     // allow any other expose names without error
     [key: string]: unknown;
   }
