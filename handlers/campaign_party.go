@@ -17,11 +17,32 @@ import (
 )
 
 type PartyMember struct {
-	ID int64 `json:"id"`; UserID int64 `json:"user_id"`; OwnerName string `json:"owner_name"`; Name string `json:"name"`; Race string `json:"race"`; RaceColor string `json:"race_color"`; Class string `json:"class"`; Level int `json:"level"`; AC int `json:"ac"`; HPMax int `json:"hp_max"`; HPCurrent int `json:"hp_current"`; TempHP int `json:"temp_hp"`; Status string `json:"status"`; PortraitURL string `json:"portrait_url"`; CampaignID *int64 `json:"campaign_id"`; CharacterType string `json:"character_type"`; DMNotes string `json:"dm_notes,omitempty"`; Owned bool `json:"owned"`
+	ID            int64  `json:"id"`
+	UserID        int64  `json:"user_id"`
+	OwnerName     string `json:"owner_name"`
+	Name          string `json:"name"`
+	Race          string `json:"race"`
+	RaceColor     string `json:"race_color"`
+	Class         string `json:"class"`
+	Level         int    `json:"level"`
+	AC            int    `json:"ac"`
+	HPMax         int    `json:"hp_max"`
+	HPCurrent     int    `json:"hp_current"`
+	TempHP        int    `json:"temp_hp"`
+	Status        string `json:"status"`
+	PortraitURL   string `json:"portrait_url"`
+	CampaignID    *int64 `json:"campaign_id"`
+	CharacterType string `json:"character_type"`
+	DMNotes       string `json:"dm_notes,omitempty"`
+	Owned         bool   `json:"owned"`
 }
 
 type CampaignGroup struct {
-	ID int64 `json:"id"`; Name string `json:"name"`; PartyName string `json:"party_name"`; OwnerName string `json:"owner_name"`; Members []PartyMember `json:"members"`
+	ID        int64         `json:"id"`
+	Name      string        `json:"name"`
+	PartyName string        `json:"party_name"`
+	OwnerName string        `json:"owner_name"`
+	Members   []PartyMember `json:"members"`
 }
 
 func GetPartyView(c *gin.Context) {

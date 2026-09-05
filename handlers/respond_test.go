@@ -16,7 +16,9 @@ func TestBindOr400(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest("POST", "/", bytes.NewBufferString(`{invalid}`))
 		c.Request.Header.Set("Content-Type", "application/json")
-		var req struct{ Name string `json:"name"` }
+		var req struct {
+			Name string `json:"name"`
+		}
 		ok := BindOr400(c, &req)
 		if ok {
 			t.Fatal("expected false on bad json")
@@ -30,7 +32,9 @@ func TestBindOr400(t *testing.T) {
 		c, _ := gin.CreateTestContext(w)
 		c.Request = httptest.NewRequest("POST", "/", bytes.NewBufferString(`{"name":"ok"}`))
 		c.Request.Header.Set("Content-Type", "application/json")
-		var req struct{ Name string `json:"name"` }
+		var req struct {
+			Name string `json:"name"`
+		}
 		ok := BindOr400(c, &req)
 		if !ok {
 			t.Fatal("expected true on valid json")

@@ -181,9 +181,17 @@ func campaignMemberUserIDs(c *gin.Context, campaignID int64) ([]int64, error) {
 }
 
 type RosterCandidate struct {
-	ID int64 `json:"id"`; UserID int64 `json:"user_id"`; OwnerUsername string `json:"owner_username"`
-	Name string `json:"name"`; Race string `json:"race"`; Class string `json:"class"`; Level int `json:"level"`
-	PortraitURL string `json:"portrait_url,omitempty"`; CharacterType string `json:"character_type"`; Owned bool `json:"owned"`; InRoster bool `json:"in_roster"`
+	ID            int64  `json:"id"`
+	UserID        int64  `json:"user_id"`
+	OwnerUsername string `json:"owner_username"`
+	Name          string `json:"name"`
+	Race          string `json:"race"`
+	Class         string `json:"class"`
+	Level         int    `json:"level"`
+	PortraitURL   string `json:"portrait_url,omitempty"`
+	CharacterType string `json:"character_type"`
+	Owned         bool   `json:"owned"`
+	InRoster      bool   `json:"in_roster"`
 }
 
 func ListCampaignCharacterCandidates(c *gin.Context) {
@@ -245,7 +253,9 @@ func AddCampaignCharacter(c *gin.Context) {
 		WriteError(c, http.StatusBadRequest, strErr("invalid campaign id"))
 		return
 	}
-	var req struct{ CharacterID int64 `json:"character_id"` }
+	var req struct {
+		CharacterID int64 `json:"character_id"`
+	}
 	if !BindOr400(c, &req) || req.CharacterID == 0 {
 		if req.CharacterID == 0 {
 			WriteError(c, http.StatusBadRequest, strErr("character_id required"))
@@ -348,7 +358,9 @@ func RemoveCampaignCharacter(c *gin.Context) {
 }
 
 type CampaignMemberResponse struct {
-	UserID int64 `json:"user_id"`; Username string `json:"username"`; Role string `json:"role"`
+	UserID   int64  `json:"user_id"`
+	Username string `json:"username"`
+	Role     string `json:"role"`
 }
 
 func ListCampaignMembers(c *gin.Context) {
@@ -387,7 +399,9 @@ func AddCampaignMember(c *gin.Context) {
 		WriteError(c, http.StatusForbidden, strErr("only the campaign owner can add members"))
 		return
 	}
-	var req struct{ Username string `json:"username"` }
+	var req struct {
+		Username string `json:"username"`
+	}
 	if !BindOr400(c, &req) || req.Username == "" {
 		if req.Username == "" {
 			WriteError(c, http.StatusBadRequest, strErr("username required"))
@@ -430,7 +444,9 @@ func SetCampaignMemberRole(c *gin.Context) {
 		WriteError(c, http.StatusForbidden, strErr("only the campaign owner can change roles"))
 		return
 	}
-	var req struct{ Role string `json:"role"` }
+	var req struct {
+		Role string `json:"role"`
+	}
 	if !BindOr400(c, &req) || (req.Role != "dm" && req.Role != "player") {
 		if req.Role != "dm" && req.Role != "player" {
 			WriteError(c, http.StatusBadRequest, strErr("role must be 'dm' or 'player'"))
@@ -475,7 +491,10 @@ func SearchUsers(c *gin.Context) {
 		WriteError(c, http.StatusInternalServerError, err)
 		return
 	}
-	type UserResult struct{ ID int64 `json:"id"`; Username string `json:"username"` }
+	type UserResult struct {
+		ID       int64  `json:"id"`
+		Username string `json:"username"`
+	}
 	var out []UserResult
 	for _, u := range users {
 		out = append(out, UserResult{ID: u.ID, Username: u.Username})

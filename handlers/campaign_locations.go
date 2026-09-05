@@ -169,7 +169,7 @@ func GetCharacterLocations(c *gin.Context) {
 		loc := cl.Edges.Location
 		out = append(out, LocLink{
 			CharacterLocation: models.CharacterLocation{ID: cl.ID, CharacterID: cl.CharacterID, LocationID: cl.LocationID, Relationship: cl.Relationship, Notes: cl.Notes},
-			LocationName: loc.Name, LocationType: loc.Type, Description: loc.Description,
+			LocationName:      loc.Name, LocationType: loc.Type, Description: loc.Description,
 		})
 	}
 	WriteJSON(c, http.StatusOK, out)
@@ -330,7 +330,13 @@ func GetCharacterNPCs(c *gin.Context) {
 	}
 	type NPCLink struct {
 		models.CharacterNPC
-		NPCName string `json:"npc_name"`; NPCRace string `json:"npc_race"`; NPCRaceColor string `json:"npc_race_color,omitempty"`; NPCClass string `json:"npc_class"`; NPHPMax int `json:"npc_hp_max"`; NPHPCurr int `json:"npc_hp_current"`; NPCAlive bool `json:"npc_is_alive"`
+		NPCName      string `json:"npc_name"`
+		NPCRace      string `json:"npc_race"`
+		NPCRaceColor string `json:"npc_race_color,omitempty"`
+		NPCClass     string `json:"npc_class"`
+		NPHPMax      int    `json:"npc_hp_max"`
+		NPHPCurr     int    `json:"npc_hp_current"`
+		NPCAlive     bool   `json:"npc_is_alive"`
 	}
 	var out = make([]NPCLink, 0)
 	raceColors := GetRaceColorMap()
@@ -338,7 +344,7 @@ func GetCharacterNPCs(c *gin.Context) {
 		npcEnt := cn.Edges.Npc
 		out = append(out, NPCLink{
 			CharacterNPC: models.CharacterNPC{ID: cn.ID, CharacterID: cn.CharacterID, NPCID: cn.NpcID, Relationship: cn.Relationship, Notes: cn.Notes, InteractionCount: cn.InteractionCount, LastInteracted: cn.LastInteracted},
-			NPCName: npcEnt.Name, NPCRace: npcEnt.Race, NPCRaceColor: raceColors[npcEnt.Race], NPCClass: npcEnt.Class, NPHPMax: npcEnt.HpMax, NPHPCurr: npcEnt.HpCurrent, NPCAlive: npcEnt.IsAlive,
+			NPCName:      npcEnt.Name, NPCRace: npcEnt.Race, NPCRaceColor: raceColors[npcEnt.Race], NPCClass: npcEnt.Class, NPHPMax: npcEnt.HpMax, NPHPCurr: npcEnt.HpCurrent, NPCAlive: npcEnt.IsAlive,
 		})
 	}
 	WriteJSON(c, http.StatusOK, out)

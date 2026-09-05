@@ -6576,3 +6576,58 @@ func TestDmScreenData(t *testing.T) {
 
 	t.Log("DM screen data test passed")
 }
+
+func TestSetupRouter(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router, _ := setupRouter("/tmp/villum_test_media")
+	if router == nil {
+		t.Fatal("setupRouter returned nil")
+	}
+	routes := router.Routes()
+	if len(routes) == 0 {
+		t.Fatal("setupRouter registered no routes")
+	}
+	routeSet := make(map[string]bool, len(routes))
+	for _, r := range routes {
+		routeSet[r.Method+" "+r.Path] = true
+	}
+	// Key routes that must exist
+	required := []string{
+		"GET /healthz",
+		"GET /metrics",
+		"POST /api/login",
+		"GET /api/campaigns",
+		"POST /api/campaigns",
+		"GET /api/characters",
+		"POST /api/characters",
+		"GET /api/combat",
+		"GET /api/admin/users",
+		"GET /static/*filepath",
+		"GET /",
+		"GET /login",
+		"GET /admin",
+		"GET /api/compendium/races",
+		"GET /api/encounters",
+	}
+	for _, want := range required {
+		if !routeSet[want] {
+			t.Errorf("missing required route %q", want)
+		}
+	}
+	// Verify idempotency: second router has identical method+path set
+	router2, _ := setupRouter("/tmp/villum_test_media")
+	routes2 := router2.Routes()
+	set2 := make(map[string]bool, len(routes2))
+	for _, r := range routes2 {
+		set2[r.Method+" "+r.Path] = true
+	}
+	if len(routeSet) != len(set2) {
+		t.Fatalf("route count mismatch between setupRouter calls: %d vs %d", len(routeSet), len(set2))
+	}
+	for k := range routeSet {
+		if !set2[k] {
+			t.Errorf("route %q missing in second setupRouter call", k)
+		}
+	}
+	t.Logf("setupRouter registered %d routes", len(routes))
+}
