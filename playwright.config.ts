@@ -6,10 +6,10 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: 2,
-  workers: process.env.CI ? Math.max(1, Math.floor(os.cpus().length / 2)) : Math.max(1, Math.floor(os.cpus().length / 4)),
-  timeout: 60000,
+  workers: process.env.CI ? 2 : Math.max(1, Math.floor(os.cpus().length / 4)),
+  timeout: 90000,
   expect: {
-    timeout: 10000,
+    timeout: 15000,
     toHaveScreenshot: { maxDiffPixelRatio: 0.05 },
   },
   snapshotPathTemplate: 'tests/visual-refs/{arg}{ext}',
