@@ -12,11 +12,11 @@ permissions:
   attestations: write
   id-token: write
 
-# Coverage thresholds (documented per task 7.5):
-#   Go: handlers/ >= 30%, middleware/ >= 25% (measured 08-2026: 35.8% / 30.6%;
+# Coverage thresholds (documented per task 7.5, bumped 09-2026 via close-coverage-holes):
+#   Go: handlers/ >= 40%, middleware/ >= 40% (measured 09-2026: 72.1% / 86.9%;
 #       the root package is wiring-only and is covered via the handlers/ and
 #       middleware/ coverpkg - total stays >= 20%)
-#   TS: vitest coverage-v8 >= 20% (enforced in unit-test job)
+#   TS: vitest coverage-v8 >= 20% (enforced in unit-test job, measured 09-2026: 40.68% / 35.75% / 40.17% / 42.98%)
 jobs:
   lint-typecheck:
     runs-on: ubuntu-latest

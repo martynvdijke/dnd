@@ -69,9 +69,9 @@ CI rule: every gate in `.github/workflows/ci.yaml` must call a script under `scr
 
 ### Unit (Vitest / Go)
 
-- Vitest coverage threshold is enforced at 20% (see `vitest.config.ts`).
-- Go per-package coverage thresholds are enforced in CI: `handlers/` ≥ 30%,
-  `middleware/` ≥ 25%, total ≥ 20%. Document any intentional change in
+- Vitest coverage threshold is enforced at 20% (see `vitest.config.ts`; measured 09-2026: 40.68% stmts / 35.75% branches / 40.17% funcs / 42.98% lines).
+- Go per-package coverage thresholds are enforced in CI: `handlers/` ≥ 40%,
+  `middleware/` ≥ 40%, total ≥ 20% (measured 09-2026: handlers 72.1%, middleware 86.9%, total 72.4%). Document any intentional change in
   `.github/workflows/ci.yaml` next to the thresholds.
 
 ## CI pipeline

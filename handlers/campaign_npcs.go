@@ -101,8 +101,12 @@ func CreateAndLinkCampaignNPC(c *gin.Context) {
 	}
 
 	// Create NPC first
+	uid, _ := MustGetUserID(c)
+	if uid == 0 {
+		uid = 1
+	}
 	result, err := db.DB.Exec(`INSERT INTO npcs(user_id, name, race, class, description, notes) VALUES(?,?,?,?,?,?)`,
-		0, req.Name, req.Race, req.Class, req.Description, "")
+		uid, req.Name, req.Race, req.Class, req.Description, "")
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
