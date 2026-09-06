@@ -22,6 +22,8 @@ const (
 	OwnerAdventure
 	// OwnerGlobal: visible to every authenticated user (compendium).
 	OwnerGlobal
+	// OwnerCampaignShared: campaign owner sees all; members only when shared=1.
+	OwnerCampaignShared
 )
 
 // EntityInfo describes one linkable/searchable/transferable entity type.
@@ -57,6 +59,7 @@ var Entities = map[string]EntityInfo{
 	"adventure":  {Type: "adventure", Label: "Adventures", Icon: "fa-map", Table: "oneshot_adventures", Ownership: OwnerUserOrCampaign, Searchable: true, Transferable: true, Linkable: true},
 	"wiki":       {Type: "wiki", Label: "Wiki Pages", Icon: "fa-book", Table: "campaign_wiki_pages", Ownership: OwnerCampaign, Searchable: true, Transferable: false, Linkable: true},
 	"timeline":   {Type: "timeline", Label: "Timeline Events", Icon: "fa-timeline", Table: "campaign_timeline_events", Ownership: OwnerCampaign, Searchable: true, Transferable: true, Linkable: true},
+	"knowledge":  {Type: "knowledge", Label: "Knowledge", Icon: "fa-lightbulb", Table: "campaign_knowledge", Ownership: OwnerCampaignShared, Searchable: true, Transferable: true, Linkable: true},
 	"item":       {Type: "item", Label: "Items", Icon: "fa-backpack", Table: "oneshot_items", Ownership: OwnerAdventure, Searchable: true, Transferable: false, Linkable: true},
 	"compendium": {Type: "compendium", Label: "Compendium", Icon: "fa-spell-book", Table: "compendium_entries", Ownership: OwnerGlobal, Searchable: true, Transferable: false, Linkable: true},
 }
@@ -106,6 +109,8 @@ func VisibilityWhere(o Ownership) (fragment string, argCount int) {
 		return `character_id IN (SELECT id FROM characters WHERE user_id = ?)`, 1
 	case OwnerCampaign:
 		return `campaign_id IN ` + campaignMemberSubquery, 2
+	case OwnerCampaignShared:
+		return `(campaign_id IN (SELECT id FROM campaigns WHERE user_id = ?) OR (shared = 1 AND campaign_id IN ` + campaignMemberSubquery + `))`, 3
 	case OwnerUserOrCampaign:
 		return `(user_id = ? OR (campaign_id IS NOT NULL AND campaign_id IN ` + campaignMemberSubquery + `))`, 3
 	case OwnerAdventure:
@@ -160,6 +165,9 @@ func Editable(queryer QueryRower, entityType string, id int64, userID int64, adm
 	case OwnerAdventure:
 		where = `adventure_id IN (SELECT id FROM oneshot_adventures WHERE user_id = ?)`
 		args = []any{id, userID}
+	case OwnerCampaignShared:
+		where = `(campaign_id IN (SELECT id FROM campaigns WHERE user_id = ?) OR (shared = 1 AND campaign_id IN (SELECT campaign_id FROM campaign_members WHERE user_id = ?)))`
+		args = []any{id, userID, userID}
 	case OwnerGlobal:
 		return false
 	default:
