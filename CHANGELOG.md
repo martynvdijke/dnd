@@ -1,3 +1,16 @@
+# [2.54.0](https://github.com/martynvdijke/dnd/compare/v2.53.8...v2.54.0) (2026-09-06)
+
+
+### Bug Fixes
+
+* improve e2e reliability remove sleeps deduplicate helpers guardrail ([#109](https://github.com/martynvdijke/dnd/issues/109)) ([2be6045](https://github.com/martynvdijke/dnd/commit/2be6045642f8e7a59ab9de11856f9124372a5079))
+
+
+### Features
+
+* add map measurement tokens calibration and ruler ([#107](https://github.com/martynvdijke/dnd/issues/107)) ([723a36a](https://github.com/martynvdijke/dnd/commit/723a36a8745c15416f97c521ef44a6a40beacb62))
+* add party knowledge tracker with shared visibility and status lifecycle ([#108](https://github.com/martynvdijke/dnd/issues/108)) ([f86a82d](https://github.com/martynvdijke/dnd/commit/f86a82d977685c9abb3198ec91f94686873540b2))
+
 ## [2.53.8](https://github.com/martynvdijke/dnd/compare/v2.53.7...v2.53.8) (2026-09-05)
 
 ## [2.53.8](https://github.com/martynvdijke/dnd/compare/v2.53.7...v2.53.8) (2026-09-05)
