@@ -1,6 +1,4 @@
 // @ts-nocheck — split from monolith
-import * as d3 from 'd3';
-import Chart from 'chart.js/auto';
 import { expose } from '../lib/expose';
 import { esc } from '../lib/dom';
 import { api } from '../lib/api';
@@ -8,12 +6,14 @@ import { currentChar } from '../lib/state';
 
 // ─── D3 Force Graph ───
 
-function createForceGraph(
+async function createForceGraph(
   container: HTMLElement,
   data: { nodes: any[], edges: any[] },
   groups: Record<string, { shape: string, color: string }>,
   options?: { linkDistance?: number, chargeStrength?: number }
 ) {
+  let d3: any;
+  try { d3 = await import('d3'); } catch (e) { console.warn('d3 load failed', e); return null; }
   const width = container.clientWidth || 800;
   const height = container.clientHeight || 600;
 
@@ -193,7 +193,7 @@ async function renderGraph() {
   try {
     const data = await api('GET', `/api/characters/${currentChar.id}/graph`);
     const container = document.getElementById('graphContainer')!;
-    createForceGraph(container, data, {
+    await createForceGraph(container, data, {
       character: { shape: 'ellipse', color: '#8b0000' },
       location: { shape: 'square', color: '#b8963e' },
       npc: { shape: 'diamond', color: '#2d6a2d' },
@@ -272,24 +272,27 @@ async function renderAnalytics() {
         </div>
       </div>
       <div id="questChartContainer" style="height:200px;max-width:400px;margin:0 auto"></div>`;
-    if ((typeof Chart !== 'undefined') && stats.quests.total > 0) {
-      const ctx = document.createElement('canvas');
-      document.getElementById('questChartContainer')!.appendChild(ctx);
-      new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: ['Active', 'Complete', 'Failed', 'Available', 'Abandoned'],
-          datasets: [{
-            data: [stats.quests.active, stats.quests.complete, stats.quests.failed, stats.quests.available, stats.quests.abandoned],
-            backgroundColor: ['#8b0000', '#2d6a2d', '#666', '#b8963e', '#ccc'],
-            borderWidth: 0,
-          }]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom', labels: { font: { family: 'Vollkorn' } } } }
-        }
-      });
+    if (stats.quests.total > 0) {
+      try {
+        const { default: Chart } = await import('chart.js/auto');
+        const ctx = document.createElement('canvas');
+        document.getElementById('questChartContainer')!.appendChild(ctx);
+        new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Active', 'Complete', 'Failed', 'Available', 'Abandoned'],
+            datasets: [{
+              data: [stats.quests.active, stats.quests.complete, stats.quests.failed, stats.quests.available, stats.quests.abandoned],
+              backgroundColor: ['#8b0000', '#2d6a2d', '#666', '#b8963e', '#ccc'],
+              borderWidth: 0,
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'bottom', labels: { font: { family: 'Vollkorn' } } } }
+          }
+        });
+      } catch (e) { console.warn('chart.js load failed', e); }
     }
   } catch (e:any) {
     el.innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load analytics: ${esc(e.message)}</p></div>`;

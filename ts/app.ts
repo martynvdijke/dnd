@@ -38,6 +38,7 @@ import { currentUser, currentChar, currentTab, allLocations, allNPCs, currentCam
 
 // Expose API helper globally for E2E tests (window.api check)
 expose('api', api);
+try { initBridge(); } catch (e) { console.warn('bridge init failed', e); }
 
 declare const htmx: any;
 
@@ -75,6 +76,8 @@ expose('navigateSearchResult', function (type: string, id: number, name: string)
 
 // ─── Character List → extracted to ts/characters/list.ts ───
 import { loadCharacters, filterCharacters } from './characters/list';
+expose('loadCharacters', loadCharacters);
+expose('filterCharacters', filterCharacters);
 
 async function openChar(id: number) {
   try {
@@ -109,6 +112,11 @@ expose('getCurrentCampaign', () => currentCampaign);
 
 // ─── D3 Force Graph / Graph / Analytics → extracted to ts/app/graph-analytics.ts ───
 import './app/graph-analytics';
+import './app/character-ops';
+import './app/character-details';
+import './app/combat-conditions';
+import './app/notes';
+import './app/sort-switch';
 
 // ─── Encounter Builder → extracted to ts/encounter.ts ───
 import './encounter';

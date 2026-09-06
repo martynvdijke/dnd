@@ -60,8 +60,19 @@ import {
 export function initBridge(): void {
   const w = window as unknown as Record<string, unknown>;
 
-  // Navigation
+  // Navigation — centralized wrappers so window.show* never depends on
+  // fragile side-effect imports. showView is the single source of truth.
   w.showView = showView;
+  w.showCompendium = () => showView('compendium');
+  w.showEncounterBuilder = () => showView('encounter');
+  w.showFactions = () => showView('factions');
+  w.showParty = () => showView('party');
+  w.showTimeline = () => showView('timeline');
+  w.showCombatTracker = () => showView('combatTracker');
+  w.showDice = () => showView('dice');
+  w.showWiki = () => showView('wiki');
+  w.showShops = () => showView('shops');
+  w.showOneShots = () => showView('oneshot');
 
   // Theme
   w.toggleTheme = toggleTheme;

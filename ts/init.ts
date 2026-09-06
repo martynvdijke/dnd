@@ -108,7 +108,23 @@ export async function init() {
     // to its 200ms debounce).
     (window as any).__apiReady = false;
     showLoading();
-    const user = await api('GET', '/api/user/me');
+    let user: any;
+    try {
+      user = await api('GET', '/api/user/me');
+    } catch (firstErr) {
+      const msg = String((firstErr as any)?.message || '');
+      const is401 = msg.includes('401') || msg.toLowerCase().includes('unauthorized') || msg.includes('Request failed');
+      if (is401) {
+        await new Promise((r) => setTimeout(r, 300));
+        try {
+          user = await api('GET', '/api/user/me');
+        } catch (retryErr) {
+          throw retryErr;
+        }
+      } else {
+        throw firstErr;
+      }
+    }
     setCurrentUser(user);
     const tokenRes = await api('GET', '/api/csrf-token');
     setCsrfToken(tokenRes.token);
@@ -170,13 +186,16 @@ export async function init() {
     api('GET', '/api/npcs').then(setAllNPCs).catch(() => {});
   } catch (err) {
     // Ensure the loading overlay is never left stuck if bootstrap fails.
+    console.error('init failed', err);
     hideLoading();
-    (window as any).__apiReady = true;
     // Offline (service worker serving the cached shell): stay on the app
     // instead of redirecting to /login — cached assets keep the UI usable.
     if (navigator.onLine === false) {
+      (window as any).__apiReady = true;
       showView('characters');
     } else {
+      console.error('init failed - redirecting to /login', err);
+      (window as any).__apiReady = true;
       window.location.href = '/login';
     }
   }
