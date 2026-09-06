@@ -38,6 +38,10 @@ async function createGeneratedOneShot(page, title: string) {
 }
 
 test.describe('One-Shot Content Features', () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page);
+  });
+
   test.describe('Items', () => {
     test('Create an item for a one-shot', async ({ page }) => {
       const title = uniqueName();

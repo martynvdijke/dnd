@@ -1,5 +1,5 @@
 import { test, expect, type Page } from './fixtures.js';
-import { NAV_TIMEOUT, clickNavItem, ensureNavOpen, isMobile, login, waitLoadingDone, waitModalClosed } from './helpers.js';
+import { ensureNavOpen, waitLoadingDone, waitModalClosed, isMobile, clickNavItem, login, NAV_TIMEOUT } from './helpers.js';
 
 const uniqueName = () => `Test-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -247,7 +247,62 @@ test.describe('NPC interactions extended', () => {
   });
 
 
-);
+  test('can create and delete NPC with full stats', async ({ page }) => {
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Gnome');
+    await page.fill('#newClass', 'Wizard');
+    await page.click('text=Create');
+    await waitModalClosed(page);
+    await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
+
+    const charId = await getCharId(page, name);
+    expect(charId).toBeTruthy();
+
+    await page.evaluate(async (opts) => {
+      const npc = await window.api('POST', '/api/npcs', {
+        name: 'Villain', race: 'Dragonborn', class: 'Sorcerer', description: 'A powerful foe',
+      });
+      await window.api('POST', `/api/characters/${opts.charId}/npcs`, {
+        npc_id: npc.id, relationship: 'rival', notes: '',
+      });
+    }, { charId });
+
+    await openPartySubTab(page, 'NPCs');
+    await expect(page.locator('#partyContent h5').first()).toContainText('Campaign NPCs');
+    await expect(page.locator('#partyContent')).toContainText('Villain');
+  });
+
+  test('can link and interact with NPCs', async ({ page }) => {
+    const name = uniqueName();
+    await page.click('text=New Character');
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Gnome');
+    await page.fill('#newClass', 'Wizard');
+    await page.click('text=Create');
+    await waitModalClosed(page);
+    await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
+
+    const charId = await getCharId(page, name);
+    expect(charId).toBeTruthy();
+
+    await page.evaluate(async (opts) => {
+      const npc = await window.api('POST', '/api/npcs', {
+        name: 'Quest Giver', race: 'Human', class: 'Cleric', description: 'Local priest',
+      });
+      await window.api('POST', `/api/characters/${opts.charId}/npcs`, {
+        npc_id: npc.id, relationship: 'contact', notes: '',
+      });
+    }, { charId });
+
+    await openPartySubTab(page, 'NPCs');
+    await expect(page.locator('#partyContent h5').first()).toContainText('Campaign NPCs');
+    await expect(page.locator('#partyContent')).toContainText('Quest Giver', { timeout: NAV_TIMEOUT });
+  });
+});
 
 test.describe('Spellcasting management', () => {
   test.beforeEach(async ({ page }) => {

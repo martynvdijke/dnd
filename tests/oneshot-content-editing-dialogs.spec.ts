@@ -38,6 +38,10 @@ async function createGeneratedOneShot(page, title: string) {
 }
 
 test.describe('One-Shot Content Features', () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page);
+  });
+
   test.describe('Inline Editing', () => {
     test('Update act duration', async ({ page }) => {
       const title = uniqueName();
@@ -386,9 +390,4 @@ test.describe('One-Shot Content Features', () => {
       await expect(page.locator('#genericModalBody')).not.toContainText(speaker, { timeout: NAV_TIMEOUT });
     });
   });
-});
-
-// ─── Acts & Scenes API CRUD ───
-
-
 });

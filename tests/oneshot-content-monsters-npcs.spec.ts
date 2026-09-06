@@ -38,6 +38,10 @@ async function createGeneratedOneShot(page, title: string) {
 }
 
 test.describe('One-Shot Content Features', () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page);
+  });
+
   test.describe('Monsters', () => {
     test('Create monster library entry', async ({ page }) => {
       const name = uniqueName();

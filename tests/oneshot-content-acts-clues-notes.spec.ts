@@ -38,6 +38,12 @@ async function createGeneratedOneShot(page, title: string) {
 }
 
 test.describe('One-Shot Content Features', () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page);
+  });
+
+// ─── Acts & Scenes API CRUD ───
+
 test.describe('Acts & Scenes API CRUD', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
@@ -521,6 +527,5 @@ test.describe('DM Notes', () => {
     }, adv.id);
     expect(notes.some((n: any) => n.id === created.id)).toBe(false);
   });
-});
-
+  });
 });
