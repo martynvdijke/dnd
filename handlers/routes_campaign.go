@@ -83,6 +83,17 @@ func RegisterCampaignRoutes(r *gin.RouterGroup) {
 	r.POST("/campaigns/:id/recaps/generate", GenerateCampaignRecap)
 	r.POST("/recaps/:id/mark-sent", MarkRecapAsSent)
 
+	// Knowledge
+	r.GET("/campaigns/:id/knowledge", ListKnowledge)
+	r.POST("/campaigns/:id/knowledge", CreateKnowledge)
+	r.GET("/knowledge/:kid", GetKnowledge)
+	r.PUT("/knowledge/:kid", UpdateKnowledge)
+	r.DELETE("/knowledge/:kid", DeleteKnowledge)
+	r.GET("/knowledge/:kid/known-by", ListKnowledgeKnownBy)
+	r.POST("/knowledge/:kid/known-by", AddKnowledgeKnownBy)
+	r.DELETE("/knowledge/:kid/known-by/:cid", RemoveKnowledgeKnownBy)
+	r.POST("/knowledge/:kid/reveal", BulkRevealKnowledge)
+
 	// Per-user push mute for a campaign
 	r.GET("/campaigns/:id/push-mute", GetCampaignPushMute)
 	r.PUT("/campaigns/:id/push-mute", SetCampaignPushMute)

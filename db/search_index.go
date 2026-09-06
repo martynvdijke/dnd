@@ -235,6 +235,20 @@ CREATE TRIGGER IF NOT EXISTS esi_items_au AFTER UPDATE ON oneshot_items BEGIN
     VALUES ('item', new.id, new.name, new.category, new.description);
 END;
 
+-- campaign_knowledge (entity type: knowledge)
+CREATE TRIGGER IF NOT EXISTS esi_knowledge_ai AFTER INSERT ON campaign_knowledge BEGIN
+    INSERT INTO entity_search_index(entity_type, entity_id, title, subtitle, body)
+    VALUES ('knowledge', new.id, new.title, new.status, new.content || ' ' || new.source);
+END;
+CREATE TRIGGER IF NOT EXISTS esi_knowledge_ad AFTER DELETE ON campaign_knowledge BEGIN
+    DELETE FROM entity_search_index WHERE entity_type='knowledge' AND entity_id=old.id;
+END;
+CREATE TRIGGER IF NOT EXISTS esi_knowledge_au AFTER UPDATE ON campaign_knowledge BEGIN
+    DELETE FROM entity_search_index WHERE entity_type='knowledge' AND entity_id=old.id;
+    INSERT INTO entity_search_index(entity_type, entity_id, title, subtitle, body)
+    VALUES ('knowledge', new.id, new.title, new.status, new.content || ' ' || new.source);
+END;
+
 -- compendium_entries (entity type: compendium)
 CREATE TRIGGER IF NOT EXISTS esi_compendium_ai AFTER INSERT ON compendium_entries BEGIN
     INSERT INTO entity_search_index(entity_type, entity_id, title, subtitle, body)
@@ -290,6 +304,8 @@ INSERT INTO entity_search_index(entity_type, entity_id, title, subtitle, body)
 SELECT 'timeline', id, title, event_type, description FROM campaign_timeline_events;
 INSERT INTO entity_search_index(entity_type, entity_id, title, subtitle, body)
 SELECT 'item', id, name, category, description FROM oneshot_items;
+INSERT INTO entity_search_index(entity_type, entity_id, title, subtitle, body)
+SELECT 'knowledge', id, title, status, content || ' ' || source FROM campaign_knowledge;
 INSERT INTO entity_search_index(entity_type, entity_id, title, subtitle, body)
 SELECT 'compendium', e.id, COALESCE(json_extract(e.data, '$.name'), ''),
     COALESCE((SELECT display_name FROM compendium_schemas WHERE id = e.schema_id), ''), e.data
@@ -347,6 +363,9 @@ CREATE TRIGGER IF NOT EXISTS elc_timeline AFTER DELETE ON campaign_timeline_even
 END;
 CREATE TRIGGER IF NOT EXISTS elc_items AFTER DELETE ON oneshot_items BEGIN
     DELETE FROM entity_links WHERE (source_type='item' AND source_id=old.id) OR (target_type='item' AND target_id=old.id);
+END;
+CREATE TRIGGER IF NOT EXISTS elc_knowledge AFTER DELETE ON campaign_knowledge BEGIN
+    DELETE FROM entity_links WHERE (source_type='knowledge' AND source_id=old.id) OR (target_type='knowledge' AND target_id=old.id);
 END;
 CREATE TRIGGER IF NOT EXISTS elc_compendium AFTER DELETE ON compendium_entries BEGIN
     DELETE FROM entity_links WHERE (source_type='compendium' AND source_id=old.id) OR (target_type='compendium' AND target_id=old.id);

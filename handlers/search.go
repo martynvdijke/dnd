@@ -96,6 +96,8 @@ func entityTypeName(et string) string {
 		return "Timeline Event"
 	case "item":
 		return "Item"
+	case "knowledge":
+		return "Knowledge"
 	case "compendium":
 		return "Compendium"
 	}
@@ -137,6 +139,8 @@ func entityURL(et string, id int64) string {
 		return fmt.Sprintf("#/timeline/%d", id)
 	case "item":
 		return fmt.Sprintf("#/items/%d", id)
+	case "knowledge":
+		return fmt.Sprintf("#/campaigns/knowledge/%d", id)
 	case "compendium":
 		return fmt.Sprintf("#/compendium/%d", id)
 	}
