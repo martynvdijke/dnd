@@ -343,7 +343,11 @@ func ListKnowledgeKnownBy(c *gin.Context) {
 		return
 	}
 	rows, _ := db.DB.Query(`SELECT character_id FROM campaign_knowledge_known_by WHERE knowledge_id=?`, kid)
-	defer func() { if rows != nil { rows.Close() } }()
+	defer func() {
+		if rows != nil {
+			rows.Close()
+		}
+	}()
 	ids := []int64{}
 	if rows != nil {
 		for rows.Next() {

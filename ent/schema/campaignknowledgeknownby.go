@@ -27,8 +27,6 @@ func (CampaignKnowledgeKnownBy) Edges() []ent.Edge {
 	}
 }
 
-
-
 func (CampaignKnowledgeKnownBy) Indexes() []ent.Index {
 	return []ent.Index{
 		index.Fields("knowledge_id", "character_id").Unique(),

@@ -32,7 +32,11 @@ func HtmxKnowledgeList(c *gin.Context) {
 	}
 	query += ` ORDER BY created_at DESC`
 	rows, _ := db.DB.Query(query, args...)
-	defer func() { if rows != nil { rows.Close() } }()
+	defer func() {
+		if rows != nil {
+			rows.Close()
+		}
+	}()
 	type Card struct {
 		ID     int64
 		Title  string
