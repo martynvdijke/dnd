@@ -125,6 +125,8 @@ func ApplySafeAlters(db *sql.DB) error {
 		"ALTER TABLE events_settings ADD COLUMN ical_url TEXT NOT NULL DEFAULT ''",
 		"ALTER TABLE campaign_event_settings ADD COLUMN source_type TEXT NOT NULL DEFAULT 'google_api'",
 		"ALTER TABLE campaign_event_settings ADD COLUMN ical_url TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE campaign_maps ADD COLUMN grid_units TEXT NOT NULL DEFAULT 'ft'",
+		"ALTER TABLE campaign_map_pins ADD COLUMN snap_to_grid INTEGER NOT NULL DEFAULT 0",
 	}
 
 	for _, stmt := range alterStatements {

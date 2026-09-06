@@ -65,6 +65,7 @@ var Registry = []Migration{
 	{Version: 49, SQL: migration049SQL},
 	{Version: 50, SQL: migration050SQL},
 	{Version: 51, SQL: migration051SQL},
+	{Version: 52, SQL: migration052SQL},
 }
 
 // Migrate applies pending migrations to the given DB.
