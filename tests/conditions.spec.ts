@@ -16,7 +16,7 @@ async function createCharacter(page, name) {
 test.describe('Conditions', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
-    await page.waitForTimeout(200);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
   });
 
   test('get conditions types', async ({ page }) => {

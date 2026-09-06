@@ -61,7 +61,13 @@ CI rule: every gate in `.github/workflows/ci.yaml` must call a script under `scr
   (10s) from `tests/helpers.ts` instead of inline numbers.
 - **Slow tests**: call `test.slow()` first inside heavy tests, mobile-viewport
   tests, and any test that performs a full SPA init or waits on network flows
-  (`waitLoadingDone`, `waitForFunction`).
+  (`waitLoadingDone`, `waitForFunction`). Keep `test.slow()` only when justified
+  and add a comment `// slow: reason`.
+- **No sleeps**: do not use `page.waitForTimeout` in `tests/` — replace with
+  `expect(locator).toBeVisible()/toBeHidden()`, `locator.waitFor()`,
+  `page.waitForResponse()` or `page.waitForFunction()` on `__apiReady`/overlay.
+  Guarded by `task lint:e2e`, CI, and a prek hook. Allowlist with
+  `// allow-waitForTimeout: reason` if truly needed.
 - **CI-only tests**: guard with `test.skip(!process.env.CI, 'Runs only in CI')`
   (see `tests/visual-ci.spec.ts`) and fix a viewport when layout matters.
 - **Fixtures**: the test worker spawns its own `./villum-server` on a per-worker

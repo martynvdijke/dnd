@@ -95,6 +95,17 @@ tasks:
     cmds:
       - scripts/ci/run-all.sh
 
+  "lint:e2e":
+    desc: "Forbid new waitForTimeout in tests (allow allow-waitForTimeout comment)"
+    cmds:
+      - |
+        if rg -n "waitForTimeout" tests/ | grep -v "allow-waitForTimeout" | grep -q .; then
+          echo "ERROR: waitForTimeout found in tests/ — replace with expect().toBeVisible()/waitForResponse/waitForFunction (allowlist with // allow-waitForTimeout: reason)"
+          rg -n "waitForTimeout" tests/ | grep -v "allow-waitForTimeout"
+          exit 1
+        fi
+        echo "lint:e2e: no forbidden waitForTimeout"
+
   trmnl:lint:
     desc: Lint the TRMNL plugin with trmnlp (requires ruby + trmnl_preview gem)
     cmds:

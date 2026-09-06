@@ -49,7 +49,6 @@ test.describe('File upload and media gallery', () => {
   });
 
   test('empty media gallery shows empty state', async ({ page }) => {
-    test.slow();
     await page.goto('/htmx/media-gallery?owner_type=campaign&owner_id=99999', { waitUntil: 'domcontentloaded' });
 
     const emptyState = page.locator('text=No Media Yet');
@@ -57,7 +56,6 @@ test.describe('File upload and media gallery', () => {
   });
 
   test('upload API works and returns valid response', async ({ page }) => {
-    test.slow();
     const pngBytes = makeTestPNG();
     const csrf = await getCSRFToken(page);
     const apiToken = await getApiToken(page);
@@ -84,7 +82,6 @@ test.describe('File upload and media gallery', () => {
   });
 
   test('upload-links API works', async ({ page }) => {
-    test.slow();
     const pngBytes = makeTestPNG();
     const csrf = await getCSRFToken(page);
     const apiToken = await getApiToken(page);
@@ -137,9 +134,8 @@ test.describe('File upload and media gallery', () => {
   });
 
   test('media gallery HTMX loads and renders upload button', async ({ page }) => {
-    test.slow();
     await page.goto('/htmx/media-gallery?owner_type=campaign&owner_id=99999', { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 
     const uploadBtn = page.locator('button:has-text("Upload")');
     await expect(uploadBtn).toBeVisible({ timeout: NAV_TIMEOUT });

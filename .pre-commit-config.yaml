@@ -37,6 +37,12 @@ repos:
         language: system
         pass_filenames: false
 
+      - id: no-waitForTimeout
+        name: forbid waitForTimeout in tests
+        entry: bash -c 'if rg -n "waitForTimeout" tests/ | grep -v "allow-waitForTimeout" | grep -q .; then echo "waitForTimeout forbidden"; rg -n "waitForTimeout" tests/ | grep -v "allow-waitForTimeout"; exit 1; fi'
+        language: system
+        pass_filenames: false
+
       - id: ci-parity
         name: full CI parity suite
         entry: task ci

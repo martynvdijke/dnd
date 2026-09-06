@@ -37,7 +37,6 @@ test.describe('Campaign Completeness', () => {
   // ─── Party Items API ───
 
   test('Party items: empty list, create, list, delete', async ({ page }) => {
-    test.slow();
     // List empty
     let items = await page.evaluate(async (cid) => {
       return (window as any).api('GET', `/api/campaigns/${cid}/party-items`);
@@ -77,7 +76,6 @@ test.describe('Campaign Completeness', () => {
   // ─── Session Plans API ───
 
   test('Session plans: CRUD cycle', async ({ page }) => {
-    test.slow();
     // List empty
     let plans = await page.evaluate(async (cid) => {
       return (window as any).api('GET', `/api/campaigns/${cid}/session-plans`);
@@ -144,7 +142,6 @@ test.describe('Campaign Completeness', () => {
   // ─── Dashboard API ───
 
   test('Dashboard returns campaign overview data', async ({ page }) => {
-    test.slow();
     const dash = await page.evaluate(async (cid) => {
       return (window as any).api('GET', `/api/campaigns/${cid}/dashboard`);
     }, campaignId);
@@ -165,7 +162,6 @@ test.describe('Campaign Completeness', () => {
   // ─── Exhaustion API ───
 
   test('Exhaustion: set level via API', async ({ page }) => {
-    test.slow();
     // Find the character
     const chars = await page.evaluate(async () => {
       return (window as any).api('GET', '/api/characters');
@@ -199,7 +195,6 @@ test.describe('Campaign Completeness', () => {
   // ─── Spell Preparation API ───
 
   test('Spell preparation: batch prepare/unprepare', async ({ page }) => {
-    test.slow();
     // Find character
     const chars = await page.evaluate(async () => {
       return (window as any).api('GET', '/api/characters');

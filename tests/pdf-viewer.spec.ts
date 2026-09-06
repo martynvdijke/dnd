@@ -6,11 +6,10 @@ const uniqueName = () => `PDF-${Date.now()}-${Math.random().toString(36).slice(2
 test.describe('PDF Viewer', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
-    await page.waitForTimeout(200);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
   });
 
   test('PDF viewer global function exists', async ({ page }) => {
-    test.slow();
     const hasViewer = await page.evaluate(() => {
       return typeof (window as any).pdfViewerOpen === 'function';
     });
@@ -19,7 +18,6 @@ test.describe('PDF Viewer', () => {
   });
 
   test('PDF viewer open does not crash', async ({ page }) => {
-    test.slow();
     const result = await page.evaluate(async () => {
       try {
         if (typeof (window as any).pdfViewerOpen === 'function') {
@@ -35,7 +33,6 @@ test.describe('PDF Viewer', () => {
   });
 
   test('PDF viewer element appears when triggered', async ({ page }) => {
-    test.slow();
     // Attempt to trigger PDF viewer and check for modal/viewer element
     const viewerPresent = await page.evaluate(async () => {
       try {
@@ -57,7 +54,6 @@ test.describe('PDF Viewer', () => {
   });
 
   test('Page loads without PDF-related console errors', async ({ page }) => {
-    test.slow();
     const consoleErrors: string[] = [];
     page.on('console', (msg) => {
       if (msg.type() === 'error') {
@@ -67,7 +63,7 @@ test.describe('PDF Viewer', () => {
 
     // Navigate to a page that might render PDF content (oneshots with uploads)
     await page.goto('/oneshots', { waitUntil: 'domcontentloaded' }).catch(() => {});
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 
     // Filter out expected favicon/404 errors
     const pdfErrors = consoleErrors.filter(e =>

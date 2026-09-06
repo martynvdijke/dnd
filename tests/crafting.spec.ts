@@ -9,7 +9,6 @@ test.describe('Crafting System', () => {
   });
 
   test('crafting tab shows recipes', async ({ page }) => {
-    test.slow();
     const name = uniqueName();
     await page.click('button:has-text("New Character")');
     await page.locator('#newName').waitFor({ state: 'visible', timeout: NAV_TIMEOUT });
@@ -23,13 +22,12 @@ test.describe('Crafting System', () => {
     await waitLoadingDone(page);
 
     await page.click('text=Crafting');
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await expect(page.locator('#craftingSection')).toContainText('Known Recipes');
     await expect(page.locator('#craftingSection')).toContainText('Potion of Healing');
   });
 
   test('starts crafting via API', async ({ page }) => {
-    test.slow();
     const name = uniqueName();
     await page.click('button:has-text("New Character")');
     await page.locator('#newName').waitFor({ state: 'visible', timeout: NAV_TIMEOUT });
@@ -72,13 +70,12 @@ test.describe('Crafting System', () => {
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
     await page.click('text=Crafting');
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await expect(page.locator('#craftingSection')).toContainText('Potion of Healing');
     await expect(page.locator('#craftingSection')).toContainText('In Progress');
   });
 
   test('advances crafting progress via API', async ({ page }) => {
-    test.slow();
     const name = uniqueName();
     await page.click('button:has-text("New Character")');
     await page.locator('#newName').waitFor({ state: 'visible', timeout: NAV_TIMEOUT });
@@ -126,7 +123,7 @@ test.describe('Crafting System', () => {
     await page.locator('.character-card').filter({ hasText: name }).click();
     await waitLoadingDone(page);
     await page.click('text=Crafting');
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await expect(page.locator('#craftingSection')).toContainText('Potion of Healing');
     await expect(page.locator('#craftingSection')).toContainText('In Progress');
   });

@@ -1,13 +1,15 @@
+import { expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-export const LOGIN_TIMEOUT = 60000;
-export const NAV_TIMEOUT = 15000;
+export const LOGIN_TIMEOUT = 30000;
+export const NAV_TIMEOUT = 10000;
 
 export async function ensureNavOpen(page: Page) {
   const toggler = page.locator('.navbar-toggler');
   if (await toggler.isVisible()) {
     await toggler.click();
-    await page.waitForTimeout(300);
+    await page.locator('.navbar-toggler').waitFor({ state: 'hidden', timeout: 2000 }).catch(() => {});
+    await page.waitForFunction(() => (window as any).__apiReady === true, { timeout: 2000 }).catch(() => {});
   }
 }
 
@@ -91,7 +93,7 @@ export async function clickNavItem(page: Page, nav: string, bottomNav?: string) 
 export async function openMoreNav(page: Page) {
   if (await isMobile(page)) {
     await page.locator('[data-testid="nav-more"]').click();
-    await page.waitForTimeout(300);
+    await expect(page.locator('#bottom-sheet-more-nav')).toBeVisible({ timeout: 2000 }).catch(() => {});
   }
 }
 
@@ -100,8 +102,7 @@ export async function clickSecondaryNavItem(page: Page, nav: string, moreId: str
     await openMoreNav(page);
     // Bottom sheet buttons are dynamically created without IDs, click by text
     await page.locator('#bottom-sheet-more-nav button').filter({ hasText: label ?? nav }).click();
-    // Wait for bottom sheet close animation (onclick calls closeBottomSheet)
-    await page.waitForTimeout(500);
+    await expect(page.locator('#bottom-sheet-more-nav')).toBeHidden({ timeout: 2000 }).catch(() => {});
   } else {
     await page.locator(`#appSidebar [data-testid="nav-${nav}"]`).click();
   }
@@ -109,5 +110,5 @@ export async function clickSecondaryNavItem(page: Page, nav: string, moreId: str
 
 export async function clickBottomTabForce(page: Page, nav: string) {
   await page.locator(`.bottom-tab-item[data-nav="${nav}"]`).click({ force: true });
-  await page.waitForTimeout(300);
+  await page.waitForFunction(() => (window as any).__apiReady === true, { timeout: 2000 }).catch(() => {});
 }

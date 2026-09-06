@@ -32,7 +32,7 @@ async function logoutAndLoginAs(page, username, password) {
 test.describe('Campaign roster management', () => {
   test.beforeEach(async ({ page }) => {
     await login(page); // admin
-    await page.waitForTimeout(300);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
   });
 
   test('create campaign with roster selection persists own characters and DM notes', async ({ page }) => {

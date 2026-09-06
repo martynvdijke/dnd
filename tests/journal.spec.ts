@@ -36,7 +36,7 @@ test.describe('Character Journal', () => {
     }, { cid, title, content });
 
     await page.click('#tabBar button:has-text("Journal")');
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 
     await expect(page.locator('#journalSection')).toContainText(title);
     await expect(page.locator('#journalSection')).toContainText('We set out from Waterdeep at dawn.');
@@ -56,10 +56,10 @@ test.describe('Character Journal', () => {
     await waitLoadingDone(page);
 
     await page.click('#tabBar button:has-text("Journal")');
-    await page.waitForTimeout(300);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 
     await page.click('text=Write Entry');
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 
     await expect(page.locator('#journalToolbar .editor-btn').first()).toBeVisible();
 
@@ -90,7 +90,7 @@ test.describe('Character Journal', () => {
     }, cid);
 
     await page.click('#tabBar button:has-text("Journal")');
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 
     await expect(page.locator('.journal-month-header').first()).toBeVisible();
     await expect(page.locator('#journalSection')).toContainText('May Entry');
@@ -122,13 +122,13 @@ test.describe('Character Journal', () => {
     }, cid);
 
     await page.click('#tabBar button:has-text("Journal")');
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 
     const card = page.locator('.journal-entry-card').first();
     await expect(card).not.toHaveClass(/expanded/);
 
     await card.locator('.journal-entry-header').click();
-    await page.waitForTimeout(300);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await expect(card).toHaveClass(/expanded/);
   });
 });

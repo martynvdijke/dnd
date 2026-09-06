@@ -2,7 +2,7 @@ import { test, expect, type Page } from './fixtures.js';
 import { ensureNavOpen, waitLoadingDone, isMobile, login, NAV_TIMEOUT } from './helpers.js';
 
 async function goToAdmin(page: Page) {
-  await page.waitForTimeout(300);
+  await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
   await page.goto('/admin', { waitUntil: 'domcontentloaded', timeout: 10000 });
 }
 
@@ -12,7 +12,6 @@ test.describe('Admin panel', () => {
   });
 
   test('admin link is visible for admin users', async ({ page }) => {
-    test.slow();
     if (await isMobile(page)) {
       await page.goto('/admin', { waitUntil: 'domcontentloaded', timeout: 10000 });
       await expect(page.locator('#adminUsers .card-header')).toContainText('Users');
@@ -23,7 +22,6 @@ test.describe('Admin panel', () => {
   });
 
   test('admin panel loads user list', async ({ page }) => {
-    test.slow();
     await goToAdmin(page);
     await expect(page.locator('#adminUsers .card-header')).toContainText('Users');
     const rows = page.locator('#userTable tbody tr');
@@ -31,7 +29,6 @@ test.describe('Admin panel', () => {
   });
 
   test('admin can create a new user', async ({ page }) => {
-    test.slow();
     const name = `testuser-${Date.now()}`;
     await goToAdmin(page);
     await page.click('#adminUsers button:has-text("Add User")');
@@ -44,7 +41,6 @@ test.describe('Admin panel', () => {
   });
 
   test('admin can manage compendium', async ({ page }) => {
-    test.slow();
     const uniqueEntry = `Test Race ${Date.now()}`;
     await goToAdmin(page);
 
@@ -84,7 +80,6 @@ test.describe('Admin panel', () => {
   });
 
   test('import wizard: paste, detect schema, dry-run, import, verify log', async ({ page }) => {
-    test.slow();
     const stamp = Date.now();
     const name1 = `ImportWiz A ${stamp}`;
     const name2 = `ImportWiz B ${stamp}`;
@@ -135,7 +130,6 @@ test.describe('Admin panel', () => {
   });
 
   test('backup tab works', async ({ page }) => {
-    test.slow();
     await goToAdmin(page);
     await page.click('#adminTabs button:has-text("Backup")');
     await expect(page.locator('#adminBackup .card-header').first()).toContainText('Backup Settings');
@@ -143,7 +137,6 @@ test.describe('Admin panel', () => {
   });
 
   test('push tab loads VAPID settings and saves', async ({ page }) => {
-    test.slow();
     await goToAdmin(page);
     await page.click('#adminTabs button:has-text("Push")');
     const publicKey = page.locator('[data-testid="push-public-key"]');

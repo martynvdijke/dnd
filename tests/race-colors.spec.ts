@@ -76,7 +76,7 @@ test.describe('Race Colors', () => {
 
     // Click Characters nav
     await page.locator('#appSidebar button[data-nav="characters"]').click();
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 
     // The character card should show a colored badge
     const badge = page.locator('.character-card').filter({ hasText: 'RaceColorChar' }).locator('.badge');

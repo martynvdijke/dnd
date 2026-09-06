@@ -1,14 +1,10 @@
 import { test, expect, type Page } from './fixtures.js';
-import { login, clickNavItem, NAV_TIMEOUT } from './helpers.js';
+import { NAV_TIMEOUT, clickNavItem, login, waitLoadingDone, waitModalClosed } from './helpers.js';
 
 const uniqueName = () => `CMP-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-async function waitLoadingDone(page: Page) {
-  await page.waitForFunction(() => {
-    const o = document.getElementById('loadingOverlay');
-    return o && o.classList.contains('d-none');
-  }, { timeout: NAV_TIMEOUT }).catch(() => {});
-}
+
+
 
 test.describe('Compendium', () => {
   test.beforeEach(async ({ page }) => {
@@ -304,7 +300,7 @@ test.describe('User Compendium View', () => {
     // Wait for SPA loading to complete and compendium view to render
     await page.waitForSelector('#compendiumView', { state: 'visible', timeout: 10000 });
     // Give async schema load time to resolve
-    await page.waitForTimeout(1000);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
   }
 
   test('legacy tabs render when navigating to compendium', async ({ page }) => {
@@ -363,7 +359,7 @@ test.describe('User Compendium View', () => {
 
       // Click the first dynamic tab and check for cards
       await page.locator('#compSchemaTabs .nav-link').first().click();
-      await page.waitForTimeout(300);
+      await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 
       // The corresponding content pane should have cards
       const firstPane = page.locator('#compSchemaContent > div').first();
@@ -388,7 +384,7 @@ test.describe('User Compendium View', () => {
     const tab = page.locator(`#compSchemaTab-${largeSchema.type_name}`);
     await expect(tab).toBeAttached({ timeout: 3000 });
     await tab.click();
-    await page.waitForTimeout(300);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 
     const content = page.locator(`#compSchemaContent-${largeSchema.type_name}`);
     await expect(content.locator('text=View All')).toBeAttached();

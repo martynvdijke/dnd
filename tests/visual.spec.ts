@@ -8,15 +8,13 @@ test.describe('Visual regression', () => {
   });
 
   test('@visual nav sidebar on desktop', async ({ page }) => {
-    test.slow();
     test.info().annotations.push({ type: 'visual', description: 'Desktop navigation sidebar' });
     if (await isMobile(page)) test.skip();
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await expect(page.locator('#appSidebar')).toHaveScreenshot('nav-sidebar.png');
   });
 
   test('@visual compendium legacy tabs', async ({ page }) => {
-    test.slow();
     test.info().annotations.push({ type: 'visual', description: 'Compendium page with legacy tabs' });
     await clickNavItem(page, 'compendium', 'compendium');
     await expect(page.locator('#compendiumView')).toBeVisible({ timeout: NAV_TIMEOUT });
@@ -24,12 +22,11 @@ test.describe('Visual regression', () => {
     // Select a stable anchor — use compendiumTabs row (content below changes with scroll)
     await page.locator('#compTabRaces').click();
     await expect(page.locator('#compRaces .card').first()).toBeVisible({ timeout: 10000 });
-    await page.waitForTimeout(300);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await expect(page.locator('#compendiumTabs')).toHaveScreenshot('compendium-legacy-tabs.png');
   });
 
   test('@visual compendium with dynamic schema tab', async ({ page }) => {
-    test.slow();
     test.info().annotations.push({ type: 'visual', description: 'Compendium with dynamic schema tab visible' });
     const timestamp = Date.now();
     const typeName = `vis-${timestamp}`;
@@ -73,11 +70,10 @@ test.describe('Visual regression', () => {
   });
 
   test('@visual character list view', async ({ page }) => {
-    test.slow();
     test.info().annotations.push({ type: 'visual', description: 'Characters view heading' });
     await clickNavItem(page, 'characters', 'characters');
     await expect(page.locator('#charactersView')).toBeVisible({ timeout: NAV_TIMEOUT });
-    await page.waitForTimeout(300);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     // Characters view content is dynamic — snapshot the heading row for stability
     await expect(page.locator('#charactersView h1')).toHaveScreenshot('characters-view.png');
   });

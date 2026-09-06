@@ -7,7 +7,6 @@ test.describe('Session Mode', () => {
   });
 
   test('session mode topbar element exists in DOM', async ({ page }) => {
-    test.slow();
     const topbar = page.locator('#sessionModeTopbar');
     await expect(topbar).toBeAttached({ timeout: NAV_TIMEOUT });
     await expect(topbar).not.toBeVisible();
@@ -16,7 +15,6 @@ test.describe('Session Mode', () => {
   });
 
   test('session mode CSS classes are defined in stylesheet', async ({ page }) => {
-    test.slow();
     const hasStyles = await page.evaluate(() => {
       const sheets = document.styleSheets;
       for (let i = 0; i < sheets.length; i++) {
@@ -35,7 +33,6 @@ test.describe('Session Mode', () => {
   });
 
   test('session mode topbar is present in HTML', async ({ page }) => {
-    test.slow();
     const html = await page.locator('#sessionModeTopbar').innerHTML();
     expect(html).toContain('Session Mode');
     expect(html).toContain('Exit');

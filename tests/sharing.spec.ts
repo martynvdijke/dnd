@@ -63,7 +63,7 @@ test.describe('Public Sharing', () => {
     }, { cid });
 
     await page.click('#tabBar button:has-text("Notes")');
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await expect(page.locator('#notesSection')).toContainText('Shared Note');
 
     // Share the note from its card

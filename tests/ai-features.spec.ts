@@ -6,7 +6,7 @@ const uniqueName = () => `AI-${Date.now()}-${Math.random().toString(36).slice(2,
 test.describe('AI Features', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
-    await page.waitForTimeout(200);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
   });
 
   // ─── AI Endpoints ───

@@ -17,11 +17,10 @@ async function createCharacter(page, name) {
 test.describe('Level Planner', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
-    await page.waitForTimeout(200);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
   });
 
   test('create a level plan for a character', async ({ page }) => {
-    test.slow();
     const name = uniqueName();
     await createCharacter(page, name);
 
@@ -42,7 +41,6 @@ test.describe('Level Planner', () => {
   });
 
   test('get level plan for a character', async ({ page }) => {
-    test.slow();
     const name = uniqueName();
     await createCharacter(page, name);
 
@@ -65,7 +63,6 @@ test.describe('Level Planner', () => {
   });
 
   test('get level suggestions for a character', async ({ page }) => {
-    test.slow();
     const name = uniqueName();
     await createCharacter(page, name);
 
@@ -85,7 +82,6 @@ test.describe('Level Planner', () => {
   });
 
   test('delete a level plan', async ({ page }) => {
-    test.slow();
     const name = uniqueName();
     await createCharacter(page, name);
 

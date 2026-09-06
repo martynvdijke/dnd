@@ -1,21 +1,13 @@
 import { test, expect } from './fixtures.js';
-import { login, NAV_TIMEOUT, clickNavItem } from './helpers.js';
+import { NAV_TIMEOUT, clickNavItem, login, waitLoadingDone, waitModalClosed } from './helpers.js';
 
 const uniqueName = () => `Camp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-async function waitLoadingDone(page) {
-  await page.waitForFunction(() => {
-    const o = document.getElementById('loadingOverlay');
-    return o && o.classList.contains('d-none');
-  }, { timeout: NAV_TIMEOUT }).catch(() => {});
-}
 
-async function waitModalClosed(page) {
-  await page.waitForFunction(() => {
-    const modal = document.getElementById('genericModal');
-    return !modal || !modal.classList.contains('show');
-  }, { timeout: 10000 }).catch(() => {});
-}
+
+
+
+
 
 async function createCharAndOpen(page, name, race, cls) {
   await page.click('text=New Character');
