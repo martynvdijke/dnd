@@ -43,8 +43,9 @@ export async function login(page: Page, timeout: number = LOGIN_TIMEOUT) {
       page.getByTestId('login-submit').click(),
     ]);
   } else {
-    // Already logged in, ensure we are on /
-    if (!page.url().endsWith('/')) await page.goto('/', { waitUntil: 'domcontentloaded' });
+    // Already logged in (redirected to /), just wait for SPA ready
+    await waitLoadingDone(page, timeout);
+    return;
   }
   await waitLoadingDone(page, timeout);
 }
