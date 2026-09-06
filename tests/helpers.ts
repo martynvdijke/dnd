@@ -33,13 +33,19 @@ export async function waitLoadingDone(page: Page, timeout: number = 30000) {
  */
 export async function login(page: Page, timeout: number = LOGIN_TIMEOUT) {
   await page.goto('/login', { waitUntil: 'domcontentloaded' });
-  await page.fill('#username', 'admin');
-  await page.fill('#password', 'testpassword123');
-  // Use Promise.all to avoid race between click and navigation listener
-  await Promise.all([
-    page.waitForURL('/', { timeout, waitUntil: 'domcontentloaded' }),
-    page.getByTestId('login-submit').click(),
-  ]);
+  // If already authenticated, /login redirects to / and form is not present
+  const userField = page.locator('#username');
+  if (await userField.isVisible().catch(() => false)) {
+    await page.fill('#username', 'admin');
+    await page.fill('#password', 'testpassword123');
+    await Promise.all([
+      page.waitForURL('/', { timeout, waitUntil: 'domcontentloaded' }),
+      page.getByTestId('login-submit').click(),
+    ]);
+  } else {
+    // Already logged in, ensure we are on /
+    if (!page.url().endsWith('/')) await page.goto('/', { waitUntil: 'domcontentloaded' });
+  }
   await waitLoadingDone(page, timeout);
 }
 
