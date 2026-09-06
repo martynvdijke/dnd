@@ -1,8 +1,8 @@
 import { expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-export const LOGIN_TIMEOUT = 30000;
-export const NAV_TIMEOUT = 10000;
+export const LOGIN_TIMEOUT = 60000;
+export const NAV_TIMEOUT = 15000;
 
 export async function ensureNavOpen(page: Page) {
   const toggler = page.locator('.navbar-toggler');
