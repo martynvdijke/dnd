@@ -25,6 +25,6 @@ export default defineConfig({
       },
     },
     sourcemap: false,
-    minify: false,
+    minify: true,
   },
 });

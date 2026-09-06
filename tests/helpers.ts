@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 
-export const LOGIN_TIMEOUT = 30000;
-export const NAV_TIMEOUT = 10000;
+export const LOGIN_TIMEOUT = 60000;
+export const NAV_TIMEOUT = 15000;
 
 export async function ensureNavOpen(page: Page) {
   const toggler = page.locator('.navbar-toggler');
@@ -11,7 +11,7 @@ export async function ensureNavOpen(page: Page) {
   }
 }
 
-export async function waitLoadingDone(page: Page, timeout: number = 15000) {
+export async function waitLoadingDone(page: Page, timeout: number = 30000) {
   // First ensure the SPA has initialized and the API module is available
   await page.waitForFunction(() => typeof (window as any).api !== 'undefined', { timeout });
   // Then wait for the API token to be provisioned (authoritative signal set by

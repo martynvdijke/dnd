@@ -1,136 +1,72 @@
-// @ts-nocheck — legacy monolith being split into modules, pre-existing type errors
-import { expose } from './lib/expose';
-import { renderMarkdown } from './lib/markdown';
-import L from 'leaflet';
-import * as bootstrap from 'bootstrap';
-expose('bootstrap', bootstrap);
-import { showView, setCurrentView, getCurrentView } from './navigation';
-import { toggleFabMenu, updateFabForView } from './fab';
-import './fab';
-import './dice';
-import './characters/resources';
-import { initBridge } from './lib/bridge';
-import { esc, attrEscape, capitalize, showModal, hideModal, toast, openCompendiumPicker } from './lib/dom';
-import { FilePicker } from './file-picker';
-import { initTheme } from './lib/theme';
-import { api, setCsrfToken, getCsrfToken, getApiToken, clearApiToken } from './lib/api';
-import { initShortcuts, showShortcutsHelp, getSections } from './lib/shortcuts';
-import { renderSheet, updateField } from './characters/sheet';
-import { renderStats } from './characters/stats';
-import { renderCombat } from './characters/combat';
-import { renderInventory } from './characters/inventory';
-import { renderSpells } from './characters/spells';
-import './characters/locations';
-import './characters/npcs';
-import './characters/sessions';
-import './characters/quests';
-import './characters/journal';
-import { animateHpChange } from './lib/animations';
-import { compendiumSearchModal } from './compendium-search';
-import './compendium';
-import './combat-tracker';
-import './encounter';
-import './party';
-import './party-subtabs';
-import './timeline';
-import './factions';
-import './share';
-import './character-sheet';
-import './selection';
-import { currentUser, currentChar, currentTab, allLocations, allNPCs, currentCampaign, setCurrentChar, setCurrentTab, setAllLocations, setAllNPCs, setCurrentCampaign } from './lib/state';
+// @ts-nocheck — split from monolith
+import { expose } from '../lib/expose';
+import { esc, capitalize, showModal, hideModal, toast } from '../lib/dom';
+import { api, getCsrfToken, getApiToken } from '../lib/api';
+import { currentChar } from '../lib/state';
+import { refreshChar } from '../lib/refresh';
+import { renderError } from '../lib/errors';
+import { renderSheet, updateField } from '../characters/sheet';
+import { renderCombat } from '../characters/combat';
+import { renderStats } from '../characters/stats';
+import { renderInventory } from '../characters/inventory';
+import { renderSpells } from '../characters/spells';
+import { animateHpChange } from '../lib/animations';
+import { FilePicker } from '../file-picker';
 
-// Expose API helper globally for E2E tests (window.api check)
-expose('api', api);
-try { initBridge(); } catch (e) { console.warn('bridge init failed', e); }
-
-declare const htmx: any;
-
-// ─── FAB ───
-// (moved to ts/fab.ts)
-
-// Keyboard Shortcuts handled via import from ./lib/shortcuts
-
-// Global Search → extracted to ts/search.ts
-import { showSearchOverlay, hideSearchOverlay, doSearch, initSearch } from './search';
-
-expose('navigateSearchResult', function (type: string, id: number, name: string) {
-  if (type === 'characters') {
-    openChar(id);
-  } else if (type === 'campaigns') {
-    showView('characters');
-    toast('Campaign: ' + name);
-  } else if (['spells','equipment','races','classes','feats','backgrounds'].includes(type)) {
-    (window as any).showCompendium();
-  } else if (type === 'monsters') {
-    (window as any).showCompendium();
-    setTimeout(() => (window as any).loadCompendiumTab('monsters'), 100);
-  } else if (type === 'npcs') {
-    showView('characters');
-    toast('NPC: ' + name);
-  } else {
-    showView('characters');
-    toast(name);
+// Roll / Combat Actions
+expose('applyDamage', async function () {
+  if (!currentChar) return;
+  const dmg = parseInt((document.getElementById('dmgInput') as HTMLInputElement)?.value || '0');
+  if (!dmg) return;
+  const oldHp = currentChar.hp_current;
+  const newHp = Math.max(0, currentChar.hp_current - dmg);
+  await updateField('hp_current', newHp);
+  await (await import('../lib/save')).saveCharacter();
+  if (currentChar.concentrating_on) {
+    try {
+      const conc = await api('POST', `/api/characters/${currentChar.id}/check-concentration`, { damage: dmg });
+      if (conc.needs_check) {
+        toast(`Concentration check: DC ${conc.dc} (${conc.damage} damage to ${conc.spell_name})`);
+        showModal('Concentration Check', `
+          <p>You are concentrating on <strong>${esc(conc.spell_name)}</strong>.</p>
+          <p>Damage taken: <strong>${conc.damage}</strong></p>
+          <p class="fw-bold fs-5">CON Save DC ${conc.dc}</p>
+          <div class="d-flex gap-2">
+            <button class="btn btn-success flex-grow-1" onclick="doConcentrationSave(${conc.dc})"><i class="fa-solid fa-dice me-1"></i>Roll Save</button>
+            <button class="btn btn-danger flex-grow-1" onclick="loseConcentration()"><i class="fa-solid fa-xmark me-1"></i>Lose Spell</button>
+          </div>
+        `);
+      }
+    } catch {}
+  }
+  renderSheet();
+  const bar = document.getElementById('charHpBarFill');
+  const hpText = document.getElementById('charHpText');
+  if (bar && hpText) {
+    bar.style.width = Math.max(0, Math.min(100, (oldHp / currentChar.hp_max) * 100)) + '%';
+    animateHpChange(hpText, bar, oldHp, currentChar.hp_current, currentChar.hp_max);
   }
 });
 
-// Loading, API, Theme, Modal, Toast → imported from ./lib/{dom,api,theme}
-
-// ─── WebSocket + Init moved to ts/init.ts ───
-
-// ─── Character List → extracted to ts/characters/list.ts ───
-import { loadCharacters, filterCharacters } from './characters/list';
-expose('loadCharacters', loadCharacters);
-expose('filterCharacters', filterCharacters);
-
-async function openChar(id: number) {
-  try {
-    setCurrentChar(await api('GET', `/api/characters/${id}`));
-    expose('currentChar', currentChar);
-    expose('canEditCharacter', !!(currentChar as any).can_edit);
-    setCurrentTab('stats');
-    showView('sheet');
-    renderSheet();
-  } catch (e: any) {
-    toast(e.message, true);
-  }
-}
-expose('openChar', openChar);
-
-// ─── Campaign / Character switching ───
-
-expose('switchCampaign', function () {
-  setCurrentChar(null);
-  (window as any).loadCampaignPicker();
+expose('adjustExhaustion', async function (delta: number) {
+  if (!currentChar) return;
+  const newLevel = Math.max(0, Math.min(6, (currentChar.exhaustion_level || 0) + delta));
+  await api('PATCH', `/api/characters/${currentChar.id}/exhaustion`, { exhaustion_level: newLevel });
+  await refreshChar();
+  renderStats();
 });
 
-expose('switchCharacter', function () {
-  if (!currentCampaign) {
-    (window as any).loadCampaignPicker();
-    return;
-  }
-  (window as any).loadCharacterPicker(currentCampaign.id);
+expose('toggleIdentify', async function (id: number) {
+  const item = currentChar.inventory.find((i:any) => i.id === id);
+  if (!item) return;
+  const newVal = item.is_identified === false ? true : false;
+  await api('PUT', `/api/inventory/${id}`, { ...item, is_identified: newVal });
+  await refreshChar();
+  renderInventory();
+  toast(newVal ? 'Item identified' : 'Item marked unidentified');
 });
 
-expose('getCurrentCampaign', () => currentCampaign);
-
-// ─── D3 Force Graph / Graph / Analytics → extracted to ts/app/graph-analytics.ts ───
-import './app/graph-analytics';
-import './app/character-ops';
-import './app/character-details';
-import './app/combat-conditions';
-import './app/notes';
-import './app/sort-switch';
-
-// ─── Encounter Builder → extracted to ts/encounter.ts ───
-import './encounter';
-
-// ─── Calendar ───
-
-// ─── Timeline → extracted to ts/timeline.ts ───
-import './timeline';
-
-// ─── Conditions / Ailments ───
-
+// Conditions
 expose('showAddCondition', function () {
   showModal('Add Condition', `
     <div class="mb-3"><label class="form-label">Condition</label>
@@ -169,7 +105,6 @@ expose('showAddCondition', function () {
     customDiv.style.display = sel.value ? 'none' : 'block';
   });
 });
-
 expose('saveCondition', async function () {
   const sel = document.getElementById('condType') as HTMLSelectElement;
   const name = sel.value || (document.getElementById('condName') as HTMLInputElement).value;
@@ -187,7 +122,6 @@ expose('saveCondition', async function () {
   renderCombat();
   toast('Condition added');
 });
-
 expose('tickConditions', async function () {
   if (!currentChar) return;
   const result = await api('POST', '/api/conditions/tick', {
@@ -197,14 +131,12 @@ expose('tickConditions', async function () {
   if (result.expired > 0) toast(`${result.expired} condition(s) expired`);
   else toast('Rounds advanced');
 });
-
 expose('deleteCondition', async function (id: number) {
   await api('DELETE', `/api/conditions/${id}`);
   renderCombat();
 });
 
-// ─── Feats ───
-
+// Feats
 async function renderFeats() {
   const el = document.getElementById('featsSection')!;
   if (!currentChar) return;
@@ -241,7 +173,7 @@ async function renderFeats() {
     });
   } catch { el.innerHTML = '<div class="empty-state"><p class="small text-muted">Could not load feats.</p></div>'; }
 }
-
+let editingFeatId: number | null = null;
 expose('showAddFeat', function () {
   editingFeatId = null;
   showModal('Add Feat', `
@@ -258,9 +190,6 @@ expose('showAddFeat', function () {
     <button class="btn btn-primary w-100" onclick="saveFeat()"><i class="fa-solid fa-plus me-1"></i>Add Feat</button>
   `);
 });
-
-let editingFeatId: number | null = null;
-
 expose('showEditFeat', function (id: number, name: string, description: string, prerequisites: string, source: string, level: number) {
   editingFeatId = id;
   showModal('Edit Feat', `
@@ -277,7 +206,6 @@ expose('showEditFeat', function (id: number, name: string, description: string, 
     <button class="btn btn-primary w-100" onclick="saveFeat()"><i class="fa-solid fa-floppy-disk me-1"></i>Save Feat</button>
   `);
 });
-
 expose('saveFeat', async function () {
   const name = (document.getElementById('featName') as HTMLInputElement).value;
   if (!name) { toast('Name required', true); return; }
@@ -299,7 +227,6 @@ expose('saveFeat', async function () {
   hideModal();
   renderFeats();
 });
-
 expose('deleteFeat', async function (id: number) {
   if (!confirm('Remove this feat?')) return;
   await api('DELETE', `/api/feats/${id}`);
@@ -307,8 +234,7 @@ expose('deleteFeat', async function (id: number) {
   toast('Feat removed');
 });
 
-// ─── Companions ───
-
+// Companions
 async function renderCompanions() {
   const el = document.getElementById('companionsSection')!;
   if (!currentChar) return;
@@ -353,7 +279,6 @@ async function renderCompanions() {
       </div>`;
   } catch { el.innerHTML = '<div class="empty-state"><p class="small text-muted">Could not load companions.</p></div>'; }
 }
-
 expose('showAddCompanion', function () {
   showModal('Add Companion', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="compName"></div>
@@ -384,7 +309,6 @@ expose('showAddCompanion', function () {
     <button class="btn btn-primary w-100" onclick="saveCompanion()"><i class="fa-solid fa-plus me-1"></i>Add</button>
   `);
 });
-
 expose('saveCompanion', async function () {
   const name = (document.getElementById('compName') as HTMLInputElement).value;
   if (!name) { toast('Name required', true); return; }
@@ -410,7 +334,6 @@ expose('saveCompanion', async function () {
   renderCompanions();
   toast('Companion added');
 });
-
 expose('editCompanion', async function (id: number) {
   const comps = await api('GET', `/api/companions?character_id=${currentChar.id}`);
   const comp = comps.find((c: any) => c.id === id);
@@ -449,321 +372,65 @@ expose('editCompanion', async function (id: number) {
     <button class="btn btn-primary w-100" onclick="saveEditCompanion(${id})"><i class="fa-solid fa-save me-1"></i>Save</button>
   `);
 });
-
-// ─── Factions → extracted to ts/factions.ts ───
-// ─── Shops → extracted to ts/app/shops.ts ───
-import './app/shops';
-
-// ─── Inventory / Spells → extracted to ts/app/inventory-spells.ts ───
-import './app/inventory-spells';
-
-expose('showOneShots', function () {
-  showView('oneshot');
-  const el = document.getElementById('oneshotSection')!;
-  el.setAttribute('hx-get', '/htmx/oneshot-adventures');
-  el.setAttribute('hx-trigger', 'load');
-  el.setAttribute('hx-swap', 'innerHTML');
-  el.innerHTML = '<div class="ornament">✧ Loading one-shot adventures... ✧</div>';
-  htmx.process(el);
-});
-
-expose('showCampaignOverview', function (campaignId: number) {
-  showView('campaignOverview');
-  const el = document.getElementById('campaignOverviewSection')!;
-  el.setAttribute('hx-get', `/htmx/campaigns/${campaignId}/overview`);
-  el.setAttribute('hx-trigger', 'load');
-  el.setAttribute('hx-swap', 'innerHTML');
-  el.innerHTML = '<div class="ornament">✧ Loading campaign overview... ✧</div>';
-  htmx.process(el);
-});
-
-expose('loadFactionReputations', async function () {
-  const charId = (document.getElementById('factionCharSel') as HTMLSelectElement).value;
-  const area = document.getElementById('factionRepArea')!;
-  const list = document.getElementById('factionRepList')!;
-  if (!charId) { area.style.display = 'none'; return; }
-  area.style.display = 'block';
+let compPortraitUrl: string = '';
+expose('uploadCompPortrait', async function (id: number) {
+  const input = document.getElementById('compPortraitUpload') as HTMLInputElement;
+  if (!input.files || !input.files[0]) { toast('Select an image', true); return; }
+  const form = new FormData();
+  form.append('image', input.files[0]);
   try {
-    const reps = await api('GET', `/api/faction-reputation?character_id=${charId}`);
-    const factions = await api('GET', '/api/factions');
-    list.innerHTML = reps.length ? reps.map((r: any) => {
-      const pct = ((r.standing + 100) / 200) * 100;
-      const color = r.standing >= 50 ? '#2d6a2d' : r.standing >= 0 ? '#b8963e' : r.standing >= -50 ? '#8b4513' : '#8b0000';
-      return `<div class="inv-item">
-        <div>
-          <span class="fw-bold">${esc(r.faction_name)}</span>
-          <span class="badge badge-muted ms-1">${esc(r.faction_type)}</span>
-          ${r.rank ? `<span class="badge badge-gold ms-1">${esc(r.rank)}</span>` : ''}
-        </div>
-        <div class="d-flex align-items-center gap-2">
-          <div class="hp-bar" style="width:100px;height:8px;background:var(--parchment-dark)">
-            <div class="hp-bar-fill" style="width:${pct}%;height:100%;background:${color}"></div>
-          </div>
-          <span class="fw-bold" style="color:${color}">${r.standing >= 0 ? '+' : ''}${r.standing}</span>
-          <button class="btn btn-sm btn-outline-primary js-edit-rep" data-cid="${r.character_id}" data-fid="${r.faction_id}" data-standing="${r.standing}" data-rank="${esc(r.rank)}" data-notes="${esc(r.notes)}"><i class="fa-solid fa-pen"></i></button>
-        </div>
-      </div>`;
-    }).join('') : '<p class="text-muted small">No reputation tracked for this character. Click a faction to set reputation.</p>';
-    list.querySelectorAll<HTMLButtonElement>('.js-edit-rep').forEach(btn => {
-      btn.addEventListener('click', () => (window as any).editReputation(Number(btn.dataset.cid), Number(btn.dataset.fid), Number(btn.dataset.standing), btn.dataset.rank || '', btn.dataset.notes || ''));
+    const res = await fetch('/api/upload', {
+      method: 'POST', headers: { 'X-CSRF-Token': getCsrfToken(), ...(getApiToken() ? { 'Authorization': `Bearer ${getApiToken()}` } : {}) }, credentials: 'include', body: form,
     });
-  } catch {}
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    compPortraitUrl = data.url;
+    hideModal();
+    toast('Portrait uploaded — re-open to confirm');
+  } catch (e: any) { renderError(e); }
 });
-
-expose('editReputation', function (charId: number, factionId: number, standing: number, rank: string, notes: string) {
-  showModal('Set Reputation', `
-    <div class="mb-3"><label class="form-label">Standing (-100 to 100)</label>
-      <input class="form-control" id="repStanding" type="number" value="${standing}" min="-100" max="100"></div>
-    <div class="mb-3"><label class="form-label">Rank / Title</label><input class="form-control" id="repRank" value="${esc(rank)}"></div>
-    <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="repNotes" rows="2">${esc(notes)}</textarea></div>
-    <button class="btn btn-primary w-100" onclick="saveReputation(${charId}, ${factionId})"><i class="fa-solid fa-save me-1"></i>Save</button>
-  `);
+expose('browseCompPortrait', async function (id: number) {
+  try {
+    const url = await FilePicker.pick();
+    compPortraitUrl = url;
+    hideModal();
+    toast('Portrait selected — re-open to confirm');
+  } catch (e: any) { renderError(e); }
 });
-
-expose('saveReputation', async function (charId: number, factionId: number) {
-  await api('POST', '/api/faction-reputation', {
-    character_id: charId, faction_id: factionId,
-    standing: +(document.getElementById('repStanding') as HTMLInputElement).value || 0,
-    rank: (document.getElementById('repRank') as HTMLInputElement).value,
-    notes: (document.getElementById('repNotes') as HTMLTextAreaElement).value,
-  });
+expose('clearCompPortrait', async function (id: number) {
+  compPortraitUrl = '';
   hideModal();
-  (window as any).loadFactionReputations();
-  toast('Reputation updated');
+  toast('Portrait cleared');
 });
-
-// ─── Crafting ───
-
-async function renderCrafting() {
-  const el = document.getElementById('craftingSection')!;
-  if (!currentChar) return;
-  try {
-    const [recipes, projects] = await Promise.all([
-      api('GET', '/api/crafting/recipes'),
-      api('GET', `/api/characters/${currentChar.id}/crafting`),
-    ]);
-
-    let html = `<div class="d-flex justify-content-between align-items-center"><h5>Crafting</h5>
-      <button class="btn btn-primary btn-sm" onclick="showStartCrafting()"><i class="fa-solid fa-hammer me-1"></i>Start Crafting</button>
-    </div>`;
-
-    // Active projects
-    const active = projects.filter((p: any) => p.status === 'in-progress');
-    if (active.length > 0) {
-      html += `<h6 class="mt-3 text-muted">In Progress</h6>`;
-      for (const p of active) {
-        const pct = p.total_hours_required > 0 ? Math.min(100, Math.round((p.progress_hours / p.total_hours_required) * 100)) : 0;
-        html += `<div class="card mb-2">
-          <div class="card-body py-2 px-3">
-            <div class="d-flex justify-content-between align-items-start">
-              <div><span class="fw-bold">${esc(p.name)}</span>
-                <span class="badge badge-gold ms-1">DC ${p.dc}</span>
-                <span class="badge badge-muted ms-1">${p.progress_hours}/${p.total_hours_required}h</span>
-              </div>
-              <div class="d-flex gap-1">
-                <button class="btn btn-sm btn-outline-primary" onclick="advanceCrafting(${p.id})" title="Advance 1 hour"><i class="fa-solid fa-forward"></i></button>
-                <button class="btn btn-sm btn-outline-success" onclick="completeCrafting(${p.id})" title="Complete"><i class="fa-solid fa-check"></i></button>
-                <button class="btn btn-sm btn-outline-danger" onclick="abandonCrafting(${p.id})" title="Abandon"><i class="fa-solid fa-xmark"></i></button>
-              </div>
-            </div>
-            <div class="hp-bar mt-1" style="height:4px"><div class="hp-bar-fill" style="width:${pct}%;height:100%;background:var(--gold)"></div></div>
-          </div>
-        </div>`;
-      }
-    }
-
-    // Completed projects
-    const done = projects.filter((p: any) => p.status === 'complete');
-    if (done.length > 0) {
-      html += `<h6 class="mt-3 text-muted">Completed</h6>`;
-      for (const p of done) {
-        html += `<div class="card mb-1"><div class="card-body py-1 px-3 small text-muted">
-          <i class="fa-solid fa-check-circle text-success me-1"></i>${esc(p.name)}
-        </div></div>`;
-      }
-    }
-
-    // Recipes
-    html += `<h6 class="mt-3 text-muted">Known Recipes (${recipes.length})</h6>
-      <div class="row g-2">`;
-    for (const r of recipes) {
-      html += `<div class="col-md-6"><div class="card">
-        <div class="card-body py-2 px-3">
-          <div class="d-flex justify-content-between">
-            <span class="fw-bold small">${esc(r.name)}</span>
-            <span class="badge ${r.category === 'potion' ? 'badge-blood' : r.category === 'scroll' ? 'badge-gold' : 'badge-muted'}" style="font-size:0.6rem">${r.category}</span>
-          </div>
-          <div class="small text-muted">${esc(r.description)}</div>
-          <div class="small mt-1"><span class="text-muted">DC ${r.difficulty_dc}</span> · <span class="text-muted">${r.crafting_time_hours}h</span></div>
-          <div class="mt-1"><button class="btn btn-sm btn-outline-gold py-0 px-1" style="font-size:0.65rem" onclick="startRecipe(${r.id})">Craft</button></div>
-        </div>
-      </div></div>`;
-    }
-    html += `</div>`;
-
-    el.innerHTML = html;
-  } catch (e: any) {
-    el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(e.message)}</p></div>`;
-  }
-}
-expose('renderCrafting', renderCrafting);
-
-expose('startRecipe', async function (recipeId: number) {
-  try {
-    const recipes = await api('GET', '/api/crafting/recipes');
-    const recipe = recipes.find((r: any) => r.id === recipeId);
-    if (!recipe) return;
-    const materials = JSON.parse(recipe.required_materials || '[]');
-    const tools = JSON.parse(recipe.required_tools || '[]');
-    showModal('Start Crafting', `
-      <p class="mb-2"><strong>${esc(recipe.name)}</strong></p>
-      <p class="small text-muted">${esc(recipe.description)}</p>
-      <div class="mb-2"><span class="text-muted small">DC:</span> <strong>${recipe.difficulty_dc}</strong> &middot;
-        <span class="text-muted small">Time:</span> <strong>${recipe.crafting_time_hours}h</strong></div>
-      ${tools.length ? `<div class="mb-2"><span class="text-muted small">Tools:</span> ${tools.map((t: string) => `<span class="badge badge-muted me-1" style="font-size:0.6rem">${esc(t)}</span>`).join('')}</div>` : ''}
-      ${materials.length ? `<div class="mb-2"><span class="text-muted small">Materials:</span><ul class="small mb-0">${materials.map((m: any) => `<li>${esc(m.name)} x${m.quantity}${m.consumed ? ' (consumed)' : ''}</li>`).join('')}</ul></div>` : ''}
-      <div class="mb-2"><span class="text-muted small">Result:</span> <strong>${esc(recipe.result_item_name)}</strong> x${recipe.result_quantity}</div>
-      <button class="btn btn-gold w-100 mt-2 js-confirm-recipe" data-id="${recipe.id}" data-name="${esc(recipe.name)}" data-hours="${recipe.crafting_time_hours}" data-dc="${recipe.difficulty_dc}"><i class="fa-solid fa-hammer me-1"></i>Begin Crafting</button>
-    `);
-    setTimeout(() => {
-      const btn = document.querySelector<HTMLButtonElement>('.js-confirm-recipe');
-      if (btn) btn.addEventListener('click', () => (window as any).confirmStartRecipe(Number(btn.dataset.id), btn.dataset.name || '', Number(btn.dataset.hours), Number(btn.dataset.dc)));
-    }, 0);
-  } catch (e: any) { toast(e.message, true); }
+expose('saveEditCompanion', async function (id: number) {
+  const portraitUrl = compPortraitUrl || (document.getElementById('compPortraitUrl') as HTMLInputElement)?.value || '';
+  await api('PUT', `/api/companions/${id}`, {
+    name: (document.getElementById('compName') as HTMLInputElement).value,
+    type: (document.getElementById('compType') as HTMLSelectElement).value,
+    race: (document.getElementById('compRace') as HTMLInputElement).value,
+    hp_max: +(document.getElementById('compHP') as HTMLInputElement).value || 10,
+    hp_current: +(document.getElementById('compHPCur') as HTMLInputElement).value || 10,
+    ac: +(document.getElementById('compAC') as HTMLInputElement).value || 10,
+    str: +(document.getElementById('compStr') as HTMLInputElement).value || 10,
+    dex: +(document.getElementById('compDex') as HTMLInputElement).value || 10,
+    con: +(document.getElementById('compCon') as HTMLInputElement).value || 10,
+    int: +(document.getElementById('compInt') as HTMLInputElement).value || 10,
+    wis: +(document.getElementById('compWis') as HTMLInputElement).value || 10,
+    cha: +(document.getElementById('compCha') as HTMLInputElement).value || 10,
+    speed: +(document.getElementById('compSpeed') as HTMLInputElement).value || 30,
+    portrait_url: portraitUrl,
+    abilities: (document.getElementById('compAbilities') as HTMLTextAreaElement).value,
+    notes: (document.getElementById('compNotes') as HTMLTextAreaElement).value,
+    is_alive: true,
+  });
+  compPortraitUrl = '';
+  hideModal();
+  renderCompanions();
+  toast('Companion updated');
 });
-
-expose('confirmStartRecipe', async function (recipeId: number, name: string, hours: number, dc: number) {
-  try {
-    await api('POST', `/api/characters/${currentChar.id}/crafting`, {
-      recipe_id: recipeId,
-      name: name,
-      total_hours_required: hours,
-      dc: dc,
-      materials_allocated: '[]',
-      notes: '',
-    });
-    hideModal();
-    renderCrafting();
-    toast('Crafting started!');
-  } catch (e: any) { toast(e.message, true); }
+expose('deleteCompanion', async function (id: number) {
+  if (!confirm('Remove this companion?')) return;
+  await api('DELETE', `/api/companions/${id}`);
+  renderCompanions();
+  toast('Companion removed');
 });
-
-expose('advanceCrafting', async function (id: number) {
-  try {
-    await api('PUT', `/api/crafting/${id}`, { progress_hours: 1 });
-    renderCrafting();
-    toast('Crafting advanced by 1 hour');
-  } catch (e: any) { toast(e.message, true); }
-});
-
-expose('completeCrafting', async function (id: number) {
-  try {
-    await api('PUT', `/api/crafting/${id}`, { status: 'complete' });
-    renderCrafting();
-    toast('Crafting completed! Item added to inventory.');
-  } catch (e: any) { toast(e.message, true); }
-});
-
-expose('abandonCrafting', async function (id: number) {
-  if (!confirm('Abandon this project?')) return;
-  try {
-    await api('PUT', `/api/crafting/${id}`, { status: 'abandoned' });
-    renderCrafting();
-    toast('Project abandoned');
-  } catch (e: any) { toast(e.message, true); }
-});
-
-expose('showStartCrafting', function () {
-  showModal('Start Crafting', `
-    <p class="small text-muted">Browse recipes from the Crafting tab, or create a custom project.</p>
-    <div class="mb-3"><label class="form-label">Project Name</label><input class="form-control" id="custCraftName" placeholder="e.g. Brewing a custom potion"></div>
-    <div class="row g-3 mb-3">
-      <div class="col-6"><label class="form-label">Est. Hours</label><input class="form-control" id="custCraftHours" type="number" value="1" min="0.5" step="0.5"></div>
-      <div class="col-6"><label class="form-label">DC</label><input class="form-control" id="custCraftDC" type="number" value="10"></div>
-    </div>
-    <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" id="custCraftNotes" rows="2"></textarea></div>
-    <button class="btn btn-primary w-100" onclick="confirmCustomCraft()"><i class="fa-solid fa-hammer me-1"></i>Start</button>
-  `);
-});
-
-expose('confirmCustomCraft', async function () {
-  const name = (document.getElementById('custCraftName') as HTMLInputElement).value;
-  if (!name) { toast('Enter a project name', true); return; }
-  try {
-    await api('POST', `/api/characters/${currentChar.id}/crafting`, {
-      name: name,
-      total_hours_required: +(document.getElementById('custCraftHours') as HTMLInputElement).value || 1,
-      dc: +(document.getElementById('custCraftDC') as HTMLInputElement).value || 10,
-      materials_allocated: '[]',
-      notes: (document.getElementById('custCraftNotes') as HTMLTextAreaElement).value,
-    });
-    hideModal();
-    renderCrafting();
-    toast('Custom crafting started!');
-  } catch (e: any) { toast(e.message, true); }
-});
-
-// ─── Random Gen / Comparison → extracted to ts/app/random-gen.ts ───
-import './app/random-gen';
-
-// ─── Combat Tracker → extracted to ts/combat-tracker.ts ───
-import './combat-tracker';
-
-// ─── Wiki / Campaign Graph → extracted to ts/app/wiki.ts ───
-import './app/wiki';
-
-// ─── One-Shot Tree/Items/Shops/Monsters/NPCs → extracted to ts/app/oneshot.ts ───
-import './app/oneshot';
-
-// ─── Polymorphic File Uploads → extracted to ts/app/uploads.ts ───
-import './app/uploads';
-
-// ─── Show combat nav for admin ───
-// (handled in init by checking role)
-
-// ─── Campaign Dashboard / Party Inventory / Session Planner → extracted to ts/app/campaign-dashboard.ts ───
-import './app/campaign-dashboard';
-
-// ─── Encounter Difficulty / Treasure → extracted to ts/app/encounter-treasure.ts ───
-import './app/encounter-treasure';
-
-// ═══════════════════════════════════════════
-
-
-// AI Generation → extracted to ts/ai.ts
-import { initAIClickHandler } from './ai';
-
-// PDF Viewer → extracted to ts/pdf-viewer.ts
-import { initPdfViewerCleanup } from './pdf-viewer';
-
-// Initialization → extracted to ts/init.ts
-import { init } from './init';
-
-// PWA → register service worker for offline support
-import { registerSW } from './pwa';
-
-// Centralized auto-save → dirty tracking, save button state, interval settings
-import { startAutoSave, isDirty, isSaving, saveCharacter } from './lib/save';
-
-// These are called from inline HTML onclick — register at window level
-expose('openCampaignDashboard', function (campaignId: number, name: string) {
-  (window as any).showCampaignDashboard(campaignId, name);
-});
-
-function updateSaveBtnState() {
-  const btn = document.getElementById('saveCharBtn');
-  if (!btn) return;
-  btn.className = 'btn btn-sm ' + (isSaving() ? 'btn-outline-primary btn-save-dirty' : isDirty() ? 'btn-gold btn-save-dirty' : 'btn-outline-primary');
-  const icon = btn.querySelector('i');
-  if (icon) {
-    if (isSaving()) { icon.className = 'fa-solid fa-spinner fa-spin me-1'; }
-    else { icon.className = 'fa-solid fa-floppy-disk me-1'; }
-  }
-  btn.disabled = isSaving();
-}
-expose('updateSaveBtnState', updateSaveBtnState);
-window.addEventListener('villum-savestate', updateSaveBtnState);
-
-init();
-registerSW();
-startAutoSave();

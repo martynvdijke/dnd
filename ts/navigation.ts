@@ -81,7 +81,10 @@ export function showView(view: ViewState): void {
   // Gate: most app views require a selected campaign. Redirect to the
   // campaign picker instead of rendering a useless page. Admins manage all
   // campaigns and bypass the gate.
-  const needsCampaign = currentUser?.role !== 'admin';
+  // If user not yet loaded, don't gate — let navigation succeed; campaign
+  // check will be enforced once init completes. This prevents race where
+  // early clicks (before /api/user/me resolves) are incorrectly redirected.
+  const needsCampaign = currentUser != null && currentUser?.role !== 'admin';
   if (needsCampaign && view !== 'campaignPicker' && view !== 'characterPicker' && !currentCampaign) {
     (window as any).loadCampaignPicker?.();
     return;
