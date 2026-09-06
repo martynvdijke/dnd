@@ -18,6 +18,7 @@ type CampaignMap struct {
 	Width      int    `json:"width"`
 	Height     int    `json:"height"`
 	GridSize   int    `json:"grid_size"`
+	GridUnits  string `json:"grid_units"`
 	IsActive   bool   `json:"is_active"`
 	FogOfWar   string `json:"fog_of_war"`
 }
@@ -36,11 +37,12 @@ type MapPin struct {
 	LinkedEntityID   *int64  `json:"linked_entity_id,omitempty"`
 	IsHidden         bool    `json:"is_hidden"`
 	SortOrder        int     `json:"sort_order"`
+	SnapToGrid       bool    `json:"snap_to_grid"`
 }
 
 func ListCampaignMaps(c *gin.Context) {
 	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	rows, err := db.DB.Query("SELECT id,campaign_id,name,image_url,width,height,grid_size,is_active,fog_of_war FROM campaign_maps WHERE campaign_id=? ORDER BY name", campaignID)
+	rows, err := db.DB.Query("SELECT id,campaign_id,name,image_url,width,height,grid_size,COALESCE(grid_units,'ft'),is_active,fog_of_war FROM campaign_maps WHERE campaign_id=? ORDER BY name", campaignID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -49,7 +51,7 @@ func ListCampaignMaps(c *gin.Context) {
 	var out = make([]CampaignMap, 0)
 	for rows.Next() {
 		var m CampaignMap
-		rows.Scan(&m.ID, &m.CampaignID, &m.Name, &m.ImageURL, &m.Width, &m.Height, &m.GridSize, &m.IsActive, &m.FogOfWar)
+		rows.Scan(&m.ID, &m.CampaignID, &m.Name, &m.ImageURL, &m.Width, &m.Height, &m.GridSize, &m.GridUnits, &m.IsActive, &m.FogOfWar)
 		out = append(out, m)
 	}
 	c.JSON(http.StatusOK, out)
@@ -62,8 +64,11 @@ func CreateCampaignMap(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	result, err := db.DB.Exec("INSERT INTO campaign_maps(campaign_id,name,image_url,width,height,grid_size,fog_of_war) VALUES(?,?,?,?,?,?,'[]')",
-		campaignID, m.Name, m.ImageURL, m.Width, m.Height, m.GridSize)
+	if m.GridUnits == "" {
+		m.GridUnits = "ft"
+	}
+	result, err := db.DB.Exec("INSERT INTO campaign_maps(campaign_id,name,image_url,width,height,grid_size,grid_units,fog_of_war) VALUES(?,?,?,?,?,?,?,'[]')",
+		campaignID, m.Name, m.ImageURL, m.Width, m.Height, m.GridSize, m.GridUnits)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -79,8 +84,11 @@ func UpdateCampaignMap(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	db.DB.Exec("UPDATE campaign_maps SET name=?,image_url=?,width=?,height=?,grid_size=?,is_active=?,fog_of_war=? WHERE id=?",
-		m.Name, m.ImageURL, m.Width, m.Height, m.GridSize, m.IsActive, m.FogOfWar, id)
+	if m.GridUnits == "" {
+		m.GridUnits = "ft"
+	}
+	db.DB.Exec("UPDATE campaign_maps SET name=?,image_url=?,width=?,height=?,grid_size=?,grid_units=?,is_active=?,fog_of_war=? WHERE id=?",
+		m.Name, m.ImageURL, m.Width, m.Height, m.GridSize, m.GridUnits, m.IsActive, m.FogOfWar, id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -114,7 +122,7 @@ func UpdateFogOfWar(c *gin.Context) {
 
 func ListMapPins(c *gin.Context) {
 	mapID, _ := strconv.ParseInt(c.Param("mapId"), 10, 64)
-	rows, err := db.DB.Query("SELECT id,map_id,name,type,x,y,icon,color,description,linked_entity_type,linked_entity_id,is_hidden,sort_order FROM campaign_map_pins WHERE map_id=? ORDER BY sort_order,name", mapID)
+	rows, err := db.DB.Query("SELECT id,map_id,name,type,x,y,icon,color,description,linked_entity_type,linked_entity_id,is_hidden,sort_order,COALESCE(snap_to_grid,0) FROM campaign_map_pins WHERE map_id=? ORDER BY sort_order,name", mapID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -123,7 +131,7 @@ func ListMapPins(c *gin.Context) {
 	var out = make([]MapPin, 0)
 	for rows.Next() {
 		var p MapPin
-		rows.Scan(&p.ID, &p.MapID, &p.Name, &p.Type, &p.X, &p.Y, &p.Icon, &p.Color, &p.Description, &p.LinkedEntityType, &p.LinkedEntityID, &p.IsHidden, &p.SortOrder)
+		rows.Scan(&p.ID, &p.MapID, &p.Name, &p.Type, &p.X, &p.Y, &p.Icon, &p.Color, &p.Description, &p.LinkedEntityType, &p.LinkedEntityID, &p.IsHidden, &p.SortOrder, &p.SnapToGrid)
 		out = append(out, p)
 	}
 	c.JSON(http.StatusOK, out)
@@ -136,8 +144,8 @@ func CreateMapPin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	result, err := db.DB.Exec("INSERT INTO campaign_map_pins(map_id,name,type,x,y,icon,color,description,linked_entity_type,linked_entity_id,is_hidden,sort_order) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
-		mapID, p.Name, p.Type, p.X, p.Y, p.Icon, p.Color, p.Description, p.LinkedEntityType, p.LinkedEntityID, p.IsHidden, p.SortOrder)
+	result, err := db.DB.Exec("INSERT INTO campaign_map_pins(map_id,name,type,x,y,icon,color,description,linked_entity_type,linked_entity_id,is_hidden,sort_order,snap_to_grid) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+		mapID, p.Name, p.Type, p.X, p.Y, p.Icon, p.Color, p.Description, p.LinkedEntityType, p.LinkedEntityID, p.IsHidden, p.SortOrder, p.SnapToGrid)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -153,8 +161,8 @@ func UpdateMapPin(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	db.DB.Exec("UPDATE campaign_map_pins SET name=?,type=?,x=?,y=?,icon=?,color=?,description=?,linked_entity_type=?,linked_entity_id=?,is_hidden=?,sort_order=? WHERE id=?",
-		p.Name, p.Type, p.X, p.Y, p.Icon, p.Color, p.Description, p.LinkedEntityType, p.LinkedEntityID, p.IsHidden, p.SortOrder, id)
+	db.DB.Exec("UPDATE campaign_map_pins SET name=?,type=?,x=?,y=?,icon=?,color=?,description=?,linked_entity_type=?,linked_entity_id=?,is_hidden=?,sort_order=?,snap_to_grid=? WHERE id=?",
+		p.Name, p.Type, p.X, p.Y, p.Icon, p.Color, p.Description, p.LinkedEntityType, p.LinkedEntityID, p.IsHidden, p.SortOrder, p.SnapToGrid, id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -167,10 +175,10 @@ func DeleteMapPin(c *gin.Context) {
 func GetActiveCampaignMap(c *gin.Context) {
 	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var m CampaignMap
-	err := db.DB.QueryRow("SELECT id,campaign_id,name,image_url,width,height,grid_size,is_active,fog_of_war FROM campaign_maps WHERE campaign_id=? AND is_active=1", campaignID).Scan(&m.ID, &m.CampaignID, &m.Name, &m.ImageURL, &m.Width, &m.Height, &m.GridSize, &m.IsActive, &m.FogOfWar)
+	err := db.DB.QueryRow("SELECT id,campaign_id,name,image_url,width,height,grid_size,COALESCE(grid_units,'ft'),is_active,fog_of_war FROM campaign_maps WHERE campaign_id=? AND is_active=1", campaignID).Scan(&m.ID, &m.CampaignID, &m.Name, &m.ImageURL, &m.Width, &m.Height, &m.GridSize, &m.GridUnits, &m.IsActive, &m.FogOfWar)
 	if err != nil {
 		// No active map, return first one
-		err2 := db.DB.QueryRow("SELECT id,campaign_id,name,image_url,width,height,grid_size,is_active,fog_of_war FROM campaign_maps WHERE campaign_id=? ORDER BY id LIMIT 1", campaignID).Scan(&m.ID, &m.CampaignID, &m.Name, &m.ImageURL, &m.Width, &m.Height, &m.GridSize, &m.IsActive, &m.FogOfWar)
+		err2 := db.DB.QueryRow("SELECT id,campaign_id,name,image_url,width,height,grid_size,COALESCE(grid_units,'ft'),is_active,fog_of_war FROM campaign_maps WHERE campaign_id=? ORDER BY id LIMIT 1", campaignID).Scan(&m.ID, &m.CampaignID, &m.Name, &m.ImageURL, &m.Width, &m.Height, &m.GridSize, &m.GridUnits, &m.IsActive, &m.FogOfWar)
 		if err2 != nil {
 			c.JSON(http.StatusOK, gin.H{})
 			return
@@ -180,12 +188,12 @@ func GetActiveCampaignMap(c *gin.Context) {
 	var fog [][]any
 	json.Unmarshal([]byte(m.FogOfWar), &fog)
 
-	pinRows, _ := db.DB.Query("SELECT id,map_id,name,type,x,y,icon,color,description,linked_entity_type,linked_entity_id,is_hidden,sort_order FROM campaign_map_pins WHERE map_id=? AND is_hidden=0 ORDER BY sort_order,name", m.ID)
+	pinRows, _ := db.DB.Query("SELECT id,map_id,name,type,x,y,icon,color,description,linked_entity_type,linked_entity_id,is_hidden,sort_order,COALESCE(snap_to_grid,0) FROM campaign_map_pins WHERE map_id=? AND is_hidden=0 ORDER BY sort_order,name", m.ID)
 	var pins []MapPin
 	if pinRows != nil {
 		for pinRows.Next() {
 			var p MapPin
-			pinRows.Scan(&p.ID, &p.MapID, &p.Name, &p.Type, &p.X, &p.Y, &p.Icon, &p.Color, &p.Description, &p.LinkedEntityType, &p.LinkedEntityID, &p.IsHidden, &p.SortOrder)
+			pinRows.Scan(&p.ID, &p.MapID, &p.Name, &p.Type, &p.X, &p.Y, &p.Icon, &p.Color, &p.Description, &p.LinkedEntityType, &p.LinkedEntityID, &p.IsHidden, &p.SortOrder, &p.SnapToGrid)
 			pins = append(pins, p)
 		}
 		pinRows.Close()

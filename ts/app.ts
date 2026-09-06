@@ -737,6 +737,7 @@ import { initAIClickHandler } from './ai';
 import { initPdfViewerCleanup } from './pdf-viewer';
 
 // Initialization → extracted to ts/init.ts
+import './app/map-measurement';
 import { init } from './init';
 
 // PWA → register service worker for offline support
