@@ -32,7 +32,8 @@ Fresh clone setup: `prek install && prek install --hook-type pre-push`.
 ## Testing Standards (details in CONTRIBUTING.md)
 
 - Every `data-testid` used in `ts/` or `static/*.html` MUST be referenced in `tests/` (linted in CI). Dynamic `nav-*` ids are the documented exception.
-- E2E uses the `login()` helper from `tests/helpers.ts`; respect `LOGIN_TIMEOUT` (30s) and `NAV_TIMEOUT` (10s); slow tests call `test.slow()`.
+- E2E uses the `login()` helper from `tests/helpers.ts`; respect `LOGIN_TIMEOUT` (30s) and `NAV_TIMEOUT` (10s); slow tests call `test.slow()` only when justified (`// slow: reason`).
+- E2E forbids `page.waitForTimeout` — use `expect().toBeVisible()/toBeHidden()`, `waitForResponse` or `waitForFunction`; linted via `task lint:e2e` / CI / prek.
 - Coverage floors: Go total ≥20%, `handlers/` ≥30%, `middleware/` ≥25%; vitest ≥20% all metrics. Gates run locally and in CI.
 
 ## Change Process

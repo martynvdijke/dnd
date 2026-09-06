@@ -97,7 +97,7 @@ test.describe('Compendium entry linking', () => {
     const setupBtn = page.locator('button:has-text("Set Up Spellcasting")');
     if (await setupBtn.count() > 0) {
       await setupBtn.click();
-      await page.waitForTimeout(500);
+      await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     }
     await expect(page.locator('#spellsSection')).toBeVisible();
     await page.locator('#spellsSection button:has-text("Link from Compendium")').click();

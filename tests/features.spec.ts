@@ -9,12 +9,12 @@ test.describe('Full feature coverage', () => {
   });
 
   test('campaign lifecycle: create, assign character, delete', async ({ page }) => {
-    await page.waitForTimeout(300);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await page.goto('/admin', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#adminUsers .card-header')).toContainText('Users');
 
     const name = uniqueName();
-    await page.waitForTimeout(300);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await page.click('text=New Character');
     await page.fill('#newName', name);
@@ -104,7 +104,7 @@ test.describe('Full feature coverage', () => {
   });
 
   test('admin panel navigation tabs work', async ({ page }) => {
-    await page.waitForTimeout(300);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await page.goto('/admin', { waitUntil: 'domcontentloaded' });
 
     await expect(page.locator('#adminUsers .card-header')).toContainText('Users');

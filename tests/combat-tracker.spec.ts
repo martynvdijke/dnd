@@ -4,37 +4,34 @@ import { ensureNavOpen, waitModalClosed, isMobile, login } from './helpers.js';
 async function openCombat(page: Page) {
   if (await isMobile(page)) {
     await page.click('#moreTabBtn');
-    await page.waitForTimeout(300);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     // Bottom sheet buttons are dynamically created without IDs, click by text
     await page.locator('#bottom-sheet-more-nav button').filter({ hasText: 'Combat' }).click();
   } else {
     await ensureNavOpen(page);
     await page.locator('#appSidebar button[data-nav="combat"]').click();
   }
-  await page.waitForTimeout(500);
+  await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 }
 
 test.describe.serial('Combat Tracker', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
-    await page.waitForTimeout(300);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
   });
 
   test('combat nav item visible for admin', async ({ page }) => {
-    test.slow();
     await openCombat(page);
     await expect(page.locator('#combatTrackerView')).toBeVisible();
   });
 
   test('opens combat tracker view', async ({ page }) => {
-    test.slow();
     await openCombat(page);
     await expect(page.locator('#combatTrackerView')).toBeVisible();
     await expect(page.locator('#combatTrackerContent')).toBeVisible();
   });
 
   test('adds a combatant and shows in tracker', async ({ page }) => {
-    test.slow();
     await openCombat(page);
 
     const uniqueEnemy = `Goblin-${Date.now()}`;
@@ -55,7 +52,6 @@ test.describe.serial('Combat Tracker', () => {
   });
 
   test('rolls initiative for combatants', async ({ page }) => {
-    test.slow();
     await openCombat(page);
 
     const uniqueEnemy = `Goblin-${Date.now()}`;
@@ -72,7 +68,7 @@ test.describe.serial('Combat Tracker', () => {
     await waitModalClosed(page);
 
     await page.evaluate(() => (window as any).rollAllInitiative());
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 
     const initCells = await page.locator('#combatTrackerTable td:nth-child(3)').allTextContents();
     const validRolls = initCells.filter(v => v.trim() !== '-' && !isNaN(parseInt(v)));
@@ -80,7 +76,6 @@ test.describe.serial('Combat Tracker', () => {
   });
 
   test('applies damage to combatant', async ({ page }) => {
-    test.slow();
     await openCombat(page);
 
     const uniqueEnemy = `Goblin-${Date.now()}`;
@@ -102,7 +97,7 @@ test.describe.serial('Combat Tracker', () => {
     await dmgInput.fill('10');
     const dmgBtn = row.locator('button[onclick*="combatTrackerDamage"]');
     await dmgBtn.click();
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 
     await expect(page.locator('#combatTrackerContent')).toContainText('17/27');
   });

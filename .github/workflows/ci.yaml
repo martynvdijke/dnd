@@ -40,6 +40,14 @@ jobs:
       - name: Verify data-testids are referenced by tests
         run: scripts/ci/check-testid.sh
 
+      - name: Forbid waitForTimeout in tests
+        run: |
+          if rg -n "waitForTimeout" tests/ | grep -v "allow-waitForTimeout" | grep -q .; then
+            echo "ERROR: waitForTimeout found — replace with expect().toBeVisible()/waitForResponse/waitForFunction"
+            rg -n "waitForTimeout" tests/ | grep -v "allow-waitForTimeout"
+            exit 1
+          fi
+
   unit-test:
     needs: lint-typecheck
     runs-on: ubuntu-latest

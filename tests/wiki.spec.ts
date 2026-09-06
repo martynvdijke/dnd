@@ -9,7 +9,6 @@ test.describe('Campaign Wiki', () => {
   });
 
   test('create campaign and wiki page via API', async ({ page }) => {
-    test.slow();
     const campName = uniqueName();
     const pageTitle = 'World Lore';
     const pageContent = '# The World\n\nThis is the **lore** of our world.';
@@ -36,13 +35,12 @@ test.describe('Campaign Wiki', () => {
     expect(result.err).toBeFalsy();
 
     await page.evaluate((cid) => window.showWiki(cid), result.campId);
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 
     await expect(page.locator('#wikiContent')).toContainText(pageTitle);
   });
 
   test('wiki page renders markdown content', async ({ page }) => {
-    test.slow();
     const campName = uniqueName();
     const pageTitle = 'Markdown Test';
     const pageContent = '# Heading\n\n**Bold text** *italic*';
@@ -64,10 +62,10 @@ test.describe('Campaign Wiki', () => {
 
     // Pass campaign ID so showWiki renders its sidebar (otherwise picks campaigns[0])
     await page.evaluate((cid) => window.showWiki(cid), result.campId);
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 
     await page.evaluate((pid) => window.loadWikiPage(pid), result.pageId);
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 
     const wikiContent = page.locator('#wikiPageContent .wiki-content');
     await expect(wikiContent).toContainText('Heading', { timeout: 10000 });
@@ -75,7 +73,6 @@ test.describe('Campaign Wiki', () => {
   });
 
   test('update a wiki page', async ({ page }) => {
-    test.slow();
     const campName = uniqueName();
     const pageTitle = 'Update Test';
     const updatedTitle = 'Updated Page';
@@ -110,15 +107,14 @@ test.describe('Campaign Wiki', () => {
 
     // Verify update by loading the page
     await page.evaluate((cid) => window.showWiki(cid), result.campId);
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await page.evaluate((pid) => window.loadWikiPage(pid), result.pageId);
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 
     await expect(page.locator('#wikiPageContent .wiki-content')).toContainText('Updated Content', { timeout: NAV_TIMEOUT });
   });
 
   test('delete a wiki page', async ({ page }) => {
-    test.slow();
     const campName = uniqueName();
     const pageTitle = 'Delete Test';
 
@@ -160,7 +156,6 @@ test.describe('Campaign Wiki', () => {
   });
 
   test('list wiki pages for a campaign', async ({ page }) => {
-    test.slow();
     const campName = uniqueName();
 
     await page.evaluate(async (name) => {
@@ -190,7 +185,6 @@ test.describe('Campaign Wiki', () => {
   });
 
   test('wiki page with special characters in content', async ({ page }) => {
-    test.slow();
     const campName = uniqueName();
     const pageTitle = 'Special Char';
 
@@ -211,7 +205,7 @@ test.describe('Campaign Wiki', () => {
     }, { campName, pageTitle });
 
     await page.evaluate((cid) => window.showWiki(cid), result.campId);
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await page.evaluate((pid) => window.loadWikiPage(pid), result.pageId);
 
     // Wait for wiki content to be rendered (may take longer on mobile with DB contention)
@@ -225,7 +219,6 @@ test.describe('Campaign Wiki', () => {
   });
 
   test('wiki offcanvas works on mobile viewport', async ({ page }) => {
-    test.slow();
     await page.setViewportSize({ width: 390, height: 844 });
 
     const campName = uniqueName();
@@ -247,7 +240,7 @@ test.describe('Campaign Wiki', () => {
     }, { campName, pageTitle });
 
     await page.evaluate((cid) => window.showWiki(cid), result.campId);
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 
     const sidebarDesktop = page.locator('.col-md-3.d-none.d-md-block');
     await expect(sidebarDesktop).toBeHidden();
@@ -255,7 +248,7 @@ test.describe('Campaign Wiki', () => {
     const toggleBtn = page.locator('[onclick^="toggleWikiSidebar()"]');
     if (await toggleBtn.isVisible()) {
       await toggleBtn.click();
-      await page.waitForTimeout(400);
+      await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
       const offcanvas = page.locator('#wikiOffcanvas');
       await expect(offcanvas).toHaveClass(/show/);
     }

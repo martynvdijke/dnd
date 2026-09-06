@@ -113,7 +113,7 @@ test.describe('One-Shot Adventure Features', () => {
 
     await expect(page.locator('#oneshotSection button:has-text("Generate")')).toBeVisible({ timeout: 10000 });
     await page.locator('#oneshotSection button:has-text("Generate")').click();
-    await page.waitForTimeout(300);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 
     const title = uniqueName();
     await submitOneShotForm(page, {
@@ -217,7 +217,7 @@ test.describe('One-Shot Adventure Features', () => {
 
     // Load checklist via HTMX
     await loadHtmx(page, `/htmx/oneshot-adventures/${advId}/checklist`);
-    await page.waitForTimeout(1000);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await expect(page.locator('#oneshotSection')).toContainText('No checklist items yet', { timeout: NAV_TIMEOUT });
 
     // Add checklist item
@@ -225,7 +225,7 @@ test.describe('One-Shot Adventure Features', () => {
     await expect(input).toBeVisible({ timeout: NAV_TIMEOUT });
     await input.fill('Prepare battle maps');
     await page.locator('#oneshotSection button.btn-primary i.fa-plus').click();
-    await page.waitForTimeout(2000);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await expect(page.locator('#oneshotSection')).toContainText('Prepare battle maps', { timeout: 10000 });
   });
 

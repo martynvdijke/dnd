@@ -9,7 +9,6 @@ test.describe('Full application smoke test', () => {
   });
 
   test('all static assets load correctly', async ({ page }) => {
-    test.slow();
     const assets = [
       '/static/style.css',
       '/static/js/app.js',
@@ -22,7 +21,6 @@ test.describe('Full application smoke test', () => {
   });
 
   test('login flow works', async ({ page }) => {
-    test.slow();
     await login(page);
     await expect(page.locator('#userName')).toContainText('admin', { timeout: NAV_TIMEOUT });
     if (!(await isMobile(page))) {
@@ -31,13 +29,11 @@ test.describe('Full application smoke test', () => {
   });
 
   test('character list loads', async ({ page }) => {
-    test.slow();
     await login(page);
     await expect(page.locator('h1:has-text("Character Folio")')).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 
   test('navigation between views works', async ({ page }) => {
-    test.slow();
     await login(page);
 
     const views = [
@@ -61,7 +57,6 @@ test.describe('Full application smoke test', () => {
   });
 
   test('character create and sheet open', async ({ page }) => {
-    test.slow();
     await login(page);
 
     const name = `Smoke-${Date.now()}`;
@@ -78,7 +73,6 @@ test.describe('Full application smoke test', () => {
   });
 
   test('logout works', async ({ page }) => {
-    test.slow();
     await login(page);
 
     if (await isMobile(page)) {
@@ -87,7 +81,7 @@ test.describe('Full application smoke test', () => {
       const toggler = page.locator('.navbar-toggler');
       if (await toggler.isVisible()) {
         await toggler.click();
-        await page.waitForTimeout(300);
+        await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
       }
       await page.locator('a:has-text("Logout")').click();
     }
@@ -95,7 +89,6 @@ test.describe('Full application smoke test', () => {
   });
 
   test('app version is displayed', async ({ page }) => {
-    test.slow();
     await login(page);
 
     await expect(page.locator('footer')).toContainText(/v\d+\.\d+\.\d+/, { timeout: NAV_TIMEOUT });

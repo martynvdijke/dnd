@@ -1,14 +1,10 @@
 import { test, expect } from './fixtures.js';
-import { login, NAV_TIMEOUT } from './helpers.js';
+import { NAV_TIMEOUT, login, waitLoadingDone, waitModalClosed } from './helpers.js';
 
 const uniqueName = () => `CEX-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-async function waitLoadingDone(page) {
-  await page.waitForFunction(() => {
-    const o = document.getElementById('loadingOverlay');
-    return o && o.classList.contains('d-none');
-  }, { timeout: NAV_TIMEOUT }).catch(() => {});
-}
+
+
 
 async function createCampaign(page, name) {
   return page.evaluate(async (n) => {
@@ -25,7 +21,6 @@ test.describe('Campaign Extended Features', () => {
 
   test.describe('Recaps', () => {
     test('Create a campaign recap', async ({ page }) => {
-    test.slow();
       const camp = await createCampaign(page, uniqueName());
       const title = 'Recap ' + uniqueName();
       const result = await page.evaluate(async ({ cid, t }) => {
@@ -38,7 +33,6 @@ test.describe('Campaign Extended Features', () => {
     });
 
     test('List recaps for a campaign', async ({ page }) => {
-    test.slow();
       const camp = await createCampaign(page, uniqueName());
       const title = 'List Recap ' + uniqueName();
       await page.evaluate(async ({ cid, t }) => {
@@ -56,7 +50,6 @@ test.describe('Campaign Extended Features', () => {
     });
 
     test('Get specific recap', async ({ page }) => {
-    test.slow();
       const camp = await createCampaign(page, uniqueName());
       const title = 'Get Recap ' + uniqueName();
       const created = await page.evaluate(async ({ cid, t }) => {
@@ -73,7 +66,6 @@ test.describe('Campaign Extended Features', () => {
     });
 
     test('Update a recap', async ({ page }) => {
-    test.slow();
       const camp = await createCampaign(page, uniqueName());
       const title = 'Update Recap ' + uniqueName();
       const created = await page.evaluate(async ({ cid, t }) => {
@@ -97,7 +89,6 @@ test.describe('Campaign Extended Features', () => {
     });
 
     test('Delete a recap', async ({ page }) => {
-    test.slow();
       const camp = await createCampaign(page, uniqueName());
       const title = 'Delete Recap ' + uniqueName();
       const created = await page.evaluate(async ({ cid, t }) => {
@@ -118,7 +109,6 @@ test.describe('Campaign Extended Features', () => {
     });
 
     test('Generate a recap via AI', async ({ page }) => {
-    test.slow();
       const camp = await createCampaign(page, uniqueName());
 
       const result = await page.evaluate(async (cid) => {
@@ -141,7 +131,6 @@ test.describe('Campaign Extended Features', () => {
 
   test.describe('Timeline Events', () => {
     test('Create a timeline event', async ({ page }) => {
-    test.slow();
       const camp = await createCampaign(page, uniqueName());
       const title = 'Timeline ' + uniqueName();
       const result = await page.evaluate(async ({ cid, t }) => {
@@ -154,7 +143,6 @@ test.describe('Campaign Extended Features', () => {
     });
 
     test('List timeline events', async ({ page }) => {
-    test.slow();
       const camp = await createCampaign(page, uniqueName());
       const title = 'List Timel ' + uniqueName();
       await page.evaluate(async ({ cid, t }) => {
@@ -172,7 +160,6 @@ test.describe('Campaign Extended Features', () => {
     });
 
     test('Update a timeline event', async ({ page }) => {
-    test.slow();
       const camp = await createCampaign(page, uniqueName());
       const title = 'Update TL ' + uniqueName();
       const created = await page.evaluate(async ({ cid, t }) => {
@@ -198,7 +185,6 @@ test.describe('Campaign Extended Features', () => {
     });
 
     test('Delete a timeline event', async ({ page }) => {
-    test.slow();
       const camp = await createCampaign(page, uniqueName());
       const title = 'Delete TL ' + uniqueName();
       const created = await page.evaluate(async ({ cid, t }) => {
@@ -223,7 +209,6 @@ test.describe('Campaign Extended Features', () => {
 
   test.describe('Combat Log', () => {
     test('Create combat log entry', async ({ page }) => {
-    test.slow();
       const camp = await createCampaign(page, uniqueName());
       const result = await page.evaluate(async (cid) => {
         return (window as any).api('POST', '/api/combat-log', {
@@ -236,7 +221,6 @@ test.describe('Campaign Extended Features', () => {
     });
 
     test('List combat log entries', async ({ page }) => {
-    test.slow();
       const camp = await createCampaign(page, uniqueName());
       await page.evaluate(async (cid) => {
         return (window as any).api('POST', '/api/combat-log', {
@@ -254,7 +238,6 @@ test.describe('Campaign Extended Features', () => {
     });
 
     test('Get combat log stats', async ({ page }) => {
-    test.slow();
       const camp = await createCampaign(page, uniqueName());
       await page.evaluate(async (cid) => {
         return (window as any).api('POST', '/api/combat-log', {
@@ -271,7 +254,6 @@ test.describe('Campaign Extended Features', () => {
     });
 
     test('Create multiple entries and list with limit', async ({ page }) => {
-    test.slow();
       const camp = await createCampaign(page, uniqueName());
 
       await page.evaluate(async (cid) => {

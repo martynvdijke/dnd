@@ -1,15 +1,10 @@
 import { test, expect } from './fixtures.js';
-import { login, NAV_TIMEOUT, clickNavItem } from './helpers.js';
+import { NAV_TIMEOUT, clickNavItem, login, waitLoadingDone, waitModalClosed } from './helpers.js';
 
 const uniqueName = () => `Sel-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
-async function waitLoadingDone(page) {
-  await page.waitForFunction(() => (window as any).__apiReady === true, { timeout: NAV_TIMEOUT }).catch(() => {});
-  await page.waitForFunction(() => {
-    const o = document.getElementById('loadingOverlay');
-    return o && o.classList.contains('d-none');
-  }, { timeout: NAV_TIMEOUT }).catch(() => {});
-}
+
+
 
 /**
  * Create a member user + campaign + character via the admin API, then log in

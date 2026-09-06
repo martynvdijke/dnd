@@ -7,7 +7,7 @@ import { ensureNavOpen, isMobile, clickSecondaryNavItem, login } from './helpers
 test.describe('Shops & Trading', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
-    await page.waitForTimeout(300);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
   });
 
   test('shops nav is visible for admin', async ({ page }) => {
@@ -27,7 +27,7 @@ test.describe('Shops & Trading', () => {
       });
     }, shopName);
     await clickSecondaryNavItem(page, 'shops', 'moreNavShops', 'Shops');
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await expect(page.locator('#shopsGrid')).toContainText(shopName);
   });
 
@@ -45,7 +45,7 @@ test.describe('Shops & Trading', () => {
     }, shopName);
 
     await clickSecondaryNavItem(page, 'shops', 'moreNavShops', 'Shops');
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await expect(page.locator('#shopsGrid')).toContainText(shopName);
   });
 

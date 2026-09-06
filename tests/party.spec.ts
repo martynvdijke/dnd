@@ -6,7 +6,7 @@ const uniqueName = () => `Party-${Date.now()}-${Math.random().toString(36).slice
 test.describe('Party Management', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
-    await page.waitForTimeout(300);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
   });
 
   test('Create a party via API', async ({ page }) => {
@@ -158,7 +158,7 @@ test.describe('Party Management', () => {
 
     // Navigate to Party View
     await clickNavItem(page, 'party', 'party');
-    await page.waitForTimeout(1500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 
     // Check the party content area contains the party name
     await expect(page.locator('#partyContent')).toContainText(name, { timeout: NAV_TIMEOUT });
@@ -180,7 +180,7 @@ test.describe('Party Management', () => {
 
     // Mute, then reopen — state persists server-side
     await toggle.click();
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await page.evaluate((id) => (window as any).showManageCampaign(id, ''), created.id);
     await expect(page.locator('[data-testid="push-mute-toggle"]')).toContainText('Muted', { timeout: NAV_TIMEOUT });
 

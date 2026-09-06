@@ -77,7 +77,7 @@ test.describe('Character sheet editing', () => {
     const setupBtn = page.locator('button:has-text("Set Up Spellcasting")');
     if (await setupBtn.count() > 0) {
       await setupBtn.click();
-      await page.waitForTimeout(500);
+      await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     }
     await expect(page.locator('#spellsSection')).toBeVisible();
 
@@ -106,7 +106,7 @@ test.describe('Character sheet editing', () => {
 
     // On mobile the button may be behind the sheet panel — force the click
     await page.click('text=Add Proficiency', { force: true, timeout: NAV_TIMEOUT });
-    await page.waitForTimeout(300);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await page.fill('#profName', 'Stealth');
     await page.click('#genericModal button:has-text("Add Proficiency")');
     await waitModalClosed(page);
@@ -133,7 +133,7 @@ test.describe('Rest and level up', () => {
 
     await page.click('#tabBar button:has-text("Combat")');
     await page.click('text=Level Up');
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 
     await expect(page.locator('#sheetName')).toContainText(name);
   });
@@ -184,7 +184,7 @@ test.describe('Campaign management UI', () => {
     if (await searchInput.isVisible()) {
       await searchInput.fill('fire');
       await page.click('text=Search');
-      await page.waitForTimeout(500);
+      await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     }
   });
 
@@ -246,12 +246,6 @@ test.describe('NPC interactions extended', () => {
     await login(page);
   });
 
-  async function waitModalClosed(page: any) {
-    await page.waitForFunction(() => !document.getElementById('genericModal')?.classList.contains('show'), { timeout: 10000 });
-    // Bootstrap keeps the .modal-backdrop during the fade transition — wait for
-    // it to be removed so it doesn't intercept subsequent clicks.
-    await page.waitForFunction(() => !document.querySelector('.modal-backdrop'), { timeout: NAV_TIMEOUT }).catch(() => {});
-  }
 
   test('can create and delete NPC with full stats', async ({ page }) => {
     const name = uniqueName();
@@ -332,7 +326,7 @@ test.describe('Spellcasting management', () => {
     const enableBtn = page.locator('text=Set Up Spellcasting');
     if (await enableBtn.isVisible()) {
       await enableBtn.click();
-      await page.waitForTimeout(300);
+      await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     }
   });
 
@@ -373,7 +367,7 @@ test.describe('Import/export edge cases', () => {
 
     await textarea.fill('{not valid json}');
     await page.click('#genericModal button:has-text("Import")');
-    await page.waitForTimeout(500);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
   });
 
   test('character sheet tracks wealth and resources', async ({ page }) => {
@@ -697,7 +691,7 @@ test.describe('Resource tracking', () => {
     const hpInput = page.locator('#currentHP');
     if (await hpInput.isVisible()) {
       await hpInput.fill('42');
-      await page.waitForTimeout(500);
+      await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
       await expect(hpInput).toHaveValue('42');
     }
   });
@@ -814,20 +808,20 @@ test.describe('Error handling and edge cases', () => {
     await waitLoadingDone(page);
 
     await page.click('#tabBar button:has-text("Stats")');
-    await page.waitForTimeout(100);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await expect(page.locator('#statsSection')).toBeVisible();
 
     await page.click('#tabBar button:has-text("Combat")');
-    await page.waitForTimeout(200);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await expect(page.locator('#combatSection')).toBeVisible();
 
     for (const tab of ['Spells', 'Inventory', 'Features', 'Details']) {
       await page.click(`#tabBar button:has-text("${tab}")`);
-      await page.waitForTimeout(150);
+      await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     }
 
     await page.click('#tabBar button:has-text("Stats")');
-    await page.waitForTimeout(100);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await expect(page.locator('#statsSection')).toBeVisible();
   });
 
@@ -882,7 +876,7 @@ test.describe('Error handling and edge cases', () => {
       await btn.click();
       // Wait for the new result to appear with the current expression
       await expect(page.locator('#diceResult')).toContainText(expr, { timeout: 15000 });
-      await page.waitForTimeout(500);
+      await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     }
 
     const historyItems = page.locator('.dice-history-item');

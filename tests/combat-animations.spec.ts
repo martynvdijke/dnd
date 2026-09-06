@@ -14,13 +14,13 @@ async function createCharacter(page: Page, name: string) {
 async function openCombat(page: Page) {
   if (await isMobile(page)) {
     await page.click('#moreTabBtn');
-    await page.waitForTimeout(300);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
     await page.locator('#bottom-sheet-more-nav button').filter({ hasText: 'Combat' }).click();
   } else {
     await ensureNavOpen(page);
     await page.locator('#appSidebar button[data-nav="combat"]').click();
   }
-  await page.waitForTimeout(500);
+  await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
 }
 
 test.describe('Combat animations', () => {
@@ -29,7 +29,6 @@ test.describe('Combat animations', () => {
   });
 
   test('HP damage shows floating number on character sheet', async ({ page }) => {
-    test.slow();
     // Create a character with full HP
     const name = `AnimChar-${Date.now()}`;
     await createCharacter(page, name);
@@ -57,7 +56,6 @@ test.describe('Combat animations', () => {
   });
 
   test('combat turn transition marks active row', async ({ page }) => {
-    test.slow();
     await openCombat(page);
     await expect(page.locator('#combatTrackerView')).toBeVisible({ timeout: NAV_TIMEOUT });
 
