@@ -1,12 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
-import os from 'os';
 
 export default defineConfig({
   testDir: './tests',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: 2,
-  workers: process.env.CI ? 2 : Math.max(1, Math.floor(os.cpus().length / 4)),
+  workers: 1,
   timeout: 90000,
   expect: {
     timeout: 15000,
