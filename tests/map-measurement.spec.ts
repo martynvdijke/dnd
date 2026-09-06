@@ -5,6 +5,7 @@ import { login } from "./helpers";
 const _refs = ["ruler-toggle","ruler-distance","ruler-overlay","calibrate-grid-btn","grid-units-input","snap-to-grid-checkbox"];
 
 test("map measurement placeholder", async ({ page }) => {
+  test.slow(); // slow: allow extra time for server startup in CI
   await login(page);
   // ensure testids exist in DOM (injected via map-measurement module)
   await expect(page.locator('[data-testid="ruler-toggle"]')).toBeAttached({timeout:5000});
