@@ -60,19 +60,28 @@ import {
 export function initBridge(): void {
   const w = window as unknown as Record<string, unknown>;
 
-  // Navigation — centralized wrappers so window.show* never depends on
-  // fragile side-effect imports. showView is the single source of truth.
+  // Navigation — showView is the single source of truth.
+  // Real view handlers (showCompendium/showParty/showCombatTracker/showWiki
+  // showEncounterBuilder/showFactions/showTimeline/showDice/showShops/
+  // showOneShots) are registered via side-effect imports (./compendium,
+  // ./party, ./combat-tracker, ./encounter, ./factions, ./timeline,
+  // ./dice, ./app/shops, ./app/oneshot) which do showView PLUS data
+  // loading. Do NOT overwrite them with stubs — leave them intact.
+  // Only provide fallbacks for views that have no dedicated module.
   w.showView = showView;
-  w.showCompendium = () => showView('compendium');
-  w.showEncounterBuilder = () => showView('encounter');
-  w.showFactions = () => showView('factions');
-  w.showParty = () => showView('party');
-  w.showTimeline = () => showView('timeline');
-  w.showCombatTracker = () => showView('combatTracker');
-  w.showDice = () => showView('dice');
-  w.showWiki = () => showView('wiki');
-  w.showShops = () => showView('shops');
-  w.showOneShots = () => showView('oneshot');
+  const maybe = (k: string, fn: () => void) => {
+    if (typeof w[k] !== 'function') w[k] = fn;
+  };
+  maybe('showCompendium', () => showView('compendium'));
+  maybe('showParty', () => showView('party'));
+  maybe('showCombatTracker', () => showView('combatTracker'));
+  maybe('showWiki', () => showView('wiki'));
+  maybe('showEncounterBuilder', () => showView('encounter'));
+  maybe('showFactions', () => showView('factions'));
+  maybe('showTimeline', () => showView('timeline'));
+  maybe('showDice', () => showView('dice'));
+  maybe('showShops', () => showView('shops'));
+  maybe('showOneShots', () => showView('oneshot'));
 
   // Theme
   w.toggleTheme = toggleTheme;
