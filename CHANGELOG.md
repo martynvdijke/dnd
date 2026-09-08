@@ -1,3 +1,10 @@
+# [2.55.0](https://github.com/martynvdijke/dnd/compare/v2.54.0...v2.55.0) (2026-09-08)
+
+
+### Features
+
+* add Authelia OIDC SSO login with password fallback ([#110](https://github.com/martynvdijke/dnd/issues/110)) ([d6500ba](https://github.com/martynvdijke/dnd/commit/d6500babbdf76b0628fd5554f4a0a97f6123fbd2))
+
 # [2.54.0](https://github.com/martynvdijke/dnd/compare/v2.53.8...v2.54.0) (2026-09-06)
 
 
