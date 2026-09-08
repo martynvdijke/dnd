@@ -172,6 +172,23 @@ CGO_ENABLED=1 go build -tags fts5 -o villum-server .
 | `DB_PATH` | `villum.db` | SQLite database path |
 | `MEDIA_PATH` | `{DB_DIR}/media` | Media upload directory |
 | `DOCKER` | `false` | Docker-specific paths (auto in Dockerfile) |
+| `OIDC_ENABLED` | `false` | Enable OIDC SSO login via Authelia |
+| `OIDC_ISSUER_URL` | — | OIDC issuer, e.g. `https://authelia.vandijke.xyz` |
+| `OIDC_CLIENT_ID` | — | OIDC client id (Authelia client, e.g. `dnd`) |
+| `OIDC_CLIENT_SECRET_FILE` | — | Path to file holding the client secret (preferred) |
+| `OIDC_CLIENT_SECRET` | — | Client secret (dev only; prefer the `_FILE` variant) |
+| `OIDC_REDIRECT_URL` | — | Must match Authelia registration, e.g. `https://dnd.vandijke.xyz/api/auth/oidc/callback` |
+| `OIDC_SCOPES` | `openid email profile groups` | Requested scopes |
+| `OIDC_LOGOUT_URL` | `{issuer}/logout` | IdP logout override |
+
+### OIDC SSO (Authelia)
+
+Password login stays enabled as fallback. To cut over: register the client in
+Authelia (`client_id` dnd, redirect `https://dnd.vandijke.xyz/api/auth/oidc/callback`,
+scopes `openid email profile groups`, PKCE S256, explicit consent, `one_factor`),
+bypass NPM forward-auth for the host (it breaks the OIDC callback), then set
+`OIDC_ENABLED=true` with the vars above. Users link by verified email on first
+SSO login; the `admins` group grants admin. Rollback: `OIDC_ENABLED=false`.
 
 ## Project Structure
 

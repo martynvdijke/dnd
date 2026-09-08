@@ -20,4 +20,7 @@ type AuthSession struct {
 	IP        string    `json:"ip"`
 	CreatedAt time.Time `json:"created_at"`
 	ExpiresAt time.Time `json:"expires_at"`
+	// AuthMethod is "password" or "oidc"; OIDCSub is issuer+sub for SSO sessions.
+	AuthMethod string `json:"auth_method"`
+	OIDCSub    string `json:"oidc_sub"`
 }

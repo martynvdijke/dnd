@@ -14,6 +14,9 @@ import (
 // SessionStore defines the interface for session storage backends.
 type SessionStore interface {
 	Create(userID int64, username, role, ip string) string
+	// CreateWithAuth is Create plus the login method ("password"/"oidc")
+	// and the OIDC subject for SSO sessions ("" for password logins).
+	CreateWithAuth(userID int64, username, role, ip, authMethod, oidcSub string) string
 	Get(sessionID string) *models.AuthSession
 	Delete(sessionID string)
 	Cleanup()
@@ -31,16 +34,22 @@ func NewMemoryStore() *MemoryStore {
 }
 
 func (s *MemoryStore) Create(userID int64, username, role, ip string) string {
+	return s.CreateWithAuth(userID, username, role, ip, "password", "")
+}
+
+func (s *MemoryStore) CreateWithAuth(userID int64, username, role, ip, authMethod, oidcSub string) string {
 	id := generateSessionID()
 	s.mu.Lock()
 	s.sessions[id] = &models.AuthSession{
-		ID:        id,
-		UserID:    userID,
-		Username:  username,
-		Role:      role,
-		IP:        ip,
-		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().Add(24 * time.Hour),
+		ID:         id,
+		UserID:     userID,
+		Username:   username,
+		Role:       role,
+		IP:         ip,
+		CreatedAt:  time.Now(),
+		ExpiresAt:  time.Now().Add(24 * time.Hour),
+		AuthMethod: authMethod,
+		OIDCSub:    oidcSub,
 	}
 	s.mu.Unlock()
 	return id
@@ -87,23 +96,29 @@ func NewDBSessionStore(db *sql.DB) *DBSessionStore {
 }
 
 func (s *DBSessionStore) Create(userID int64, username, role, ip string) string {
+	return s.CreateWithAuth(userID, username, role, ip, "password", "")
+}
+
+func (s *DBSessionStore) CreateWithAuth(userID int64, username, role, ip, authMethod, oidcSub string) string {
 	id := generateSessionID()
 	now := time.Now()
 	expiresAt := now.Add(24 * time.Hour)
 
 	sess := &models.AuthSession{
-		ID:        id,
-		UserID:    userID,
-		Username:  username,
-		Role:      role,
-		IP:        ip,
-		CreatedAt: now,
-		ExpiresAt: expiresAt,
+		ID:         id,
+		UserID:     userID,
+		Username:   username,
+		Role:       role,
+		IP:         ip,
+		CreatedAt:  now,
+		ExpiresAt:  expiresAt,
+		AuthMethod: authMethod,
+		OIDCSub:    oidcSub,
 	}
 
 	_, err := s.db.Exec(
-		`INSERT INTO auth_sessions (id, user_id, username, role, ip, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		id, userID, username, role, ip, now.UTC().Format(time.RFC3339), expiresAt.UTC().Format(time.RFC3339),
+		`INSERT INTO auth_sessions (id, user_id, username, role, ip, created_at, expires_at, auth_method, oidc_sub) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		id, userID, username, role, ip, now.UTC().Format(time.RFC3339), expiresAt.UTC().Format(time.RFC3339), authMethod, oidcSub,
 	)
 	if err != nil {
 		log.Printf("DBSessionStore.Create: %v", err)
@@ -129,9 +144,9 @@ func (s *DBSessionStore) Get(sessionID string) *models.AuthSession {
 	var createdAt, expiresAt string
 	sess := &models.AuthSession{ID: sessionID}
 	err := s.db.QueryRow(
-		`SELECT user_id, username, role, ip, created_at, expires_at FROM auth_sessions WHERE id = ?`,
+		`SELECT user_id, username, role, ip, created_at, expires_at, auth_method, oidc_sub FROM auth_sessions WHERE id = ?`,
 		sessionID,
-	).Scan(&sess.UserID, &sess.Username, &sess.Role, &sess.IP, &createdAt, &expiresAt)
+	).Scan(&sess.UserID, &sess.Username, &sess.Role, &sess.IP, &createdAt, &expiresAt, &sess.AuthMethod, &sess.OIDCSub)
 
 	if err != nil {
 		return nil // not found or DB error

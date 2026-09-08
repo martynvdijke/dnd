@@ -127,6 +127,12 @@ func ApplySafeAlters(db *sql.DB) error {
 		"ALTER TABLE campaign_event_settings ADD COLUMN ical_url TEXT NOT NULL DEFAULT ''",
 		"ALTER TABLE campaign_maps ADD COLUMN grid_units TEXT NOT NULL DEFAULT 'ft'",
 		"ALTER TABLE campaign_map_pins ADD COLUMN snap_to_grid INTEGER NOT NULL DEFAULT 0",
+		// OIDC SSO linking (users is ent-managed; ent tolerates extra columns,
+		// safe_alters covers existing DBs). oidc_sub stays NULL for
+		// password-only users; UNIQUE permits many NULLs in SQLite.
+		"ALTER TABLE users ADD COLUMN oidc_sub TEXT DEFAULT NULL",
+		"CREATE UNIQUE INDEX IF NOT EXISTS idx_users_oidc_sub ON users(oidc_sub)",
+		"CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)",
 	}
 
 	for _, stmt := range alterStatements {

@@ -29,6 +29,10 @@
         </div>
         <button type="submit" class="btn btn-primary w-100 py-2" data-testid="login-submit"><i class="fa-solid fa-key me-2" aria-hidden="true"></i>Enter the Archives</button>
       </form>
+      <div id="oidcLogin" class="d-none">
+        <div class="d-flex align-items-center my-3"><hr class="flex-grow-1"><span class="px-2 text-muted small">or</span><hr class="flex-grow-1"></div>
+        <a class="btn btn-outline-primary w-100 py-2" href="/api/auth/oidc/login" data-testid="oidc-login"><i class="fa-solid fa-shield-halved me-2" aria-hidden="true"></i>Login with Authelia</a>
+      </div>
       <div class="ornament mt-3">✧ ✦ ✧</div>
       <div class="text-center mt-3"><a href="#" onclick="toggleTheme();return false" class="text-muted small"><i class="fa-solid fa-moon" aria-hidden="true" id="themeIcon"></i> <span id="themeLabel">Dark Mode</span></a></div>
     </div>
