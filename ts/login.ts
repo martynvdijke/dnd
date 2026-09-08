@@ -19,6 +19,32 @@ expose('toggleTheme', () => {
   updateLoginThemeUI();
 });
 
+export function oidcErrorText(code: string): string {
+  switch (code) {
+    case 'oidc_expired': return 'SSO session expired — please try again.';
+    case 'oidc_state': return 'SSO verification failed — please try again.';
+    case 'oidc_email': return 'SSO login requires a verified email.';
+    default: return 'SSO login failed — try password login or contact an admin.';
+  }
+}
+
+export async function initOIDC() {
+  const errorDiv = document.getElementById('error') as HTMLDivElement | null;
+  const err = new URLSearchParams(window.location.search).get('error');
+  if (err && errorDiv) {
+    errorDiv.textContent = oidcErrorText(err);
+    errorDiv.classList.remove('d-none');
+  }
+  try {
+    const res = await fetch('/api/auth/oidc/status', { credentials: 'include' });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.enabled) document.getElementById('oidcLogin')?.classList.remove('d-none');
+  } catch {
+    // SSO optional; password login is unaffected.
+  }
+}
+
 async function init() {
   initTheme();
 
@@ -65,6 +91,8 @@ async function init() {
     window.location.href = '/setup';
     return;
   }
+
+  await initOIDC();
 
   const res2 = await fetch('/api/user/me', { credentials: 'include' });
   if (res2.ok) {

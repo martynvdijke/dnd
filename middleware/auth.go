@@ -43,6 +43,9 @@ func AuthRequired() gin.HandlerFunc {
 		c.Set("username", sess.Username)
 		c.Set("role", sess.Role)
 		c.Set("session_id", sessionID)
+		// OIDC sessions reuse the same cookie/store; expose the login method
+		// so handlers can distinguish SSO vs password sessions if needed.
+		c.Set("auth_method", sess.AuthMethod)
 		c.Next()
 	}
 }

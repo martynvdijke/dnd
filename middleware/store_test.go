@@ -114,7 +114,8 @@ func newDBStoreForTest(t *testing.T) *DBSessionStore {
 	if _, err := sqlDB.Exec(`CREATE TABLE IF NOT EXISTS auth_sessions (
 		id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, username TEXT NOT NULL DEFAULT '',
 		role TEXT NOT NULL DEFAULT 'user', ip TEXT NOT NULL DEFAULT '',
-		created_at TEXT NOT NULL, expires_at TEXT NOT NULL)`); err != nil {
+		created_at TEXT NOT NULL, expires_at TEXT NOT NULL,
+		auth_method TEXT NOT NULL DEFAULT 'password', oidc_sub TEXT NOT NULL DEFAULT '')`); err != nil {
 		t.Fatalf("create auth_sessions: %v", err)
 	}
 	return NewDBSessionStore(sqlDB)
