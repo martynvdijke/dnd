@@ -11,9 +11,9 @@ services:
       - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
       - OTEL_SERVICE_NAME=villum
       - OTEL_RESOURCE_ATTRIBUTES=deployment.environment=production
-      # OIDC SSO via Authelia (disabled unless OIDC_ENABLED=true).
+      # OIDC SSO via Authelia (enabled by default once configured; set false to disable).
       # Secret via file (preferred) or env — never commit values.
-      - OIDC_ENABLED=${OIDC_ENABLED:-false}
+      - OIDC_ENABLED=${OIDC_ENABLED:-true}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL:-}
       - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-}
       - OIDC_CLIENT_SECRET_FILE=${OIDC_CLIENT_SECRET_FILE:-}

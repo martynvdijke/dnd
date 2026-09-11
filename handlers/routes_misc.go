@@ -17,7 +17,7 @@ func RegisterPublicRoutes(r *gin.Engine) {
 	r.GET("/metrics", HandleMetrics)
 	r.GET("/api/check-setup", CheckSetup)
 	r.POST("/api/login", HandleLogin)
-	// OIDC SSO (disabled unless OIDC_ENABLED=true; password login stays as fallback)
+	// OIDC SSO (enabled by default when configured; password login stays as fallback)
 	r.GET("/api/auth/oidc/status", OIDCStatus)
 	r.GET("/api/auth/oidc/login", OIDCLogin)
 	r.GET("/api/auth/oidc/callback", OIDCCallback)
