@@ -32,6 +32,7 @@ func clearOIDCEnv(t *testing.T) {
 		"OIDC_CLIENT_SECRET", "OIDC_CLIENT_SECRET_FILE", "OIDC_REDIRECT_URL",
 		"OIDC_SCOPES", "OIDC_LOGOUT_URL"} {
 		t.Setenv(k, "")
+		os.Unsetenv(k) // t.Setenv restores on cleanup; unset so "default" is truly unset
 	}
 }
 
@@ -40,11 +41,28 @@ func TestLoadOIDCConfigDefaults(t *testing.T) {
 	defer testutil.CloseDB(t)
 	clearOIDCEnv(t)
 	cfg := loadOIDCConfig()
-	if cfg.Enabled {
-		t.Fatal("expected disabled by default")
+	if !cfg.Enabled {
+		t.Fatal("expected enabled by default")
+	}
+	if cfg.valid() {
+		t.Fatal("unconfigured OIDC must not be usable")
 	}
 	if len(cfg.Scopes) != 4 || cfg.Scopes[0] != "openid" {
 		t.Fatalf("unexpected default scopes: %v", cfg.Scopes)
+	}
+}
+
+func TestLoadOIDCConfigExplicitDisable(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	clearOIDCEnv(t)
+	t.Setenv("OIDC_ENABLED", "false")
+	t.Setenv("OIDC_ISSUER_URL", "https://authelia.example")
+	t.Setenv("OIDC_CLIENT_ID", "dnd")
+	t.Setenv("OIDC_CLIENT_SECRET", "secret")
+	t.Setenv("OIDC_REDIRECT_URL", "https://dnd.example/api/auth/oidc/callback")
+	if cfg := loadOIDCConfig(); cfg.valid() {
+		t.Fatal("OIDC_ENABLED=false must disable even when fully configured")
 	}
 }
 

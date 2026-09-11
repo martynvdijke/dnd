@@ -23,7 +23,8 @@ import (
 
 // OIDC login via Authelia (Authorization Code + PKCE S256). Sessions reuse the
 // same `session` cookie/store as password auth; only auth_method differs.
-// Disabled by default (OIDC_ENABLED=true to enable); password login stays as fallback.
+// Enabled by default once fully configured; set OIDC_ENABLED=false to opt out.
+// Password login stays as fallback.
 
 // OIDCConfig is the OIDC relying-party config, read from env. The client
 // secret comes from OIDC_CLIENT_SECRET_FILE (preferred) or OIDC_CLIENT_SECRET
@@ -39,7 +40,11 @@ type OIDCConfig struct {
 }
 
 func loadOIDCConfig() OIDCConfig {
-	cfg := OIDCConfig{Enabled: os.Getenv("OIDC_ENABLED") == "true"}
+	enabled := true // enabled by default; set OIDC_ENABLED=false to opt out
+	if v, ok := os.LookupEnv("OIDC_ENABLED"); ok {
+		enabled = v == "true" || v == "1"
+	}
+	cfg := OIDCConfig{Enabled: enabled}
 	if f := os.Getenv("OIDC_CLIENT_SECRET_FILE"); f != "" {
 		if b, err := os.ReadFile(f); err == nil {
 			cfg.Secret = strings.TrimSpace(string(b))
@@ -121,20 +126,18 @@ func setOIDCCookie(c *gin.Context, name, value string, maxAge int) {
 	c.SetCookie(name, value, maxAge, "/", "", false, true)
 }
 
-// OIDCStatus reports whether OIDC login is enabled (drives the login page button).
+// OIDCStatus reports whether OIDC login is usable — enabled and fully
+// configured (drives the login page button). Misconfigured deployments report
+// disabled so the button never dangles; password login remains the fallback.
 func OIDCStatus(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"enabled": loadOIDCConfig().Enabled})
+	c.JSON(http.StatusOK, gin.H{"enabled": loadOIDCConfig().valid()})
 }
 
 // OIDCLogin starts the Authorization Code + PKCE flow (state/nonce/verifier cookies).
 func OIDCLogin(c *gin.Context) {
 	cfg := loadOIDCConfig()
-	if !cfg.Enabled {
-		c.JSON(http.StatusNotFound, gin.H{"error": "oidc disabled"})
-		return
-	}
 	if !cfg.valid() {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "oidc misconfigured"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "oidc disabled"})
 		return
 	}
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)
@@ -191,12 +194,8 @@ func oidcFail(c *gin.Context, msg string) {
 // creates a session with the same cookie shape as password auth, and redirects to /.
 func OIDCCallback(c *gin.Context) {
 	cfg := loadOIDCConfig()
-	if !cfg.Enabled {
-		c.JSON(http.StatusNotFound, gin.H{"error": "oidc disabled"})
-		return
-	}
 	if !cfg.valid() {
-		oidcFail(c, "oidc_config")
+		c.JSON(http.StatusNotFound, gin.H{"error": "oidc disabled"})
 		return
 	}
 	state, err1 := c.Cookie("oidc_state")
