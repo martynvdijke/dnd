@@ -1,3 +1,10 @@
+# [2.56.0](https://github.com/martynvdijke/dnd/compare/v2.55.0...v2.56.0) (2026-09-11)
+
+
+### Features
+
+* enable OIDC SSO by default with password fallback ([#111](https://github.com/martynvdijke/dnd/issues/111)) ([546d43e](https://github.com/martynvdijke/dnd/commit/546d43e4a77e4f14d6354a44862f20b2085d7312))
+
 # [2.55.0](https://github.com/martynvdijke/dnd/compare/v2.54.0...v2.55.0) (2026-09-08)
 
 
