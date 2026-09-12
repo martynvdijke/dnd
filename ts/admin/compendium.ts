@@ -1,4 +1,3 @@
-// @ts-nocheck — split from monolith
 import { expose } from '../lib/expose';
 import { esc, attrEscape, toast, showModal, hideModal } from '../lib/dom';
 import { api, currentSchemaId, currentSchemaFields, currentSchemaPage, currentSchemaQuery, currentSchemaName, selectedEntryIds, setCurrentSchemaId, setCurrentSchemaFields, setCurrentSchemaPage, setCurrentSchemaQuery, setCurrentSchemaName } from './state';

@@ -1,4 +1,3 @@
-// @ts-nocheck — split from monolith
 import { expose } from '../lib/expose';
 import { esc, showModal, hideModal, toast } from '../lib/dom';
 import { api, getCsrfToken, getApiToken, clearApiToken } from '../lib/api';

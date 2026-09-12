@@ -1,4 +1,3 @@
-// @ts-nocheck — split from monolith
 import { expose } from '../lib/expose';
 let pdfViewerDoc: any = null;
 let pdfViewerPage = 1;

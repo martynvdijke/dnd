@@ -1,4 +1,3 @@
-// @ts-nocheck — split from monolith
 import { expose } from '../lib/expose';
 import { esc } from '../lib/dom';
 import { api } from '../lib/api';
@@ -45,13 +44,13 @@ async function createForceGraph(
 
   const g = svg.append('g');
 
-  const zoom = d3.zoom<SVGSVGElement, unknown>()
+  const zoom = d3.zoom()
     .scaleExtent([0.1, 4])
-    .on('zoom', (event) => g.attr('transform', event.transform));
+    .on('zoom', (event: any) => g.attr('transform', event.transform));
   svg.call(zoom);
 
   const link = g.append('g')
-    .selectAll<SVGLineElement, any>('line')
+    .selectAll('line')
     .data(data.edges)
     .join('line')
     .attr('stroke', edgeColor)
@@ -60,7 +59,7 @@ async function createForceGraph(
     .attr('marker-end', 'url(#arrowhead)');
 
   const linkLabel = g.append('g')
-    .selectAll<SVGTextElement, any>('text')
+    .selectAll('text')
     .data(data.edges.filter((d: any) => d.label))
     .join('text')
     .text((d: any) => d.label)
@@ -71,12 +70,12 @@ async function createForceGraph(
     .attr('dy', '-4');
 
   const node = g.append('g')
-    .selectAll<SVGGElement, any>('g')
+    .selectAll('g')
     .data(data.nodes)
     .join('g')
     .style('cursor', 'pointer');
 
-  node.each(function (d: any) {
+  node.each(function (this: any, d: any) {
     const el = d3.select(this);
     const size = d.size || 15;
     const grp = groups[d.group] || { shape: 'dot', color: '#8b0000' };
@@ -138,14 +137,14 @@ async function createForceGraph(
       .on('mouseleave', () => shapeEl.attr('stroke', strokeColor).attr('stroke-width', 2));
   });
 
-  const drag = d3.drag<SVGGElement, any>()
-    .on('start', (event, d) => {
+  const drag = d3.drag()
+    .on('start', (event: any, d: any) => {
       if (!event.active) sim.alphaTarget(0.3).restart();
       d.fx = d.x;
       d.fy = d.y;
     })
-    .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y; })
-    .on('end', (event, d) => {
+    .on('drag', (event: any, d: any) => { d.fx = event.x; d.fy = event.y; })
+    .on('end', (event: any, d: any) => {
       if (!event.active) sim.alphaTarget(0);
       d.fx = null;
       d.fy = null;

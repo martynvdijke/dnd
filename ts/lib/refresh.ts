@@ -1,4 +1,3 @@
-// @ts-nocheck — legacy helper extracted from untyped monolith
 import { api } from './api';
 import { currentChar, setCurrentChar } from './state';
 

@@ -1,4 +1,3 @@
-// @ts-nocheck — split from monolith
 import * as bootstrap from 'bootstrap';
 import { expose } from '../lib/expose';
 import { esc, attrEscape, showModal, hideModal, toast } from '../lib/dom';
