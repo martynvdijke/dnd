@@ -40,5 +40,5 @@
 - [x] 6.1 `npm run typecheck` clean (nocheck pragmas retained on moved code)
 - [x] 6.2 `npm run test:unit` green
 - [x] 6.3 `npm run build:vite` succeeds — 5 IIFE bundles (app, admin, pwa, setup, login)
-- [ ] 6.4 `task test:e2e` green — full Playwright suite with no regressions from the split
-- [ ] 6.5 Run full local gates (`task ci`) and ensure no regressions; confirm `app.ts` and `admin.ts` line counts under 800
+- [x] 6.4 `task test:e2e` green — full Playwright suite with no regressions from the split
+- [x] 6.5 Run full local gates (`task ci`) and ensure no regressions; confirm `app.ts` and `admin.ts` line counts under 800
