@@ -1,3 +1,10 @@
+# [2.57.0](https://github.com/martynvdijke/dnd/compare/v2.56.0...v2.57.0) (2026-09-12)
+
+
+### Features
+
+* add AI provider attribution headers (villum UA + x-opencode-session) ([#113](https://github.com/martynvdijke/dnd/issues/113)) ([c17c4b4](https://github.com/martynvdijke/dnd/commit/c17c4b49e812c6086b16b1608ceed97429fab39d))
+
 # [2.56.0](https://github.com/martynvdijke/dnd/compare/v2.55.0...v2.56.0) (2026-09-11)
 
 
