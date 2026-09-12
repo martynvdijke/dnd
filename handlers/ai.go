@@ -37,6 +37,31 @@ func newAIClient(timeout time.Duration) *http.Client {
 	return &http.Client{Timeout: timeout}
 }
 
+func setAIProviderHeaders(req *http.Request, sessionID string) {
+	ver := AppVersion
+	if ver == "" {
+		ver = "0.0.0-dev"
+	}
+	req.Header.Set("User-Agent", "villum/"+ver)
+	req.Header.Set("x-opencode-session", sessionID)
+}
+
+func generateSessionID() string {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		// fallback: timestamp hex (should not happen)
+		return hex.EncodeToString([]byte(fmt.Sprintf("%d", time.Now().UnixNano())))
+	}
+	return hex.EncodeToString(b)
+}
+
+func resolveSessionID(inbound string) string {
+	if strings.TrimSpace(inbound) != "" {
+		return strings.TrimSpace(inbound)
+	}
+	return generateSessionID()
+}
+
 func ListAIEndpoints(c *gin.Context) {
 	endpoints, err := db.GetAIEndpoints(c.Request.Context())
 	if err != nil {
@@ -290,6 +315,7 @@ func TestAIEndpoint(c *gin.Context) {
 		req, _ := http.NewRequest("POST", endpoint.BaseURL+"/chat/completions", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+apiKey)
+		setAIProviderHeaders(req, generateSessionID())
 
 		resp, err := client.Do(req)
 		if err != nil {
@@ -321,6 +347,7 @@ func TestAIEndpoint(c *gin.Context) {
 		req, _ := http.NewRequest("POST", endpoint.BaseURL+"/images/generations", bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+apiKey)
+		setAIProviderHeaders(req, generateSessionID())
 
 		resp, err := client.Do(req)
 		if err != nil {
@@ -346,11 +373,13 @@ type textGenRequest struct {
 	Prompt     string `json:"prompt"`
 	System     string `json:"system,omitempty"`
 	MaxTokens  *int   `json:"max_tokens,omitempty"`
+	SessionID  string `json:"session_id,omitempty"`
 }
 
 type textGenResponse struct {
-	Text   string `json:"text"`
-	Finish string `json:"finish_reason,omitempty"`
+	Text      string `json:"text"`
+	Finish    string `json:"finish_reason,omitempty"`
+	SessionID string `json:"session_id,omitempty"`
 }
 
 func HandleTextGeneration(c *gin.Context) {
@@ -420,6 +449,8 @@ func HandleTextGeneration(c *gin.Context) {
 		payload["max_tokens"] = *req.MaxTokens
 	}
 
+	sessionID := resolveSessionID(req.SessionID)
+
 	body, _ := json.Marshal(payload)
 	httpReq, err := http.NewRequest("POST", endpoint.BaseURL+"/chat/completions", bytes.NewReader(body))
 	if err != nil {
@@ -428,6 +459,7 @@ func HandleTextGeneration(c *gin.Context) {
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
+	setAIProviderHeaders(httpReq, sessionID)
 
 	client := newAIClient(aiTextTimeout)
 	resp, err := client.Do(httpReq)
@@ -463,15 +495,16 @@ func HandleTextGeneration(c *gin.Context) {
 	}
 
 	if len(result.Choices) == 0 {
-		c.JSON(http.StatusOK, textGenResponse{Text: "", Finish: "no_choices"})
+		c.JSON(http.StatusOK, textGenResponse{Text: "", Finish: "no_choices", SessionID: sessionID})
 		return
 	}
 
 	middleware.LogInfo("ai", "text generation succeeded", "endpoint_id", endpoint.ID, "model", endpoint.Model, "finish_reason", result.Choices[0].FinishReason)
 
 	c.JSON(http.StatusOK, textGenResponse{
-		Text:   result.Choices[0].Message.Content,
-		Finish: result.Choices[0].FinishReason,
+		Text:      result.Choices[0].Message.Content,
+		Finish:    result.Choices[0].FinishReason,
+		SessionID: sessionID,
 	})
 }
 
@@ -480,10 +513,12 @@ type imageGenRequest struct {
 	Prompt     string `json:"prompt"`
 	Size       string `json:"size,omitempty"`
 	N          int    `json:"n,omitempty"`
+	SessionID  string `json:"session_id,omitempty"`
 }
 
 type imageGenResponse struct {
-	Images []string `json:"images"`
+	Images    []string `json:"images"`
+	SessionID string   `json:"session_id,omitempty"`
 }
 
 func HandleImageGeneration(c *gin.Context) {
@@ -555,6 +590,8 @@ func HandleImageGeneration(c *gin.Context) {
 		"size":   imgSize,
 	}
 
+	sessionID := resolveSessionID(req.SessionID)
+
 	body, _ := json.Marshal(payload)
 	httpReq, err := http.NewRequest("POST", endpoint.BaseURL+"/images/generations", bytes.NewReader(body))
 	if err != nil {
@@ -563,6 +600,7 @@ func HandleImageGeneration(c *gin.Context) {
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
+	setAIProviderHeaders(httpReq, sessionID)
 
 	client := newAIClient(aiImageTimeout)
 	resp, err := client.Do(httpReq)
@@ -603,7 +641,7 @@ func HandleImageGeneration(c *gin.Context) {
 
 	middleware.LogInfo("ai", "image generation succeeded", "endpoint_id", endpoint.ID, "model", endpoint.Model, "image_count", len(images))
 
-	c.JSON(http.StatusOK, imageGenResponse{Images: images})
+	c.JSON(http.StatusOK, imageGenResponse{Images: images, SessionID: sessionID})
 }
 
 func sanitizeError(err error) string {
