@@ -1,4 +1,3 @@
-// @ts-nocheck — split from monolith
 export let csrfToken = '';
 export let apiToken = '';
 export let currentUser: any = null;

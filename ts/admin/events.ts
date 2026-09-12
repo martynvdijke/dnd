@@ -1,4 +1,3 @@
-// @ts-nocheck — split from monolith
 import { expose } from '../lib/expose';
 import { esc, attrEscape, toast, showModal } from '../lib/dom';
 import { api, campaignEventEditId, setCampaignEventEditId } from './state';

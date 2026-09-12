@@ -1,4 +1,3 @@
-// @ts-nocheck — split from monolith
 import { expose } from '../lib/expose';
 import { api } from './state';
 import { toast } from '../lib/dom';

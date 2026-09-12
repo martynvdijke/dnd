@@ -1,4 +1,3 @@
-// @ts-nocheck — split from monolith, pre-existing type errors
 import { expose } from '../lib/expose';
 import { currentChar, currentCampaign, setCurrentChar } from '../lib/state';
 import { refreshChar } from '../lib/refresh';
@@ -25,7 +24,7 @@ expose('sortList', sortList);
 
 async function openChar(id: number) {
   try {
-    await refreshChar(id);
+    await refreshChar(String(id));
     expose('currentChar', currentChar);
     expose('canEditCharacter', !!(currentChar as any).can_edit);
     setCurrentTab('stats');

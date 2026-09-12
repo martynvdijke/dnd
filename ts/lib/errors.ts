@@ -1,4 +1,3 @@
-// @ts-nocheck — legacy helper extracted from untyped monolith
 import { toast } from './dom';
 
 export function renderError(e: unknown): void {

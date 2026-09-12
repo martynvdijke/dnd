@@ -1,4 +1,3 @@
-// @ts-nocheck — split from monolith
 import { expose } from '../lib/expose';
 import { esc, showModal, hideModal, toast } from '../lib/dom';
 import { api } from '../lib/api';
@@ -34,7 +33,7 @@ expose('showEncounterDifficulty', function () {
   addMonsterRow();
 });
 
-expose('addMonsterRow', function () {
+const addMonsterRow = expose('addMonsterRow', function () {
   const list = document.getElementById('ecMonsterList');
   if (!list) return;
   const idx = list.children.length;
@@ -51,7 +50,7 @@ expose('addMonsterRow', function () {
   calcEncounterDifficulty();
 });
 
-expose('calcEncounterDifficulty', function () {
+const calcEncounterDifficulty = expose('calcEncounterDifficulty', function () {
   const partySize = parseInt((document.getElementById('ecPartySize') as HTMLInputElement)?.value) || 4;
   const avgLevel = parseInt((document.getElementById('ecAvgLevel') as HTMLInputElement)?.value) || 5;
   const resultEl = document.getElementById('ecResult');

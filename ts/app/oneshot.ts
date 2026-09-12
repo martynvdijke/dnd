@@ -1,4 +1,3 @@
-// @ts-nocheck — split from monolith
 import * as bootstrap from 'bootstrap';
 import { expose } from '../lib/expose';
 import { esc, attrEscape, capitalize, showModal, hideModal, toast, openCompendiumPicker } from '../lib/dom';
@@ -219,7 +218,7 @@ expose('showCompendiumMonsterPickerForOneShot', function (adventureId: number) {
 // Unified monster picker modal (monster-management change): opens the shared
 // /htmx/monster-picker/<context>/<id> modal with Compendium / My Library tabs
 // (+ Campaign Roster for campaign contexts).
-expose('showMonsterPicker', function (context: string, contextId: number, tab?: string) {
+const showMonsterPicker = expose('showMonsterPicker', function (context: string, contextId: number, tab?: string) {
   const tabQ = tab ? '?tab=' + tab : '';
   showModal('Add Monster', `<div hx-get="/htmx/monster-picker/${context}/${contextId}${tabQ}" hx-trigger="load" hx-swap="innerHTML"><div class="text-center py-3"><i class="fa-solid fa-spinner fa-spin me-1"></i>Loading...</div></div>`);
 });
@@ -364,7 +363,7 @@ expose('addOneShotCombatNPCs', async function (adventureId: number) {
 });
 
 // Monster Library
-expose('showMonsterLibrary', function (adventureId: number) {
+const showMonsterLibrary = expose('showMonsterLibrary', function (adventureId: number) {
   showModal('Monster Library', `
     <div class="mb-3 d-flex gap-2">
       <button class="btn btn-outline-primary btn-sm" onclick="showAddLibraryMonster(${adventureId})"><i class="fa-solid fa-plus me-1"></i>New</button>
@@ -673,7 +672,7 @@ expose('showLinkCompendiumItemToNPC', function (adventureId: number) {
   });
 });
 
-expose('showLinkCompendiumItemToNPCPick', async function (adventureId: number, item: any) {
+const showLinkCompendiumItemToNPCPick = expose('showLinkCompendiumItemToNPCPick', async function (adventureId: number, item: any) {
   showModal(`Link "${esc(item.name)}" to NPC`, `
     <p class="text-muted small mb-3">Find an NPC in this adventure to link:</p>
     <div class="mb-3"><input class="form-control" id="npcCompLinkSearch" placeholder="Search NPCs..." oninput="searchNPCsForCompendiumLink(${adventureId}, ${item.id})"></div>
