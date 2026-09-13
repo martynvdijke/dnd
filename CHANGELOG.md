@@ -1,3 +1,10 @@
+# [2.60.0](https://github.com/martynvdijke/dnd/compare/v2.59.0...v2.60.0) (2026-09-13)
+
+
+### Features
+
+* add combat automation rules engine ([0406099](https://github.com/martynvdijke/dnd/commit/040609901a2fd75e5ef5ef3fd1430382aa6ce4ce))
+
 # [2.59.0](https://github.com/martynvdijke/dnd/compare/v2.58.0...v2.59.0) (2026-09-13)
 
 
