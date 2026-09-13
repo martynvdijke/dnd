@@ -713,6 +713,7 @@ import './combat-tracker';
 // ─── Wiki / Campaign Graph → extracted to ts/app/wiki.ts ───
 import './app/wiki';
 import './knowledge';
+import './import-ecosystem';
 import './table-view';
 
 // ─── One-Shot Tree/Items/Shops/Monsters/NPCs → extracted to ts/app/oneshot.ts ───

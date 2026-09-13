@@ -78,6 +78,9 @@ func RegisterMiscAuthRoutes(r *gin.RouterGroup) {
 
 	// Import from API
 	r.POST("/import/api", ImportFromAPI)
+	r.POST("/import/external", HandleExternalImport)
+	r.GET("/import/external/logs", HandleExternalImportLogs)
+	r.POST("/import/external/logs/:id/rollback", HandleExternalImportRollback)
 
 	// Factions & Reputation
 	r.GET("/factions", ListFactions)

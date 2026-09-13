@@ -571,9 +571,38 @@ func RollbackCompendiumImport(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid log id"})
 		return
 	}
-
-	// For now, just mark as rolled_back.
-	// Full rollback (removing inserted entries) requires storing entry IDs.
+	var summaryJSON string
+	_ = db.DB.QueryRow(`SELECT summary FROM compendium_import_logs WHERE id=?`, logID).Scan(&summaryJSON)
+	if summaryJSON != "" {
+		var summary map[string]any
+		if err := json.Unmarshal([]byte(summaryJSON), &summary); err == nil {
+			if ids, ok := summary["created_ids"]; ok {
+				var idList []int64
+				switch v := ids.(type) {
+				case []any:
+					for _, vv := range v {
+						switch n := vv.(type) {
+						case float64:
+							idList = append(idList, int64(n))
+						case int64:
+							idList = append(idList, n)
+						}
+					}
+				case []int64:
+					idList = v
+				}
+				if len(idList) > 0 {
+					placeholders := make([]string, len(idList))
+					args := make([]any, len(idList))
+					for i, id := range idList {
+						placeholders[i] = "?"
+						args[i] = id
+					}
+					db.DB.Exec("DELETE FROM compendium_entries WHERE id IN ("+strings.Join(placeholders, ",")+")", args...)
+				}
+			}
+		}
+	}
 	_, err = db.DB.Exec(`UPDATE compendium_import_logs SET status='rolled_back', rolled_back_at=datetime('now') WHERE id=?`, logID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

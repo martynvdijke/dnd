@@ -48,6 +48,8 @@ expose('showImport', function () {
     <div class="mb-3"><label class="form-label">JSON</label><textarea class="form-control" id="importJson" rows="6" style="font-family:monospace;font-size:0.8rem"></textarea></div>
     <div class="mb-3"><label class="form-label">File</label><input class="form-control" type="file" id="importFile" accept=".json"></div>
     <button class="btn btn-primary w-100" onclick="doImport()"><i class="fa-solid fa-file-import me-1"></i>Import</button>
+    <button class="btn btn-outline-secondary w-100 mt-2" onclick="showExternalImport()" data-testid="open-external-import">Import from external source</button>
+    <button class="btn btn-link btn-sm w-100 mt-1" onclick="showExternalImportLogs()" data-testid="open-external-logs">View import logs</button>
   `);
 });
 
