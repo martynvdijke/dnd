@@ -43,24 +43,7 @@ func CheckConcentration(c *gin.Context) {
 		return
 	}
 
-	dc := 10
-	if req.Damage >= 22 {
-		dc = 15
-	} else if req.Damage >= 12 {
-		dc = 12
-	} else if req.Damage >= 8 {
-		dc = 11
-	} else if req.Damage >= 4 {
-		dc = 10
-	}
-	// Half the damage taken rounded down, minimum 10 (per D&D 5e rules: DC = 10 or half damage, whichever is higher)
-	halfDmg := req.Damage / 2
-	if halfDmg > dc {
-		dc = halfDmg
-	}
-	if dc < 10 {
-		dc = 10
-	}
+	dc := calcConcentrationDC(req.Damage)
 
 	c.JSON(http.StatusOK, ConcentrationCheckResult{
 		NeedsCheck: true,

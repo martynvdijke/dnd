@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"villum/db"
@@ -223,6 +224,31 @@ func loadInventory(ctx context.Context, characterID int64) []models.InventoryIte
 	}
 	out := make([]models.InventoryItem, 0, len(ents))
 	entryIDs := loadEntryIDs("inventory", characterID)
+	// Fill attack_ability/attack_bonus via raw SQL (ent unaware of these columns)
+	attackMap := map[int64]struct {
+		ability string
+		bonus   *int
+	}{}
+	if rows, err := db.DB.Query("SELECT id, attack_ability, attack_bonus FROM inventory WHERE character_id=?", characterID); err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var id int64
+			var abil string
+			var bonus *int
+			// attack_bonus nullable
+			var b sql.NullInt64
+			if err := rows.Scan(&id, &abil, &b); err == nil {
+				if b.Valid {
+					v := int(b.Int64)
+					bonus = &v
+				}
+				attackMap[id] = struct {
+					ability string
+					bonus   *int
+				}{abil, bonus}
+			}
+		}
+	}
 	for _, e := range ents {
 		it := models.InventoryItem{
 			ID: e.ID, CharacterID: e.CharacterID, Name: e.Name, Quantity: e.Quantity, Weight: e.Weight,
@@ -233,6 +259,10 @@ func loadInventory(ctx context.Context, characterID int64) []models.InventoryIte
 		}
 		if eid, ok := entryIDs[e.ID]; ok {
 			it.CompendiumEntryID = &eid
+		}
+		if am, ok := attackMap[e.ID]; ok {
+			it.AttackAbility = am.ability
+			it.AttackBonus = am.bonus
 		}
 		out = append(out, it)
 	}

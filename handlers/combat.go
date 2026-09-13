@@ -168,6 +168,9 @@ func NextTurn(c *gin.Context) {
 	if cid, err := strconv.ParseInt(campaignID, 10, 64); err == nil && cid > 0 {
 		SendCombatUpdate(cid)
 	}
+	if currentEntry.CharacterID != nil && *currentEntry.CharacterID != 0 {
+		tickConditionsForCharacter(*currentEntry.CharacterID, 1, "round")
+	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "current_entry": currentEntry})
 }
 

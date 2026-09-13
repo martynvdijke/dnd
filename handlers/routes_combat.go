@@ -13,6 +13,8 @@ func RegisterCombatRoutes(r *gin.RouterGroup) {
 	r.POST("/combat/next-turn", NextTurn)
 	r.GET("/combat/current-turn", GetCurrentTurn)
 
+	r.POST("/combat/attack", HandleCombatAttack)
+
 	// Combat Log
 	r.GET("/combat-log", ListCombatLogEntries)
 	r.POST("/combat-log", CreateCombatLogEntry)

@@ -71,6 +71,12 @@ declare global {
     handleLiveRoll: (payload: unknown) => void;
     refreshTableInitiative: () => Promise<void>;
     refreshTableHandouts: () => Promise<void>;
+    applyDamage: () => Promise<void>;
+    applyHeal: () => Promise<void>;
+    showAttackModal: (entryId: number) => Promise<void>;
+    previewAttack: () => Promise<void>;
+    applyAttack: () => Promise<void>;
+    refreshCombatLog: () => Promise<void>;
     // allow any other expose names without error
     [key: string]: unknown;
   }
