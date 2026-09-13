@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -245,4 +247,182 @@ func TestGetAIEnabled(t *testing.T) {
 	if m2["enabled"] != false {
 		t.Fatalf("expected enabled false, got %v", m2)
 	}
+}
+
+func TestAIProviderHeaders_SuppliedSessionAndUA(t *testing.T) {
+	prev := AppVersion
+	AppVersion = "9.9.9"
+	defer func() { AppVersion = prev }()
+
+	var mu sync.Mutex
+	var capturedUA, capturedSess string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		capturedUA = r.Header.Get("User-Agent")
+		capturedSess = r.Header.Get("X-Opencode-Session")
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"choices": []map[string]any{
+				{"message": map[string]any{"content": "hello world"}, "finish_reason": "stop"},
+			},
+		})
+	}))
+	defer srv.Close()
+
+	r := setupAITextRouter(t)
+	defer testutil.CloseDB(t)
+	id := seedAIEndpoint(t, "hdr-text-1", "text", srv.URL, "gpt-4o", true)
+
+	w := testutil.PostJSON(t, r, "/api/ai/text", map[string]any{"endpoint_id": id, "prompt": "hi", "session_id": "sess-abc123"})
+	if w.Code != 200 {
+		t.Fatalf("expected 200, got %d %s", w.Code, w.Body.String())
+	}
+
+	mu.Lock()
+	ua := capturedUA
+	sess := capturedSess
+	mu.Unlock()
+
+	if ua != "villum/9.9.9" {
+		t.Fatalf("expected User-Agent villum/9.9.9, got %q", ua)
+	}
+	if sess != "sess-abc123" {
+		t.Fatalf("expected X-Opencode-Session sess-abc123, got %q", sess)
+	}
+	var resp map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if resp["session_id"] != "sess-abc123" {
+		t.Fatalf("expected response session_id sess-abc123, got %v", resp["session_id"])
+	}
+}
+
+func TestAIProviderHeaders_GeneratedSessionEchoedAndStable(t *testing.T) {
+	var mu sync.Mutex
+	var captured []string
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		captured = append(captured, r.Header.Get("X-Opencode-Session"))
+		mu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"choices": []map[string]any{
+				{"message": map[string]any{"content": "hello world"}, "finish_reason": "stop"},
+			},
+		})
+	}))
+	defer srv.Close()
+
+	r := setupAITextRouter(t)
+	defer testutil.CloseDB(t)
+	id := seedAIEndpoint(t, "hdr-text-2", "text", srv.URL, "gpt-4o", true)
+
+	// First request with no session_id
+	w1 := testutil.PostJSON(t, r, "/api/ai/text", map[string]any{"endpoint_id": id, "prompt": "hi"})
+	if w1.Code != 200 {
+		t.Fatalf("first request expected 200, got %d %s", w1.Code, w1.Body.String())
+	}
+	var resp1 map[string]any
+	if err := json.Unmarshal(w1.Body.Bytes(), &resp1); err != nil {
+		t.Fatalf("unmarshal first response: %v", err)
+	}
+	sid1, _ := resp1["session_id"].(string)
+	if sid1 == "" {
+		t.Fatalf("expected non-empty session_id in first response, got %v", resp1)
+	}
+	if len(sid1) != 32 {
+		t.Fatalf("expected 32-char hex session_id, got %q (len %d)", sid1, len(sid1))
+	}
+	if _, err := hex.DecodeString(sid1); err != nil {
+		t.Fatalf("session_id not valid hex: %q err %v", sid1, err)
+	}
+
+	mu.Lock()
+	if len(captured) < 1 {
+		mu.Unlock()
+		t.Fatalf("no captured outbound header for first request")
+	}
+	firstCaptured := captured[0]
+	mu.Unlock()
+
+	if firstCaptured != sid1 {
+		t.Fatalf("outbound X-Opencode-Session %q != echoed session_id %q", firstCaptured, sid1)
+	}
+
+	// Second request passing the echoed value
+	w2 := testutil.PostJSON(t, r, "/api/ai/text", map[string]any{"endpoint_id": id, "prompt": "hi again", "session_id": sid1})
+	if w2.Code != 200 {
+		t.Fatalf("second request expected 200, got %d %s", w2.Code, w2.Body.String())
+	}
+	var resp2 map[string]any
+	if err := json.Unmarshal(w2.Body.Bytes(), &resp2); err != nil {
+		t.Fatalf("unmarshal second response: %v", err)
+	}
+	sid2, _ := resp2["session_id"].(string)
+	if sid2 != sid1 {
+		t.Fatalf("expected second response session_id %q, got %q", sid1, sid2)
+	}
+
+	mu.Lock()
+	if len(captured) < 2 {
+		mu.Unlock()
+		t.Fatalf("no captured outbound header for second request")
+	}
+	secondCaptured := captured[1]
+	mu.Unlock()
+
+	if secondCaptured != sid1 {
+		t.Fatalf("second outbound X-Opencode-Session %q != expected %q", secondCaptured, sid1)
+	}
+}
+
+func TestAIProviderHeaders_DefaultVersion(t *testing.T) {
+	prev := AppVersion
+	defer func() { AppVersion = prev }()
+
+	t.Run("empty version fallback", func(t *testing.T) {
+		AppVersion = ""
+		req := httptest.NewRequest("POST", "http://example.com", nil)
+		setAIProviderHeaders(req, "abc")
+		ua := req.Header.Get("User-Agent")
+		if ua != "villum/0.0.0-dev" {
+			t.Fatalf("expected villum/0.0.0-dev, got %q", ua)
+		}
+		if strings.Contains(ua, "Go-http-client") {
+			t.Fatalf("UA should not contain Go-http-client, got %q", ua)
+		}
+		if strings.Contains(ua, "opencode") {
+			t.Fatalf("UA should not contain opencode, got %q", ua)
+		}
+		if got := req.Header.Get("x-opencode-session"); got != "abc" {
+			t.Fatalf("expected x-opencode-session abc, got %q", got)
+		}
+	})
+
+	t.Run("explicit version", func(t *testing.T) {
+		AppVersion = "2.57.1"
+		req := httptest.NewRequest("POST", "http://example.com", nil)
+		setAIProviderHeaders(req, "abc")
+		ua := req.Header.Get("User-Agent")
+		if ua != "villum/2.57.1" {
+			t.Fatalf("expected villum/2.57.1, got %q", ua)
+		}
+	})
+
+	t.Run("resolveSessionID", func(t *testing.T) {
+		got := resolveSessionID("")
+		if len(got) != 32 {
+			t.Fatalf("expected 32-char hex, got %q len %d", got, len(got))
+		}
+		if _, err := hex.DecodeString(got); err != nil {
+			t.Fatalf("resolveSessionID empty not hex: %q err %v", got, err)
+		}
+		trimmed := resolveSessionID("  keep-me ")
+		if trimmed != "keep-me" {
+			t.Fatalf("expected keep-me, got %q", trimmed)
+		}
+	})
 }
