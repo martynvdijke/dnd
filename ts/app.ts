@@ -37,6 +37,7 @@ import './factions';
 import './share';
 import './character-sheet';
 import './selection';
+import './session-mode';
 import { currentUser, currentChar, currentTab, allLocations, allNPCs, currentCampaign, setCurrentChar, setCurrentTab, setAllLocations, setAllNPCs, setCurrentCampaign } from './lib/state';
 
 // Expose API helper globally for E2E tests (window.api check)
@@ -712,6 +713,7 @@ import './combat-tracker';
 // ─── Wiki / Campaign Graph → extracted to ts/app/wiki.ts ───
 import './app/wiki';
 import './knowledge';
+import './table-view';
 
 // ─── One-Shot Tree/Items/Shops/Monsters/NPCs → extracted to ts/app/oneshot.ts ───
 import './app/oneshot';

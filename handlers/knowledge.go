@@ -202,6 +202,7 @@ func UpdateKnowledge(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
 	}
+	wasShared := k.Shared
 	var body struct {
 		Title   *string `json:"title"`
 		Content *string `json:"content"`
@@ -253,6 +254,9 @@ func UpdateKnowledge(c *gin.Context) {
 		return
 	}
 	k2, _ := knowledgeRowToStruct(kid)
+	if !wasShared && k2 != nil && k2.Shared {
+		SendKnowledgeReveal(*k2)
+	}
 	c.JSON(http.StatusOK, k2)
 }
 
@@ -406,5 +410,8 @@ func BulkRevealKnowledge(c *gin.Context) {
 	}
 	db.DB.Exec(`UPDATE campaign_knowledge SET shared=1,status=?,status_history=?,updated_at=? WHERE id=?`, newStatus, sharedHist, now, kid)
 	k2, _ := knowledgeRowToStruct(kid)
+	if k2 != nil {
+		SendKnowledgeReveal(*k2)
+	}
 	c.JSON(http.StatusOK, k2)
 }

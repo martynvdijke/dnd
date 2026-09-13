@@ -146,6 +146,70 @@ func SendPartyUpdate() {
 	Hub.BroadcastToAdmins(msg)
 }
 
+// Live table event types (campaign-scoped, server -> client).
+const (
+	WSEventDiceRoll        = "dice_roll"
+	WSEventCombatUpdate    = "combat_update"
+	WSEventKnowledgeReveal = "knowledge_reveal"
+)
+
+// broadcastToCampaign marshals a payload and fans it out to campaign members.
+func broadcastToCampaign(campaignID int64, eventType string, payload any) {
+	if campaignID <= 0 {
+		return
+	}
+	b, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+	msg, _ := json.Marshal(WSMessage{Type: eventType, Payload: b})
+	Hub.BroadcastToCampaignMembers(campaignID, msg)
+}
+
+// DiceRollEvent is the dice_roll payload for the live table.
+type DiceRollEvent struct {
+	UserID      int64  `json:"user_id"`
+	Username    string `json:"username"`
+	CharacterID int64  `json:"character_id"`
+	Expression  string `json:"expression"`
+	Total       int    `json:"total"`
+	Text        string `json:"text"`
+}
+
+// SendDiceRoll relays a persisted roll to the character's campaign members.
+func SendDiceRoll(campaignID, userID, characterID int64, username, expression string, total int, text string) {
+	broadcastToCampaign(campaignID, WSEventDiceRoll, DiceRollEvent{
+		UserID:      userID,
+		Username:    username,
+		CharacterID: characterID,
+		Expression:  expression,
+		Total:       total,
+		Text:        text,
+	})
+}
+
+// SendCombatUpdate signals members to refetch the combat view for a campaign.
+func SendCombatUpdate(campaignID int64) {
+	broadcastToCampaign(campaignID, WSEventCombatUpdate, map[string]int64{"campaign_id": campaignID})
+}
+
+// SendKnowledgeReveal broadcasts a knowledge entry that just became shared.
+func SendKnowledgeReveal(entry any) {
+	k, ok := entry.(Knowledge)
+	if !ok || !k.Shared {
+		return
+	}
+	broadcastToCampaign(k.CampaignID, WSEventKnowledgeReveal, map[string]any{
+		"id":          k.ID,
+		"campaign_id": k.CampaignID,
+		"title":       k.Title,
+		"content":     k.Content,
+		"source":      k.Source,
+		"status":      k.Status,
+		"shared":      k.Shared,
+	})
+}
+
 func HandleWebSocket(c *gin.Context) {
 	sessionID, err := c.Cookie("session")
 	if err != nil || sessionID == "" {

@@ -65,6 +65,12 @@ declare global {
     renderCrafting: () => void;
     renderDetails: () => void;
     updateXPBar: () => void;
+    showTable: () => Promise<void>;
+    hideTable: () => void;
+    rollFromTable: () => Promise<void>;
+    handleLiveRoll: (payload: unknown) => void;
+    refreshTableInitiative: () => Promise<void>;
+    refreshTableHandouts: () => Promise<void>;
     // allow any other expose names without error
     [key: string]: unknown;
   }

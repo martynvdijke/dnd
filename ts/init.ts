@@ -39,9 +39,18 @@ function connectWS() {
       if (msg.type === 'party_update' && getCurrentView() === 'party') {
         (window as any).showParty();
       }
+      if (msg.type === 'dice_roll') (window as any).handleLiveRoll?.(msg.payload);
+      if (msg.type === 'combat_update') { if (getCurrentView() === 'combatTracker') (window as any).showCombatTracker?.(); (window as any).refreshTableInitiative?.(); }
+      if (msg.type === 'knowledge_reveal') (window as any).refreshTableHandouts?.();
     } catch {}
   };
+  ws.onopen = () => {
+    (window as any).__wsReady = true;
+    (window as any).refreshTableInitiative?.();
+    (window as any).refreshTableHandouts?.();
+  };
   ws.onclose = () => {
+    (window as any).__wsReady = false;
     ws = null;
     wsReconnectTimer = setTimeout(connectWS, 5000);
   };

@@ -2,6 +2,7 @@ import type { SessionModeState } from './types';
 import { updateFabForView } from './fab';
 import { getCurrentView } from './navigation';
 import { expose } from './lib/expose';
+import { showTable, hideTable } from './table-view';
 
 let state: SessionModeState = 'normal';
 
@@ -30,6 +31,7 @@ export function activateSessionMode(): void {
   document.body.classList.add('session-mode');
   showSessionToast('Session Mode activated');
   updateFabForView(getCurrentView(), true);
+  try { showTable(); } catch {}
 }
 
 export function deactivateSessionMode(): void {
@@ -37,6 +39,7 @@ export function deactivateSessionMode(): void {
   sessionStorage.removeItem(STORAGE_KEY);
   document.body.classList.remove('session-mode');
   updateFabForView(getCurrentView(), false);
+  try { hideTable(); } catch {}
 }
 
 export function showSessionToast(msg: string): void {
