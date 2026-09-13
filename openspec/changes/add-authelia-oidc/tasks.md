@@ -24,6 +24,11 @@
 
 ## 5. Homelab onboarding + verification
 
+> Operator actions — require the live Authelia instance, Nginx Proxy Manager and the
+> production host. They cannot be completed or verified from the dev/CI environment,
+> so the boxes stay unchecked until the operator performs them. Code for sections 1–4
+> is shipped (#110, #111) and covered by `handlers/oidc_test.go` + `tests/oidc-login.spec.ts`.
+
 - [ ] 5.1 Register Authelia client: client_id dnd, redirect https://dnd.vandijke.xyz/api/auth/oidc/callback, scopes openid email profile groups, PKCE S256, client_secret_post/basic, consent explicit, policy one_factor.
 - [ ] 5.2 Add NPM bypass for https://dnd.vandijke.xyz (forward-auth would break OIDC callback); verify bypass.
 - [ ] 5.3 Verify web login via Authelia, verify API tokens/session still work, verify logout clears session and redirects.
