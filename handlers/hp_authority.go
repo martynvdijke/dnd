@@ -43,12 +43,12 @@ type ConcentrationOutcome struct {
 }
 
 type HPChangeResult struct {
-	HPCurrent            int                   `json:"hp_current"`
-	TempHP               int                   `json:"temp_hp"`
-	HPMax                int                   `json:"hp_max"`
-	DeathSavesSuccesses  int                   `json:"death_saves_successes"`
-	DeathSavesFailures   int                   `json:"death_saves_failures"`
-	Concentration        *ConcentrationOutcome `json:"concentration,omitempty"`
+	HPCurrent           int                   `json:"hp_current"`
+	TempHP              int                   `json:"temp_hp"`
+	HPMax               int                   `json:"hp_max"`
+	DeathSavesSuccesses int                   `json:"death_saves_successes"`
+	DeathSavesFailures  int                   `json:"death_saves_failures"`
+	Concentration       *ConcentrationOutcome `json:"concentration,omitempty"`
 }
 
 // logCombatEvent inserts into combat_log_entries and returns id (0 on error).
@@ -283,7 +283,7 @@ func HandleSaveVsDC(c *gin.Context) {
 		CampaignID: campID, ActorName: actorName, Action: "save",
 		RollExpression: "1d20", RollTotal: result.Total,
 		ConditionApplied: conditionApplied,
-		Description: string(descBytes),
+		Description:      string(descBytes),
 	})
 	c.JSON(http.StatusOK, gin.H{
 		"success": success, "total": result.Total, "dc": req.DC,

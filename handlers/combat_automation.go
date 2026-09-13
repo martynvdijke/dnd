@@ -130,19 +130,19 @@ func rollDamageExpr(expr string, crit bool) (total int, breakdown []int, err err
 
 func HandleCombatAttack(c *gin.Context) {
 	var req struct {
-		AttackerType     string `json:"attacker_type"`
-		AttackerID       int64  `json:"attacker_id"`
-		TargetType       string `json:"target_type"`
-		TargetID         int64  `json:"target_id"`
-		ItemID           *int64 `json:"item_id"`
-		AttackBonus      *int   `json:"attack_bonus"`
-		DamageDice       string `json:"damage_dice"`
-		DamageType       string `json:"damage_type"`
-		Advantage        string `json:"advantage"`
-		Apply            bool   `json:"apply"`
-		Condition        string `json:"condition"`
-		ConditionDuration *int  `json:"condition_duration"`
-		CampaignID       *int64 `json:"campaign_id"`
+		AttackerType      string `json:"attacker_type"`
+		AttackerID        int64  `json:"attacker_id"`
+		TargetType        string `json:"target_type"`
+		TargetID          int64  `json:"target_id"`
+		ItemID            *int64 `json:"item_id"`
+		AttackBonus       *int   `json:"attack_bonus"`
+		DamageDice        string `json:"damage_dice"`
+		DamageType        string `json:"damage_type"`
+		Advantage         string `json:"advantage"`
+		Apply             bool   `json:"apply"`
+		Condition         string `json:"condition"`
+		ConditionDuration *int   `json:"condition_duration"`
+		CampaignID        *int64 `json:"campaign_id"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

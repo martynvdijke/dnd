@@ -225,7 +225,10 @@ func loadInventory(ctx context.Context, characterID int64) []models.InventoryIte
 	out := make([]models.InventoryItem, 0, len(ents))
 	entryIDs := loadEntryIDs("inventory", characterID)
 	// Fill attack_ability/attack_bonus via raw SQL (ent unaware of these columns)
-	attackMap := map[int64]struct{ ability string; bonus *int }{}
+	attackMap := map[int64]struct {
+		ability string
+		bonus   *int
+	}{}
 	if rows, err := db.DB.Query("SELECT id, attack_ability, attack_bonus FROM inventory WHERE character_id=?", characterID); err == nil {
 		defer rows.Close()
 		for rows.Next() {
@@ -239,7 +242,10 @@ func loadInventory(ctx context.Context, characterID int64) []models.InventoryIte
 					v := int(b.Int64)
 					bonus = &v
 				}
-				attackMap[id] = struct{ ability string; bonus *int }{abil, bonus}
+				attackMap[id] = struct {
+					ability string
+					bonus   *int
+				}{abil, bonus}
 			}
 		}
 	}
