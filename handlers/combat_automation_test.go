@@ -199,22 +199,29 @@ func TestHandleCombatAttack(t *testing.T) {
 	})
 
 	t.Run("apply damage reduces hp", func(t *testing.T) {
-		db.DB.Exec("UPDATE characters SET hp_current=20 WHERE id=2")
-		w2 := testutil.PostJSON(t, r, "/api/combat/attack", map[string]any{
-			"attacker_type": "character", "attacker_id": 1,
-			"target_type": "character", "target_id": 2,
-			"attack_bonus": 100, "damage_dice": "1d1", "damage_type": "slashing", "apply": true,
-		})
-		testutil.AssertStatus(t, w2, 200)
+		// A natural 1 always fumbles by design, so retry until a non-fumble.
 		var resp2 map[string]any
-		testutil.ParseJSON(t, w2, &resp2)
-		if hit, _ := resp2["hit"].(bool); !hit {
-			t.Fatalf("expected hit with high bonus %+v", resp2)
+		hit := false
+		for attempt := 0; attempt < 50 && !hit; attempt++ {
+			db.DB.Exec("UPDATE characters SET hp_current=20 WHERE id=2")
+			w2 := testutil.PostJSON(t, r, "/api/combat/attack", map[string]any{
+				"attacker_type": "character", "attacker_id": 1,
+				"target_type": "character", "target_id": 2,
+				"attack_bonus": 100, "damage_dice": "1d1", "damage_type": "slashing", "apply": true,
+			})
+			testutil.AssertStatus(t, w2, 200)
+			resp2 = nil
+			testutil.ParseJSON(t, w2, &resp2)
+			hit, _ = resp2["hit"].(bool)
+		}
+		if !hit {
+			t.Fatalf("expected a hit within 50 attempts %+v", resp2)
 		}
 		var hp int
 		db.DB.QueryRow("SELECT hp_current FROM characters WHERE id=2").Scan(&hp)
-		if hp != 19 {
-			t.Fatalf("expected hp 19 after 1d1 damage got %d", hp)
+		// 1d1 normal hit = 1 damage (hp 19); a critical doubles the dice = 2 (hp 18).
+		if hp < 18 || hp > 19 {
+			t.Fatalf("expected hp 18 or 19 after 1d1 damage got %d", hp)
 		}
 	})
 }
