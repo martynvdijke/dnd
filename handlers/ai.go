@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
@@ -23,6 +24,100 @@ import (
 	"villum/middleware"
 	"villum/models"
 )
+
+type aiGenError struct {
+	Status int
+	Msg    string
+}
+
+func (e *aiGenError) Error() string { return e.Msg }
+
+func generateText(ctx context.Context, endpointID int64, prompt, system string, maxTokens *int, sessionID string) (string, string, error) {
+	if endpointID == 0 {
+		return "", "", &aiGenError{Status: 400, Msg: "endpoint_id is required"}
+	}
+	if strings.TrimSpace(prompt) == "" {
+		return "", "", &aiGenError{Status: 400, Msg: "prompt is required"}
+	}
+	endpoints, err := db.GetEnabledAIEndpointsByType(ctx, "text")
+	if err != nil {
+		return "", "", &aiGenError{Status: 500, Msg: "failed to get endpoints"}
+	}
+	var endpoint *models.AIEndpoint
+	for i := range endpoints {
+		if endpoints[i].ID == endpointID {
+			endpoint = &endpoints[i]
+			break
+		}
+	}
+	if endpoint == nil {
+		return "", "", &aiGenError{Status: 404, Msg: "enabled text endpoint not found"}
+	}
+	middleware.LogDebug("ai", "text generation start", "endpoint_id", endpointID, "model", endpoint.Model, "prompt_length", len(prompt))
+	fullEndpoint, err := db.GetAIEndpoint(ctx, endpointID)
+	if err != nil {
+		return "", "", &aiGenError{Status: 404, Msg: "enabled text endpoint not found"}
+	}
+	apiKey, err := crypto.Decrypt(fullEndpoint.EncryptedAPIKey)
+	if err != nil {
+		middleware.LogError("ai", "failed to decrypt API key", "endpoint_id", endpointID, "error", err)
+		return "", "", &aiGenError{Status: 500, Msg: fmt.Sprintf("failed to authenticate with AI provider: %s", sanitizeError(err))}
+	}
+	systemPrompt := system
+	if strings.TrimSpace(systemPrompt) == "" {
+		systemPrompt = DefaultSystemPrompt
+	}
+	messages := []map[string]string{
+		{"role": "system", "content": systemPrompt},
+		{"role": "user", "content": prompt},
+	}
+	payload := map[string]any{
+		"model":    endpoint.Model,
+		"messages": messages,
+	}
+	if maxTokens != nil {
+		payload["max_tokens"] = *maxTokens
+	}
+	sid := resolveSessionID(sessionID)
+	body, _ := json.Marshal(payload)
+	httpReq, err := http.NewRequest("POST", endpoint.BaseURL+"/chat/completions", bytes.NewReader(body))
+	if err != nil {
+		return "", "", &aiGenError{Status: 500, Msg: fmt.Sprintf("failed to create request: %s", sanitizeError(err))}
+	}
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
+	setAIProviderHeaders(httpReq, sid)
+	client := newAIClient(aiTextTimeout)
+	resp, err := client.Do(httpReq)
+	if err != nil {
+		middleware.LogError("ai", "text generation request failed", "endpoint_id", endpoint.ID, "model", endpoint.Model, "error", err)
+		return "", "", &aiGenError{Status: 502, Msg: fmt.Sprintf("AI provider request failed: %s", sanitizeError(err))}
+	}
+	defer resp.Body.Close()
+	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 65536))
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		errMsg := fmt.Sprintf("AI provider returned HTTP %d: %s", resp.StatusCode, truncateResponse(string(respBody)))
+		middleware.LogError("ai", "text generation returned non-2xx", "status", resp.StatusCode, "response_preview", truncateResponse(string(respBody)))
+		return "", "", &aiGenError{Status: 502, Msg: errMsg}
+	}
+	var result struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+			FinishReason string `json:"finish_reason"`
+		} `json:"choices"`
+	}
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		middleware.LogError("ai", "failed to parse text response", "endpoint_id", endpoint.ID, "error", err)
+		return "", "", &aiGenError{Status: 500, Msg: "failed to parse AI response"}
+	}
+	if len(result.Choices) == 0 {
+		return "", "no_choices", nil
+	}
+	middleware.LogInfo("ai", "text generation succeeded", "endpoint_id", endpoint.ID, "model", endpoint.Model, "finish_reason", result.Choices[0].FinishReason)
+	return result.Choices[0].Message.Content, result.Choices[0].FinishReason, nil
+}
 
 const DefaultSystemPrompt = "You are a helpful assistant for a D&D website called villum. You help DMs create compelling narratives, NPCs, locations, items, and other TTRPG content. Be creative and concise."
 
@@ -392,120 +487,21 @@ func HandleTextGeneration(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
-	if req.EndpointID == 0 || req.Prompt == "" {
+	if req.EndpointID == 0 || strings.TrimSpace(req.Prompt) == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "endpoint_id and prompt are required"})
 		return
 	}
-
-	endpoints, err := db.GetEnabledAIEndpointsByType(c.Request.Context(), "text")
+	sid := resolveSessionID(req.SessionID)
+	text, finish, err := generateText(c.Request.Context(), req.EndpointID, req.Prompt, req.System, req.MaxTokens, sid)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get endpoints"})
-		return
-	}
-
-	var endpoint *models.AIEndpoint
-	for i := range endpoints {
-		if endpoints[i].ID == req.EndpointID {
-			endpoint = &endpoints[i]
-			break
+		if ae, ok := err.(*aiGenError); ok {
+			c.JSON(ae.Status, gin.H{"error": ae.Msg})
+			return
 		}
-	}
-	if endpoint == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "enabled text endpoint not found"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	middleware.LogDebug("ai", "text generation start", "endpoint_id", req.EndpointID, "model", endpoint.Model, "prompt_length", len(req.Prompt))
-
-	// Decrypt API key from the full DB record
-	fullEndpoint, err := db.GetAIEndpoint(c.Request.Context(), req.EndpointID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get endpoint"})
-		return
-	}
-
-	apiKey, err := crypto.Decrypt(fullEndpoint.EncryptedAPIKey)
-	if err != nil {
-		middleware.LogError("ai", "failed to decrypt API key", "endpoint_id", req.EndpointID, "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to authenticate with AI provider: %s", sanitizeError(err))})
-		return
-	}
-
-	systemPrompt := req.System
-	if systemPrompt == "" {
-		systemPrompt = DefaultSystemPrompt
-	}
-
-	messages := []map[string]string{
-		{"role": "system", "content": systemPrompt},
-		{"role": "user", "content": req.Prompt},
-	}
-
-	payload := map[string]any{
-		"model":    endpoint.Model,
-		"messages": messages,
-	}
-	if req.MaxTokens != nil {
-		payload["max_tokens"] = *req.MaxTokens
-	}
-
-	sessionID := resolveSessionID(req.SessionID)
-
-	body, _ := json.Marshal(payload)
-	httpReq, err := http.NewRequest("POST", endpoint.BaseURL+"/chat/completions", bytes.NewReader(body))
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to create request: %s", sanitizeError(err))})
-		return
-	}
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
-	setAIProviderHeaders(httpReq, sessionID)
-
-	client := newAIClient(aiTextTimeout)
-	resp, err := client.Do(httpReq)
-	if err != nil {
-		errMsg := fmt.Sprintf("AI provider request failed: %s", sanitizeError(err))
-		middleware.LogError("ai", "text generation request failed", "endpoint_id", endpoint.ID, "model", endpoint.Model, "error", err)
-		c.JSON(http.StatusBadGateway, gin.H{"error": errMsg})
-		return
-	}
-	defer resp.Body.Close()
-
-	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 65536))
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		errMsg := fmt.Sprintf("AI provider returned HTTP %d: %s", resp.StatusCode, truncateResponse(string(respBody)))
-		middleware.LogError("ai", "text generation returned non-2xx", "status", resp.StatusCode, "response_preview", truncateResponse(string(respBody)))
-		c.JSON(http.StatusBadGateway, gin.H{"error": errMsg})
-		return
-	}
-
-	var result struct {
-		Choices []struct {
-			Message struct {
-				Content string `json:"content"`
-			} `json:"message"`
-			FinishReason string `json:"finish_reason"`
-		} `json:"choices"`
-	}
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		middleware.LogError("ai", "failed to parse text response", "endpoint_id", endpoint.ID, "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to parse AI response"})
-		return
-	}
-
-	if len(result.Choices) == 0 {
-		c.JSON(http.StatusOK, textGenResponse{Text: "", Finish: "no_choices", SessionID: sessionID})
-		return
-	}
-
-	middleware.LogInfo("ai", "text generation succeeded", "endpoint_id", endpoint.ID, "model", endpoint.Model, "finish_reason", result.Choices[0].FinishReason)
-
-	c.JSON(http.StatusOK, textGenResponse{
-		Text:      result.Choices[0].Message.Content,
-		Finish:    result.Choices[0].FinishReason,
-		SessionID: sessionID,
-	})
+	c.JSON(http.StatusOK, textGenResponse{Text: text, Finish: finish, SessionID: sid})
 }
 
 type imageGenRequest struct {

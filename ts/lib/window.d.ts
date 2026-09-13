@@ -41,6 +41,14 @@ declare global {
     showManageCampaign: (id: number, name: string, partyName?: string) => Promise<void>;
     showFactions: () => void;
     showKnowledge: (campaignId?: number) => void;
+    showCopilot: (campaignId?: number) => void;
+    refreshCopilotPanel: () => Promise<void>;
+    copilotAsk: () => Promise<void>;
+    copilotNewConversation: () => void;
+    copilotLoadConversation: (id: number | string) => Promise<void>;
+    copilotSummarizeTranscript: () => Promise<void>;
+    copilotIngestTranscript: () => Promise<void>;
+    showCopilotPrep: () => Promise<void>;
     showTimeline: () => void;
     loadCompendiumTab: (tab: string) => void;
     renameParty: (id: number, name: string, desc: string) => void;

@@ -14,6 +14,7 @@ export type ViewState =
   | 'factions'
   | 'shops'
   | 'knowledge'
+  | 'copilot'
   | 'singleEncounter'
   | 'campaignOverview';
 
