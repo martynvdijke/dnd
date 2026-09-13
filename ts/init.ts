@@ -165,6 +165,10 @@ export async function init() {
       show('shopsNavItem');
       show('sidebarShopsNav');
     }
+    // Knowledge is party-facing: everyone sees shared entries; DM-only
+    // controls stay hidden for players (enforced in ts/knowledge.ts).
+    show('knowledgeNavItem');
+    show('sidebarKnowledgeNav');
     // If URL has a hash (e.g. #/compendium), navigate to that view
     // instead of default characters view
     const selectionOk = await (window as any).validateSelection();

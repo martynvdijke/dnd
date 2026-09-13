@@ -42,6 +42,7 @@
         <li class="nav-item"><a class="nav-link" href="#" onclick="showTimeline();return false"><i class="fa-solid fa-timeline me-1" aria-hidden="true"></i>Timeline</a></li>
         <li class="nav-item" id="factionsNavItem" style="display:none"><a class="nav-link" href="#" onclick="showFactions();return false"><i class="fa-solid fa-flag me-1" aria-hidden="true"></i>Factions</a></li>
         <li class="nav-item" id="shopsNavItem" style="display:none"><a class="nav-link" href="#" onclick="showShops();return false"><i class="fa-solid fa-store me-1" aria-hidden="true"></i>Shops</a></li>
+        <li class="nav-item" id="knowledgeNavItem" style="display:none"><a class="nav-link" href="#" onclick="showKnowledge();return false"><i class="fa-solid fa-lightbulb me-1" aria-hidden="true"></i>Knowledge</a></li>
         <li class="nav-item" id="adminNavItem" style="display:none"><a class="nav-link" href="/admin"><i class="fa-solid fa-shield-halved me-1" aria-hidden="true"></i>Admin</a></li>
       </ul>
       <div class="d-flex me-2" role="search">
@@ -80,6 +81,7 @@
       <li><button class="sidebar-nav-item" data-nav="timeline" data-testid="nav-timeline" onclick="showTimeline()"><i class="fa-solid fa-timeline" aria-hidden="true"></i><span class="sidebar-label">Timeline</span></button></li>
       <li><button class="sidebar-nav-item" data-nav="factions" data-testid="nav-factions" id="sidebarFactionsNav" style="display:none" onclick="showFactions()"><i class="fa-solid fa-flag" aria-hidden="true"></i><span class="sidebar-label">Factions</span></button></li>
       <li><button class="sidebar-nav-item" data-nav="shops" data-testid="nav-shops" id="sidebarShopsNav" style="display:none" onclick="showShops()"><i class="fa-solid fa-store" aria-hidden="true"></i><span class="sidebar-label">Shops</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="knowledge" data-testid="nav-knowledge" id="sidebarKnowledgeNav" style="display:none" onclick="showKnowledge()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i><span class="sidebar-label">Knowledge</span></button></li>
       <li><button class="sidebar-nav-item" data-nav="admin" data-testid="nav-admin" id="sidebarAdminNav" style="display:none" onclick="window.location.href='/admin'"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i><span class="sidebar-label">Admin</span></button></li>
     </ul>
   </div>
@@ -236,6 +238,11 @@
 <div id="shopsView" style="display:none">
   <h1 class="h2 mb-3"><i class="fa-solid fa-store me-2" aria-hidden="true"></i>Shops & Trading</h1>
   <div id="shopsContent"></div>
+</div>
+
+<div id="knowledgeView" style="display:none">
+  <h1 class="h2 mb-3"><i class="fa-solid fa-lightbulb me-2" aria-hidden="true"></i>Party Knowledge</h1>
+  <div id="knowledgeContent"></div>
 </div>
 
 <div id="oneshotView" style="display:none">

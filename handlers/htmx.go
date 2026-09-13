@@ -469,10 +469,6 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		// Compendium Card (HTMX partial)
 		{"GET", "/htmx/compendium/card/:type/:id", HtmxCompendiumCard},
 
-		// Knowledge (HTMX)
-		{"GET", "/htmx/campaigns/:id/knowledge", HtmxKnowledgeList},
-		{"GET", "/htmx/knowledge/:kid", HtmxKnowledgeDetail},
-
 		// Compendium Global Search (HTMX)
 		{"GET", "/htmx/compendium/search", HtmxCompendiumGlobalSearch},
 	}
