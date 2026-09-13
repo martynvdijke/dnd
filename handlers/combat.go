@@ -45,6 +45,9 @@ func CreateCombatEntry(c *gin.Context) {
 		return
 	}
 	id, _ := result.LastInsertId()
+	if e.CampaignID != nil {
+		SendCombatUpdate(*e.CampaignID)
+	}
 	c.JSON(http.StatusCreated, gin.H{"id": id})
 }
 
@@ -88,14 +91,24 @@ func UpdateCombatEntry(c *gin.Context) {
 	if e.IsActive {
 		isActive = 1
 	}
+	var campaignID *int64
+	db.DB.QueryRow("SELECT campaign_id FROM combat_entries WHERE id=?", id).Scan(&campaignID)
 	db.DB.Exec(`UPDATE combat_entries SET name=?,type=?,initiative_roll=?,initiative_mod=?,hp_max=?,hp_current=?,ac=?,is_active=?,turn_order=?,condition_ids=?,notes=? WHERE id=?`,
 		e.Name, e.Type, e.InitiativeRoll, e.InitiativeMod, e.HPMax, e.HPCurrent, e.AC, isActive, e.TurnOrder, e.ConditionIDs, e.Notes, id)
+	if campaignID != nil {
+		SendCombatUpdate(*campaignID)
+	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 func DeleteCombatEntry(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var campaignID *int64
+	db.DB.QueryRow("SELECT campaign_id FROM combat_entries WHERE id=?", id).Scan(&campaignID)
 	db.DB.Exec("DELETE FROM combat_entries WHERE id=?", id)
+	if campaignID != nil {
+		SendCombatUpdate(*campaignID)
+	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -151,6 +164,9 @@ func NextTurn(c *gin.Context) {
 	} else {
 		db.DB.QueryRow("SELECT COALESCE(MAX(turn_order),0) FROM combat_entries WHERE is_active=1").Scan(&maxOrder)
 		db.DB.Exec("UPDATE combat_entries SET turn_order = CASE WHEN turn_order >= ? THEN 0 ELSE turn_order + 1 END WHERE is_active=1", maxOrder)
+	}
+	if cid, err := strconv.ParseInt(campaignID, 10, 64); err == nil && cid > 0 {
+		SendCombatUpdate(cid)
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "current_entry": currentEntry})
 }

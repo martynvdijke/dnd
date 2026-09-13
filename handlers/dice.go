@@ -99,6 +99,19 @@ func HandleRoll(c *gin.Context) {
 	db.DB.Exec("INSERT INTO dice_rolls(user_id,character_id,expression,result,total) VALUES(?,?,?,?,?)",
 		userID, req.CharacterID, hr.Expression, hr.Text, hr.Total)
 
+	// Relay to the character's campaign, if any. Rolls with no campaign
+	// character stay private.
+	if req.CharacterID != nil {
+		var campaignID *int64
+		db.DB.QueryRow("SELECT campaign_id FROM characters WHERE id=?", *req.CharacterID).Scan(&campaignID)
+		if campaignID != nil {
+			uid, _ := userID.(int64)
+			var username string
+			db.DB.QueryRow("SELECT username FROM users WHERE id=?", uid).Scan(&username)
+			SendDiceRoll(*campaignID, uid, *req.CharacterID, username, hr.Expression, hr.Total, hr.Text)
+		}
+	}
+
 	c.JSON(http.StatusOK, hr)
 }
 
