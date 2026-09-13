@@ -40,6 +40,7 @@ declare global {
     showParty: () => Promise<void>;
     showManageCampaign: (id: number, name: string, partyName?: string) => Promise<void>;
     showFactions: () => void;
+    showKnowledge: (campaignId?: number) => void;
     showTimeline: () => void;
     loadCompendiumTab: (tab: string) => void;
     renameParty: (id: number, name: string, desc: string) => void;

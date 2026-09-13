@@ -13,6 +13,7 @@ export type ViewState =
   | 'oneshot'
   | 'factions'
   | 'shops'
+  | 'knowledge'
   | 'singleEncounter'
   | 'campaignOverview';
 

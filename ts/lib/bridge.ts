@@ -81,6 +81,7 @@ export function initBridge(): void {
   maybe('showTimeline', () => showView('timeline'));
   maybe('showDice', () => showView('dice'));
   maybe('showShops', () => showView('shops'));
+  maybe('showKnowledge', () => showView('knowledge'));
   maybe('showOneShots', () => showView('oneshot'));
 
   // Theme
