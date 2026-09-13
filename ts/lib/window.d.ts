@@ -77,6 +77,12 @@ declare global {
     previewAttack: () => Promise<void>;
     applyAttack: () => Promise<void>;
     refreshCombatLog: () => Promise<void>;
+    showExternalImport: () => void;
+    showExternalImportLogs: () => Promise<void> | void;
+    previewExternalImport: () => Promise<void>;
+    commitExternalImport: () => Promise<void>;
+    rollbackExternalImport: (id: number) => Promise<void>;
+    extImportKindChanged: () => void;
     // allow any other expose names without error
     [key: string]: unknown;
   }

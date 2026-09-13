@@ -48,6 +48,7 @@ type ImportResult struct {
 	FieldErrors []models.CompendiumImportError
 	Duplicates  []models.CompendiumImportDuplicate
 	CleanCount  int // len of non-duplicate entries that would be inserted
+	CreatedIDs  []int64
 }
 
 // importCompendiumEntries is the single parameterized implementation for all
@@ -259,21 +260,29 @@ func importCompendiumEntries(ctx context.Context, sqlDB *sql.DB, opts ImportOpts
 			FieldErrors: fieldErrors,
 			Duplicates:  duplicates,
 			CleanCount:  len(cleanEntries),
+			CreatedIDs:  nil,
 		}, nil
 	}
 
 	// Insert clean entries.
 	inserted := 0
+	var createdIDs []int64
 	for _, entry := range cleanEntries {
 		dataJSON, _ := json.Marshal(entry)
+		var res sql.Result
 		var execErr error
 		if tx != nil {
-			_, execErr = tx.ExecContext(ctx, `INSERT INTO compendium_entries(schema_id, data) VALUES(?,?)`, opts.SchemaID, string(dataJSON))
+			res, execErr = tx.ExecContext(ctx, `INSERT INTO compendium_entries(schema_id, data) VALUES(?,?)`, opts.SchemaID, string(dataJSON))
 		} else {
-			_, execErr = sqlDB.ExecContext(ctx, `INSERT INTO compendium_entries(schema_id, data) VALUES(?,?)`, opts.SchemaID, string(dataJSON))
+			res, execErr = sqlDB.ExecContext(ctx, `INSERT INTO compendium_entries(schema_id, data) VALUES(?,?)`, opts.SchemaID, string(dataJSON))
 		}
 		if execErr != nil {
 			return ImportResult{}, fmt.Errorf("insert failed: %w", execErr)
+		}
+		if res != nil {
+			if id, err := res.LastInsertId(); err == nil && id != 0 {
+				createdIDs = append(createdIDs, id)
+			}
 		}
 		inserted++
 	}
@@ -292,6 +301,7 @@ func importCompendiumEntries(ctx context.Context, sqlDB *sql.DB, opts ImportOpts
 		FieldErrors: fieldErrors,
 		Duplicates:  duplicates,
 		CleanCount:  len(cleanEntries),
+		CreatedIDs:  createdIDs,
 	}, nil
 }
 
