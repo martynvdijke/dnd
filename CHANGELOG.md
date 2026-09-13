@@ -1,3 +1,10 @@
+# [2.62.0](https://github.com/martynvdijke/dnd/compare/v2.61.0...v2.62.0) (2026-09-13)
+
+
+### Features
+
+* add AI campaign copilot ([db1dbb3](https://github.com/martynvdijke/dnd/commit/db1dbb3bb0eac56c10f68f6ef2dd6043ce581e7e))
+
 # [2.61.0](https://github.com/martynvdijke/dnd/compare/v2.60.0...v2.61.0) (2026-09-13)
 
 
