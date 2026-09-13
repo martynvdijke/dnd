@@ -1,3 +1,10 @@
+# [2.59.0](https://github.com/martynvdijke/dnd/compare/v2.58.0...v2.59.0) (2026-09-13)
+
+
+### Features
+
+* add player live table with campaign-scoped websocket events ([#118](https://github.com/martynvdijke/dnd/issues/118)) ([8eb4666](https://github.com/martynvdijke/dnd/commit/8eb4666b5ef77e6ae34fcfd16e05b4b3884adcc0))
+
 # [2.58.0](https://github.com/martynvdijke/dnd/compare/v2.57.1...v2.58.0) (2026-09-13)
 
 
