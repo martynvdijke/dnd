@@ -133,6 +133,9 @@ func ApplySafeAlters(db *sql.DB) error {
 		"ALTER TABLE users ADD COLUMN oidc_sub TEXT DEFAULT NULL",
 		"CREATE UNIQUE INDEX IF NOT EXISTS idx_users_oidc_sub ON users(oidc_sub)",
 		"CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)",
+		"ALTER TABLE inventory ADD COLUMN attack_ability TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE inventory ADD COLUMN attack_bonus INTEGER",
+		"ALTER TABLE characters ADD COLUMN condition_immunities TEXT NOT NULL DEFAULT ''",
 	}
 
 	for _, stmt := range alterStatements {

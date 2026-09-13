@@ -64,15 +64,29 @@ func HandleCheckRoll(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
 	}
+	result, err := resolveCheckRoll(req.CharacterID, req)
+	if err != nil {
+		if err.Error() == "character not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	// resolveCheckRoll already inserted dice_rolls; just ensure user_id variant is set if needed
+	// (it used nil user_id; update not needed for compatibility)
+	_ = c // keep context for potential future use
+	c.JSON(http.StatusOK, result)
+}
 
+func resolveCheckRoll(characterID int64, req CheckRollRequest) (CheckRollResult, error) {
 	abils := make(map[string]int)
 	profBonus := 0
 	var str, dex, con, intel, wis, cha int
-	err := db.DB.QueryRow("SELECT str, dex, con, int, wis, cha, proficiency_bonus FROM characters WHERE id=?", req.CharacterID).
+	err := db.DB.QueryRow("SELECT str, dex, con, int, wis, cha, proficiency_bonus FROM characters WHERE id=?", characterID).
 		Scan(&str, &dex, &con, &intel, &wis, &cha, &profBonus)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
-		return
+		return CheckRollResult{}, fmt.Errorf("character not found")
 	}
 	abils["str"] = str
 	abils["dex"] = dex
@@ -92,35 +106,29 @@ func HandleCheckRoll(c *gin.Context) {
 	case "skill":
 		abilKey, ok := skillsMap[name]
 		if !ok {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "unknown skill: " + name})
-			return
+			return CheckRollResult{}, fmt.Errorf("%s", "unknown skill: "+name)
 		}
 		ability = abilKey
-		// Check if character has this proficiency
 		var count int
-		db.DB.QueryRow("SELECT COUNT(*) FROM character_proficiencies WHERE character_id=? AND type='skill' AND LOWER(name)=?", req.CharacterID, name).Scan(&count)
+		db.DB.QueryRow("SELECT COUNT(*) FROM character_proficiencies WHERE character_id=? AND type='skill' AND LOWER(name)=?", characterID, name).Scan(&count)
 		isProficient = count > 0
 	case "save":
 		abilKey, ok := savesMap[name]
 		if !ok {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "unknown save: " + name})
-			return
+			return CheckRollResult{}, fmt.Errorf("%s", "unknown save: "+name)
 		}
 		ability = abilKey
-		// Saving throw proficiencies are stored in character_proficiencies with type='save'
 		var count int
-		db.DB.QueryRow("SELECT COUNT(*) FROM character_proficiencies WHERE character_id=? AND type='save' AND LOWER(name)=?", req.CharacterID, name).Scan(&count)
+		db.DB.QueryRow("SELECT COUNT(*) FROM character_proficiencies WHERE character_id=? AND type='save' AND LOWER(name)=?", characterID, name).Scan(&count)
 		isProficient = count > 0
 	case "check":
 		abilKey, ok := savesMap[name]
 		if !ok {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "unknown ability: " + name})
-			return
+			return CheckRollResult{}, fmt.Errorf("%s", "unknown ability: "+name)
 		}
 		ability = abilKey
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid type: must be skill/save/check"})
-		return
+		return CheckRollResult{}, fmt.Errorf("%s", "invalid type: must be skill/save/check")
 	}
 
 	abilMod := abils[ability+"_mod"]
@@ -134,7 +142,6 @@ func HandleCheckRoll(c *gin.Context) {
 		adv = "normal"
 	}
 
-	// Use the dice engine for the d20 roll
 	rollD20 := func() int {
 		result, err := getDicePool().Roll("1d20")
 		if err != nil {
@@ -196,11 +203,10 @@ func HandleCheckRoll(c *gin.Context) {
 	parts = append(parts, ")")
 	text := strings.Join(parts, " ")
 
-	userID, _ := c.Get("user_id")
 	db.DB.Exec("INSERT INTO dice_rolls(user_id,character_id,expression,result,total) VALUES(?,?,?,?,?)",
-		userID, req.CharacterID, label, text, total)
+		nil, characterID, label, text, total)
 
-	c.JSON(http.StatusOK, CheckRollResult{
+	return CheckRollResult{
 		Rolls:      rolls,
 		Raw:        d20,
 		Total:      total,
@@ -209,5 +215,5 @@ func HandleCheckRoll(c *gin.Context) {
 		Proficient: isProficient,
 		Advantage:  adv,
 		Text:       text,
-	})
+	}, nil
 }

@@ -85,6 +85,22 @@ func DeleteCondition(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
+func tickConditionsForCharacter(charID int64, count int, dtype string) int {
+	if count < 1 {
+		count = 1
+	}
+	if dtype == "" {
+		dtype = "round"
+	}
+	res, err := db.DB.Exec(`DELETE FROM character_conditions WHERE character_id=? AND duration_type=? AND duration > 0 AND duration <= ?`, charID, dtype, count)
+	if err != nil {
+		return 0
+	}
+	deleted, _ := res.RowsAffected()
+	db.DB.Exec(`UPDATE character_conditions SET duration = duration - ? WHERE character_id=? AND duration_type=? AND duration > ?`, count, charID, dtype, count)
+	return int(deleted)
+}
+
 func TickConditions(c *gin.Context) {
 	var req struct {
 		CharacterID  int64  `json:"character_id"`
@@ -99,25 +115,12 @@ func TickConditions(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
-	if req.Count < 1 {
-		req.Count = 1
+	expired := tickConditionsForCharacter(req.CharacterID, req.Count, req.DurationType)
+	count := req.Count
+	if count < 1 {
+		count = 1
 	}
-	if req.DurationType == "" {
-		req.DurationType = "round"
-	}
-
-	res, err := db.DB.Exec(`DELETE FROM character_conditions WHERE character_id=? AND duration_type=? AND duration > 0 AND duration <= ?`, req.CharacterID, req.DurationType, req.Count)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	deleted, _ := res.RowsAffected()
-
-	// Decrement remaining durations
-	db.DB.Exec(`UPDATE character_conditions SET duration = duration - ? WHERE character_id=? AND duration_type=? AND duration > ?`, req.Count, req.CharacterID, req.DurationType, req.Count)
-
-	expired := int(deleted)
-	c.JSON(http.StatusOK, gin.H{"expired": expired, "ticked": req.Count})
+	c.JSON(http.StatusOK, gin.H{"expired": expired, "ticked": count})
 }
 
 // Standard 5e condition types

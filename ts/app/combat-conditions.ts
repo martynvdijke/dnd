@@ -1,10 +1,10 @@
 import { expose } from '../lib/expose';
 import { esc, capitalize, showModal, hideModal, toast } from '../lib/dom';
 import { api, getCsrfToken, getApiToken } from '../lib/api';
-import { currentChar } from '../lib/state';
+import { currentChar, setCurrentChar } from '../lib/state';
 import { refreshChar } from '../lib/refresh';
 import { renderError } from '../lib/errors';
-import { renderSheet, updateField } from '../characters/sheet';
+import { renderSheet } from '../characters/sheet';
 import { renderCombat } from '../characters/combat';
 import { renderStats } from '../characters/stats';
 import { renderInventory } from '../characters/inventory';
@@ -15,36 +15,30 @@ import { FilePicker } from '../file-picker';
 // Roll / Combat Actions
 expose('applyDamage', async function () {
   if (!currentChar) return;
-  const dmg = parseInt((document.getElementById('dmgInput') as HTMLInputElement)?.value || '0');
+  const dmg = parseInt((document.getElementById('dmgInput') as HTMLInputElement | null)?.value || '0');
   if (!dmg) return;
-  const oldHp = currentChar.hp_current;
-  const newHp = Math.max(0, currentChar.hp_current - dmg);
-  await updateField('hp_current', newHp);
-  await (await import('../lib/save')).saveCharacter();
-  if (currentChar.concentrating_on) {
+  const oldHp = currentChar.hp_current as number;
+  const maxHp = currentChar.hp_max as number;
+  try {
+    const res = await api<{ hp_current: number; hp_max: number; temp_hp: number; concentration?: { checked: boolean; dc: number; total: number; success: boolean; dropped: boolean; spell_name: string } }>('POST', `/api/characters/${currentChar.id}/hp`, { delta: -dmg, type: '', source: 'manual' });
+    if (res.concentration?.checked) {
+      toast(`Concentration save ${res.concentration.total} vs DC ${res.concentration.dc} — ${res.concentration.success ? 'held' : 'lost'}${res.concentration.dropped ? ' (' + res.concentration.spell_name + ')' : ''}`);
+    }
     try {
-      const conc = await api('POST', `/api/characters/${currentChar.id}/check-concentration`, { damage: dmg });
-      if (conc.needs_check) {
-        toast(`Concentration check: DC ${conc.dc} (${conc.damage} damage to ${conc.spell_name})`);
-        showModal('Concentration Check', `
-          <p>You are concentrating on <strong>${esc(conc.spell_name)}</strong>.</p>
-          <p>Damage taken: <strong>${conc.damage}</strong></p>
-          <p class="fw-bold fs-5">CON Save DC ${conc.dc}</p>
-          <div class="d-flex gap-2">
-            <button class="btn btn-success flex-grow-1" onclick="doConcentrationSave(${conc.dc})"><i class="fa-solid fa-dice me-1"></i>Roll Save</button>
-            <button class="btn btn-danger flex-grow-1" onclick="loseConcentration()"><i class="fa-solid fa-xmark me-1"></i>Lose Spell</button>
-          </div>
-        `);
-      }
-    } catch {}
-  }
-  renderSheet();
-  const bar = document.getElementById('charHpBarFill');
-  const hpText = document.getElementById('charHpText');
-  if (bar && hpText) {
-    bar.style.width = Math.max(0, Math.min(100, (oldHp / currentChar.hp_max) * 100)) + '%';
-    animateHpChange(hpText, bar, oldHp, currentChar.hp_current, currentChar.hp_max);
-  }
+      const updated = await api('GET', `/api/characters/${currentChar.id}`);
+      setCurrentChar(updated);
+    } catch {
+      currentChar.hp_current = res.hp_current;
+      if (res.temp_hp !== undefined) currentChar.temp_hp = res.temp_hp;
+    }
+    renderSheet();
+    const bar = document.getElementById('charHpBarFill');
+    const hpText = document.getElementById('charHpText');
+    if (bar && hpText) {
+      bar.style.width = Math.max(0, Math.min(100, (oldHp / maxHp) * 100)) + '%';
+      animateHpChange(hpText, bar, oldHp, res.hp_current, res.hp_max);
+    }
+  } catch (e) { toast((e as Error).message, true); }
 });
 
 expose('adjustExhaustion', async function (delta: number) {

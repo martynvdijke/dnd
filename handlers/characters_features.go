@@ -272,6 +272,8 @@ func CreateInventory(c *gin.Context) {
 		WriteError(c, http.StatusInternalServerError, err)
 		return
 	}
+	// Persist attack_ability / attack_bonus via raw SQL (ent unaware)
+	db.DB.Exec("UPDATE inventory SET attack_ability=?, attack_bonus=? WHERE id=?", item.AttackAbility, item.AttackBonus, result.ID)
 	c.JSON(http.StatusCreated, gin.H{"id": result.ID})
 }
 
@@ -304,6 +306,9 @@ func UpdateInventory(c *gin.Context) {
 	if err != nil {
 		WriteError(c, http.StatusInternalServerError, err)
 		return
+	}
+	if item.AttackAbility != "" || item.AttackBonus != nil {
+		db.DB.Exec("UPDATE inventory SET attack_ability=?, attack_bonus=? WHERE id=?", item.AttackAbility, item.AttackBonus, iid)
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

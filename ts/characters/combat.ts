@@ -30,16 +30,26 @@ export async function applyHeal(): Promise<void> {
   if (!heal) return;
   const c = currentChar as Character & { hp_current: number; hp_max: number };
   const oldHp = c.hp_current;
-  const newHp = Math.min(c.hp_max, c.hp_current + heal);
-  await (window.updateField as (f: string, v: unknown) => void)('hp_current', newHp);
-  await (window.saveCharacter as (() => Promise<void>) | undefined)?.();
-  (window.renderSheet as (() => void) | undefined)?.();
-  const bar = document.getElementById('charHpBarFill');
-  const hpText = document.getElementById('charHpText');
-  if (bar && hpText) {
-    bar.style.width = Math.max(0, Math.min(100, (oldHp / c.hp_max) * 100)) + '%';
-    animateHpChange(hpText, bar, oldHp, (currentChar as Character & { hp_current: number }).hp_current, c.hp_max);
-  }
+  try {
+    const res = await api<{ hp_current: number; hp_max: number; temp_hp: number; concentration?: { checked: boolean; dc: number; total: number; success: boolean; dropped: boolean; spell_name: string } }>('POST', `/api/characters/${c.id}/hp`, { delta: heal, type: '', source: 'manual' });
+    if (res.concentration?.checked) {
+      toast(`Concentration save ${res.concentration.total} vs DC ${res.concentration.dc} — ${res.concentration.success ? 'held' : 'lost'}${res.concentration.dropped ? ' (' + res.concentration.spell_name + ')' : ''}`);
+    }
+    // refresh character state
+    try {
+      const updated = await api<Character>('GET', `/api/characters/${c.id}`);
+      setCurrentChar(updated);
+    } catch {
+      (window.updateField as (f: string, v: unknown) => void)('hp_current', res.hp_current);
+    }
+    (window.renderSheet as (() => void) | undefined)?.();
+    const bar = document.getElementById('charHpBarFill');
+    const hpText = document.getElementById('charHpText');
+    if (bar && hpText) {
+      bar.style.width = Math.max(0, Math.min(100, (oldHp / c.hp_max) * 100)) + '%';
+      animateHpChange(hpText, bar, oldHp, res.hp_current, res.hp_max);
+    }
+  } catch (e) { toast((e as Error).message, true); }
 }
 
 export async function doRest(type: string): Promise<void> {

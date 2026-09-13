@@ -510,6 +510,9 @@ func UpdateCharacter(c *gin.Context) {
 		WriteError(c, http.StatusInternalServerError, err)
 		return
 	}
+	if _, ok := raw["condition_immunities"]; ok {
+		db.DB.Exec("UPDATE characters SET condition_immunities=? WHERE id=?", ch.ConditionImmunities, id)
+	}
 
 	// Auto-calc passive perception
 	charStats, err := db.Client.Character.Query().Where(character.ID(id)).Select(character.FieldWis, character.FieldProficiencyBonus).Only(c.Request.Context())

@@ -3,6 +3,7 @@ import { api } from './lib/api';
 import { showView } from './navigation';
 import { animateHpChange, animateTurnChange } from './lib/animations';
 import { expose } from './lib/expose';
+import { currentCampaign } from './lib/state';
 
 interface CombatEntry {
   id: number;
@@ -30,7 +31,8 @@ expose('showCombatTracker', async function (): Promise<void> {
       api<unknown[]>('GET', '/api/campaigns'),
     ]);
     if (!entries.length) {
-      el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-swords fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Combatants</p><p class="small text-muted">Add combat entries from a character sheet or create them here.</p><button class="btn btn-gold btn-sm mt-2" onclick="showAddCombatEntry()"><i class="fa-solid fa-plus me-1"></i>Add Combatant</button></div>';
+      el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-swords fa-3x mb-2 d-block text-muted"></i><p class="fw-bold">No Combatants</p><p class="small text-muted">Add combat entries from a character sheet or create them here.</p><button class="btn btn-gold btn-sm mt-2" onclick="showAddCombatEntry()"><i class="fa-solid fa-plus me-1"></i>Add Combatant</button></div><div data-testid="combat-log" id="combatLogPanel"></div>';
+      await refreshCombatLog();
       return;
     }
     const sorted = [...entries].sort((a, b) => b.initiative_roll - a.initiative_roll || b.turn_order - a.turn_order);
@@ -91,16 +93,18 @@ expose('showCombatTracker', async function (): Promise<void> {
         </td>
         <td>
           <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-primary py-0 px-1" data-testid="combat-attack-btn" style="font-size:0.65rem" onclick="showAttackModal(${entry.id})"><i class="fa-solid fa-crosshairs me-1"></i>Attack</button>
             <button class="btn btn-sm btn-outline-danger py-0 px-1" style="font-size:0.65rem" onclick="deleteCombatEntry(${entry.id})"><i class="fa-solid fa-trash"></i></button>
           </div>
         </td>
       </tr>`;
     }
-    html += '</tbody></table></div>';
+    html += '</tbody></table></div><div data-testid="combat-log" id="combatLogPanel" class="mt-4"></div>';
     el.innerHTML = html;
+    await refreshCombatLog();
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(msg)}</p></div>`;
+    el.innerHTML = `<div class="empty-state"><p class="small text-muted">Error: ${esc(msg)}</p></div><div data-testid="combat-log" id="combatLogPanel"></div>`;
   }
 });
 
@@ -256,3 +260,160 @@ expose('dropCombatEntry', async function (ev: DragEvent, targetId: number): Prom
     toast('Reordered');
   } catch (e: unknown) { toast(e instanceof Error ? e.message : String(e), true); }
 });
+
+// ─── Attack modal ───
+
+let pendingAttackTargetId: number | null = null;
+
+expose('showAttackModal', async function (entryId: number): Promise<void> {
+  pendingAttackTargetId = entryId;
+  let chars: any[] = [];
+  try {
+    const res: any = await api('GET', '/api/characters');
+    chars = Array.isArray(res) ? res : (res.items || res.characters || []);
+  } catch { chars = []; }
+  const cid = (currentCampaign as any)?.id;
+  if (cid) {
+    const filtered = chars.filter((c: any) => !c.campaign_id || c.campaign_id === cid);
+    if (filtered.length) chars = filtered;
+  }
+  showModal('Attack', `
+    <div class="mb-3"><label class="form-label">Attacker</label><select class="form-select" id="atkAttacker" data-testid="combat-attack-attacker">${chars.map((c: any) => `<option value="${c.id}">${esc(c.name)}</option>`).join('') || '<option value="">No characters</option>'}</select></div>
+    <div class="mb-3"><label class="form-label">Weapon</label><select class="form-select" id="atkWeapon" data-testid="combat-attack-weapon"><option value="">Loading...</option></select></div>
+    <div class="row g-2 mb-3">
+      <div class="col-4"><label class="form-label small">Attack Bonus</label><input class="form-control" id="atkBonus" type="number" value="5" data-testid="combat-attack-bonus"></div>
+      <div class="col-4"><label class="form-label small">Damage Dice</label><input class="form-control" id="atkDice" value="1d8" data-testid="combat-attack-dice"></div>
+      <div class="col-4"><label class="form-label small">Damage Type</label><input class="form-control" id="atkDmgType" value="" placeholder="slashing" data-testid="combat-attack-dmgtype"></div>
+    </div>
+    <div class="row g-2 mb-3">
+      <div class="col-6"><label class="form-label small">Advantage</label><select class="form-select" id="atkAdv" data-testid="combat-attack-advantage"><option value="">Normal</option><option value="advantage">Advantage</option><option value="disadvantage">Disadvantage</option></select></div>
+      <div class="col-6"><label class="form-label small">Condition (optional)</label><input class="form-control" id="atkCondition" placeholder="prone" data-testid="combat-attack-condition"></div>
+    </div>
+    <div class="d-flex gap-2 mb-3">
+      <button class="btn btn-outline-primary flex-fill" data-testid="combat-attack-preview" onclick="previewAttack()">Preview</button>
+      <button class="btn btn-primary flex-fill" data-testid="combat-attack-apply" onclick="applyAttack()">Apply</button>
+    </div>
+    <div id="atkResult" data-testid="combat-attack-result" class="small border rounded p-2" style="min-height:40px"></div>
+  `);
+  // populate weapons for first attacker
+  const sel = document.getElementById('atkAttacker') as HTMLSelectElement | null;
+  const loadWeapons = async () => {
+    const aid = (document.getElementById('atkAttacker') as HTMLSelectElement)?.value;
+    const wsel = document.getElementById('atkWeapon') as HTMLSelectElement | null;
+    if (!wsel || !aid) return;
+    try {
+      const char = await api<any>('GET', `/api/characters/${aid}`);
+      const inv: any[] = char.inventory || [];
+      const weapons = inv.filter((i: any) => i.damage_dice);
+      wsel.innerHTML = '<option value="">No weapon / manual</option>' + weapons.map((w: any) => `<option value="${w.id}" data-dice="${esc(w.damage_dice)}" data-dtype="${esc(w.damage_type || '')}">${esc(w.name)} (${esc(w.damage_dice)}${w.damage_type ? ' ' + esc(w.damage_type) : ''})</option>`).join('');
+      // auto-fill first weapon
+      if (weapons.length) {
+        // leave manual fields as-is; user can select
+      }
+    } catch {
+      wsel.innerHTML = '<option value="">No weapon / manual</option>';
+    }
+  };
+  sel?.addEventListener('change', loadWeapons);
+  const wsel = document.getElementById('atkWeapon') as HTMLSelectElement | null;
+  wsel?.addEventListener('change', () => {
+    const opt = wsel.selectedOptions[0] as HTMLOptionElement | undefined;
+    if (opt && opt.value) {
+      (document.getElementById('atkDice') as HTMLInputElement).value = opt.dataset.dice || '';
+      (document.getElementById('atkDmgType') as HTMLInputElement).value = opt.dataset.dtype || '';
+    }
+  });
+  await loadWeapons();
+});
+
+function buildAttackBody(apply: boolean): Record<string, unknown> {
+  const attackerId = +(document.getElementById('atkAttacker') as HTMLSelectElement)?.value || 0;
+  const weaponId = (document.getElementById('atkWeapon') as HTMLSelectElement)?.value || '';
+  const adv = (document.getElementById('atkAdv') as HTMLSelectElement)?.value || '';
+  const bonusVal = (document.getElementById('atkBonus') as HTMLInputElement)?.value;
+  const diceVal = (document.getElementById('atkDice') as HTMLInputElement)?.value;
+  const dmgType = (document.getElementById('atkDmgType') as HTMLInputElement)?.value;
+  const cond = (document.getElementById('atkCondition') as HTMLInputElement)?.value || undefined;
+  const body: Record<string, unknown> = {
+    attacker_type: 'character',
+    attacker_id: attackerId,
+    target_type: 'combat',
+    target_id: pendingAttackTargetId,
+    apply,
+  };
+  if (weaponId) body.item_id = +weaponId;
+  else {
+    if (bonusVal !== '' && bonusVal !== undefined) body.attack_bonus = +bonusVal;
+    if (diceVal) body.damage_dice = diceVal;
+    if (dmgType) body.damage_type = dmgType;
+  }
+  if (diceVal && weaponId) {
+    // also send manual dice override if typed
+    body.damage_dice = diceVal;
+    if (dmgType) body.damage_type = dmgType;
+  }
+  if (adv === 'advantage') body.advantage = 'advantage';
+  else if (adv === 'disadvantage') body.advantage = 'disadvantage';
+  if (cond) body.condition = cond;
+  const cid = (currentCampaign as any)?.id;
+  if (cid) body.campaign_id = cid;
+  return body;
+}
+
+function renderAttackResult(r: any): void {
+  const el = document.getElementById('atkResult');
+  if (!el) return;
+  const hitStr = r.critical ? 'Critical Hit!' : r.fumble ? 'Fumble!' : r.hit ? 'Hit' : 'Miss';
+  el.innerHTML = `<div>Roll: ${r.attack_roll ?? ''} + ${r.attack_bonus ?? ''} = ${r.attack_total ?? ''} vs AC ${r.target_ac ?? ''} — <strong>${hitStr}</strong></div>${r.damage !== undefined ? `<div>Damage: ${r.damage} ${esc(r.damage_type || '')} ${r.damage_breakdown ? '(' + esc(r.damage_breakdown) + ')' : ''}</div>` : ''}${r.condition_applied ? `<div>Condition: ${esc(r.condition_applied)}</div>` : ''}`;
+}
+
+expose('previewAttack', async function (): Promise<void> {
+  try {
+    const body = buildAttackBody(false);
+    const res = await api<any>('POST', '/api/combat/attack', body);
+    renderAttackResult(res);
+  } catch (e: unknown) { toast(e instanceof Error ? e.message : String(e), true); }
+});
+
+expose('applyAttack', async function (): Promise<void> {
+  try {
+    const body = buildAttackBody(true);
+    const res = await api<any>('POST', '/api/combat/attack', body);
+    renderAttackResult(res);
+    hideModal();
+    await window.showCombatTracker();
+    await refreshCombatLog();
+    if (res.target_hp !== undefined) toast(`Applied: ${res.damage ?? 0} damage`);
+  } catch (e: unknown) { toast(e instanceof Error ? e.message : String(e), true); }
+});
+
+// ─── Combat log ───
+
+export async function refreshCombatLog(): Promise<void> {
+  const panel = document.getElementById('combatLogPanel');
+  if (!panel) return;
+  try {
+    const cid = (currentCampaign as any)?.id;
+    const q = cid ? `?campaign_id=${cid}&limit=50` : '?limit=50';
+    const entries = await api<any[]>('GET', `/api/combat-log${q}`);
+    if (!entries.length) {
+      panel.innerHTML = '<div class="text-muted small fst-italic mt-3">No combat log entries.</div>';
+      return;
+    }
+    panel.innerHTML = '<h6 class="mt-3">Combat Log</h6>' + entries.map((e: any) => `
+      <div class="small border rounded p-2 mb-1">
+        <span class="fw-bold">${esc(e.actor_name)}</span> ${esc(e.action)} <span class="fw-bold">${esc(e.target_name || '')}</span>
+        ${e.damage ? `<span class="badge bg-danger ms-1">${e.damage} ${esc(e.damage_type || '')}</span>` : ''}
+        ${e.healing ? `<span class="badge bg-success ms-1">+${e.healing} HP</span>` : ''}
+        ${e.roll_expression ? `<span class="text-muted ms-1">${esc(e.roll_expression)}=${e.roll_total}</span>` : ''}
+        ${e.is_critical ? '<span class="badge bg-warning ms-1">crit</span>' : ''}
+        ${e.condition_applied ? `<span class="badge bg-info ms-1">${esc(e.condition_applied)}</span>` : ''}
+        <div class="text-muted">${esc(e.description || '')}</div>
+      </div>
+    `).join('');
+  } catch {
+    panel.innerHTML = '<div class="text-muted small">Could not load combat log.</div>';
+  }
+}
+
+expose('refreshCombatLog', refreshCombatLog);

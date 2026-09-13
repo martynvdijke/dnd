@@ -56,6 +56,7 @@ type Character struct {
 	DeathSavesFailures  int    `json:"death_saves_failures"`
 	ConcentratingOn     string `json:"concentrating_on"`
 	ExhaustionLevel     int    `json:"exhaustion_level"`
+	ConditionImmunities string `json:"condition_immunities"`
 	CanEdit             bool   `json:"can_edit"`
 
 	Proficiencies []Proficiency   `json:"proficiencies,omitempty"`
@@ -157,6 +158,8 @@ type InventoryItem struct {
 	Notes                 string  `json:"notes"`
 	CompendiumEquipmentID *int64  `json:"compendium_equipment_id,omitempty"`
 	CompendiumEntryID     *int64  `json:"compendium_entry_id,omitempty"`
+	AttackAbility         string  `json:"attack_ability"`
+	AttackBonus           *int    `json:"attack_bonus,omitempty"`
 }
 
 type DiceRoll struct {

@@ -70,6 +70,7 @@ func RegisterMiscAuthRoutes(r *gin.RouterGroup) {
 	// Dice
 	r.POST("/roll", HandleRoll)
 	r.POST("/roll/check", HandleCheckRoll)
+	r.POST("/roll/save-vs-dc", HandleSaveVsDC)
 	r.GET("/dice-rolls", GetDiceRolls)
 
 	// Search
