@@ -1,3 +1,10 @@
+# [2.61.0](https://github.com/martynvdijke/dnd/compare/v2.60.0...v2.61.0) (2026-09-13)
+
+
+### Features
+
+* add external import ecosystem for characters and compendia ([47134dd](https://github.com/martynvdijke/dnd/commit/47134ddf4443cecde2d5b89547e7dcc4bbc9711e))
+
 # [2.60.0](https://github.com/martynvdijke/dnd/compare/v2.59.0...v2.60.0) (2026-09-13)
 
 
