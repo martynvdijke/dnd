@@ -178,6 +178,8 @@ export async function init() {
     // controls stay hidden for players (enforced in ts/knowledge.ts).
     show('knowledgeNavItem');
     show('sidebarKnowledgeNav');
+    show('copilotNavItem');
+    show('sidebarCopilotNav');
     // If URL has a hash (e.g. #/compendium), navigate to that view
     // instead of default characters view
     const selectionOk = await (window as any).validateSelection();

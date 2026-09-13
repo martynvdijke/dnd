@@ -97,6 +97,14 @@ func RegisterCampaignRoutes(r *gin.RouterGroup) {
 	// Per-user push mute for a campaign
 	r.GET("/campaigns/:id/push-mute", GetCampaignPushMute)
 	r.PUT("/campaigns/:id/push-mute", SetCampaignPushMute)
+
+	// Copilot
+	r.POST("/campaigns/:id/copilot/chat", handleCopilotChat)
+	r.GET("/campaigns/:id/copilot/conversations", handleCopilotListConversations)
+	r.GET("/campaigns/:id/copilot/conversations/:cid", handleCopilotGetConversation)
+	r.POST("/campaigns/:id/copilot/prep", handleCopilotPrep)
+	r.POST("/campaigns/:id/copilot/transcript", handleCopilotTranscript)
+	r.POST("/campaigns/:id/copilot/transcript/summarize", handleCopilotTranscriptSummarize)
 }
 
 // RegisterDM Campaign routes

@@ -26,6 +26,7 @@ const views: ViewItem[] = [
   { id: 'factions', divId: 'factionsView' },
   { id: 'shops', divId: 'shopsView' },
   { id: 'knowledge', divId: 'knowledgeView' },
+  { id: 'copilot', divId: 'copilotView' },
   { id: 'singleEncounter', divId: 'singleEncounterView' },
   { id: 'campaignOverview', divId: 'campaignOverviewView' },
 ];
@@ -143,6 +144,7 @@ export function showMoreNav(): void {
       <button class="btn btn-outline-primary w-100 text-start" onclick="showFactions();closeBottomSheet()" style="${show('factionsNavItem')}"><i class="fa-solid fa-flag me-2" aria-hidden="true"></i>Factions</button>
       <button class="btn btn-outline-primary w-100 text-start" onclick="showShops();closeBottomSheet()" style="${show('shopsNavItem')}"><i class="fa-solid fa-store me-2" aria-hidden="true"></i>Shops</button>
       <button class="btn btn-outline-primary w-100 text-start" onclick="showKnowledge();closeBottomSheet()" style="${show('knowledgeNavItem')}"><i class="fa-solid fa-lightbulb me-2" aria-hidden="true"></i>Knowledge</button>
+      <button class="btn btn-outline-primary w-100 text-start" onclick="showCopilot();closeBottomSheet()" style="${show('copilotNavItem')}"><i class="fa-solid fa-robot me-2" aria-hidden="true"></i>Campaign Copilot</button>
       <button class="btn btn-outline-primary w-100 text-start" onclick="window.location.href='/admin'" style="${show('adminNavItem')}"><i class="fa-solid fa-shield-halved me-2" aria-hidden="true"></i>Admin</button>
     </div>
   `;
