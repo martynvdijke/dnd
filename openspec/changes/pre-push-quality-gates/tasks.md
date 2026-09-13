@@ -21,17 +21,17 @@
 
 - [x] 3.1 Refactor `.github/workflows/ci.yaml` lint-typecheck and unit-test jobs to call the `scripts/ci/` scripts instead of inline commands
 - [x] 3.2 Refactor the e2e job to call `scripts/ci/build-server.sh`, `scripts/ci/test-docker.sh`, and the playwright portion of `test-e2e.sh` (keeping CI-specific steps like `playwright install` in the workflow)
-- [ ] 3.3 Push the refactor on a branch and confirm a full CI run stays green with identical gate behavior
+- [x] 3.3 Push the refactor on a branch and confirm a full CI run stays green with identical gate behavior
 
 ## 4. Taskfile and prek pre-push hook
 
 - [x] 4.1 Add `ci` task to Taskfile invoking `scripts/ci/run-all.sh`; add `deps: [build]` to `test:e2e`
 - [x] 4.2 Add a pre-push stage local hook to `.pre-commit-config.yaml` running `task ci` (or `scripts/ci/run-all.sh`), `pass_filenames: false`, `always_run: true`
-- [ ] 4.3 Install hooks: `prek install` and `prek install --hook-type pre-push`; verify `prek run --hook-stage pre-push` executes the suite
-- [ ] 4.4 Negative test: introduce a deliberate failure (e.g. unformatted Go file), confirm the pre-push hook blocks and reports it, then revert
+- [x] 4.3 Install hooks: `prek install` and `prek install --hook-type pre-push`; verify `prek run --hook-stage pre-push` executes the suite
+- [x] 4.4 Negative test: introduce a deliberate failure (e.g. unformatted Go file), confirm the pre-push hook blocks and reports it, then revert
 
 ## 5. Documentation and close-out
 
 - [x] 5.1 Update CONTRIBUTING.md: replace the manual CI-parity command list with `task ci`, document prek setup (`prek install --hook-type pre-push`), the `--no-verify` escape hatch, and the rule that CI steps must call `scripts/ci/`
 - [x] 5.2 Confirm AGENTS.md gate references match the final commands (`task ci`, prek hook behavior)
-- [ ] 5.3 Full local validation: `task ci` green from a clean state, then push and confirm CI green end-to-end
+- [x] 5.3 Full local validation: `task ci` green from a clean state, then push and confirm CI green end-to-end
