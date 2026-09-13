@@ -1,3 +1,10 @@
+# [2.58.0](https://github.com/martynvdijke/dnd/compare/v2.57.1...v2.58.0) (2026-09-13)
+
+
+### Features
+
+* add party knowledge tracker UI panel ([#116](https://github.com/martynvdijke/dnd/issues/116)) ([1e26ba4](https://github.com/martynvdijke/dnd/commit/1e26ba4b4fd76b19ff46dca5ad97f6afb8b15e9b))
+
 ## [2.57.1](https://github.com/martynvdijke/dnd/compare/v2.57.0...v2.57.1) (2026-09-12)
 
 # [2.57.0](https://github.com/martynvdijke/dnd/compare/v2.56.0...v2.57.0) (2026-09-12)
