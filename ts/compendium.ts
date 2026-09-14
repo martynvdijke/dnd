@@ -77,7 +77,7 @@ async function loadCompendiumSchemaTypes(): Promise<void> {
           id="compSchemaTab-${s.type_name}"
           onclick="loadCompendiumSchemaTab('${s.type_name}')"
           data-schema-id="${s.id}">
-          ${esc(s.display_name)} <span class="badge bg-secondary">${s.entry_count}</span>
+          <i class="fa-solid fa-table-list me-1" aria-hidden="true"></i>${esc(s.display_name)} <span class="badge bg-secondary">${s.entry_count}</span>
         </button>
       </li>`).join('');
 

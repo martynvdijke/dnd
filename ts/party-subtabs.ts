@@ -10,6 +10,10 @@ const TAB_LABELS: Record<string, string> = {
   overview: 'Overview', locations: 'Locations', npcs: 'NPCs', sessions: 'Sessions',
   quests: 'Quests', graph: 'Graph', analytics: 'Analytics',
 };
+const TAB_ICONS: Record<string, string> = {
+  overview: 'fa-house', locations: 'fa-map-location-dot', npcs: 'fa-user',
+  sessions: 'fa-book', quests: 'fa-scroll', graph: 'fa-diagram-project', analytics: 'fa-chart-line',
+};
 
 async function campaignMembers(): Promise<any[]> {
   let campaigns: any = null;
@@ -47,7 +51,7 @@ export function renderPartySubTabBar(active: string): void {
     view.insertBefore(bar, view.querySelector('#partyContent') || view.firstChild);
   }
   bar.innerHTML = PARTY_TABS.map((t) =>
-    `<button class="btn btn-sm ${active === t ? 'btn-gold' : 'btn-outline-gold'}" onclick="partySubTab('${t}')">${TAB_LABELS[t]}</button>`,
+    `<button class="btn btn-sm ${active === t ? 'btn-gold' : 'btn-outline-gold'}" onclick="partySubTab('${t}')"><i class="fa-solid ${TAB_ICONS[t] || 'fa-circle'} me-1" aria-hidden="true"></i>${TAB_LABELS[t]}</button>`,
   ).join('');
 }
 

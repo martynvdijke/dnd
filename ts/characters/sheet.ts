@@ -15,7 +15,7 @@ import { wealthTotalGp } from './resources';
 
 declare const htmx: { process: (el: Element) => void };
 
-import { sections } from '../lib/tabs';
+import { sections, sectionIcons } from '../lib/tabs';
 export { sections };
 
 const htmxTabs = ['spells', 'features', 'feats', 'companions', 'crafting', 'notes'];
@@ -42,7 +42,7 @@ export function renderSheet(): void {
   const tabBar = document.getElementById('tabBar');
   if (tabBar) {
     tabBar.innerHTML = sections.map(s => `
-      <li class="nav-item"><button class="nav-link ${s === currentTab ? 'active' : ''}" onclick="switchTab('${s}')">${capitalize(s)}</button></li>
+      <li class="nav-item"><button class="nav-link ${s === currentTab ? 'active' : ''}" onclick="switchTab('${s}')"><i class="fa-solid ${sectionIcons[s] || 'fa-circle'} me-1" aria-hidden="true"></i>${capitalize(s)}</button></li>
     `).join('');
   }
 
