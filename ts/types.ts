@@ -16,7 +16,9 @@ export type ViewState =
   | 'knowledge'
   | 'copilot'
   | 'singleEncounter'
-  | 'campaignOverview';
+  | 'campaignOverview'
+  | 'world'
+  | 'recaps';
 
 export type SessionModeState = 'normal' | 'session';
 

@@ -14,7 +14,19 @@
   </div>
   <div class="col-6"><label class="form-label">Campaign ID</label><input class="form-control" name="campaign_id" type="number" value="{{if .Event}}{{.Event.CampaignID}}{{else}}1{{end}}"></div>
 </div>
+<div class="mb-3"><label class="form-label">Place</label><select class="form-select" id="tlPlace" name="linked_entity_id"><option value="">— No place —</option></select><input type="hidden" name="linked_entity_type" id="tlPlaceType" value=""></div>
 <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3">{{if .Event}}{{.Event.Description}}{{end}}</textarea></div>
+<script>
+(function(){
+  var sel=document.getElementById('tlPlace'), hid=document.getElementById('tlPlaceType');
+  if(!sel) return;
+  fetch('/api/locations').then(r=>r.json()).then(locs=>{
+    locs.forEach(function(l){ var o=document.createElement('option'); o.value=l.id; o.textContent=l.name+' ('+l.type+')'; if('{{if .Event}}{{.Event.LinkedEntityID}}{{end}}'==String(l.id)) o.selected=true; sel.appendChild(o); });
+    if(sel.value) hid.value='location';
+  }).catch(()=>{});
+  sel.addEventListener('change', function(){ hid.value = sel.value ? 'location' : ''; });
+})();
+</script>
 {{if .Event}}
 <button class="btn btn-primary w-100" hx-put="/htmx/timeline/{{.Event.ID}}" hx-target="#timelineContent" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Save Event</button></form>
 {{else}}

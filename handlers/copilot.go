@@ -66,6 +66,7 @@ func retrieveCampaignContext(campaignID, userID int64, isAdmin bool, query strin
 	add("quest", queryIDs("SELECT q.id FROM quests q JOIN characters c ON q.character_id=c.id WHERE c.campaign_id=?", campaignID))
 	add("journal", queryIDs("SELECT j.id FROM journal j JOIN characters c ON j.character_id=c.id WHERE c.campaign_id=?", campaignID))
 	add("note", queryIDs("SELECT n.id FROM character_notes n JOIN characters c ON n.character_id=c.id WHERE c.campaign_id=?", campaignID))
+	add("recap", queryIDs("SELECT id FROM campaign_recaps WHERE campaign_id=?", campaignID))
 
 	ftsQ := buildFTS5Query(query)
 	if ftsQ == "" {

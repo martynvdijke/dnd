@@ -29,6 +29,8 @@ const views: ViewItem[] = [
   { id: 'copilot', divId: 'copilotView' },
   { id: 'singleEncounter', divId: 'singleEncounterView' },
   { id: 'campaignOverview', divId: 'campaignOverviewView' },
+  { id: 'world', divId: 'worldView' },
+  { id: 'recaps', divId: 'recapsView' },
 ];
 
 export let currentView: ViewState = 'characters';
@@ -140,6 +142,8 @@ export function showMoreNav(): void {
       <button class="btn btn-outline-primary w-100 text-start" onclick="openSharedLinks();closeBottomSheet()"><i class="fa-solid fa-share-nodes me-2" aria-hidden="true"></i>Shared Links</button>
       <button class="btn btn-outline-primary w-100 text-start" onclick="showCombatTracker();closeBottomSheet()" style="${show('combatNavItem')}"><i class="fa-solid fa-swords me-2" aria-hidden="true"></i>Combat</button>
       <button class="btn btn-outline-primary w-100 text-start" onclick="showTimeline();closeBottomSheet()"><i class="fa-solid fa-timeline me-2" aria-hidden="true"></i>Timeline</button>
+      <button class="btn btn-outline-primary w-100 text-start" onclick="showWorld();closeBottomSheet()"><i class="fa-solid fa-earth-americas me-2" aria-hidden="true"></i>World</button>
+      <button class="btn btn-outline-primary w-100 text-start" onclick="showRecaps();closeBottomSheet()"><i class="fa-solid fa-book-open me-2" aria-hidden="true"></i>Sessions</button>
       <button class="btn btn-outline-primary w-100 text-start" onclick="showOneShots();closeBottomSheet()" style="${show('oneshotNavItem')}"><i class="fa-solid fa-scroll me-2" aria-hidden="true"></i>One-Shots</button>
       <button class="btn btn-outline-primary w-100 text-start" onclick="showFactions();closeBottomSheet()" style="${show('factionsNavItem')}"><i class="fa-solid fa-flag me-2" aria-hidden="true"></i>Factions</button>
       <button class="btn btn-outline-primary w-100 text-start" onclick="showShops();closeBottomSheet()" style="${show('shopsNavItem')}"><i class="fa-solid fa-store me-2" aria-hidden="true"></i>Shops</button>

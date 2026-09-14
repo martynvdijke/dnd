@@ -81,6 +81,7 @@ func RegisterCampaignRoutes(r *gin.RouterGroup) {
 	r.PUT("/recaps/:id", UpdateCampaignRecap)
 	r.DELETE("/recaps/:id", DeleteCampaignRecap)
 	r.POST("/campaigns/:id/recaps/generate", GenerateCampaignRecap)
+	r.POST("/campaigns/:id/recaps/generate-ai", GenerateRecapAI)
 	r.POST("/recaps/:id/mark-sent", MarkRecapAsSent)
 
 	// Knowledge

@@ -104,6 +104,7 @@ expose('showAddJournal', function () {
       <div class="mb-3"><label class="form-label">Date</label><input class="form-control" id="journalDate" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
       <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="journalTitle" placeholder="Day 1: Arrival in Waterdeep"></div>
       <div class="mb-3"><label class="form-label">Entry</label><div class="editor-toolbar" id="journalToolbar"></div><div id="journalEditor" class="journal-editor"></div></div>
+      <button class="ai-generate-btn btn btn-outline-secondary btn-sm mb-2" data-ai-mode="text" data-ai-target="journalEditor" data-ai-hint="Summarize this journal entry into a vivid recap paragraph"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate with AI</button>
       <button class="btn btn-primary w-100" onclick="saveJournal()"><i class="fa-solid fa-save me-1"></i>Save</button>
     </div>
   `);
@@ -119,6 +120,7 @@ expose('showEditJournal', async function (id: number) {
       <div class="mb-3"><label class="form-label">Date</label><input class="form-control" id="journalDate" type="date" value="${esc(j.entry_date)}"></div>
       <div class="mb-3"><label class="form-label">Title</label><input class="form-control" id="journalTitle" value="${esc(j.title)}"></div>
       <div class="mb-3"><label class="form-label">Entry</label><div class="editor-toolbar" id="journalToolbar"></div><div id="journalEditor" class="journal-editor"></div></div>
+      <button class="ai-generate-btn btn btn-outline-secondary btn-sm mb-2" data-ai-mode="text" data-ai-target="journalEditor" data-ai-hint="Summarize this journal entry into a vivid recap paragraph"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate with AI</button>
       <button class="btn btn-primary w-100" onclick="saveJournal(${id})"><i class="fa-solid fa-save me-1"></i>Update</button>
     </div>
   `);

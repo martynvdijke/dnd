@@ -15,7 +15,7 @@ import { wealthTotalGp } from './resources';
 
 declare const htmx: { process: (el: Element) => void };
 
-import { sections } from '../lib/tabs';
+import { sections, sectionIcons } from '../lib/tabs';
 export { sections };
 
 const htmxTabs = ['spells', 'features', 'feats', 'companions', 'crafting', 'notes'];
@@ -42,7 +42,7 @@ export function renderSheet(): void {
   const tabBar = document.getElementById('tabBar');
   if (tabBar) {
     tabBar.innerHTML = sections.map(s => `
-      <li class="nav-item"><button class="nav-link ${s === currentTab ? 'active' : ''}" onclick="switchTab('${s}')">${capitalize(s)}</button></li>
+      <li class="nav-item"><button class="nav-link ${s === currentTab ? 'active' : ''}" onclick="switchTab('${s}')"><i class="fa-solid ${sectionIcons[s] || 'fa-circle'} me-1" aria-hidden="true"></i>${capitalize(s)}</button></li>
     `).join('');
   }
 
@@ -56,6 +56,18 @@ export function renderSheet(): void {
   (window.renderCrafting as (() => void) | undefined)?.();
   (window.renderDetails as (() => void) | undefined)?.();
   renderDiceTab();
+  // ponytail: lazy-load active tab content on open/deep-link so journal/notes render without extra click
+  if (currentTab === 'journal') (window as unknown as Record<string, (() => void) | undefined>)['renderJournal']?.();
+  else if (htmxTabs.includes(currentTab) && currentChar) {
+    const el = document.getElementById(currentTab + 'Section');
+    if (el && !el.hasAttribute('hx-get')) {
+      el.setAttribute('hx-get', `/htmx/${currentTab}?character_id=${(currentChar as Character).id}`);
+      el.setAttribute('hx-trigger', 'load');
+      el.setAttribute('hx-swap', 'innerHTML');
+      el.innerHTML = '<div class="ornament">✧ Loading... ✧</div>';
+      htmx.process(el);
+    }
+  }
   applySheetReadonly();
   ensureSheetAccordion();
   ensureSheetQuickActions();
