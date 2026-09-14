@@ -139,6 +139,8 @@ func entityURL(et string, id int64) string {
 		return fmt.Sprintf("#/timeline/%d", id)
 	case "item":
 		return fmt.Sprintf("#/items/%d", id)
+	case "recap":
+		return fmt.Sprintf("#/recaps/%d", id)
 	case "knowledge":
 		return fmt.Sprintf("#/campaigns/knowledge/%d", id)
 	case "compendium":

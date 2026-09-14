@@ -141,6 +141,8 @@ import './encounter';
 
 // ─── Timeline → extracted to ts/timeline.ts ───
 import './timeline';
+import './world';
+import './campaign/recaps';
 
 // ─── Conditions / Ailments ───
 

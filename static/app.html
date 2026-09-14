@@ -40,6 +40,8 @@
         <li class="nav-item" id="oneshotNavItem" style="display:none"><a class="nav-link" href="#" onclick="showOneShots();return false"><i class="fa-solid fa-scroll me-1" aria-hidden="true"></i>One-Shots</a></li>
         <li class="nav-item" id="combatNavItem" style="display:none"><a class="nav-link" href="#" onclick="showCombatTracker();return false"><i class="fa-solid fa-swords me-1" aria-hidden="true"></i>Combat</a></li>
         <li class="nav-item"><a class="nav-link" href="#" onclick="showTimeline();return false"><i class="fa-solid fa-timeline me-1" aria-hidden="true"></i>Timeline</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showWorld();return false"><i class="fa-solid fa-earth-americas me-1" aria-hidden="true"></i>World</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showRecaps();return false" data-testid="nav-recaps"><i class="fa-solid fa-book-open me-1" aria-hidden="true"></i>Sessions</a></li>
         <li class="nav-item" id="factionsNavItem" style="display:none"><a class="nav-link" href="#" onclick="showFactions();return false"><i class="fa-solid fa-flag me-1" aria-hidden="true"></i>Factions</a></li>
         <li class="nav-item" id="shopsNavItem" style="display:none"><a class="nav-link" href="#" onclick="showShops();return false"><i class="fa-solid fa-store me-1" aria-hidden="true"></i>Shops</a></li>
         <li class="nav-item" id="knowledgeNavItem" style="display:none"><a class="nav-link" href="#" onclick="showKnowledge();return false"><i class="fa-solid fa-lightbulb me-1" aria-hidden="true"></i>Knowledge</a></li>
@@ -81,6 +83,8 @@
       <li><button class="sidebar-nav-item" data-nav="oneshots" data-testid="nav-oneshots" id="sidebarOneshotNav" style="display:none" onclick="showOneShots()"><i class="fa-solid fa-scroll" aria-hidden="true"></i><span class="sidebar-label">One-Shots</span></button></li>
       <li><button class="sidebar-nav-item" data-nav="combat" data-testid="nav-combat" id="sidebarCombatNav" style="display:none" onclick="showCombatTracker()"><i class="fa-solid fa-swords" aria-hidden="true"></i><span class="sidebar-label">Combat</span></button></li>
       <li><button class="sidebar-nav-item" data-nav="timeline" data-testid="nav-timeline" onclick="showTimeline()"><i class="fa-solid fa-timeline" aria-hidden="true"></i><span class="sidebar-label">Timeline</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="world" data-testid="nav-world" onclick="showWorld()"><i class="fa-solid fa-earth-americas" aria-hidden="true"></i><span class="sidebar-label">World</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="recaps" data-testid="nav-recaps" onclick="showRecaps()"><i class="fa-solid fa-book-open" aria-hidden="true"></i><span class="sidebar-label">Sessions</span></button></li>
       <li><button class="sidebar-nav-item" data-nav="factions" data-testid="nav-factions" id="sidebarFactionsNav" style="display:none" onclick="showFactions()"><i class="fa-solid fa-flag" aria-hidden="true"></i><span class="sidebar-label">Factions</span></button></li>
       <li><button class="sidebar-nav-item" data-nav="shops" data-testid="nav-shops" id="sidebarShopsNav" style="display:none" onclick="showShops()"><i class="fa-solid fa-store" aria-hidden="true"></i><span class="sidebar-label">Shops</span></button></li>
       <li><button class="sidebar-nav-item" data-nav="knowledge" data-testid="nav-knowledge" id="sidebarKnowledgeNav" style="display:none" onclick="showKnowledge()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i><span class="sidebar-label">Knowledge</span></button></li>
@@ -219,6 +223,10 @@
   <h1 class="h2 mb-3"><i class="fa-solid fa-timeline me-2" aria-hidden="true"></i>Campaign Timeline</h1>
   <div id="timelineContent"></div>
 </div>
+
+<div id="worldView" style="display:none"><div class="container py-3"><h1 class="h2 mb-3"><i class="fa-solid fa-earth-americas me-2" aria-hidden="true"></i>World</h1><div id="worldContent"></div></div></div>
+
+<div id="recapsView" style="display:none"><div class="container py-3"><h1 class="h2 mb-3"><i class="fa-solid fa-book-open me-2" aria-hidden="true"></i>Campaign Sessions</h1><div id="recapsContent"></div></div></div>
 
 <div id="singleEncounterView" style="display:none">
   <div id="singleEncounterContent"></div>

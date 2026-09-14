@@ -108,9 +108,7 @@ func DeleteCampaignRecap(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
-func GenerateCampaignRecap(c *gin.Context) {
-	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-
+func buildRecapTemplate(campaignID int64) (string, *string, *string) {
 	var recaps []RecapSection
 
 	// Get character names
@@ -268,8 +266,13 @@ func GenerateCampaignRecap(c *gin.Context) {
 	}
 
 	generatedContent := strings.Join(sections, "\n\n")
-	title := fmt.Sprintf("Campaign Recap - %s", getDateStr())
+	return generatedContent, startDate, endDate
+}
 
+func GenerateCampaignRecap(c *gin.Context) {
+	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	generatedContent, startDate, endDate := buildRecapTemplate(campaignID)
+	title := fmt.Sprintf("Campaign Recap - %s", getDateStr())
 	var recap CampaignRecap
 	recap.CampaignID = campaignID
 	recap.Title = title
@@ -277,7 +280,38 @@ func GenerateCampaignRecap(c *gin.Context) {
 	recap.SessionStartDate = startDate
 	recap.SessionEndDate = endDate
 	recap.WordCount = len(strings.Fields(generatedContent))
+	c.JSON(http.StatusOK, recap)
+}
 
+func tryAIGenerate(c *gin.Context, templateContent string) string {
+	if !aiEnabled(c.Request.Context()) {
+		return templateContent
+	}
+	eps, err := db.GetEnabledAIEndpointsByType(c.Request.Context(), "text")
+	if err != nil || len(eps) == 0 {
+		return templateContent
+	}
+	prompt := "Using the following campaign data, write a 250-300 word session recap in markdown:\n\n" + templateContent
+	maxTokens := 800
+	text, _, err := generateText(c.Request.Context(), eps[0].ID, prompt, "You are a D&D recap assistant. Write concise engaging recaps.", &maxTokens, resolveSessionID(c.GetHeader("x-opencode-session")))
+	if err != nil || strings.TrimSpace(text) == "" {
+		return templateContent
+	}
+	return text
+}
+
+func GenerateRecapAI(c *gin.Context) {
+	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	templateContent, startDate, endDate := buildRecapTemplate(campaignID)
+	content := tryAIGenerate(c, templateContent)
+	title := fmt.Sprintf("Campaign Recap - %s", getDateStr())
+	var recap CampaignRecap
+	recap.CampaignID = campaignID
+	recap.Title = title
+	recap.Content = content
+	recap.SessionStartDate = startDate
+	recap.SessionEndDate = endDate
+	recap.WordCount = len(strings.Fields(content))
 	c.JSON(http.StatusOK, recap)
 }
 

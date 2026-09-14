@@ -524,15 +524,38 @@ func HtmxEditTimelineForm(c *gin.Context) {
 }
 
 func HtmxCreateTimeline(c *gin.Context) {
-	db.DB.Exec("INSERT INTO campaign_timeline_events(campaign_id,title,description,event_date,event_type) VALUES(?,?,?,?,?)",
-		getIntParam(c, "campaign_id", 1), c.PostForm("title"), c.PostForm("description"), c.PostForm("event_date"), c.PostForm("event_type"))
+	linkedType := c.PostForm("linked_entity_type")
+	linkedID := c.PostForm("linked_entity_id")
+	var lt *string
+	var li *int64
+	if linkedType != "" && linkedID != "" {
+		lt = &linkedType
+		if v, err := strconv.ParseInt(linkedID, 10, 64); err == nil {
+			li = &v
+		}
+	}
+	db.DB.Exec("INSERT INTO campaign_timeline_events(campaign_id,title,description,event_date,event_type,linked_entity_type,linked_entity_id) VALUES(?,?,?,?,?,?,?)",
+		getIntParam(c, "campaign_id", 1), c.PostForm("title"), c.PostForm("description"), c.PostForm("event_date"), c.PostForm("event_type"), lt, li)
 	HtmxListTimeline(c)
 }
 
 func HtmxUpdateTimeline(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	db.DB.Exec("UPDATE campaign_timeline_events SET title=?, description=?, event_date=?, event_type=?, campaign_id=? WHERE id=?",
-		c.PostForm("title"), c.PostForm("description"), c.PostForm("event_date"), c.PostForm("event_type"), getIntParam(c, "campaign_id", 1), id)
+	linkedType := c.PostForm("linked_entity_type")
+	linkedID := c.PostForm("linked_entity_id")
+	var lt *string
+	var li *int64
+	if linkedType != "" && linkedID != "" {
+		lt = &linkedType
+		if v, err := strconv.ParseInt(linkedID, 10, 64); err == nil {
+			li = &v
+		}
+	} else {
+		empty := ""
+		lt = &empty
+	}
+	db.DB.Exec("UPDATE campaign_timeline_events SET title=?, description=?, event_date=?, event_type=?, campaign_id=?, linked_entity_type=?, linked_entity_id=? WHERE id=?",
+		c.PostForm("title"), c.PostForm("description"), c.PostForm("event_date"), c.PostForm("event_type"), getIntParam(c, "campaign_id", 1), lt, li, id)
 	HtmxListTimeline(c)
 }
 
