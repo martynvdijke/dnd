@@ -110,7 +110,12 @@ export async function init() {
   // not just toggle view visibility — otherwise currentChar stays null.
   const applyRoute = (route: { view: string; params: Record<string, string> }) => {
     if (route.view === 'sheet' && route.params.id) {
-      (window as any).openChar?.(Number(route.params.id), route.params.tab);
+      const id = Number(route.params.id);
+      const c = (window as any).currentChar;
+      // Only (re)open when the character differs — otherwise openChar's own
+      // hash write would loop through hashchange forever.
+      if (!c || c.id !== id) (window as any).openChar?.(id, route.params.tab);
+      else if (route.params.tab) (window as any).switchTab?.(route.params.tab);
     } else {
       showViewFromRouter(route.view as ViewState);
     }

@@ -24,7 +24,11 @@ export function showShortcutsHelp(): void {
 export function initShortcuts(): void {
   document.addEventListener('keydown', (e) => {
     const target = e.target as HTMLElement;
-    const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
+    // Rich-text editors (TipTap/ProseMirror) are contenteditable DIVs, not
+    // INPUT/TEXTAREA — without this guard, typing "d"/"p"/"c" in a journal,
+    // note, or recap editor would trigger navigation shortcuts mid-sentence.
+    const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT'
+      || target.isContentEditable || !!target.closest('[contenteditable="true"]');
 
     if (e.key === 'Escape') {
       hideModal();
@@ -32,6 +36,8 @@ export function initShortcuts(): void {
     }
 
     if (isInput) return;
+    // A modal (editor dialog) owns the keyboard; don't navigate behind it.
+    if (document.querySelector('.modal.show')) return;
 
     if (e.key === '?') {
       showShortcutsHelp();
