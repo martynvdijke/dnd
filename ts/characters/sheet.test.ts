@@ -1,9 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { setCurrentChar, currentChar } from '../lib/state';
+import { setCurrentChar, setCurrentTab } from '../lib/state';
 import * as state from '../lib/state';
-import { renderStepper, autoSaveField, stepperField, updateField, editStepperValue } from './sheet';
+import { renderStepper, autoSaveField, stepperField, updateField, editStepperValue, renderSheet } from './sheet';
 
 vi.mock('../lib/api', () => ({ api: vi.fn(), getApiToken: () => '' }));
+vi.mock('./stats', () => ({ renderStats: vi.fn(), renderXPBar: vi.fn(() => '') }));
+vi.mock('./combat', () => ({ renderCombat: vi.fn() }));
+vi.mock('../dice', () => ({ renderDiceTab: vi.fn() }));
+vi.mock('../lib/save', () => ({ markDirty: vi.fn(), isDirty: () => false, isSaving: () => false, saveCharacter: vi.fn() }));
+vi.mock('./resources', () => ({ wealthTotalGp: () => 0 }));
 // sheet imports save module which uses api — already mocked
 
 describe('renderStepper', () => {
@@ -92,5 +97,65 @@ describe('editStepperValue', () => {
     editStepperValue('hp_max', span as any);
     expect(span.innerHTML).toContain('stepper-inline-input');
     expect(span.querySelector('input')).not.toBeNull();
+  });
+});
+
+describe('renderSheet lazy-loading', () => {
+  const htmxProcess = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    htmxProcess.mockClear();
+    (globalThis as any).htmx = { process: htmxProcess };
+    (window as any).renderCrafting = vi.fn();
+    (window as any).renderDetails = vi.fn();
+    (window as any).renderJournal = vi.fn();
+    (window as any).updateSaveBtnState = vi.fn();
+    (window as any).canEditCharacter = true;
+    setCurrentChar({ id: 7, name: 'Hero', race: 'Human', class: 'Fighter', level: 3, hp_current: 10, hp_max: 20, ac: 15, portrait_url: null, classes: [] } as any);
+  });
+
+  function baseDOM() {
+    document.body.innerHTML = `
+      <div id="sheetName"></div><div id="sheetSubtitle"></div>
+      <div id="tabBar"></div><div id="sheetView"><h2>Sheet</h2></div>
+      <div id="statsSection"></div><div id="combatSection"></div>
+      <div id="spellsSection"></div><div id="inventorySection"></div>
+      <div id="resourcesSection"></div><div id="featuresSection"></div>
+      <div id="featsSection"></div><div id="companionsSection"></div>
+      <div id="craftingSection"></div><div id="journalSection"></div>
+      <div id="notesSection"></div><div id="detailsSection"></div>
+      <div id="diceSection"></div><div id="partySection"></div>
+    `;
+  }
+
+  it('calls window.renderJournal when currentTab is journal', () => {
+    setCurrentTab('journal');
+    baseDOM();
+    renderSheet();
+    expect((window as any).renderJournal).toHaveBeenCalled();
+    expect(htmxProcess).not.toHaveBeenCalled();
+  });
+
+  it('sets hx-get/hx-trigger/hx-swap and calls htmx.process for htmxTabs (notes)', () => {
+    setCurrentTab('notes');
+    baseDOM();
+    const notesEl = document.getElementById('notesSection')!;
+    expect(notesEl.hasAttribute('hx-get')).toBe(false);
+    renderSheet();
+    expect(notesEl.getAttribute('hx-get')).toBe('/htmx/notes?character_id=7');
+    expect(notesEl.getAttribute('hx-trigger')).toBe('load');
+    expect(notesEl.getAttribute('hx-swap')).toBe('innerHTML');
+    expect(htmxProcess).toHaveBeenCalledWith(notesEl);
+  });
+
+  it('does not overwrite existing hx-get on second render', () => {
+    setCurrentTab('notes');
+    baseDOM();
+    renderSheet();
+    htmxProcess.mockClear();
+    renderSheet();
+    // second call should not re-process because hx-get already set
+    expect(htmxProcess).not.toHaveBeenCalled();
   });
 });

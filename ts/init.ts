@@ -18,6 +18,7 @@ import { showLoading, hideLoading } from './lib/dom';
 import { initSearch } from './search';
 import { initAIClickHandler, setAIEnabled } from './ai';
 import { initPdfViewerCleanup } from './pdf-viewer';
+import type { ViewState } from './types';
 import { setCurrentUser, setAllLocations, setAllNPCs } from './lib/state';
 import { initSpellCompendium } from './spell-compendium';
 
@@ -105,8 +106,17 @@ export async function init() {
   initAIClickHandler();
   initPdfViewerCleanup();
   initSpellCompendium();
+  // ponytail: sheet deep links (#/sheet/42/journal) must re-open the character,
+  // not just toggle view visibility — otherwise currentChar stays null.
+  const applyRoute = (route: { view: string; params: Record<string, string> }) => {
+    if (route.view === 'sheet' && route.params.id) {
+      (window as any).openChar?.(Number(route.params.id), route.params.tab);
+    } else {
+      showViewFromRouter(route.view as ViewState);
+    }
+  };
   // Initialize hash router — handles back/forward and bookmarks
-  initRouter((route) => showViewFromRouter(route.view));
+  initRouter(applyRoute);
   try {
     // Hold the loading overlay open across the entire bootstrap (user/me,
     // csrf-token, and API-token provisioning) so the UI is not considered
@@ -191,7 +201,7 @@ export async function init() {
       return;
     }
     if (location.hash && location.hash.length > 1) {
-      navigateToInitialHash((route) => showViewFromRouter(route.view));
+      navigateToInitialHash(applyRoute);
     } else {
       showView('characters');
     }
