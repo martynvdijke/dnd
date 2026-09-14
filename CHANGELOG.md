@@ -1,3 +1,10 @@
+# [2.64.0](https://github.com/martynvdijke/dnd/compare/v2.63.0...v2.64.0) (2026-09-14)
+
+
+### Features
+
+* complete session journal, world overview, and AI recap ([3dca55f](https://github.com/martynvdijke/dnd/commit/3dca55f60c55923134971091c116fd2368def955))
+
 # [2.63.0](https://github.com/martynvdijke/dnd/compare/v2.62.0...v2.63.0) (2026-09-14)
 
 
