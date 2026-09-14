@@ -1,3 +1,10 @@
+# [2.63.0](https://github.com/martynvdijke/dnd/compare/v2.62.0...v2.63.0) (2026-09-14)
+
+
+### Features
+
+* add world overview with place-timeline links, session journal, and AI recap ([78dbeca](https://github.com/martynvdijke/dnd/commit/78dbeca2681867712808a964d58f6ad3851fbd76))
+
 # [2.62.0](https://github.com/martynvdijke/dnd/compare/v2.61.0...v2.62.0) (2026-09-13)
 
 
