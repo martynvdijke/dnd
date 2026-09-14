@@ -56,6 +56,18 @@ export function renderSheet(): void {
   (window.renderCrafting as (() => void) | undefined)?.();
   (window.renderDetails as (() => void) | undefined)?.();
   renderDiceTab();
+  // ponytail: lazy-load active tab content on open/deep-link so journal/notes render without extra click
+  if (currentTab === 'journal') (window as unknown as Record<string, (() => void) | undefined>)['renderJournal']?.();
+  else if (htmxTabs.includes(currentTab) && currentChar) {
+    const el = document.getElementById(currentTab + 'Section');
+    if (el && !el.hasAttribute('hx-get')) {
+      el.setAttribute('hx-get', `/htmx/${currentTab}?character_id=${(currentChar as Character).id}`);
+      el.setAttribute('hx-trigger', 'load');
+      el.setAttribute('hx-swap', 'innerHTML');
+      el.innerHTML = '<div class="ornament">✧ Loading... ✧</div>';
+      htmx.process(el);
+    }
+  }
   applySheetReadonly();
   ensureSheetAccordion();
   ensureSheetQuickActions();

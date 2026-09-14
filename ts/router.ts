@@ -40,6 +40,14 @@ export function parseHash(hash: string): Route {
   // View-specific param extraction
   if ((view === 'sheet' || view === 'singleEncounter') && parts[1]) {
     params.id = parts[1];
+    if (parts[2]) params.tab = parts[2];
+  }
+  // query-string tab for #/sheet/42?tab=journal
+  const qIdx = hash.indexOf('?');
+  if (qIdx !== -1) {
+    const qs = new URLSearchParams(hash.slice(qIdx + 1));
+    const t = qs.get('tab');
+    if (t) params.tab = t;
   }
 
   return { view, params };
@@ -50,6 +58,7 @@ export function parseHash(hash: string): Route {
  */
 export function routeToHash(route: Route): string {
   const { view, params } = route;
+  if (params.id && params.tab) return `#/${view}/${params.id}/${params.tab}`;
   if (params.id) return `#/${view}/${params.id}`;
   return `#/${view}`;
 }

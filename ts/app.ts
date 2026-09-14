@@ -83,14 +83,27 @@ import { loadCharacters, filterCharacters } from './characters/list';
 expose('loadCharacters', loadCharacters);
 expose('filterCharacters', filterCharacters);
 
-async function openChar(id: number) {
+async function openChar(id: number, tab?: string) {
   try {
     setCurrentChar(await api('GET', `/api/characters/${id}`));
     expose('currentChar', currentChar);
     expose('canEditCharacter', !!(currentChar as any).can_edit);
-    setCurrentTab('stats');
+    // ponytail: support deep-link #/sheet/42/journal or ?tab=journal
+    let initialTab = tab || 'stats';
+    if (!tab) {
+      const hash = location.hash || '';
+      const parts = hash.replace(/^#\/?/, '').split('/');
+      if (parts[0] === 'sheet' && parts[2]) initialTab = parts[2];
+      else {
+        const q = hash.indexOf('?');
+        if (q !== -1) { const t = new URLSearchParams(hash.slice(q + 1)).get('tab'); if (t) initialTab = t; }
+      }
+    }
+    try { const allowed = getSections(); if (!allowed.includes(initialTab)) initialTab = 'stats'; } catch { /* fallback */ }
+    setCurrentTab(initialTab);
     showView('sheet');
     renderSheet();
+    if (initialTab !== 'stats') (window as any).switchTab?.(initialTab);
   } catch (e: any) {
     toast(e.message, true);
   }
@@ -119,7 +132,6 @@ import './app/graph-analytics';
 import './app/character-ops';
 import './app/character-details';
 import './app/combat-conditions';
-import './app/notes';
 import './app/sort-switch';
 
 // ─── Encounter Builder → extracted to ts/encounter.ts ───
