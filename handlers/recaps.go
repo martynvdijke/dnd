@@ -30,6 +30,10 @@ type RecapSection struct {
 
 func ListCampaignRecaps(c *gin.Context) {
 	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !isCampaignMember(c, campaignID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		return
+	}
 	rows, err := db.DB.Query("SELECT id,campaign_id,title,content,session_start_date,session_end_date,word_count,is_edited,is_sent FROM campaign_recaps WHERE campaign_id=? ORDER BY created_at DESC", campaignID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -53,11 +57,19 @@ func GetCampaignRecap(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "recap not found"})
 		return
 	}
+	if !isCampaignMember(c, r.CampaignID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		return
+	}
 	c.JSON(http.StatusOK, r)
 }
 
 func CreateCampaignRecap(c *gin.Context) {
 	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !isCampaignDM(c, campaignID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		return
+	}
 	var req struct {
 		Title            string  `json:"title"`
 		Content          string  `json:"content"`
@@ -85,6 +97,15 @@ func CreateCampaignRecap(c *gin.Context) {
 
 func UpdateCampaignRecap(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var campaignID int64
+	if err := db.DB.QueryRow("SELECT campaign_id FROM campaign_recaps WHERE id=?", id).Scan(&campaignID); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "recap not found"})
+		return
+	}
+	if !isCampaignDM(c, campaignID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		return
+	}
 	var req struct {
 		Title            string  `json:"title"`
 		Content          string  `json:"content"`
@@ -104,6 +125,15 @@ func UpdateCampaignRecap(c *gin.Context) {
 
 func DeleteCampaignRecap(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var campaignID int64
+	if err := db.DB.QueryRow("SELECT campaign_id FROM campaign_recaps WHERE id=?", id).Scan(&campaignID); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "recap not found"})
+		return
+	}
+	if !isCampaignDM(c, campaignID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		return
+	}
 	db.DB.Exec("DELETE FROM campaign_recaps WHERE id=?", id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
@@ -271,6 +301,10 @@ func buildRecapTemplate(campaignID int64) (string, *string, *string) {
 
 func GenerateCampaignRecap(c *gin.Context) {
 	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !isCampaignDM(c, campaignID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		return
+	}
 	generatedContent, startDate, endDate := buildRecapTemplate(campaignID)
 	title := fmt.Sprintf("Campaign Recap - %s", getDateStr())
 	var recap CampaignRecap
@@ -302,6 +336,10 @@ func tryAIGenerate(c *gin.Context, templateContent string) string {
 
 func GenerateRecapAI(c *gin.Context) {
 	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !isCampaignDM(c, campaignID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		return
+	}
 	templateContent, startDate, endDate := buildRecapTemplate(campaignID)
 	content := tryAIGenerate(c, templateContent)
 	title := fmt.Sprintf("Campaign Recap - %s", getDateStr())
@@ -329,9 +367,15 @@ func MarkRecapAsSent(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var campaignID int64
 	var title string
-	if err := db.DB.QueryRow("SELECT campaign_id,title FROM campaign_recaps WHERE id=?", id).Scan(&campaignID, &title); err == nil {
-		NotifyCampaignRecapPublished(campaignID, id, title)
+	if err := db.DB.QueryRow("SELECT campaign_id,title FROM campaign_recaps WHERE id=?", id).Scan(&campaignID, &title); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "recap not found"})
+		return
 	}
+	if !isCampaignDM(c, campaignID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		return
+	}
+	NotifyCampaignRecapPublished(campaignID, id, title)
 	db.DB.Exec("UPDATE campaign_recaps SET is_sent=1 WHERE id=?", id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

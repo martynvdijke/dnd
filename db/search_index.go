@@ -370,6 +370,9 @@ END;
 CREATE TRIGGER IF NOT EXISTS elc_compendium AFTER DELETE ON compendium_entries BEGIN
     DELETE FROM entity_links WHERE (source_type='compendium' AND source_id=old.id) OR (target_type='compendium' AND target_id=old.id);
 END;
+CREATE TRIGGER IF NOT EXISTS elc_recaps AFTER DELETE ON campaign_recaps BEGIN
+    DELETE FROM entity_links WHERE (source_type='recap' AND source_id=old.id) OR (target_type='recap' AND target_id=old.id);
+END;
 `
 
 // EnsureSearchIndex creates the unified-index sync triggers (idempotently) and

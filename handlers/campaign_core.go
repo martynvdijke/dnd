@@ -153,6 +153,29 @@ func isCampaignMember(c *gin.Context, campaignID int64) bool {
 	return IsCampaignMemberGin(c, campaignID)
 }
 
+// isCampaignDM reports whether the requester is DM of the campaign (owner or member with role dm).
+func isCampaignDM(c *gin.Context, campaignID int64) bool {
+	role, _ := c.Get("role")
+	if role == "admin" {
+		return true
+	}
+	uid, ok := MustGetUserID(c)
+	if !ok {
+		return false
+	}
+	ctx := c.Request.Context()
+	if ca, err := db.Client.Campaign.Get(ctx, campaignID); err == nil && ca.UserID == uid {
+		return true
+	}
+	n, err := db.Client.CampaignMember.Query().
+		Where(campaignmember.CampaignID(campaignID), campaignmember.UserID(uid), campaignmember.Role("dm")).
+		Count(ctx)
+	if err != nil {
+		return false
+	}
+	return n > 0
+}
+
 func campaignMemberUserIDs(c *gin.Context, campaignID int64) ([]int64, error) {
 	ctx := c.Request.Context()
 	ca, err := db.Client.Campaign.Query().
