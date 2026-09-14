@@ -58,6 +58,7 @@ var Entities = map[string]EntityInfo{
 	"faction":    {Type: "faction", Label: "Factions", Icon: "fa-chess-rook", Table: "factions", Ownership: OwnerCampaign, Searchable: true, Transferable: true, Linkable: true},
 	"adventure":  {Type: "adventure", Label: "Adventures", Icon: "fa-map", Table: "oneshot_adventures", Ownership: OwnerUserOrCampaign, Searchable: true, Transferable: true, Linkable: true},
 	"wiki":       {Type: "wiki", Label: "Wiki Pages", Icon: "fa-book", Table: "campaign_wiki_pages", Ownership: OwnerCampaign, Searchable: true, Transferable: false, Linkable: true},
+	"recap":      {Type: "recap", Label: "Session Recaps", Icon: "fa-feather", Table: "campaign_recaps", Ownership: OwnerCampaign, Searchable: true, Transferable: false, Linkable: true},
 	"timeline":   {Type: "timeline", Label: "Timeline Events", Icon: "fa-timeline", Table: "campaign_timeline_events", Ownership: OwnerCampaign, Searchable: true, Transferable: true, Linkable: true},
 	"knowledge":  {Type: "knowledge", Label: "Knowledge", Icon: "fa-lightbulb", Table: "campaign_knowledge", Ownership: OwnerCampaignShared, Searchable: true, Transferable: true, Linkable: true},
 	"item":       {Type: "item", Label: "Items", Icon: "fa-backpack", Table: "oneshot_items", Ownership: OwnerAdventure, Searchable: true, Transferable: false, Linkable: true},

@@ -78,13 +78,26 @@ export async function showWorld(): Promise<void> {
 }
 
 expose('showWorld', showWorld);
-expose('showPlaceDetail', function (id: number): void {
+expose('showPlaceDetail', async function (id: number): Promise<void> {
   const locs: any[] = (window as any).__worldLocs || [];
   const events: any[] = (window as any).__worldEvents || [];
   const loc = locs.find((l: any) => l.id === id);
   const detail = document.getElementById('worldPlaceDetail')!;
   if (!loc) { detail.innerHTML = '<p class="text-muted">Place not found.</p>'; return; }
   const linked = events.filter((e: any) => e.linked_entity_type === 'location' && String(e.linked_entity_id) === String(id));
-  detail.innerHTML = `<div class="card"><div class="card-body"><h5>${esc(loc.name)} <small class="text-muted">${esc(loc.type)}</small></h5>${loc.description ? `<p class="small">${esc(loc.description)}</p>` : ''}${loc.latitude != null ? `<p class="small text-muted">${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}</p>` : ''}<h6 class="mt-3">Timeline events (${linked.length})</h6>${linked.length ? linked.map((e: any) => `<div class="border-bottom py-1"><span class="fw-bold small">${esc(e.title)}</span> <small class="text-muted">${esc(e.event_date || '')} · ${esc(e.event_type || '')}</small>${e.description ? `<br><small>${esc(e.description)}</small>` : ''}</div>`).join('') : '<p class="small text-muted">No linked events.</p>'}</div></div>`;
+  detail.innerHTML = `<div class="card"><div class="card-body"><h5>${esc(loc.name)} <small class="text-muted">${esc(loc.type)}</small></h5>${loc.description ? `<p class="small">${esc(loc.description)}</p>` : ''}${loc.latitude != null ? `<p class="small text-muted">${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)}</p>` : ''}<h6 class="mt-3">Timeline events (${linked.length})</h6>${linked.length ? linked.map((e: any) => `<div class="border-bottom py-1"><span class="fw-bold small">${esc(e.title)}</span> <small class="text-muted">${esc(e.event_date || '')} · ${esc(e.event_type || '')}</small>${e.description ? `<br><small>${esc(e.description)}</small>` : ''}</div>`).join('') : '<p class="small text-muted">No linked events.</p>'}<div id="placeRecapBacklinks" class="mt-3"><small class="text-muted">Loading session write-ups...</small></div></div></div>`;
   detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // Backlinks: recaps that link to this location
+  try {
+    const data: any = await api('GET', `/api/links/location/${id}`);
+    const all: any[] = [...(data.outgoing || []), ...(data.backlinks || []), ...(data.links || [])];
+    const recaps = all.filter((l: any) => l.source_type === 'recap');
+    const container = document.getElementById('placeRecapBacklinks');
+    if (!container) return;
+    if (!recaps.length) { container.innerHTML = '<h6>Session write-ups (0)</h6><p class="small text-muted">No linked recaps.</p>'; return; }
+    container.innerHTML = `<h6>Session write-ups (${recaps.length})</h6>` + recaps.map((l: any) => `<div class="border-bottom py-1"><a href="#" onclick="event.preventDefault();(window as any).renderRecaps ? (window as any).renderRecaps() : (window as any).showRecaps && (window as any).showRecaps()">${esc(l.source_title || `Recap #${l.source_id}`)}</a></div>`).join('');
+  } catch {
+    const c = document.getElementById('placeRecapBacklinks');
+    if (c) c.innerHTML = '';
+  }
 });

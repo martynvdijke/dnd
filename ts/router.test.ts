@@ -36,6 +36,29 @@ describe('parseHash', () => {
     expect(r.view).toBe('compendium');
     expect(r.params).toEqual({});
   });
+
+  it('parses sheet with tab path segment', () => {
+    const r = parseHash('#/sheet/42/journal');
+    expect(r.view).toBe('sheet');
+    expect(r.params).toEqual({ id: '42', tab: 'journal' });
+  });
+
+  it('parses sheet with query-string tab', () => {
+    const r = parseHash('#/sheet/42?tab=notes');
+    expect(r.view).toBe('sheet');
+    expect(r.params.tab).toBe('notes');
+    expect(r.params.id).toContain('42');
+  });
+
+  it('parses #/sheet/42?tab=journal tab via query-string', () => {
+    const r = parseHash('#/sheet/42?tab=journal');
+    expect(r.params.tab).toBe('journal');
+  });
+
+  it('query-string tab overrides path tab', () => {
+    const r = parseHash('#/sheet/42/journal?tab=notes');
+    expect(r.params.tab).toBe('notes');
+  });
 });
 
 describe('routeToHash', () => {
@@ -45,6 +68,10 @@ describe('routeToHash', () => {
 
   it('serializes view with id', () => {
     expect(routeToHash({ view: 'sheet', params: { id: '42' } })).toBe('#/sheet/42');
+  });
+
+  it('serializes view with id and tab', () => {
+    expect(routeToHash({ view: 'sheet', params: { id: '42', tab: 'journal' } })).toBe('#/sheet/42/journal');
   });
 });
 

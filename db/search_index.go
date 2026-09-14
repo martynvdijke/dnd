@@ -268,6 +268,20 @@ CREATE TRIGGER IF NOT EXISTS esi_compendium_au AFTER UPDATE ON compendium_entrie
         COALESCE((SELECT display_name FROM compendium_schemas WHERE id = new.schema_id), ''),
         new.data);
 END;
+
+-- campaign_recaps (entity type: recap)
+CREATE TRIGGER IF NOT EXISTS esi_recaps_ai AFTER INSERT ON campaign_recaps BEGIN
+    INSERT INTO entity_search_index(entity_type, entity_id, title, subtitle, body)
+    VALUES ('recap', new.id, new.title, CASE WHEN new.session_start_date IS NOT NULL THEN new.session_start_date || COALESCE(' - ' || new.session_end_date, '') ELSE new.word_count || ' words' END, new.content);
+END;
+CREATE TRIGGER IF NOT EXISTS esi_recaps_ad AFTER DELETE ON campaign_recaps BEGIN
+    DELETE FROM entity_search_index WHERE entity_type='recap' AND entity_id=old.id;
+END;
+CREATE TRIGGER IF NOT EXISTS esi_recaps_au AFTER UPDATE ON campaign_recaps BEGIN
+    DELETE FROM entity_search_index WHERE entity_type='recap' AND entity_id=old.id;
+    INSERT INTO entity_search_index(entity_type, entity_id, title, subtitle, body)
+    VALUES ('recap', new.id, new.title, CASE WHEN new.session_start_date IS NOT NULL THEN new.session_start_date || COALESCE(' - ' || new.session_end_date, '') ELSE new.word_count || ' words' END, new.content);
+END;
 `
 
 // searchIndexBackfill repopulates the unified index from all source tables.
@@ -310,6 +324,8 @@ INSERT INTO entity_search_index(entity_type, entity_id, title, subtitle, body)
 SELECT 'compendium', e.id, COALESCE(json_extract(e.data, '$.name'), ''),
     COALESCE((SELECT display_name FROM compendium_schemas WHERE id = e.schema_id), ''), e.data
 FROM compendium_entries e;
+INSERT INTO entity_search_index(entity_type, entity_id, title, subtitle, body)
+SELECT 'recap', id, title, CASE WHEN session_start_date IS NOT NULL THEN session_start_date || COALESCE(' - ' || session_end_date, '') ELSE word_count || ' words' END, content FROM campaign_recaps;
 `
 
 // linkCleanupTriggers removes entity_links rows whenever a linked entity is
@@ -369,6 +385,9 @@ CREATE TRIGGER IF NOT EXISTS elc_knowledge AFTER DELETE ON campaign_knowledge BE
 END;
 CREATE TRIGGER IF NOT EXISTS elc_compendium AFTER DELETE ON compendium_entries BEGIN
     DELETE FROM entity_links WHERE (source_type='compendium' AND source_id=old.id) OR (target_type='compendium' AND target_id=old.id);
+END;
+CREATE TRIGGER IF NOT EXISTS elc_recaps AFTER DELETE ON campaign_recaps BEGIN
+    DELETE FROM entity_links WHERE (source_type='recap' AND source_id=old.id) OR (target_type='recap' AND target_id=old.id);
 END;
 `
 

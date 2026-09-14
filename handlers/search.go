@@ -140,7 +140,7 @@ func entityURL(et string, id int64) string {
 	case "item":
 		return fmt.Sprintf("#/items/%d", id)
 	case "recap":
-		return fmt.Sprintf("#/recaps/%d", id)
+		return "#/recaps"
 	case "knowledge":
 		return fmt.Sprintf("#/campaigns/knowledge/%d", id)
 	case "compendium":

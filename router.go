@@ -78,6 +78,7 @@ func setupRouter(mediaPath string) (*gin.Engine, func()) {
 		handlers.RegisterBackupRoutes(auth)
 		handlers.RegisterMiscAuthRoutes(auth)
 		handlers.RegisterTransferRoutes(auth)
+		handlers.RegisterLinkRoutes(auth)
 	}
 
 	// API token lifecycle (session + CSRF protected, but NOT API-token protected)

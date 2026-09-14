@@ -3,7 +3,7 @@
 {{end}}
 <input type="hidden" name="character_id" value="{{.CharacterID}}">
 <div class="mb-3"><label class="form-label">Title</label><input class="form-control" name="title" value="{{if .Note}}{{.Note.Title}}{{end}}" placeholder="Note title"></div>
-<div class="mb-3"><label class="form-label">Content</label><textarea class="form-control" name="content" rows="6">{{if .Note}}{{.Note.Content}}{{end}}</textarea></div>
+<div class="mb-3"><label class="form-label">Content</label><button type="button" class="ai-generate-btn btn btn-outline-secondary btn-sm mb-2" data-ai-mode="text" data-ai-target="noteContent" data-ai-hint="Expand these notes into a richer description"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate with AI</button><textarea class="form-control" id="noteContent" name="content" rows="6">{{if .Note}}{{.Note.Content}}{{end}}</textarea></div>
 <div class="row g-3 mb-3">
   <div class="col-6"><label class="form-label">Visibility</label>
     <select class="form-select" name="visibility">

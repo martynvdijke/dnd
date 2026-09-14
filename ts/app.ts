@@ -5,6 +5,7 @@ import L from 'leaflet';
 import * as bootstrap from 'bootstrap';
 expose('bootstrap', bootstrap);
 import { showView, setCurrentView, getCurrentView } from './navigation';
+import { navigate as routerNavigate } from './router';
 import { toggleFabMenu, updateFabForView } from './fab';
 import './fab';
 import './dice';
@@ -104,6 +105,9 @@ async function openChar(id: number, tab?: string) {
     showView('sheet');
     renderSheet();
     if (initialTab !== 'stats') (window as any).switchTab?.(initialTab);
+    // Keep the character id/tab in the hash so a reload restores this sheet
+    // (showView alone writes only #/sheet). Guarded for @ts-nocheck legacy file.
+    try { routerNavigate('sheet', initialTab && initialTab !== 'stats' ? { id: String(id), tab: initialTab } : { id: String(id) }); } catch { /* ignore */ }
   } catch (e: any) {
     toast(e.message, true);
   }
