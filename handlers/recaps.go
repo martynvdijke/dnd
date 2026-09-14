@@ -21,6 +21,7 @@ type CampaignRecap struct {
 	WordCount        int     `json:"word_count"`
 	IsEdited         bool    `json:"is_edited"`
 	IsSent           bool    `json:"is_sent"`
+	AIUsed           bool    `json:"ai_used"`
 }
 
 type RecapSection struct {
@@ -317,21 +318,21 @@ func GenerateCampaignRecap(c *gin.Context) {
 	c.JSON(http.StatusOK, recap)
 }
 
-func tryAIGenerate(c *gin.Context, templateContent string) string {
+func tryAIGenerate(c *gin.Context, templateContent string) (string, bool) {
 	if !aiEnabled(c.Request.Context()) {
-		return templateContent
+		return templateContent, false
 	}
 	eps, err := db.GetEnabledAIEndpointsByType(c.Request.Context(), "text")
 	if err != nil || len(eps) == 0 {
-		return templateContent
+		return templateContent, false
 	}
 	prompt := "Using the following campaign data, write a 250-300 word session recap in markdown:\n\n" + templateContent
 	maxTokens := 800
 	text, _, err := generateText(c.Request.Context(), eps[0].ID, prompt, "You are a D&D recap assistant. Write concise engaging recaps.", &maxTokens, resolveSessionID(c.GetHeader("x-opencode-session")))
 	if err != nil || strings.TrimSpace(text) == "" {
-		return templateContent
+		return templateContent, false
 	}
-	return text
+	return text, true
 }
 
 func GenerateRecapAI(c *gin.Context) {
@@ -341,7 +342,7 @@ func GenerateRecapAI(c *gin.Context) {
 		return
 	}
 	templateContent, startDate, endDate := buildRecapTemplate(campaignID)
-	content := tryAIGenerate(c, templateContent)
+	content, aiUsed := tryAIGenerate(c, templateContent)
 	title := fmt.Sprintf("Campaign Recap - %s", getDateStr())
 	var recap CampaignRecap
 	recap.CampaignID = campaignID
@@ -350,6 +351,7 @@ func GenerateRecapAI(c *gin.Context) {
 	recap.SessionStartDate = startDate
 	recap.SessionEndDate = endDate
 	recap.WordCount = len(strings.Fields(content))
+	recap.AIUsed = aiUsed
 	c.JSON(http.StatusOK, recap)
 }
 
