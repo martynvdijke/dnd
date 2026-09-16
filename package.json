@@ -8,14 +8,14 @@
     "test": "go test -tags sqlite_fts5 ./...",
     "test:e2e": "npx playwright test",
     "build:vite": "vite build",
-    "build:dice": "esbuild dice/roller-entry.js --bundle --format=iife --global-name=__diceBundle --platform=browser --external:crypto --outfile=dice/bundle.js",
+    "build:dice": "esbuild dice/roller-entry.js --bundle --format=iife --global-name=__diceBundle --platform=browser --external:crypto --outfile=dice/bundle.js --banner:js=\"globalThis.__diceBuildStamp='$(node -p \"require('@dice-roller/rpg-dice-roller/package.json').version\")';\"",
     "typecheck": "npx tsc --noEmit",
     "lint:nocheck": "node scripts/check-nocheck.js",
     "build:ts": "npm run build:vite && npm run typecheck",
     "watch:ts": "vite build --watch"
   },
   "dependencies": {
-    "@dice-roller/rpg-dice-roller": "^5.5.1",
+    "@dice-roller/rpg-dice-roller": "5.5.1",
     "@tiptap/core": "^3.0.0",
     "@tiptap/extension-placeholder": "^3.0.0",
     "@tiptap/pm": "^3.0.0",

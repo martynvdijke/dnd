@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"regexp"
 	"sync"
 
 	"github.com/dop251/goja"
@@ -23,6 +24,39 @@ type Engine struct {
 	vm     *goja.Runtime
 	rollFn goja.Callable
 	pool   *Pool
+}
+
+// expectedDiceVersion is the pinned @dice-roller/rpg-dice-roller version the
+// embedded bundle must have been built from. It must match package.json's
+// dependency pin (TestBundleStampMatchesPin enforces that), and a missing
+// rebuild after a bump is caught at engine init (TestStaleBundleDetected).
+var expectedDiceVersion = "5.5.1"
+
+// buildStampRe extracts the stamp injected by `npm run build:dice`
+// (`--banner:js=globalThis.__diceBuildStamp='<version>';`).
+var buildStampRe = regexp.MustCompile(`__diceBuildStamp\s*=\s*['"]([^'"]+)['"]`)
+
+// bundleBuildStamp reads the build stamp from the embedded bundle without
+// executing it.
+func bundleBuildStamp() (string, error) {
+	m := buildStampRe.FindStringSubmatch(BundleJS)
+	if m == nil {
+		return "", fmt.Errorf("dice bundle has no build stamp — rebuild it with `npm run build:dice`")
+	}
+	return m[1], nil
+}
+
+// verifyBuildStamp fails fast when the embedded bundle is stale (built from a
+// different dependency version than this binary expects).
+func verifyBuildStamp() error {
+	stamp, err := bundleBuildStamp()
+	if err != nil {
+		return err
+	}
+	if stamp != expectedDiceVersion {
+		return fmt.Errorf("dice bundle build stamp mismatch: expected %q, got %q — rebuild with `npm run build:dice`", expectedDiceVersion, stamp)
+	}
+	return nil
 }
 
 // NewPool creates a pool of n engines. Each engine pre-loads the dice-roller bundle.
@@ -84,6 +118,9 @@ func (p *Pool) Roll(expression string) (*RollResult, error) {
 
 // newEngine creates a single dice engine with its own goja runtime.
 func newEngine(pool *Pool) (*Engine, error) {
+	if err := verifyBuildStamp(); err != nil {
+		return nil, err
+	}
 	vm := goja.New()
 
 	// Provide require("crypto") polyfill with crypto/rand
