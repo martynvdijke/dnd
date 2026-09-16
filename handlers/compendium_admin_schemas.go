@@ -420,67 +420,74 @@ func MigrateLegacyCompendiumData() map[string]any {
 			continue
 		}
 
-		// Build scan targets dynamically
-		colCount := len(lt.Columns)
-		for sqlRows.Next() {
-			scanTargets := make([]any, colCount)
-			scanStrings := make([]string, colCount)
-			for i := range scanTargets {
-				scanTargets[i] = &scanStrings[i]
-			}
-			if err := sqlRows.Scan(scanTargets...); err != nil {
-				continue
-			}
+		func() {
+			defer sqlRows.Close()
+			// Build scan targets dynamically
+			colCount := len(lt.Columns)
+			for sqlRows.Next() {
+				scanTargets := make([]any, colCount)
+				scanStrings := make([]string, colCount)
+				for i := range scanTargets {
+					scanTargets[i] = &scanStrings[i]
+				}
+				if err := sqlRows.Scan(scanTargets...); err != nil {
+					middleware.LogWarn("compendium", "scan failed", "error", err)
+					continue
+				}
 
-			// Build data map
-			data := map[string]any{}
-			name := ""
-			for i, col := range lt.Columns {
-				val := strings.TrimSpace(scanStrings[i])
-				// Map legacy column name to schema field name
-				fieldName := col
-				if lt.ColumnMap != nil {
-					if mapped, ok := lt.ColumnMap[col]; ok {
-						fieldName = mapped
+				// Build data map
+				data := map[string]any{}
+				name := ""
+				for i, col := range lt.Columns {
+					val := strings.TrimSpace(scanStrings[i])
+					// Map legacy column name to schema field name
+					fieldName := col
+					if lt.ColumnMap != nil {
+						if mapped, ok := lt.ColumnMap[col]; ok {
+							fieldName = mapped
+						}
 					}
+					if col == "name" {
+						name = val
+					}
+					// Try numeric conversion for numeric-looking values
+					if val == "" {
+						continue // skip empty fields
+					}
+					data[fieldName] = val
 				}
-				if col == "name" {
-					name = val
+
+				if name == "" {
+					continue
 				}
-				// Try numeric conversion for numeric-looking values
-				if val == "" {
-					continue // skip empty fields
+
+				// Check for duplicate by name
+				var existing int
+				// We approximate name matching by checking if any entry data contains "name":"<name>"
+				// Since data is JSON, we use json_extract
+				err := db.DB.QueryRow(
+					`SELECT COUNT(*) FROM compendium_entries WHERE schema_id=? AND json_extract(data, '$.name')=?`,
+					schemaID, name).Scan(&existing)
+				if err == nil && existing > 0 {
+					totalSkipped++
+					continue
 				}
-				data[fieldName] = val
-			}
 
-			if name == "" {
-				continue
+				dataJSON, _ := json.Marshal(data)
+				_, err = db.DB.Exec(
+					`INSERT INTO compendium_entries(schema_id, data) VALUES(?,?)`,
+					schemaID, string(dataJSON))
+				if err != nil {
+					middleware.LogWarn("compendium", "insert failed", "error", err)
+					continue
+				}
+				totalMigrated++
+				perSchema[lt.Schema]++
 			}
-
-			// Check for duplicate by name
-			var existing int
-			// We approximate name matching by checking if any entry data contains "name":"<name>"
-			// Since data is JSON, we use json_extract
-			err := db.DB.QueryRow(
-				`SELECT COUNT(*) FROM compendium_entries WHERE schema_id=? AND json_extract(data, '$.name')=?`,
-				schemaID, name).Scan(&existing)
-			if err == nil && existing > 0 {
-				totalSkipped++
-				continue
+			if err := sqlRows.Err(); err != nil {
+				middleware.LogWarn("compendium", "rows iteration failed", "error", err)
 			}
-
-			dataJSON, _ := json.Marshal(data)
-			_, err = db.DB.Exec(
-				`INSERT INTO compendium_entries(schema_id, data) VALUES(?,?)`,
-				schemaID, string(dataJSON))
-			if err != nil {
-				continue
-			}
-			totalMigrated++
-			perSchema[lt.Schema]++
-		}
-		sqlRows.Close()
+		}()
 	}
 
 	result["total_migrated"] = totalMigrated

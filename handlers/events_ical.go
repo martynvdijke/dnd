@@ -20,7 +20,7 @@ func CampaignEventsICal(c *gin.Context) {
 	}
 
 	settings := campaignToGlobalSettings(cs)
-	events, _ := fetchAndCacheEvents(settings, slug)
+	events, _ := fetchAndCacheEvents(c.Request.Context(), settings, slug)
 
 	c.Header("Content-Type", "text/calendar")
 	c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.ics"`, slug))
@@ -117,7 +117,7 @@ func icsDate(t time.Time) string {
 
 func EventsICal(c *gin.Context) {
 	settings := db.GetEventSettings()
-	events, _ := fetchAndCacheEvents(settings, "")
+	events, _ := fetchAndCacheEvents(c.Request.Context(), settings, "")
 
 	c.Header("Content-Type", "text/calendar")
 	c.Header("Content-Disposition", `attachment; filename="events.ics"`)
@@ -295,7 +295,7 @@ func EventsGridPartial(c *gin.Context) {
 	}
 	monthTime := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
 
-	events, errMsg := fetchAndCacheEvents(settings, "")
+	events, errMsg := fetchAndCacheEvents(c.Request.Context(), settings, "")
 	filtered := filterEventsByMonth(events, year, monthTime)
 	weeks := buildGrid(filtered, year, monthTime)
 	empty := len(filtered) == 0 && errMsg == ""
@@ -337,7 +337,7 @@ func EventsGridCampaignPartial(c *gin.Context) {
 	}
 	monthTime := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
 
-	events, errMsg := fetchAndCacheEvents(settings, slug)
+	events, errMsg := fetchAndCacheEvents(c.Request.Context(), settings, slug)
 	filtered := filterEventsByMonth(events, year, monthTime)
 	weeks := buildGrid(filtered, year, monthTime)
 	empty := len(filtered) == 0 && errMsg == ""
@@ -373,7 +373,7 @@ func EventDetail(c *gin.Context) {
 
 	// Try global cache first
 	settings := db.GetEventSettings()
-	if events, _ := fetchAndCacheEvents(settings, ""); len(events) > 0 {
+	if events, _ := fetchAndCacheEvents(c.Request.Context(), settings, ""); len(events) > 0 {
 		for _, e := range events {
 			if e.ID == eventID {
 				renderTemplate(c, "event_detail.html", eventDetailData{
@@ -393,7 +393,7 @@ func EventDetail(c *gin.Context) {
 			continue
 		}
 		campSettings := campaignToGlobalSettings(&cs)
-		if campEvents, _ := fetchAndCacheEvents(campSettings, cs.Slug); len(campEvents) > 0 {
+		if campEvents, _ := fetchAndCacheEvents(c.Request.Context(), campSettings, cs.Slug); len(campEvents) > 0 {
 			for _, e := range campEvents {
 				if e.ID == eventID {
 					renderTemplate(c, "event_detail.html", eventDetailData{

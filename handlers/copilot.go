@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
+	"villum/middleware"
 	"villum/registry"
 )
 
@@ -299,12 +300,6 @@ func handleCopilotGetConversation(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
 	}
-	rows, _ := db.DB.Query("SELECT id, role, content, created_at FROM copilot_messages WHERE conversation_id=? ORDER BY id ASC", cid)
-	defer func() {
-		if rows != nil {
-			rows.Close()
-		}
-	}()
 	type msg struct {
 		ID        int64  `json:"id"`
 		Role      string `json:"role"`
@@ -312,12 +307,21 @@ func handleCopilotGetConversation(c *gin.Context) {
 		CreatedAt string `json:"created_at"`
 	}
 	var msgs []msg
-	if rows != nil {
-		for rows.Next() {
-			var m msg
-			rows.Scan(&m.ID, &m.Role, &m.Content, &m.CreatedAt)
-			msgs = append(msgs, m)
-		}
+	rows, err := db.DB.Query("SELECT id, role, content, created_at FROM copilot_messages WHERE conversation_id=? ORDER BY id ASC", cid)
+	if err != nil {
+		middleware.LogWarn("copilot", "messages query failed", "error", err)
+	} else {
+		func() {
+			defer rows.Close()
+			for rows.Next() {
+				var m msg
+				rows.Scan(&m.ID, &m.Role, &m.Content, &m.CreatedAt)
+				msgs = append(msgs, m)
+			}
+			if err := rows.Err(); err != nil {
+				middleware.LogWarn("copilot", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 	if msgs == nil {
 		msgs = []msg{}

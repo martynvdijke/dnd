@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
+	"villum/middleware"
 )
 
 type CharacterStats struct {
@@ -98,14 +99,21 @@ func loadCharacterStats(db *sql.DB, charID int64) (CharacterStats, error) {
 	db.QueryRow("SELECT COALESCE(SUM(interaction_count),0) FROM character_npcs WHERE character_id=?", charID).Scan(&stats.NPCInteractions)
 
 	// Top NPCs
-	rows, _ := db.Query("SELECT n.name FROM character_npcs cn JOIN npcs n ON cn.npc_id = n.id WHERE cn.character_id=? ORDER BY cn.interaction_count DESC LIMIT 5", charID)
-	if rows != nil {
-		for rows.Next() {
-			var name string
-			rows.Scan(&name)
-			stats.TopNPCs = append(stats.TopNPCs, name)
-		}
-		rows.Close()
+	rows, err := db.Query("SELECT n.name FROM character_npcs cn JOIN npcs n ON cn.npc_id = n.id WHERE cn.character_id=? ORDER BY cn.interaction_count DESC LIMIT 5", charID)
+	if err != nil {
+		middleware.LogWarn("stats", "query failed", "error", err)
+	} else {
+		func() {
+			defer rows.Close()
+			for rows.Next() {
+				var name string
+				rows.Scan(&name)
+				stats.TopNPCs = append(stats.TopNPCs, name)
+			}
+			if err := rows.Err(); err != nil {
+				middleware.LogWarn("stats", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 
 	// Location count

@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
+	"villum/middleware"
 )
 
 type CombatLogEntry struct {
@@ -82,19 +83,26 @@ func GetCombatLogStats(c *gin.Context) {
 	var totalEntries, totalDamage, totalHealing, critCount int
 	db.DB.QueryRow("SELECT COUNT(*), COALESCE(SUM(damage),0), COALESCE(SUM(healing),0), COALESCE(SUM(is_critical),0) FROM combat_log_entries WHERE campaign_id=?", campaignID).Scan(&totalEntries, &totalDamage, &totalHealing, &critCount)
 
-	topDamagers, _ := db.DB.Query("SELECT actor_name, SUM(damage) as dmg FROM combat_log_entries WHERE campaign_id=? GROUP BY actor_name ORDER BY dmg DESC LIMIT 5", campaignID)
 	type DamagerStat struct {
 		Name   string `json:"name"`
 		Damage int    `json:"damage"`
 	}
 	var topDmg []DamagerStat
-	if topDamagers != nil {
-		for topDamagers.Next() {
-			var ds DamagerStat
-			topDamagers.Scan(&ds.Name, &ds.Damage)
-			topDmg = append(topDmg, ds)
-		}
-		topDamagers.Close()
+	topDamagers, err := db.DB.Query("SELECT actor_name, SUM(damage) as dmg FROM combat_log_entries WHERE campaign_id=? GROUP BY actor_name ORDER BY dmg DESC LIMIT 5", campaignID)
+	if err != nil {
+		middleware.LogWarn("combat", "top damagers query failed", "error", err)
+	} else {
+		func() {
+			defer topDamagers.Close()
+			for topDamagers.Next() {
+				var ds DamagerStat
+				topDamagers.Scan(&ds.Name, &ds.Damage)
+				topDmg = append(topDmg, ds)
+			}
+			if err := topDamagers.Err(); err != nil {
+				middleware.LogWarn("combat", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 
 	c.JSON(http.StatusOK, gin.H{

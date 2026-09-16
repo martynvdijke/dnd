@@ -98,13 +98,20 @@ func (h *WSHub) BroadcastToAdmins(msg []byte) {
 func (h *WSHub) BroadcastToCampaignMembers(campaignID int64, msg []byte) {
 	var memberIDs []int64
 	rows, err := db.DB.Query("SELECT user_id FROM campaign_members WHERE campaign_id=?", campaignID)
-	if err == nil {
-		for rows.Next() {
-			var uid int64
-			rows.Scan(&uid)
-			memberIDs = append(memberIDs, uid)
-		}
-		rows.Close()
+	if err != nil {
+		middleware.LogWarn("ws", "campaign members query failed", "error", err)
+	} else {
+		func() {
+			defer rows.Close()
+			for rows.Next() {
+				var uid int64
+				rows.Scan(&uid)
+				memberIDs = append(memberIDs, uid)
+			}
+			if err := rows.Err(); err != nil {
+				middleware.LogWarn("ws", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 	var ownerID int64
 	db.DB.QueryRow("SELECT user_id FROM campaigns WHERE id=?", campaignID).Scan(&ownerID)

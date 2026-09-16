@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
+	"villum/middleware"
 	"villum/models"
 )
 
@@ -65,15 +66,22 @@ func HtmxCampaignEncountersSection(c *gin.Context) {
 		var e models.EncounterTemplate
 		rows.Scan(&e.ID, &e.CampaignID, &e.UserID, &e.Name, &e.Description, &e.Environment, &e.Difficulty, &e.XPBudget, &e.TotalXP, &e.Notes, &e.CreatedAt)
 		// Load monsters for count display
-		mrows, err := db.DB.Query("SELECT id, encounter_id, name, count, cr, xp, ac, hp, initiative_mod, source, notes, compendium_monster_id FROM encounter_monsters WHERE encounter_id=?", e.ID)
-		if err == nil {
-			e.Monsters = make([]models.EncounterMonster, 0)
-			for mrows.Next() {
-				var m models.EncounterMonster
-				mrows.Scan(&m.ID, &m.EncounterID, &m.Name, &m.Count, &m.CR, &m.XP, &m.AC, &m.HP, &m.InitiativeMod, &m.Source, &m.Notes, &m.CompendiumMonsterID)
-				e.Monsters = append(e.Monsters, m)
-			}
-			mrows.Close()
+		mrows, err2 := db.DB.Query("SELECT id, encounter_id, name, count, cr, xp, ac, hp, initiative_mod, source, notes, compendium_monster_id FROM encounter_monsters WHERE encounter_id=?", e.ID)
+		if err2 != nil {
+			middleware.LogWarn("campaign", "query failed", "error", err2)
+		} else {
+			func() {
+				defer mrows.Close()
+				e.Monsters = make([]models.EncounterMonster, 0)
+				for mrows.Next() {
+					var m models.EncounterMonster
+					mrows.Scan(&m.ID, &m.EncounterID, &m.Name, &m.Count, &m.CR, &m.XP, &m.AC, &m.HP, &m.InitiativeMod, &m.Source, &m.Notes, &m.CompendiumMonsterID)
+					e.Monsters = append(e.Monsters, m)
+				}
+				if err := mrows.Err(); err != nil {
+					middleware.LogWarn("campaign", "rows iteration failed", "error", err)
+				}
+			}()
 		}
 		out = append(out, e)
 	}

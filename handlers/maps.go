@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
+	"villum/middleware"
 )
 
 type CampaignMap struct {
@@ -188,15 +189,22 @@ func GetActiveCampaignMap(c *gin.Context) {
 	var fog [][]any
 	json.Unmarshal([]byte(m.FogOfWar), &fog)
 
-	pinRows, _ := db.DB.Query("SELECT id,map_id,name,type,x,y,icon,color,description,linked_entity_type,linked_entity_id,is_hidden,sort_order,COALESCE(snap_to_grid,0) FROM campaign_map_pins WHERE map_id=? AND is_hidden=0 ORDER BY sort_order,name", m.ID)
+	pinRows, err := db.DB.Query("SELECT id,map_id,name,type,x,y,icon,color,description,linked_entity_type,linked_entity_id,is_hidden,sort_order,COALESCE(snap_to_grid,0) FROM campaign_map_pins WHERE map_id=? AND is_hidden=0 ORDER BY sort_order,name", m.ID)
 	var pins []MapPin
-	if pinRows != nil {
-		for pinRows.Next() {
-			var p MapPin
-			pinRows.Scan(&p.ID, &p.MapID, &p.Name, &p.Type, &p.X, &p.Y, &p.Icon, &p.Color, &p.Description, &p.LinkedEntityType, &p.LinkedEntityID, &p.IsHidden, &p.SortOrder, &p.SnapToGrid)
-			pins = append(pins, p)
-		}
-		pinRows.Close()
+	if err != nil {
+		middleware.LogWarn("maps", "query failed", "error", err)
+	} else {
+		func() {
+			defer pinRows.Close()
+			for pinRows.Next() {
+				var p MapPin
+				pinRows.Scan(&p.ID, &p.MapID, &p.Name, &p.Type, &p.X, &p.Y, &p.Icon, &p.Color, &p.Description, &p.LinkedEntityType, &p.LinkedEntityID, &p.IsHidden, &p.SortOrder, &p.SnapToGrid)
+				pins = append(pins, p)
+			}
+			if err := pinRows.Err(); err != nil {
+				middleware.LogWarn("maps", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 
 	c.JSON(http.StatusOK, gin.H{

@@ -143,54 +143,81 @@ func SendCampaignHighlights(c *gin.Context) {
 	var campaignName, partyName string
 	db.DB.QueryRow("SELECT name, COALESCE(party_name, '') FROM campaigns WHERE id=?", req.CampaignID).Scan(&campaignName, &partyName)
 
-	charRows, _ := db.DB.Query(`
+	charRows, err := db.DB.Query(`
 		SELECT c.name, c.race, c.class, c.level, c.hp_max, c.hp_current, COALESCE(u.username, '')
 		FROM characters c LEFT JOIN users u ON u.id = c.user_id
 		WHERE c.campaign_id=? ORDER BY c.name`, req.CampaignID)
 	var chars []map[string]string
-	for charRows.Next() {
-		var name, race, class, owner string
-		var level, hpMax, hpCurrent int
-		charRows.Scan(&name, &race, &class, &level, &hpMax, &hpCurrent, &owner)
-		status := "alive"
-		if hpCurrent <= 0 {
-			status = "down"
-		} else if float64(hpCurrent)/float64(hpMax) < 0.25 {
-			status = "injured"
-		}
-		chars = append(chars, map[string]string{
-			"name": name, "race": race, "class": class, "level": strconv.Itoa(level),
-			"hp": fmt.Sprintf("%d/%d", hpCurrent, hpMax), "status": status, "owner": owner,
-		})
+	if err != nil {
+		middleware.LogWarn("email", "characters query failed", "error", err)
+	} else {
+		func() {
+			defer charRows.Close()
+			for charRows.Next() {
+				var name, race, class, owner string
+				var level, hpMax, hpCurrent int
+				charRows.Scan(&name, &race, &class, &level, &hpMax, &hpCurrent, &owner)
+				status := "alive"
+				if hpCurrent <= 0 {
+					status = "down"
+				} else if float64(hpCurrent)/float64(hpMax) < 0.25 {
+					status = "injured"
+				}
+				chars = append(chars, map[string]string{
+					"name": name, "race": race, "class": class, "level": strconv.Itoa(level),
+					"hp": fmt.Sprintf("%d/%d", hpCurrent, hpMax), "status": status, "owner": owner,
+				})
+			}
+			if err := charRows.Err(); err != nil {
+				middleware.LogWarn("email", "rows iteration failed", "error", err)
+			}
+		}()
 	}
-	charRows.Close()
 
-	sessRows, _ := db.DB.Query(`
+	sessRows, err := db.DB.Query(`
 		SELECT s.title, s.session_date, s.important_events
 		FROM sessions s JOIN characters c ON c.id = s.character_id
 		WHERE c.campaign_id=? ORDER BY s.session_date DESC LIMIT 5`, req.CampaignID)
 	var sessions []map[string]string
-	for sessRows.Next() {
-		var title, date, events string
-		sessRows.Scan(&title, &date, &events)
-		sessions = append(sessions, map[string]string{"title": title, "date": date, "events": events})
+	if err != nil {
+		middleware.LogWarn("email", "sessions query failed", "error", err)
+	} else {
+		func() {
+			defer sessRows.Close()
+			for sessRows.Next() {
+				var title, date, events string
+				sessRows.Scan(&title, &date, &events)
+				sessions = append(sessions, map[string]string{"title": title, "date": date, "events": events})
+			}
+			if err := sessRows.Err(); err != nil {
+				middleware.LogWarn("email", "rows iteration failed", "error", err)
+			}
+		}()
 	}
-	sessRows.Close()
 
-	questRows, _ := db.DB.Query(`
+	questRows, err := db.DB.Query(`
 		SELECT q.name, q.status
 		FROM quests q JOIN characters c ON c.id = q.character_id
 		WHERE c.campaign_id=? AND q.status IN ('active','available')
 		ORDER BY q.name LIMIT 10`, req.CampaignID)
 	var quests []map[string]string
-	for questRows.Next() {
-		var name, status string
-		questRows.Scan(&name, &status)
-		quests = append(quests, map[string]string{"name": name, "status": status})
+	if err != nil {
+		middleware.LogWarn("email", "quests query failed", "error", err)
+	} else {
+		func() {
+			defer questRows.Close()
+			for questRows.Next() {
+				var name, status string
+				questRows.Scan(&name, &status)
+				quests = append(quests, map[string]string{"name": name, "status": status})
+			}
+			if err := questRows.Err(); err != nil {
+				middleware.LogWarn("email", "rows iteration failed", "error", err)
+			}
+		}()
 	}
-	questRows.Close()
 
-	memberRows, _ := db.DB.Query(`
+	memberRows, err := db.DB.Query(`
 		SELECT u.email, u.username FROM campaign_members cm
 		JOIN users u ON u.id = cm.user_id
 		WHERE cm.campaign_id=? AND u.email != ''
@@ -199,14 +226,23 @@ func SendCampaignHighlights(c *gin.Context) {
 		JOIN users u ON u.id = c.user_id
 		WHERE c.id=? AND u.email != ''`, req.CampaignID, req.CampaignID)
 	var recipients []struct{ email, username string }
-	for memberRows.Next() {
-		var email, username string
-		memberRows.Scan(&email, &username)
-		if email != "" {
-			recipients = append(recipients, struct{ email, username string }{email, username})
-		}
+	if err != nil {
+		middleware.LogWarn("email", "members query failed", "error", err)
+	} else {
+		func() {
+			defer memberRows.Close()
+			for memberRows.Next() {
+				var email, username string
+				memberRows.Scan(&email, &username)
+				if email != "" {
+					recipients = append(recipients, struct{ email, username string }{email, username})
+				}
+			}
+			if err := memberRows.Err(); err != nil {
+				middleware.LogWarn("email", "rows iteration failed", "error", err)
+			}
+		}()
 	}
-	memberRows.Close()
 
 	if len(recipients) == 0 {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "no recipients with email addresses found"})

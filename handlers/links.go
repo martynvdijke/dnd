@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
+	"villum/middleware"
 	"villum/registry"
 )
 
@@ -314,16 +315,26 @@ func ReconcileMentionLinks(sourceType string, sourceID int64, mentions []Mention
 
 	type key struct{ entityType, entityIDStr string }
 	have := map[key]bool{}
-	for rows.Next() {
-		var tgtType string
-		var tgtID int64
-		if err := rows.Scan(&tgtType, &tgtID); err != nil {
-			rows.Close()
-			return fmt.Errorf("reconcile scan: %w", err)
+	var scanErr error
+	func() {
+		defer rows.Close()
+		for rows.Next() {
+			var tgtType string
+			var tgtID int64
+			if err := rows.Scan(&tgtType, &tgtID); err != nil {
+				scanErr = fmt.Errorf("reconcile scan: %w", err)
+				middleware.LogWarn("links", "scan failed", "error", err)
+				return
+			}
+			have[key{tgtType, fmt.Sprint(tgtID)}] = true
 		}
-		have[key{tgtType, fmt.Sprint(tgtID)}] = true
+		if err := rows.Err(); err != nil {
+			middleware.LogWarn("links", "rows iteration failed", "error", err)
+		}
+	}()
+	if scanErr != nil {
+		return scanErr
 	}
-	rows.Close()
 
 	// Delete mention links that are no longer wanted.
 	delStmt, err := tx.Prepare(`DELETE FROM entity_links WHERE source_type=? AND source_id=? AND target_type=? AND target_id=? AND context='mention'`)
