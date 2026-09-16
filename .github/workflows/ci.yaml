@@ -16,7 +16,8 @@ permissions:
 #   Go: handlers/ >= 40%, middleware/ >= 40% (measured 09-2026: 72.1% / 86.9%;
 #       the root package is wiring-only and is covered via the handlers/ and
 #       middleware/ coverpkg - total stays >= 20%)
-#   TS: vitest coverage-v8 >= 20% (enforced in unit-test job, measured 09-2026: 40.68% / 35.75% / 40.17% / 42.98%)
+#   TS: vitest coverage-v8 >= statements 35% / branches 30% / functions 35% / lines 35%
+#       (enforced in unit-test job, measured 09-2026: 40.68% / 35.75% / 40.17% / 42.98%)
 jobs:
   lint-typecheck:
     runs-on: ubuntu-latest
