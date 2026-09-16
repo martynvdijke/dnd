@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -16,10 +15,6 @@ import (
 	"villum/middleware"
 	"villum/models"
 )
-
-// fieldNameRe validates sort/filter field names passed as query params.
-// Only simple identifier-shaped names are allowed (prevents SQL injection via json_extract paths).
-var fieldNameRe = regexp.MustCompile(`^[A-Za-z0-9_]+$`)
 
 // ─── Schema CRUD ───
 

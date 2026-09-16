@@ -44,6 +44,9 @@ jobs:
       - name: Forbid detached context in handlers
         run: scripts/ci/check-detached-context.sh
 
+      - name: Forbid concatenated SQL with client input
+        run: scripts/ci/check-concatenated-sql.sh
+
       - name: Forbid waitForTimeout in tests
         run: |
           if rg -n "waitForTimeout" tests/ | grep -v "allow-waitForTimeout" | grep -q .; then

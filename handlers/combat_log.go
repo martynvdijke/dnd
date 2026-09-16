@@ -31,17 +31,16 @@ type CombatLogEntry struct {
 
 func ListCombatLogEntries(c *gin.Context) {
 	campaignID := c.Query("campaign_id")
-	limit := c.DefaultQuery("limit", "50")
-
-	if limitInt, _ := strconv.Atoi(limit); limitInt < 1 {
-		limit = "50"
+	limit := 50
+	if v, err := strconv.Atoi(c.DefaultQuery("limit", "50")); err == nil && v > 0 {
+		limit = min(v, 500)
 	}
 
 	rows, err := func() (*sql.Rows, error) {
 		if campaignID != "" {
-			return db.DB.Query("SELECT id,campaign_id,combat_entry_id,actor_name,action,target_name,damage,damage_type,healing,condition_applied,roll_expression,roll_total,is_critical,description,created_at FROM combat_log_entries WHERE campaign_id=? ORDER BY created_at DESC LIMIT "+limit, campaignID)
+			return db.DB.Query("SELECT id,campaign_id,combat_entry_id,actor_name,action,target_name,damage,damage_type,healing,condition_applied,roll_expression,roll_total,is_critical,description,created_at FROM combat_log_entries WHERE campaign_id=? ORDER BY created_at DESC LIMIT ?", campaignID, limit)
 		}
-		return db.DB.Query("SELECT id,campaign_id,combat_entry_id,actor_name,action,target_name,damage,damage_type,healing,condition_applied,roll_expression,roll_total,is_critical,description,created_at FROM combat_log_entries ORDER BY created_at DESC LIMIT " + limit)
+		return db.DB.Query("SELECT id,campaign_id,combat_entry_id,actor_name,action,target_name,damage,damage_type,healing,condition_applied,roll_expression,roll_total,is_critical,description,created_at FROM combat_log_entries ORDER BY created_at DESC LIMIT ?", limit)
 	}()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

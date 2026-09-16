@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"maps"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -15,10 +14,6 @@ import (
 	"villum/db"
 	"villum/models"
 )
-
-var _ = regexp.MustCompile
-var _ = time.Now
-var _ = maps.Copy[map[string]any, map[string]any]
 
 func ListCompendiumEntries(c *gin.Context) {
 	schemaID, err := strconv.ParseInt(c.Param("id"), 10, 64)
@@ -42,16 +37,24 @@ func ListCompendiumEntries(c *gin.Context) {
 	var total int
 	var entries []models.CompendiumEntry
 
-	// Optional sorting: ?sort=<field>&order=asc|desc (field allowlist to prevent SQL injection)
+	// Optional sorting: ?sort=<field>&order=asc|desc. The field name is
+	// validated by jsonPathForField and passed as a bound parameter, so no
+	// client input is ever interpolated; orderDirection yields a fixed
+	// ASC/DESC keyword.
+	var sortPath any
 	orderBy := "e.created_at DESC"
 	if sortField := strings.TrimSpace(c.Query("sort")); sortField != "" {
-		if fieldNameRe.MatchString(sortField) {
-			dir := "ASC"
-			if strings.ToLower(c.DefaultQuery("order", "asc")) == "desc" {
-				dir = "DESC"
-			}
-			orderBy = "json_extract(e.data, '$.\"" + sortField + "\"') COLLATE NOCASE " + dir + ", e.id DESC"
+		path, err := jsonPathForField(sortField)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid sort field"})
+			return
 		}
+		sortPath = path
+		orderBy = "json_extract(e.data, ?) COLLATE NOCASE " + orderDirection(c.DefaultQuery("order", "asc")) + ", e.id DESC"
+	}
+	var orderArgs []any
+	if sortPath != nil {
+		orderArgs = append(orderArgs, sortPath)
 	}
 
 	if q != "" {
@@ -63,11 +66,13 @@ func ListCompendiumEntries(c *gin.Context) {
 			total = 0
 		}
 
+		args := append([]any{schemaID, q}, orderArgs...)
+		args = append(args, pageSize, offset)
 		rows, err := db.DB.Query(`SELECT e.id, e.schema_id, e.data, e.created_at, e.updated_at
 			FROM compendium_entries e
 			JOIN compendium_entries_fts f ON e.id = f.rowid
 			WHERE e.schema_id=? AND compendium_entries_fts MATCH ?
-			ORDER BY `+orderBy+` LIMIT ? OFFSET ?`, schemaID, q, pageSize, offset)
+			ORDER BY `+orderBy+` LIMIT ? OFFSET ?`, args...)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -77,9 +82,11 @@ func ListCompendiumEntries(c *gin.Context) {
 	} else {
 		db.DB.QueryRow("SELECT COUNT(*) FROM compendium_entries WHERE schema_id=?", schemaID).Scan(&total)
 
+		args := append([]any{schemaID}, orderArgs...)
+		args = append(args, pageSize, offset)
 		rows, err := db.DB.Query(`SELECT e.id, e.schema_id, e.data, e.created_at, e.updated_at
 			FROM compendium_entries e WHERE e.schema_id=? ORDER BY `+orderBy+` LIMIT ? OFFSET ?`,
-			schemaID, pageSize, offset)
+			args...)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
