@@ -142,7 +142,10 @@ func importCompendiumEntries(ctx context.Context, sqlDB *sql.DB, opts ImportOpts
 	var existingSet map[string]bool
 	if opts.NameField != "" {
 		// Custom name field path (ImportCompendiumEntries ?name_field)
-		existingNames := loadExistingNamesByField(opts.SchemaID, opts.NameField)
+		existingNames, err := loadExistingNamesByField(opts.SchemaID, opts.NameField)
+		if err != nil {
+			return ImportResult{}, err
+		}
 		existingSet = make(map[string]bool, len(existingNames))
 		for _, n := range existingNames {
 			existingSet[strings.ToLower(n)] = true
@@ -602,12 +605,16 @@ func loadExistingNames(schemaID int64) []string {
 	return names
 }
 
-func loadExistingNamesByField(schemaID int64, field string) []string {
-	// field is validated as simple identifier by caller; escape quotes
-	field = strings.ReplaceAll(field, `"`, `""`)
-	rows, err := db.DB.Query(`SELECT json_extract(data, '$."`+field+`"') FROM compendium_entries WHERE schema_id=?`, schemaID)
+func loadExistingNamesByField(schemaID int64, field string) ([]string, error) {
+	// The client-supplied field name is validated and turned into a JSON path
+	// that is passed as a bound parameter — never interpolated into SQL.
+	path, err := jsonPathForField(field)
 	if err != nil {
-		return nil
+		return nil, err
+	}
+	rows, err := db.DB.Query(`SELECT json_extract(data, ?) FROM compendium_entries WHERE schema_id=?`, path, schemaID)
+	if err != nil {
+		return nil, nil
 	}
 	defer rows.Close()
 	var names []string
@@ -618,7 +625,7 @@ func loadExistingNamesByField(schemaID int64, field string) []string {
 			names = append(names, name)
 		}
 	}
-	return names
+	return names, nil
 }
 
 // insertImportLog centralizes LastInsertId error handling (single site).

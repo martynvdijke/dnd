@@ -118,15 +118,11 @@ func SetLogLevel(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "ok", "level": req.Level})
 }
 
-// InitLogSettings creates the log_settings table if it doesn't exist and
-// loads the persisted log level into AppLog.
+// InitLogSettings loads the persisted log level into AppLog. The log_settings
+// table is created by migration 058 in db/migrations.
 func InitLogSettings() {
-	_, err := db.DB.Exec("CREATE TABLE IF NOT EXISTS log_settings (key TEXT PRIMARY KEY, value TEXT)")
-	if err != nil {
-		return
-	}
 	var level string
-	err = db.DB.QueryRow("SELECT value FROM log_settings WHERE key='min_level'").Scan(&level)
+	err := db.DB.QueryRow("SELECT value FROM log_settings WHERE key='min_level'").Scan(&level)
 	if err != nil || level == "" {
 		level = "warn"
 	}

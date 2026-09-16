@@ -34,7 +34,17 @@ Fresh clone setup: `prek install && prek install --hook-type pre-push`.
 - Every `data-testid` used in `ts/` or `static/*.html` MUST be referenced in `tests/` (linted in CI). Dynamic `nav-*` ids are the documented exception.
 - E2E uses the `login()` helper from `tests/helpers.ts`; respect `LOGIN_TIMEOUT` (30s) and `NAV_TIMEOUT` (10s); slow tests call `test.slow()` only when justified (`// slow: reason`).
 - E2E forbids `page.waitForTimeout` — use `expect().toBeVisible()/toBeHidden()`, `waitForResponse` or `waitForFunction`; linted via `task lint:e2e` / CI / prek.
-- Coverage floors: Go total ≥20%, `handlers/` ≥30%, `middleware/` ≥25%; vitest ≥20% all metrics. Gates run locally and in CI.
+- Coverage floors: Go total ≥20%, `handlers/` ≥40%, `middleware/` ≥40%; vitest ≥35% statements/lines/functions, ≥30% branches. Gates run locally and in CI.
+
+## Data access
+
+See [`docs/adr-data-access.md`](docs/adr-data-access.md): ent is the canonical schema and entity-CRUD path; raw parameterized SQL is allowed for projections/FTS/bulk; never interpolate client input (use `handlers/sqlident.go` for identifiers/JSON paths/`ASC`/`DESC`).
+
+## Tech Debt Registry
+
+Known structural debt is tracked in [`docs/tech-debt.md`](docs/tech-debt.md) — one table row per item (ID, area, symptom, evidence, impact, owner, status, linked OpenSpec change/PR). Add an entry there instead of scattering notes, and update its status when the linked change is archived.
+
+Any `ponytail:` comment or `TODO`/`FIXME`/`HACK` deferral MUST either reference a registry entry ID (e.g. `TD-001`) or state its ceiling and upgrade path inline.
 
 ## Change Process
 

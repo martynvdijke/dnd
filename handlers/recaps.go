@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
+	"villum/middleware"
 )
 
 type CampaignRecap struct {
@@ -143,16 +144,23 @@ func buildRecapTemplate(campaignID int64) (string, *string, *string) {
 	var recaps []RecapSection
 
 	// Get character names
-	charRows, _ := db.DB.Query("SELECT id, name, race, class FROM characters WHERE campaign_id=?", campaignID)
+	charRows, err := db.DB.Query("SELECT id, name, race, class FROM characters WHERE campaign_id=?", campaignID)
 	var charNames []string
-	if charRows != nil {
-		for charRows.Next() {
-			var id int64
-			var name, race, cls string
-			charRows.Scan(&id, &name, &race, &cls)
-			charNames = append(charNames, fmt.Sprintf("%s (%s %s, Lvl)", name, race, cls))
-		}
-		charRows.Close()
+	if err != nil {
+		middleware.LogWarn("recaps", "character names query failed", "error", err)
+	} else {
+		func() {
+			defer charRows.Close()
+			for charRows.Next() {
+				var id int64
+				var name, race, cls string
+				charRows.Scan(&id, &name, &race, &cls)
+				charNames = append(charNames, fmt.Sprintf("%s (%s %s, Lvl)", name, race, cls))
+			}
+			if err := charRows.Err(); err != nil {
+				middleware.LogWarn("recaps", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 	if len(charNames) > 0 {
 		recaps = append(recaps, RecapSection{
@@ -162,16 +170,23 @@ func buildRecapTemplate(campaignID int64) (string, *string, *string) {
 	}
 
 	// Recent timeline events (last 30 days)
-	tlRows, _ := db.DB.Query("SELECT title, description, event_type, event_date FROM campaign_timeline_events WHERE campaign_id=? AND event_date >= date('now', '-30 days') ORDER BY event_date DESC LIMIT 10", campaignID)
+	tlRows, err := db.DB.Query("SELECT title, description, event_type, event_date FROM campaign_timeline_events WHERE campaign_id=? AND event_date >= date('now', '-30 days') ORDER BY event_date DESC LIMIT 10", campaignID)
 	var timelineEvents []string
-	if tlRows != nil {
-		for tlRows.Next() {
-			var title, desc, etype, edate string
-			tlRows.Scan(&title, &desc, &etype, &edate)
-			entry := fmt.Sprintf("[%s] %s: %s", edate, title, desc)
-			timelineEvents = append(timelineEvents, entry)
-		}
-		tlRows.Close()
+	if err != nil {
+		middleware.LogWarn("recaps", "timeline events query failed", "error", err)
+	} else {
+		func() {
+			defer tlRows.Close()
+			for tlRows.Next() {
+				var title, desc, etype, edate string
+				tlRows.Scan(&title, &desc, &etype, &edate)
+				entry := fmt.Sprintf("[%s] %s: %s", edate, title, desc)
+				timelineEvents = append(timelineEvents, entry)
+			}
+			if err := tlRows.Err(); err != nil {
+				middleware.LogWarn("recaps", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 	if len(timelineEvents) > 0 {
 		recaps = append(recaps, RecapSection{
@@ -181,19 +196,26 @@ func buildRecapTemplate(campaignID int64) (string, *string, *string) {
 	}
 
 	// Recently completed quests
-	questRows, _ := db.DB.Query(`
+	questRows, err := db.DB.Query(`
 		SELECT q.name, q.description FROM quests q
 		JOIN characters c ON q.character_id=c.id
 		WHERE c.campaign_id=? AND q.status='complete' AND q.updated_at >= datetime('now', '-30 days')
 		ORDER BY q.updated_at DESC LIMIT 5`, campaignID)
 	var completedQuests []string
-	if questRows != nil {
-		for questRows.Next() {
-			var name, desc string
-			questRows.Scan(&name, &desc)
-			completedQuests = append(completedQuests, fmt.Sprintf("%s: %s", name, desc))
-		}
-		questRows.Close()
+	if err != nil {
+		middleware.LogWarn("recaps", "completed quests query failed", "error", err)
+	} else {
+		func() {
+			defer questRows.Close()
+			for questRows.Next() {
+				var name, desc string
+				questRows.Scan(&name, &desc)
+				completedQuests = append(completedQuests, fmt.Sprintf("%s: %s", name, desc))
+			}
+			if err := questRows.Err(); err != nil {
+				middleware.LogWarn("recaps", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 	if len(completedQuests) > 0 {
 		recaps = append(recaps, RecapSection{
@@ -203,18 +225,25 @@ func buildRecapTemplate(campaignID int64) (string, *string, *string) {
 	}
 
 	// Active quests
-	aRows, _ := db.DB.Query(`
+	aRows, err := db.DB.Query(`
 		SELECT q.name, q.description FROM quests q
 		JOIN characters c ON q.character_id=c.id
 		WHERE c.campaign_id=? AND q.status='active' ORDER BY q.name`, campaignID)
 	var activeQuests []string
-	if aRows != nil {
-		for aRows.Next() {
-			var name, desc string
-			aRows.Scan(&name, &desc)
-			activeQuests = append(activeQuests, fmt.Sprintf("%s: %s", name, desc))
-		}
-		aRows.Close()
+	if err != nil {
+		middleware.LogWarn("recaps", "active quests query failed", "error", err)
+	} else {
+		func() {
+			defer aRows.Close()
+			for aRows.Next() {
+				var name, desc string
+				aRows.Scan(&name, &desc)
+				activeQuests = append(activeQuests, fmt.Sprintf("%s: %s", name, desc))
+			}
+			if err := aRows.Err(); err != nil {
+				middleware.LogWarn("recaps", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 	if len(activeQuests) > 0 {
 		recaps = append(recaps, RecapSection{
@@ -224,19 +253,26 @@ func buildRecapTemplate(campaignID int64) (string, *string, *string) {
 	}
 
 	// Recent sessions
-	sessRows, _ := db.DB.Query(`
+	sessRows, err := db.DB.Query(`
 		SELECT s.title, s.notes, s.session_date FROM sessions s
 		JOIN characters c ON s.character_id=c.id
 		WHERE c.campaign_id=? AND s.created_at >= datetime('now', '-30 days')
 		ORDER BY s.session_date DESC LIMIT 5`, campaignID)
 	var recentSessions []string
-	if sessRows != nil {
-		for sessRows.Next() {
-			var title, notes, sdate string
-			sessRows.Scan(&title, &notes, &sdate)
-			recentSessions = append(recentSessions, fmt.Sprintf("%s - %s: %s", sdate, title, notes))
-		}
-		sessRows.Close()
+	if err != nil {
+		middleware.LogWarn("recaps", "recent sessions query failed", "error", err)
+	} else {
+		func() {
+			defer sessRows.Close()
+			for sessRows.Next() {
+				var title, notes, sdate string
+				sessRows.Scan(&title, &notes, &sdate)
+				recentSessions = append(recentSessions, fmt.Sprintf("%s - %s: %s", sdate, title, notes))
+			}
+			if err := sessRows.Err(); err != nil {
+				middleware.LogWarn("recaps", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 	if len(recentSessions) > 0 {
 		recaps = append(recaps, RecapSection{
@@ -246,15 +282,22 @@ func buildRecapTemplate(campaignID int64) (string, *string, *string) {
 	}
 
 	// Future events
-	calRows, _ := db.DB.Query("SELECT title, event_date, event_type FROM campaign_calendar_events WHERE campaign_id=? AND event_date >= date('now') ORDER BY event_date LIMIT 5", campaignID)
+	calRows, err := db.DB.Query("SELECT title, event_date, event_type FROM campaign_calendar_events WHERE campaign_id=? AND event_date >= date('now') ORDER BY event_date LIMIT 5", campaignID)
 	var upcoming []string
-	if calRows != nil {
-		for calRows.Next() {
-			var title, edate, etype string
-			calRows.Scan(&title, &edate, &etype)
-			upcoming = append(upcoming, fmt.Sprintf("%s - %s [%s]", edate, title, etype))
-		}
-		calRows.Close()
+	if err != nil {
+		middleware.LogWarn("recaps", "upcoming events query failed", "error", err)
+	} else {
+		func() {
+			defer calRows.Close()
+			for calRows.Next() {
+				var title, edate, etype string
+				calRows.Scan(&title, &edate, &etype)
+				upcoming = append(upcoming, fmt.Sprintf("%s - %s [%s]", edate, title, etype))
+			}
+			if err := calRows.Err(); err != nil {
+				middleware.LogWarn("recaps", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 	if len(upcoming) > 0 {
 		recaps = append(recaps, RecapSection{
@@ -264,18 +307,25 @@ func buildRecapTemplate(campaignID int64) (string, *string, *string) {
 	}
 
 	// Active conditions
-	condRows, _ := db.DB.Query(`
+	condRows, err := db.DB.Query(`
 		SELECT cc.name, c.name FROM character_conditions cc
 		JOIN characters c ON cc.character_id=c.id
 		WHERE c.campaign_id=? AND cc.duration > 0`, campaignID)
 	var conditions []string
-	if condRows != nil {
-		for condRows.Next() {
-			var cname, charName string
-			condRows.Scan(&cname, &charName)
-			conditions = append(conditions, fmt.Sprintf("%s is affected by %s", charName, cname))
-		}
-		condRows.Close()
+	if err != nil {
+		middleware.LogWarn("recaps", "active conditions query failed", "error", err)
+	} else {
+		func() {
+			defer condRows.Close()
+			for condRows.Next() {
+				var cname, charName string
+				condRows.Scan(&cname, &charName)
+				conditions = append(conditions, fmt.Sprintf("%s is affected by %s", charName, cname))
+			}
+			if err := condRows.Err(); err != nil {
+				middleware.LogWarn("recaps", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 	if len(conditions) > 0 {
 		recaps = append(recaps, RecapSection{

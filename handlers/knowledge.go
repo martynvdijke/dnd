@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
+	"villum/middleware"
 )
 
 var validStatuses = map[string]bool{"rumor": true, "confirmed": true, "revealed": true, "false": true}
@@ -346,19 +347,22 @@ func ListKnowledgeKnownBy(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
 	}
-	rows, _ := db.DB.Query(`SELECT character_id FROM campaign_knowledge_known_by WHERE knowledge_id=?`, kid)
-	defer func() {
-		if rows != nil {
-			rows.Close()
-		}
-	}()
+	rows, qErr := db.DB.Query(`SELECT character_id FROM campaign_knowledge_known_by WHERE knowledge_id=?`, kid)
 	ids := []int64{}
-	if rows != nil {
-		for rows.Next() {
-			var id int64
-			rows.Scan(&id)
-			ids = append(ids, id)
-		}
+	if qErr != nil {
+		middleware.LogWarn("knowledge", "known_by query failed", "error", qErr)
+	} else {
+		func() {
+			defer rows.Close()
+			for rows.Next() {
+				var id int64
+				rows.Scan(&id)
+				ids = append(ids, id)
+			}
+			if err := rows.Err(); err != nil {
+				middleware.LogWarn("knowledge", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 	if ids == nil {
 		ids = []int64{}
@@ -382,15 +386,22 @@ func BulkRevealKnowledge(c *gin.Context) {
 		return
 	}
 	// get all party characters (campaign characters type player)
-	rows, _ := db.DB.Query(`SELECT id FROM characters WHERE campaign_id=?`, k.CampaignID)
+	rows, err2 := db.DB.Query(`SELECT id FROM characters WHERE campaign_id=?`, k.CampaignID)
 	var pids []int64
-	if rows != nil {
-		for rows.Next() {
-			var id int64
-			rows.Scan(&id)
-			pids = append(pids, id)
-		}
-		rows.Close()
+	if err2 != nil {
+		middleware.LogWarn("knowledge", "query failed", "error", err2)
+	} else {
+		func() {
+			defer rows.Close()
+			for rows.Next() {
+				var id int64
+				rows.Scan(&id)
+				pids = append(pids, id)
+			}
+			if err := rows.Err(); err != nil {
+				middleware.LogWarn("knowledge", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
 	for _, pid := range pids {

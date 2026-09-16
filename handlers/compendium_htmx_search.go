@@ -111,119 +111,119 @@ func HtmxCompendiumGlobalSearch(c *gin.Context) {
 	rows, qErr := db.DB.Query("SELECT id, name, level, school FROM compendium_spells WHERE name LIKE ? ORDER BY level, name LIMIT 10", like)
 	if qErr != nil {
 		middleware.LogWarn("compendium", "query failed", "type", "spell", "error", qErr)
-	} else {
-		for rows.Next() {
-			var item htmxCompendiumGlobalSearchItem
-			item.Type = "spell"
-			if err := rows.Scan(&item.ID, &item.Name, &item.Level, &item.Subtype); err != nil {
-				middleware.LogWarn("compendium", "scan failed, skipping row", "type", "spell", "error", err)
-				continue
-			}
-			data.Spells = append(data.Spells, item)
+	} else if err := iterateRows(rows, func() error {
+		var item htmxCompendiumGlobalSearchItem
+		item.Type = "spell"
+		if err := rows.Scan(&item.ID, &item.Name, &item.Level, &item.Subtype); err != nil {
+			middleware.LogWarn("compendium", "scan failed, skipping row", "type", "spell", "error", err)
+			return nil
 		}
-		rows.Close()
+		data.Spells = append(data.Spells, item)
+		return nil
+	}); err != nil {
+		middleware.LogWarn("compendium", "rows iteration failed", "type", "spell", "error", err)
 	}
 
 	// Equipment
 	rows, qErr = db.DB.Query("SELECT id, name, category FROM compendium_equipment WHERE name LIKE ? ORDER BY name LIMIT 10", like)
 	if qErr != nil {
 		middleware.LogWarn("compendium", "query failed", "type", "equipment", "error", qErr)
-	} else {
-		for rows.Next() {
-			var item htmxCompendiumGlobalSearchItem
-			item.Type = "equipment"
-			if err := rows.Scan(&item.ID, &item.Name, &item.Subtype); err != nil {
-				middleware.LogWarn("compendium", "scan failed, skipping row", "type", "equipment", "error", err)
-				continue
-			}
-			data.Equipment = append(data.Equipment, item)
+	} else if err := iterateRows(rows, func() error {
+		var item htmxCompendiumGlobalSearchItem
+		item.Type = "equipment"
+		if err := rows.Scan(&item.ID, &item.Name, &item.Subtype); err != nil {
+			middleware.LogWarn("compendium", "scan failed, skipping row", "type", "equipment", "error", err)
+			return nil
 		}
-		rows.Close()
+		data.Equipment = append(data.Equipment, item)
+		return nil
+	}); err != nil {
+		middleware.LogWarn("compendium", "rows iteration failed", "type", "equipment", "error", err)
 	}
 
 	// Monsters
 	rows, qErr = db.DB.Query("SELECT id, name, cr, type FROM compendium_monsters WHERE name LIKE ? ORDER BY name LIMIT 10", like)
 	if qErr != nil {
 		middleware.LogWarn("compendium", "query failed", "type", "monster", "error", qErr)
-	} else {
-		for rows.Next() {
-			var item htmxCompendiumGlobalSearchItem
-			item.Type = "monster"
-			if err := rows.Scan(&item.ID, &item.Name, &item.CR, &item.Subtype); err != nil {
-				middleware.LogWarn("compendium", "scan failed, skipping row", "type", "monster", "error", err)
-				continue
-			}
-			data.Monsters = append(data.Monsters, item)
+	} else if err := iterateRows(rows, func() error {
+		var item htmxCompendiumGlobalSearchItem
+		item.Type = "monster"
+		if err := rows.Scan(&item.ID, &item.Name, &item.CR, &item.Subtype); err != nil {
+			middleware.LogWarn("compendium", "scan failed, skipping row", "type", "monster", "error", err)
+			return nil
 		}
-		rows.Close()
+		data.Monsters = append(data.Monsters, item)
+		return nil
+	}); err != nil {
+		middleware.LogWarn("compendium", "rows iteration failed", "type", "monster", "error", err)
 	}
 
 	// Races
 	rows, qErr = db.DB.Query("SELECT id, name FROM compendium_races WHERE name LIKE ? ORDER BY name LIMIT 10", like)
 	if qErr != nil {
 		middleware.LogWarn("compendium", "query failed", "type", "race", "error", qErr)
-	} else {
-		for rows.Next() {
-			var item htmxCompendiumGlobalSearchItem
-			item.Type = "race"
-			if err := rows.Scan(&item.ID, &item.Name); err != nil {
-				middleware.LogWarn("compendium", "scan failed, skipping row", "type", "race", "error", err)
-				continue
-			}
-			data.Races = append(data.Races, item)
+	} else if err := iterateRows(rows, func() error {
+		var item htmxCompendiumGlobalSearchItem
+		item.Type = "race"
+		if err := rows.Scan(&item.ID, &item.Name); err != nil {
+			middleware.LogWarn("compendium", "scan failed, skipping row", "type", "race", "error", err)
+			return nil
 		}
-		rows.Close()
+		data.Races = append(data.Races, item)
+		return nil
+	}); err != nil {
+		middleware.LogWarn("compendium", "rows iteration failed", "type", "race", "error", err)
 	}
 
 	// Classes
 	rows, qErr = db.DB.Query("SELECT id, name, hit_die, primary_ability FROM compendium_classes WHERE name LIKE ? ORDER BY name LIMIT 10", like)
 	if qErr != nil {
 		middleware.LogWarn("compendium", "query failed", "type", "class", "error", qErr)
-	} else {
-		for rows.Next() {
-			var item htmxCompendiumGlobalSearchItem
-			item.Type = "class"
-			if err := rows.Scan(&item.ID, &item.Name, &item.HitDie, &item.PrimaryAbility); err != nil {
-				middleware.LogWarn("compendium", "scan failed, skipping row", "type", "class", "error", err)
-				continue
-			}
-			data.Classes = append(data.Classes, item)
+	} else if err := iterateRows(rows, func() error {
+		var item htmxCompendiumGlobalSearchItem
+		item.Type = "class"
+		if err := rows.Scan(&item.ID, &item.Name, &item.HitDie, &item.PrimaryAbility); err != nil {
+			middleware.LogWarn("compendium", "scan failed, skipping row", "type", "class", "error", err)
+			return nil
 		}
-		rows.Close()
+		data.Classes = append(data.Classes, item)
+		return nil
+	}); err != nil {
+		middleware.LogWarn("compendium", "rows iteration failed", "type", "class", "error", err)
 	}
 
 	// Feats
 	rows, qErr = db.DB.Query("SELECT id, name FROM compendium_feats WHERE name LIKE ? ORDER BY name LIMIT 10", like)
 	if qErr != nil {
 		middleware.LogWarn("compendium", "query failed", "type", "feat", "error", qErr)
-	} else {
-		for rows.Next() {
-			var item htmxCompendiumGlobalSearchItem
-			item.Type = "feat"
-			if err := rows.Scan(&item.ID, &item.Name); err != nil {
-				middleware.LogWarn("compendium", "scan failed, skipping row", "type", "feat", "error", err)
-				continue
-			}
-			data.Feats = append(data.Feats, item)
+	} else if err := iterateRows(rows, func() error {
+		var item htmxCompendiumGlobalSearchItem
+		item.Type = "feat"
+		if err := rows.Scan(&item.ID, &item.Name); err != nil {
+			middleware.LogWarn("compendium", "scan failed, skipping row", "type", "feat", "error", err)
+			return nil
 		}
-		rows.Close()
+		data.Feats = append(data.Feats, item)
+		return nil
+	}); err != nil {
+		middleware.LogWarn("compendium", "rows iteration failed", "type", "feat", "error", err)
 	}
 
 	// Backgrounds
 	rows, qErr = db.DB.Query("SELECT id, name FROM compendium_backgrounds WHERE name LIKE ? ORDER BY name LIMIT 10", like)
 	if qErr != nil {
 		middleware.LogWarn("compendium", "query failed", "type", "background", "error", qErr)
-	} else {
-		for rows.Next() {
-			var item htmxCompendiumGlobalSearchItem
-			item.Type = "background"
-			if err := rows.Scan(&item.ID, &item.Name); err != nil {
-				middleware.LogWarn("compendium", "scan failed, skipping row", "type", "background", "error", err)
-				continue
-			}
-			data.Backgrounds = append(data.Backgrounds, item)
+	} else if err := iterateRows(rows, func() error {
+		var item htmxCompendiumGlobalSearchItem
+		item.Type = "background"
+		if err := rows.Scan(&item.ID, &item.Name); err != nil {
+			middleware.LogWarn("compendium", "scan failed, skipping row", "type", "background", "error", err)
+			return nil
 		}
-		rows.Close()
+		data.Backgrounds = append(data.Backgrounds, item)
+		return nil
+	}); err != nil {
+		middleware.LogWarn("compendium", "rows iteration failed", "type", "background", "error", err)
 	}
 
 	renderTemplate(c, "compendium_global_search_results", data)

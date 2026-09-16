@@ -56,7 +56,8 @@ export function renderSheet(): void {
   (window.renderCrafting as (() => void) | undefined)?.();
   (window.renderDetails as (() => void) | undefined)?.();
   renderDiceTab();
-  // ponytail: lazy-load active tab content on open/deep-link so journal/notes render without extra click
+  // ponytail: lazy-load active tab content on open/deep-link so journal/notes render without extra click.
+  // Ceiling: only the active tab; upgrade: pre-render all tabs if more need instant access.
   if (currentTab === 'journal') (window as unknown as Record<string, (() => void) | undefined>)['renderJournal']?.();
   else if (htmxTabs.includes(currentTab) && currentChar) {
     const el = document.getElementById(currentTab + 'Section');

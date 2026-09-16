@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
+	"villum/middleware"
 )
 
 type CampaignDashboard struct {
@@ -87,11 +88,18 @@ func GetCampaignDashboard(c *gin.Context) {
 
 	db.DB.QueryRow("SELECT COUNT(*) FROM quests q JOIN characters c ON q.character_id=c.id WHERE c.campaign_id=? AND q.status='active'", campaignID).Scan(&dash.ActiveQuests)
 
-	rows, _ := db.DB.Query("SELECT COUNT(*) FROM campaign_calendar_events WHERE campaign_id=? AND event_date >= date('now') AND event_type='session'", campaignID)
-	if rows != nil {
-		rows.Next()
-		rows.Scan(&dash.UpcomingSessions)
-		rows.Close()
+	rows, err := db.DB.Query("SELECT COUNT(*) FROM campaign_calendar_events WHERE campaign_id=? AND event_date >= date('now') AND event_type='session'", campaignID)
+	if err != nil {
+		middleware.LogWarn("dashboard", "upcoming sessions query failed", "error", err)
+	} else {
+		func() {
+			defer rows.Close()
+			rows.Next()
+			rows.Scan(&dash.UpcomingSessions)
+			if err := rows.Err(); err != nil {
+				middleware.LogWarn("dashboard", "upcoming sessions scan failed", "error", err)
+			}
+		}()
 	}
 
 	db.DB.QueryRow("SELECT COUNT(*) FROM campaign_members WHERE campaign_id=?", campaignID).Scan(&dash.TotalMembers)
@@ -101,80 +109,122 @@ func GetCampaignDashboard(c *gin.Context) {
 	_ = db.DB.QueryRow("SELECT COUNT(*) FROM journal j JOIN characters c ON j.character_id=c.id WHERE c.campaign_id=? AND j.created_at >= datetime('now', '-7 days')", campaignID).Scan(&dash.RecentJournal)
 
 	// Upcoming calendar events
-	calRows, _ := db.DB.Query("SELECT id, title, event_date, event_type, color FROM campaign_calendar_events WHERE campaign_id=? AND event_date >= date('now') ORDER BY event_date LIMIT 5", campaignID)
-	if calRows != nil {
-		for calRows.Next() {
-			var ev CalendarEventSummary
-			calRows.Scan(&ev.ID, &ev.Title, &ev.EventDate, &ev.EventType, &ev.Color)
-			dash.UpcomingEvents = append(dash.UpcomingEvents, ev)
-		}
-		calRows.Close()
+	calRows, err := db.DB.Query("SELECT id, title, event_date, event_type, color FROM campaign_calendar_events WHERE campaign_id=? AND event_date >= date('now') ORDER BY event_date LIMIT 5", campaignID)
+	if err != nil {
+		middleware.LogWarn("dashboard", "calendar events query failed", "error", err)
+	} else {
+		func() {
+			defer calRows.Close()
+			for calRows.Next() {
+				var ev CalendarEventSummary
+				calRows.Scan(&ev.ID, &ev.Title, &ev.EventDate, &ev.EventType, &ev.Color)
+				dash.UpcomingEvents = append(dash.UpcomingEvents, ev)
+			}
+			if err := calRows.Err(); err != nil {
+				middleware.LogWarn("dashboard", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 
 	// Recent timeline events
-	tlRows, _ := db.DB.Query("SELECT id, title, event_date, event_type, importance FROM campaign_timeline_events WHERE campaign_id=? ORDER BY event_date DESC LIMIT 5", campaignID)
-	if tlRows != nil {
-		for tlRows.Next() {
-			var tl TimelineEventSummary
-			tlRows.Scan(&tl.ID, &tl.Title, &tl.EventDate, &tl.EventType, &tl.Importance)
-			dash.RecentTimeline = append(dash.RecentTimeline, tl)
-		}
-		tlRows.Close()
+	tlRows, err := db.DB.Query("SELECT id, title, event_date, event_type, importance FROM campaign_timeline_events WHERE campaign_id=? ORDER BY event_date DESC LIMIT 5", campaignID)
+	if err != nil {
+		middleware.LogWarn("dashboard", "timeline events query failed", "error", err)
+	} else {
+		func() {
+			defer tlRows.Close()
+			for tlRows.Next() {
+				var tl TimelineEventSummary
+				tlRows.Scan(&tl.ID, &tl.Title, &tl.EventDate, &tl.EventType, &tl.Importance)
+				dash.RecentTimeline = append(dash.RecentTimeline, tl)
+			}
+			if err := tlRows.Err(); err != nil {
+				middleware.LogWarn("dashboard", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 
 	// Character summaries
-	charRows, _ := db.DB.Query("SELECT id, name, race, class, level, hp_current, hp_max, COALESCE(portrait_url,'') FROM characters WHERE campaign_id=? ORDER BY name", campaignID)
-	if charRows != nil {
-		raceColors := GetRaceColorMap()
-		for charRows.Next() {
-			var cs CharacterDashSummary
-			charRows.Scan(&cs.ID, &cs.Name, &cs.Race, &cs.Class, &cs.Level, &cs.HPCurrent, &cs.HPMax, &cs.PortraitURL)
-			cs.RaceColor = raceColors[cs.Race]
-			dash.CharacterSummary = append(dash.CharacterSummary, cs)
-		}
-		charRows.Close()
+	charRows, err := db.DB.Query("SELECT id, name, race, class, level, hp_current, hp_max, COALESCE(portrait_url,'') FROM characters WHERE campaign_id=? ORDER BY name", campaignID)
+	if err != nil {
+		middleware.LogWarn("dashboard", "character summaries query failed", "error", err)
+	} else {
+		func() {
+			defer charRows.Close()
+			raceColors := GetRaceColorMap()
+			for charRows.Next() {
+				var cs CharacterDashSummary
+				charRows.Scan(&cs.ID, &cs.Name, &cs.Race, &cs.Class, &cs.Level, &cs.HPCurrent, &cs.HPMax, &cs.PortraitURL)
+				cs.RaceColor = raceColors[cs.Race]
+				dash.CharacterSummary = append(dash.CharacterSummary, cs)
+			}
+			if err := charRows.Err(); err != nil {
+				middleware.LogWarn("dashboard", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 
 	// Active downtime activities
 	db.DB.QueryRow("SELECT COUNT(*) FROM downtime_activities da JOIN characters c ON da.character_id=c.id WHERE c.campaign_id=? AND da.status='in-progress'", campaignID).Scan(&dash.DowntimeCount)
 
 	// Recent recaps
-	recapRows, _ := db.DB.Query("SELECT id, title, COALESCE(session_start_date,''), created_at FROM campaign_recaps WHERE campaign_id=? ORDER BY created_at DESC LIMIT 3", campaignID)
-	if recapRows != nil {
-		for recapRows.Next() {
-			var r RecapSummary
-			recapRows.Scan(&r.ID, &r.Title, &r.SessionStartDate, &r.CreatedAt)
-			dash.RecentRecaps = append(dash.RecentRecaps, r)
-		}
-		recapRows.Close()
+	recapRows, err := db.DB.Query("SELECT id, title, COALESCE(session_start_date,''), created_at FROM campaign_recaps WHERE campaign_id=? ORDER BY created_at DESC LIMIT 3", campaignID)
+	if err != nil {
+		middleware.LogWarn("dashboard", "recent recaps query failed", "error", err)
+	} else {
+		func() {
+			defer recapRows.Close()
+			for recapRows.Next() {
+				var r RecapSummary
+				recapRows.Scan(&r.ID, &r.Title, &r.SessionStartDate, &r.CreatedAt)
+				dash.RecentRecaps = append(dash.RecentRecaps, r)
+			}
+			if err := recapRows.Err(); err != nil {
+				middleware.LogWarn("dashboard", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 
 	// Recent combat encounters
-	combatRows, _ := db.DB.Query("SELECT id, name, round, created_at FROM combat_entries WHERE campaign_id=? ORDER BY created_at DESC LIMIT 3", campaignID)
-	if combatRows != nil {
-		for combatRows.Next() {
-			var cs CombatSummary
-			combatRows.Scan(&cs.ID, &cs.Name, &cs.Round, &cs.CreatedAt)
-			dash.RecentCombats = append(dash.RecentCombats, cs)
-		}
-		combatRows.Close()
+	combatRows, err := db.DB.Query("SELECT id, name, round, created_at FROM combat_entries WHERE campaign_id=? ORDER BY created_at DESC LIMIT 3", campaignID)
+	if err != nil {
+		middleware.LogWarn("dashboard", "combat entries query failed", "error", err)
+	} else {
+		func() {
+			defer combatRows.Close()
+			for combatRows.Next() {
+				var cs CombatSummary
+				combatRows.Scan(&cs.ID, &cs.Name, &cs.Round, &cs.CreatedAt)
+				dash.RecentCombats = append(dash.RecentCombats, cs)
+			}
+			if err := combatRows.Err(); err != nil {
+				middleware.LogWarn("dashboard", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 
 	// Recent dice rolls (latest 5 across all characters in campaign)
-	rollRows, _ := db.DB.Query(`
+	rollRows, err := db.DB.Query(`
 		SELECT dr.id, dr.expression, dr.total, dr.created_at
 		FROM dice_rolls dr
 		JOIN characters c ON dr.character_id = c.id
 		WHERE c.campaign_id=?
 		ORDER BY dr.created_at DESC LIMIT 5
 	`, campaignID)
-	if rollRows != nil {
-		for rollRows.Next() {
-			var dr DiceRollSummary
-			rollRows.Scan(&dr.ID, &dr.Expression, &dr.Total, &dr.CreatedAt)
-			dash.RecentDiceRolls = append(dash.RecentDiceRolls, dr)
-		}
-		rollRows.Close()
+	if err != nil {
+		middleware.LogWarn("dashboard", "dice rolls query failed", "error", err)
+	} else {
+		func() {
+			defer rollRows.Close()
+			for rollRows.Next() {
+				var dr DiceRollSummary
+				rollRows.Scan(&dr.ID, &dr.Expression, &dr.Total, &dr.CreatedAt)
+				dash.RecentDiceRolls = append(dash.RecentDiceRolls, dr)
+			}
+			if err := rollRows.Err(); err != nil {
+				middleware.LogWarn("dashboard", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 
 	c.JSON(http.StatusOK, dash)

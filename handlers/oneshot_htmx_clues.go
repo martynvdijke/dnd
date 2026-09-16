@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
+	"villum/middleware"
 	"villum/models"
 )
 
@@ -260,15 +261,22 @@ func HtmxGetPrepDashboard(c *gin.Context) {
 				continue
 			}
 			// Load scenes for this act
-			sceneRows, _ := db.DB.Query("SELECT id, act_id, number, title, description, scene_type, location_id, encounter_id, estimated_minutes, notes FROM oneshot_scenes WHERE act_id=? ORDER BY number", act.ID)
-			if sceneRows != nil {
-				for sceneRows.Next() {
-					var sc models.OneShotScene
-					if err := sceneRows.Scan(&sc.ID, &sc.ActID, &sc.Number, &sc.Title, &sc.Description, &sc.SceneType, &sc.LocationID, &sc.EncounterID, &sc.EstimatedMinutes, &sc.Notes); err == nil {
-						act.Scenes = append(act.Scenes, sc)
+			sceneRows, err := db.DB.Query("SELECT id, act_id, number, title, description, scene_type, location_id, encounter_id, estimated_minutes, notes FROM oneshot_scenes WHERE act_id=? ORDER BY number", act.ID)
+			if err != nil {
+				middleware.LogWarn("oneshot", "scenes query failed", "error", err)
+			} else {
+				func() {
+					defer sceneRows.Close()
+					for sceneRows.Next() {
+						var sc models.OneShotScene
+						if err := sceneRows.Scan(&sc.ID, &sc.ActID, &sc.Number, &sc.Title, &sc.Description, &sc.SceneType, &sc.LocationID, &sc.EncounterID, &sc.EstimatedMinutes, &sc.Notes); err == nil {
+							act.Scenes = append(act.Scenes, sc)
+						}
 					}
-				}
-				sceneRows.Close()
+					if err := sceneRows.Err(); err != nil {
+						middleware.LogWarn("oneshot", "rows iteration failed", "error", err)
+					}
+				}()
 			}
 			adv.Acts = append(adv.Acts, act)
 		}
@@ -525,15 +533,22 @@ func HtmxGetSessionFlow(c *gin.Context) {
 			if err := actRows.Scan(&act.ID, &act.AdventureID, &act.Number, &act.Title, &act.Description, &act.EstimatedMinutes); err != nil {
 				continue
 			}
-			sceneRows, _ := db.DB.Query("SELECT id, act_id, number, title, description, scene_type, location_id, encounter_id, estimated_minutes, notes FROM oneshot_scenes WHERE act_id=? ORDER BY number", act.ID)
-			if sceneRows != nil {
-				for sceneRows.Next() {
-					var sc models.OneShotScene
-					if err := sceneRows.Scan(&sc.ID, &sc.ActID, &sc.Number, &sc.Title, &sc.Description, &sc.SceneType, &sc.LocationID, &sc.EncounterID, &sc.EstimatedMinutes, &sc.Notes); err == nil {
-						act.Scenes = append(act.Scenes, sc)
+			sceneRows, err := db.DB.Query("SELECT id, act_id, number, title, description, scene_type, location_id, encounter_id, estimated_minutes, notes FROM oneshot_scenes WHERE act_id=? ORDER BY number", act.ID)
+			if err != nil {
+				middleware.LogWarn("oneshot", "scenes query failed", "error", err)
+			} else {
+				func() {
+					defer sceneRows.Close()
+					for sceneRows.Next() {
+						var sc models.OneShotScene
+						if err := sceneRows.Scan(&sc.ID, &sc.ActID, &sc.Number, &sc.Title, &sc.Description, &sc.SceneType, &sc.LocationID, &sc.EncounterID, &sc.EstimatedMinutes, &sc.Notes); err == nil {
+							act.Scenes = append(act.Scenes, sc)
+						}
 					}
-				}
-				sceneRows.Close()
+					if err := sceneRows.Err(); err != nil {
+						middleware.LogWarn("oneshot", "rows iteration failed", "error", err)
+					}
+				}()
 			}
 			adv.Acts = append(adv.Acts, act)
 		}

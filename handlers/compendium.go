@@ -302,16 +302,21 @@ func SearchCompendium(c *gin.Context) {
 		if qErr != nil {
 			middleware.LogWarn("compendium", "query failed", "type", "spell", "error", qErr)
 		} else {
-			for rows.Next() {
-				var r SearchResult
-				r.Type = "spell"
-				if err := rows.Scan(&r.ID, &r.Name, &r.Level, &r.Subtype); err != nil {
-					middleware.LogWarn("compendium", "scan failed, skipping row", "type", "spell", "error", err)
-					continue
+			func() {
+				defer rows.Close()
+				for rows.Next() {
+					var r SearchResult
+					r.Type = "spell"
+					if err := rows.Scan(&r.ID, &r.Name, &r.Level, &r.Subtype); err != nil {
+						middleware.LogWarn("compendium", "scan failed, skipping row", "type", "spell", "error", err)
+						continue
+					}
+					results = append(results, r)
 				}
-				results = append(results, r)
-			}
-			rows.Close()
+				if err := rows.Err(); err != nil {
+					middleware.LogWarn("compendium", "rows iteration failed", "error", err)
+				}
+			}()
 		}
 	}
 
@@ -326,16 +331,21 @@ func SearchCompendium(c *gin.Context) {
 		if qErr != nil {
 			middleware.LogWarn("compendium", "query failed", "type", "equipment", "error", qErr)
 		} else {
-			for rows.Next() {
-				var r SearchResult
-				r.Type = "equipment"
-				if err := rows.Scan(&r.ID, &r.Name, &r.Subtype); err != nil {
-					middleware.LogWarn("compendium", "scan failed, skipping row", "type", "equipment", "error", err)
-					continue
+			func() {
+				defer rows.Close()
+				for rows.Next() {
+					var r SearchResult
+					r.Type = "equipment"
+					if err := rows.Scan(&r.ID, &r.Name, &r.Subtype); err != nil {
+						middleware.LogWarn("compendium", "scan failed, skipping row", "type", "equipment", "error", err)
+						continue
+					}
+					results = append(results, r)
 				}
-				results = append(results, r)
-			}
-			rows.Close()
+				if err := rows.Err(); err != nil {
+					middleware.LogWarn("compendium", "rows iteration failed", "error", err)
+				}
+			}()
 		}
 	}
 
@@ -354,16 +364,21 @@ func SearchCompendium(c *gin.Context) {
 		if qErr != nil {
 			middleware.LogWarn("compendium", "query failed", "type", "monster", "error", qErr)
 		} else {
-			for rows.Next() {
-				var r SearchResult
-				r.Type = "monster"
-				if err := rows.Scan(&r.ID, &r.Name, &r.CR, &r.Subtype); err != nil {
-					middleware.LogWarn("compendium", "scan failed, skipping row", "type", "monster", "error", err)
-					continue
+			func() {
+				defer rows.Close()
+				for rows.Next() {
+					var r SearchResult
+					r.Type = "monster"
+					if err := rows.Scan(&r.ID, &r.Name, &r.CR, &r.Subtype); err != nil {
+						middleware.LogWarn("compendium", "scan failed, skipping row", "type", "monster", "error", err)
+						continue
+					}
+					results = append(results, r)
 				}
-				results = append(results, r)
-			}
-			rows.Close()
+				if err := rows.Err(); err != nil {
+					middleware.LogWarn("compendium", "rows iteration failed", "error", err)
+				}
+			}()
 		}
 	}
 
@@ -372,16 +387,21 @@ func SearchCompendium(c *gin.Context) {
 		if qErr != nil {
 			middleware.LogWarn("compendium", "query failed", "type", "race", "error", qErr)
 		} else {
-			for rows.Next() {
-				var r SearchResult
-				if err := rows.Scan(&r.ID, &r.Name); err != nil {
-					middleware.LogWarn("compendium", "scan failed, skipping row", "type", "race", "error", err)
-					continue
+			func() {
+				defer rows.Close()
+				for rows.Next() {
+					var r SearchResult
+					if err := rows.Scan(&r.ID, &r.Name); err != nil {
+						middleware.LogWarn("compendium", "scan failed, skipping row", "type", "race", "error", err)
+						continue
+					}
+					r.Type = "race"
+					results = append(results, r)
 				}
-				r.Type = "race"
-				results = append(results, r)
-			}
-			rows.Close()
+				if err := rows.Err(); err != nil {
+					middleware.LogWarn("compendium", "rows iteration failed", "error", err)
+				}
+			}()
 		}
 	}
 
@@ -390,16 +410,21 @@ func SearchCompendium(c *gin.Context) {
 		if qErr != nil {
 			middleware.LogWarn("compendium", "query failed", "type", "feat", "error", qErr)
 		} else {
-			for rows.Next() {
-				var r SearchResult
-				if err := rows.Scan(&r.ID, &r.Name); err != nil {
-					middleware.LogWarn("compendium", "scan failed, skipping row", "type", "feat", "error", err)
-					continue
+			func() {
+				defer rows.Close()
+				for rows.Next() {
+					var r SearchResult
+					if err := rows.Scan(&r.ID, &r.Name); err != nil {
+						middleware.LogWarn("compendium", "scan failed, skipping row", "type", "feat", "error", err)
+						continue
+					}
+					r.Type = "feat"
+					results = append(results, r)
 				}
-				r.Type = "feat"
-				results = append(results, r)
-			}
-			rows.Close()
+				if err := rows.Err(); err != nil {
+					middleware.LogWarn("compendium", "rows iteration failed", "error", err)
+				}
+			}()
 		}
 	}
 
@@ -408,16 +433,21 @@ func SearchCompendium(c *gin.Context) {
 		if qErr != nil {
 			middleware.LogWarn("compendium", "query failed", "type", "background", "error", qErr)
 		} else {
-			for rows.Next() {
-				var r SearchResult
-				if err := rows.Scan(&r.ID, &r.Name); err != nil {
-					middleware.LogWarn("compendium", "scan failed, skipping row", "type", "background", "error", err)
-					continue
+			func() {
+				defer rows.Close()
+				for rows.Next() {
+					var r SearchResult
+					if err := rows.Scan(&r.ID, &r.Name); err != nil {
+						middleware.LogWarn("compendium", "scan failed, skipping row", "type", "background", "error", err)
+						continue
+					}
+					r.Type = "background"
+					results = append(results, r)
 				}
-				r.Type = "background"
-				results = append(results, r)
-			}
-			rows.Close()
+				if err := rows.Err(); err != nil {
+					middleware.LogWarn("compendium", "rows iteration failed", "error", err)
+				}
+			}()
 		}
 	}
 
@@ -426,16 +456,21 @@ func SearchCompendium(c *gin.Context) {
 		if qErr != nil {
 			middleware.LogWarn("compendium", "query failed", "type", "class", "error", qErr)
 		} else {
-			for rows.Next() {
-				var r SearchResult
-				if err := rows.Scan(&r.ID, &r.Name, &r.HitDie, &r.PrimaryAbility); err != nil {
-					middleware.LogWarn("compendium", "scan failed, skipping row", "type", "class", "error", err)
-					continue
+			func() {
+				defer rows.Close()
+				for rows.Next() {
+					var r SearchResult
+					if err := rows.Scan(&r.ID, &r.Name, &r.HitDie, &r.PrimaryAbility); err != nil {
+						middleware.LogWarn("compendium", "scan failed, skipping row", "type", "class", "error", err)
+						continue
+					}
+					r.Type = "class"
+					results = append(results, r)
 				}
-				r.Type = "class"
-				results = append(results, r)
-			}
-			rows.Close()
+				if err := rows.Err(); err != nil {
+					middleware.LogWarn("compendium", "rows iteration failed", "error", err)
+				}
+			}()
 		}
 	}
 
@@ -451,23 +486,28 @@ func SearchCompendium(c *gin.Context) {
 	if qErr != nil {
 		middleware.LogWarn("compendium", "unified search failed", "error", qErr)
 	} else {
-		for rows.Next() {
-			var r SearchResult
-			var schemaID int64
-			var dataJSON string
-			if err := rows.Scan(&r.ID, &schemaID, &r.Type, &dataJSON); err != nil {
-				middleware.LogWarn("compendium", "scan failed, skipping row", "type", "unified", "error", err)
-				continue
-			}
-			var data map[string]any
-			if err := json.Unmarshal([]byte(dataJSON), &data); err == nil {
-				if n, ok := data["name"].(string); ok {
-					r.Name = n
+		func() {
+			defer rows.Close()
+			for rows.Next() {
+				var r SearchResult
+				var schemaID int64
+				var dataJSON string
+				if err := rows.Scan(&r.ID, &schemaID, &r.Type, &dataJSON); err != nil {
+					middleware.LogWarn("compendium", "scan failed, skipping row", "type", "unified", "error", err)
+					continue
 				}
+				var data map[string]any
+				if err := json.Unmarshal([]byte(dataJSON), &data); err == nil {
+					if n, ok := data["name"].(string); ok {
+						r.Name = n
+					}
+				}
+				results = append(results, r)
 			}
-			results = append(results, r)
-		}
-		rows.Close()
+			if err := rows.Err(); err != nil {
+				middleware.LogWarn("compendium", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 
 	c.JSON(http.StatusOK, results)
@@ -524,18 +564,23 @@ func ListUserCompendiumEntriesBySchema(c *gin.Context) {
 		}
 
 		s.Entries = make([]userCompendiumEntry, 0)
-		for entryRows.Next() {
-			var e userCompendiumEntry
-			var dataJSON, createdAt string
-			if err := entryRows.Scan(&e.ID, &dataJSON, &createdAt); err != nil {
-				continue
+		func() {
+			defer entryRows.Close()
+			for entryRows.Next() {
+				var e userCompendiumEntry
+				var dataJSON, createdAt string
+				if err := entryRows.Scan(&e.ID, &dataJSON, &createdAt); err != nil {
+					continue
+				}
+				e.Data = make(map[string]any)
+				json.Unmarshal([]byte(dataJSON), &e.Data)
+				e.CreatedAt = createdAt
+				s.Entries = append(s.Entries, e)
 			}
-			e.Data = make(map[string]any)
-			json.Unmarshal([]byte(dataJSON), &e.Data)
-			e.CreatedAt = createdAt
-			s.Entries = append(s.Entries, e)
-		}
-		entryRows.Close()
+			if err := entryRows.Err(); err != nil {
+				middleware.LogWarn("compendium", "rows iteration failed", "error", err)
+			}
+		}()
 
 		result = append(result, s)
 	}

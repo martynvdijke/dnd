@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -75,7 +76,7 @@ func TestFetchFromICalURL(t *testing.T) {
 		ICalURL:    srv.URL,
 	}
 
-	events, err := fetchFromICalURL(settings)
+	events, err := fetchFromICalURL(context.Background(), settings)
 	if err != nil {
 		t.Fatalf("fetchFromICalURL failed: %v", err)
 	}
@@ -106,7 +107,7 @@ func TestFetchFromICalURL_PastEventsFiltered(t *testing.T) {
 		ICalURL:    srv.URL,
 	}
 
-	events, err := fetchFromICalURL(settings)
+	events, err := fetchFromICalURL(context.Background(), settings)
 	if err != nil {
 		t.Fatalf("fetchFromICalURL failed: %v", err)
 	}
@@ -131,7 +132,7 @@ func TestFetchFromICalURL_TagFiltering(t *testing.T) {
 		Tags:       "dnd,session",
 	}
 
-	events, err := fetchFromICalURL(settings)
+	events, err := fetchFromICalURL(context.Background(), settings)
 	if err != nil {
 		t.Fatalf("fetchFromICalURL failed: %v", err)
 	}
@@ -148,7 +149,7 @@ func TestFetchFromICalURL_EmptyURL(t *testing.T) {
 		SourceType: "ical",
 		ICalURL:    "",
 	}
-	_, err := fetchFromICalURL(settings)
+	_, err := fetchFromICalURL(context.Background(), settings)
 	if err == nil {
 		t.Error("expected error for empty iCal URL")
 	}
@@ -167,7 +168,7 @@ func TestFetchFromICalURL_HTTPError(t *testing.T) {
 		SourceType: "ical",
 		ICalURL:    srv.URL,
 	}
-	_, err := fetchFromICalURL(settings)
+	_, err := fetchFromICalURL(context.Background(), settings)
 	if err == nil {
 		t.Error("expected error for HTTP 500")
 	}
@@ -181,7 +182,7 @@ func TestFetchFromICalURL_UnreachableURL(t *testing.T) {
 		SourceType: "ical",
 		ICalURL:    "http://127.0.0.1:1/nonexistent.ics", // port 1 should fail
 	}
-	_, err := fetchFromICalURL(settings)
+	_, err := fetchFromICalURL(context.Background(), settings)
 	if err == nil {
 		t.Error("expected error for unreachable URL")
 	}
@@ -201,7 +202,7 @@ func TestFetchDispatch_ICalSource(t *testing.T) {
 		Tags:       "",
 	}
 
-	events, err := fetchFromGoogle(settings)
+	events, err := fetchFromGoogle(context.Background(), settings)
 	if err != nil {
 		t.Fatalf("fetchFromGoogle dispatch failed: %v", err)
 	}
@@ -219,7 +220,7 @@ func TestFetchDispatch_GoogleAPISource(t *testing.T) {
 		// No CredentialsJSON — should fail at Google API client creation
 	}
 
-	_, err := fetchFromGoogle(settings)
+	_, err := fetchFromGoogle(context.Background(), settings)
 	if err == nil {
 		t.Error("expected error for Google API with no credentials")
 	}
@@ -246,7 +247,7 @@ func TestFetchAndCacheEvents_ICalStaleCacheFallback(t *testing.T) {
 		CacheTTLSeconds: 1, // very short TTL so cache is always stale
 	})
 
-	events, errMsg := fetchAndCacheEvents(db.GetEventSettings(), "")
+	events, errMsg := fetchAndCacheEvents(context.Background(), db.GetEventSettings(), "")
 	if errMsg == "" {
 		// If no error, we should have gotten events from somewhere
 		if len(events) == 0 {

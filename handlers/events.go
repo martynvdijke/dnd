@@ -126,7 +126,7 @@ func EventsPage(c *gin.Context) {
 		return
 	}
 
-	events, errMsg := fetchAndCacheEvents(settings, "")
+	events, errMsg := fetchAndCacheEvents(c.Request.Context(), settings, "")
 
 	if view == "grid" {
 		now := time.Now()
@@ -183,7 +183,7 @@ func EventsListPartial(c *gin.Context) {
 		return
 	}
 
-	events, errMsg := fetchAndCacheEvents(settings, "")
+	events, errMsg := fetchAndCacheEvents(c.Request.Context(), settings, "")
 	empty := len(events) == 0 && errMsg == ""
 
 	renderTemplate(c, "events_list.html", eventsListData{
@@ -347,7 +347,7 @@ func parseMonthParam(s string) (time.Time, bool) {
 
 // fetchAndCacheEvents fetches events from Google Calendar or cache.
 // campaignSlug empty = global events.
-func fetchAndCacheEvents(settings db.EventSettings, campaignSlug string) ([]googlecalendar.Event, string) {
+func fetchAndCacheEvents(ctx context.Context, settings db.EventSettings, campaignSlug string) ([]googlecalendar.Event, string) {
 	// Try cache first
 	if cached, fresh := db.GetCachedEvents(settings.CacheTTLSeconds, campaignSlug); fresh {
 		log.Printf("events: serving %d events from cache (fresh, slug=%q)", len(cached), campaignSlug)
@@ -355,7 +355,7 @@ func fetchAndCacheEvents(settings db.EventSettings, campaignSlug string) ([]goog
 	}
 
 	// Cache miss or expired — try API
-	events, err := fetchFromGoogle(settings)
+	events, err := fetchFromGoogle(ctx, settings)
 	if err != nil {
 		log.Printf("events: API fetch error: %v", err)
 		// Try stale cache fallback
@@ -376,13 +376,14 @@ func fetchAndCacheEvents(settings db.EventSettings, campaignSlug string) ([]goog
 	return events, ""
 }
 
-func fetchFromGoogle(settings db.EventSettings) ([]googlecalendar.Event, error) {
+func fetchFromGoogle(ctx context.Context, settings db.EventSettings) ([]googlecalendar.Event, error) {
 	// Dispatch based on source type
 	if settings.SourceType == "ical" {
-		return fetchFromICalURL(settings)
+		return fetchFromICalURL(ctx, settings)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// 10s bound is derived from the request context so client cancellation propagates.
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	var client *googlecalendar.Client
@@ -440,12 +441,13 @@ func fetchFromGoogle(settings db.EventSettings) ([]googlecalendar.Event, error) 
 
 // fetchFromICalURL fetches and parses an iCal/ICS feed from the given URL.
 // Applies text tag filtering (color labels and filter mode are ignored for iCal sources).
-func fetchFromICalURL(settings db.EventSettings) ([]googlecalendar.Event, error) {
+func fetchFromICalURL(ctx context.Context, settings db.EventSettings) ([]googlecalendar.Event, error) {
 	if settings.ICalURL == "" {
 		return nil, fmt.Errorf("no iCal URL configured")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// 10s bound is derived from the request context so client cancellation propagates.
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, "GET", settings.ICalURL, nil)
@@ -532,7 +534,7 @@ func CampaignEventsPage(c *gin.Context) {
 		return
 	}
 
-	events, errMsg := fetchAndCacheEvents(settings, slug)
+	events, errMsg := fetchAndCacheEvents(c.Request.Context(), settings, slug)
 
 	if view == "grid" {
 		now := time.Now()
@@ -606,7 +608,7 @@ func CampaignEventsListPartial(c *gin.Context) {
 		return
 	}
 
-	events, errMsg := fetchAndCacheEvents(settings, slug)
+	events, errMsg := fetchAndCacheEvents(c.Request.Context(), settings, slug)
 	empty := len(events) == 0 && errMsg == ""
 
 	renderTemplate(c, "events_list.html", eventsListData{

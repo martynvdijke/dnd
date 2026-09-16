@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
+	"villum/middleware"
 )
 
 type CombatLogEntry struct {
@@ -30,17 +31,16 @@ type CombatLogEntry struct {
 
 func ListCombatLogEntries(c *gin.Context) {
 	campaignID := c.Query("campaign_id")
-	limit := c.DefaultQuery("limit", "50")
-
-	if limitInt, _ := strconv.Atoi(limit); limitInt < 1 {
-		limit = "50"
+	limit := 50
+	if v, err := strconv.Atoi(c.DefaultQuery("limit", "50")); err == nil && v > 0 {
+		limit = min(v, 500)
 	}
 
 	rows, err := func() (*sql.Rows, error) {
 		if campaignID != "" {
-			return db.DB.Query("SELECT id,campaign_id,combat_entry_id,actor_name,action,target_name,damage,damage_type,healing,condition_applied,roll_expression,roll_total,is_critical,description,created_at FROM combat_log_entries WHERE campaign_id=? ORDER BY created_at DESC LIMIT "+limit, campaignID)
+			return db.DB.Query("SELECT id,campaign_id,combat_entry_id,actor_name,action,target_name,damage,damage_type,healing,condition_applied,roll_expression,roll_total,is_critical,description,created_at FROM combat_log_entries WHERE campaign_id=? ORDER BY created_at DESC LIMIT ?", campaignID, limit)
 		}
-		return db.DB.Query("SELECT id,campaign_id,combat_entry_id,actor_name,action,target_name,damage,damage_type,healing,condition_applied,roll_expression,roll_total,is_critical,description,created_at FROM combat_log_entries ORDER BY created_at DESC LIMIT " + limit)
+		return db.DB.Query("SELECT id,campaign_id,combat_entry_id,actor_name,action,target_name,damage,damage_type,healing,condition_applied,roll_expression,roll_total,is_critical,description,created_at FROM combat_log_entries ORDER BY created_at DESC LIMIT ?", limit)
 	}()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -82,19 +82,26 @@ func GetCombatLogStats(c *gin.Context) {
 	var totalEntries, totalDamage, totalHealing, critCount int
 	db.DB.QueryRow("SELECT COUNT(*), COALESCE(SUM(damage),0), COALESCE(SUM(healing),0), COALESCE(SUM(is_critical),0) FROM combat_log_entries WHERE campaign_id=?", campaignID).Scan(&totalEntries, &totalDamage, &totalHealing, &critCount)
 
-	topDamagers, _ := db.DB.Query("SELECT actor_name, SUM(damage) as dmg FROM combat_log_entries WHERE campaign_id=? GROUP BY actor_name ORDER BY dmg DESC LIMIT 5", campaignID)
 	type DamagerStat struct {
 		Name   string `json:"name"`
 		Damage int    `json:"damage"`
 	}
 	var topDmg []DamagerStat
-	if topDamagers != nil {
-		for topDamagers.Next() {
-			var ds DamagerStat
-			topDamagers.Scan(&ds.Name, &ds.Damage)
-			topDmg = append(topDmg, ds)
-		}
-		topDamagers.Close()
+	topDamagers, err := db.DB.Query("SELECT actor_name, SUM(damage) as dmg FROM combat_log_entries WHERE campaign_id=? GROUP BY actor_name ORDER BY dmg DESC LIMIT 5", campaignID)
+	if err != nil {
+		middleware.LogWarn("combat", "top damagers query failed", "error", err)
+	} else {
+		func() {
+			defer topDamagers.Close()
+			for topDamagers.Next() {
+				var ds DamagerStat
+				topDamagers.Scan(&ds.Name, &ds.Damage)
+				topDmg = append(topDmg, ds)
+			}
+			if err := topDamagers.Err(); err != nil {
+				middleware.LogWarn("combat", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 
 	c.JSON(http.StatusOK, gin.H{

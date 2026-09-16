@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
+	"villum/middleware"
 	"villum/models"
 )
 
@@ -40,11 +41,18 @@ func HtmxCampaignOverview(c *gin.Context) {
 
 	db.DB.QueryRow("SELECT COUNT(*) FROM quests q JOIN characters c ON q.character_id=c.id WHERE c.campaign_id=? AND q.status='active'", campaignID).Scan(&data.ActiveQuests)
 
-	rows, _ := db.DB.Query("SELECT COUNT(*) FROM campaign_calendar_events WHERE campaign_id=? AND event_date >= date('now') AND event_type='session'", campaignID)
-	if rows != nil {
-		rows.Next()
-		rows.Scan(&data.UpcomingSessions)
-		rows.Close()
+	rows, err := db.DB.Query("SELECT COUNT(*) FROM campaign_calendar_events WHERE campaign_id=? AND event_date >= date('now') AND event_type='session'", campaignID)
+	if err != nil {
+		middleware.LogWarn("oneshot", "upcoming sessions query failed", "error", err)
+	} else {
+		func() {
+			defer rows.Close()
+			rows.Next()
+			rows.Scan(&data.UpcomingSessions)
+			if err := rows.Err(); err != nil {
+				middleware.LogWarn("oneshot", "upcoming sessions scan failed", "error", err)
+			}
+		}()
 	}
 
 	db.DB.QueryRow("SELECT COUNT(*) FROM campaign_members WHERE campaign_id=?", campaignID).Scan(&data.TotalMembers)
@@ -55,86 +63,135 @@ func HtmxCampaignOverview(c *gin.Context) {
 
 	data.Weather = getCampaignWeather(campaignID)
 
-	calRows, _ := db.DB.Query("SELECT id, title, event_date, event_type, color FROM campaign_calendar_events WHERE campaign_id=? AND event_date >= date('now') ORDER BY event_date LIMIT 5", campaignID)
-	if calRows != nil {
-		for calRows.Next() {
-			var ev CalendarEventSummary
-			calRows.Scan(&ev.ID, &ev.Title, &ev.EventDate, &ev.EventType, &ev.Color)
-			data.UpcomingEvents = append(data.UpcomingEvents, ev)
-		}
-		calRows.Close()
+	calRows, err := db.DB.Query("SELECT id, title, event_date, event_type, color FROM campaign_calendar_events WHERE campaign_id=? AND event_date >= date('now') ORDER BY event_date LIMIT 5", campaignID)
+	if err != nil {
+		middleware.LogWarn("oneshot", "campaign calendar query failed", "error", err)
+	} else {
+		func() {
+			defer calRows.Close()
+			for calRows.Next() {
+				var ev CalendarEventSummary
+				calRows.Scan(&ev.ID, &ev.Title, &ev.EventDate, &ev.EventType, &ev.Color)
+				data.UpcomingEvents = append(data.UpcomingEvents, ev)
+			}
+			if err := calRows.Err(); err != nil {
+				middleware.LogWarn("oneshot", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 
-	tlRows, _ := db.DB.Query("SELECT id, title, event_date, event_type, importance FROM campaign_timeline_events WHERE campaign_id=? ORDER BY event_date DESC LIMIT 5", campaignID)
-	if tlRows != nil {
-		for tlRows.Next() {
-			var tl TimelineEventSummary
-			tlRows.Scan(&tl.ID, &tl.Title, &tl.EventDate, &tl.EventType, &tl.Importance)
-			data.RecentTimeline = append(data.RecentTimeline, tl)
-		}
-		tlRows.Close()
+	tlRows, err := db.DB.Query("SELECT id, title, event_date, event_type, importance FROM campaign_timeline_events WHERE campaign_id=? ORDER BY event_date DESC LIMIT 5", campaignID)
+	if err != nil {
+		middleware.LogWarn("oneshot", "campaign timeline query failed", "error", err)
+	} else {
+		func() {
+			defer tlRows.Close()
+			for tlRows.Next() {
+				var tl TimelineEventSummary
+				tlRows.Scan(&tl.ID, &tl.Title, &tl.EventDate, &tl.EventType, &tl.Importance)
+				data.RecentTimeline = append(data.RecentTimeline, tl)
+			}
+			if err := tlRows.Err(); err != nil {
+				middleware.LogWarn("oneshot", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 
-	charRows, _ := db.DB.Query("SELECT id, name, race, class, level, hp_current, hp_max, COALESCE(portrait_url,'') FROM characters WHERE campaign_id=? ORDER BY name", campaignID)
-	if charRows != nil {
-		raceColors := GetRaceColorMap()
-		for charRows.Next() {
-			var cs CharacterDashSummary
-			charRows.Scan(&cs.ID, &cs.Name, &cs.Race, &cs.Class, &cs.Level, &cs.HPCurrent, &cs.HPMax, &cs.PortraitURL)
-			cs.RaceColor = raceColors[cs.Race]
-			data.Characters = append(data.Characters, cs)
-		}
-		charRows.Close()
+	charRows, err := db.DB.Query("SELECT id, name, race, class, level, hp_current, hp_max, COALESCE(portrait_url,'') FROM characters WHERE campaign_id=? ORDER BY name", campaignID)
+	if err != nil {
+		middleware.LogWarn("oneshot", "characters query failed", "error", err)
+	} else {
+		func() {
+			defer charRows.Close()
+			raceColors := GetRaceColorMap()
+			for charRows.Next() {
+				var cs CharacterDashSummary
+				charRows.Scan(&cs.ID, &cs.Name, &cs.Race, &cs.Class, &cs.Level, &cs.HPCurrent, &cs.HPMax, &cs.PortraitURL)
+				cs.RaceColor = raceColors[cs.Race]
+				data.Characters = append(data.Characters, cs)
+			}
+			if err := charRows.Err(); err != nil {
+				middleware.LogWarn("oneshot", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 
 	// One-shots linked to this campaign
-	osRows, _ := db.DB.Query("SELECT id, user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes, created_at, updated_at, COALESCE(is_mini_campaign,0), COALESCE(sort_order,0) FROM oneshot_adventures WHERE campaign_id=? ORDER BY sort_order ASC, updated_at DESC", campaignID)
-	if osRows != nil {
-		for osRows.Next() {
-			var a models.OneShotAdventure
-			var isMiniCampaign, sortOrder int
-			osRows.Scan(&a.ID, &a.UserID, &a.CampaignID, &a.Title, &a.Premise, &a.Hook, &a.Template, &a.EstimatedMinutes, &a.Difficulty, &a.Notes, &a.CreatedAt, &a.UpdatedAt, &isMiniCampaign, &sortOrder)
-			a.IsMiniCampaign = isMiniCampaign == 1
-			a.SortOrder = sortOrder
-			data.OneShots = append(data.OneShots, a)
-		}
-		osRows.Close()
+	osRows, err := db.DB.Query("SELECT id, user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes, created_at, updated_at, COALESCE(is_mini_campaign,0), COALESCE(sort_order,0) FROM oneshot_adventures WHERE campaign_id=? ORDER BY sort_order ASC, updated_at DESC", campaignID)
+	if err != nil {
+		middleware.LogWarn("oneshot", "oneshots query failed", "error", err)
+	} else {
+		func() {
+			defer osRows.Close()
+			for osRows.Next() {
+				var a models.OneShotAdventure
+				var isMiniCampaign, sortOrder int
+				osRows.Scan(&a.ID, &a.UserID, &a.CampaignID, &a.Title, &a.Premise, &a.Hook, &a.Template, &a.EstimatedMinutes, &a.Difficulty, &a.Notes, &a.CreatedAt, &a.UpdatedAt, &isMiniCampaign, &sortOrder)
+				a.IsMiniCampaign = isMiniCampaign == 1
+				a.SortOrder = sortOrder
+				data.OneShots = append(data.OneShots, a)
+			}
+			if err := osRows.Err(); err != nil {
+				middleware.LogWarn("oneshot", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 
-	recapRows, _ := db.DB.Query("SELECT id, title, COALESCE(session_start_date,''), created_at FROM campaign_recaps WHERE campaign_id=? ORDER BY created_at DESC LIMIT 3", campaignID)
-	if recapRows != nil {
-		for recapRows.Next() {
-			var r RecapSummary
-			recapRows.Scan(&r.ID, &r.Title, &r.SessionStartDate, &r.CreatedAt)
-			data.RecentRecaps = append(data.RecentRecaps, r)
-		}
-		recapRows.Close()
+	recapRows, err := db.DB.Query("SELECT id, title, COALESCE(session_start_date,''), created_at FROM campaign_recaps WHERE campaign_id=? ORDER BY created_at DESC LIMIT 3", campaignID)
+	if err != nil {
+		middleware.LogWarn("oneshot", "recaps query failed", "error", err)
+	} else {
+		func() {
+			defer recapRows.Close()
+			for recapRows.Next() {
+				var r RecapSummary
+				recapRows.Scan(&r.ID, &r.Title, &r.SessionStartDate, &r.CreatedAt)
+				data.RecentRecaps = append(data.RecentRecaps, r)
+			}
+			if err := recapRows.Err(); err != nil {
+				middleware.LogWarn("oneshot", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 
-	combatRows, _ := db.DB.Query("SELECT id, name, round, created_at FROM combat_entries WHERE campaign_id=? ORDER BY created_at DESC LIMIT 3", campaignID)
-	if combatRows != nil {
-		for combatRows.Next() {
-			var cs CombatSummary
-			combatRows.Scan(&cs.ID, &cs.Name, &cs.Round, &cs.CreatedAt)
-			data.RecentCombats = append(data.RecentCombats, cs)
-		}
-		combatRows.Close()
+	combatRows, err := db.DB.Query("SELECT id, name, round, created_at FROM combat_entries WHERE campaign_id=? ORDER BY created_at DESC LIMIT 3", campaignID)
+	if err != nil {
+		middleware.LogWarn("oneshot", "combats query failed", "error", err)
+	} else {
+		func() {
+			defer combatRows.Close()
+			for combatRows.Next() {
+				var cs CombatSummary
+				combatRows.Scan(&cs.ID, &cs.Name, &cs.Round, &cs.CreatedAt)
+				data.RecentCombats = append(data.RecentCombats, cs)
+			}
+			if err := combatRows.Err(); err != nil {
+				middleware.LogWarn("oneshot", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 
-	rollRows, _ := db.DB.Query(`
+	rollRows, err := db.DB.Query(`
 		SELECT dr.id, dr.expression, dr.total, dr.created_at
 		FROM dice_rolls dr
 		JOIN characters c ON dr.character_id = c.id
 		WHERE c.campaign_id=?
 		ORDER BY dr.created_at DESC LIMIT 5
 	`, campaignID)
-	if rollRows != nil {
-		for rollRows.Next() {
-			var dr DiceRollSummary
-			rollRows.Scan(&dr.ID, &dr.Expression, &dr.Total, &dr.CreatedAt)
-			data.RecentDiceRolls = append(data.RecentDiceRolls, dr)
-		}
-		rollRows.Close()
+	if err != nil {
+		middleware.LogWarn("oneshot", "dice rolls query failed", "error", err)
+	} else {
+		func() {
+			defer rollRows.Close()
+			for rollRows.Next() {
+				var dr DiceRollSummary
+				rollRows.Scan(&dr.ID, &dr.Expression, &dr.Total, &dr.CreatedAt)
+				data.RecentDiceRolls = append(data.RecentDiceRolls, dr)
+			}
+			if err := rollRows.Err(); err != nil {
+				middleware.LogWarn("oneshot", "rows iteration failed", "error", err)
+			}
+		}()
 	}
 
 	renderTemplate(c, "campaign_overview.html", data)
