@@ -36,6 +36,12 @@ Fresh clone setup: `prek install && prek install --hook-type pre-push`.
 - E2E forbids `page.waitForTimeout` — use `expect().toBeVisible()/toBeHidden()`, `waitForResponse` or `waitForFunction`; linted via `task lint:e2e` / CI / prek.
 - Coverage floors: Go total ≥20%, `handlers/` ≥40%, `middleware/` ≥40%; vitest ≥35% statements/lines/functions, ≥30% branches. Gates run locally and in CI.
 
+## Tech Debt Registry
+
+Known structural debt is tracked in [`docs/tech-debt.md`](docs/tech-debt.md) — one table row per item (ID, area, symptom, evidence, impact, owner, status, linked OpenSpec change/PR). Add an entry there instead of scattering notes, and update its status when the linked change is archived.
+
+Any `ponytail:` comment or `TODO`/`FIXME`/`HACK` deferral MUST either reference a registry entry ID (e.g. `TD-001`) or state its ceiling and upgrade path inline.
+
 ## Change Process
 
 Non-trivial work goes through OpenSpec: `/opsx-propose` → artifacts in `openspec/changes/<name>/` → `/opsx-apply` → `/opsx-archive`. Task lists there include verification steps — the local gates above still apply before pushing.

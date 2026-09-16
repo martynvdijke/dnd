@@ -108,6 +108,7 @@ export async function init() {
   initSpellCompendium();
   // ponytail: sheet deep links (#/sheet/42/journal) must re-open the character,
   // not just toggle view visibility — otherwise currentChar stays null.
+  // Ceiling: only the hash deep-link path; upgrade: route every sheet entry through openChar().
   const applyRoute = (route: { view: string; params: Record<string, string> }) => {
     if (route.view === 'sheet' && route.params.id) {
       const id = Number(route.params.id);

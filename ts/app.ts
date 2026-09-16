@@ -89,7 +89,8 @@ async function openChar(id: number, tab?: string) {
     setCurrentChar(await api('GET', `/api/characters/${id}`));
     expose('currentChar', currentChar);
     expose('canEditCharacter', !!(currentChar as any).can_edit);
-    // ponytail: support deep-link #/sheet/42/journal or ?tab=journal
+    // ponytail: support deep-link #/sheet/42/journal or ?tab=journal.
+    // Ceiling: only these two hash forms; upgrade: move tab resolution into the router.
     let initialTab = tab || 'stats';
     if (!tab) {
       const hash = location.hash || '';
