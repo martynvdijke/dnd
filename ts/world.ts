@@ -3,25 +3,51 @@ import { api } from './lib/api';
 import { esc } from './lib/dom';
 import { expose } from './lib/expose';
 import { currentCampaign } from './lib/state';
+import { FilePicker } from './file-picker';
+import { WORLD_BOUNDS, WORLD_MAP_NAME, findWorldMap, parchmentDataUrl } from './lib/fantasy-map';
 import L from 'leaflet';
 
 let worldMap: any = null;
+let worldOverlay: any = null;
 let worldMarkers: any[] = [];
 
 function getCampaignId(): number | null {
   return (currentCampaign as any)?.id ?? null;
 }
 
+function worldBounds(): any {
+  return L.latLngBounds(WORLD_BOUNDS as any);
+}
+
 function initWorldMap(): void {
   const c = document.getElementById('worldMapContainer');
-  if (!c || worldMap) return;
-  worldMap = L.map('worldMapContainer', { center: [30, 0], zoom: 2, attributionControl: false });
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd' }).addTo(worldMap);
+  if (!c) return;
+  // worldContent is re-rendered on every visit, so drop the stale map/container.
+  if (worldMap) { worldMap.remove(); worldMap = null; worldOverlay = null; }
+  worldMap = L.map('worldMapContainer', {
+    center: [0, 0], zoom: 0,
+    crs: L.CRS.Simple,
+    attributionControl: false,
+    maxBounds: worldBounds().pad(0.25),
+    minZoom: -2, maxZoom: 4, zoomSnap: 0.25,
+  } as any);
   setTimeout(() => worldMap.invalidateSize(), 200);
 }
 
+/** Draw the DM's uploaded map, or a generated parchment when there is none. */
+function setBasemap(imageUrl: string | null): void {
+  if (!worldMap) return;
+  if (worldOverlay) { worldMap.removeLayer(worldOverlay); worldOverlay = null; }
+  const src = imageUrl || parchmentDataUrl();
+  if (src) {
+    worldOverlay = L.imageOverlay(src, WORLD_BOUNDS as any, { className: 'world-basemap' }).addTo(worldMap);
+  }
+  const c = document.getElementById('worldMapContainer');
+  if (c) c.style.background = imageUrl ? '#1b1712' : '#e7d3a4';
+}
+
 function clearMarkers(): void {
-  worldMarkers.forEach((m: any) => worldMap.removeLayer(m));
+  if (worldMap) worldMarkers.forEach((m: any) => worldMap.removeLayer(m));
   worldMarkers = [];
 }
 
@@ -31,17 +57,24 @@ export async function showWorld(): Promise<void> {
   el.innerHTML = '<div class="ornament">Loading world...</div>';
   try {
     const cid = getCampaignId();
-    const [locs, events] = await Promise.all([
+    const [locs, events, maps] = await Promise.all([
       api('GET', '/api/locations'),
       cid ? api('GET', `/api/timeline?campaign_id=${cid}`).catch(() => []) : Promise.resolve([]),
+      cid ? api('GET', `/api/campaigns/${cid}/maps`).catch(() => []) : Promise.resolve([]),
     ]);
     const tl: any[] = Array.isArray(events) ? events : (events as any).events ?? [];
+    const mapInfo = findWorldMap(maps as any[]);
+    const mapImage = mapInfo?.image_url || null;
     // Group locations by type
     const byType: Record<string, any[]> = {};
     (locs as any[]).forEach((l: any) => { const t = l.type || 'other'; (byType[t] = byType[t] || []).push(l); });
     const withCoords = (locs as any[]).filter((l: any) => l.latitude != null && l.longitude != null);
 
-    let html = `<div id="worldMapContainer" style="height:380px;border-radius:8px;border:1px solid var(--border-light);margin-bottom:1rem"></div>`;
+    let html = `<div class="d-flex justify-content-between align-items-center mb-2">
+      <small class="text-muted">${mapImage ? esc(mapInfo!.name) : 'Parchment world'}</small>
+      <span>${mapImage ? `<button class="btn btn-sm btn-outline-secondary me-1" onclick="removeWorldMap()">Remove</button>` : ''}<button class="btn btn-sm btn-outline-primary" onclick="setWorldMap()"><i class="fa-solid fa-upload me-1"></i>${mapImage ? 'Change map' : 'Upload world map'}</button></span>
+    </div>`;
+    html += `<div id="worldMapContainer" style="height:380px;border-radius:8px;border:1px solid var(--border-light);margin-bottom:1rem"></div>`;
     // Directory grouped by type
     html += `<div class="row g-3">`;
     for (const [type, items] of Object.entries(byType)) {
@@ -62,6 +95,7 @@ export async function showWorld(): Promise<void> {
     (window as any).__worldEvents = tl;
 
     initWorldMap();
+    setBasemap(mapImage);
     clearMarkers();
     withCoords.forEach((l: any) => {
       const m = L.circleMarker([l.latitude, l.longitude], { radius: 8, fillColor: '#8b0000', color: '#fff', weight: 2, fillOpacity: 0.9 }).addTo(worldMap);
@@ -70,7 +104,9 @@ export async function showWorld(): Promise<void> {
       worldMarkers.push(m);
     });
     if (withCoords.length) {
-      try { worldMap.fitBounds(L.featureGroup(worldMarkers).getBounds().pad(0.15)); } catch {}
+      try { worldMap.fitBounds(L.featureGroup(worldMarkers).getBounds().pad(0.15), { maxZoom: 2 }); } catch {}
+    } else {
+      worldMap.fitBounds(worldBounds());
     }
   } catch (e: any) {
     el.innerHTML = `<div class="alert alert-danger">${esc(e.message)}</div>`;
@@ -78,6 +114,34 @@ export async function showWorld(): Promise<void> {
 }
 
 expose('showWorld', showWorld);
+
+/** Pick an uploaded image and store it as this campaign's world map. */
+expose('setWorldMap', async function (): Promise<void> {
+  const cid = getCampaignId();
+  if (!cid) return;
+  let url: string;
+  try { url = await FilePicker.pick(); } catch { return; }
+  const maps = await api('GET', `/api/campaigns/${cid}/maps`).catch(() => []);
+  const existing = findWorldMap(maps as any[]);
+  if (existing) {
+    await api('PUT', `/api/maps/${existing.id}`, { ...existing, image_url: url });
+  } else {
+    await api('POST', `/api/campaigns/${cid}/maps`, { name: WORLD_MAP_NAME, image_url: url });
+  }
+  await showWorld();
+});
+
+/** Drop the uploaded map and go back to the parchment basemap. */
+expose('removeWorldMap', async function (): Promise<void> {
+  const cid = getCampaignId();
+  if (!cid) return;
+  const maps = await api('GET', `/api/campaigns/${cid}/maps`).catch(() => []);
+  const existing = findWorldMap(maps as any[]);
+  if (!existing) return;
+  await api('PUT', `/api/maps/${existing.id}`, { ...existing, image_url: '' });
+  await showWorld();
+});
+
 expose('showPlaceDetail', async function (id: number): Promise<void> {
   const locs: any[] = (window as any).__worldLocs || [];
   const events: any[] = (window as any).__worldEvents || [];
