@@ -147,4 +147,37 @@ test.describe('World Overview and place↔timeline linking', () => {
     expect(found.linked_entity_type).toBe('location');
     expect(String(found.linked_entity_id)).toBe(String(loc.id));
   });
+
+  test('uploads a fantasy world map and can reset to parchment', async ({ page }) => {
+    const camp = await createCampaign(page, `FantasyMap ${unique()}`);
+    const cid = camp.id as number;
+    await page.evaluate((id: number) => (window as any).selectCampaign(id), cid);
+    await waitLoadingDone(page);
+
+    await openWorld(page);
+    // No uploaded map yet → parchment basemap and the upload affordance.
+    const uploadBtn = page.getByRole('button', { name: 'Upload world map' });
+    await expect(uploadBtn).toBeVisible({ timeout: NAV_TIMEOUT });
+    await uploadBtn.click();
+
+    // The shared FilePicker opens; feed it a 1x1 PNG without a native dialog.
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+      'base64',
+    );
+    await page.setInputFiles('#fpFileInput', { name: 'world.png', mimeType: 'image/png', buffer: png });
+    // After the picker resolves, showWorld re-renders with the stored image.
+    await expect(page.getByRole('button', { name: 'Change map' })).toBeVisible({ timeout: NAV_TIMEOUT });
+
+    const maps = await page.evaluate(async (c: number) => (window as any).api('GET', `/api/campaigns/${c}/maps`), cid);
+    const worldMap = maps.find((m: any) => m.name === 'World Map');
+    expect(worldMap, 'world map row was not persisted').toBeTruthy();
+    expect(worldMap.image_url).toBeTruthy();
+
+    // Remove → parchment again.
+    await page.getByRole('button', { name: 'Remove' }).click();
+    await expect(page.getByRole('button', { name: 'Upload world map' })).toBeVisible({ timeout: NAV_TIMEOUT });
+    const after = await page.evaluate(async (c: number) => (window as any).api('GET', `/api/campaigns/${c}/maps`), cid);
+    expect(after.find((m: any) => m.name === 'World Map')?.image_url).toBe('');
+  });
 });
