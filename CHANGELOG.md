@@ -1,3 +1,10 @@
+# [2.65.0](https://github.com/martynvdijke/dnd/compare/v2.64.1...v2.65.0) (2026-09-17)
+
+
+### Features
+
+* **world:** render a fantasy basemap instead of Earth tiles ([#129](https://github.com/martynvdijke/dnd/issues/129)) ([c8890ec](https://github.com/martynvdijke/dnd/commit/c8890ec44c2cb416f05e4480f390750dca420e7f))
+
 ## [2.64.1](https://github.com/martynvdijke/dnd/compare/v2.64.0...v2.64.1) (2026-09-16)
 
 # [2.64.0](https://github.com/martynvdijke/dnd/compare/v2.63.0...v2.64.0) (2026-09-14)
