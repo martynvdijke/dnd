@@ -136,7 +136,12 @@ function showRecapFormPrefilled(title: string, content: string, startDate = '', 
 
 export async function renderRecaps(campaignId?: number): Promise<void> {
   const cid = campaignId ?? getCid();
-  if (!cid) { toast('No campaign selected', true); return; }
+  if (!cid) {
+    // Sessions are campaign-scoped. Route to the picker instead of dead-ending
+    // on a toast — showView's campaign gate exempts admins, so do it explicitly.
+    (window as any).loadCampaignPicker?.();
+    return;
+  }
   showView('recaps' as any);
   const el = document.getElementById('recapsContent')!;
   el.innerHTML = '<div class="ornament">Loading sessions...</div>';
