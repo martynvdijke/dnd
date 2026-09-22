@@ -1,3 +1,10 @@
+## [2.65.1](https://github.com/martynvdijke/dnd/compare/v2.65.0...v2.65.1) (2026-09-22)
+
+
+### Bug Fixes
+
+* **recaps:** route to campaign picker instead of 'No campaign selected' toast ([#130](https://github.com/martynvdijke/dnd/issues/130)) ([cc3d27b](https://github.com/martynvdijke/dnd/commit/cc3d27bb7ca56a988e36f226cae8716fb8e2b57c))
+
 # [2.65.0](https://github.com/martynvdijke/dnd/compare/v2.64.1...v2.65.0) (2026-09-17)
 
 
