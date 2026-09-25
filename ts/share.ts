@@ -20,6 +20,7 @@ const TYPE_LABELS: Record<string, string> = {
   map: 'Map',
   upload: 'File',
   recap: 'Recap',
+  table: 'Table Screen',
 };
 
 function typeLabel(t: string): string {

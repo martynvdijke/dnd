@@ -89,6 +89,7 @@ expose('showCampaignDashboard', async function (campaignId: number, campaignName
         </div>
       </div>
       <div class="text-center mt-3 d-flex gap-2 justify-content-center">
+        <button class="btn btn-sm btn-outline-warning" onclick="showTableScreen(${campaignId})"><i class="fa-solid fa-tv me-1"></i>Table Screen</button>
         <button class="btn btn-sm btn-outline-info" onclick="showTransferExport(undefined, ${campaignId})"><i class="fa-solid fa-download me-1"></i>Export Campaign</button>
         <button class="btn btn-sm btn-outline-secondary" onclick="hideModal()">Close</button>
       </div>`;
@@ -266,4 +267,17 @@ expose('deleteSessionPlan', async function (planId: number, campaignId: number) 
   await api('DELETE', `/api/session-plans/${planId}`);
   toast('Session plan deleted');
   (window as any).showSessionPlanner(campaignId);
+});
+
+// ─── Table Screen (second display) ───
+// Mints (or reuses) a read-only table share and opens the TV-friendly page.
+expose('showTableScreen', async function (campaignId: number) {
+  try {
+    const res = await api('POST', '/api/share', { entity_type: 'table', entity_id: campaignId });
+    const url = window.location.origin + '/share/' + res.token;
+    window.open(url, '_blank', 'noopener');
+    toast('Table screen opened in a new tab');
+  } catch {
+    toast('Could not open table screen', true);
+  }
 });
