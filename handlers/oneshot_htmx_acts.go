@@ -98,9 +98,10 @@ func HtmxSceneForm(c *gin.Context) {
 	db.DB.QueryRow("SELECT adventure_id FROM oneshot_acts WHERE id=?", actID).Scan(&adventureID)
 
 	data := htmxOneShotData{
-		Scene:      &models.OneShotScene{ActID: actID, SceneType: "roleplay", EstimatedMinutes: 15},
-		SceneTypes: []string{"roleplay", "combat", "exploration", "puzzle", "climax"},
-		Encounters: candidateEncounters(adventureID),
+		Scene:        &models.OneShotScene{ActID: actID, SceneType: "roleplay", EstimatedMinutes: 15},
+		SceneTypes:   []string{"roleplay", "combat", "exploration", "puzzle", "climax"},
+		SceneEffects: sceneEffectPresets,
+		Encounters:   candidateEncounters(adventureID),
 	}
 	renderTemplate(c, "oneshot_scene_form.html", data)
 }
@@ -129,14 +130,16 @@ func HtmxEditSceneForm(c *gin.Context) {
 		eid := entScene.EncounterID
 		ms.EncounterID = &eid
 	}
+	db.DB.QueryRow("SELECT COALESCE(special_effects,'') FROM oneshot_scenes WHERE id=?", id).Scan(&ms.SpecialEffects)
 
 	var adventureID int64
 	db.DB.QueryRow("SELECT adventure_id FROM oneshot_acts WHERE id=?", entScene.ActID).Scan(&adventureID)
 
 	data := htmxOneShotData{
-		Scene:      &ms,
-		SceneTypes: []string{"roleplay", "combat", "exploration", "puzzle", "climax"},
-		Encounters: candidateEncounters(adventureID),
+		Scene:        &ms,
+		SceneTypes:   []string{"roleplay", "combat", "exploration", "puzzle", "climax"},
+		SceneEffects: sceneEffectPresets,
+		Encounters:   candidateEncounters(adventureID),
 	}
 	renderTemplate(c, "oneshot_scene_form.html", data)
 }
@@ -267,10 +270,12 @@ func HtmxCreateScene(c *gin.Context) {
 	if eid, err := strconv.ParseInt(c.PostForm("encounter_id"), 10, 64); err == nil && eid > 0 {
 		q.SetEncounterID(eid)
 	}
-	if _, err := q.Save(ctx); err != nil {
+	res, err := q.Save(ctx)
+	if err != nil {
 		c.String(http.StatusInternalServerError, "insert error: %v", err)
 		return
 	}
+	db.DB.Exec("UPDATE oneshot_scenes SET special_effects=? WHERE id=?", c.PostForm("special_effects"), res.ID)
 
 	// Look up adventure ID from act
 	var adventureID int64
@@ -311,6 +316,7 @@ func HtmxUpdateScene(c *gin.Context) {
 		c.String(http.StatusInternalServerError, "update error: %v", err)
 		return
 	}
+	db.DB.Exec("UPDATE oneshot_scenes SET special_effects=? WHERE id=?", c.PostForm("special_effects"), id)
 
 	// Look up adventure ID from scene's act
 	var adventureID int64

@@ -705,3 +705,27 @@ expose('linkCompendiumItemToNPC', async function (adventureId: number, npcId: nu
     toast(e.message, true);
   }
 });
+
+// ─── Scene Special Effects (live table) ───
+
+const SCENE_FX = ['fire', 'smoke', 'lightning', 'rain', 'snow', 'darkness', 'sparkle'];
+
+export function playSceneEffect(effect: string) {
+  const name = (effect || '').toLowerCase();
+  if (!SCENE_FX.includes(name)) return;
+  const el = document.createElement('div');
+  el.className = `scene-fx scene-fx-${name}`;
+  document.body.appendChild(el);
+  window.setTimeout(() => el.remove(), 4500);
+}
+
+expose('playSceneEffect', playSceneEffect);
+
+expose('triggerSceneEffect', async function (sceneId: number) {
+  try {
+    const res: any = await api('POST', `/api/oneshot-scenes/${sceneId}/effect`, {});
+    if (res?.effect) playSceneEffect(res.effect);
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+});

@@ -529,3 +529,41 @@ test.describe('DM Notes', () => {
   });
   });
 });
+
+test.describe('Scene Special Effects', () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page);
+    await expect(page.locator('body')).toBeVisible({ timeout: 2000 });
+  });
+
+  test('scene effect persists, prefills the edit form, and triggers', async ({ page }) => {
+    const adv = await createOneShot(page, uniqueName());
+    const act = await page.evaluate(async ({ id, t }) => {
+      return (window as any).api('POST', `/api/oneshot-adventures/${id}/acts`, { title: t, number: 1 });
+    }, { id: adv.id, t: 'FX Act' });
+    const scene = await page.evaluate(async ({ actId, t }) => {
+      return (window as any).api('POST', `/api/oneshot-acts/${actId}/scenes`, { title: t, scene_type: 'combat' });
+    }, { actId: act.id, t: 'Ambush' });
+
+    await page.evaluate(async (id) => {
+      return (window as any).api('PUT', `/api/oneshot-scenes/${id}`, { title: 'Ambush', special_effects: 'fire' });
+    }, scene.id);
+
+    const detail = await page.evaluate(async (id) => {
+      return (window as any).api('GET', `/api/oneshot-adventures/${id}`);
+    }, adv.id);
+    const found = detail.acts.flatMap((a: any) => a.scenes || []).find((s: any) => s.id === scene.id);
+    expect(found?.special_effects).toBe('fire');
+
+    const form = await page.evaluate(async (id) => {
+      const r = await fetch(`/htmx/oneshot-scenes/${id}/edit`, { credentials: 'same-origin' });
+      return r.text();
+    }, scene.id);
+    expect(form).toContain('value="fire" selected');
+
+    const trig = await page.evaluate(async (id) => {
+      return (window as any).api('POST', `/api/oneshot-scenes/${id}/effect`, {});
+    }, scene.id);
+    expect(trig.effect).toBe('fire');
+  });
+});

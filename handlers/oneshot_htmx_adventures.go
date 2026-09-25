@@ -20,6 +20,7 @@ type htmxOneShotData struct {
 	Act           *models.OneShotAct
 	Scene         *models.OneShotScene
 	SceneTypes    []string
+	SceneEffects  []string
 	ActEncounters []models.OneShotAdventureEncounter
 	Templates     []string
 	Difficulties  []string

@@ -77,6 +77,8 @@
         </span>
         {{if .LocationName}}<span class="badge bg-light text-dark" style="font-size:0.65rem"><i class="fa-solid fa-location-dot"></i> {{.LocationName}}</span>{{end}}
         {{if .EncounterName}}<span class="badge bg-light text-dark" style="font-size:0.65rem"><i class="fa-solid fa-crosshairs"></i> {{.EncounterName}}</span>{{end}}
+        {{if and .SpecialEffects (ne .SpecialEffects "none")}}<span class="badge bg-warning text-dark" style="font-size:0.65rem"><i class="fa-solid fa-wand-magic-sparkles"></i> {{.SpecialEffects}}</span>
+        <button class="btn btn-sm btn-outline-warning" style="font-size:0.7rem;padding:0.1rem 0.4rem" onclick="triggerSceneEffect({{.ID}})" title="Play effect"><i class="fa-solid fa-play"></i></button>{{end}}
       </div>
       <div class="d-flex gap-1 flex-shrink-0">
         <button class="btn btn-sm btn-outline-info" style="font-size:0.7rem;padding:0.1rem 0.4rem" onclick="showSceneMonsters({{.ID}})" title="Monsters"><i class="fa-solid fa-dragon"></i></button>
