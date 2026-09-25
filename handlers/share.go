@@ -39,6 +39,7 @@ var supportedShareTypes = map[string]bool{
 	"map":       true,
 	"upload":    true,
 	"recap":     true,
+	"table":     true,
 }
 
 func generateToken() string {
@@ -89,6 +90,8 @@ func canShareEntity(c *gin.Context, entityType string, entityID int64) bool {
 	case "character":
 		return checkCharacterAccess(c, entityID)
 	case "party":
+		return userCanAccessCampaign(c, entityID)
+	case "table":
 		return userCanAccessCampaign(c, entityID)
 	case "note":
 		var charID int64
@@ -249,6 +252,8 @@ func shareEntityLabel(entityType string, entityID int64) string {
 	case "character":
 		db.DB.QueryRow("SELECT name FROM characters WHERE id=?", entityID).Scan(&label)
 	case "party":
+		db.DB.QueryRow("SELECT name FROM campaigns WHERE id=?", entityID).Scan(&label)
+	case "table":
 		db.DB.QueryRow("SELECT name FROM campaigns WHERE id=?", entityID).Scan(&label)
 	case "note":
 		db.DB.QueryRow("SELECT title FROM character_notes WHERE id=?", entityID).Scan(&label)
@@ -510,6 +515,14 @@ func GetSharedEntity(c *gin.Context) {
 		}
 		c.JSON(http.StatusOK, r)
 
+	case "table":
+		state := TableStateForCampaign(entityID)
+		if state == nil {
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "campaign not found"})
+			return
+		}
+		c.JSON(http.StatusOK, state)
+
 	default:
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "unknown entity type"})
 	}
@@ -673,6 +686,13 @@ func GetSharedPage(c *gin.Context) {
 			return
 		}
 		renderSharePage(c, "share_recap.html", r)
+
+	case "table":
+		if TableStateForCampaign(entityID) == nil {
+			c.String(http.StatusNotFound, "Campaign not found.")
+			return
+		}
+		renderSharePage(c, "share_table.html", gin.H{"Token": c.Param("token")})
 
 	default:
 		c.String(http.StatusBadRequest, "This share type has no public page.")

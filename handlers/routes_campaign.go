@@ -52,6 +52,7 @@ func RegisterCampaignRoutes(r *gin.RouterGroup) {
 
 	// Campaign Dashboard
 	r.GET("/campaigns/:id/dashboard", GetCampaignDashboard)
+	r.GET("/campaigns/:id/table-state", GetCampaignTableState)
 	r.GET("/campaigns/:id/one-shots", ListCampaignOneShots)
 	r.PUT("/campaigns/:id/one-shots/reorder", ReorderCampaignOneShots)
 

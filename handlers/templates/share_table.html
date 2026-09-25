@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Table Screen</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #0e1014; color: #e8e6e3; margin: 0; padding: 20px 24px; }
+  header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+  header h1 { margin: 0; font-size: 2rem; letter-spacing: .01em; }
+  header .party { color: #9aa3b5; font-size: 1.1rem; }
+  header .live { margin-left: auto; color: #6b7385; font-size: .8rem; }
+  .grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 18px; align-items: start; }
+  .panel { background: #171a21; border: 1px solid #262b36; border-radius: 12px; padding: 14px 16px; }
+  .panel h2 { margin: 0 0 10px; font-size: .8rem; text-transform: uppercase; letter-spacing: .12em; color: #8b93a7; }
+  .row { padding: 8px 0; border-bottom: 1px solid #222732; }
+  .row:last-child { border-bottom: none; }
+  .row.current { background: #2a2413; margin: 0 -8px; padding: 8px; border-radius: 8px; border-bottom-color: transparent; }
+  .row .top { display: flex; align-items: center; gap: 8px; }
+  .row .nm { font-weight: 600; font-size: 1.05rem; }
+  .row .sv { margin-left: auto; color: #9aa3b5; font-size: .85rem; white-space: nowrap; }
+  .init { display: inline-block; min-width: 34px; text-align: center; background: #24303f; color: #bcd2ff; border-radius: 8px; padding: 2px 8px; font-weight: 700; }
+  .bar { height: 7px; background: #2a303c; border-radius: 999px; margin-top: 7px; overflow: hidden; }
+  .bar > span { display: block; height: 100%; background: #5fbf77; }
+  .bar.low > span { background: #d9a13b; }
+  .bar.crit > span { background: #d95d5d; }
+  .conds { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .cond { background: #3a2b2b; color: #e6b3b3; border-radius: 999px; padding: 1px 9px; font-size: .72rem; }
+  .badge { background: #24303f; color: #bcd2ff; border-radius: 999px; padding: 1px 9px; font-size: .72rem; }
+  .handout { padding: 9px 0; border-bottom: 1px solid #222732; }
+  .handout:last-child { border-bottom: none; }
+  .handout .t { font-weight: 600; }
+  .handout .c { color: #9aa3b5; font-size: .88rem; margin-top: 3px; white-space: pre-wrap; }
+  .roll { display: flex; gap: 8px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid #222732; }
+  .roll:last-child { border-bottom: none; }
+  .roll .n { color: #9aa3b5; font-size: .85rem; }
+  .roll .e { color: #8b93a7; font-size: .85rem; }
+  .roll .tot { margin-left: auto; font-weight: 700; font-size: 1.05rem; color: #e0c56a; }
+  .empty { color: #6b7385; font-size: .9rem; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="campName">Table</h1>
+  <span class="party" id="partyName"></span>
+  <span class="live" id="stamp"></span>
+</header>
+<div class="grid">
+  <section class="panel"><h2>Initiative</h2><div id="combat"><div class="empty">Loading…</div></div></section>
+  <section class="panel"><h2>Party</h2><div id="party"></div></section>
+  <div>
+    <section class="panel" style="margin-bottom:18px"><h2>Handouts</h2><div id="handouts"></div></section>
+    <section class="panel"><h2>Latest Rolls</h2><div id="rolls"></div></section>
+  </div>
+</div>
+<script>
+(function () {
+  var token = {{.Token}};
+  function esc(v) { var d = document.createElement('div'); d.textContent = v == null ? '' : String(v); return d.innerHTML; }
+  function bar(cur, max) {
+    var pct = max > 0 ? Math.max(0, Math.min(100, Math.round(cur / max * 100))) : 0;
+    var cls = pct <= 25 ? 'bar crit' : (pct <= 50 ? 'bar low' : 'bar');
+    return '<div class="' + cls + '"><span style="width:' + pct + '%"></span></div>';
+  }
+  function conds(list) {
+    if (!list || !list.length) return '';
+    return '<div class="conds">' + list.map(function (c) { return '<span class="cond">' + esc(c) + '</span>'; }).join('') + '</div>';
+  }
+  function render(s) {
+    document.getElementById('campName').textContent = s.campaign ? s.campaign.name : 'Table';
+    document.getElementById('partyName').textContent = s.campaign ? (s.campaign.party_name || '') : '';
+
+    var combat = s.combat || [];
+    document.getElementById('combat').innerHTML = combat.length ? combat.map(function (c) {
+      return '<div class="row' + (c.is_current ? ' current' : '') + '">' +
+        '<div class="top"><span class="init">' + c.initiative + '</span>' +
+        '<span class="nm">' + esc(c.name) + '</span>' +
+        '<span class="badge">' + esc(c.type) + '</span>' +
+        '<span class="sv">' + c.hp_current + ' / ' + c.hp_max + ' · AC ' + c.ac + '</span></div>' +
+        bar(c.hp_current, c.hp_max) + conds(c.conditions) + '</div>';
+    }).join('') : '<div class="empty">No active combat</div>';
+
+    var party = s.party || [];
+    document.getElementById('party').innerHTML = party.length ? party.map(function (p) {
+      return '<div class="row"><div class="top"><span class="nm">' + esc(p.name) + '</span>' +
+        '<span class="sv">' + esc(p.class) + (p.level ? ' ' + p.level : '') + '</span></div>' +
+        '<div class="top" style="margin-top:4px"><span class="sv" style="margin-left:0">' + p.hp_current + ' / ' + p.hp_max + ' · AC ' + p.ac + '</span></div>' +
+        bar(p.hp_current, p.hp_max) + conds(p.conditions) + '</div>';
+    }).join('') : '<div class="empty">No party characters</div>';
+
+    var handouts = s.handouts || [];
+    document.getElementById('handouts').innerHTML = handouts.length ? handouts.map(function (h) {
+      return '<div class="handout"><div class="t">' + esc(h.title) + ' <span class="badge">' + esc(h.status) + '</span></div>' +
+        (h.content ? '<div class="c">' + esc(h.content) + '</div>' : '') + '</div>';
+    }).join('') : '<div class="empty">Nothing revealed yet</div>';
+
+    var rolls = s.rolls || [];
+    document.getElementById('rolls').innerHTML = rolls.length ? rolls.map(function (r) {
+      return '<div class="roll"><span class="n">' + esc(r.name) + '</span><span class="e">' + esc(r.expression) + '</span>' +
+        '<span class="tot">' + r.total + '</span></div>';
+    }).join('') : '<div class="empty">No rolls yet</div>';
+
+    document.getElementById('stamp').textContent = 'Live · ' + new Date().toLocaleTimeString();
+  }
+  function refresh() {
+    fetch('/api/share/' + encodeURIComponent(token), { headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (s) { if (s) render(s); })
+      .catch(function () {});
+  }
+  refresh();
+  setInterval(refresh, 4000);
+})();
+</script>
+</body>
+</html>
