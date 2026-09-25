@@ -1,3 +1,10 @@
+# [2.75.0](https://github.com/martynvdijke/dnd/compare/v2.74.0...v2.75.0) (2026-09-25)
+
+
+### Features
+
+* add a live table screen share for a second display ([#142](https://github.com/martynvdijke/dnd/issues/142)) ([2f5c0f5](https://github.com/martynvdijke/dnd/commit/2f5c0f51754fc3c1192c51d88b614ef8d099b122))
+
 # [2.74.0](https://github.com/martynvdijke/dnd/compare/v2.73.0...v2.74.0) (2026-09-25)
 
 
