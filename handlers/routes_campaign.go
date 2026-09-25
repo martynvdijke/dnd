@@ -39,6 +39,9 @@ func RegisterCampaignRoutes(r *gin.RouterGroup) {
 	r.POST("/campaigns/:id/session-plans", CreateSessionPlan)
 	r.PUT("/session-plans/:id", UpdateSessionPlan)
 	r.DELETE("/session-plans/:id", DeleteSessionPlan)
+	r.GET("/session-plans/:id/rsvps", ListSessionRSVPs)
+	r.PUT("/session-plans/:id/rsvp", SetSessionRSVP)
+	r.PUT("/session-plans/:id/attendance", SetSessionAttendance)
 
 	// Wiki
 	r.GET("/campaigns/:id/wiki", ListWikiPages)

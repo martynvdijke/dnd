@@ -179,20 +179,41 @@ expose('showSessionPlanner', async function (campaignId: number) {
   showModal('Session Planner', `<div id="sessionPlanContent"><div class="ornament">✧ Loading sessions... ✧</div></div>`);
   try {
     const plans = await api('GET', `/api/campaigns/${campaignId}/session-plans`);
+    const rsvpData = await Promise.all(plans.map((p: any) =>
+      api('GET', `/api/session-plans/${p.id}/rsvps`).catch(() => ({ rsvps: [], counts: { yes: 0, maybe: 0, no: 0, total: 0 }, my_status: '' }))
+    ));
     const statusBadge = (s: string) => {
       const cls = s === 'planned' ? 'status-badge-planned' : s === 'ready' ? 'status-badge-ready' : s === 'in-progress' ? 'status-badge-in-progress' : 'status-badge-completed';
       return `<span class="${cls}">${esc(s)}</span>`;
     };
+    const rsvpControls = (p: any, data: any) => {
+      const c = data?.counts || {};
+      const mine = data?.my_status || '';
+      const btn = (status: string, label: string, cls: string) =>
+        `<button class="btn btn-sm ${mine === status ? cls : 'btn-outline-secondary'}" onclick="setSessionRsvp(${campaignId}, ${p.id}, '${status}')">${label}</button>`;
+      return `
+        <div class="d-flex align-items-center gap-2 mt-2 flex-wrap" id="rsvp-${p.id}">
+          ${btn('yes', 'Going', 'btn-success')}
+          ${btn('maybe', 'Maybe', 'btn-warning')}
+          ${btn('no', "Can't", 'btn-danger')}
+          <span class="small text-muted">
+            <i class="fa-solid fa-check text-success"></i> ${c.yes || 0}
+            <i class="fa-solid fa-question text-warning ms-2"></i> ${c.maybe || 0}
+            <i class="fa-solid fa-xmark text-danger ms-2"></i> ${c.no || 0}
+          </span>
+          <button class="btn btn-sm btn-outline-info ms-auto" onclick="showSessionAttendance(${campaignId}, ${p.id})" title="Mark attendance"><i class="fa-solid fa-clipboard-check"></i></button>
+        </div>`;
+    };
     const content = `
       <button class="btn btn-gold btn-sm mb-2" onclick="showSessionPlanForm(${campaignId})"><i class="fa-solid fa-plus me-1"></i>New Session Plan</button>
-      ${plans.length ? plans.map((p: any) => `
+      ${plans.length ? plans.map((p: any, i: number) => `
         <div class="session-plan-card">
           <div class="d-flex justify-content-between align-items-start">
             <div>
               <div class="plan-title">${esc(p.title)}</div>
               <div class="plan-meta">
                 ${p.session_date ? `<span><i class="fa-regular fa-calendar me-1"></i>${esc(p.session_date)}</span>` : ''}
-                ${p.expected_duration ? `<span class="ms-2"><i class="fa-regular fa-clock me-1"></i>${esc(p.expected_duration)}</span>` : ''}
+                ${p.expected_duration ? `<span class="ms-2"><i class="fa-regular fa-clock me-1"></i>${p.expected_duration} min</span>` : ''}
               </div>
             </div>
             <div class="d-flex gap-1 align-items-center">
@@ -202,6 +223,7 @@ expose('showSessionPlanner', async function (campaignId: number) {
             </div>
           </div>
           ${p.dm_notes ? `<div class="small text-muted mt-1">${esc(p.dm_notes.substring(0, 200))}${p.dm_notes.length > 200 ? '...' : ''}</div>` : ''}
+          ${rsvpControls(p, rsvpData[i])}
         </div>
       `).join('') : '<div class="text-muted small fst-italic">No session plans yet. Create one to get started!</div>'}
       <div class="text-center mt-3">
@@ -213,6 +235,48 @@ expose('showSessionPlanner', async function (campaignId: number) {
   }
 });
 
+// Set the current user's RSVP for a session plan and refresh the planner.
+expose('setSessionRsvp', async function (campaignId: number, planId: number, status: string) {
+  try {
+    await api('PUT', `/api/session-plans/${planId}/rsvp`, { status, note: '' });
+    toast(status === 'yes' ? "You're in!" : status === 'maybe' ? 'Marked as maybe' : "Marked as can't make it");
+    (window as any).showSessionPlanner(campaignId);
+  } catch (e: any) {
+    toast(e.message || 'Failed to save RSVP', true);
+  }
+});
+
+// DM view: toggle attendance for each member of a session.
+expose('showSessionAttendance', async function (campaignId: number, planId: number) {
+  showModal('Attendance', `<div id="attendanceContent"><div class="ornament">✧ Loading... ✧</div></div>`);
+  try {
+    const data = await api('GET', `/api/session-plans/${planId}/rsvps`);
+    const rows = (data.rsvps || []).map((r: any) => `
+      <div class="d-flex align-items-center justify-content-between border-bottom py-2">
+        <div>
+          <span class="fw-bold">${esc(r.username)}</span>
+          ${r.status ? `<span class="badge bg-secondary ms-2">${esc(r.status)}</span>` : '<span class="badge bg-light text-dark ms-2">no reply</span>'}
+        </div>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" ${r.attended ? 'checked' : ''} onchange="setSessionAttendance(${planId}, ${r.user_id}, this.checked)">
+        </div>
+      </div>`).join('');
+    document.getElementById('attendanceContent')!.innerHTML = `
+      ${rows || '<div class="text-muted small fst-italic">No members.</div>'}
+      <div class="text-center mt-3"><button class="btn btn-sm btn-outline-secondary" onclick="hideModal()">Done</button></div>`;
+  } catch (e: any) {
+    document.getElementById('attendanceContent')!.innerHTML = `<p class="text-danger">${esc(e.message)}</p>`;
+  }
+});
+
+expose('setSessionAttendance', async function (planId: number, userId: number, attended: boolean) {
+  try {
+    await api('PUT', `/api/session-plans/${planId}/attendance`, { user_id: userId, attended });
+  } catch (e: any) {
+    toast(e.message || 'Failed to update attendance', true);
+  }
+});
+
 expose('showSessionPlanForm', function (campaignId: number, plan?: any) {
   const isEdit = !!plan;
   const title = isEdit ? 'Edit Session Plan' : 'New Session Plan';
@@ -220,7 +284,7 @@ expose('showSessionPlanForm', function (campaignId: number, plan?: any) {
     <div class="mb-2"><label class="form-label">Title</label><input class="form-control" id="spTitle" value="${isEdit ? esc(plan.title) : ''}"></div>
     <div class="row g-2 mb-2">
       <div class="col-6"><label class="form-label">Session Date</label><input class="form-control" id="spDate" type="date" value="${isEdit && plan.session_date ? plan.session_date : ''}"></div>
-      <div class="col-6"><label class="form-label">Expected Duration</label><input class="form-control" id="spDuration" placeholder="e.g. 3 hours" value="${isEdit ? esc(plan.expected_duration || '') : ''}"></div>
+      <div class="col-6"><label class="form-label">Expected Duration (minutes)</label><input class="form-control" id="spDuration" type="number" min="0" step="15" placeholder="e.g. 180" value="${isEdit && plan.expected_duration ? Number(plan.expected_duration) : ''}"></div>
     </div>
     <div class="mb-2"><label class="form-label">Status</label>
       <select class="form-select" id="spStatus">
@@ -250,7 +314,7 @@ expose('saveSessionPlan', async function (campaignId: number, planId?: number) {
     planned_encounters: JSON.stringify(encounters),
     npc_ids: '[]',
     player_goals: JSON.stringify(goals),
-    expected_duration: (document.getElementById('spDuration') as HTMLInputElement).value,
+    expected_duration: Number((document.getElementById('spDuration') as HTMLInputElement).value) || 0,
   };
   if (planId) {
     await api('PUT', `/api/session-plans/${planId}`, body);
