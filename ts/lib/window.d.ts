@@ -53,6 +53,11 @@ declare global {
     loadCompendiumTab: (tab: string) => void;
     renameParty: (id: number, name: string, desc: string) => void;
     showCampaignDashboard: (id: number, name: string) => void;
+    playAmbience: (track: string, volume?: number) => void;
+    stopAmbience: () => void;
+    showAmbienceControls: (campaignId: number) => void;
+    ambiencePlay: (campaignId: number, track: string) => Promise<void>;
+    ambienceStop: (campaignId: number) => Promise<void>;
     showCharStatsModal: (id: number) => Promise<void>;
     showCharNotes: (id: number) => void;
     renderStepper: (field: string, value: number, delta: number, min?: number, max?: number, label?: string, size?: string) => string;

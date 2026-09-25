@@ -2,6 +2,7 @@ import { expose } from '../lib/expose';
 import { esc, showModal, hideModal, toast } from '../lib/dom';
 import { api } from '../lib/api';
 import { showView } from '../navigation';
+import { playAmbience, stopAmbience, listAmbienceTracks } from '../lib/ambience';
 
 // Campaign Completeness Enhancements
 // ═══════════════════════════════════════════
@@ -90,6 +91,7 @@ expose('showCampaignDashboard', async function (campaignId: number, campaignName
       </div>
       <div class="text-center mt-3 d-flex gap-2 justify-content-center">
         <button class="btn btn-sm btn-outline-warning" onclick="showTableScreen(${campaignId})"><i class="fa-solid fa-tv me-1"></i>Table Screen</button>
+        <button class="btn btn-sm btn-outline-light" onclick="showAmbienceControls(${campaignId})"><i class="fa-solid fa-music me-1"></i>Ambience</button>
         <button class="btn btn-sm btn-outline-info" onclick="showTransferExport(undefined, ${campaignId})"><i class="fa-solid fa-download me-1"></i>Export Campaign</button>
         <button class="btn btn-sm btn-outline-secondary" onclick="hideModal()">Close</button>
       </div>`;
@@ -343,5 +345,46 @@ expose('showTableScreen', async function (campaignId: number) {
     toast('Table screen opened in a new tab');
   } catch {
     toast('Could not open table screen', true);
+  }
+});
+
+// ─── Ambience / soundboard ───
+// Broadcasts a synthesized soundscape to every connected campaign screen.
+expose('showAmbienceControls', function (campaignId: number) {
+  const active = (document.body.dataset.ambience || '') as string;
+  const buttons = listAmbienceTracks().map((t) => `
+    <button class="btn ${active === t.key ? 'btn-gold' : 'btn-outline-light'} mb-2"
+            onclick="ambiencePlay(${campaignId},'${t.key}')">
+      <i class="fa-solid ${t.icon} me-1"></i>${t.label}
+    </button>`).join('');
+  showModal('Table Ambience', `
+    <div class="d-flex flex-wrap gap-2">${buttons}</div>
+    <hr>
+    <button class="btn btn-outline-danger w-100" onclick="ambienceStop(${campaignId})">
+      <i class="fa-solid fa-volume-xmark me-1"></i>Stop Ambience
+    </button>
+    <p class="small text-muted mt-2 mb-0">Sound is synthesized in the browser — every connected
+    screen and the table display hear the same soundscape.</p>`);
+});
+
+expose('ambiencePlay', async function (campaignId: number, track: string) {
+  try {
+    await api('POST', `/api/campaigns/${campaignId}/ambience`, { track, action: 'play', volume: 0.5 });
+    playAmbience(track, 0.5);
+    toast(`${track} ambience playing`);
+    (window as any).showAmbienceControls?.(campaignId);
+  } catch {
+    toast('Could not set ambience', true);
+  }
+});
+
+expose('ambienceStop', async function (campaignId: number) {
+  try {
+    await api('POST', `/api/campaigns/${campaignId}/ambience`, { action: 'stop' });
+    stopAmbience();
+    toast('Ambience stopped');
+    hideModal();
+  } catch {
+    toast('Could not stop ambience', true);
   }
 });

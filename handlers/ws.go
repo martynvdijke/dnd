@@ -160,6 +160,7 @@ const (
 	WSEventKnowledgeReveal = "knowledge_reveal"
 	WSEventSceneEffect     = "scene_effect"
 	WSEventSpellCast       = "spell_cast"
+	WSEventAmbience        = "ambience"
 )
 
 // broadcastToCampaign marshals a payload and fans it out to campaign members.
@@ -233,6 +234,18 @@ func SendSpellCast(campaignID, characterID, spellID int64, name, school string, 
 		Level:       level,
 		Effect:      effect,
 	})
+}
+
+// AmbienceEvent tells clients to play or stop a synthesized ambience loop.
+type AmbienceEvent struct {
+	Track  string  `json:"track"`
+	Action string  `json:"action"`
+	Volume float64 `json:"volume"`
+}
+
+// SendAmbience relays an ambience play/stop command to campaign members.
+func SendAmbience(campaignID int64, track, action string, volume float64) {
+	broadcastToCampaign(campaignID, WSEventAmbience, AmbienceEvent{Track: track, Action: action, Volume: volume})
 }
 
 // SendKnowledgeReveal broadcasts a knowledge entry that just became shared.
