@@ -1,3 +1,10 @@
+# [2.74.0](https://github.com/martynvdijke/dnd/compare/v2.73.0...v2.74.0) (2026-09-25)
+
+
+### Features
+
+* apply spell damage and healing to combat targets ([#141](https://github.com/martynvdijke/dnd/issues/141)) ([afc555a](https://github.com/martynvdijke/dnd/commit/afc555accec9bdf2804463cc8faf9161610fdeca))
+
 # [2.73.0](https://github.com/martynvdijke/dnd/compare/v2.72.0...v2.73.0) (2026-09-25)
 
 
