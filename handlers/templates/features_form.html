@@ -1,8 +1,15 @@
-<form><input type="hidden" name="character_id" value="{{.CharacterID}}">
-<div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="featName" name="name"></div>
-<div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="featDesc" name="description" rows="3"></textarea></div>
+<form>{{if .Feature}}
+<input type="hidden" name="id" value="{{.Feature.ID}}">
+{{end}}
+<input type="hidden" name="character_id" value="{{.CharacterID}}">
+<div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="featName" name="name" value="{{if .Feature}}{{.Feature.Name}}{{end}}"></div>
+<div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="featDesc" name="description" rows="3">{{if .Feature}}{{.Feature.Description}}{{end}}</textarea></div>
 <div class="row g-3 mb-3">
-  <div class="col-6"><label class="form-label">Source</label><input class="form-control" id="featSource" name="source" placeholder="Class, Race, etc."></div>
-  <div class="col-6"><label class="form-label">Level Gained</label><input class="form-control" id="featLevel" name="level_gained" type="number" value="1"></div>
+  <div class="col-6"><label class="form-label">Source</label><input class="form-control" id="featSource" name="source" placeholder="Class, Race, etc." value="{{if .Feature}}{{.Feature.Source}}{{end}}"></div>
+  <div class="col-6"><label class="form-label">Level Gained</label><input class="form-control" id="featLevel" name="level_gained" type="number" value="{{if .Feature}}{{.Feature.LevelGained}}{{else}}1{{end}}"></div>
 </div>
+{{if .Feature}}
+<button class="btn btn-primary w-100" hx-put="/htmx/features/{{.Feature.ID}}" hx-target="#featuresSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-floppy-disk me-1"></i>Save Feature</button></form>
+{{else}}
 <button class="btn btn-primary w-100" hx-post="/htmx/features" hx-target="#featuresSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add Feature</button></form>
+{{end}}

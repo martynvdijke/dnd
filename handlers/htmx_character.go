@@ -413,6 +413,8 @@ type htmxFeatureData struct {
 	CharacterID   int64
 	Features      []models.Feature
 	Proficiencies []models.Proficiency
+	Feature       *models.Feature
+	Proficiency   *models.Proficiency
 }
 
 func HtmxListFeatures(c *gin.Context) {
@@ -464,6 +466,30 @@ func HtmxNewFeatureForm(c *gin.Context) {
 	renderTemplate(c, "features_form.html", htmxFeatureData{CharacterID: cid})
 }
 
+func HtmxEditFeatureForm(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var f models.Feature
+	err := db.DB.QueryRow("SELECT id, character_id, name, description, source, level_gained FROM character_features WHERE id=?", id).Scan(&f.ID, &f.CharacterID, &f.Name, &f.Description, &f.Source, &f.LevelGained)
+	if err != nil {
+		c.String(http.StatusNotFound, "not found")
+		return
+	}
+	renderTemplate(c, "features_form.html", htmxFeatureData{CharacterID: f.CharacterID, Feature: &f})
+}
+
+func HtmxUpdateFeature(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
+	db.DB.Exec("UPDATE character_features SET name=?, description=?, source=?, level_gained=? WHERE id=?",
+		c.PostForm("name"), c.PostForm("description"), c.PostForm("source"), getIntParam(c, "level_gained", 1), id)
+	c.Request.URL.RawQuery = "character_id=" + charID
+	HtmxListFeatures(c)
+}
+
 func HtmxCreateFeature(c *gin.Context) {
 	charID := c.PostForm("character_id")
 	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
@@ -501,6 +527,30 @@ func HtmxNewProficiencyForm(c *gin.Context) {
 	charID := c.Query("character_id")
 	cid, _ := strconv.ParseInt(charID, 10, 64)
 	renderTemplate(c, "proficiencies_form.html", htmxFeatureData{CharacterID: cid})
+}
+
+func HtmxEditProficiencyForm(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var p models.Proficiency
+	err := db.DB.QueryRow("SELECT id, character_id, type, name FROM character_proficiencies WHERE id=?", id).Scan(&p.ID, &p.CharacterID, &p.Type, &p.Name)
+	if err != nil {
+		c.String(http.StatusNotFound, "not found")
+		return
+	}
+	renderTemplate(c, "proficiencies_form.html", htmxFeatureData{CharacterID: p.CharacterID, Proficiency: &p})
+}
+
+func HtmxUpdateProficiency(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
+	db.DB.Exec("UPDATE character_proficiencies SET type=?, name=? WHERE id=?",
+		c.PostForm("type"), c.PostForm("name"), id)
+	c.Request.URL.RawQuery = "character_id=" + charID
+	HtmxListFeatures(c)
 }
 
 func HtmxCreateProficiency(c *gin.Context) {

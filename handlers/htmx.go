@@ -246,12 +246,16 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		// Features
 		{"GET", "/htmx/features", HtmxListFeatures},
 		{"GET", "/htmx/features/new", HtmxNewFeatureForm},
+		{"GET", "/htmx/features/:id/edit", HtmxEditFeatureForm},
 		{"POST", "/htmx/features", HtmxCreateFeature},
+		{"PUT", "/htmx/features/:id", HtmxUpdateFeature},
 		{"DELETE", "/htmx/features/:id", HtmxDeleteFeature},
 
 		// Proficiencies
 		{"GET", "/htmx/proficiencies/new", HtmxNewProficiencyForm},
+		{"GET", "/htmx/proficiencies/:id/edit", HtmxEditProficiencyForm},
 		{"POST", "/htmx/proficiencies", HtmxCreateProficiency},
+		{"PUT", "/htmx/proficiencies/:id", HtmxUpdateProficiency},
 		{"DELETE", "/htmx/proficiencies/:id", HtmxDeleteProficiency},
 
 		// Inventory

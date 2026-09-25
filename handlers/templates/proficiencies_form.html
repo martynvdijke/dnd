@@ -1,14 +1,21 @@
-<form><input type="hidden" name="character_id" value="{{.CharacterID}}">
-<div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="profName" name="name"></div>
+<form>{{if .Proficiency}}
+<input type="hidden" name="id" value="{{.Proficiency.ID}}">
+{{end}}
+<input type="hidden" name="character_id" value="{{.CharacterID}}">
+<div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="profName" name="name" value="{{if .Proficiency}}{{.Proficiency.Name}}{{end}}"></div>
 <div class="mb-3"><label class="form-label">Type</label>
   <select class="form-select" name="type">
-    <option value="skill">Skill</option>
-    <option value="save">Saving Throw</option>
-    <option value="tool">Tool</option>
-    <option value="weapon">Weapon</option>
-    <option value="armor">Armor</option>
-    <option value="language">Language</option>
-    <option value="other">Other</option>
+    <option value="skill" {{if and .Proficiency (eq .Proficiency.Type "skill")}}selected{{end}}>Skill</option>
+    <option value="save" {{if and .Proficiency (eq .Proficiency.Type "save")}}selected{{end}}>Saving Throw</option>
+    <option value="tool" {{if and .Proficiency (eq .Proficiency.Type "tool")}}selected{{end}}>Tool</option>
+    <option value="weapon" {{if and .Proficiency (eq .Proficiency.Type "weapon")}}selected{{end}}>Weapon</option>
+    <option value="armor" {{if and .Proficiency (eq .Proficiency.Type "armor")}}selected{{end}}>Armor</option>
+    <option value="language" {{if and .Proficiency (eq .Proficiency.Type "language")}}selected{{end}}>Language</option>
+    <option value="other" {{if and .Proficiency (eq .Proficiency.Type "other")}}selected{{end}}>Other</option>
   </select>
 </div>
+{{if .Proficiency}}
+<button class="btn btn-primary w-100" hx-put="/htmx/proficiencies/{{.Proficiency.ID}}" hx-target="#featuresSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-floppy-disk me-1"></i>Save Proficiency</button></form>
+{{else}}
 <button class="btn btn-primary w-100" hx-post="/htmx/proficiencies" hx-target="#featuresSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Add Proficiency</button></form>
+{{end}}
