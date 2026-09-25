@@ -1,3 +1,11 @@
+# [2.76.0](https://github.com/martynvdijke/dnd/compare/v2.75.0...v2.76.0) (2026-09-25)
+
+
+### Features
+
+* add a synthesized ambience soundboard for the table ([#144](https://github.com/martynvdijke/dnd/issues/144)) ([6c53f8a](https://github.com/martynvdijke/dnd/commit/6c53f8a57d524c2c7fca1cb476d7b52a9bd3a418))
+* add session RSVP and attendance tracking ([#143](https://github.com/martynvdijke/dnd/issues/143)) ([6cd09b4](https://github.com/martynvdijke/dnd/commit/6cd09b4a44f0870841470ffb5cf1ee035ea2f851))
+
 # [2.75.0](https://github.com/martynvdijke/dnd/compare/v2.74.0...v2.75.0) (2026-09-25)
 
 
