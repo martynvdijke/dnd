@@ -1,0 +1,6 @@
+name: Tmp Otel Test
+on:
+  workflow_dispatch:
+jobs:
+  t:
+    uses: ./.github/workflows/otel.yaml
