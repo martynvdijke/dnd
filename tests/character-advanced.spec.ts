@@ -321,4 +321,30 @@ test.describe('Character Advanced Features', () => {
       expect(found.type).toBe('mount');
     });
   });
+
+  // ─── Spell Casting (WLED-reactive) ───
+
+  test.describe('Spell Casting', () => {
+    test('cast a spell consumes a slot and returns a WLED effect', async ({ page }) => {
+      const char = await createCharacter(page, uniqueName());
+      const spell = await page.evaluate(async (cid) => {
+        return (window as any).api('POST', `/api/characters/${cid}/spells`, {
+          name: 'Fireball', level: 3, school: 'Evocation', prepared: true,
+        });
+      }, char.id);
+      expect(spell.id).toBeGreaterThan(0);
+
+      await page.evaluate(async (cid) => {
+        return (window as any).api('PUT', `/api/characters/${cid}/spellcasting`, {
+          ability: 'int', slots_3_max: 2, slots_3_used: 0,
+        });
+      }, char.id);
+
+      const res = await page.evaluate(async ({ cid, sid }) => {
+        return (window as any).api('POST', `/api/characters/${cid}/cast-spell`, { spell_id: sid });
+      }, { cid: char.id, sid: spell.id });
+      expect(res.effect).toBe('fire');
+      expect(res.slot_consumed).toBe(true);
+    });
+  });
 });

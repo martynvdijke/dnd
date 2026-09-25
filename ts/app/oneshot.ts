@@ -4,6 +4,9 @@ import { esc, attrEscape, capitalize, showModal, hideModal, toast, openCompendiu
 import { api } from '../lib/api';
 import { showView } from '../navigation';
 import { compendiumSearchModal } from '../compendium-search';
+import { playSceneEffect } from '../lib/scene-fx';
+
+export { playSceneEffect };
 
 // ─── One-Shot Tree UI (SortableJS Drag-Reorder) ───
 
@@ -707,17 +710,6 @@ expose('linkCompendiumItemToNPC', async function (adventureId: number, npcId: nu
 });
 
 // ─── Scene Special Effects (live table) ───
-
-const SCENE_FX = ['fire', 'smoke', 'lightning', 'rain', 'snow', 'darkness', 'sparkle'];
-
-export function playSceneEffect(effect: string) {
-  const name = (effect || '').toLowerCase();
-  if (!SCENE_FX.includes(name)) return;
-  const el = document.createElement('div');
-  el.className = `scene-fx scene-fx-${name}`;
-  document.body.appendChild(el);
-  window.setTimeout(() => el.remove(), 4500);
-}
 
 expose('playSceneEffect', playSceneEffect);
 

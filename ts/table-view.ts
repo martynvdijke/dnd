@@ -132,6 +132,18 @@ export function handleLiveRoll(payload: any): void {
   feed.appendChild(line);
 }
 
+export function handleSpellCast(payload: any): void {
+  const label = `${payload?.name || 'Spell'}${payload?.level ? ' (Lv ' + payload.level + ')' : ''}`;
+  toast(`${label} cast!`);
+  if (!isTableVisible()) return;
+  const feed = document.querySelector('[data-testid="table-roll-feed"]');
+  if (!feed) return;
+  const line = document.createElement('div');
+  line.className = 'spell-cast-line';
+  line.textContent = `\u2728 ${label} cast`;
+  feed.appendChild(line);
+}
+
 export async function refreshTableInitiative(): Promise<void> {
   if (!isTableVisible()) return;
   const cid = activeCid || (currentCampaign as any)?.id;
@@ -154,5 +166,6 @@ expose('showTable', showTable);
 expose('hideTable', hideTable);
 expose('rollFromTable', rollFromTable);
 expose('handleLiveRoll', handleLiveRoll);
+expose('handleSpellCast', handleSpellCast);
 expose('refreshTableInitiative', refreshTableInitiative);
 expose('refreshTableHandouts', refreshTableHandouts);

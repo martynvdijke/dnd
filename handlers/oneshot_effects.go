@@ -59,5 +59,6 @@ func TriggerSceneEffect(c *gin.Context) {
 		}
 	}
 
+	NotifyWLEDEffect(effect)
 	WriteJSON(c, http.StatusOK, gin.H{"ok": true, "effect": effect})
 }

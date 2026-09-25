@@ -159,6 +159,7 @@ const (
 	WSEventCombatUpdate    = "combat_update"
 	WSEventKnowledgeReveal = "knowledge_reveal"
 	WSEventSceneEffect     = "scene_effect"
+	WSEventSpellCast       = "spell_cast"
 )
 
 // broadcastToCampaign marshals a payload and fans it out to campaign members.
@@ -210,6 +211,28 @@ type SceneEffectEvent struct {
 // SendSceneEffect relays a scene's special effect to campaign members.
 func SendSceneEffect(campaignID, sceneID int64, effect string) {
 	broadcastToCampaign(campaignID, WSEventSceneEffect, SceneEffectEvent{SceneID: sceneID, Effect: effect})
+}
+
+// SpellCastEvent is the spell_cast payload for the live table.
+type SpellCastEvent struct {
+	CharacterID int64  `json:"character_id"`
+	SpellID     int64  `json:"spell_id"`
+	Name        string `json:"name"`
+	School      string `json:"school"`
+	Level       int    `json:"level"`
+	Effect      string `json:"effect"`
+}
+
+// SendSpellCast relays a cast spell to campaign members (banner + WLED).
+func SendSpellCast(campaignID, characterID, spellID int64, name, school string, level int, effect string) {
+	broadcastToCampaign(campaignID, WSEventSpellCast, SpellCastEvent{
+		CharacterID: characterID,
+		SpellID:     spellID,
+		Name:        name,
+		School:      school,
+		Level:       level,
+		Effect:      effect,
+	})
 }
 
 // SendKnowledgeReveal broadcasts a knowledge entry that just became shared.
