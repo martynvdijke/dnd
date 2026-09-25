@@ -1,3 +1,10 @@
+# [2.69.0](https://github.com/martynvdijke/dnd/compare/v2.68.0...v2.69.0) (2026-09-25)
+
+
+### Features
+
+* add live special effects to one-shot scenes ([#136](https://github.com/martynvdijke/dnd/issues/136)) ([a1acd01](https://github.com/martynvdijke/dnd/commit/a1acd01833c68896034dc76668a5bd554a0c7d13))
+
 # [2.68.0](https://github.com/martynvdijke/dnd/compare/v2.67.0...v2.68.0) (2026-09-25)
 
 
