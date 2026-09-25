@@ -4,6 +4,11 @@ on:
   workflow_call:
 
 jobs:
+  # No `permissions:` here on purpose. This reusable workflow is called by
+  # renovate.yml / stale-branches.yml, whose token grants do not include the
+  # actions/pull-requests/checks scopes. Requesting them from the called
+  # workflow exceeded the callers' grants and failed the run at startup.
+  # Re-add scopes here AND grant them in the callers before re-enabling the action.
   otel:
     name: OpenTelemetry Export Trace
     runs-on: ubuntu-latest

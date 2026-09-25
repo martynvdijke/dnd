@@ -1,6 +1,0 @@
-name: Tmp Otel Test
-on:
-  push:
-jobs:
-  t:
-    uses: ./.github/workflows/otel.yaml
