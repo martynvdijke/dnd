@@ -134,17 +134,62 @@ func loadAdventureLocations(adventureID int64) []models.OneShotAdventureLocation
 	return out
 }
 
+func scanEncounterLinks(rows *sql.Rows) []models.OneShotAdventureEncounter {
+	out := make([]models.OneShotAdventureEncounter, 0)
+	for rows.Next() {
+		var enc models.OneShotAdventureEncounter
+		var actID sql.NullInt64
+		rows.Scan(&enc.ID, &enc.AdventureID, &actID, &enc.EncounterID, &enc.EncounterName)
+		if actID.Valid {
+			v := actID.Int64
+			enc.ActID = &v
+		}
+		out = append(out, enc)
+	}
+	return out
+}
+
 func loadAdventureEncounters(adventureID int64) []models.OneShotAdventureEncounter {
-	rows, err := db.DB.Query("SELECT oae.id, oae.adventure_id, oae.encounter_id, COALESCE(e.name,'') FROM oneshot_adventure_encounters oae LEFT JOIN encounter_templates e ON oae.encounter_id=e.id WHERE oae.adventure_id=?", adventureID)
+	rows, err := db.DB.Query("SELECT oae.id, oae.adventure_id, oae.act_id, oae.encounter_id, COALESCE(e.name,'') FROM oneshot_adventure_encounters oae LEFT JOIN encounter_templates e ON oae.encounter_id=e.id WHERE oae.adventure_id=?", adventureID)
 	if err != nil {
 		return nil
 	}
 	defer rows.Close()
-	out := make([]models.OneShotAdventureEncounter, 0)
+	return scanEncounterLinks(rows)
+}
+
+func loadActEncounters(actID int64) []models.OneShotAdventureEncounter {
+	rows, err := db.DB.Query("SELECT oae.id, oae.adventure_id, oae.act_id, oae.encounter_id, COALESCE(e.name,'') FROM oneshot_adventure_encounters oae LEFT JOIN encounter_templates e ON oae.encounter_id=e.id WHERE oae.act_id=? ORDER BY oae.id", actID)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	return scanEncounterLinks(rows)
+}
+
+// candidateEncounters lists encounters a DM can link into an adventure: the
+// adventure's campaign encounters when linked to a campaign, else the owner's.
+func candidateEncounters(adventureID int64) []models.EncounterTemplate {
+	var campaignID, userID int64
+	if err := db.DB.QueryRow("SELECT COALESCE(campaign_id,0), user_id FROM oneshot_adventures WHERE id=?", adventureID).Scan(&campaignID, &userID); err != nil {
+		return nil
+	}
+	var rows *sql.Rows
+	var err error
+	if campaignID != 0 {
+		rows, err = db.DB.Query("SELECT id, campaign_id, user_id, name, description, environment, difficulty, xp_budget, total_xp, notes, created_at FROM encounter_templates WHERE campaign_id=? ORDER BY created_at DESC", campaignID)
+	} else {
+		rows, err = db.DB.Query("SELECT id, campaign_id, user_id, name, description, environment, difficulty, xp_budget, total_xp, notes, created_at FROM encounter_templates WHERE user_id=? ORDER BY created_at DESC", userID)
+	}
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	out := make([]models.EncounterTemplate, 0)
 	for rows.Next() {
-		var enc models.OneShotAdventureEncounter
-		rows.Scan(&enc.ID, &enc.AdventureID, &enc.EncounterID, &enc.EncounterName)
-		out = append(out, enc)
+		var e models.EncounterTemplate
+		rows.Scan(&e.ID, &e.CampaignID, &e.UserID, &e.Name, &e.Description, &e.Environment, &e.Difficulty, &e.XPBudget, &e.TotalXP, &e.Notes, &e.CreatedAt)
+		out = append(out, e)
 	}
 	return out
 }
@@ -247,6 +292,24 @@ func loadAdventureDetail(ctx context.Context, adventureID int64) (*models.OneSho
 	a.NPCs = loadAdventureNPCs(adventureID)
 	a.Locations = loadAdventureLocations(adventureID)
 	a.Encounters = loadAdventureEncounters(adventureID)
+
+	// Attach encounter names to each act's links (the act edge loads ids only).
+	nameByEncounter := make(map[int64]string, len(a.Encounters))
+	for _, enc := range a.Encounters {
+		if enc.EncounterName != "" {
+			nameByEncounter[enc.EncounterID] = enc.EncounterName
+		}
+	}
+	var nameActEncounters func(acts []models.OneShotAct)
+	nameActEncounters = func(acts []models.OneShotAct) {
+		for i := range acts {
+			for j := range acts[i].Encounters {
+				acts[i].Encounters[j].EncounterName = nameByEncounter[acts[i].Encounters[j].EncounterID]
+			}
+			nameActEncounters(acts[i].Children)
+		}
+	}
+	nameActEncounters(a.Acts)
 
 	var isMiniCampaign int
 	db.DB.QueryRow("SELECT COALESCE(is_mini_campaign,0) FROM oneshot_adventures WHERE id=?", adventureID).Scan(&isMiniCampaign)

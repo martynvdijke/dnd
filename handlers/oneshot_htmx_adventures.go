@@ -12,19 +12,20 @@ import (
 )
 
 type htmxOneShotData struct {
-	Adventure    *models.OneShotAdventure
-	Adventures   []models.OneShotAdventure
-	NPCs         []models.NPC
-	Locations    []models.Location
-	Encounters   []models.EncounterTemplate
-	Act          *models.OneShotAct
-	Scene        *models.OneShotScene
-	SceneTypes   []string
-	Templates    []string
-	Difficulties []string
-	Acts         []models.OneShotAct
-	Dialogs      []models.OneShotSceneDialog
-	Dialog       *models.OneShotSceneDialog
+	Adventure     *models.OneShotAdventure
+	Adventures    []models.OneShotAdventure
+	NPCs          []models.NPC
+	Locations     []models.Location
+	Encounters    []models.EncounterTemplate
+	Act           *models.OneShotAct
+	Scene         *models.OneShotScene
+	SceneTypes    []string
+	ActEncounters []models.OneShotAdventureEncounter
+	Templates     []string
+	Difficulties  []string
+	Acts          []models.OneShotAct
+	Dialogs       []models.OneShotSceneDialog
+	Dialog        *models.OneShotSceneDialog
 }
 
 func HtmxListOneShots(c *gin.Context) {

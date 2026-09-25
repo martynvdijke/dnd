@@ -100,6 +100,7 @@ func HtmxSceneForm(c *gin.Context) {
 	data := htmxOneShotData{
 		Scene:      &models.OneShotScene{ActID: actID, SceneType: "roleplay", EstimatedMinutes: 15},
 		SceneTypes: []string{"roleplay", "combat", "exploration", "puzzle", "climax"},
+		Encounters: candidateEncounters(adventureID),
 	}
 	renderTemplate(c, "oneshot_scene_form.html", data)
 }
@@ -129,9 +130,13 @@ func HtmxEditSceneForm(c *gin.Context) {
 		ms.EncounterID = &eid
 	}
 
+	var adventureID int64
+	db.DB.QueryRow("SELECT adventure_id FROM oneshot_acts WHERE id=?", entScene.ActID).Scan(&adventureID)
+
 	data := htmxOneShotData{
 		Scene:      &ms,
 		SceneTypes: []string{"roleplay", "combat", "exploration", "puzzle", "climax"},
+		Encounters: candidateEncounters(adventureID),
 	}
 	renderTemplate(c, "oneshot_scene_form.html", data)
 }
@@ -250,7 +255,7 @@ func HtmxCreateScene(c *gin.Context) {
 	db.DB.QueryRow("SELECT COALESCE(MAX(sort_order),0)+1 FROM oneshot_scenes WHERE act_id=?", actID).Scan(&sortOrder)
 
 	ctx := c.Request.Context()
-	_, err := db.Client.OneShotScene.Create().
+	q := db.Client.OneShotScene.Create().
 		SetActID(actID).
 		SetNumber(number).
 		SetSortOrder(sortOrder).
@@ -258,9 +263,11 @@ func HtmxCreateScene(c *gin.Context) {
 		SetDescription(description).
 		SetSceneType(sceneType).
 		SetEstimatedMinutes(minutes).
-		SetNotes(notes).
-		Save(ctx)
-	if err != nil {
+		SetNotes(notes)
+	if eid, err := strconv.ParseInt(c.PostForm("encounter_id"), 10, 64); err == nil && eid > 0 {
+		q.SetEncounterID(eid)
+	}
+	if _, err := q.Save(ctx); err != nil {
 		c.String(http.StatusInternalServerError, "insert error: %v", err)
 		return
 	}
@@ -292,6 +299,11 @@ func HtmxUpdateScene(c *gin.Context) {
 		SetSceneType(sceneType).
 		SetEstimatedMinutes(minutes).
 		SetNotes(notes)
+	var encounterID *int64
+	if eid, err := strconv.ParseInt(c.PostForm("encounter_id"), 10, 64); err == nil && eid > 0 {
+		encounterID = &eid
+	}
+	q.SetNillableEncounterID(encounterID)
 	if sortOrder > 0 {
 		q.SetSortOrder(sortOrder)
 	}
@@ -312,6 +324,43 @@ func HtmxDeleteScene(c *gin.Context) {
 	db.DB.Exec("DELETE FROM oneshot_scenes WHERE id=?", id)
 
 	ReRenderOneShotDetail(c, adventureID)
+}
+
+// ─── Act Encounter Picker ───
+
+func HtmxActEncounters(c *gin.Context) {
+	actID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	renderActEncounters(c, actID)
+}
+
+func renderActEncounters(c *gin.Context, actID int64) {
+	var adventureID int64
+	db.DB.QueryRow("SELECT adventure_id FROM oneshot_acts WHERE id=?", actID).Scan(&adventureID)
+	data := htmxOneShotData{
+		Act:           &models.OneShotAct{ID: actID, AdventureID: adventureID},
+		ActEncounters: loadActEncounters(actID),
+		Encounters:    candidateEncounters(adventureID),
+	}
+	renderTemplate(c, "oneshot_act_encounters.html", data)
+}
+
+func HtmxLinkActEncounter(c *gin.Context) {
+	actID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	encounterID, _ := strconv.ParseInt(c.PostForm("encounter_id"), 10, 64)
+	if encounterID > 0 {
+		var adventureID int64
+		if db.DB.QueryRow("SELECT adventure_id FROM oneshot_acts WHERE id=?", actID).Scan(&adventureID) == nil {
+			linkOneShotEncounterRow(adventureID, encounterID, &actID)
+		}
+	}
+	renderActEncounters(c, actID)
+}
+
+func HtmxUnlinkActEncounter(c *gin.Context) {
+	actID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	encounterID, _ := strconv.ParseInt(c.Param("eid"), 10, 64)
+	db.DB.Exec("DELETE FROM oneshot_adventure_encounters WHERE act_id=? AND encounter_id=?", actID, encounterID)
+	renderActEncounters(c, actID)
 }
 
 // ─── Scene Dialog HTMX handlers ───

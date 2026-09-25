@@ -108,34 +108,36 @@ func UnlinkOneShotLocation(c *gin.Context) {
 
 // ─── Encounter Links ───
 
+// linkOneShotEncounterRow inserts an encounter link, skipping duplicates for the
+// same (adventure, act, encounter) triple. actID nil means an adventure-level link.
+func linkOneShotEncounterRow(adventureID, encounterID int64, actID *int64) error {
+	var actArg any
+	if actID != nil && *actID > 0 {
+		actArg = *actID
+	}
+	_, err := db.DB.Exec(`INSERT INTO oneshot_adventure_encounters(adventure_id, act_id, encounter_id)
+		SELECT ?,?,? WHERE NOT EXISTS (
+			SELECT 1 FROM oneshot_adventure_encounters WHERE adventure_id=? AND encounter_id=? AND act_id IS ?
+		)`, adventureID, actArg, encounterID, adventureID, encounterID, actArg)
+	return err
+}
+
 func GetOneShotEncounters(c *gin.Context) {
 	adventureID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
-	rows, err := db.DB.Query("SELECT oae.id, oae.adventure_id, oae.encounter_id, COALESCE(e.name,'') FROM oneshot_adventure_encounters oae LEFT JOIN encounter_templates e ON oae.encounter_id=e.id WHERE oae.adventure_id=?", adventureID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	defer rows.Close()
-	out := make([]models.OneShotAdventureEncounter, 0)
-	for rows.Next() {
-		var enc models.OneShotAdventureEncounter
-		rows.Scan(&enc.ID, &enc.AdventureID, &enc.EncounterID, &enc.EncounterName)
-		out = append(out, enc)
-	}
-	c.JSON(http.StatusOK, out)
+	c.JSON(http.StatusOK, loadAdventureEncounters(adventureID))
 }
 
 func LinkOneShotEncounter(c *gin.Context) {
 	adventureID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var link struct {
-		EncounterID int64 `json:"encounter_id"`
+		EncounterID int64  `json:"encounter_id"`
+		ActID       *int64 `json:"act_id"`
 	}
 	if err := c.ShouldBindJSON(&link); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	_, err := db.DB.Exec("INSERT OR IGNORE INTO oneshot_adventure_encounters(adventure_id, encounter_id) VALUES(?,?)", adventureID, link.EncounterID)
-	if err != nil {
+	if err := linkOneShotEncounterRow(adventureID, link.EncounterID, link.ActID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -146,6 +148,41 @@ func UnlinkOneShotEncounter(c *gin.Context) {
 	adventureID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	encounterID, _ := strconv.ParseInt(c.Param("eid"), 10, 64)
 	db.DB.Exec("DELETE FROM oneshot_adventure_encounters WHERE adventure_id=? AND encounter_id=?", adventureID, encounterID)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// Act-scoped links
+
+func ListActEncounters(c *gin.Context) {
+	actID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	c.JSON(http.StatusOK, loadActEncounters(actID))
+}
+
+func LinkActEncounter(c *gin.Context) {
+	actID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var link struct {
+		EncounterID int64 `json:"encounter_id"`
+	}
+	if err := c.ShouldBindJSON(&link); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	var adventureID int64
+	if err := db.DB.QueryRow("SELECT adventure_id FROM oneshot_acts WHERE id=?", actID).Scan(&adventureID); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "act not found"})
+		return
+	}
+	if err := linkOneShotEncounterRow(adventureID, link.EncounterID, &actID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+func UnlinkActEncounter(c *gin.Context) {
+	actID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	encounterID, _ := strconv.ParseInt(c.Param("eid"), 10, 64)
+	db.DB.Exec("DELETE FROM oneshot_adventure_encounters WHERE act_id=? AND encounter_id=?", actID, encounterID)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 

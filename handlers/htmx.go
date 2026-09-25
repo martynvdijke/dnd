@@ -34,6 +34,12 @@ func init() {
 		"add":        func(a, b int) int { return a + b },
 		"truncate":   truncate,
 		"capitalize": strings.Title,
+		"deref": func(p *int64) int64 {
+			if p == nil {
+				return 0
+			}
+			return *p
+		},
 		"sign": func(n int) string {
 			if n >= 0 {
 				return "+" + strconv.Itoa(n)
@@ -343,6 +349,9 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"GET", "/htmx/oneshot-acts/:id/new-scene-form", HtmxSceneForm},
 		{"GET", "/htmx/oneshot-acts/:id/edit", HtmxEditActForm},
 		{"PUT", "/htmx/oneshot-acts/:id", HtmxUpdateAct},
+		{"GET", "/htmx/oneshot-acts/:id/encounters", HtmxActEncounters},
+		{"POST", "/htmx/oneshot-acts/:id/encounters", HtmxLinkActEncounter},
+		{"DELETE", "/htmx/oneshot-acts/:id/encounters/:eid", HtmxUnlinkActEncounter},
 		{"GET", "/htmx/oneshot-scenes/:id/edit", HtmxEditSceneForm},
 		{"PUT", "/htmx/oneshot-scenes/:id", HtmxUpdateScene},
 

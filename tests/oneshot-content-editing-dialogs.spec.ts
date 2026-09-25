@@ -390,4 +390,46 @@ test.describe('One-Shot Content Features', () => {
       await expect(page.locator('#genericModalBody')).not.toContainText(speaker, { timeout: NAV_TIMEOUT });
     });
   });
+
+  test.describe('Act Encounter Linking', () => {
+    test('Link and unlink an encounter to an act', async ({ page }) => {
+      const adv = await createGeneratedOneShot(page, uniqueName());
+      const detail = await page.evaluate(async (id) => {
+        return (window as any).api('GET', `/api/oneshot-adventures/${id}`);
+      }, adv.id);
+      expect(detail.acts.length).toBeGreaterThan(0);
+      const actId = detail.acts[0].id;
+      const encName = 'Enc ' + uniqueName();
+      const enc = await page.evaluate(async (name) => {
+        return (window as any).api('POST', '/api/encounters', { name, environment: 'forest', difficulty: 'medium' });
+      }, encName);
+
+      await navigateToOneShots(page);
+      await loadHtmx(page, `/htmx/oneshot-adventures/${adv.id}`);
+      await expect(page.locator(`.sortable-act[data-id="${actId}"] .act-encounters-btn`)).toBeVisible({ timeout: NAV_TIMEOUT });
+
+      // Open the act encounter panel via its HTMX fragment
+      await loadHtmx(page, `/htmx/oneshot-acts/${actId}/encounters`, 'genericModalBody');
+      await page.evaluate(() => (window as any).showModal('Encounters', document.getElementById('genericModalBody')!.innerHTML));
+      await page.locator('#genericModalBody select[name="encounter_id"]').selectOption(String(enc.id));
+      await page.locator('#genericModalBody button[type="submit"]').click();
+      await expect(page.locator('#genericModalBody .list-group-item')).toHaveCount(1, { timeout: NAV_TIMEOUT });
+      await expect(page.locator('#genericModalBody .list-group-item')).toContainText(encName);
+
+      const linked = await page.evaluate(async (id) => {
+        return (window as any).api('GET', `/api/oneshot-acts/${id}/encounters`);
+      }, actId);
+      expect(linked.length).toBe(1);
+
+      // Unlink (accept hx-confirm)
+      page.once('dialog', dialog => dialog.accept());
+      await page.locator('#genericModalBody .list-group-item button').first().click();
+      await expect(page.locator('#genericModalBody .list-group-item')).toHaveCount(0, { timeout: NAV_TIMEOUT });
+
+      const after = await page.evaluate(async (id) => {
+        return (window as any).api('GET', `/api/oneshot-acts/${id}/encounters`);
+      }, actId);
+      expect(after.length).toBe(0);
+    });
+  });
 });

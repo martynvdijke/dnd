@@ -1,0 +1,24 @@
+<div id="actEncounterPanel">
+  <form hx-post="/htmx/oneshot-acts/{{.Act.ID}}/encounters" hx-target="#actEncounterPanel" hx-swap="outerHTML" class="d-flex gap-2 mb-3">
+    <select class="form-select form-select-sm" name="encounter_id" required>
+      <option value="">Link an encounter…</option>
+      {{range .Encounters}}<option value="{{.ID}}">{{.Name}}{{if .Difficulty}} ({{.Difficulty}}){{end}}</option>{{end}}
+    </select>
+    <button class="btn btn-sm btn-primary text-nowrap" type="submit"><i class="fa-solid fa-link me-1"></i>Link</button>
+  </form>
+  {{if .ActEncounters}}
+  <div class="list-group">
+    {{range .ActEncounters}}
+    <div class="list-group-item d-flex justify-content-between align-items-center py-2">
+      <span><i class="fa-solid fa-crosshairs me-2 text-muted"></i><strong>{{.EncounterName}}</strong></span>
+      <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/oneshot-acts/{{$.Act.ID}}/encounters/{{.EncounterID}}" hx-target="#actEncounterPanel" hx-swap="outerHTML" hx-confirm="Unlink this encounter from the act?" title="Unlink"><i class="fa-solid fa-unlink"></i></button>
+    </div>
+    {{end}}
+  </div>
+  {{else}}
+  <div class="text-muted small fst-italic">No encounters linked to this act yet.</div>
+  {{end}}
+  {{if not .Encounters}}
+  <div class="text-muted small mt-2">No encounters available. Build one in the campaign encounter builder first.</div>
+  {{end}}
+</div>
