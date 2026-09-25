@@ -19,6 +19,7 @@ const TYPE_LABELS: Record<string, string> = {
   journal: 'Journal',
   map: 'Map',
   upload: 'File',
+  recap: 'Recap',
 };
 
 function typeLabel(t: string): string {

@@ -153,7 +153,7 @@ export async function renderRecaps(campaignId?: number): Promise<void> {
       return;
     }
     el.innerHTML = `<div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0">Session Recaps (${recaps.length})</h5>${headerBtns}</div>` +
-      recaps.map((r: any) => `<div class="card mb-2"><div class="card-body py-2 px-3"><div class="d-flex justify-content-between align-items-start"><div><span class="fw-bold">${esc(r.title)}</span>${r.is_sent ? ' <span class="badge bg-success">Sent</span>' : ''}${r.is_edited ? ' <span class="badge bg-secondary">Edited</span>' : ''}${r.ai_used ? ' <span class="badge bg-info text-dark">AI</span>' : ''}${dateRangeHtml(r)}<br><small class="text-muted">${r.word_count || 0} words</small><div class="small mt-1">${r.content}</div></div><div class="d-flex gap-1 flex-shrink-0"><button class="btn btn-sm btn-outline-primary" onclick="showRecapForm(${r.id})"><i class="fa-solid fa-pen"></i></button><button class="btn btn-sm btn-outline-success" onclick="markRecapSent(${r.id})" ${r.is_sent ? 'disabled' : ''}><i class="fa-solid fa-paper-plane"></i></button><button class="btn btn-sm btn-outline-danger" onclick="deleteRecap(${r.id})"><i class="fa-solid fa-trash"></i></button></div></div></div></div>`).join('');
+      recaps.map((r: any) => `<div class="card mb-2"><div class="card-body py-2 px-3"><div class="d-flex justify-content-between align-items-start"><div><span class="fw-bold">${esc(r.title)}</span>${r.is_sent ? ' <span class="badge bg-success">Sent</span>' : ''}${r.is_edited ? ' <span class="badge bg-secondary">Edited</span>' : ''}${r.ai_used ? ' <span class="badge bg-info text-dark">AI</span>' : ''}${dateRangeHtml(r)}<br><small class="text-muted">${r.word_count || 0} words</small><div class="small mt-1">${r.content}</div></div><div class="d-flex gap-1 flex-shrink-0"><button class="btn btn-sm btn-outline-info" onclick="shareRecap(${r.id})" title="Share recap"><i class="fa-solid fa-share-nodes"></i></button><button class="btn btn-sm btn-outline-primary" onclick="showRecapForm(${r.id})"><i class="fa-solid fa-pen"></i></button><button class="btn btn-sm btn-outline-success" onclick="markRecapSent(${r.id})" ${r.is_sent ? 'disabled' : ''}><i class="fa-solid fa-paper-plane"></i></button><button class="btn btn-sm btn-outline-danger" onclick="deleteRecap(${r.id})"><i class="fa-solid fa-trash"></i></button></div></div></div></div>`).join('');
   } catch (e: any) { el.innerHTML = `<div class="alert alert-danger">${esc(e.message)}</div>`; }
 }
 
@@ -211,6 +211,24 @@ export async function markRecapSent(id: number): Promise<void> {
 
 export function showRecaps(): Promise<void> { return renderRecaps(); }
 
+// shareRecap creates a public share link for a recap and shows the URL modal.
+export async function shareRecap(id: number): Promise<void> {
+  try {
+    const result: any = await api('POST', '/api/share', { entity_type: 'recap', entity_id: id });
+    showModal('Share Recap', `
+      <p>Anyone with this link can read this recap.</p>
+      <div class="input-group mb-3">
+        <input class="form-control" id="shareUrl" value="${esc(result.url)}" readonly onclick="this.select()">
+        <button class="btn btn-gold" onclick="copyShareUrl()"><i class="fa-solid fa-copy"></i></button>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-primary flex-grow-1" onclick="window.open('mailto:?subject=${encodeURIComponent('Campaign recap')}&body=${encodeURIComponent(result.url)}','_blank')"><i class="fa-solid fa-envelope me-1"></i>Email</button>
+        <button class="btn btn-outline-secondary" onclick="hideModal()">Close</button>
+      </div>
+    `);
+  } catch (e: any) { toast(e.message, true); }
+}
+
 expose('generateAIRecap', generateAIRecap);
 expose('renderRecaps', renderRecaps);
 expose('showRecapForm', showRecapForm);
@@ -218,3 +236,4 @@ expose('saveRecap', saveRecap);
 expose('deleteRecap', deleteRecap);
 expose('markRecapSent', markRecapSent);
 expose('showRecaps', showRecaps);
+expose('shareRecap', shareRecap);
