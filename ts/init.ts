@@ -54,6 +54,10 @@ function connectWS() {
         if (p.action === 'stop') stopAmbience();
         else playAmbience(p.track, p.volume);
       }
+      if (msg.type === 'battlemap_update') {
+        if (getCurrentView() === 'battlemap') (window as any).showBattlemap?.();
+        (window as any).refreshTableInitiative?.();
+      }
     } catch {}
   };
   ws.onopen = () => {

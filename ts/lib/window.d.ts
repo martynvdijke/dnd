@@ -58,6 +58,11 @@ declare global {
     showAmbienceControls: (campaignId: number) => void;
     ambiencePlay: (campaignId: number, track: string) => Promise<void>;
     ambienceStop: (campaignId: number) => Promise<void>;
+    showBattlemap: (campaignId?: number) => Promise<void>;
+    battlemapSync: (campaignId: number) => Promise<void>;
+    battlemapAddToken: (campaignId: number) => Promise<void>;
+    battlemapSaveToken: (campaignId: number) => Promise<void>;
+    battlemapRemoveToken: (tokenId: number) => Promise<void>;
     showCharStatsModal: (id: number) => Promise<void>;
     showCharNotes: (id: number) => void;
     renderStepper: (field: string, value: number, delta: number, min?: number, max?: number, label?: string, size?: string) => string;

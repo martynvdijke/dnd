@@ -30,6 +30,7 @@ const views: ViewItem[] = [
   { id: 'singleEncounter', divId: 'singleEncounterView' },
   { id: 'campaignOverview', divId: 'campaignOverviewView' },
   { id: 'world', divId: 'worldView' },
+  { id: 'battlemap', divId: 'battlemapView' },
   { id: 'recaps', divId: 'recapsView' },
 ];
 

@@ -18,6 +18,7 @@ export type ViewState =
   | 'singleEncounter'
   | 'campaignOverview'
   | 'world'
+  | 'battlemap'
   | 'recaps';
 
 export type SessionModeState = 'normal' | 'session';

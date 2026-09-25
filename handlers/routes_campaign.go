@@ -73,6 +73,13 @@ func RegisterCampaignRoutes(r *gin.RouterGroup) {
 	r.PUT("/map-pins/:id", UpdateMapPin)
 	r.DELETE("/map-pins/:id", DeleteMapPin)
 
+	// Battlemap tokens
+	r.GET("/campaigns/:id/battlemap", GetCampaignBattlemap)
+	r.POST("/campaigns/:id/battlemap/tokens", CreateBattlemapToken)
+	r.POST("/campaigns/:id/battlemap/sync", SyncBattlemapTokens)
+	r.PUT("/battlemap-tokens/:id", UpdateBattlemapToken)
+	r.DELETE("/battlemap-tokens/:id", DeleteBattlemapToken)
+
 	// Calendar
 	r.GET("/calendar", ListCalendarEvents)
 	r.POST("/calendar", CreateCalendarEvent)
