@@ -101,4 +101,26 @@ test.describe.serial('Combat Tracker', () => {
 
     await expect(page.locator('#combatTrackerContent')).toContainText('17/27');
   });
+
+  test('casts an area spell and applies damage to targets', async ({ page }) => {
+    const ids = await page.evaluate(async () => {
+      const ch = await (window as any).api('POST', '/api/characters', { name: 'Wiz-' + Date.now(), race: 'Elf', class: 'Wizard' });
+      await (window as any).api('POST', `/api/characters/${ch.id}/spells`, { name: 'Fireball', level: 3, school: 'Evocation' });
+      await (window as any).api('PUT', `/api/characters/${ch.id}/spellcasting`, { ability: 'int', slots_3_max: 2, slots_3_used: 0 });
+      await (window as any).api('POST', '/api/combat', { name: 'Wizard', type: 'character', character_id: ch.id, hp_max: 30, hp_current: 30, ac: 12, is_active: true });
+      const foe = await (window as any).api('POST', '/api/combat', { name: 'SpellGoblin-' + Date.now(), type: 'monster', hp_max: 40, hp_current: 40, ac: 13, is_active: true });
+      return { foeId: foe.id as number };
+    });
+
+    await page.evaluate(() => (window as any).showCombatTracker());
+    await page.locator('#combatTrackerContent button:has-text("Cast")').first().click();
+    await expect(page.locator('#castSpellSelect')).toBeVisible();
+    await page.selectOption('#castSpellSelect', { label: 'Fireball (Lv 3)' });
+    await page.fill('#castDamage', '8d6');
+    await page.check(`#castTarget-${ids.foeId}`);
+    await page.click('.modal button:has-text("Cast")');
+    await waitModalClosed(page);
+
+    await expect(page.locator('#ce-' + ids.foeId)).not.toContainText('40/40');
+  });
 });
