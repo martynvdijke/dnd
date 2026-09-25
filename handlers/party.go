@@ -198,6 +198,11 @@ func DeleteCampaignPartyItem(c *gin.Context) {
 
 func ListSessionPlans(c *gin.Context) {
 	campaignID := c.Param("id")
+	cid, _ := strconv.ParseInt(campaignID, 10, 64)
+	if !isCampaignMember(c, cid) {
+		WriteError(c, http.StatusForbidden, errAccessDenied)
+		return
+	}
 	rows, err := db.DB.Query("SELECT id, campaign_id, title, COALESCE(session_date,''), status, COALESCE(dm_notes,''), COALESCE(planned_encounters,'[]'), COALESCE(npc_ids,'[]'), COALESCE(player_goals,'[]'), expected_duration, COALESCE(created_at,''), COALESCE(updated_at,'') FROM session_plans WHERE campaign_id=? ORDER BY session_date DESC", campaignID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -221,6 +226,10 @@ func ListSessionPlans(c *gin.Context) {
 
 func CreateSessionPlan(c *gin.Context) {
 	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !isCampaignMember(c, campaignID) {
+		WriteError(c, http.StatusForbidden, errAccessDenied)
+		return
+	}
 	var sp models.SessionPlan
 	if err := c.ShouldBindJSON(&sp); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -241,6 +250,10 @@ func CreateSessionPlan(c *gin.Context) {
 
 func UpdateSessionPlan(c *gin.Context) {
 	sid, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if cid, ok := sessionPlanCampaignID(sid); !ok || !isCampaignDM(c, cid) {
+		WriteError(c, http.StatusForbidden, errAccessDenied)
+		return
+	}
 	var sp models.SessionPlan
 	if err := c.ShouldBindJSON(&sp); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -260,6 +273,10 @@ func UpdateSessionPlan(c *gin.Context) {
 
 func DeleteSessionPlan(c *gin.Context) {
 	sid, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if cid, ok := sessionPlanCampaignID(sid); !ok || !isCampaignDM(c, cid) {
+		WriteError(c, http.StatusForbidden, errAccessDenied)
+		return
+	}
 	db.DB.Exec("DELETE FROM session_plans WHERE id=?", sid)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

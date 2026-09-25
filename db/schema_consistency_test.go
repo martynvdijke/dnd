@@ -20,6 +20,7 @@ var rawOnlyTables = map[string]string{
 	"auth_sessions":                  "raw-managed via db/migrations — session store",
 	"campaign_event_settings":        "raw-managed via db/migrations — calendar event settings",
 	"campaign_invitations":           "raw-managed via db/migrations — campaign invite tokens",
+	"session_rsvps":                  "raw-managed via db/migrations — session RSVP + attendance",
 	"campaign_knowledge":             "raw-managed via db/migrations — knowledge base",
 	"campaign_knowledge_known_by":    "raw-managed via db/migrations — many-to-many for knowledge visibility",
 	"campaign_monster_roster":        "raw-managed via db/migrations — monster roster for campaigns",
