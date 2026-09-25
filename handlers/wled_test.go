@@ -46,15 +46,16 @@ func TestWLEDSettingsRoundtrip(t *testing.T) {
 
 	var got map[string]any
 	testutil.ParseJSON(t, testutil.Get(t, r, "/api/wled-settings"), &got)
-	if got["enabled"] != false || got["brightness"] != float64(200) {
+	if got["enabled"] != false || got["configured"] != false {
 		t.Fatalf("unexpected defaults: %v", got)
 	}
 
 	w := testutil.PostJSON(t, r, "/api/wled-settings", map[string]any{
-		"enabled":        true,
-		"base_url":       "wled.local/",
-		"brightness":     900,
-		"restore_preset": 3,
+		"enabled": true,
+		"devices": []map[string]any{
+			{"name": "Table", "base_url": "wled.local/", "brightness": 900, "restore_preset": 3, "enabled": true},
+			{"name": "Ignored", "base_url": "", "enabled": true},
+		},
 	})
 	testutil.AssertStatus(t, w, http.StatusOK)
 
@@ -63,14 +64,35 @@ func TestWLEDSettingsRoundtrip(t *testing.T) {
 	if after["enabled"] != true {
 		t.Errorf("enabled not persisted: %v", after)
 	}
-	if after["base_url"] != "http://wled.local" {
-		t.Errorf("base_url normalize failed: %v", after["base_url"])
+	devs, _ := after["devices"].([]any)
+	if len(devs) != 1 {
+		t.Fatalf("expected 1 stored device, got %v", after["devices"])
 	}
-	if after["brightness"] != float64(255) {
-		t.Errorf("brightness clamp failed: %v", after["brightness"])
+	d, _ := devs[0].(map[string]any)
+	if d["base_url"] != "http://wled.local" {
+		t.Errorf("base_url normalize failed: %v", d["base_url"])
 	}
-	if after["restore_preset"] != float64(3) {
-		t.Errorf("restore_preset not persisted: %v", after["restore_preset"])
+	if d["brightness"] != float64(255) {
+		t.Errorf("brightness clamp failed: %v", d["brightness"])
+	}
+	if d["restore_preset"] != float64(3) || d["name"] != "Table" {
+		t.Errorf("device fields not persisted: %v", d)
+	}
+}
+
+func TestWLEDLegacyFallback(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+
+	if err := setAppSetting(settingWLEDBaseURL, "legacy.local"); err != nil {
+		t.Fatalf("seed legacy key: %v", err)
+	}
+	devs := loadWLEDDevices()
+	if len(devs) != 1 {
+		t.Fatalf("expected legacy fallback device, got %v", devs)
+	}
+	if devs[0].BaseURL != "http://legacy.local" || !devs[0].Enabled {
+		t.Fatalf("unexpected legacy device: %+v", devs[0])
 	}
 }
 
