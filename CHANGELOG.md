@@ -1,3 +1,10 @@
+# [2.71.0](https://github.com/martynvdijke/dnd/compare/v2.70.0...v2.71.0) (2026-09-25)
+
+
+### Features
+
+* support multiple WLED devices with per-device settings ([#138](https://github.com/martynvdijke/dnd/issues/138)) ([df234d4](https://github.com/martynvdijke/dnd/commit/df234d447efc510e1062580b08bcf7f88f6ea6e5))
+
 # [2.70.0](https://github.com/martynvdijke/dnd/compare/v2.69.0...v2.70.0) (2026-09-25)
 
 
