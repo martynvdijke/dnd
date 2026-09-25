@@ -111,23 +111,49 @@ expose('testPushNotification', async function () {
     toast(`Test push sent to ${r.sent} subscription${r.sent === 1 ? '' : 's'}`);
   } catch (e: any) { renderError(e); }
 });
+function wledDeviceRow(d: any = {}): HTMLDivElement {
+  const row = document.createElement('div');
+  row.className = 'row g-2 align-items-end mb-2 wled-device';
+  row.innerHTML = `
+    <div class="col-md-3"><label class="form-label small mb-0">Name</label><input type="text" class="form-control form-control-sm wled-name" value="${esc(d.name || '')}" placeholder="Table"></div>
+    <div class="col-md-4"><label class="form-label small mb-0">Controller URL</label><input type="text" class="form-control form-control-sm wled-url" value="${esc(d.base_url || '')}" placeholder="http://wled.local"></div>
+    <div class="col-md-2"><label class="form-label small mb-0">Brightness</label><input type="number" class="form-control form-control-sm wled-bri" min="0" max="255" value="${d.brightness ?? 200}"></div>
+    <div class="col-md-2"><label class="form-label small mb-0">Restore preset</label><input type="number" class="form-control form-control-sm wled-preset" min="0" max="250" value="${d.restore_preset ?? 0}"></div>
+    <div class="col-md-1 d-flex align-items-center gap-2 pb-1">
+      <input class="form-check-input wled-on" type="checkbox" ${d.enabled !== false ? 'checked' : ''}>
+      <button class="btn btn-sm btn-outline-danger" type="button" onclick="this.closest('.wled-device').remove()" title="Remove"><i class="fa-solid fa-trash"></i></button>
+    </div>`;
+  return row;
+}
+expose('addWledDevice', function () {
+  const list = document.getElementById('wledDeviceList');
+  if (list) list.appendChild(wledDeviceRow());
+});
 async function loadWledSettings() {
   try {
     const s = await api('GET', '/api/admin/wled-settings');
     (document.getElementById('wledEnabled') as HTMLInputElement).checked = !!s.enabled;
-    (document.getElementById('wledBaseUrl') as HTMLInputElement).value = s.base_url || '';
-    (document.getElementById('wledBrightness') as HTMLInputElement).value = s.brightness ?? 200;
-    (document.getElementById('wledRestorePreset') as HTMLInputElement).value = s.restore_preset ?? 0;
+    const list = document.getElementById('wledDeviceList');
+    if (list) {
+      list.innerHTML = '';
+      const devices = Array.isArray(s.devices) && s.devices.length ? s.devices : [{}];
+      devices.forEach((d: any) => list.appendChild(wledDeviceRow(d)));
+    }
   } catch {}
 }
 expose('loadWledSettings', loadWledSettings);
 expose('saveWledSettings', async function () {
   try {
+    const devices = Array.from(document.querySelectorAll('.wled-device')).map((row) => ({
+      name: (row.querySelector('.wled-name') as HTMLInputElement).value,
+      base_url: (row.querySelector('.wled-url') as HTMLInputElement).value,
+      brightness: +(row.querySelector('.wled-bri') as HTMLInputElement).value || 0,
+      restore_preset: +(row.querySelector('.wled-preset') as HTMLInputElement).value || 0,
+      enabled: (row.querySelector('.wled-on') as HTMLInputElement).checked,
+    }));
     await api('POST', '/api/admin/wled-settings', {
       enabled: (document.getElementById('wledEnabled') as HTMLInputElement).checked,
-      base_url: (document.getElementById('wledBaseUrl') as HTMLInputElement).value,
-      brightness: +(document.getElementById('wledBrightness') as HTMLInputElement).value || 0,
-      restore_preset: +(document.getElementById('wledRestorePreset') as HTMLInputElement).value || 0,
+      devices,
     });
     toast('WLED settings saved');
   } catch (e: any) { renderError(e); }
@@ -135,7 +161,7 @@ expose('saveWledSettings', async function () {
 expose('testWled', async function () {
   try {
     const r = await api('POST', '/api/admin/test-wled');
-    toast(r.success ? 'Test flash sent to WLED' : `WLED: ${r.message}`, !r.success);
+    toast(r.success ? (r.message || 'Test flash sent') : `WLED: ${r.message}`, !r.success);
   } catch (e: any) { renderError(e); }
 });
 async function loadUmamiSettings() {

@@ -12,42 +12,93 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// WLED integration: flash a Wi-Fi LED controller on the live table when a scene
-// effect plays or a spell is cast. Config lives in the app_settings KV store.
+// WLED integration: flash Wi-Fi LED controllers on the live table when a scene
+// effect plays or a spell is cast. Config lives in the app_settings KV store:
+// a master enabled switch plus a JSON list of devices.
 const (
 	settingWLEDEnabled       = "wled_enabled"
-	settingWLEDBaseURL       = "wled_base_url"
-	settingWLEDBrightness    = "wled_brightness"
-	settingWLEDRestorePreset = "wled_restore_preset"
+	settingWLEDBaseURL       = "wled_base_url"       // legacy single-device key
+	settingWLEDBrightness    = "wled_brightness"     // legacy single-device key
+	settingWLEDRestorePreset = "wled_restore_preset" // legacy single-device key
+	settingWLEDDevices       = "wled_devices"
 	wledHTTPTimeout          = 5 * time.Second
 )
 
-type wledSettings struct {
-	Enabled       bool   `json:"enabled"`
+type wledDevice struct {
+	Name          string `json:"name"`
 	BaseURL       string `json:"base_url"`
 	Brightness    int    `json:"brightness"`
 	RestorePreset int    `json:"restore_preset"`
+	Enabled       bool   `json:"enabled"`
 }
 
-func loadWLEDSettings() wledSettings {
-	s := wledSettings{Brightness: 200}
-	if v, ok := appSetting(settingWLEDEnabled); ok {
-		s.Enabled = v == "1" || v == "true"
+func normalizeWLEDURL(raw string) string {
+	u := strings.TrimRight(strings.TrimSpace(raw), "/")
+	if u != "" && !strings.HasPrefix(u, "http://") && !strings.HasPrefix(u, "https://") {
+		u = "http://" + u
 	}
+	return u
+}
+
+func wledClampBrightness(b int) int {
+	if b < 0 {
+		return 0
+	}
+	if b > 255 {
+		return 255
+	}
+	return b
+}
+
+// loadWLEDDevices returns the configured devices. When no JSON list exists it
+// falls back to the legacy single-device keys written by earlier versions.
+func loadWLEDDevices() []wledDevice {
+	if v, ok := appSetting(settingWLEDDevices); ok && strings.TrimSpace(v) != "" {
+		var devs []wledDevice
+		if json.Unmarshal([]byte(v), &devs) == nil {
+			out := make([]wledDevice, 0, len(devs))
+			for _, d := range devs {
+				d.BaseURL = normalizeWLEDURL(d.BaseURL)
+				if d.Brightness == 0 {
+					d.Brightness = 200
+				}
+				d.Brightness = wledClampBrightness(d.Brightness)
+				if d.Name == "" {
+					d.Name = "WLED"
+				}
+				if d.BaseURL != "" {
+					out = append(out, d)
+				}
+			}
+			return out
+		}
+	}
+	// Legacy single-device fallback.
+	base := ""
 	if v, ok := appSetting(settingWLEDBaseURL); ok {
-		s.BaseURL = strings.TrimRight(strings.TrimSpace(v), "/")
+		base = normalizeWLEDURL(v)
 	}
+	if base == "" {
+		return nil
+	}
+	bri := 200
 	if v, ok := appSetting(settingWLEDBrightness); ok {
 		if n, err := strconv.Atoi(v); err == nil {
-			s.Brightness = n
+			bri = n
 		}
 	}
+	restore := 0
 	if v, ok := appSetting(settingWLEDRestorePreset); ok {
 		if n, err := strconv.Atoi(v); err == nil {
-			s.RestorePreset = n
+			restore = n
 		}
 	}
-	return s
+	return []wledDevice{{Name: "WLED", BaseURL: base, Brightness: wledClampBrightness(bri), RestorePreset: restore, Enabled: true}}
+}
+
+func wledEnabled() bool {
+	v, ok := appSetting(settingWLEDEnabled)
+	return ok && (v == "1" || v == "true")
 }
 
 // wledEffectColor maps an effect name to its RGB flash colour.
@@ -139,33 +190,41 @@ func wledColorPayload(r, g, b, bri, transition int) map[string]any {
 	}
 }
 
-// NotifyWLEDEffect flashes the configured strip for a named effect. Safe to call
-// from request handlers: it is a no-op when unconfigured and runs async.
-func NotifyWLEDEffect(effect string) {
-	col, ok := wledEffectColor(effect)
-	if !ok {
-		return
-	}
-	cfg := loadWLEDSettings()
-	if !cfg.Enabled || cfg.BaseURL == "" {
-		return
-	}
-	bri := cfg.Brightness
+func flashWLEDDevice(dev wledDevice, col [3]int, effect string) {
+	bri := dev.Brightness
 	if bri <= 0 || bri > 255 {
 		bri = 200
 	}
+	_ = wledPost(dev.BaseURL, wledColorPayload(col[0], col[1], col[2], bri, 3))
+	if effect == "lightning" {
+		// Strobe: dark, then bright again.
+		time.Sleep(120 * time.Millisecond)
+		_ = wledPost(dev.BaseURL, wledColorPayload(0, 0, 0, 0, 0))
+		time.Sleep(90 * time.Millisecond)
+		_ = wledPost(dev.BaseURL, wledColorPayload(col[0], col[1], col[2], bri, 0))
+	}
+	time.Sleep(1400 * time.Millisecond)
+	if dev.RestorePreset > 0 {
+		_ = wledPost(dev.BaseURL, map[string]any{"on": true, "ps": dev.RestorePreset})
+	}
+}
+
+// NotifyWLEDEffect flashes every enabled device for a named effect. Safe to
+// call from request handlers: no-op when disabled and runs async.
+func NotifyWLEDEffect(effect string) {
+	col, ok := wledEffectColor(effect)
+	if !ok || !wledEnabled() {
+		return
+	}
+	devices := loadWLEDDevices()
+	if len(devices) == 0 {
+		return
+	}
 	go func() {
-		_ = wledPost(cfg.BaseURL, wledColorPayload(col[0], col[1], col[2], bri, 3))
-		if effect == "lightning" {
-			// Strobe: dark, then bright again.
-			time.Sleep(120 * time.Millisecond)
-			_ = wledPost(cfg.BaseURL, wledColorPayload(0, 0, 0, 0, 0))
-			time.Sleep(90 * time.Millisecond)
-			_ = wledPost(cfg.BaseURL, wledColorPayload(col[0], col[1], col[2], bri, 0))
-		}
-		time.Sleep(1400 * time.Millisecond)
-		if cfg.RestorePreset > 0 {
-			_ = wledPost(cfg.BaseURL, map[string]any{"on": true, "ps": cfg.RestorePreset})
+		for _, dev := range devices {
+			if dev.Enabled && dev.BaseURL != "" {
+				flashWLEDDevice(dev, col, effect)
+			}
 		}
 	}()
 }
@@ -173,56 +232,74 @@ func NotifyWLEDEffect(effect string) {
 // ─── Admin settings ───
 
 func GetWLEDSettings(c *gin.Context) {
-	s := loadWLEDSettings()
+	devices := loadWLEDDevices()
+	if devices == nil {
+		devices = []wledDevice{}
+	}
 	WriteJSON(c, http.StatusOK, gin.H{
-		"enabled":        s.Enabled,
-		"base_url":       s.BaseURL,
-		"brightness":     s.Brightness,
-		"restore_preset": s.RestorePreset,
-		"configured":     s.BaseURL != "",
+		"enabled":    wledEnabled(),
+		"devices":    devices,
+		"configured": len(devices) > 0,
 	})
 }
 
 func SaveWLEDSettings(c *gin.Context) {
 	var body struct {
-		Enabled       bool   `json:"enabled"`
-		BaseURL       string `json:"base_url"`
-		Brightness    int    `json:"brightness"`
-		RestorePreset int    `json:"restore_preset"`
+		Enabled bool         `json:"enabled"`
+		Devices []wledDevice `json:"devices"`
 	}
 	if !BindOr400(c, &body) {
 		return
 	}
-	base := strings.TrimRight(strings.TrimSpace(body.BaseURL), "/")
-	if base != "" && !strings.HasPrefix(base, "http://") && !strings.HasPrefix(base, "https://") {
-		base = "http://" + base
+	clean := make([]wledDevice, 0, len(body.Devices))
+	for _, d := range body.Devices {
+		d.BaseURL = normalizeWLEDURL(d.BaseURL)
+		if d.BaseURL == "" {
+			continue
+		}
+		d.Brightness = wledClampBrightness(d.Brightness)
+		if d.Brightness == 0 {
+			d.Brightness = 200
+		}
+		if d.Name == "" {
+			d.Name = "WLED"
+		}
+		clean = append(clean, d)
 	}
-	if body.Brightness < 0 {
-		body.Brightness = 0
-	}
-	if body.Brightness > 255 {
-		body.Brightness = 255
-	}
+	raw, _ := json.Marshal(clean)
 	enabled := "0"
 	if body.Enabled {
 		enabled = "1"
 	}
 	setAppSetting(settingWLEDEnabled, enabled)
-	setAppSetting(settingWLEDBaseURL, base)
-	setAppSetting(settingWLEDBrightness, strconv.Itoa(body.Brightness))
-	setAppSetting(settingWLEDRestorePreset, strconv.Itoa(body.RestorePreset))
-	WriteJSON(c, http.StatusOK, gin.H{"ok": true, "configured": base != ""})
+	setAppSetting(settingWLEDDevices, string(raw))
+	// Clear legacy keys so the list is the single source of truth.
+	deleteAppSetting(settingWLEDBaseURL)
+	deleteAppSetting(settingWLEDBrightness)
+	deleteAppSetting(settingWLEDRestorePreset)
+	WriteJSON(c, http.StatusOK, gin.H{"ok": true, "configured": len(clean) > 0})
 }
 
 func TestWLED(c *gin.Context) {
-	cfg := loadWLEDSettings()
-	if cfg.BaseURL == "" {
-		WriteJSON(c, http.StatusOK, gin.H{"success": false, "message": "No WLED base URL configured"})
+	devices := loadWLEDDevices()
+	if len(devices) == 0 {
+		WriteJSON(c, http.StatusOK, gin.H{"success": false, "message": "No WLED device configured"})
 		return
 	}
-	if err := wledPost(cfg.BaseURL, wledColorPayload(255, 140, 0, 200, 3)); err != nil {
-		WriteJSON(c, http.StatusOK, gin.H{"success": false, "message": err.Error()})
+	sent, failed := 0, 0
+	for _, dev := range devices {
+		if !dev.Enabled || dev.BaseURL == "" {
+			continue
+		}
+		if err := wledPost(dev.BaseURL, wledColorPayload(255, 140, 0, dev.Brightness, 3)); err != nil {
+			failed++
+		} else {
+			sent++
+		}
+	}
+	if sent == 0 {
+		WriteJSON(c, http.StatusOK, gin.H{"success": false, "message": "No enabled device responded"})
 		return
 	}
-	WriteJSON(c, http.StatusOK, gin.H{"success": true, "message": "Sent test colour to WLED"})
+	WriteJSON(c, http.StatusOK, gin.H{"success": true, "message": fmt.Sprintf("Flashed %d device(s)", sent), "failed": failed})
 }
