@@ -1,3 +1,10 @@
+# [2.68.0](https://github.com/martynvdijke/dnd/compare/v2.67.0...v2.68.0) (2026-09-25)
+
+
+### Features
+
+* add edit UI for features, proficiencies, and party items ([#135](https://github.com/martynvdijke/dnd/issues/135)) ([8e297b8](https://github.com/martynvdijke/dnd/commit/8e297b8222db92eefa999307b240d0a0b72ee79f))
+
 # [2.67.0](https://github.com/martynvdijke/dnd/compare/v2.66.0...v2.67.0) (2026-09-25)
 
 
