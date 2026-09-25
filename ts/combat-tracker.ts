@@ -16,7 +16,7 @@ interface CombatEntry {
   initiative_mod: number;
   turn_order: number;
   is_active: boolean;
-  [key: string]: unknown;
+  character_id?: number | null;
 }
 
 // ─── Combat Tracker ───
@@ -42,6 +42,7 @@ expose('showCombatTracker', async function (): Promise<void> {
         <button class="btn btn-gold btn-sm" onclick="showAddCombatEntry()"><i class="fa-solid fa-plus me-1"></i>Add</button>
         <button class="btn btn-outline-primary btn-sm" onclick="rollAllInitiative()"><i class="fa-solid fa-dice me-1"></i>Roll Init</button>
         <button class="btn btn-outline-secondary btn-sm" onclick="advanceCombatTurn()"><i class="fa-solid fa-forward me-1"></i>Next Turn</button>
+        <button class="btn btn-outline-warning btn-sm" onclick="showCastSpellModal()"><i class="fa-solid fa-wand-sparkles me-1"></i>Cast</button>
       </div>
     </div>
     <div class="table-responsive">
@@ -388,6 +389,93 @@ expose('applyAttack', async function (): Promise<void> {
 });
 
 // ─── Combat log ───
+
+// Cast a spell at one or more combat targets. Backend rolls the shared damage
+// dice, halves on a successful save for character-backed targets, and applies
+// HP via the same authority used for attacks.
+expose('showCastSpellModal', async function (): Promise<void> {
+  const entries = await api<CombatEntry[]>('GET', '/api/combat');
+  const casters = entries.filter((e) => e.type === 'character' && e.character_id);
+  if (!casters.length) { toast('No player characters in combat', true); return; }
+  const targets = entries.filter((e) => e.is_active);
+  showModal('Cast Spell', `
+    <div class="mb-2">
+      <label class="form-label small" for="castCaster">Caster</label>
+      <select class="form-select form-select-sm" id="castCaster" onchange="loadCastSpells()">
+        ${casters.map((c) => `<option value="${c.character_id}">${esc(c.name)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="mb-2">
+      <label class="form-label small" for="castSpellSelect">Spell</label>
+      <select class="form-select form-select-sm" id="castSpellSelect"></select>
+    </div>
+    <div class="row g-2 mb-2">
+      <div class="col-6"><label class="form-label small" for="castDamage">Damage dice</label><input class="form-control form-control-sm" id="castDamage" placeholder="8d6"></div>
+      <div class="col-6"><label class="form-label small" for="castDamageType">Damage type</label><input class="form-control form-control-sm" id="castDamageType" placeholder="fire"></div>
+    </div>
+    <div class="row g-2 mb-2 align-items-end">
+      <div class="col-4"><label class="form-label small" for="castSaveAbility">Save ability</label>
+        <select class="form-select form-select-sm" id="castSaveAbility">
+          <option value="">none</option>${['str', 'dex', 'con', 'int', 'wis', 'cha'].map((a) => `<option value="${a}">${a.toUpperCase()}</option>`).join('')}
+        </select>
+      </div>
+      <div class="col-4"><label class="form-label small" for="castSaveDC">Save DC</label><input type="number" class="form-control form-control-sm" id="castSaveDC" value="0"></div>
+      <div class="col-4"><div class="form-check"><input class="form-check-input" type="checkbox" id="castHealing"><label class="form-check-label small" for="castHealing">Healing</label></div></div>
+    </div>
+    <div class="mb-2">
+      <label class="form-label small">Targets <span class="text-muted">(half damage on a successful save)</span></label>
+      <div class="border rounded p-2" style="max-height:160px;overflow:auto">
+        ${targets.map((t) => `<div class="form-check"><input class="form-check-input cast-target" type="checkbox" value="${t.id}" id="castTarget-${t.id}"><label class="form-check-label small" for="castTarget-${t.id}">${esc(t.name)} <span class="text-muted">(${t.hp_current}/${t.hp_max} HP)</span></label></div>`).join('') || '<div class="small text-muted">No active targets</div>'}
+      </div>
+    </div>
+    <button class="btn btn-gold btn-sm w-100" onclick="castSpellAtTargets()"><i class="fa-solid fa-wand-sparkles me-1"></i>Cast</button>
+  `);
+  await (window as any).loadCastSpells?.();
+});
+
+expose('loadCastSpells', async function (): Promise<void> {
+  const caster = document.getElementById('castCaster') as HTMLSelectElement | null;
+  const sel = document.getElementById('castSpellSelect') as HTMLSelectElement | null;
+  if (!caster || !sel) return;
+  sel.innerHTML = '<option value="">Loading…</option>';
+  try {
+    const ch = await api<any>('GET', '/api/characters/' + caster.value);
+    const spells = (ch.spells || []) as Array<{ id: number; name: string; level: number }>;
+    sel.innerHTML = spells.length
+      ? spells.map((s) => `<option value="${s.id}">${esc(s.name)}${s.level ? ' (Lv ' + s.level + ')' : ' (cantrip)'}</option>`).join('')
+      : '<option value="">No spells</option>';
+  } catch {
+    sel.innerHTML = '<option value="">Error</option>';
+  }
+});
+
+expose('castSpellAtTargets', async function (): Promise<void> {
+  const caster = (document.getElementById('castCaster') as HTMLSelectElement | null)?.value;
+  const spellId = (document.getElementById('castSpellSelect') as HTMLSelectElement | null)?.value;
+  if (!caster || !spellId) { toast('Select a caster and spell', true); return; }
+  const damage = (document.getElementById('castDamage') as HTMLInputElement | null)?.value || '';
+  const damage_type = (document.getElementById('castDamageType') as HTMLInputElement | null)?.value || '';
+  const save_ability = (document.getElementById('castSaveAbility') as HTMLSelectElement | null)?.value || '';
+  const save_dc = parseInt((document.getElementById('castSaveDC') as HTMLInputElement | null)?.value || '0', 10) || 0;
+  const healing = (document.getElementById('castHealing') as HTMLInputElement | null)?.checked || false;
+  const targets = Array.from(document.querySelectorAll<HTMLInputElement>('.cast-target'))
+    .filter((el) => el.checked)
+    .map((el) => ({ type: 'combat', id: parseInt(el.value, 10) }));
+  try {
+    const res = await api<any>('POST', `/api/characters/${caster}/cast-spell`, {
+      spell_id: parseInt(spellId, 10), damage, damage_type, healing, save_ability, save_dc, targets,
+    });
+    const applied = (res.applied || []) as Array<{ target: string; healing: number; damage: number; saved: boolean; save_rolled: boolean }>;
+    if (applied.length) {
+      const summary = applied.map((a) => `${a.target}: ${a.healing ? '+' + a.healing : '-' + a.damage}${a.save_rolled && a.saved ? ' (saved)' : ''}`).join(', ');
+      toast(`${res.spell} → ${summary}`);
+    } else {
+      toast(`${res.spell} cast`);
+    }
+    hideModal();
+    await (window as any).showCombatTracker?.();
+  } catch (e: unknown) { toast(e instanceof Error ? e.message : String(e), true); }
+});
 
 export async function refreshCombatLog(): Promise<void> {
   const panel = document.getElementById('combatLogPanel');
