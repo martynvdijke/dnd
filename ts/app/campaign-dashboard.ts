@@ -92,6 +92,7 @@ expose('showCampaignDashboard', async function (campaignId: number, campaignName
       <div class="text-center mt-3 d-flex gap-2 justify-content-center">
         <button class="btn btn-sm btn-outline-warning" onclick="showTableScreen(${campaignId})"><i class="fa-solid fa-tv me-1"></i>Table Screen</button>
         <button class="btn btn-sm btn-outline-light" onclick="showAmbienceControls(${campaignId})"><i class="fa-solid fa-music me-1"></i>Ambience</button>
+        <button class="btn btn-sm btn-outline-success" onclick="showBattlemap(${campaignId})"><i class="fa-solid fa-border-all me-1"></i>Battlemap</button>
         <button class="btn btn-sm btn-outline-info" onclick="showTransferExport(undefined, ${campaignId})"><i class="fa-solid fa-download me-1"></i>Export Campaign</button>
         <button class="btn btn-sm btn-outline-secondary" onclick="hideModal()">Close</button>
       </div>`;

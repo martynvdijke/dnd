@@ -161,6 +161,7 @@ const (
 	WSEventSceneEffect     = "scene_effect"
 	WSEventSpellCast       = "spell_cast"
 	WSEventAmbience        = "ambience"
+	WSEventBattlemapUpdate = "battlemap_update"
 )
 
 // broadcastToCampaign marshals a payload and fans it out to campaign members.
@@ -246,6 +247,11 @@ type AmbienceEvent struct {
 // SendAmbience relays an ambience play/stop command to campaign members.
 func SendAmbience(campaignID int64, track, action string, volume float64) {
 	broadcastToCampaign(campaignID, WSEventAmbience, AmbienceEvent{Track: track, Action: action, Volume: volume})
+}
+
+// SendBattlemapUpdate tells campaign members the battlemap changed (they refetch).
+func SendBattlemapUpdate(campaignID int64) {
+	broadcastToCampaign(campaignID, WSEventBattlemapUpdate, map[string]int64{"campaign_id": campaignID})
 }
 
 // SendKnowledgeReveal broadcasts a knowledge entry that just became shared.
