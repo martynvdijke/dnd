@@ -1,3 +1,10 @@
+# [2.70.0](https://github.com/martynvdijke/dnd/compare/v2.69.0...v2.70.0) (2026-09-25)
+
+
+### Features
+
+* flash WLED lights on spell casts and scene effects ([#137](https://github.com/martynvdijke/dnd/issues/137)) ([f12f9de](https://github.com/martynvdijke/dnd/commit/f12f9de18b0d2be0159444eed0bce6e7c866e941))
+
 # [2.69.0](https://github.com/martynvdijke/dnd/compare/v2.68.0...v2.69.0) (2026-09-25)
 
 
