@@ -154,7 +154,7 @@ func HtmxCampaignOverview(c *gin.Context) {
 		}()
 	}
 
-	combatRows, err := db.DB.Query("SELECT id, name, round, created_at FROM combat_entries WHERE campaign_id=? ORDER BY created_at DESC LIMIT 3", campaignID)
+	combatRows, err := db.DB.Query("SELECT id, name, created_at FROM combat_entries WHERE campaign_id=? ORDER BY created_at DESC, id DESC LIMIT 3", campaignID)
 	if err != nil {
 		middleware.LogWarn("oneshot", "combats query failed", "error", err)
 	} else {
@@ -162,7 +162,7 @@ func HtmxCampaignOverview(c *gin.Context) {
 			defer combatRows.Close()
 			for combatRows.Next() {
 				var cs CombatSummary
-				combatRows.Scan(&cs.ID, &cs.Name, &cs.Round, &cs.CreatedAt)
+				combatRows.Scan(&cs.ID, &cs.Name, &cs.CreatedAt)
 				data.RecentCombats = append(data.RecentCombats, cs)
 			}
 			if err := combatRows.Err(); err != nil {
@@ -172,11 +172,11 @@ func HtmxCampaignOverview(c *gin.Context) {
 	}
 
 	rollRows, err := db.DB.Query(`
-		SELECT dr.id, dr.expression, dr.total, dr.created_at
+		SELECT dr.id, dr.expression, dr.total, dr.timestamp
 		FROM dice_rolls dr
 		JOIN characters c ON dr.character_id = c.id
 		WHERE c.campaign_id=?
-		ORDER BY dr.created_at DESC LIMIT 5
+		ORDER BY dr.timestamp DESC, dr.id DESC LIMIT 5
 	`, campaignID)
 	if err != nil {
 		middleware.LogWarn("oneshot", "dice rolls query failed", "error", err)

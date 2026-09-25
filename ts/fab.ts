@@ -7,6 +7,8 @@ const actionMap: Record<string, FABAction[]> = {
   characters: [
     { id: 'new-char', label: 'New Character', icon: 'fa-plus', onclick: 'newChar()' },
     { id: 'import-char', label: 'Import Character', icon: 'fa-file-import', onclick: 'showImport()' },
+    { id: 'export-data', label: 'Export Data', icon: 'fa-download', onclick: 'showTransferExport()' },
+    { id: 'import-data', label: 'Import Data', icon: 'fa-right-left', onclick: 'showTransferImport()' },
   ],
   sheet: [
     { id: 'roll-dice', label: 'Roll Dice', icon: 'fa-dice', onclick: "showView('dice');renderDiceTab()" },

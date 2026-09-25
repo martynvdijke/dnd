@@ -36,41 +36,35 @@ interface SearchTypeDef {
   icon: string;
 }
 
+// Keys MUST match entity_search_index.entity_type values (singular).
+// See db/search_index.go — these are the only filter values the API accepts.
 const SEARCH_TYPES: SearchTypeDef[] = [
-  { key: '',            label: 'All',      icon: 'fa-magnifying-glass' },
-  { key: 'characters',  label: 'Characters', icon: 'fa-users' },
-  { key: 'npcs',        label: 'NPCs',       icon: 'fa-user-group' },
-  { key: 'campaigns',   label: 'Campaigns',  icon: 'fa-flag' },
-  { key: 'notes',       label: 'Notes',      icon: 'fa-note-sticky' },
-  { key: 'quests',      label: 'Quests',     icon: 'fa-scroll' },
-  { key: 'sessions',    label: 'Sessions',   icon: 'fa-calendar' },
-  { key: 'journal',     label: 'Journal',    icon: 'fa-book-open' },
-  { key: 'spells',      label: 'Spells',     icon: 'fa-wand-sparkles' },
-  { key: 'equipment',   label: 'Equipment',  icon: 'fa-backpack' },
-  { key: 'monsters',    label: 'Monsters',   icon: 'fa-dragon' },
+  { key: '',            label: 'All',         icon: 'fa-magnifying-glass' },
+  { key: 'character',   label: 'Characters',  icon: 'fa-users' },
+  { key: 'npc',         label: 'NPCs',        icon: 'fa-user-group' },
+  { key: 'campaign',    label: 'Campaigns',   icon: 'fa-flag' },
+  { key: 'note',        label: 'Notes',       icon: 'fa-note-sticky' },
+  { key: 'quest',       label: 'Quests',      icon: 'fa-scroll' },
+  { key: 'session',     label: 'Sessions',    icon: 'fa-calendar' },
+  { key: 'journal',     label: 'Journal',     icon: 'fa-book-open' },
+  { key: 'location',    label: 'Locations',   icon: 'fa-map' },
+  { key: 'encounter',   label: 'Encounters',  icon: 'fa-crosshairs' },
+  { key: 'monster',     label: 'Monsters',    icon: 'fa-dragon' },
+  { key: 'shop',        label: 'Shops',       icon: 'fa-store' },
+  { key: 'faction',     label: 'Factions',    icon: 'fa-flag' },
+  { key: 'adventure',   label: 'Adventures',  icon: 'fa-map' },
+  { key: 'wiki',        label: 'Wiki',        icon: 'fa-book' },
+  { key: 'recap',       label: 'Recaps',      icon: 'fa-feather' },
+  { key: 'timeline',    label: 'Timeline',    icon: 'fa-timeline' },
+  { key: 'knowledge',   label: 'Knowledge',   icon: 'fa-lightbulb' },
+  { key: 'item',        label: 'Items',       icon: 'fa-backpack' },
+  { key: 'compendium',  label: 'Compendium',  icon: 'fa-spell-book' },
 ];
 
-const ENTITY_ICONS: Record<string, string> = {
-  characters: 'fa-users',
-  npcs: 'fa-user-group',
-  campaigns: 'fa-flag',
-  notes: 'fa-note-sticky',
-  quests: 'fa-scroll',
-  sessions: 'fa-calendar',
-  journal: 'fa-book-open',
-  spells: 'fa-wand-sparkles',
-  equipment: 'fa-backpack',
-  races: 'fa-person',
-  classes: 'fa-graduation-cap',
-  feats: 'fa-star',
-  backgrounds: 'fa-address-card',
-  monsters: 'fa-dragon',
-  adventures: 'fa-scroll',
-  factions: 'fa-flag',
-  shops: 'fa-store',
-  encounters: 'fa-crosshairs',
-  locations: 'fa-map',
-};
+// Icon lookup for search results; keyed by singular entity_type.
+const ENTITY_ICONS: Record<string, string> = Object.fromEntries(
+  SEARCH_TYPES.filter(t => t.key).map(t => [t.key, t.icon]),
+);
 
 // ─── State ───
 
@@ -370,11 +364,11 @@ expose('__searchNavigate', function (type: string, id: number, name: string) {
   if (typeof navFn === 'function') {
     navFn(type, id, name);
   } else {
-    // Fallback: basic navigation
+    // Fallback: basic navigation (entity_type values are singular)
     import('./navigation').then(({ showView }) => {
-      if (type === 'characters') {
+      if (type === 'character') {
         (window as any).openChar?.(id);
-      } else if (['spells', 'equipment', 'races', 'classes', 'feats', 'backgrounds', 'monsters'].includes(type)) {
+      } else if (type === 'monster' || type === 'compendium') {
         (window as any).showCompendium?.();
       } else {
         showView('characters');

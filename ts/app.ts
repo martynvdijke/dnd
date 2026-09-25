@@ -55,23 +55,32 @@ declare const htmx: any;
 // Global Search → extracted to ts/search.ts
 import { showSearchOverlay, hideSearchOverlay, doSearch, initSearch } from './search';
 
+// Maps a search result's singular entity_type to its app view. Kept in sync
+// with SEARCH_TYPES in ts/search.ts.
 expose('navigateSearchResult', function (type: string, id: number, name: string) {
-  if (type === 'characters') {
-    openChar(id);
-  } else if (type === 'campaigns') {
-    showView('characters');
-    toast('Campaign: ' + name);
-  } else if (['spells','equipment','races','classes','feats','backgrounds'].includes(type)) {
-    (window as any).showCompendium();
-  } else if (type === 'monsters') {
-    (window as any).showCompendium();
-    setTimeout(() => (window as any).loadCompendiumTab('monsters'), 100);
-  } else if (type === 'npcs') {
-    showView('characters');
-    toast('NPC: ' + name);
-  } else {
-    showView('characters');
-    toast(name);
+  switch (type) {
+    case 'character': openChar(id); return;
+    case 'monster':
+      (window as any).showCompendium?.();
+      setTimeout(() => (window as any).loadCompendiumTab?.('monsters'), 100);
+      return;
+    case 'compendium': (window as any).showCompendium?.(); return;
+    case 'shop': showView('shops'); return;
+    case 'faction': showView('factions'); return;
+    case 'adventure':
+    case 'item': showView('oneshot'); return;
+    case 'wiki': showView('wiki'); return;
+    case 'timeline': showView('timeline'); return;
+    case 'knowledge': showView('knowledge'); return;
+    case 'recap': showView('recaps'); return;
+    case 'encounter': showView('encounter'); return;
+    case 'location': showView('world'); return;
+    case 'campaign': showView('campaignPicker'); return;
+    default:
+      // note/quest/session/journal/npc are per-character records without a
+      // standalone view; surface the match by name on the character list.
+      showView('characters');
+      toast(name);
   }
 });
 
@@ -788,6 +797,7 @@ import './app/wiki';
 import './knowledge';
 import './copilot';
 import './import-ecosystem';
+import './transfer';
 import './table-view';
 
 // ─── One-Shot Tree/Items/Shops/Monsters/NPCs → extracted to ts/app/oneshot.ts ───
