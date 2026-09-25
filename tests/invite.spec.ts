@@ -27,12 +27,14 @@ test.describe('Campaign invitations', () => {
     const pending = await page.evaluate(async (cid: number) => (window as any).api('GET', `/api/campaigns/${cid}/invitations`), campId);
     expect(pending.some((i: any) => i.email === email)).toBeTruthy();
 
-    // Public invite page renders (logged-in viewer sees the accept action).
+    // Public invite page renders (logged-in campaign owner is already a member).
     await page.goto('/invite/' + inv.token);
     await expect(page.locator('body')).toContainText(campName, { timeout: NAV_TIMEOUT });
-    await expect(page.locator('body')).toContainText('Accept invitation', { timeout: NAV_TIMEOUT });
+    await expect(page.locator('body')).toContainText("You're invited", { timeout: NAV_TIMEOUT });
 
-    // Revoke and confirm it is gone.
+    // Return to the SPA (window.api is only defined there) to revoke.
+    await page.goto('/');
+    await page.waitForFunction(() => typeof (window as any).api === 'function');
     await page.evaluate(async (opts: any) => {
       await (window as any).api('DELETE', `/api/campaigns/${opts.campId}/invitations/${opts.id}`);
     }, { campId, id: inv.id });
