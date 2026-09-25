@@ -1,3 +1,10 @@
+# [2.73.0](https://github.com/martynvdijke/dnd/compare/v2.72.0...v2.73.0) (2026-09-25)
+
+
+### Features
+
+* wire data export/import UI and fix search type filters ([#140](https://github.com/martynvdijke/dnd/issues/140)) ([7596725](https://github.com/martynvdijke/dnd/commit/75967258ac3ea169b8420e4e4084bbea27dffcc7))
+
 # [2.72.0](https://github.com/martynvdijke/dnd/compare/v2.71.0...v2.72.0) (2026-09-25)
 
 
