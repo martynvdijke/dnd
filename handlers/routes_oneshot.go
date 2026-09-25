@@ -38,6 +38,11 @@ func RegisterDMOneShotRoutes(r *gin.RouterGroup) {
 	r.GET("/oneshot-acts/:id/notes", ListActNotes)
 	r.POST("/oneshot-acts/:id/notes", CreateActNote)
 
+	// Act-level Encounters
+	r.GET("/oneshot-acts/:id/encounters", ListActEncounters)
+	r.POST("/oneshot-acts/:id/encounters", LinkActEncounter)
+	r.DELETE("/oneshot-acts/:id/encounters/:eid", UnlinkActEncounter)
+
 	// Act-level Details (HTMX)
 	r.GET("/htmx/oneshot-acts/:id/details", HtmxActDetails)
 
