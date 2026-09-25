@@ -310,6 +310,7 @@ func loadAdventureDetail(ctx context.Context, adventureID int64) (*models.OneSho
 		}
 	}
 	nameActEncounters(a.Acts)
+	applySceneEffects(a.Acts, loadSceneEffects(adventureID))
 
 	var isMiniCampaign int
 	db.DB.QueryRow("SELECT COALESCE(is_mini_campaign,0) FROM oneshot_adventures WHERE id=?", adventureID).Scan(&isMiniCampaign)
@@ -322,6 +323,40 @@ func loadAdventureDetail(ctx context.Context, adventureID int64) (*models.OneSho
 }
 
 // ─── One-Shot Adventure API Handlers ───
+
+// loadSceneEffects returns scene id -> special effect for one adventure.
+func loadSceneEffects(adventureID int64) map[int64]string {
+	m := make(map[int64]string)
+	rows, err := db.DB.Query(`
+		SELECT s.id, COALESCE(s.special_effects,'')
+		FROM oneshot_scenes s
+		JOIN oneshot_acts a ON s.act_id = a.id
+		WHERE a.adventure_id = ?`, adventureID)
+	if err != nil {
+		return m
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id int64
+		var fx string
+		if rows.Scan(&id, &fx) == nil && fx != "" {
+			m[id] = fx
+		}
+	}
+	return m
+}
+
+// applySceneEffects walks the act tree and attaches stored effects to scenes.
+func applySceneEffects(acts []models.OneShotAct, m map[int64]string) {
+	for i := range acts {
+		for j := range acts[i].Scenes {
+			if fx, ok := m[acts[i].Scenes[j].ID]; ok {
+				acts[i].Scenes[j].SpecialEffects = fx
+			}
+		}
+		applySceneEffects(acts[i].Children, m)
+	}
+}
 
 func loadClueRelations(cl *models.Clue) {
 	cl.Dependencies = make([]models.ClueDependency, 0)

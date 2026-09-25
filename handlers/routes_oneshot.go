@@ -28,6 +28,7 @@ func RegisterDMOneShotRoutes(r *gin.RouterGroup) {
 	r.POST("/oneshot-acts/:id/scenes", CreateOneShotScene)
 	r.PUT("/oneshot-scenes/:id", UpdateOneShotScene)
 	r.DELETE("/oneshot-scenes/:id", DeleteOneShotScene)
+	r.POST("/oneshot-scenes/:id/effect", TriggerSceneEffect)
 
 	// Act-level NPCs
 	r.GET("/oneshot-acts/:id/npcs", ListActNPCs)

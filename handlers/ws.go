@@ -158,6 +158,7 @@ const (
 	WSEventDiceRoll        = "dice_roll"
 	WSEventCombatUpdate    = "combat_update"
 	WSEventKnowledgeReveal = "knowledge_reveal"
+	WSEventSceneEffect     = "scene_effect"
 )
 
 // broadcastToCampaign marshals a payload and fans it out to campaign members.
@@ -198,6 +199,17 @@ func SendDiceRoll(campaignID, userID, characterID int64, username, expression st
 // SendCombatUpdate signals members to refetch the combat view for a campaign.
 func SendCombatUpdate(campaignID int64) {
 	broadcastToCampaign(campaignID, WSEventCombatUpdate, map[string]int64{"campaign_id": campaignID})
+}
+
+// SceneEffectEvent is the scene_effect payload played on the live table.
+type SceneEffectEvent struct {
+	SceneID int64  `json:"scene_id"`
+	Effect  string `json:"effect"`
+}
+
+// SendSceneEffect relays a scene's special effect to campaign members.
+func SendSceneEffect(campaignID, sceneID int64, effect string) {
+	broadcastToCampaign(campaignID, WSEventSceneEffect, SceneEffectEvent{SceneID: sceneID, Effect: effect})
 }
 
 // SendKnowledgeReveal broadcasts a knowledge entry that just became shared.

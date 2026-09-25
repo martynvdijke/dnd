@@ -43,6 +43,7 @@ function connectWS() {
       if (msg.type === 'dice_roll') (window as any).handleLiveRoll?.(msg.payload);
       if (msg.type === 'combat_update') { if (getCurrentView() === 'combatTracker') (window as any).showCombatTracker?.(); (window as any).refreshTableInitiative?.(); }
       if (msg.type === 'knowledge_reveal') (window as any).refreshTableHandouts?.();
+      if (msg.type === 'scene_effect') (window as any).playSceneEffect?.(msg.payload.effect);
     } catch {}
   };
   ws.onopen = () => {

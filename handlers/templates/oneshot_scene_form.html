@@ -19,6 +19,12 @@
     {{range .Encounters}}<option value="{{.ID}}" {{if eq (deref $.Scene.EncounterID) .ID}}selected{{end}}>{{.Name}}</option>{{end}}
   </select>
 </div>
+<div class="mb-3"><label class="form-label">Special Effect</label>
+  <select class="form-select" name="special_effects">
+    {{range .SceneEffects}}<option value="{{.}}" {{if eq $.Scene.SpecialEffects .}}selected{{end}}>{{. | title}}</option>{{end}}
+  </select>
+  <div class="form-text">Played on the live table from the scene's effect button.</div>
+</div>
 <div class="mb-3"><label class="form-label">DM Notes</label><textarea class="form-control" name="notes" rows="2">{{.Scene.Notes}}</textarea></div>
 {{if .Scene.ID}}
 <button class="btn btn-primary w-100" hx-put="/htmx/oneshot-scenes/{{.Scene.ID}}" hx-target="#oneshotSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-save me-1"></i>Update Scene</button>

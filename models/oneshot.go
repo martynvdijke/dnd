@@ -78,6 +78,7 @@ type OneShotScene struct {
 	EncounterID      *int64 `json:"encounter_id,omitempty"`
 	EstimatedMinutes int    `json:"estimated_minutes"`
 	Notes            string `json:"notes"`
+	SpecialEffects   string `json:"special_effects,omitempty"`
 	// Loaded relations
 	LocationName  string `json:"location_name,omitempty"`
 	EncounterName string `json:"encounter_name,omitempty"`
