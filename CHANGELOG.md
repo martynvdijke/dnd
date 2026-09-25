@@ -1,3 +1,10 @@
+# [2.66.0](https://github.com/martynvdijke/dnd/compare/v2.65.1...v2.66.0) (2026-09-25)
+
+
+### Features
+
+* link one-shot acts to encounters ([#132](https://github.com/martynvdijke/dnd/issues/132)) ([14b5721](https://github.com/martynvdijke/dnd/commit/14b57214b9ef030969c6ff9694299a82dd1d720a))
+
 ## [2.65.1](https://github.com/martynvdijke/dnd/compare/v2.65.0...v2.65.1) (2026-09-22)
 
 
