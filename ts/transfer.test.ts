@@ -72,6 +72,17 @@ describe('showTransferExport', () => {
     const body = document.getElementById('genericModalBody');
     expect(body?.textContent).toContain('campaign #42');
   });
+
+  it('lists every transferable entity type', async () => {
+    const { showTransferExport } = await import('./transfer');
+    showTransferExport();
+    const values = Array.from(document.querySelectorAll<HTMLInputElement>('.transfer-type-chip input'))
+      .map(i => i.value);
+    expect(values).toEqual([
+      'character', 'npc', 'quest', 'journal', 'campaign', 'location',
+      'encounter', 'monster', 'shop', 'faction', 'adventure', 'timeline', 'knowledge',
+    ]);
+  });
 });
 
 describe('showTransferImport', () => {

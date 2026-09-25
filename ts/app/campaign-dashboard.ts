@@ -74,7 +74,7 @@ expose('showCampaignDashboard', async function (campaignId: number, campaignName
           ${(d.recent_combats || []).map((cbt: any) => `
             <div class="dash-list-item">
               <span>${esc(cbt.name)}</span>
-              <span class="text-muted small">Round ${cbt.round}</span>
+              <span class="text-muted small">${esc(cbt.created_at)}</span>
             </div>
           `).join('') || '<div class="text-muted small">No combats yet.</div>'}
         </div>
@@ -88,7 +88,8 @@ expose('showCampaignDashboard', async function (campaignId: number, campaignName
           `).join('') || '<div class="text-muted small">No dice rolls yet.</div>'}
         </div>
       </div>
-      <div class="text-center mt-3">
+      <div class="text-center mt-3 d-flex gap-2 justify-content-center">
+        <button class="btn btn-sm btn-outline-info" onclick="showTransferExport(undefined, ${campaignId})"><i class="fa-solid fa-download me-1"></i>Export Campaign</button>
         <button class="btn btn-sm btn-outline-secondary" onclick="hideModal()">Close</button>
       </div>`;
     document.getElementById('campaignDashContent')!.innerHTML = content;

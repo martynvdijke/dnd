@@ -14,10 +14,9 @@ import { expose } from './lib/expose';
 // ─── Types ───
 
 interface TransferMeta {
-  version: string;
-  exported_by: string;
+  version: number;
   exported_at: string;
-  source_version: string;
+  source: string;
 }
 
 interface TransferEntity {
@@ -47,13 +46,21 @@ interface TransferImportResult {
  * @param campaignId       Optional campaign ID to scope the export
  */
 export function showTransferExport(preSelectedType?: string, campaignId?: number): void {
+  // Mirrors registry.TransferableTypes() — keep in sync with registry/registry.go.
   const allTypes = [
     { value: 'character', label: 'Characters' },
     { value: 'npc', label: 'NPCs' },
+    { value: 'quest', label: 'Quests' },
+    { value: 'journal', label: 'Journal' },
     { value: 'campaign', label: 'Campaigns' },
     { value: 'location', label: 'Locations' },
+    { value: 'encounter', label: 'Encounters' },
+    { value: 'monster', label: 'Monsters' },
     { value: 'shop', label: 'Shops' },
     { value: 'faction', label: 'Factions' },
+    { value: 'adventure', label: 'Adventures' },
+    { value: 'timeline', label: 'Timeline Events' },
+    { value: 'knowledge', label: 'Knowledge' },
   ];
 
   const typeChips = allTypes.map(t => `
@@ -204,7 +211,7 @@ expose('transferDoImport', async function () {
 
     const summaryHtml = `
       <div class="mb-3">
-        <p class="mb-1">File: <strong>${esc(data.villum_transfer.source_version || data.villum_transfer.version || '?')}</strong></p>
+        <p class="mb-1">File: <strong>villum v${Number(data.villum_transfer.version) || 1}</strong></p>
         <p class="mb-1">Entities: <strong>${dryResult.total_entities ?? results.length}</strong></p>
       </div>
       <div class="transfer-preview-results">
