@@ -77,6 +77,7 @@ declare global {
     hideTable: () => void;
     rollFromTable: () => Promise<void>;
     handleLiveRoll: (payload: unknown) => void;
+    handleSpellCast: (payload: unknown) => void;
     refreshTableInitiative: () => Promise<void>;
     refreshTableHandouts: () => Promise<void>;
     applyDamage: () => Promise<void>;

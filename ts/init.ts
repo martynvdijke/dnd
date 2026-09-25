@@ -44,6 +44,10 @@ function connectWS() {
       if (msg.type === 'combat_update') { if (getCurrentView() === 'combatTracker') (window as any).showCombatTracker?.(); (window as any).refreshTableInitiative?.(); }
       if (msg.type === 'knowledge_reveal') (window as any).refreshTableHandouts?.();
       if (msg.type === 'scene_effect') (window as any).playSceneEffect?.(msg.payload.effect);
+      if (msg.type === 'spell_cast') {
+        (window as any).playSceneEffect?.(msg.payload.effect);
+        (window as any).handleSpellCast?.(msg.payload);
+      }
     } catch {}
   };
   ws.onopen = () => {

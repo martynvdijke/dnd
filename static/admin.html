@@ -38,6 +38,7 @@
   <li class="nav-item"><button class="nav-link" id="tabBackupBtn" onclick="showAdminTab('backup')"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Backup</button></li>
   <li class="nav-item"><button class="nav-link" id="tabEmailBtn" onclick="showAdminTab('email')"><i class="fa-solid fa-envelope me-1" aria-hidden="true"></i>Email</button></li>
   <li class="nav-item"><button class="nav-link" id="tabPushBtn" onclick="showAdminTab('push')"><i class="fa-solid fa-bell me-1" aria-hidden="true"></i>Push</button></li>
+  <li class="nav-item"><button class="nav-link" id="tabWledBtn" onclick="showAdminTab('wled')"><i class="fa-solid fa-lightbulb me-1" aria-hidden="true"></i>WLED</button></li>
   <li class="nav-item"><button class="nav-link" id="tabAIEndpointsBtn" onclick="showAdminTab('ai-endpoints')"><i class="fa-solid fa-robot me-1" aria-hidden="true"></i>AI Endpoints</button></li>
   <li class="nav-item"><button class="nav-link" id="tabAnalyticsBtn" onclick="showAdminTab('analytics')"><i class="fa-solid fa-chart-line me-1" aria-hidden="true"></i>Analytics</button></li>
   <li class="nav-item"><button class="nav-link" id="tabTelemetryBtn" onclick="showAdminTab('telemetry')"><i class="fa-solid fa-microchip me-1" aria-hidden="true"></i>Telemetry</button></li>
@@ -267,6 +268,36 @@
       </div>
       <button class="btn btn-gold" onclick="savePushSettings()" data-testid="push-save-settings"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Save Push Settings</button>
       <button class="btn btn-outline-primary ms-2" onclick="testPushNotification()" data-testid="push-test-send"><i class="fa-solid fa-paper-plane me-1" aria-hidden="true"></i>Test Push</button>
+    </div>
+  </div>
+</div>
+
+<div id="adminWled" style="display:none">
+  <div class="card">
+    <div class="card-header"><i class="fa-solid fa-lightbulb me-2" aria-hidden="true"></i>WLED Smart Lights</div>
+    <div class="card-body">
+      <div class="form-check form-switch mb-3">
+        <input class="form-check-input" type="checkbox" id="wledEnabled">
+        <label class="form-check-label" for="wledEnabled">Enable WLED flashes on scene effects and spell casts</label>
+      </div>
+      <div class="row g-3 mb-3">
+        <div class="col-md-6">
+          <label class="form-label" for="wledBaseUrl">Controller URL</label>
+          <input type="text" id="wledBaseUrl" class="form-control" placeholder="http://wled.local">
+          <div class="form-text">Base URL of the WLED controller (no trailing slash, /json/state is appended).</div>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label" for="wledBrightness">Brightness (0-255)</label>
+          <input type="number" id="wledBrightness" class="form-control" value="200" min="0" max="255">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label" for="wledRestorePreset">Restore preset (0 = leave)</label>
+          <input type="number" id="wledRestorePreset" class="form-control" value="0" min="0" max="250">
+          <div class="form-text">WLED preset to restore after a flash.</div>
+        </div>
+      </div>
+      <button class="btn btn-gold" onclick="saveWledSettings()"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Save WLED Settings</button>
+      <button class="btn btn-outline-primary ms-2" onclick="testWled()"><i class="fa-solid fa-paper-plane me-1" aria-hidden="true"></i>Test Flash</button>
     </div>
   </div>
 </div>

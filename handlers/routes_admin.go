@@ -22,6 +22,11 @@ func RegisterAdminRoutes(r *gin.RouterGroup) {
 	r.POST("/push-settings", SavePushSettings)
 	r.POST("/test-push", TestPush)
 
+	// WLED smart-light integration
+	r.GET("/wled-settings", GetWLEDSettings)
+	r.POST("/wled-settings", SaveWLEDSettings)
+	r.POST("/test-wled", TestWLED)
+
 	// Shop management (admin access — global)
 	r.POST("/shops", CreateShop)
 	r.PUT("/shops/:id", UpdateShop)

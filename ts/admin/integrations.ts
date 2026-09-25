@@ -111,6 +111,33 @@ expose('testPushNotification', async function () {
     toast(`Test push sent to ${r.sent} subscription${r.sent === 1 ? '' : 's'}`);
   } catch (e: any) { renderError(e); }
 });
+async function loadWledSettings() {
+  try {
+    const s = await api('GET', '/api/admin/wled-settings');
+    (document.getElementById('wledEnabled') as HTMLInputElement).checked = !!s.enabled;
+    (document.getElementById('wledBaseUrl') as HTMLInputElement).value = s.base_url || '';
+    (document.getElementById('wledBrightness') as HTMLInputElement).value = s.brightness ?? 200;
+    (document.getElementById('wledRestorePreset') as HTMLInputElement).value = s.restore_preset ?? 0;
+  } catch {}
+}
+expose('loadWledSettings', loadWledSettings);
+expose('saveWledSettings', async function () {
+  try {
+    await api('POST', '/api/admin/wled-settings', {
+      enabled: (document.getElementById('wledEnabled') as HTMLInputElement).checked,
+      base_url: (document.getElementById('wledBaseUrl') as HTMLInputElement).value,
+      brightness: +(document.getElementById('wledBrightness') as HTMLInputElement).value || 0,
+      restore_preset: +(document.getElementById('wledRestorePreset') as HTMLInputElement).value || 0,
+    });
+    toast('WLED settings saved');
+  } catch (e: any) { renderError(e); }
+});
+expose('testWled', async function () {
+  try {
+    const r = await api('POST', '/api/admin/test-wled');
+    toast(r.success ? 'Test flash sent to WLED' : `WLED: ${r.message}`, !r.success);
+  } catch (e: any) { renderError(e); }
+});
 async function loadUmamiSettings() {
   try {
     const s = await api('GET', '/api/admin/umami-settings');

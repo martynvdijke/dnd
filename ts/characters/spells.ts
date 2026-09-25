@@ -1,6 +1,7 @@
 import { expose } from '../lib/expose';
 import { currentChar, setCurrentChar } from '../lib/state';
-import { esc, attrEscape, showModal } from '../lib/dom';
+import { esc, attrEscape, showModal, toast } from '../lib/dom';
+import { playSceneEffect } from '../lib/scene-fx';
 import { api } from '../lib/api';
 import type { Character, Spell } from '../lib/api-types';
 
@@ -54,6 +55,7 @@ export function renderSpells(): void {
                   <span class="badge badge-gold ms-1">${esc(s.school as string | null)}</span>
                 </div>
                 <div class="d-flex gap-1">
+                  <button class="btn btn-sm btn-outline-gold" onclick="castSpell(${s.id},'${attrEscape(s.name)}')" title="Cast spell"><i class="fa-solid fa-wand-sparkles"></i></button>
                   <button class="btn btn-sm btn-outline-primary" onclick="editSpell(${s.id},'${attrEscape(s.name)}',${s.level||0},'${attrEscape(s.school as string)}',${s.prepared},'${attrEscape(s['components'] as string)}','${attrEscape(s['range'] as string)}','${attrEscape(s['casting_time'] as string)}','${attrEscape(s['duration'] as string)}','${attrEscape(s['description'] as string)}')"><i class="fa-solid fa-pen"></i></button>
                   <button class="btn btn-sm btn-outline-danger" onclick="deleteSpell(${s.id})"><i class="fa-solid fa-trash"></i></button>
                 </div>
@@ -81,6 +83,24 @@ export async function updateSpellcasting(field:string, value: unknown): Promise<
   setCurrentChar(await api<Character>('GET', `/api/characters/${(currentChar as Character).id}`));
   renderSpells();
 }
+
+export async function castSpell(spellId: number, name: string): Promise<void> {
+  if (!currentChar) return;
+  try {
+    const res = await api<{ effect?: string; level?: number; slot_consumed?: boolean }>(
+      'POST',
+      `/api/characters/${(currentChar as Character).id}/cast-spell`,
+      { spell_id: spellId },
+    );
+    if (res?.effect) playSceneEffect(res.effect);
+    toast(`${name} cast${res?.slot_consumed ? ' — slot consumed' : ''}`);
+    setCurrentChar(await api<Character>('GET', `/api/characters/${(currentChar as Character).id}`));
+    renderSpells();
+  } catch (e: any) {
+    toast(e.message, true);
+  }
+}
+expose('castSpell', castSpell);
 
 export async function updateSpellSlot(level:number): Promise<void> {
   if (!currentChar) return;

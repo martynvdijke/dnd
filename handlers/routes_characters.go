@@ -23,6 +23,7 @@ func RegisterCharacterRoutes(r *gin.RouterGroup) {
 
 	// Spellcasting
 	r.PUT("/characters/:id/spellcasting", UpdateSpellcasting)
+	r.POST("/characters/:id/cast-spell", CastSpell)
 
 	// Inventory sub-resource
 	r.POST("/characters/:id/inventory", CreateInventory)
