@@ -21,6 +21,7 @@ import { initPdfViewerCleanup } from './pdf-viewer';
 import type { ViewState } from './types';
 import { setCurrentUser, setAllLocations, setAllNPCs } from './lib/state';
 import { initSpellCompendium } from './spell-compendium';
+import { playAmbience, stopAmbience } from './lib/ambience';
 
 // ─── WebSocket ───
 
@@ -47,6 +48,11 @@ function connectWS() {
       if (msg.type === 'spell_cast') {
         (window as any).playSceneEffect?.(msg.payload.effect);
         (window as any).handleSpellCast?.(msg.payload);
+      }
+      if (msg.type === 'ambience') {
+        const p = msg.payload || {};
+        if (p.action === 'stop') stopAmbience();
+        else playAmbience(p.track, p.volume);
       }
     } catch {}
   };
