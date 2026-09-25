@@ -1,3 +1,10 @@
+# [2.72.0](https://github.com/martynvdijke/dnd/compare/v2.71.0...v2.72.0) (2026-09-25)
+
+
+### Features
+
+* add edit screens for NPCs, act NPCs, crafting recipes and downtime ([#139](https://github.com/martynvdijke/dnd/issues/139)) ([a7d1585](https://github.com/martynvdijke/dnd/commit/a7d15852eea69bf0efcc3fafc46d5b80c7ae7f71))
+
 # [2.71.0](https://github.com/martynvdijke/dnd/compare/v2.70.0...v2.71.0) (2026-09-25)
 
 
