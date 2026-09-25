@@ -615,7 +615,10 @@ async function renderCrafting() {
           </div>
           <div class="small text-muted">${esc(r.description)}</div>
           <div class="small mt-1"><span class="text-muted">DC ${r.difficulty_dc}</span> · <span class="text-muted">${r.crafting_time_hours}h</span></div>
-          <div class="mt-1"><button class="btn btn-sm btn-outline-gold py-0 px-1" style="font-size:0.65rem" onclick="startRecipe(${r.id})">Craft</button></div>
+          <div class="mt-1"><button class="btn btn-sm btn-outline-gold py-0 px-1" style="font-size:0.65rem" onclick="startRecipe(${r.id})">Craft</button>
+            ${r.user_id ? `<button class="btn btn-sm btn-outline-primary py-0 px-1 ms-1" style="font-size:0.65rem" onclick="editRecipe(${r.id})" title="Edit recipe"><i class="fa-solid fa-pen"></i></button>
+            <button class="btn btn-sm btn-outline-danger py-0 px-1 ms-1" style="font-size:0.65rem" onclick="deleteRecipe(${r.id})" title="Delete recipe"><i class="fa-solid fa-trash"></i></button>` : ''}
+          </div>
         </div>
       </div></div>`;
     }
@@ -627,6 +630,57 @@ async function renderCrafting() {
   }
 }
 expose('renderCrafting', renderCrafting);
+
+expose('editRecipe', async function (id: number) {
+  try {
+    const recipes = await api('GET', '/api/crafting/recipes');
+    const r = recipes.find((x: any) => x.id === id);
+    if (!r) return;
+    showModal('Edit Recipe', `
+      <div class="mb-2"><label class="form-label small">Name</label><input id="recipeName" class="form-control form-control-sm" value="${esc(r.name)}"></div>
+      <div class="mb-2"><label class="form-label small">Description</label><textarea id="recipeDesc" class="form-control form-control-sm" rows="2">${esc(r.description)}</textarea></div>
+      <div class="row g-2 mb-2">
+        <div class="col-4"><label class="form-label small">Category</label><input id="recipeCategory" class="form-control form-control-sm" value="${esc(r.category)}"></div>
+        <div class="col-4"><label class="form-label small">DC</label><input id="recipeDC" type="number" class="form-control form-control-sm" value="${r.difficulty_dc}"></div>
+        <div class="col-4"><label class="form-label small">Hours</label><input id="recipeHours" type="number" step="0.5" class="form-control form-control-sm" value="${r.crafting_time_hours}"></div>
+      </div>
+      <div class="row g-2 mb-2">
+        <div class="col-6"><label class="form-label small">Tools</label><input id="recipeTools" class="form-control form-control-sm" value="${esc(r.required_tools)}"></div>
+        <div class="col-6"><label class="form-label small">Materials</label><input id="recipeMaterials" class="form-control form-control-sm" value="${esc(r.required_materials)}"></div>
+      </div>
+      <div class="row g-2 mb-2">
+        <div class="col-8"><label class="form-label small">Result item</label><input id="recipeResultName" class="form-control form-control-sm" value="${esc(r.result_item_name)}"></div>
+        <div class="col-4"><label class="form-label small">Qty</label><input id="recipeResultQty" type="number" class="form-control form-control-sm" value="${r.result_quantity}"></div>
+      </div>
+      <div class="mb-2"><label class="form-label small">Notes</label><textarea id="recipeNotes" class="form-control form-control-sm" rows="2">${esc(r.notes)}</textarea></div>
+      <button class="btn btn-primary w-100" onclick="saveRecipe(${id})">Save Recipe</button>`);
+  } catch (e: any) { toast(e.message, true); }
+});
+
+expose('saveRecipe', async function (id: number) {
+  const val = (el: string) => (document.getElementById(el) as HTMLInputElement)?.value ?? '';
+  try {
+    await api('PUT', `/api/crafting/recipes/${id}`, {
+      name: val('recipeName'), description: val('recipeDesc'), category: val('recipeCategory'),
+      difficulty_dc: +val('recipeDC') || 0, crafting_time_hours: +val('recipeHours') || 0,
+      required_tools: val('recipeTools'), required_materials: val('recipeMaterials'),
+      result_item_name: val('recipeResultName'), result_quantity: +val('recipeResultQty') || 1,
+      notes: val('recipeNotes'),
+    });
+    toast('Recipe saved');
+    hideModal();
+    renderCrafting();
+  } catch (e: any) { toast(e.message, true); }
+});
+
+expose('deleteRecipe', async function (id: number) {
+  if (!confirm('Delete this recipe?')) return;
+  try {
+    await api('DELETE', `/api/crafting/recipes/${id}`);
+    toast('Recipe deleted');
+    renderCrafting();
+  } catch (e: any) { toast(e.message, true); }
+});
 
 expose('startRecipe', async function (recipeId: number) {
   try {

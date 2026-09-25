@@ -1,5 +1,5 @@
 <form><input type="hidden" name="character_id" value="{{.CharacterID}}">
-<div class="mb-3"><label class="form-label">NPC Name</label><input class="form-control" id="newNPCName" name="name" placeholder="NPC name"></div>
+<div class="mb-3"><label class="form-label">NPC Name</label><input class="form-control" id="newNPCName" name="name" placeholder="NPC name" value="{{if .EditNPC}}{{.EditNPC.Name}}{{end}}"></div>
 <div class="row g-3 mb-3">
   <div class="col-6"><label class="form-label">Type</label>
     <select class="form-select" name="type">
@@ -8,50 +8,54 @@
       <option value="quest_giver">Quest Giver</option>
     </select>
   </div>
-  <div class="col-6"><label class="form-label">Race</label><input class="form-control" id="newNPCRace" name="race" placeholder="Elf, Dwarf, etc."></div>
+  <div class="col-6"><label class="form-label">Race</label><input class="form-control" id="newNPCRace" name="race" placeholder="Elf, Dwarf, etc." value="{{if .EditNPC}}{{.EditNPC.Race}}{{end}}"></div>
 </div>
-<div class="mb-3"><label class="form-label">Class</label><input class="form-control" id="newNPCClass" name="class" placeholder="NPC class"></div>
+<div class="mb-3"><label class="form-label">Class</label><input class="form-control" id="newNPCClass" name="class" placeholder="NPC class" value="{{if .EditNPC}}{{.EditNPC.Class}}{{end}}"></div>
 <div class="mb-3">
   <label class="form-label">NPC Tier</label>
   <select class="form-select" name="is_full" id="npcTier">
-    <option value="0">Simple (backstory only)</option>
-    <option value="1">Full (character sheet stats)</option>
+    <option value="0" {{if .EditNPC}}{{if not .EditNPC.IsFull}}selected{{end}}{{end}}>Simple (backstory only)</option>
+    <option value="1" {{if .EditNPC}}{{if .EditNPC.IsFull}}selected{{end}}{{end}}>Full (character sheet stats)</option>
   </select>
 </div>
-<div id="npcFullFields" style="display:none">
+<div id="npcFullFields" style="{{if .EditNPC}}{{if .EditNPC.IsFull}}display:block{{else}}display:none{{end}}{{else}}display:none{{end}}">
   <div class="row g-3 mb-3">
-    <div class="col-4"><label class="form-label">AC</label><input class="form-control" name="ac" type="number" value="10"></div>
-    <div class="col-4"><label class="form-label">Speed</label><input class="form-control" name="speed" placeholder="30 ft"></div>
-    <div class="col-4"><label class="form-label">HP</label><input class="form-control" name="hp" type="number" value="10"></div>
+    <div class="col-4"><label class="form-label">AC</label><input class="form-control" name="ac" type="number" value="{{if .EditNPC}}{{.EditNPC.AC}}{{else}}10{{end}}"></div>
+    <div class="col-4"><label class="form-label">Speed</label><input class="form-control" name="speed" placeholder="30 ft" value="{{if .EditNPC}}{{.EditNPC.Speed}}{{end}}"></div>
+    <div class="col-4"><label class="form-label">HP</label><input class="form-control" name="hp" type="number" value="{{if .EditNPC}}{{.EditNPC.HPMax}}{{else}}10{{end}}"></div>
   </div>
   <div class="row g-3 mb-3">
-    <div class="col-2"><label class="form-label">STR</label><input class="form-control" name="str" type="number" value="10"></div>
-    <div class="col-2"><label class="form-label">DEX</label><input class="form-control" name="dex" type="number" value="10"></div>
-    <div class="col-2"><label class="form-label">CON</label><input class="form-control" name="con" type="number" value="10"></div>
-    <div class="col-2"><label class="form-label">INT</label><input class="form-control" name="int" type="number" value="10"></div>
-    <div class="col-2"><label class="form-label">WIS</label><input class="form-control" name="wis" type="number" value="10"></div>
-    <div class="col-2"><label class="form-label">CHA</label><input class="form-control" name="cha" type="number" value="10"></div>
+    <div class="col-2"><label class="form-label">STR</label><input class="form-control" name="str" type="number" value="{{if .EditNPC}}{{.EditNPC.Str}}{{else}}10{{end}}"></div>
+    <div class="col-2"><label class="form-label">DEX</label><input class="form-control" name="dex" type="number" value="{{if .EditNPC}}{{.EditNPC.Dex}}{{else}}10{{end}}"></div>
+    <div class="col-2"><label class="form-label">CON</label><input class="form-control" name="con" type="number" value="{{if .EditNPC}}{{.EditNPC.Con}}{{else}}10{{end}}"></div>
+    <div class="col-2"><label class="form-label">INT</label><input class="form-control" name="int" type="number" value="{{if .EditNPC}}{{.EditNPC.Int}}{{else}}10{{end}}"></div>
+    <div class="col-2"><label class="form-label">WIS</label><input class="form-control" name="wis" type="number" value="{{if .EditNPC}}{{.EditNPC.Wis}}{{else}}10{{end}}"></div>
+    <div class="col-2"><label class="form-label">CHA</label><input class="form-control" name="cha" type="number" value="{{if .EditNPC}}{{.EditNPC.Cha}}{{else}}10{{end}}"></div>
   </div>
-  <div class="mb-3"><label class="form-label">Saving Throws</label><input class="form-control" name="saves" placeholder="e.g. Str +3, Dex +5"></div>
-  <div class="mb-3"><label class="form-label">Skills</label><input class="form-control" name="skills" placeholder="e.g. Stealth +7, Perception +4"></div>
-  <div class="mb-3"><label class="form-label">Features / Traits</label><textarea class="form-control" name="features" rows="3" placeholder="Special abilities, traits..."></textarea></div>
-  <div class="mb-3"><label class="form-label">Actions</label><textarea class="form-control" name="actions" rows="3" placeholder="Attacks, spells, actions..."></textarea></div>
+  <div class="mb-3"><label class="form-label">Saving Throws</label><input class="form-control" name="saves" placeholder="e.g. Str +3, Dex +5" value="{{if .EditNPC}}{{.EditNPC.Saves}}{{end}}"></div>
+  <div class="mb-3"><label class="form-label">Skills</label><input class="form-control" name="skills" placeholder="e.g. Stealth +7, Perception +4" value="{{if .EditNPC}}{{.EditNPC.Skills}}{{end}}"></div>
+  <div class="mb-3"><label class="form-label">Features / Traits</label><textarea class="form-control" name="features" rows="3" placeholder="Special abilities, traits...">{{if .EditNPC}}{{.EditNPC.Features}}{{end}}</textarea></div>
+  <div class="mb-3"><label class="form-label">Actions</label><textarea class="form-control" name="actions" rows="3" placeholder="Attacks, spells, actions...">{{if .EditNPC}}{{.EditNPC.Actions}}{{end}}</textarea></div>
 </div>
 <div class="mb-3">
   <label class="form-label">Description / Backstory</label>
-  <textarea class="form-control" id="newNPCDesc" name="description" rows="3"></textarea>
+  <textarea class="form-control" id="newNPCDesc" name="description" rows="3">{{if .EditNPC}}{{.EditNPC.Description}}{{end}}</textarea>
   <button class="btn btn-sm btn-outline-primary mt-2 ai-generate-btn" type="button" data-ai-mode="text" data-ai-target="newNPCDesc" data-ai-hint="Write a compelling backstory for this NPC" data-ai-title="Generate NPC Backstory"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate with AI</button>
 </div>
 <div class="mb-3">
   <label class="form-label">Portrait URL</label>
   <div class="input-group">
-    <input class="form-control" name="portrait_url" id="npPortraitUrl" placeholder="URL or upload below">
+    <input class="form-control" name="portrait_url" id="npPortraitUrl" placeholder="URL or upload below" value="{{if .EditNPC}}{{.EditNPC.PortraitURL}}{{end}}">
     <button class="btn btn-outline-secondary" type="button" onclick="document.getElementById('npPortraitUpload').click()"><i class="fa-solid fa-upload"></i></button>
     <input type="file" id="npPortraitUpload" accept="image/*" style="display:none" onchange="uploadNPCPortrait(this.files)">
   </div>
   <button class="btn btn-sm btn-outline-primary mt-2 ai-generate-btn" type="button" data-ai-mode="image" data-ai-target="npPortraitUrl" data-ai-hint="Fantasy portrait of this NPC" data-ai-title="Generate NPC Portrait"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate with AI</button>
 </div>
+{{if .EditNPC}}
+<button class="btn btn-primary w-100" hx-put="/htmx/npcs/{{.EditNPC.ID}}" hx-target="#npcsSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-floppy-disk me-1"></i>Save</button>
+{{else}}
 <button class="btn btn-primary w-100" hx-post="/htmx/npcs" hx-target="#npcsSection" hx-swap="innerHTML" hx-include="closest form"><i class="fa-solid fa-plus me-1"></i>Create</button>
+{{end}}
 <script>
 function uploadNPCPortrait(files) {
   if (!files.length) return;

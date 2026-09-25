@@ -33,6 +33,7 @@ func RegisterDMOneShotRoutes(r *gin.RouterGroup) {
 	// Act-level NPCs
 	r.GET("/oneshot-acts/:id/npcs", ListActNPCs)
 	r.POST("/oneshot-acts/:id/npcs", CreateActNPC)
+	r.PUT("/oneshot-acts/:id/npcs/:nid", UpdateActNPC)
 	r.DELETE("/oneshot-acts/:id/npcs/:nid", DeleteActNPC)
 
 	// Act-level Notes

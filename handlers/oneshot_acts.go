@@ -110,10 +110,28 @@ func ListActNPCs(c *gin.Context) {
 	c.JSON(http.StatusOK, out)
 }
 
+func oneShotActOwned(c *gin.Context, actID int64) bool {
+	if c.GetString("role") == "admin" {
+		return true
+	}
+	uidRaw, _ := c.Get("user_id")
+	uid, _ := uidRaw.(int64)
+	var owner int64
+	err := db.DB.QueryRow("SELECT adv.user_id FROM oneshot_acts a JOIN oneshot_adventures adv ON a.adventure_id = adv.id WHERE a.id=?", actID).Scan(&owner)
+	if err != nil {
+		return false
+	}
+	return owner == uid
+}
+
 func CreateActNPC(c *gin.Context) {
 	actID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid act id"})
+		return
+	}
+	if !oneShotActOwned(c, actID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
 	var input struct {
@@ -153,10 +171,52 @@ func CreateActNPC(c *gin.Context) {
 	c.JSON(http.StatusCreated, out)
 }
 
+func UpdateActNPC(c *gin.Context) {
+	actID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid act id"})
+		return
+	}
+	if !oneShotActOwned(c, actID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+	npcID, err := strconv.ParseInt(c.Param("nid"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid npc id"})
+		return
+	}
+	var input struct {
+		NpcID *int64 `json:"npc_id,omitempty"`
+		Name  string `json:"name"`
+		Role  string `json:"role"`
+		Notes string `json:"notes"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	res, err := db.DB.Exec("UPDATE oneshot_act_npcs SET name=?,role=?,notes=?,npc_id=?,is_inline=? WHERE id=? AND act_id=?",
+		input.Name, input.Role, input.Notes, input.NpcID, input.NpcID == nil, npcID, actID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if affected, _ := res.RowsAffected(); affected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "act npc not found"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "id": npcID, "act_id": actID})
+}
+
 func DeleteActNPC(c *gin.Context) {
 	actID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid act id"})
+		return
+	}
+	if !oneShotActOwned(c, actID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
 		return
 	}
 	npcID, err := strconv.ParseInt(c.Param("nid"), 10, 64)

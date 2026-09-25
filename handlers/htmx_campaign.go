@@ -87,6 +87,94 @@ func HtmxCreateNPC(c *gin.Context) {
 	HtmxListNPCs(c)
 }
 
+func npcOwnedByUser(c *gin.Context, npcID int64) bool {
+	if c.GetString("role") == "admin" {
+		return true
+	}
+	uidRaw, _ := c.Get("user_id")
+	uid, _ := uidRaw.(int64)
+	var owner int64
+	if err := db.DB.QueryRow("SELECT user_id FROM npcs WHERE id=?", npcID).Scan(&owner); err != nil {
+		return false
+	}
+	return owner == uid
+}
+
+func loadNPC(npcID int64) (*models.NPC, error) {
+	var n models.NPC
+	err := db.DB.QueryRow(`SELECT id,user_id,name,race,class,description,notes,str,dex,con,int,wis,cha,hp_max,hp_current,is_alive,is_full,ac,speed,skills,saves,features,actions,backstory,COALESCE(portrait_url,''),created_at FROM npcs WHERE id=?`, npcID).Scan(
+		&n.ID, &n.UserID, &n.Name, &n.Race, &n.Class, &n.Description, &n.Notes,
+		&n.Str, &n.Dex, &n.Con, &n.Int, &n.Wis, &n.Cha, &n.HPMax, &n.HPCurrent,
+		&n.IsAlive, &n.IsFull, &n.AC, &n.Speed, &n.Skills, &n.Saves, &n.Features,
+		&n.Actions, &n.Backstory, &n.PortraitURL, &n.CreatedAt)
+	return &n, err
+}
+
+func HtmxEditNPCForm(c *gin.Context) {
+	npcID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid npc id")
+		return
+	}
+	if !npcOwnedByUser(c, npcID) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
+	n, err := loadNPC(npcID)
+	if err != nil {
+		c.String(http.StatusNotFound, "npc not found")
+		return
+	}
+	cid, _ := strconv.ParseInt(c.Query("character_id"), 10, 64)
+	renderTemplate(c, "npcs_form.html", htmxNPCData{CharacterID: cid, EditNPC: n})
+}
+
+func HtmxUpdateNPC(c *gin.Context) {
+	npcID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.String(http.StatusBadRequest, "invalid npc id")
+		return
+	}
+	if !npcOwnedByUser(c, npcID) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
+	charID := c.PostForm("character_id")
+	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {
+		c.String(http.StatusForbidden, "access denied")
+		return
+	}
+	name := c.PostForm("name")
+	if name == "" {
+		c.String(http.StatusBadRequest, "name required")
+		return
+	}
+	atof := func(k string) int { n, _ := strconv.Atoi(c.PostForm(k)); return n }
+	isFull := c.PostForm("is_full") == "1" || c.PostForm("is_full") == "true"
+	hpmax := atof("hp")
+	if hpmax < 1 {
+		hpmax = 10
+	}
+	if isFull {
+		_, err = db.DB.Exec(`UPDATE npcs SET name=?,race=?,class=?,description=?,notes=?,portrait_url=?,is_full=?,ac=?,speed=?,hp_max=?,str=?,dex=?,con=?,int=?,wis=?,cha=?,saves=?,skills=?,features=?,actions=?,backstory=? WHERE id=?`,
+			name, c.PostForm("race"), c.PostForm("class"), c.PostForm("description"), c.PostForm("notes"), c.PostForm("portrait_url"), isFull,
+			atof("ac"), atof("speed"), hpmax, atof("str"), atof("dex"), atof("con"), atof("int"), atof("wis"), atof("cha"),
+			c.PostForm("saves"), c.PostForm("skills"), c.PostForm("features"), c.PostForm("actions"), c.PostForm("backstory"), npcID)
+	} else {
+		_, err = db.DB.Exec("UPDATE npcs SET name=?,race=?,class=?,description=?,notes=?,portrait_url=?,is_full=? WHERE id=?",
+			name, c.PostForm("race"), c.PostForm("class"), c.PostForm("description"), c.PostForm("notes"), c.PostForm("portrait_url"), isFull, npcID)
+	}
+	if err != nil {
+		c.String(http.StatusInternalServerError, err.Error())
+		return
+	}
+	if rel := c.PostForm("type"); rel != "" && charID != "" {
+		db.DB.Exec("UPDATE character_npcs SET relationship=? WHERE character_id=? AND npc_id=?", rel, charID, npcID)
+	}
+	c.Request.URL.RawQuery = "character_id=" + charID
+	HtmxListNPCs(c)
+}
+
 func HtmxLinkNPC(c *gin.Context) {
 	charID := c.PostForm("character_id")
 	if !canEditCharacterID(c, int64(getIntParam(c, "character_id", 0))) {

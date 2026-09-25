@@ -770,6 +770,7 @@ type htmxNPCData struct {
 	CharacterID int64
 	NPCs        []npcsLink
 	AllNPCs     []models.NPC
+	EditNPC     *models.NPC
 }
 
 type npcsLink struct {
