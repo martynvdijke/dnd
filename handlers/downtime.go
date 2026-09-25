@@ -122,7 +122,7 @@ func AdvanceDowntimeDay(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	cid, ok := downtimeCharID(id)
 	if !ok {
-		c.JSON(http.StatusNotFound, gin.H{"error": "activity not found"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "activity not found or not in progress"})
 		return
 	}
 	if !canEditCharacterID(c, cid) {
