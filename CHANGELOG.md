@@ -1,3 +1,10 @@
+# [2.77.0](https://github.com/martynvdijke/dnd/compare/v2.76.0...v2.77.0) (2026-09-25)
+
+
+### Features
+
+* add a battlemap with tokens linked to combat ([#145](https://github.com/martynvdijke/dnd/issues/145)) ([04f888e](https://github.com/martynvdijke/dnd/commit/04f888e019a35a7f91f19e252495aa9b04ff5d68))
+
 # [2.76.0](https://github.com/martynvdijke/dnd/compare/v2.75.0...v2.76.0) (2026-09-25)
 
 
