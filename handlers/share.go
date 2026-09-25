@@ -38,6 +38,7 @@ var supportedShareTypes = map[string]bool{
 	"journal":   true,
 	"map":       true,
 	"upload":    true,
+	"recap":     true,
 }
 
 func generateToken() string {
@@ -103,6 +104,10 @@ func canShareEntity(c *gin.Context, entityType string, entityID int64) bool {
 		return err == nil && userCanAccessCampaign(c, campaignID)
 	case "upload":
 		return canShareUpload(uid, entityID)
+	case "recap":
+		var campaignID int64
+		err := db.DB.QueryRow("SELECT campaign_id FROM campaign_recaps WHERE id=?", entityID).Scan(&campaignID)
+		return err == nil && userCanAccessCampaign(c, campaignID)
 	}
 	return false
 }
@@ -225,6 +230,17 @@ type SharedJournalView struct {
 	OwnerName string
 }
 
+// SharedRecapView carries campaign recap fields into the public share page template.
+type SharedRecapView struct {
+	Title            string
+	Content          string
+	SessionStartDate string
+	SessionEndDate   string
+	WordCount        int
+	CreatedAt        string
+	CampaignName     string
+}
+
 // shareEntityLabel returns a human-readable name for a shared entity, used in
 // share-link listings and creation responses.
 func shareEntityLabel(entityType string, entityID int64) string {
@@ -242,6 +258,8 @@ func shareEntityLabel(entityType string, entityID int64) string {
 		db.DB.QueryRow("SELECT name FROM campaign_maps WHERE id=?", entityID).Scan(&label)
 	case "upload":
 		db.DB.QueryRow("SELECT url FROM uploads WHERE id=?", entityID).Scan(&label)
+	case "recap":
+		db.DB.QueryRow("SELECT title FROM campaign_recaps WHERE id=?", entityID).Scan(&label)
 	}
 	return label
 }
@@ -469,6 +487,29 @@ func GetSharedEntity(c *gin.Context) {
 		}
 		c.JSON(http.StatusOK, u)
 
+	case "recap":
+		var r struct {
+			ID               int64  `json:"id"`
+			Title            string `json:"title"`
+			Content          string `json:"content"`
+			SessionStartDate string `json:"session_start_date"`
+			SessionEndDate   string `json:"session_end_date"`
+			WordCount        int    `json:"word_count"`
+			CreatedAt        string `json:"created_at"`
+			CampaignName     string `json:"campaign_name"`
+		}
+		err := db.DB.QueryRow(`
+			SELECT r.id, r.title, r.content, COALESCE(r.session_start_date,''), COALESCE(r.session_end_date,''),
+				r.word_count, COALESCE(r.created_at,''), COALESCE(c.name,'')
+			FROM campaign_recaps r LEFT JOIN campaigns c ON c.id = r.campaign_id
+			WHERE r.id=?`, entityID).
+			Scan(&r.ID, &r.Title, &r.Content, &r.SessionStartDate, &r.SessionEndDate, &r.WordCount, &r.CreatedAt, &r.CampaignName)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "recap not found"})
+			return
+		}
+		c.JSON(http.StatusOK, r)
+
 	default:
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "unknown entity type"})
 	}
@@ -618,6 +659,20 @@ func GetSharedPage(c *gin.Context) {
 			return
 		}
 		renderSharePage(c, "share_upload.html", u)
+
+	case "recap":
+		var r SharedRecapView
+		err := db.DB.QueryRow(`
+			SELECT r.title, r.content, COALESCE(r.session_start_date,''), COALESCE(r.session_end_date,''),
+				r.word_count, COALESCE(r.created_at,''), COALESCE(c.name,'')
+			FROM campaign_recaps r LEFT JOIN campaigns c ON c.id = r.campaign_id
+			WHERE r.id=?`, entityID).
+			Scan(&r.Title, &r.Content, &r.SessionStartDate, &r.SessionEndDate, &r.WordCount, &r.CreatedAt, &r.CampaignName)
+		if err != nil {
+			c.String(http.StatusNotFound, "Recap not found.")
+			return
+		}
+		renderSharePage(c, "share_recap.html", r)
 
 	default:
 		c.String(http.StatusBadRequest, "This share type has no public page.")

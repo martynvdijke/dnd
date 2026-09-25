@@ -315,4 +315,37 @@ test.describe('Recaps', () => {
     await expect(page.locator('#worldPlaceDetail')).toContainText('Session write-ups', { timeout: NAV_TIMEOUT });
     await expect(page.locator('#placeRecapBacklinks')).toContainText(title, { timeout: NAV_TIMEOUT });
   });
+
+  test('share a recap creates a public link', async ({ page }) => {
+    const campName = uniqueName();
+    const camp = await createCampaign(page, campName);
+    const cid = camp.id as number;
+    await page.evaluate((id: number) => (window as any).selectCampaign(id), cid);
+    await waitLoadingDone(page);
+    const title = 'Shared ' + uniqueName();
+    await page.evaluate(async (opts: any) => {
+      await (window as any).api('POST', `/api/campaigns/${opts.cid}/recaps`, {
+        title: opts.title, content: '<p>Public recap body</p>',
+      });
+    }, { cid, title });
+
+    await openRecaps(page);
+    await expect(page.locator('#recapsContent')).toContainText(title, { timeout: NAV_TIMEOUT });
+
+    // Click the share button on the recap card
+    const card = page.locator('#recapsContent .card').filter({ hasText: title });
+    await card.locator('button[title="Share recap"]').click();
+    await expect(page.locator('#shareUrl')).toBeVisible({ timeout: NAV_TIMEOUT });
+    const url = await page.locator('#shareUrl').inputValue();
+    expect(url).toContain('/api/share/');
+
+    // Public JSON endpoint returns the recap without auth
+    const token = url.split('/api/share/')[1];
+    const body = await page.evaluate(async (t: string) => {
+      const resp = await fetch(`/api/share/${t}`);
+      return { status: resp.status, json: await resp.json() };
+    }, token);
+    expect(body.status).toBe(200);
+    expect(body.json.title).toBe(title);
+  });
 });
