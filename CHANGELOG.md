@@ -1,3 +1,10 @@
+# [2.67.0](https://github.com/martynvdijke/dnd/compare/v2.66.0...v2.67.0) (2026-09-25)
+
+
+### Features
+
+* share campaign recaps via public links ([#133](https://github.com/martynvdijke/dnd/issues/133)) ([159c1d8](https://github.com/martynvdijke/dnd/commit/159c1d826ab8b10e97a15b77c1a16dbd03f33fae))
+
 # [2.66.0](https://github.com/martynvdijke/dnd/compare/v2.65.1...v2.66.0) (2026-09-25)
 
 
