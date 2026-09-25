@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Campaign Invitation — Villum</title>
+<style>
+  body { font-family: system-ui, -apple-system, sans-serif; background: #12141a; color: #e8e6e3; margin: 0; padding: 24px; line-height: 1.55; }
+  .card { max-width: 520px; margin: 8vh auto 0; background: #1c1f28; border: 1px solid #2b3040; border-radius: 12px; padding: 32px; text-align: center; }
+  h1 { margin: 0 0 8px; font-size: 1.4rem; }
+  .campaign { font-size: 1.15rem; color: #e6c07b; font-weight: 600; }
+  .meta { color: #9aa3b5; font-size: .9rem; margin: 14px 0 24px; }
+  .btn { display: inline-block; background: #e6c07b; color: #12141a; border: 0; border-radius: 8px; padding: 11px 22px; font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none; }
+  .btn.secondary { background: #2b3040; color: #e8e6e3; }
+  .muted { color: #9aa3b5; font-size: .85rem; }
+  .footer { margin-top: 26px; color: #6b7385; font-size: .75rem; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>You're invited</h1>
+  <p class="muted">Join the campaign</p>
+  <p class="campaign">{{.CampaignName}}</p>
+  <p class="meta">Invited as <strong>{{.Role}}</strong>{{if .Email}} · {{.Email}}{{end}}</p>
+
+  {{if .Accepted}}
+    <p>This invitation has already been used.</p>
+    <a class="btn secondary" href="/">Go to Villum</a>
+  {{else if .Expired}}
+    <p>This invitation has expired. Ask the campaign DM to send a new one.</p>
+  {{else if .Already}}
+    <p>You're already a member of this campaign.</p>
+    <a class="btn" href="/">Open Villum</a>
+  {{else if .LoggedIn}}
+    <p class="muted">Signed in as {{.Username}}</p>
+    <form method="POST" action="/invite/{{.Token}}">
+      <button class="btn" type="submit">Accept invitation</button>
+    </form>
+  {{else}}
+    <p class="muted">Sign in to accept this invitation.</p>
+    <a class="btn" href="{{.LoginURL}}">Sign in</a>
+  {{end}}
+  <div class="footer">Villum campaign manager</div>
+</div>
+</body>
+</html>

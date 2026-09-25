@@ -24,6 +24,8 @@ func RegisterPublicRoutes(r *gin.Engine) {
 	r.GET("/api/auth/oidc/logout", OIDCLogout)
 	r.GET("/api/share/:token", GetSharedEntity)
 	r.GET("/share/:token", GetSharedPage)
+	r.GET("/invite/:token", InviteAcceptPage)
+	r.POST("/invite/:token", InviteAccept)
 	r.GET("/events", EventsPage)
 	r.GET("/events/ical", EventsICal)
 	r.GET("/htmx/events/list", EventsListPartial)

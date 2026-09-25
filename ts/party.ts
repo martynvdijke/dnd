@@ -288,11 +288,12 @@ expose('finishCreateCampaign', async function (campaignId: number) {
 });
 
 expose('showManageCampaign', async function (campaignId: number, name: string, partyName: string = '') {
-  const [campaigns, members, roster, muteState] = await Promise.all([
+  const [campaigns, members, roster, muteState, invites] = await Promise.all([
     api('GET', '/api/campaigns'),
     api('GET', `/api/campaigns/${campaignId}/members`).catch(() => []),
     api('GET', `/api/campaigns/${campaignId}/characters`).catch(() => []),
     api('GET', `/api/campaigns/${campaignId}/push-mute`).catch(() => ({ muted: false })),
+    api('GET', `/api/campaigns/${campaignId}/invitations`).catch(() => []),
   ]);
   const c = campaigns.find((x: CampaignInfo) => x.id === campaignId);
   const curName = (c && c.name) || name;
@@ -352,6 +353,24 @@ expose('showManageCampaign', async function (campaignId: number, name: string, p
         </li>`;
       }).join('')}</ul>`
     : '<p class="text-muted small mb-3">No characters in this campaign yet. Add characters to build the party.</p>';
+  const invitesHtml = `
+    <hr>
+    <h6 class="mb-2"><i class="fa-solid fa-envelope me-1"></i>Email Invitations</h6>
+    ${(invites as Array<{id:number;email:string;role:string}>).length
+      ? `<ul class="list-group mb-2">${(invites as Array<{id:number;email:string;role:string}>).map((i) => `
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span>${esc(i.email)} <span class="badge bg-secondary ms-1">${esc(i.role)}</span></span>
+          <button class="btn btn-outline-danger btn-sm" onclick="revokeInvitation(${campaignId}, ${i.id})" title="Revoke invitation"><i class="fa-solid fa-xmark"></i></button>
+        </li>`).join('')}</ul>`
+      : '<p class="text-muted small mb-2">No pending invitations.</p>'}
+    <div class="input-group mb-3">
+      <input class="form-control" id="inviteEmail" type="email" placeholder="player@example.com">
+      <select class="form-select" id="inviteRole" style="max-width:110px">
+        <option value="player">Player</option>
+        <option value="dm">DM</option>
+      </select>
+      <button class="btn btn-gold" onclick="doInviteMember(${campaignId})" title="Send invitation"><i class="fa-solid fa-paper-plane"></i></button>
+    </div>`;
   showModal(`Manage: ${esc(curName)}`, `
     <div class="mb-2"><label class="form-label small">Campaign Name</label><input class="form-control" id="editCampaignName" value="${esc(curName)}"></div>
     <div class="mb-2"><label class="form-label small">Party Name</label><input class="form-control" id="editPartyName" value="${esc(curPartyName)}" placeholder="e.g. The Dawnbringers"></div>
@@ -370,6 +389,7 @@ expose('showManageCampaign', async function (campaignId: number, name: string, p
       <button class="btn btn-gold" onclick="doAddMember(${campaignId})"><i class="fa-solid fa-plus"></i></button>
     </div>
     <div id="userSuggestions" class="mb-2"></div>
+    ${invitesHtml}
     <button class="btn btn-outline-secondary w-100" onclick="(window as any).showParty();hideModal()">Done</button>
   `);
   const input = document.getElementById('addMemberUsername') as HTMLInputElement;
@@ -462,6 +482,31 @@ expose('doAddMember', async function (campaignId: number) {
   try {
     await api('POST', `/api/campaigns/${campaignId}/members`, { username });
     toast('Member added');
+    (window as any).showManageCampaign(campaignId, '');
+  } catch (e: unknown) {
+    toast(e instanceof Error ? e.message : String(e), true);
+  }
+});
+
+expose('doInviteMember', async function (campaignId: number) {
+  const email = (document.getElementById('inviteEmail') as HTMLInputElement).value.trim();
+  const role = (document.getElementById('inviteRole') as HTMLSelectElement).value;
+  if (!email) { toast('Email required', true); return; }
+  try {
+    const res = await api('POST', `/api/campaigns/${campaignId}/invitations`, { email, role });
+    try { await navigator.clipboard.writeText(res.url); } catch { /* clipboard optional */ }
+    toast(res.email_sent ? 'Invitation emailed and link copied' : 'Invite link copied (email not configured)');
+    (window as any).showManageCampaign(campaignId, '');
+  } catch (e: unknown) {
+    toast(e instanceof Error ? e.message : String(e), true);
+  }
+});
+
+expose('revokeInvitation', async function (campaignId: number, inviteId: number) {
+  if (!confirm('Revoke this invitation?')) return;
+  try {
+    await api('DELETE', `/api/campaigns/${campaignId}/invitations/${inviteId}`);
+    toast('Invitation revoked');
     (window as any).showManageCampaign(campaignId, '');
   } catch (e: unknown) {
     toast(e instanceof Error ? e.message : String(e), true);

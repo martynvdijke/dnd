@@ -28,6 +28,12 @@ export function oidcErrorText(code: string): string {
   }
 }
 
+// Only allow same-origin relative redirects (guards open-redirect).
+export function safeNext(): string {
+  const n = new URLSearchParams(window.location.search).get('next') || '';
+  return n.startsWith('/') && !n.startsWith('//') ? n : '/';
+}
+
 export async function initOIDC() {
   const errorDiv = document.getElementById('error') as HTMLDivElement | null;
   const err = new URLSearchParams(window.location.search).get('error');
@@ -73,7 +79,7 @@ async function init() {
       });
 
       if (res.ok) {
-        window.location.href = '/';
+        window.location.href = safeNext();
       } else {
         const err = await res.json();
         errorDiv.textContent = err.error || 'Invalid credentials';
@@ -96,7 +102,7 @@ async function init() {
 
   const res2 = await fetch('/api/user/me', { credentials: 'include' });
   if (res2.ok) {
-    window.location.href = '/';
+    window.location.href = safeNext();
     return;
   }
 }
