@@ -112,6 +112,7 @@ expose('showPartyInventory', async function (campaignId: number) {
             <span class="badge badge-muted ms-1">×${i.quantity}</span>
             ${i.notes ? `<div class="small text-muted">${esc(i.notes)}</div>` : ''}
           </div>
+          <button class="btn btn-sm btn-outline-secondary" onclick="editPartyItem(${campaignId}, ${i.id})"><i class="fa-solid fa-pen"></i></button>
           <button class="btn btn-sm btn-outline-danger" onclick="deletePartyItem(${campaignId}, ${i.id})"><i class="fa-solid fa-trash"></i></button>
         </div>
       `).join('') : '<div class="text-muted small fst-italic">No party items yet. Add some loot!</div>'}
@@ -133,16 +134,33 @@ expose('addPartyItem', async function (campaignId: number) {
   `);
 });
 
-expose('savePartyItem', async function (campaignId: number) {
+expose('editPartyItem', async function (campaignId: number, itemId: number) {
+  const items = await api('GET', `/api/campaigns/${campaignId}/party-items`);
+  const it = items.find((x: any) => x.id === itemId);
+  if (!it) { toast('Item not found', true); return; }
+  showModal('Edit Party Item', `
+    <div class="mb-2"><label class="form-label">Item Name</label><input class="form-control" id="piName" value="${esc(it.name)}"></div>
+    <div class="mb-2"><label class="form-label">Quantity</label><input class="form-control" id="piQty" type="number" value="${it.quantity}"></div>
+    <div class="mb-2"><label class="form-label">Notes</label><textarea class="form-control" id="piNotes" rows="2">${esc(it.notes)}</textarea></div>
+    <button class="btn btn-primary w-100" onclick="savePartyItem(${campaignId}, ${itemId})">Save</button>
+  `);
+});
+
+expose('savePartyItem', async function (campaignId: number, itemId?: number) {
   const name = (document.getElementById('piName') as HTMLInputElement).value.trim();
   if (!name) { toast('Name required', true); return; }
-  await api('POST', `/api/campaigns/${campaignId}/party-items`, {
+  const body = {
     name,
     quantity: parseInt((document.getElementById('piQty') as HTMLInputElement).value) || 1,
     notes: (document.getElementById('piNotes') as HTMLTextAreaElement).value,
-  });
+  };
+  if (itemId) {
+    await api('PUT', `/api/party-items/${itemId}`, body);
+  } else {
+    await api('POST', `/api/campaigns/${campaignId}/party-items`, body);
+  }
   hideModal();
-  toast('Item added to party inventory');
+  toast(itemId ? 'Item updated' : 'Item added to party inventory');
   (window as any).showPartyInventory(campaignId);
 });
 

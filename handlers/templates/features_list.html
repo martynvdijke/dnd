@@ -19,6 +19,7 @@
           <p class="mb-0 mt-1 small text-muted">{{.Description}}</p>
         </div>
         <div class="d-flex gap-1">
+          <button class="btn btn-sm btn-outline-secondary" hx-get="/htmx/features/{{.ID}}/edit?character_id={{$.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Edit Feature';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-pen"></i></button>
           {{if .CompendiumEntryID}}
           <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/features/{{.ID}}/compendium-unlink?character_id={{$.CharacterID}}" hx-target="#featuresSection" hx-swap="innerHTML" hx-confirm="Remove this linked feature?"><i class="fa-solid fa-unlink"></i></button>
           {{end}}
@@ -39,7 +40,7 @@
 <div class="d-flex flex-wrap gap-2">
   {{range .Proficiencies}}
   <span class="badge bg-secondary d-inline-flex align-items-center gap-1">
-    {{.Name}} <i class="fa-solid fa-xmark" style="cursor:pointer" hx-delete="/htmx/proficiencies/{{.ID}}" hx-target="#featuresSection" hx-swap="innerHTML" hx-confirm="Remove this proficiency?"></i>
+    {{.Name}} <i class="fa-solid fa-pen" style="cursor:pointer" hx-get="/htmx/proficiencies/{{.ID}}/edit?character_id={{$.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Edit Proficiency';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"></i> <i class="fa-solid fa-xmark" style="cursor:pointer" hx-delete="/htmx/proficiencies/{{.ID}}" hx-target="#featuresSection" hx-swap="innerHTML" hx-confirm="Remove this proficiency?"></i>
   </span>
   {{end}}
 </div>

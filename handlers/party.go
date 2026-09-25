@@ -176,6 +176,18 @@ func CreateCampaignPartyItem(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"id": id})
 }
 
+func UpdateCampaignPartyItem(c *gin.Context) {
+	iid, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	var p models.PartyItem
+	if err := c.ShouldBindJSON(&p); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	db.DB.Exec("UPDATE party_items SET name=?, quantity=?, notes=? WHERE id=?",
+		p.Name, p.Quantity, p.Notes, iid)
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
 func DeleteCampaignPartyItem(c *gin.Context) {
 	iid, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	db.DB.Exec("DELETE FROM party_items WHERE id=?", iid)

@@ -61,6 +61,21 @@ test.describe('Campaign Completeness', () => {
     expect(items[0].name).toBe('Dragon Hoard Coins');
     expect(items[0].quantity).toBe(5000);
 
+    // Update item
+    await page.evaluate(async (iid) => {
+      return (window as any).api('PUT', `/api/party-items/${iid}`, {
+        name: 'Dragon Hoard Gems',
+        quantity: 42,
+        notes: 'cut gems',
+      });
+    }, created.id);
+
+    items = await page.evaluate(async (cid) => {
+      return (window as any).api('GET', `/api/campaigns/${cid}/party-items`);
+    }, campaignId);
+    expect(items[0].name).toBe('Dragon Hoard Gems');
+    expect(items[0].quantity).toBe(42);
+
     // Delete item
     await page.evaluate(async (iid) => {
       return (window as any).api('DELETE', `/api/party-items/${iid}`);
