@@ -19,6 +19,11 @@ func RegisterCampaignRoutes(r *gin.RouterGroup) {
 	r.PUT("/campaigns/:id/members/:userId", SetCampaignMemberRole)
 	r.DELETE("/campaigns/:id/members/:userId", RemoveCampaignMember)
 
+	// Campaign invitations (email/none email invite links)
+	r.GET("/campaigns/:id/invitations", ListCampaignInvitations)
+	r.POST("/campaigns/:id/invitations", CreateCampaignInvitation)
+	r.DELETE("/campaigns/:id/invitations/:inviteId", RevokeCampaignInvitation)
+
 	// Party view
 	r.GET("/party", GetPartyView)
 	r.GET("/users/search", SearchUsers)
