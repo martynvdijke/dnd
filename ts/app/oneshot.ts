@@ -721,3 +721,63 @@ expose('triggerSceneEffect', async function (sceneId: number) {
     toast(e.message, true);
   }
 });
+
+// ─── Act NPCs (inline cast per act) ───
+
+async function refreshActDetails(actId: number): Promise<void> {
+  try {
+    const res = await fetch(`/htmx/oneshot-acts/${actId}/details`, { headers: { 'HX-Request': 'true' } });
+    const html = await res.text();
+    const el = document.getElementById('actDetails' + actId);
+    if (el) {
+      el.outerHTML = html;
+      (window as any).htmx?.process(document.getElementById('genericModalBody') || document.body);
+    }
+  } catch { /* panel refresh is best-effort */ }
+}
+
+function actNpcModal(actId: number, npc?: any): void {
+  hideModal();
+  showModal(npc ? 'Edit Act NPC' : 'Add Act NPC', `
+    <div class="mb-2"><label class="form-label small">Name</label><input id="actNpcName" class="form-control form-control-sm" value="${npc ? esc(npc.name) : ''}"></div>
+    <div class="row g-2 mb-2">
+      <div class="col-6"><label class="form-label small">Role</label><input id="actNpcRole" class="form-control form-control-sm" value="${npc ? esc(npc.role) : ''}" placeholder="ally, boss, etc."></div>
+      <div class="col-6"><label class="form-label small">Linked NPC id (optional)</label><input id="actNpcId" type="number" class="form-control form-control-sm" value="${npc?.npc_id ?? ''}"></div>
+    </div>
+    <div class="mb-2"><label class="form-label small">Notes</label><textarea id="actNpcNotes" class="form-control form-control-sm" rows="2">${npc ? esc(npc.notes) : ''}</textarea></div>
+    <button class="btn btn-primary w-100" onclick="saveActNpc(${actId}${npc ? ', ' + npc.id : ''})">${npc ? 'Save' : 'Add'}</button>`);
+  document.getElementById('genericModal')?.classList.add('show');
+}
+
+expose('showAddActNpcForm', function (actId: number) { actNpcModal(actId); });
+
+expose('editActNpc', async function (id: number, actId: number) {
+  try {
+    const npcs = await api('GET', `/api/oneshot-acts/${actId}/npcs`);
+    const npc = (npcs as any[]).find((n) => n.id === id);
+    if (npc) actNpcModal(actId, npc);
+  } catch (e: any) { toast(e.message, true); }
+});
+
+expose('saveActNpc', async function (actId: number, id?: number) {
+  const val = (el: string) => (document.getElementById(el) as HTMLInputElement)?.value ?? '';
+  const npcId = val('actNpcId').trim();
+  const body: Record<string, unknown> = { name: val('actNpcName'), role: val('actNpcRole'), notes: val('actNpcNotes') };
+  if (npcId) body.npc_id = +npcId;
+  try {
+    if (id) await api('PUT', `/api/oneshot-acts/${actId}/npcs/${id}`, body);
+    else await api('POST', `/api/oneshot-acts/${actId}/npcs`, body);
+    hideModal();
+    toast(id ? 'Act NPC saved' : 'Act NPC added');
+    await refreshActDetails(actId);
+  } catch (e: any) { toast(e.message, true); }
+});
+
+expose('deleteActNpc', async function (id: number, actId: number) {
+  if (!confirm('Remove this NPC from the act?')) return;
+  try {
+    await api('DELETE', `/api/oneshot-acts/${actId}/npcs/${id}`);
+    toast('Act NPC removed');
+    await refreshActDetails(actId);
+  } catch (e: any) { toast(e.message, true); }
+});

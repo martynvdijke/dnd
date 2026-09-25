@@ -277,8 +277,10 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		// NPCs
 		{"GET", "/htmx/npcs", HtmxListNPCs},
 		{"GET", "/htmx/npcs/new", HtmxNewNPCForm},
+		{"GET", "/htmx/npcs/:id/edit", HtmxEditNPCForm},
 		{"GET", "/htmx/npcs/link", HtmxLinkNPCForm},
 		{"POST", "/htmx/npcs", HtmxCreateNPC},
+		{"PUT", "/htmx/npcs/:id", HtmxUpdateNPC},
 		{"POST", "/htmx/npcs/link", HtmxLinkNPC},
 		{"DELETE", "/htmx/npcs/link/:id", HtmxUnlinkNPC},
 

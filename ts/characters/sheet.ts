@@ -12,6 +12,7 @@ import { renderDiceTab } from '../dice';
 import { renderStats, renderXPBar } from './stats';
 import { renderCombat } from './combat';
 import { wealthTotalGp } from './resources';
+import { renderDowntime } from './downtime';
 
 declare const htmx: { process: (el: Element) => void };
 
@@ -59,6 +60,7 @@ export function renderSheet(): void {
   // ponytail: lazy-load active tab content on open/deep-link so journal/notes render without extra click.
   // Ceiling: only the active tab; upgrade: pre-render all tabs if more need instant access.
   if (currentTab === 'journal') (window as unknown as Record<string, (() => void) | undefined>)['renderJournal']?.();
+  else if (currentTab === 'downtime') renderDowntime();
   else if (htmxTabs.includes(currentTab) && currentChar) {
     const el = document.getElementById(currentTab + 'Section');
     if (el && !el.hasAttribute('hx-get')) {

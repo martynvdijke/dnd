@@ -153,6 +153,7 @@ func RegisterCharacterRoutes(r *gin.RouterGroup) {
 	// Crafting
 	r.GET("/crafting/recipes", ListCraftingRecipes)
 	r.POST("/crafting/recipes", CreateCraftingRecipe)
+	r.PUT("/crafting/recipes/:id", UpdateCraftingRecipe)
 	r.DELETE("/crafting/recipes/:id", DeleteCraftingRecipe)
 	r.GET("/characters/:id/crafting", ListCharacterCrafting)
 	r.POST("/characters/:id/crafting", CreateCharacterCrafting)

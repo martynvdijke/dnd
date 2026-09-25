@@ -96,7 +96,7 @@ func CreateCraftingRecipe(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	_, err := db.DB.Exec(`INSERT INTO crafting_recipes(user_id,name,description,category,difficulty_dc,crafting_time_hours,required_tools,required_materials,result_item_name,result_item_category,result_quantity,result_description,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
+	_, err := db.DB.Exec(`INSERT INTO crafting_recipes(user_id,name,description,category,difficulty_dc,crafting_time_hours,required_tools,required_materials,result_item_name,result_item_category,result_quantity,result_description,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		userID, r.Name, r.Description, r.Category, r.DifficultyDC, r.CraftingTimeHours,
 		r.RequiredTools, r.RequiredMaterials, r.ResultItemName, r.ResultItemCategory,
 		r.ResultQuantity, r.ResultDescription, r.Notes)
@@ -107,8 +107,49 @@ func CreateCraftingRecipe(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"ok": true})
 }
 
+// craftingRecipeOwner returns the owning user id and whether the caller may
+// modify the recipe (admins always may; system recipes with NULL owner may not).
+func canEditCraftingRecipe(c *gin.Context, id int64) bool {
+	if c.GetString("role") == "admin" {
+		return true
+	}
+	uidRaw, _ := c.Get("user_id")
+	uid, _ := uidRaw.(int64)
+	var owner sql.NullInt64
+	if err := db.DB.QueryRow("SELECT user_id FROM crafting_recipes WHERE id=?", id).Scan(&owner); err != nil {
+		return false
+	}
+	return owner.Valid && owner.Int64 == uid
+}
+
+func UpdateCraftingRecipe(c *gin.Context) {
+	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditCraftingRecipe(c, id) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+	var r CraftingRecipe
+	if err := c.ShouldBindJSON(&r); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	_, err := db.DB.Exec(`UPDATE crafting_recipes SET name=?,description=?,category=?,difficulty_dc=?,crafting_time_hours=?,required_tools=?,required_materials=?,result_item_name=?,result_item_category=?,result_quantity=?,result_description=?,notes=? WHERE id=?`,
+		r.Name, r.Description, r.Category, r.DifficultyDC, r.CraftingTimeHours,
+		r.RequiredTools, r.RequiredMaterials, r.ResultItemName, r.ResultItemCategory,
+		r.ResultQuantity, r.ResultDescription, r.Notes, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
 func DeleteCraftingRecipe(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditCraftingRecipe(c, id) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("DELETE FROM crafting_recipes WHERE id=?", id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

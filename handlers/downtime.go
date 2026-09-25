@@ -46,8 +46,20 @@ func ListDowntimeActivities(c *gin.Context) {
 	c.JSON(http.StatusOK, out)
 }
 
+func downtimeCharID(id int64) (int64, bool) {
+	var cid int64
+	if err := db.DB.QueryRow("SELECT character_id FROM downtime_activities WHERE id=?", id).Scan(&cid); err != nil {
+		return 0, false
+	}
+	return cid, true
+}
+
 func CreateDowntimeActivity(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	if !canEditCharacterID(c, charID) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var a DowntimeActivity
 	if err := c.ShouldBindJSON(&a); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -72,6 +84,15 @@ func CreateDowntimeActivity(c *gin.Context) {
 
 func UpdateDowntimeActivity(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	cid, ok := downtimeCharID(id)
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "activity not found"})
+		return
+	}
+	if !canEditCharacterID(c, cid) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var a DowntimeActivity
 	if err := c.ShouldBindJSON(&a); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -84,12 +105,30 @@ func UpdateDowntimeActivity(c *gin.Context) {
 
 func DeleteDowntimeActivity(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	cid, ok := downtimeCharID(id)
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "activity not found"})
+		return
+	}
+	if !canEditCharacterID(c, cid) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	db.DB.Exec("DELETE FROM downtime_activities WHERE id=?", id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
 func AdvanceDowntimeDay(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	cid, ok := downtimeCharID(id)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "activity not found or not in progress"})
+		return
+	}
+	if !canEditCharacterID(c, cid) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
 	var a DowntimeActivity
 	err := db.DB.QueryRow("SELECT id,days_required,days_completed,dc,status FROM downtime_activities WHERE id=?", id).Scan(&a.ID, &a.DaysRequired, &a.DaysCompleted, &a.DC, &a.Status)
 	if err != nil || a.Status != "in-progress" {

@@ -25,6 +25,7 @@
             {{if .Role}}<span class="badge bg-secondary ms-1">{{.Role}}</span>{{end}}
             {{if .IsInline}}<i class="fa-solid fa-pen-fine text-muted ms-1" title="Inline NPC"></i>{{end}}
           </div>
+          <button class="btn btn-sm btn-outline-primary py-0 px-1 me-1" onclick="editActNpc({{.ID}}, {{$.Act.ID}})"><i class="fa-solid fa-pen"></i></button>
           <button class="btn btn-sm btn-outline-danger py-0 px-1" onclick="deleteActNpc({{.ID}}, {{$.Act.ID}})"><i class="fa-solid fa-trash"></i></button>
         </div>
         {{end}}
