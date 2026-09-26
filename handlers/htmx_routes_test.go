@@ -43,3 +43,19 @@ func TestHtmxRegisterRoutes_Snapshot(t *testing.T) {
 		t.Fatalf("expected many routes, got %d", len(snap1))
 	}
 }
+
+// The act-details modal fetches /htmx/oneshot-acts/:id/details (root HTMX
+// group). It was previously registered on the /api oneshot group, so the
+// request 404'd. Guard the path stays on the root table.
+func TestHtmxActDetailsRouteRegisteredAtRoot(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	HtmxRegisterRoutes(r.Group(""))
+	want := "GET /htmx/oneshot-acts/:id/details"
+	for _, rt := range snapshotRoutes(r) {
+		if rt == want {
+			return
+		}
+	}
+	t.Fatalf("route %q not registered in HtmxRegisterRoutes", want)
+}
