@@ -38,7 +38,10 @@ async function renderNPCs() {
           <div><span class="fw-bold">${esc(n.name)}</span>
             ${n.race_color ? `<span class="badge ms-1" style="background:${n.race_color};color:#fff">${esc(n.race)}</span>` : `<span class="text-muted small">${esc(n.race)}</span>`}
             <span class="text-muted small">${esc(n.class)}</span></div>
-          <div class="text-muted small">HP: ${n.hp_current}/${n.hp_max}</div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="text-muted small">HP: ${n.hp_current}/${n.hp_max}</span>
+            <button class="btn btn-sm btn-outline-primary" onclick="editNPC(${n.id})" title="Edit NPC"><i class="fa-solid fa-pen"></i></button>
+          </div>
         </div>`).join('')}&nbsp;</div>`;
   } catch { el.innerHTML = '<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Could not load NPCs. Try again later.</p></div>'; }
 }
@@ -202,4 +205,39 @@ expose('saveNewNPC', async function () {
   await renderNPCs();
   hideModal();
   toast('NPC created');
+});
+
+// Full update: PUT /api/npcs/:id sets every field, so spread the loaded NPC
+// and override only the edited ones (otherwise stats would be zeroed).
+expose('editNPC', async function (id: number) {
+  let n: any = allNPCs.find((x: any) => x.id === id);
+  if (!n) { try { n = (await api('GET', '/api/npcs')).find((x: any) => x.id === id); } catch { /* fall through */ } }
+  if (!n) { toast('NPC not found', true); return; }
+  showModal('Edit NPC', `
+    <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="editNPCName" value="${attrEscape(n.name)}"></div>
+    <div class="row g-3 mb-3">
+      <div class="col-6"><label class="form-label">Race</label><input class="form-control" id="editNPCRace" value="${attrEscape(n.race)}"></div>
+      <div class="col-6"><label class="form-label">Class</label><input class="form-control" id="editNPCClass" value="${attrEscape(n.class)}"></div>
+    </div>
+    <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" id="editNPCDesc" rows="3">${esc(n.description)}</textarea></div>
+    <button class="btn btn-primary w-100" onclick="saveEditNPC(${id})"><i class="fa-solid fa-floppy-disk me-1"></i>Save Changes</button>
+  `);
+});
+
+expose('saveEditNPC', async function (id: number) {
+  let n: any = allNPCs.find((x: any) => x.id === id);
+  if (!n) { try { n = (await api('GET', '/api/npcs')).find((x: any) => x.id === id); } catch { /* fall through */ } }
+  if (!n) { toast('NPC not found', true); return; }
+  await api('PUT', `/api/npcs/${id}`, {
+    ...n,
+    name: (document.getElementById('editNPCName') as HTMLInputElement).value,
+    race: (document.getElementById('editNPCRace') as HTMLInputElement).value,
+    class: (document.getElementById('editNPCClass') as HTMLInputElement).value,
+    description: (document.getElementById('editNPCDesc') as HTMLTextAreaElement).value,
+  });
+  try { setAllNPCs(await api('GET', '/api/npcs')); } catch { /* list refresh is best-effort */ }
+  if (document.getElementById('npcsSection')) await renderNPCs();
+  if (document.getElementById('partyNpcList')) (window as any).renderPartyNPCs?.();
+  hideModal();
+  toast('NPC updated');
 });

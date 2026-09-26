@@ -140,7 +140,7 @@ function renderNpcList(all: any[], q: string): string {
   return Array.from(byChar.entries())
     .map(([char, npcs]) =>
       `<div class="mb-3"><h6 class="text-gold">${esc(char)}</h6><ul class="list-unstyled">${npcs
-        .map((n) => `<li class="mb-1"><i class="fa-solid fa-user me-1 text-muted"></i><strong>${esc(n.npc_name || n.name || 'Unnamed')}</strong>${n.npc_race ? ` <span class="badge bg-secondary">${esc(n.npc_race)}</span>` : ''}${n.npc_class ? ` <span class="badge bg-secondary">${esc(n.npc_class)}</span>` : ''}</li>`)
+        .map((n) => `<li class="mb-1"><i class="fa-solid fa-user me-1 text-muted"></i><strong>${esc(n.npc_name || n.name || 'Unnamed')}</strong>${n.npc_race ? ` <span class="badge bg-secondary">${esc(n.npc_race)}</span>` : ''}${n.npc_class ? ` <span class="badge bg-secondary">${esc(n.npc_class)}</span>` : ''}${n.npc_id ? ` <button class="btn btn-sm btn-outline-primary py-0 px-1 ms-1" onclick="editNPC(${n.npc_id})" title="Edit NPC"><i class="fa-solid fa-pen"></i></button>` : ''}</li>`)
         .join('')}</ul></div>`,
     )
     .join('');

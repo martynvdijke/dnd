@@ -355,6 +355,7 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"GET", "/htmx/oneshot-acts/:id/new-scene-form", HtmxSceneForm},
 		{"GET", "/htmx/oneshot-acts/:id/edit", HtmxEditActForm},
 		{"PUT", "/htmx/oneshot-acts/:id", HtmxUpdateAct},
+		{"GET", "/htmx/oneshot-acts/:id/details", HtmxActDetails},
 		{"GET", "/htmx/oneshot-acts/:id/encounters", HtmxActEncounters},
 		{"POST", "/htmx/oneshot-acts/:id/encounters", HtmxLinkActEncounter},
 		{"DELETE", "/htmx/oneshot-acts/:id/encounters/:eid", HtmxUnlinkActEncounter},

@@ -45,9 +45,6 @@ func RegisterDMOneShotRoutes(r *gin.RouterGroup) {
 	r.POST("/oneshot-acts/:id/encounters", LinkActEncounter)
 	r.DELETE("/oneshot-acts/:id/encounters/:eid", UnlinkActEncounter)
 
-	// Act-level Details (HTMX)
-	r.GET("/htmx/oneshot-acts/:id/details", HtmxActDetails)
-
 	// Session Pacing
 	r.POST("/oneshot-adventures/:id/pacing/start", StartPacingSession)
 	r.GET("/oneshot-adventures/:id/pacing", GetPacingSession)

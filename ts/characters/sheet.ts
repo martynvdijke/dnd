@@ -19,7 +19,7 @@ declare const htmx: { process: (el: Element) => void };
 import { sections, sectionIcons } from '../lib/tabs';
 export { sections };
 
-const htmxTabs = ['spells', 'features', 'feats', 'companions', 'crafting', 'notes'];
+const htmxTabs = ['spells', 'features', 'feats', 'companions', 'notes'];
 
 type CharRecord = Character & Record<string, unknown>;
 
