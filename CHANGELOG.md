@@ -1,3 +1,10 @@
+# [2.79.0](https://github.com/martynvdijke/dnd/compare/v2.78.0...v2.79.0) (2026-09-27)
+
+
+### Features
+
+* derive AC from armor and add combat situational modifiers and action economy ([#151](https://github.com/martynvdijke/dnd/issues/151)) ([752af28](https://github.com/martynvdijke/dnd/commit/752af28eb23114ee268c07c24e9933252e832cc0))
+
 # [2.78.0](https://github.com/martynvdijke/dnd/compare/v2.77.1...v2.78.0) (2026-09-27)
 
 
