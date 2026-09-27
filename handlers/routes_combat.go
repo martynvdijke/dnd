@@ -34,5 +34,6 @@ func RegisterEncounterRoutes(r *gin.RouterGroup) {
 	r.PUT("/encounter-monsters/:mid", UpdateEncounterMonster)
 	r.DELETE("/encounter-monsters/:mid", DeleteEncounterMonster)
 	r.POST("/encounters/calculate-xp", CalculateEncounterXP)
+	r.GET("/encounters/daily-budget", HandleDailyBudget)
 	r.GET("/monster-xp", GetMonsterXP)
 }

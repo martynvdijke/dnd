@@ -10,6 +10,7 @@ import (
 
 type WeatherResult struct {
 	Season        string `json:"season"`
+	Biome         string `json:"biome"`
 	Temperature   string `json:"temperature"`
 	Sky           string `json:"sky"`
 	Precipitation string `json:"precipitation"`
@@ -19,6 +20,50 @@ type WeatherResult struct {
 }
 
 var seasons = []string{"Spring", "Summer", "Autumn", "Winter"}
+
+var biomes = []string{"temperate", "arctic", "desert", "forest", "mountain", "swamp", "coast", "underdark"}
+
+// biomeTemperatures overrides the season temperature options for biomes whose
+// climate differs from the temperate default.
+var biomeTemperatures = map[string]map[string][]string{
+	"arctic": {
+		"Spring": {"Freezing (0-20°F)", "Cold (10-30°F)"},
+		"Summer": {"Cold (20-40°F)", "Cool (30-50°F)"},
+		"Autumn": {"Freezing (5-25°F)", "Cold (15-35°F)"},
+		"Winter": {"Bitter Cold (-30-0°F)", "Freezing (-10-15°F)"},
+	},
+	"desert": {
+		"Spring": {"Hot (80-100°F)", "Warm (70-90°F)"},
+		"Summer": {"Scorching (95-120°F)", "Hot (85-105°F)"},
+		"Autumn": {"Hot (75-95°F)", "Warm (65-85°F)"},
+		"Winter": {"Mild (55-75°F)", "Cool (45-65°F)"},
+	},
+	"underdark": {
+		"Spring": {"Cool (50-60°F)"},
+		"Summer": {"Cool (50-60°F)"},
+		"Autumn": {"Cool (50-60°F)"},
+		"Winter": {"Cool (50-60°F)"},
+	},
+}
+
+// biomePrecipitations overrides the precipitation pool for biomes that cannot
+// produce the full temperate range (desert never snows, arctic mostly does).
+var biomePrecipitations = map[string][]string{
+	"arctic":    {"None", "Snow", "Heavy Snow", "Sleet", "Hail"},
+	"desert":    {"None", "None", "None", "Light Drizzle", "Hail"},
+	"underdark": {"None", "None", "Light Drizzle"},
+	"coast":     {"None", "Light Drizzle", "Rain", "Heavy Rain", "Thunderstorm"},
+	"swamp":     {"None", "Light Drizzle", "Rain", "Heavy Rain", "Thunderstorm"},
+}
+
+func validBiome(biome string) bool {
+	for _, b := range biomes {
+		if b == biome {
+			return true
+		}
+	}
+	return false
+}
 
 var temperatures = map[string][]string{
 	"Spring": {"Cool (40-60°F)", "Mild (50-70°F)", "Warm (60-80°F)"},
@@ -58,25 +103,41 @@ func HandleGenerateWeather(c *gin.Context) {
 	if season == "" {
 		season = randChoice(seasons)
 	}
+	biome := c.DefaultQuery("biome", "temperate")
+	if !validBiome(biome) {
+		biome = "temperate"
+	}
 	tempOptions, ok := temperatures[season]
 	if !ok {
 		tempOptions = temperatures["Spring"]
 	}
+	if bt, ok := biomeTemperatures[biome]; ok {
+		if opts, ok := bt[season]; ok {
+			tempOptions = opts
+		}
+	}
+	precipPool := precipitations
+	if bp, ok := biomePrecipitations[biome]; ok {
+		precipPool = bp
+	}
 	temp := randChoice(tempOptions)
 	sky := randChoice(skies)
-	precip := randChoice(precipitations)
+	precip := randChoice(precipPool)
 	wind := randChoice(winds)
 	special := randChoice(specialties)
 
-	// Adjust based on season
-	if season == "Winter" && precip == "Rain" {
-		precip = "Snow"
-	}
-	if season == "Summer" && precip == "Snow" {
-		precip = "None"
-	}
-	if season == "Spring" && precip == "Heavy Snow" {
-		precip = "Rain"
+	// Season adjustments only apply to the temperate default; other biomes
+	// already constrain their own precipitation pools.
+	if biome == "temperate" {
+		if season == "Winter" && precip == "Rain" {
+			precip = "Snow"
+		}
+		if season == "Summer" && precip == "Snow" {
+			precip = "None"
+		}
+		if season == "Spring" && precip == "Heavy Snow" {
+			precip = "Rain"
+		}
 	}
 
 	desc := ""
@@ -109,6 +170,7 @@ func HandleGenerateWeather(c *gin.Context) {
 
 	c.JSON(http.StatusOK, WeatherResult{
 		Season:        season,
+		Biome:         biome,
 		Temperature:   temp,
 		Sky:           sky,
 		Precipitation: precip,

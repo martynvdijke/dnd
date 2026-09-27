@@ -107,6 +107,7 @@ func RegisterMiscAuthRoutes(r *gin.RouterGroup) {
 	r.GET("/generate/name", HandleGenerateName)
 	r.GET("/generate/encounter", HandleGenerateEncounter)
 	r.GET("/generate/loot", HandleGenerateLoot)
+	r.GET("/generate/treasure", HandleGenerateTreasure)
 	r.GET("/generate/character", HandleGenerateRandomCharacter)
 	r.GET("/generate/adventure-hook", HandleGenerateAdventureHook)
 	r.GET("/generate/dungeon-dressing", HandleGenerateDungeonDressing)
