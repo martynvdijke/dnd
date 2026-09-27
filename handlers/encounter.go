@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -416,4 +417,45 @@ func CalculateEncounterXP(c *gin.Context) {
 
 func GetMonsterXP(c *gin.Context) {
 	c.JSON(http.StatusOK, monsterXP)
+}
+
+// dailyXPBudget is the DMG per-character adventuring-day XP budget by level.
+var dailyXPBudget = map[int]int{
+	1: 300, 2: 600, 3: 1200, 4: 1700, 5: 3500, 6: 4000, 7: 5000, 8: 6000,
+	9: 7500, 10: 9000, 11: 10500, 12: 11500, 13: 13500, 14: 15000, 15: 18000,
+	16: 20000, 17: 25000, 18: 27000, 19: 30000, 20: 40000,
+}
+
+// HandleDailyBudget returns the adventuring-day XP budget for a party.
+func HandleDailyBudget(c *gin.Context) {
+	raw := c.Query("levels")
+	perLevel := []gin.H{}
+	partyBudget := 0
+	for _, part := range strings.Split(raw, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		lvl, err := strconv.Atoi(part)
+		if err != nil {
+			continue
+		}
+		budget, ok := dailyXPBudget[lvl]
+		if !ok {
+			continue
+		}
+		perLevel = append(perLevel, gin.H{"level": lvl, "budget": budget})
+		partyBudget += budget
+	}
+
+	suggested := ""
+	if partyBudget > 0 {
+		suggested = "6-8 medium or hard encounters"
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"levels":               raw,
+		"per_level":            perLevel,
+		"party_budget":         partyBudget,
+		"suggested_encounters": suggested,
+	})
 }

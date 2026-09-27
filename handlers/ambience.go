@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 )
@@ -10,6 +11,16 @@ import (
 // ambienceTracks are the synthesized ambience loops the live table can play.
 // The client maps each name to a Web Audio graph; keep both sides in sync.
 var ambienceTracks = []string{"rain", "fire", "wind", "tavern", "combat", "forest", "dungeon", "waves"}
+
+// ambienceState is the last ambience command broadcast for a campaign.
+type ambienceState struct {
+	Track  string
+	Action string
+}
+
+// lastAmbience remembers the last broadcast per campaign so the DM screen can
+// report it. ponytail: in-memory only, resets on restart; persist if it matters.
+var lastAmbience sync.Map // campaignID (int64) -> ambienceState
 
 func validAmbienceTrack(track string) bool {
 	for _, t := range ambienceTracks {
@@ -57,5 +68,6 @@ func SetCampaignAmbience(c *gin.Context) {
 	}
 
 	SendAmbience(campaignID, req.Track, req.Action, req.Volume)
+	lastAmbience.Store(campaignID, ambienceState{Track: req.Track, Action: req.Action})
 	WriteJSON(c, http.StatusOK, gin.H{"ok": true, "track": req.Track, "action": req.Action})
 }

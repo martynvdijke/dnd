@@ -89,7 +89,9 @@ expose('showCampaignDashboard', async function (campaignId: number, campaignName
           `).join('') || '<div class="text-muted small">No dice rolls yet.</div>'}
         </div>
       </div>
-      <div class="text-center mt-3 d-flex gap-2 justify-content-center">
+      <div class="text-center mt-3 d-flex gap-2 justify-content-center flex-wrap">
+        <button class="btn btn-sm btn-outline-warning" data-testid="open-dm-screen" onclick="showDmScreen(${campaignId})"><i class="fa-solid fa-shield-halved me-1"></i>DM Screen</button>
+        <button class="btn btn-sm btn-outline-warning" data-testid="open-dm-tools" onclick="showDmTools()"><i class="fa-solid fa-dice-d20 me-1"></i>DM Tools</button>
         <button class="btn btn-sm btn-outline-warning" onclick="showTableScreen(${campaignId})"><i class="fa-solid fa-tv me-1"></i>Table Screen</button>
         <button class="btn btn-sm btn-outline-light" onclick="showAmbienceControls(${campaignId})"><i class="fa-solid fa-music me-1"></i>Ambience</button>
         <button class="btn btn-sm btn-outline-success" onclick="showBattlemap(${campaignId})"><i class="fa-solid fa-border-all me-1"></i>Battlemap</button>

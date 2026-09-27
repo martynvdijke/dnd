@@ -814,6 +814,7 @@ import './app/uploads';
 
 // ─── Campaign Dashboard / Party Inventory / Session Planner → extracted to ts/app/campaign-dashboard.ts ───
 import './app/campaign-dashboard';
+import './app/dm-tools';
 
 // ─── Encounter Difficulty / Treasure → extracted to ts/app/encounter-treasure.ts ───
 import './app/encounter-treasure';

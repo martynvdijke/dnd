@@ -3,6 +3,9 @@ package handlers
 import (
 	"math/rand"
 	"net/http"
+	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -58,6 +61,18 @@ func HandleGenerateName(c *gin.Context) {
 	case "halfling":
 		firsts = []string{"Andry", "Bree", "Callie", "Corrin", "Dannad", "Elden", "Garret", "Haldo", "Jillian", "Kithri", "Lavon", "Nedda", "Paela", "Rosalind"}
 		lasts = []string{"Brushgather", "Goodbarrel", "Greenbottle", "High-hill", "Hornblower", "Roper", "Talbot", "Underbough"}
+	case "orc":
+		firsts = []string{"Grom", "Thokk", "Urzul", "Mog", "Grash", "Dorn", "Krusk", "Vola", "Sharn", "Ruk", "Gell", "Narla", "Ogg", "Zug"}
+		lasts = []string{"Skullcrusher", "Bonegnawer", "Ironhide", "Bloodfang", "Grimtooth", "Warcry", "Ashscar", "Doomhammer"}
+	case "dragonborn":
+		firsts = []string{"Balasar", "Kriv", "Medrash", "Pandjed", "Rhogar", "Shedinn", "Torinn", "Akra", "Biri", "Daar", "Farideh", "Harann", "Kava", "Sora"}
+		lasts = []string{"Clethtinthiallor", "Daardendrian", "Delmirev", "Kepeshkmolik", "Myastan", "Norixius", "Prexijandilin", "Yarjerit"}
+	case "tiefling":
+		firsts = []string{"Akmenos", "Damakos", "Ekemon", "Iados", "Kairon", "Leucis", "Melech", "Mordai", "Pelaios", "Skamos", "Therai", "Anakis", "Kallista", "Makaria", "Nemeia", "Orianna"}
+		lasts = []string{"Amastacia", "Bloodmoon", "Cinderfell", "Duskwalker", "Emberkin", "Hellsworn", "Nightbreeze", "Shadowthorn"}
+	case "gnome":
+		firsts = []string{"Bimpnottin", "Caramip", "Duvamil", "Ellywick", "Fizzy", "Gimble", "Nissa", "Pock", "Quilla", "Ribbles", "Tana", "Wrenn", "Zook", "Boddynock"}
+		lasts = []string{"Beren", "Daergel", "Folkor", "Garrick", "Nackle", "Murnig", "Ningel", "Raulnor", "Scheppen", "Timbers"}
 	default:
 		firsts = []string{"Aric", "Bella", "Cade", "Dara", "Elara", "Finn", "Gwen", "Hale", "Iris", "Jace", "Kira", "Leo", "Maya", "Nash", "Ora", "Pace", "Quinn", "Rena", "Sage", "Tess", "Uma", "Vance", "Willa", "Xander", "Zoe"}
 		lasts = []string{"Ashford", "Blackwood", "Davenport", "Farley", "Gallagher", "Hartwell", "Irving", "Kendall", "Mercer", "Nightingale", "Pendleton", "Sterling", "Thornfield", "Westbrook"}
@@ -133,6 +148,128 @@ func HandleGenerateLoot(c *gin.Context) {
 		"gp":    gp,
 		"items": result,
 		"cr":    cr,
+	})
+}
+
+// treasureTier describes a DMG-style hoard band. Coin fields are dice
+// expressions rolled with rollDiceCount; gem/art values are per-item GP.
+type treasureTier struct {
+	cp, sp, ep, gp, pp string
+	gemCount, gemValue int
+	artCount, artValue int
+	magicCount         string
+	gems               []string
+	art                []string
+	magic              map[string]int
+}
+
+var treasureTiers = map[int]treasureTier{
+	1: {
+		cp: "2d6*100", sp: "2d6*100", gp: "2d6*10",
+		gemCount: 2, gemValue: 10, artCount: 2, artValue: 25, magicCount: "1d4",
+		gems:  []string{"Azurite", "Banded agate", "Blue quartz", "Eye agate", "Hematite", "Moss agate", "Tiger eye"},
+		art:   []string{"Silver ewer", "Carved bone statuette", "Gold bracelet", "Cloth-of-gold vestments", "Black velvet mask"},
+		magic: map[string]int{"Potion of Healing": 50, "Spell Scroll (1st)": 50, "Bag of Holding": 500, "Cloak of Protection": 500},
+	},
+	2: {
+		sp: "2d6*1000", gp: "2d6*100", pp: "1d6*10",
+		gemCount: 3, gemValue: 50, artCount: 2, artValue: 250, magicCount: "1d6",
+		gems:  []string{"Bloodstone", "Carnelian", "Chalcedony", "Chrysoprase", "Citrine", "Jasper", "Moonstone", "Onyx"},
+		art:   []string{"Carved ivory statuette", "Gold ring set with bloodstones", "Silver chalice with moonstones", "Silk robe with gold embroidery"},
+		magic: map[string]int{"Potion of Greater Healing": 250, "Spell Scroll (3rd)": 500, "+1 Weapon": 500, "Wand of Magic Missiles": 500, "Boots of Elvenkind": 500},
+	},
+	3: {
+		gp: "4d6*1000", pp: "1d6*100",
+		gemCount: 3, gemValue: 500, artCount: 2, artValue: 2500, magicCount: "1d6",
+		gems:  []string{"Alexandrite", "Aquamarine", "Black pearl", "Blue spinel", "Peridot", "Topaz", "Tourmaline"},
+		art:   []string{"Jeweled gold crown", "Gold music box", "Jade game board with gold pieces", "Embroidered silk mantle with gems"},
+		magic: map[string]int{"Potion of Superior Healing": 500, "+2 Weapon": 5000, "Ring of Protection": 3500, "Boots of Speed": 4000, "Wand of Fireballs": 5000},
+	},
+	4: {
+		gp: "12d6*1000", pp: "8d6*1000",
+		gemCount: 6, gemValue: 5000, artCount: 2, artValue: 7500, magicCount: "1d8",
+		gems:  []string{"Black sapphire", "Diamond", "Jacinth", "Ruby", "Star ruby", "Star sapphire", "Emerald"},
+		art:   []string{"Jeweled platinum crown", "Gold and ruby ring", "Platinum sceptre with gems", "Ornate dragonbone throne"},
+		magic: map[string]int{"Potion of Supreme Healing": 5000, "+3 Weapon": 50000, "Rod of Alertness": 20000, "Tome of Leadership and Influence": 50000, "Dragon Scale Mail": 50000},
+	},
+}
+
+// rollDiceCount rolls a simple "NdM*K" expression (e.g. "2d6*100") and returns
+// the total. Unknown expressions return 0.
+func rollDiceCount(expr string) int {
+	if expr == "" {
+		return 0
+	}
+	mult := 1
+	if i := strings.Index(expr, "*"); i >= 0 {
+		mult, _ = strconv.Atoi(expr[i+1:])
+		expr = expr[:i]
+	}
+	parts := strings.SplitN(expr, "d", 2)
+	if len(parts) != 2 {
+		return 0
+	}
+	n, _ := strconv.Atoi(parts[0])
+	m, _ := strconv.Atoi(parts[1])
+	if n <= 0 || m <= 0 {
+		return 0
+	}
+	total := 0
+	for range n {
+		total += rand.Intn(m) + 1
+	}
+	return total * mult
+}
+
+func pickN(pool []string, n int) []string {
+	if n <= 0 || len(pool) == 0 {
+		return []string{}
+	}
+	out := make([]string, 0, n)
+	for range n {
+		out = append(out, pool[rand.Intn(len(pool))])
+	}
+	return out
+}
+
+func HandleGenerateTreasure(c *gin.Context) {
+	tier, _ := strconv.Atoi(c.DefaultQuery("tier", "1"))
+	t, ok := treasureTiers[tier]
+	if !ok {
+		tier = 1
+		t = treasureTiers[1]
+	}
+
+	coins := gin.H{
+		"cp": rollDiceCount(t.cp),
+		"sp": rollDiceCount(t.sp),
+		"ep": rollDiceCount(t.ep),
+		"gp": rollDiceCount(t.gp),
+		"pp": rollDiceCount(t.pp),
+	}
+	gems := pickN(t.gems, t.gemCount)
+	art := pickN(t.art, t.artCount)
+	magicNames := make([]string, 0, 8)
+	for name := range t.magic {
+		magicNames = append(magicNames, name)
+	}
+	sort.Strings(magicNames)
+	magic := pickN(magicNames, rollDiceCount(t.magicCount))
+
+	total := coins["cp"].(int)/100 + coins["sp"].(int)/10 + coins["ep"].(int)/2 +
+		coins["gp"].(int) + coins["pp"].(int)*10 +
+		len(gems)*t.gemValue + len(art)*t.artValue
+	for _, m := range magic {
+		total += t.magic[m]
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"tier":           tier,
+		"coins":          coins,
+		"gems":           gems,
+		"art_objects":    art,
+		"magic_items":    magic,
+		"total_gp_value": total,
 	})
 }
 
