@@ -55,6 +55,7 @@ type CheckRollResult struct {
 	Ability    string `json:"ability"`
 	Proficient bool   `json:"proficient"`
 	Advantage  string `json:"advantage"`
+	AutoFail   bool   `json:"auto_fail,omitempty"`
 	Text       string `json:"text"`
 }
 
@@ -137,9 +138,30 @@ func resolveCheckRoll(characterID int64, req CheckRollRequest) (CheckRollResult,
 		totalMod += profBonus
 	}
 
-	adv := strings.ToLower(req.Advantage)
-	if adv == "" {
-		adv = "normal"
+	conditions := loadActiveConditionTypes(characterID)
+	condEff := EffectsFromConditions(conditions)
+	exEff := ExhaustionEffectsForLevel(loadCharacterExhaustion(characterID))
+
+	forcedAdv, forcedDis := false, false
+	if req.Type == "save" {
+		forcedAdv = condEff.AdvSaves
+		forcedDis = condEff.DisadvSaves || exEff.DisadvSaves
+	} else {
+		forcedAdv = condEff.AdvChecks
+		forcedDis = condEff.DisadvChecks || exEff.DisadvChecks
+	}
+	adv := CombineAdvantage(req.Advantage, forcedAdv, forcedDis)
+
+	// Paralyzed/petrified/stunned/unconscious auto-fail STR and DEX saves.
+	if req.Type == "save" && (ability == "str" || ability == "dex") && condEff.AutoFailStrDex {
+		label := cases.Title(language.English).String(ability) + " Save"
+		db.DB.Exec("INSERT INTO dice_rolls(user_id,character_id,expression,result,total) VALUES(?,?,?,?,?)",
+			nil, characterID, label, label+" : automatic failure", 0)
+		return CheckRollResult{
+			Rolls: []int{}, Raw: 0, Total: 0, Modifier: totalMod,
+			Ability: ability, Proficient: isProficient, Advantage: adv,
+			AutoFail: true, Text: label + " : automatic failure",
+		}, nil
 	}
 
 	rollD20 := func() int {

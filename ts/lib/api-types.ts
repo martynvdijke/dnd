@@ -9,6 +9,12 @@ export interface Character {
   ac?: number;
   portrait_url?: string;
   can_edit?: boolean;
+  exhaustion_level?: number;
+  death_saves_successes?: number;
+  death_saves_failures?: number;
+  damage_resistances?: string;
+  damage_vulnerabilities?: string;
+  damage_immunities?: string;
   [key: string]: unknown;
 }
 

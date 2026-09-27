@@ -251,7 +251,21 @@ func HandleCombatAttack(c *gin.Context) {
 		return
 	}
 
-	raw, rolls, err := rollD20Advantage(req.Advantage)
+	// Derive forced advantage/disadvantage from conditions and exhaustion.
+	attackerAdv, attackerDis := false, false
+	if req.AttackerType == "character" {
+		atkCond := EffectsFromConditions(loadActiveConditionTypes(req.AttackerID))
+		atkEx := ExhaustionEffectsForLevel(loadCharacterExhaustion(req.AttackerID))
+		attackerAdv = atkCond.AdvAttacks
+		attackerDis = atkCond.DisadvAttacks || atkEx.DisadvAttacks
+	}
+	if req.TargetType == "character" {
+		tgtCond := EffectsFromConditions(loadActiveConditionTypes(req.TargetID))
+		if tgtCond.AttacksAgainstAdvantage {
+			attackerAdv = true
+		}
+	}
+	raw, rolls, err := rollD20Advantage(CombineAdvantage(req.Advantage, attackerAdv, attackerDis))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

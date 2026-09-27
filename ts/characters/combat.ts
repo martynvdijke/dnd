@@ -86,6 +86,20 @@ export async function doLevelUp(): Promise<void> {
   }
 }
 
+export async function rollDeathSave(): Promise<void> {
+  if (!currentChar) return;
+  try {
+    const c = currentChar as Character;
+    const res = await api<{ roll: number; successes: number; failures: number; stable: boolean; dead: boolean; hp_current: number; revived: boolean; text: string }>('POST', `/api/characters/${c.id}/death-save`);
+    toast(`Death Save: ${res.roll} — ${res.text}`);
+    if (res.dead) toast('Character has died', true);
+    setCurrentChar(await api<Character>('GET', `/api/characters/${c.id}`));
+    (window.renderSheet as (() => void) | undefined)?.();
+  } catch (e) {
+    toast((e as Error).message, true);
+  }
+}
+
 // ─── Combat Section Update for conditions and concentration ───
 
 export function renderCombat(): void {
@@ -152,6 +166,7 @@ export function renderCombat(): void {
       <div class="col-6"><label class="form-label small">Successes</label>${window.renderStepper('death_saves_successes', c['death_saves_successes'] as number, 1, 0, 3, 'Death Save Successes')}</div>
       <div class="col-6"><label class="form-label small">Failures</label>${window.renderStepper('death_saves_failures', c['death_saves_failures'] as number, 1, 0, 3, 'Death Save Failures')}</div>
     </div>
+    <button class="btn btn-sm btn-outline-danger mt-2" data-testid="roll-death-save" onclick="rollDeathSave()"><i class="fa-solid fa-dice-d20 me-1"></i>Roll Death Save</button>
     <h5 class="mt-3">Concentration</h5>
     <div class="form-check"><input type="checkbox" class="form-check-input" id="concentrationCb" ${c['concentrating'] ? 'checked' : ''} onchange="autoSaveField('concentrating',this)"><label class="form-check-label" for="concentrationCb">Concentrating on a spell</label></div>
     <div class="mt-2">
@@ -206,6 +221,7 @@ export async function loadConditionBadges(): Promise<void> {
 
 // Window registrations (centralized)
 expose('rollCheck', rollCheck);
+expose('rollDeathSave', rollDeathSave);
 expose('applyHeal', applyHeal);
 expose('doRest', doRest);
 expose('doLevelUp', doLevelUp);

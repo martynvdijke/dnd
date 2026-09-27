@@ -164,4 +164,25 @@ test.describe('Conditions', () => {
 
     expect(result.err).toBeFalsy();
   });
+
+  test('character effects endpoint and rules controls', async ({ page }) => {
+    const name = uniqueName();
+    await createCharacter(page, name);
+
+    const effects = await page.evaluate(async (charName) => {
+      const chars = await window.api('GET', '/api/characters');
+      const char = chars.find((c: any) => c.name === charName);
+      return window.api('GET', `/api/characters/${char.id}/effects`);
+    }, name);
+    expect(effects.conditions).toBeDefined();
+    expect(effects.effective_hp_max).toBeGreaterThan(0);
+
+    await page.locator('.character-card').filter({ hasText: name }).click();
+    await page.evaluate(() => (window as any).switchTab('stats'));
+    await expect(page.getByTestId('defense-resistances')).toBeVisible();
+    await expect(page.getByTestId('defense-vulnerabilities')).toBeVisible();
+    await expect(page.getByTestId('defense-immunities')).toBeVisible();
+    await page.evaluate(() => (window as any).switchTab('combat'));
+    await expect(page.getByTestId('roll-death-save')).toBeVisible();
+  });
 });

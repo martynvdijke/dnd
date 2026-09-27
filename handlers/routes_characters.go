@@ -128,6 +128,8 @@ func RegisterCharacterRoutes(r *gin.RouterGroup) {
 	// Concentration
 	r.POST("/characters/:id/check-concentration", CheckConcentration)
 	r.POST("/characters/:id/hp", HandleCharacterHP)
+	r.POST("/characters/:id/death-save", HandleDeathSave)
+	r.GET("/characters/:id/effects", HandleCharacterEffects)
 
 	// Feats
 	r.GET("/feats", ListFeats)

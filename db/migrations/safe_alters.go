@@ -136,6 +136,9 @@ func ApplySafeAlters(db *sql.DB) error {
 		"ALTER TABLE inventory ADD COLUMN attack_ability TEXT NOT NULL DEFAULT ''",
 		"ALTER TABLE inventory ADD COLUMN attack_bonus INTEGER",
 		"ALTER TABLE characters ADD COLUMN condition_immunities TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE characters ADD COLUMN damage_resistances TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE characters ADD COLUMN damage_vulnerabilities TEXT NOT NULL DEFAULT ''",
+		"ALTER TABLE characters ADD COLUMN damage_immunities TEXT NOT NULL DEFAULT ''",
 		// Special effects presets on one-shot scenes (ent-owned table; extra column).
 		"ALTER TABLE oneshot_scenes ADD COLUMN special_effects TEXT NOT NULL DEFAULT ''",
 	}

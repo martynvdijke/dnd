@@ -120,6 +120,13 @@ func entCharacterToModel(e *ent.Character) *models.Character {
 	if e.CampaignID != 0 {
 		ch.CampaignID = &e.CampaignID
 	}
+	// Damage defense columns live outside ent (added via safe_alters.go).
+	var dr, dv, di string
+	if err := db.DB.QueryRow("SELECT COALESCE(damage_resistances,''), COALESCE(damage_vulnerabilities,''), COALESCE(damage_immunities,'') FROM characters WHERE id=?", e.ID).Scan(&dr, &dv, &di); err == nil {
+		ch.DamageResistances = dr
+		ch.DamageVulnerabilities = dv
+		ch.DamageImmunities = di
+	}
 	return ch
 }
 

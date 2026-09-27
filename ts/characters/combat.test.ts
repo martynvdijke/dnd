@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { setCurrentChar } from '../lib/state';
-import { renderCombat } from './combat';
+import { renderCombat, rollDeathSave } from './combat';
 
 vi.mock('../lib/api', () => ({ api: vi.fn().mockResolvedValue([]) }));
 
@@ -17,7 +17,7 @@ function mockChar() {
 }
 
 beforeEach(() => {
-  document.body.innerHTML = '<div id="combatSection"></div><div id="conditionBadges"></div>';
+  document.body.innerHTML = '<div id="combatSection"></div><div id="conditionBadges"></div><div id="toastContainer"></div>';
   // renderCombat calls renderStepper via window
   (window as any).renderStepper = (field: string, value: number) => `<span class="stepper" data-field="${field}">${value}</span>`;
   setCurrentChar(mockChar());
@@ -59,5 +59,16 @@ describe('renderCombat', () => {
     const html = document.getElementById('combatSection')!.innerHTML;
     expect(html).toContain('STR');
     expect(html).toContain('DEX');
+  });
+
+  it('renders the roll death save button', () => {
+    renderCombat();
+    expect(document.getElementById('combatSection')!.innerHTML).toContain('data-testid="roll-death-save"');
+  });
+
+  it('rolls a death save via the API', async () => {
+    const { api } = await import('../lib/api');
+    await rollDeathSave();
+    expect(api).toHaveBeenCalledWith('POST', '/api/characters/1/death-save');
   });
 });

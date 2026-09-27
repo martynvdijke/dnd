@@ -513,6 +513,15 @@ func UpdateCharacter(c *gin.Context) {
 	if _, ok := raw["condition_immunities"]; ok {
 		db.DB.Exec("UPDATE characters SET condition_immunities=? WHERE id=?", ch.ConditionImmunities, id)
 	}
+	if _, ok := raw["damage_resistances"]; ok {
+		db.DB.Exec("UPDATE characters SET damage_resistances=? WHERE id=?", ch.DamageResistances, id)
+	}
+	if _, ok := raw["damage_vulnerabilities"]; ok {
+		db.DB.Exec("UPDATE characters SET damage_vulnerabilities=? WHERE id=?", ch.DamageVulnerabilities, id)
+	}
+	if _, ok := raw["damage_immunities"]; ok {
+		db.DB.Exec("UPDATE characters SET damage_immunities=? WHERE id=?", ch.DamageImmunities, id)
+	}
 
 	// Auto-calc passive perception
 	charStats, err := db.Client.Character.Query().Where(character.ID(id)).Select(character.FieldWis, character.FieldProficiencyBonus).Only(c.Request.Context())
