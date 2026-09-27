@@ -63,6 +63,10 @@ type Character struct {
 	DamageVulnerabilities string `json:"damage_vulnerabilities"`
 	DamageImmunities      string `json:"damage_immunities"`
 
+	// ACComputed is true when AC is derived from equipped armor rather than
+	// being a manually entered value.
+	ACComputed bool `json:"ac_computed"`
+
 	CanEdit bool `json:"can_edit"`
 
 	Proficiencies []Proficiency   `json:"proficiencies,omitempty"`

@@ -7,6 +7,7 @@ export interface Character {
   hp_current?: number;
   hp_max?: number;
   ac?: number;
+  ac_computed?: boolean;
   portrait_url?: string;
   can_edit?: boolean;
   exhaustion_level?: number;

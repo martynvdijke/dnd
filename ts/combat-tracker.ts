@@ -17,6 +17,11 @@ interface CombatEntry {
   turn_order: number;
   is_active: boolean;
   character_id?: number | null;
+  action_used?: boolean;
+  bonus_action_used?: boolean;
+  reaction_used?: boolean;
+  movement_used?: number;
+  movement_max?: number;
 }
 
 // ─── Combat Tracker ───
@@ -54,6 +59,7 @@ expose('showCombatTracker', async function (): Promise<void> {
           <th style="width:80px">AC</th>
           <th style="width:120px">HP</th>
           <th style="width:60px">Status</th>
+          <th style="width:110px">Economy</th>
           <th style="width:140px">Actions</th>
         </tr></thead>
         <tbody id="combatTrackerBody">`;
@@ -96,6 +102,17 @@ expose('showCombatTracker', async function (): Promise<void> {
           <div class="d-flex gap-1">
             <button class="btn btn-sm btn-outline-primary py-0 px-1" data-testid="combat-attack-btn" style="font-size:0.65rem" onclick="showAttackModal(${entry.id})"><i class="fa-solid fa-crosshairs me-1"></i>Attack</button>
             <button class="btn btn-sm btn-outline-danger py-0 px-1" style="font-size:0.65rem" onclick="deleteCombatEntry(${entry.id})"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </td>
+        <td class="text-center">
+          <div class="d-flex gap-1 justify-content-center">
+            <button class="btn btn-sm ${entry.action_used ? 'btn-secondary' : 'btn-outline-success'} py-0 px-1" style="font-size:0.6rem" title="Action" data-testid="combat-economy-action" onclick="useCombatEconomy(${entry.id},'action')">A</button>
+            <button class="btn btn-sm ${entry.bonus_action_used ? 'btn-secondary' : 'btn-outline-success'} py-0 px-1" style="font-size:0.6rem" title="Bonus action" data-testid="combat-economy-bonus" onclick="useCombatEconomy(${entry.id},'bonus_action')">B</button>
+            <button class="btn btn-sm ${entry.reaction_used ? 'btn-secondary' : 'btn-outline-success'} py-0 px-1" style="font-size:0.6rem" title="Reaction" data-testid="combat-economy-reaction" onclick="useCombatEconomy(${entry.id},'reaction')">R</button>
+          </div>
+          <div class="d-flex gap-1 align-items-center justify-content-center mt-1">
+            <span class="text-muted" style="font-size:0.6rem;white-space:nowrap">${entry.movement_used || 0}/${entry.movement_max || 30}ft</span>
+            <button class="btn btn-sm btn-outline-primary py-0 px-1" style="font-size:0.6rem" title="Spend 5 ft" data-testid="combat-economy-move" onclick="useCombatEconomy(${entry.id},'move')"><i class="fa-solid fa-shoe-prints"></i></button>
           </div>
         </td>
       </tr>`;
@@ -206,6 +223,16 @@ expose('advanceCombatTurn', async function (): Promise<void> {
   } catch (e: unknown) { toast(e instanceof Error ? e.message : String(e), true); }
 });
 
+expose('useCombatEconomy', async function (id: number, kind: string): Promise<void> {
+  const body: Record<string, unknown> = {};
+  if (kind === 'move') body.movement = 5;
+  else body[kind] = true;
+  try {
+    await api('POST', `/api/combat/${id}/economy`, body);
+    await window.showCombatTracker();
+  } catch (e: unknown) { toast(e instanceof Error ? e.message : String(e), true); }
+});
+
 expose('showAddCombatEntry', function (): void {
   showModal('Add Combatant', `
     <div class="mb-3"><label class="form-label">Name</label><input class="form-control" id="ceName"></div>
@@ -290,6 +317,15 @@ expose('showAttackModal', async function (entryId: number): Promise<void> {
       <div class="col-6"><label class="form-label small">Advantage</label><select class="form-select" id="atkAdv" data-testid="combat-attack-advantage"><option value="">Normal</option><option value="advantage">Advantage</option><option value="disadvantage">Disadvantage</option></select></div>
       <div class="col-6"><label class="form-label small">Condition (optional)</label><input class="form-control" id="atkCondition" placeholder="prone" data-testid="combat-attack-condition"></div>
     </div>
+    <div class="row g-2 mb-3">
+      <div class="col-4"><label class="form-label small">Cover</label><select class="form-select" id="atkCover" data-testid="combat-attack-cover"><option value="">None</option><option value="half">Half (+2)</option><option value="three_quarters">3/4 (+5)</option><option value="total">Total (blocks)</option></select></div>
+      <div class="col-4"><label class="form-label small">Distance (ft)</label><input class="form-control" id="atkDistance" type="number" value="0" data-testid="combat-attack-distance"></div>
+      <div class="col-4 d-flex align-items-end pb-1"><div class="form-check"><input class="form-check-input" type="checkbox" id="atkFlanking" data-testid="combat-attack-flanking"><label class="form-check-label small" for="atkFlanking">Flanking (+adv)</label></div></div>
+    </div>
+    <div class="row g-2 mb-3">
+      <div class="col-6"><label class="form-label small">Normal range (ft)</label><input class="form-control" id="atkNormalRange" type="number" value="0" data-testid="combat-attack-normal-range"></div>
+      <div class="col-6"><label class="form-label small">Long range (ft)</label><input class="form-control" id="atkLongRange" type="number" value="0" data-testid="combat-attack-long-range"></div>
+    </div>
     <div class="d-flex gap-2 mb-3">
       <button class="btn btn-outline-primary flex-fill" data-testid="combat-attack-preview" onclick="previewAttack()">Preview</button>
       <button class="btn btn-primary flex-fill" data-testid="combat-attack-apply" onclick="applyAttack()">Apply</button>
@@ -356,6 +392,15 @@ function buildAttackBody(apply: boolean): Record<string, unknown> {
   if (adv === 'advantage') body.advantage = 'advantage';
   else if (adv === 'disadvantage') body.advantage = 'disadvantage';
   if (cond) body.condition = cond;
+  const cover = (document.getElementById('atkCover') as HTMLSelectElement)?.value || '';
+  if (cover) body.cover = cover;
+  if ((document.getElementById('atkFlanking') as HTMLInputElement)?.checked) body.flanking = true;
+  const distance = +(document.getElementById('atkDistance') as HTMLInputElement)?.value || 0;
+  const normalRange = +(document.getElementById('atkNormalRange') as HTMLInputElement)?.value || 0;
+  const longRange = +(document.getElementById('atkLongRange') as HTMLInputElement)?.value || 0;
+  if (distance) body.distance = distance;
+  if (normalRange) body.normal_range = normalRange;
+  if (longRange) body.long_range = longRange;
   const cid = (currentCampaign as any)?.id;
   if (cid) body.campaign_id = cid;
   return body;
@@ -364,8 +409,9 @@ function buildAttackBody(apply: boolean): Record<string, unknown> {
 function renderAttackResult(r: any): void {
   const el = document.getElementById('atkResult');
   if (!el) return;
-  const hitStr = r.critical ? 'Critical Hit!' : r.fumble ? 'Fumble!' : r.hit ? 'Hit' : 'Miss';
-  el.innerHTML = `<div>Roll: ${r.attack_roll ?? ''} + ${r.attack_bonus ?? ''} = ${r.attack_total ?? ''} vs AC ${r.target_ac ?? ''} — <strong>${hitStr}</strong></div>${r.damage !== undefined ? `<div>Damage: ${r.damage} ${esc(r.damage_type || '')} ${r.damage_breakdown ? '(' + esc(r.damage_breakdown) + ')' : ''}</div>` : ''}${r.condition_applied ? `<div>Condition: ${esc(r.condition_applied)}</div>` : ''}`;
+  const hitStr = r.cannot_target ? 'Blocked' : r.critical ? 'Critical Hit!' : r.fumble ? 'Fumble!' : r.hit ? 'Hit' : 'Miss';
+  const coverStr = r.cover_bonus ? ` (cover +${r.cover_bonus})` : '';
+  el.innerHTML = `<div>Roll: ${r.attack_roll ?? ''} + ${r.attack_bonus ?? ''} = ${r.attack_total ?? ''} vs AC ${r.target_ac ?? ''}${coverStr} — <strong>${hitStr}</strong></div>${r.cannot_target ? '<div class="text-danger">Target has total cover or is out of range.</div>' : ''}${r.damage !== undefined ? `<div>Damage: ${r.damage} ${esc(r.damage_type || '')} ${r.damage_breakdown ? '(' + esc(r.damage_breakdown) + ')' : ''}</div>` : ''}${r.condition_applied ? `<div>Condition: ${esc(r.condition_applied)}</div>` : ''}`;
 }
 
 expose('previewAttack', async function (): Promise<void> {

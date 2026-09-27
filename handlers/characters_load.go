@@ -127,6 +127,8 @@ func entCharacterToModel(e *ent.Character) *models.Character {
 		ch.DamageVulnerabilities = dv
 		ch.DamageImmunities = di
 	}
+	// AC is auto-derived when body armor is equipped.
+	_, ch.ACComputed = ComputeArmorClass(abilityMod(ch.Dex), loadEquippedArmor(e.ID))
 	return ch
 }
 

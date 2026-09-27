@@ -49,6 +49,13 @@ test.describe('Combat Automation', () => {
     await expect(page.locator('[data-testid="combat-attack-dmgtype"]')).toBeVisible();
     await expect(page.locator('[data-testid="combat-attack-advantage"]')).toBeVisible();
     await expect(page.locator('[data-testid="combat-attack-condition"]')).toBeVisible();
+    // Situational positioning controls
+    await expect(page.locator('[data-testid="combat-attack-cover"]')).toBeVisible();
+    await expect(page.locator('[data-testid="combat-attack-flanking"]')).toBeVisible();
+    await expect(page.locator('[data-testid="combat-attack-distance"]')).toBeVisible();
+    await expect(page.locator('[data-testid="combat-attack-normal-range"]')).toBeVisible();
+    await expect(page.locator('[data-testid="combat-attack-long-range"]')).toBeVisible();
+    await page.locator('[data-testid="combat-attack-cover"]').selectOption('half');
 
     // Preview
     const previewPromise = page.waitForResponse((r) => r.url().includes('/api/combat/attack') && r.request().method() === 'POST', { timeout: 15000 });
@@ -73,5 +80,34 @@ test.describe('Combat Automation', () => {
     if (attack.hit) {
       expect(attack.target_hp).toBeLessThan(20);
     }
+  });
+
+  test('action economy tracks and rejects overspend', async ({ page }) => {
+    const seed = await page.evaluate(async () => {
+      const suffix = Date.now();
+      const name = `Econ-${suffix}`;
+      const camp = await window.api('POST', '/api/campaigns', { name: `EC-${suffix}`, description: 'economy' });
+      const entry = await window.api('POST', '/api/combat', { name, type: 'monster', ac: 12, hp_max: 10, hp_current: 10, initiative_mod: 0, movement_max: 30, campaign_id: camp.id });
+      return { entry, name };
+    });
+
+    await page.waitForFunction(() => typeof (window as any).showCombatTracker === 'function', { timeout: NAV_TIMEOUT });
+    await page.evaluate(() => (window as any).showCombatTracker());
+    const row = page.locator('#combatTrackerContent tr', { hasText: seed.name });
+    await expect(row.locator('[data-testid="combat-economy-action"]')).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(row.locator('[data-testid="combat-economy-bonus"]')).toBeVisible();
+    await expect(row.locator('[data-testid="combat-economy-reaction"]')).toBeVisible();
+
+    // Spend the action.
+    const actionPromise = page.waitForResponse((r) => r.url().includes(`/api/combat/${seed.entry.id}/economy`) && r.request().method() === 'POST', { timeout: 15000 });
+    await row.locator('[data-testid="combat-economy-action"]').click();
+    const actionResp = await actionPromise;
+    expect((await actionResp.json()).action_used).toBe(true);
+
+    // Spend 5 ft of movement.
+    const movePromise = page.waitForResponse((r) => r.url().includes(`/api/combat/${seed.entry.id}/economy`) && r.request().method() === 'POST', { timeout: 15000 });
+    await row.locator('[data-testid="combat-economy-move"]').click();
+    await movePromise;
+    await expect(page.locator('#combatTrackerContent tr', { hasText: seed.name })).toContainText('5/30ft', { timeout: NAV_TIMEOUT });
   });
 });
