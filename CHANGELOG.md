@@ -1,3 +1,10 @@
+# [2.78.0](https://github.com/martynvdijke/dnd/compare/v2.77.1...v2.78.0) (2026-09-27)
+
+
+### Features
+
+* apply damage defenses, condition effects, exhaustion, and death saves ([#150](https://github.com/martynvdijke/dnd/issues/150)) ([c1db237](https://github.com/martynvdijke/dnd/commit/c1db237e3c6212a33ca49fe009b8d5fb89604d68))
+
 ## [2.77.1](https://github.com/martynvdijke/dnd/compare/v2.77.0...v2.77.1) (2026-09-26)
 
 # [2.77.0](https://github.com/martynvdijke/dnd/compare/v2.76.0...v2.77.0) (2026-09-25)
