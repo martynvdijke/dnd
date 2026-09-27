@@ -219,6 +219,7 @@ async function renderAnalytics() {
         <div class="col-6 col-md-3"><div class="combat-stat"><div class="stat-label">Level</div><div class="stat-value">${stats.level}</div></div></div>
         <div class="col-6 col-md-3"><div class="combat-stat text-success"><div class="stat-label">Total XP</div><div class="stat-value">${stats.total_xp_earned}</div></div></div>
         <div class="col-6 col-md-3"><div class="combat-stat" style="color:var(--gold)"><div class="stat-label">Gold Earned</div><div class="stat-value">${stats.total_gold_earned}</div></div></div>
+        <div class="col-6 col-md-3"><div class="combat-stat"><div class="stat-label">Sessions / Month</div><div class="stat-value">${(stats.sessions_per_month || 0).toFixed(1)}</div></div></div>
       </div>
       <div class="row g-3 mb-3">
         <div class="col-md-6">
@@ -256,6 +257,7 @@ async function renderAnalytics() {
               <p class="mb-1 small text-muted">${stats.npc_interactions} NPC interactions</p>
               <p class="mb-1 small text-muted">${stats.journal_count} Journal entries</p>
               <p class="mb-0 small text-muted">${stats.dice_rolls.total_rolls} Dice rolls (avg ${stats.dice_rolls.average.toFixed(1)})</p>
+              <p class="mb-0 small text-muted">${stats.dice_rolls.natural_20s} Natural 20s · ${stats.dice_rolls.natural_1s} Natural 1s</p>
             </div>
           </div>
         </div>

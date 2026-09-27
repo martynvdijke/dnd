@@ -13,6 +13,7 @@ expose('showCampaignDashboard', async function (campaignId: number, campaignName
   showModal(`${esc(campaignName)} Dashboard`, `<div id="campaignDashContent"><div class="ornament">✧ Loading dashboard... ✧</div></div>`);
   try {
     const d = await api('GET', `/api/campaigns/${campaignId}/dashboard`);
+    const combatStats = await api('GET', `/api/combat-log/stats?campaign_id=${campaignId}`).catch(() => null);
     const hpPct = (h: number, m: number) => m > 0 ? Math.round((h / m) * 100) : 0;
     const avatarLetter = (n: string) => (n || '?').charAt(0).toUpperCase();
 
@@ -87,6 +88,16 @@ expose('showCampaignDashboard', async function (campaignId: number, campaignName
               <span class="roll-total">${dr.total}</span>
             </div>
           `).join('') || '<div class="text-muted small">No dice rolls yet.</div>'}
+        </div>
+        <div class="dash-card" data-testid="dash-combat-analytics">
+          <h6>Combat Analytics</h6>
+          ${combatStats ? `
+            <p class="mb-1 small text-muted">${combatStats.total_damage} damage · ${combatStats.total_healing} healing · ${combatStats.crit_count} crits</p>
+            ${(combatStats.damage_by_type || []).map((t: any) => `
+              <div class="dash-list-item"><span>${esc(t.type)}</span><span class="text-muted small">${t.damage}</span></div>
+            `).join('')}
+            ${(combatStats.top_healers || []).length ? `<div class="small text-muted mt-1">Top healers: ${combatStats.top_healers.map((h: any) => esc(h.name)).join(', ')}</div>` : ''}
+          ` : '<div class="text-muted small">No combat data yet.</div>'}
         </div>
       </div>
       <div class="text-center mt-3 d-flex gap-2 justify-content-center flex-wrap">

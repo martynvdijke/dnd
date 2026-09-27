@@ -17,6 +17,7 @@ test.describe('DM tooling', () => {
     const camp = await createCampaign(page, name);
     await page.evaluate((c: any) => (window as any).showCampaignDashboard(c.id, c.name), camp);
 
+    await expect(page.getByTestId('dash-combat-analytics')).toBeVisible();
     await expect(page.getByTestId('open-dm-tools')).toBeVisible();
     await page.getByTestId('open-dm-tools').click();
 

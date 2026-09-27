@@ -40,9 +40,26 @@ func TestCombatLogCRUD(t *testing.T) {
 	})
 
 	t.Run("get combat log stats returns 200", func(t *testing.T) {
+		testutil.PostJSON(t, r, "/api/combat-log", map[string]any{
+			"campaign_id": 1, "actor_name": "Cleric", "action": "heal",
+			"target_name": "Hero", "healing": 12,
+		})
+		testutil.PostJSON(t, r, "/api/combat-log", map[string]any{
+			"campaign_id": 1, "actor_name": "Mage", "action": "cast",
+			"target_name": "Goblin", "damage": 20, "damage_type": "fire",
+		})
 		w := testutil.Get(t, r, "/api/combat-log/stats?campaign_id=1")
 		testutil.AssertStatus(t, w, 200)
 		var stats map[string]any
 		testutil.ParseJSON(t, w, &stats)
+
+		byType, ok := stats["damage_by_type"].([]any)
+		if !ok || len(byType) == 0 {
+			t.Fatalf("damage_by_type missing or empty: %v", stats["damage_by_type"])
+		}
+		healers, ok := stats["top_healers"].([]any)
+		if !ok || len(healers) == 0 {
+			t.Fatalf("top_healers missing or empty: %v", stats["top_healers"])
+		}
 	})
 }

@@ -104,11 +104,57 @@ func GetCombatLogStats(c *gin.Context) {
 		}()
 	}
 
+	type TypeStat struct {
+		Type   string `json:"type"`
+		Damage int    `json:"damage"`
+	}
+	var dmgByType []TypeStat
+	typeRows, err := db.DB.Query("SELECT damage_type, SUM(damage) as dmg FROM combat_log_entries WHERE campaign_id=? AND damage_type != '' GROUP BY damage_type ORDER BY dmg DESC", campaignID)
+	if err != nil {
+		middleware.LogWarn("combat", "damage by type query failed", "error", err)
+	} else {
+		func() {
+			defer typeRows.Close()
+			for typeRows.Next() {
+				var ts TypeStat
+				typeRows.Scan(&ts.Type, &ts.Damage)
+				dmgByType = append(dmgByType, ts)
+			}
+			if err := typeRows.Err(); err != nil {
+				middleware.LogWarn("combat", "rows iteration failed", "error", err)
+			}
+		}()
+	}
+
+	type HealerStat struct {
+		Name    string `json:"name"`
+		Healing int    `json:"healing"`
+	}
+	var topHealers []HealerStat
+	healerRows, err := db.DB.Query("SELECT actor_name, SUM(healing) as hp FROM combat_log_entries WHERE campaign_id=? AND healing > 0 GROUP BY actor_name ORDER BY hp DESC LIMIT 5", campaignID)
+	if err != nil {
+		middleware.LogWarn("combat", "top healers query failed", "error", err)
+	} else {
+		func() {
+			defer healerRows.Close()
+			for healerRows.Next() {
+				var hs HealerStat
+				healerRows.Scan(&hs.Name, &hs.Healing)
+				topHealers = append(topHealers, hs)
+			}
+			if err := healerRows.Err(); err != nil {
+				middleware.LogWarn("combat", "rows iteration failed", "error", err)
+			}
+		}()
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"total_entries": totalEntries,
-		"total_damage":  totalDamage,
-		"total_healing": totalHealing,
-		"crit_count":    critCount,
-		"top_damagers":  topDmg,
+		"total_entries":  totalEntries,
+		"total_damage":   totalDamage,
+		"total_healing":  totalHealing,
+		"crit_count":     critCount,
+		"top_damagers":   topDmg,
+		"damage_by_type": dmgByType,
+		"top_healers":    topHealers,
 	})
 }

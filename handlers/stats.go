@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -76,10 +77,7 @@ func loadCharacterStats(db *sql.DB, charID int64) (CharacterStats, error) {
 	if stats.SessionCount > 0 {
 		var firstSession, lastSession string
 		db.QueryRow("SELECT MIN(session_date), MAX(session_date) FROM sessions WHERE character_id=?", charID).Scan(&firstSession, &lastSession)
-		if firstSession != "" && lastSession != "" {
-			// Approximate months
-			stats.SessionsPerMonth = float64(stats.SessionCount)
-		}
+		stats.SessionsPerMonth = float64(stats.SessionCount) / float64(monthsBetween(firstSession, lastSession))
 	}
 
 	// Quest breakdown
@@ -124,6 +122,24 @@ func loadCharacterStats(db *sql.DB, charID int64) (CharacterStats, error) {
 
 	// Dice stats
 	db.QueryRow("SELECT COUNT(*), COALESCE(AVG(total),0) FROM dice_rolls WHERE character_id=?", charID).Scan(&stats.DiceRolls.TotalRolls, &stats.DiceRolls.Average)
+	// ponytail: heuristic over stored result text; structured roll column if the text format changes.
+	db.QueryRow("SELECT COUNT(*) FROM dice_rolls WHERE character_id=? AND expression LIKE '%d20%' AND result LIKE '%[20]%'", charID).Scan(&stats.DiceRolls.Natural20s)
+	db.QueryRow("SELECT COUNT(*) FROM dice_rolls WHERE character_id=? AND expression LIKE '%d20%' AND result LIKE '%[1]%'", charID).Scan(&stats.DiceRolls.Natural1s)
 
 	return stats, nil
+}
+
+// monthsBetween returns the whole months spanned by two YYYY-MM-DD dates,
+// with a minimum of 1 so callers can divide safely.
+func monthsBetween(first, last string) int {
+	f, err1 := time.Parse("2006-01-02", first)
+	l, err2 := time.Parse("2006-01-02", last)
+	if err1 != nil || err2 != nil {
+		return 1
+	}
+	months := (l.Year()-f.Year())*12 + int(l.Month()) - int(f.Month())
+	if months < 1 {
+		return 1
+	}
+	return months
 }
