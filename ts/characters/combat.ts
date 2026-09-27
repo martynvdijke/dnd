@@ -6,6 +6,7 @@
 import { expose } from '../lib/expose';
 import { currentChar, setCurrentChar } from '../lib/state';
 import { esc, toast } from '../lib/dom';
+import { rulesHelpButton } from '../lib/rules-help';
 import { api } from '../lib/api';
 import type { Character } from '../lib/api-types';
 import { animateHpChange } from '../lib/animations';
@@ -113,9 +114,9 @@ export function renderCombat(): void {
   const pct = hpMax > 0 ? Math.round((hpCurrent / hpMax) * 100) : 0;
   el.innerHTML = `
     <div class="combat-stack row g-3">
-      <div class="combat-stat-row col-4"><div class="combat-stat" title="Armor Class"><div class="stat-label">AC</div><div class="stat-value">${window.renderStepper('ac', c['ac'] as number, 1, 0, undefined, 'AC')}</div></div></div>
-      <div class="combat-stat-row col-4"><div class="combat-stat" title="Initiative modifier"><div class="stat-label">Initiative</div><div class="stat-value">${window.renderStepper('initiative', c['initiative'] as number, 1, undefined, undefined, 'Initiative')}</div></div></div>
-      <div class="combat-stat-row col-4"><div class="combat-stat" title="Movement speed"><div class="stat-label">Speed</div><div class="stat-value">${window.renderStepper('speed', c['speed'] as number, 5, 0, undefined, 'Speed')}</div></div></div>
+      <div class="combat-stat-row col-4"><div class="combat-stat" title="Armor Class"><div class="stat-label">AC ${rulesHelpButton('ac')}</div><div class="stat-value">${window.renderStepper('ac', c['ac'] as number, 1, 0, undefined, 'AC')}</div></div></div>
+      <div class="combat-stat-row col-4"><div class="combat-stat" title="Initiative modifier"><div class="stat-label">Initiative ${rulesHelpButton('initiative')}</div><div class="stat-value">${window.renderStepper('initiative', c['initiative'] as number, 1, undefined, undefined, 'Initiative')}</div></div></div>
+      <div class="combat-stat-row col-4"><div class="combat-stat" title="Movement speed"><div class="stat-label">Speed ${rulesHelpButton('speed')}</div><div class="stat-value">${window.renderStepper('speed', c['speed'] as number, 5, 0, undefined, 'Speed')}</div></div></div>
     </div>
     <h5 class="mt-3">Hit Points</h5>
     <div class="hp-bar position-relative mb-2" title="${hpCurrent} / ${hpMax} HP${tempHp > 0 ? ' (+' + tempHp + ' temporary)' : ''}">
@@ -161,7 +162,7 @@ export function renderCombat(): void {
         return `<span class="badge badge-gold" style="cursor:pointer;font-size:0.85rem;padding:0.4rem 0.6rem" onclick="rollCheck('save','${a}','normal')">${a.toUpperCase()} ${sign}${total}</span>`;
       }).join('')}
     </div>
-    <h5 class="mt-3">Death Saves</h5>
+    <h5 class="mt-3">Death Saves ${rulesHelpButton('death-saves')}</h5>
     <div class="row g-2">
       <div class="col-6"><label class="form-label small">Successes</label>${window.renderStepper('death_saves_successes', c['death_saves_successes'] as number, 1, 0, 3, 'Death Save Successes')}</div>
       <div class="col-6"><label class="form-label small">Failures</label>${window.renderStepper('death_saves_failures', c['death_saves_failures'] as number, 1, 0, 3, 'Death Save Failures')}</div>

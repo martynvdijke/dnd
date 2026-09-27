@@ -116,7 +116,10 @@ export function updateActiveTab(view: ViewState): void {
   const tabs = document.querySelectorAll<HTMLElement>('[data-nav]');
   tabs.forEach(tab => {
     const navView = tab.getAttribute('data-nav');
-    tab.classList.toggle('active', navView === view || (view === 'sheet' && navView === 'characters'));
+    const active = navView === view || (view === 'sheet' && navView === 'characters');
+    tab.classList.toggle('active', active);
+    if (active) tab.setAttribute('aria-current', 'page');
+    else tab.removeAttribute('aria-current');
   });
 }
 
