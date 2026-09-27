@@ -1,3 +1,10 @@
+# [2.80.0](https://github.com/martynvdijke/dnd/compare/v2.79.0...v2.80.0) (2026-09-27)
+
+
+### Features
+
+* add guided character builder, inline rules help, and accessibility improvements ([#152](https://github.com/martynvdijke/dnd/issues/152)) ([3c1310f](https://github.com/martynvdijke/dnd/commit/3c1310f485293e3cf4eb74ca36e95ed7fdf27904))
+
 # [2.79.0](https://github.com/martynvdijke/dnd/compare/v2.78.0...v2.79.0) (2026-09-27)
 
 
