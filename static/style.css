@@ -3955,3 +3955,7 @@ body.session-mode .sheet-section-acc:not(#sheet-acc-combat) { display: none; }
 @keyframes sceneFxFlicker{50%{filter:brightness(1.35)}}
 @keyframes sceneFxSparkle{from{filter:hue-rotate(0) brightness(1)}to{filter:hue-rotate(60deg) brightness(1.4)}}
 @media (prefers-reduced-motion: reduce){.scene-fx{animation:sceneFxFade 4.5s ease forwards}}
+
+/* Skip link: visible only when focused, first focusable element on the page */
+.skip-link{position:absolute;left:-9999px;top:0;z-index:2000;background:var(--gold,#b8963e);color:#1a1a1a;font-weight:600;padding:.5rem 1rem;border-radius:0 0 .5rem 0;text-decoration:none}
+.skip-link:focus{left:0;outline:2px solid #fff;outline-offset:2px}

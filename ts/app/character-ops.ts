@@ -18,6 +18,7 @@ expose('newChar', function () {
       <div class="col-6"><label class="form-label">Class</label><input class="form-control" id="newClass" list="classSuggestions"><datalist id="classSuggestions"></datalist></div>
     </div>
     <button class="btn btn-primary w-100" onclick="createChar()"><i class="fa-solid fa-plus me-1"></i>Create</button>
+    <button class="btn btn-outline-gold w-100 mt-2" data-testid="guided-builder" onclick="newCharWizard()"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Guided Builder</button>
     <div class="text-center mt-2"><button class="btn btn-sm btn-outline-gold" onclick="generateRandomChar()"><i class="fa-solid fa-dice me-1"></i>Random Character</button></div>
   `);
   fetch('/api/compendium/races', { credentials: 'include' }).then(r => r.json()).then((races:any[]) => {

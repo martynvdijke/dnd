@@ -83,7 +83,7 @@ export function toast(msg: string, opts?: ToastOpts | boolean, duration = 5000):
   const id = 'toast-' + Date.now();
   const bg = isError ? 'bg-danger' : 'bg-success';
   container.innerHTML += `
-    <div class="toast align-items-center text-white ${bg} border-0 mb-2" id="${id}" role="alert">
+    <div class="toast align-items-center text-white ${bg} border-0 mb-2" id="${id}" role="status">
       <div class="d-flex">
         <div class="toast-body">${safe}</div>
         <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>

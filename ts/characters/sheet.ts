@@ -43,13 +43,18 @@ export function renderSheet(): void {
   const tabBar = document.getElementById('tabBar');
   if (tabBar) {
     tabBar.innerHTML = sections.map(s => `
-      <li class="nav-item"><button class="nav-link ${s === currentTab ? 'active' : ''}" onclick="switchTab('${s}')"><i class="fa-solid ${sectionIcons[s] || 'fa-circle'} me-1" aria-hidden="true"></i>${capitalize(s)}</button></li>
+      <li class="nav-item" role="presentation"><button class="nav-link ${s === currentTab ? 'active' : ''}" id="tab-${s}" role="tab" aria-selected="${s === currentTab}" aria-controls="${s}Section" tabindex="${s === currentTab ? 0 : -1}" onclick="switchTab('${s}')"><i class="fa-solid ${sectionIcons[s] || 'fa-circle'} me-1" aria-hidden="true"></i>${capitalize(s)}</button></li>
     `).join('');
+    tabBar.onkeydown = handleTabKeydown;
   }
 
   sections.forEach(s => {
     const el = document.getElementById(s + 'Section');
-    if (el) el.style.display = s === currentTab ? 'block' : 'none';
+    if (el) {
+      el.style.display = s === currentTab ? 'block' : 'none';
+      el.setAttribute('role', 'tabpanel');
+      el.setAttribute('aria-labelledby', 'tab-' + s);
+    }
   });
 
   renderStats();
@@ -117,6 +122,22 @@ export function switchTab(tab: string): void {
     }
     applySheetReadonly();
   }
+}
+
+// ARIA tablist keyboard support — ArrowLeft/Right cycle, Home/End jump.
+function handleTabKeydown(e: KeyboardEvent): void {
+  if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+  const idx = sections.indexOf(currentTab);
+  if (idx < 0) return;
+  e.preventDefault();
+  let next = idx;
+  if (e.key === 'ArrowLeft') next = (idx - 1 + sections.length) % sections.length;
+  else if (e.key === 'ArrowRight') next = (idx + 1) % sections.length;
+  else if (e.key === 'Home') next = 0;
+  else next = sections.length - 1;
+  const target = sections[next];
+  switchTab(target);
+  document.getElementById('tab-' + target)?.focus();
 }
 
 // ─── Helper: Render a stepper control ───

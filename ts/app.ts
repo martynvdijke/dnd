@@ -144,6 +144,8 @@ expose('getCurrentCampaign', () => currentCampaign);
 // ─── D3 Force Graph / Graph / Analytics → extracted to ts/app/graph-analytics.ts ───
 import './app/graph-analytics';
 import './app/character-ops';
+import './app/character-wizard';
+import './lib/rules-help';
 import './app/character-details';
 import './app/combat-conditions';
 import './app/sort-switch';

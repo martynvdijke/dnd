@@ -6,6 +6,7 @@
 import { expose } from '../lib/expose';
 import { currentChar } from '../lib/state';
 import { esc } from '../lib/dom';
+import { rulesHelpButton } from '../lib/rules-help';
 
 export const XP_TABLE = [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000];
 
@@ -80,7 +81,7 @@ export function renderStats(): void {
         <div class="exhaustion-display">
           <span class="exhaustion-level ex-${c.exhaustion_level||0}">${c.exhaustion_level||0}</span>
           <div>
-            <div class="exhaustion-label">Exhaustion</div>
+            <div class="exhaustion-label">Exhaustion ${rulesHelpButton('exhaustion')}</div>
             <div class="exhaustion-effect">${(['-','Disadvantage on ability checks','Speed halved','Disadvantage on attacks & saves','HP max halved','Speed reduced to 0','Death'] as string[])[c.exhaustion_level||0]||''}</div>
           </div>
           <div class="ms-auto d-flex gap-1">
