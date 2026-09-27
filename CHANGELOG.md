@@ -1,3 +1,10 @@
+# [2.81.0](https://github.com/martynvdijke/dnd/compare/v2.80.0...v2.81.0) (2026-09-27)
+
+
+### Features
+
+* add DM generators and a campaign DM screen ([#153](https://github.com/martynvdijke/dnd/issues/153)) ([4a2b241](https://github.com/martynvdijke/dnd/commit/4a2b24127ce097b358d30b4aec11d6b7db6fded5))
+
 # [2.80.0](https://github.com/martynvdijke/dnd/compare/v2.79.0...v2.80.0) (2026-09-27)
 
 
