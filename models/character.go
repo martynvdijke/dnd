@@ -57,7 +57,13 @@ type Character struct {
 	ConcentratingOn     string `json:"concentrating_on"`
 	ExhaustionLevel     int    `json:"exhaustion_level"`
 	ConditionImmunities string `json:"condition_immunities"`
-	CanEdit             bool   `json:"can_edit"`
+
+	// Damage defenses (comma-separated lowercase damage types)
+	DamageResistances     string `json:"damage_resistances"`
+	DamageVulnerabilities string `json:"damage_vulnerabilities"`
+	DamageImmunities      string `json:"damage_immunities"`
+
+	CanEdit bool `json:"can_edit"`
 
 	Proficiencies []Proficiency   `json:"proficiencies,omitempty"`
 	Features      []Feature       `json:"features,omitempty"`

@@ -90,6 +90,20 @@ export function renderStats(): void {
         </div>
       </div>
     </div>
+    <div class="row g-2 mt-2">
+      <div class="col-12 col-md-4">
+        <label class="form-label small">Damage Resistances</label>
+        <input class="form-control form-control-sm" data-testid="defense-resistances" value="${esc((c.damage_resistances as string)||'')}" oninput="autoSaveField('damage_resistances',this)" placeholder="fire, cold">
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="form-label small">Damage Vulnerabilities</label>
+        <input class="form-control form-control-sm" data-testid="defense-vulnerabilities" value="${esc((c.damage_vulnerabilities as string)||'')}" oninput="autoSaveField('damage_vulnerabilities',this)" placeholder="radiant">
+      </div>
+      <div class="col-12 col-md-4">
+        <label class="form-label small">Damage Immunities</label>
+        <input class="form-control form-control-sm" data-testid="defense-immunities" value="${esc((c.damage_immunities as string)||'')}" oninput="autoSaveField('damage_immunities',this)" placeholder="poison">
+      </div>
+    </div>
     <h5 class="mt-3">Skills <small class="text-muted fw-normal">(click to roll)</small></h5>
     <div id="skillsArea"><div class="skills-grid">${renderSkills(c)}</div></div>
     <h5 class="mt-3">Proficiencies</h5>

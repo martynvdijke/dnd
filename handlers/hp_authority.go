@@ -49,6 +49,9 @@ type HPChangeResult struct {
 	DeathSavesSuccesses int                   `json:"death_saves_successes"`
 	DeathSavesFailures  int                   `json:"death_saves_failures"`
 	Concentration       *ConcentrationOutcome `json:"concentration,omitempty"`
+	DefenseApplied      string                `json:"defense_applied,omitempty"`
+	EffectiveDamage     int                   `json:"effective_damage,omitempty"`
+	EffectiveHPMax      int                   `json:"hp_max_effective,omitempty"`
 }
 
 // logCombatEvent inserts into combat_log_entries and returns id (0 on error).
@@ -92,16 +95,23 @@ func applyConditionIfNotImmune(charID int64, name, ctype, source string, duratio
 func applyHPChange(charID int64, delta int, damageType, source string, campaignID *int64) (HPChangeResult, error) {
 	var hpMax, hpCurrent, tempHP, dsSucc, dsFail int
 	var concentratingOn string
+	var resist, vuln, immune string
+	var exhaustion int
 	var str, dex, con, intel, wis, cha, profBonus, level int
-	err := db.DB.QueryRow("SELECT hp_max,hp_current,temp_hp,death_saves_successes,death_saves_failures,concentrating_on,str,dex,con,int,wis,cha,proficiency_bonus,level FROM characters WHERE id=?", charID).
-		Scan(&hpMax, &hpCurrent, &tempHP, &dsSucc, &dsFail, &concentratingOn, &str, &dex, &con, &intel, &wis, &cha, &profBonus, &level)
+	err := db.DB.QueryRow("SELECT hp_max,hp_current,temp_hp,death_saves_successes,death_saves_failures,concentrating_on,str,dex,con,int,wis,cha,proficiency_bonus,level,COALESCE(damage_resistances,''),COALESCE(damage_vulnerabilities,''),COALESCE(damage_immunities,''),COALESCE(exhaustion_level,0) FROM characters WHERE id=?", charID).
+		Scan(&hpMax, &hpCurrent, &tempHP, &dsSucc, &dsFail, &concentratingOn, &str, &dex, &con, &intel, &wis, &cha, &profBonus, &level, &resist, &vuln, &immune, &exhaustion)
 	if err != nil {
 		return HPChangeResult{}, err
 	}
+	effMax := EffectiveHPMax(hpMax, exhaustion)
 	prevHP := hpCurrent
 	damage := 0
+	effectiveDamage := 0
+	defenseApplied := ""
 	if delta < 0 {
 		damage = -delta
+		damage, defenseApplied = ApplyDamageDefenses(damage, damageType, resist, vuln, immune)
+		effectiveDamage = damage
 		// absorb temp HP first
 		if tempHP > 0 {
 			if damage <= tempHP {
@@ -120,16 +130,20 @@ func applyHPChange(charID int64, delta int, damageType, source string, campaignI
 			dsSucc = 0
 			dsFail = 0
 		} else if prevHP == 0 && damage > 0 {
-			// damage at 0 increments failures
-			dsFail++
-			if dsFail > 3 {
+			// damage at 0 increments failures; massive damage kills outright
+			if damage >= effMax {
 				dsFail = 3
+			} else {
+				dsFail++
+				if dsFail > 3 {
+					dsFail = 3
+				}
 			}
 		}
 	} else if delta > 0 {
 		hpCurrent += delta
-		if hpCurrent > hpMax {
-			hpCurrent = hpMax
+		if hpCurrent > effMax {
+			hpCurrent = effMax
 		}
 		dsSucc = 0
 		dsFail = 0
@@ -170,7 +184,10 @@ func applyHPChange(charID int64, delta int, damageType, source string, campaignI
 	result := HPChangeResult{
 		HPCurrent: hpCurrent, TempHP: tempHP, HPMax: hpMax,
 		DeathSavesSuccesses: dsSucc, DeathSavesFailures: dsFail,
-		Concentration: concOutcome,
+		Concentration:   concOutcome,
+		DefenseApplied:  defenseApplied,
+		EffectiveDamage: effectiveDamage,
+		EffectiveHPMax:  effMax,
 	}
 
 	// log
