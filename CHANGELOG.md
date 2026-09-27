@@ -1,3 +1,10 @@
+# [2.82.0](https://github.com/martynvdijke/dnd/compare/v2.81.0...v2.82.0) (2026-09-27)
+
+
+### Features
+
+* fix session cadence and add dice luck and combat analytics ([#154](https://github.com/martynvdijke/dnd/issues/154)) ([ec98da4](https://github.com/martynvdijke/dnd/commit/ec98da49e71b8ef5806d9e44db5938e831f81182))
+
 # [2.81.0](https://github.com/martynvdijke/dnd/compare/v2.80.0...v2.81.0) (2026-09-27)
 
 
