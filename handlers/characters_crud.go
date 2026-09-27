@@ -544,6 +544,9 @@ func UpdateCharacter(c *gin.Context) {
 	SendCharacterUpdate(id)
 	SendPartyUpdate()
 
+	// Armor Class follows equipped armor; manual AC is kept when unarmored.
+	recomputeCharacterAC(id)
+
 	updated, err := db.Client.Character.Get(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{"ok": true})

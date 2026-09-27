@@ -54,6 +54,31 @@ func deriveAttackBonus(ch models.Character, item models.InventoryItem) int {
 	return bonus
 }
 
+// AttackSituationalModifiers folds positioning into an AC bonus and
+// advantage/disadvantage. Distance/range checks are skipped when the caller
+// does not supply a distance or range (both zero).
+func AttackSituationalModifiers(cover string, flanking bool, distance, normalRange, longRange int) (acBonus int, adv, disadv, cannotTarget bool) {
+	switch strings.ToLower(strings.TrimSpace(cover)) {
+	case "half":
+		acBonus = 2
+	case "three_quarters", "three-quarters", "3/4":
+		acBonus = 5
+	case "total":
+		cannotTarget = true
+	}
+	if flanking {
+		adv = true
+	}
+	if distance > 0 {
+		if longRange > 0 && distance > longRange {
+			cannotTarget = true
+		} else if normalRange > 0 && distance > normalRange {
+			disadv = true
+		}
+	}
+	return acBonus, adv, disadv, cannotTarget
+}
+
 func rollD20Advantage(adv string) (raw int, rolls []int, err error) {
 	rollOne := func() (int, error) {
 		result, e := getDicePool().Roll("1d20")
@@ -143,6 +168,11 @@ func HandleCombatAttack(c *gin.Context) {
 		Condition         string `json:"condition"`
 		ConditionDuration *int   `json:"condition_duration"`
 		CampaignID        *int64 `json:"campaign_id"`
+		Cover             string `json:"cover"`
+		Flanking          bool   `json:"flanking"`
+		Distance          *int   `json:"distance"`
+		NormalRange       *int   `json:"normal_range"`
+		LongRange         *int   `json:"long_range"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -265,7 +295,20 @@ func HandleCombatAttack(c *gin.Context) {
 			attackerAdv = true
 		}
 	}
-	raw, rolls, err := rollD20Advantage(CombineAdvantage(req.Advantage, attackerAdv, attackerDis))
+	distanceVal, normalRangeVal, longRangeVal := 0, 0, 0
+	if req.Distance != nil {
+		distanceVal = *req.Distance
+	}
+	if req.NormalRange != nil {
+		normalRangeVal = *req.NormalRange
+	}
+	if req.LongRange != nil {
+		longRangeVal = *req.LongRange
+	}
+	coverBonus, sitAdv, sitDis, cannotTarget := AttackSituationalModifiers(req.Cover, req.Flanking, distanceVal, normalRangeVal, longRangeVal)
+	effectiveAC := targetAC + coverBonus
+	advState := CombineAdvantage(CombineAdvantage(req.Advantage, attackerAdv, attackerDis), sitAdv, sitDis)
+	raw, rolls, err := rollD20Advantage(advState)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -274,8 +317,8 @@ func HandleCombatAttack(c *gin.Context) {
 	fumble := raw == 1
 	attackTotal := raw + attackBonus
 	hit := false
-	if !fumble {
-		if critical || attackTotal >= targetAC {
+	if !fumble && !cannotTarget {
+		if critical || attackTotal >= effectiveAC {
 			hit = true
 		}
 	}
@@ -323,8 +366,8 @@ func HandleCombatAttack(c *gin.Context) {
 
 	descMap := map[string]any{
 		"attacker": attackerName, "target": targetName, "raw": raw, "rolls": rolls,
-		"attack_bonus": attackBonus, "attack_total": attackTotal, "target_ac": targetAC,
-		"hit": hit, "critical": critical, "damage": damage, "damage_type": damageType,
+		"attack_bonus": attackBonus, "attack_total": attackTotal, "target_ac": effectiveAC,
+		"cover_bonus": coverBonus, "hit": hit, "critical": critical, "damage": damage, "damage_type": damageType,
 	}
 	descBytes, _ := json.Marshal(descMap)
 	campForLog := targetCampaignID
@@ -341,9 +384,10 @@ func HandleCombatAttack(c *gin.Context) {
 
 	resp := gin.H{
 		"attack_roll": rolls[0], "attack_rolls": rolls, "attack_bonus": attackBonus,
-		"attack_total": attackTotal, "target_ac": targetAC,
-		"hit": hit, "critical": critical, "fumble": fumble,
-		"damage": damage, "damage_type": damageType, "damage_breakdown": breakdown,
+		"attack_total": attackTotal, "target_ac": effectiveAC, "cover_bonus": coverBonus,
+		"hit": hit, "critical": critical, "fumble": fumble, "cannot_target": cannotTarget,
+		"situational_advantage": advState,
+		"damage":                damage, "damage_type": damageType, "damage_breakdown": breakdown,
 		"condition_applied": conditionApplied, "log_id": logID,
 	}
 	if appliedResult != nil {

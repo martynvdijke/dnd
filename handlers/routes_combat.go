@@ -14,6 +14,7 @@ func RegisterCombatRoutes(r *gin.RouterGroup) {
 	r.GET("/combat/current-turn", GetCurrentTurn)
 
 	r.POST("/combat/attack", HandleCombatAttack)
+	r.POST("/combat/:id/economy", HandleCombatEconomy)
 
 	// Combat Log
 	r.GET("/combat-log", ListCombatLogEntries)

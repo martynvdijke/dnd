@@ -274,6 +274,7 @@ func CreateInventory(c *gin.Context) {
 	}
 	// Persist attack_ability / attack_bonus via raw SQL (ent unaware)
 	db.DB.Exec("UPDATE inventory SET attack_ability=?, attack_bonus=? WHERE id=?", item.AttackAbility, item.AttackBonus, result.ID)
+	recomputeCharacterAC(charID)
 	c.JSON(http.StatusCreated, gin.H{"id": result.ID})
 }
 
@@ -310,6 +311,9 @@ func UpdateInventory(c *gin.Context) {
 	if item.AttackAbility != "" || item.AttackBonus != nil {
 		db.DB.Exec("UPDATE inventory SET attack_ability=?, attack_bonus=? WHERE id=?", item.AttackAbility, item.AttackBonus, iid)
 	}
+	var charID int64
+	db.DB.QueryRow("SELECT character_id FROM inventory WHERE id=?", iid).Scan(&charID)
+	recomputeCharacterAC(charID)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
@@ -329,6 +333,7 @@ func DeleteInventory(c *gin.Context) {
 		return
 	}
 	db.Client.InventoryItem.DeleteOneID(iid).Exec(c.Request.Context())
+	recomputeCharacterAC(entItem.CharacterID)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 

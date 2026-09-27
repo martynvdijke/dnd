@@ -141,6 +141,12 @@ func ApplySafeAlters(db *sql.DB) error {
 		"ALTER TABLE characters ADD COLUMN damage_immunities TEXT NOT NULL DEFAULT ''",
 		// Special effects presets on one-shot scenes (ent-owned table; extra column).
 		"ALTER TABLE oneshot_scenes ADD COLUMN special_effects TEXT NOT NULL DEFAULT ''",
+		// Action economy tracking on combat entries (ent-owned; extra columns).
+		"ALTER TABLE combat_entries ADD COLUMN action_used INTEGER NOT NULL DEFAULT 0",
+		"ALTER TABLE combat_entries ADD COLUMN bonus_action_used INTEGER NOT NULL DEFAULT 0",
+		"ALTER TABLE combat_entries ADD COLUMN reaction_used INTEGER NOT NULL DEFAULT 0",
+		"ALTER TABLE combat_entries ADD COLUMN movement_used INTEGER NOT NULL DEFAULT 0",
+		"ALTER TABLE combat_entries ADD COLUMN movement_max INTEGER NOT NULL DEFAULT 30",
 	}
 
 	for _, stmt := range alterStatements {
