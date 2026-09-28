@@ -7,6 +7,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"math"
+	"villum/ent/campaigncharacter"
 	"villum/ent/character"
 	"villum/ent/characterclass"
 	"villum/ent/charactercondition"
@@ -48,6 +49,7 @@ type CharacterQuery struct {
 	inters                 []Interceptor
 	predicates             []predicate.Character
 	withUser               *UserQuery
+	withCampaignLinks      *CampaignCharacterQuery
 	withCurrency           *CharacterCurrencyQuery
 	withProficiencies      *CharacterProficiencyQuery
 	withFeatures           *CharacterFeatureQuery
@@ -122,6 +124,28 @@ func (_q *CharacterQuery) QueryUser() *UserQuery {
 			sqlgraph.From(character.Table, character.FieldID, selector),
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, character.UserTable, character.UserColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryCampaignLinks chains the current query on the "campaign_links" edge.
+func (_q *CharacterQuery) QueryCampaignLinks() *CampaignCharacterQuery {
+	query := (&CampaignCharacterClient{config: _q.config}).Query()
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := _q.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := _q.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(character.Table, character.FieldID, selector),
+			sqlgraph.To(campaigncharacter.Table, campaigncharacter.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, character.CampaignLinksTable, character.CampaignLinksColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -828,6 +852,7 @@ func (_q *CharacterQuery) Clone() *CharacterQuery {
 		inters:                 append([]Interceptor{}, _q.inters...),
 		predicates:             append([]predicate.Character{}, _q.predicates...),
 		withUser:               _q.withUser.Clone(),
+		withCampaignLinks:      _q.withCampaignLinks.Clone(),
 		withCurrency:           _q.withCurrency.Clone(),
 		withProficiencies:      _q.withProficiencies.Clone(),
 		withFeatures:           _q.withFeatures.Clone(),
@@ -865,6 +890,17 @@ func (_q *CharacterQuery) WithUser(opts ...func(*UserQuery)) *CharacterQuery {
 		opt(query)
 	}
 	_q.withUser = query
+	return _q
+}
+
+// WithCampaignLinks tells the query-builder to eager-load the nodes that are connected to
+// the "campaign_links" edge. The optional arguments are used to configure the query builder of the edge.
+func (_q *CharacterQuery) WithCampaignLinks(opts ...func(*CampaignCharacterQuery)) *CharacterQuery {
+	query := (&CampaignCharacterClient{config: _q.config}).Query()
+	for _, opt := range opts {
+		opt(query)
+	}
+	_q.withCampaignLinks = query
 	return _q
 }
 
@@ -1199,8 +1235,9 @@ func (_q *CharacterQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Ch
 	var (
 		nodes       = []*Character{}
 		_spec       = _q.querySpec()
-		loadedTypes = [24]bool{
+		loadedTypes = [25]bool{
 			_q.withUser != nil,
+			_q.withCampaignLinks != nil,
 			_q.withCurrency != nil,
 			_q.withProficiencies != nil,
 			_q.withFeatures != nil,
@@ -1247,6 +1284,13 @@ func (_q *CharacterQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Ch
 	if query := _q.withUser; query != nil {
 		if err := _q.loadUser(ctx, query, nodes, nil,
 			func(n *Character, e *User) { n.Edges.User = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := _q.withCampaignLinks; query != nil {
+		if err := _q.loadCampaignLinks(ctx, query, nodes,
+			func(n *Character) { n.Edges.CampaignLinks = []*CampaignCharacter{} },
+			func(n *Character, e *CampaignCharacter) { n.Edges.CampaignLinks = append(n.Edges.CampaignLinks, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -1446,6 +1490,36 @@ func (_q *CharacterQuery) loadUser(ctx context.Context, query *UserQuery, nodes 
 		for i := range nodes {
 			assign(nodes[i], n)
 		}
+	}
+	return nil
+}
+func (_q *CharacterQuery) loadCampaignLinks(ctx context.Context, query *CampaignCharacterQuery, nodes []*Character, init func(*Character), assign func(*Character, *CampaignCharacter)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[int64]*Character)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	if len(query.ctx.Fields) > 0 {
+		query.ctx.AppendFieldOnce(campaigncharacter.FieldCharacterID)
+	}
+	query.Where(predicate.CampaignCharacter(func(s *sql.Selector) {
+		s.Where(sql.InValues(s.C(character.CampaignLinksColumn), fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.CharacterID
+		node, ok := nodeids[fk]
+		if !ok {
+			return fmt.Errorf(`unexpected referenced foreign-key "character_id" returned %v for node %v`, fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }

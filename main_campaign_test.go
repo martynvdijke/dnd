@@ -392,7 +392,7 @@ func TestCampaignDMRoleAllowsCharacterAccess(t *testing.T) {
 	login(t, tc, "dmtestplayer", "testpass123")
 	resp = tc.post("/api/characters", map[string]any{
 		"name": "PlayerChar", "race": "Human", "class": "Fighter",
-		"campaign_id": cid,
+		"campaign_ids": []int{cid},
 	})
 	if resp.Code != 201 {
 		t.Fatalf("player create char failed: %d", resp.Code)

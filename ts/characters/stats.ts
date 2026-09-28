@@ -4,7 +4,8 @@
  * partial port; app.ts versions are authoritative.
  */
 import { expose } from '../lib/expose';
-import { currentChar } from '../lib/state';
+import { currentChar, currentUser } from '../lib/state';
+import { api } from '../lib/api';
 import { esc } from '../lib/dom';
 import { rulesHelpButton } from '../lib/rules-help';
 
@@ -113,6 +114,66 @@ export function renderStats(): void {
     ).join('')}</div>
     <button class="btn btn-sm btn-outline-primary mt-2" onclick="addProf()"><i class="fa-solid fa-plus me-1"></i>Add Proficiency</button>
   `;
+  void renderMemberships(el);
+}
+
+interface CampaignOption { id: number; name: string; my_role?: string }
+
+/**
+ * Campaign memberships panel. Owners (and admins) can change memberships;
+ * everyone else sees a read-only list. Shared characters never expose controls.
+ */
+export async function renderMemberships(el: HTMLElement): Promise<void> {
+  const c = currentChar as any;
+  if (!c) return;
+  const cu = currentUser as any;
+  const canManage = (!!cu && c.user_id === cu.id) || cu?.role === 'admin';
+  const editable = canManage && (window as any).canEditCharacter !== false;
+  const section = document.createElement('div');
+  section.className = 'mt-4';
+  section.setAttribute('data-testid', 'character-campaigns-section');
+  el.appendChild(section);
+
+  const refs: { id: number; name: string }[] = c.campaigns || [];
+  if (!editable) {
+    section.innerHTML = `<h5>Campaigns</h5>` + (refs.length
+      ? `<div class="d-flex flex-wrap gap-1">${refs.map(r => `<span class="badge bg-dark border border-secondary" data-testid="character-campaign-badge">${esc(r.name)}</span>`).join('')}</div>`
+      : '<div class="small text-muted">No campaigns</div>');
+    return;
+  }
+
+  section.innerHTML = `<h5>Campaigns</h5>
+    <div class="small text-muted mb-1">Membership changes are saved with the character.</div>
+    <div id="membershipOptions"><div class="small text-muted">Loading campaigns...</div></div>`;
+  const optionsEl = section.querySelector('#membershipOptions') as HTMLElement | null;
+  if (!optionsEl) return;
+  try {
+    const options: CampaignOption[] = await api('GET', '/api/campaigns/mine');
+    const selected = new Set<number>(refs.map(r => r.id));
+    optionsEl.innerHTML = options.length
+      ? options.map(o => `
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="membershipCampaign-${o.id}"${selected.has(o.id) ? ' checked' : ''} data-testid="membership-campaign-option" onchange="toggleCharacterMembership(${o.id})">
+            <label class="form-check-label" for="membershipCampaign-${o.id}">${esc(o.name)}${o.my_role === 'dm' ? ' <span class="badge bg-secondary">DM</span>' : ''}</label>
+          </div>`).join('')
+      : '<div class="small text-muted">You are not a member of any campaign yet.</div>';
+  } catch {
+    optionsEl.innerHTML = '<div class="small text-muted">Could not load campaigns.</div>';
+  }
+}
+
+/** Toggle a campaign membership checkbox and queue a save. */
+export function toggleCharacterMembership(campaignId: number): void {
+  const c = currentChar as any;
+  if (!c) return;
+  const ids: number[] = Array.isArray(c.campaign_ids)
+    ? c.campaign_ids
+    : (c.campaigns || []).map((r: { id: number }) => r.id);
+  const i = ids.indexOf(campaignId);
+  if (i >= 0) ids.splice(i, 1);
+  else ids.push(campaignId);
+  c.campaign_ids = ids;
+  (window as any).markDirty?.();
 }
 
 export function renderSkills(c: CharStats | Record<string, unknown>): string {
@@ -165,3 +226,4 @@ export function renderXPBar(c: CharStats | Record<string, unknown>): string {
 expose('renderStats', renderStats);
 expose('renderSkills', renderSkills);
 expose('renderXPBar', renderXPBar);
+expose('toggleCharacterMembership', toggleCharacterMembership);

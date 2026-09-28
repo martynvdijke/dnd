@@ -15,6 +15,7 @@ import (
 	"villum/ent/backupsetting"
 	"villum/ent/campaign"
 	"villum/ent/campaigncalendarevent"
+	"villum/ent/campaigncharacter"
 	"villum/ent/campaignmap"
 	"villum/ent/campaignmappin"
 	"villum/ent/campaignmember"
@@ -96,6 +97,8 @@ type Client struct {
 	Campaign *CampaignClient
 	// CampaignCalendarEvent is the client for interacting with the CampaignCalendarEvent builders.
 	CampaignCalendarEvent *CampaignCalendarEventClient
+	// CampaignCharacter is the client for interacting with the CampaignCharacter builders.
+	CampaignCharacter *CampaignCharacterClient
 	// CampaignMap is the client for interacting with the CampaignMap builders.
 	CampaignMap *CampaignMapClient
 	// CampaignMapPin is the client for interacting with the CampaignMapPin builders.
@@ -233,6 +236,7 @@ func (c *Client) init() {
 	c.BackupSetting = NewBackupSettingClient(c.config)
 	c.Campaign = NewCampaignClient(c.config)
 	c.CampaignCalendarEvent = NewCampaignCalendarEventClient(c.config)
+	c.CampaignCharacter = NewCampaignCharacterClient(c.config)
 	c.CampaignMap = NewCampaignMapClient(c.config)
 	c.CampaignMapPin = NewCampaignMapPinClient(c.config)
 	c.CampaignMember = NewCampaignMemberClient(c.config)
@@ -390,6 +394,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		BackupSetting:             NewBackupSettingClient(cfg),
 		Campaign:                  NewCampaignClient(cfg),
 		CampaignCalendarEvent:     NewCampaignCalendarEventClient(cfg),
+		CampaignCharacter:         NewCampaignCharacterClient(cfg),
 		CampaignMap:               NewCampaignMapClient(cfg),
 		CampaignMapPin:            NewCampaignMapPinClient(cfg),
 		CampaignMember:            NewCampaignMemberClient(cfg),
@@ -474,6 +479,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		BackupSetting:             NewBackupSettingClient(cfg),
 		Campaign:                  NewCampaignClient(cfg),
 		CampaignCalendarEvent:     NewCampaignCalendarEventClient(cfg),
+		CampaignCharacter:         NewCampaignCharacterClient(cfg),
 		CampaignMap:               NewCampaignMapClient(cfg),
 		CampaignMapPin:            NewCampaignMapPinClient(cfg),
 		CampaignMember:            NewCampaignMemberClient(cfg),
@@ -565,11 +571,11 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	for _, n := range []interface{ Use(...Hook) }{
 		c.AIEndpoint, c.BackupSetting, c.Campaign, c.CampaignCalendarEvent,
-		c.CampaignMap, c.CampaignMapPin, c.CampaignMember, c.CampaignRecap,
-		c.CampaignTimelineEvent, c.CampaignWikiPage, c.Character, c.CharacterClass,
-		c.CharacterCondition, c.CharacterCrafting, c.CharacterCurrency,
-		c.CharacterFeat, c.CharacterFeature, c.CharacterLocation, c.CharacterNPC,
-		c.CharacterNote, c.CharacterProficiency, c.CharacterResource,
+		c.CampaignCharacter, c.CampaignMap, c.CampaignMapPin, c.CampaignMember,
+		c.CampaignRecap, c.CampaignTimelineEvent, c.CampaignWikiPage, c.Character,
+		c.CharacterClass, c.CharacterCondition, c.CharacterCrafting,
+		c.CharacterCurrency, c.CharacterFeat, c.CharacterFeature, c.CharacterLocation,
+		c.CharacterNPC, c.CharacterNote, c.CharacterProficiency, c.CharacterResource,
 		c.CharacterSpellcasting, c.CombatEntry, c.CombatLogEntry, c.Companion,
 		c.CompendiumBackground, c.CompendiumClass, c.CompendiumEquipment,
 		c.CompendiumFeat, c.CompendiumRace, c.CompendiumSpell, c.CraftingRecipe,
@@ -590,11 +596,11 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	for _, n := range []interface{ Intercept(...Interceptor) }{
 		c.AIEndpoint, c.BackupSetting, c.Campaign, c.CampaignCalendarEvent,
-		c.CampaignMap, c.CampaignMapPin, c.CampaignMember, c.CampaignRecap,
-		c.CampaignTimelineEvent, c.CampaignWikiPage, c.Character, c.CharacterClass,
-		c.CharacterCondition, c.CharacterCrafting, c.CharacterCurrency,
-		c.CharacterFeat, c.CharacterFeature, c.CharacterLocation, c.CharacterNPC,
-		c.CharacterNote, c.CharacterProficiency, c.CharacterResource,
+		c.CampaignCharacter, c.CampaignMap, c.CampaignMapPin, c.CampaignMember,
+		c.CampaignRecap, c.CampaignTimelineEvent, c.CampaignWikiPage, c.Character,
+		c.CharacterClass, c.CharacterCondition, c.CharacterCrafting,
+		c.CharacterCurrency, c.CharacterFeat, c.CharacterFeature, c.CharacterLocation,
+		c.CharacterNPC, c.CharacterNote, c.CharacterProficiency, c.CharacterResource,
 		c.CharacterSpellcasting, c.CombatEntry, c.CombatLogEntry, c.Companion,
 		c.CompendiumBackground, c.CompendiumClass, c.CompendiumEquipment,
 		c.CompendiumFeat, c.CompendiumRace, c.CompendiumSpell, c.CraftingRecipe,
@@ -621,6 +627,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Campaign.mutate(ctx, m)
 	case *CampaignCalendarEventMutation:
 		return c.CampaignCalendarEvent.mutate(ctx, m)
+	case *CampaignCharacterMutation:
+		return c.CampaignCharacter.mutate(ctx, m)
 	case *CampaignMapMutation:
 		return c.CampaignMap.mutate(ctx, m)
 	case *CampaignMapPinMutation:
@@ -1154,6 +1162,22 @@ func (c *CampaignClient) QueryMembers(_m *Campaign) *CampaignMemberQuery {
 	return query
 }
 
+// QueryCharacterLinks queries the character_links edge of a Campaign.
+func (c *CampaignClient) QueryCharacterLinks(_m *Campaign) *CampaignCharacterQuery {
+	query := (&CampaignCharacterClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(campaign.Table, campaign.FieldID, id),
+			sqlgraph.To(campaigncharacter.Table, campaigncharacter.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, campaign.CharacterLinksTable, campaign.CharacterLinksColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
 // QueryCalendarEvents queries the calendar_events edge of a Campaign.
 func (c *CampaignClient) QueryCalendarEvents(_m *Campaign) *CampaignCalendarEventQuery {
 	query := (&CampaignCalendarEventClient{config: c.config}).Query()
@@ -1517,6 +1541,171 @@ func (c *CampaignCalendarEventClient) mutate(ctx context.Context, m *CampaignCal
 		return (&CampaignCalendarEventDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown CampaignCalendarEvent mutation op: %q", m.Op())
+	}
+}
+
+// CampaignCharacterClient is a client for the CampaignCharacter schema.
+type CampaignCharacterClient struct {
+	config
+}
+
+// NewCampaignCharacterClient returns a client for the CampaignCharacter from the given config.
+func NewCampaignCharacterClient(c config) *CampaignCharacterClient {
+	return &CampaignCharacterClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `campaigncharacter.Hooks(f(g(h())))`.
+func (c *CampaignCharacterClient) Use(hooks ...Hook) {
+	c.hooks.CampaignCharacter = append(c.hooks.CampaignCharacter, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `campaigncharacter.Intercept(f(g(h())))`.
+func (c *CampaignCharacterClient) Intercept(interceptors ...Interceptor) {
+	c.inters.CampaignCharacter = append(c.inters.CampaignCharacter, interceptors...)
+}
+
+// Create returns a builder for creating a CampaignCharacter entity.
+func (c *CampaignCharacterClient) Create() *CampaignCharacterCreate {
+	mutation := newCampaignCharacterMutation(c.config, OpCreate)
+	return &CampaignCharacterCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of CampaignCharacter entities.
+func (c *CampaignCharacterClient) CreateBulk(builders ...*CampaignCharacterCreate) *CampaignCharacterCreateBulk {
+	return &CampaignCharacterCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *CampaignCharacterClient) MapCreateBulk(slice any, setFunc func(*CampaignCharacterCreate, int)) *CampaignCharacterCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &CampaignCharacterCreateBulk{err: fmt.Errorf("calling to CampaignCharacterClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*CampaignCharacterCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &CampaignCharacterCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for CampaignCharacter.
+func (c *CampaignCharacterClient) Update() *CampaignCharacterUpdate {
+	mutation := newCampaignCharacterMutation(c.config, OpUpdate)
+	return &CampaignCharacterUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *CampaignCharacterClient) UpdateOne(_m *CampaignCharacter) *CampaignCharacterUpdateOne {
+	mutation := newCampaignCharacterMutation(c.config, OpUpdateOne, withCampaignCharacter(_m))
+	return &CampaignCharacterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *CampaignCharacterClient) UpdateOneID(id int64) *CampaignCharacterUpdateOne {
+	mutation := newCampaignCharacterMutation(c.config, OpUpdateOne, withCampaignCharacterID(id))
+	return &CampaignCharacterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for CampaignCharacter.
+func (c *CampaignCharacterClient) Delete() *CampaignCharacterDelete {
+	mutation := newCampaignCharacterMutation(c.config, OpDelete)
+	return &CampaignCharacterDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *CampaignCharacterClient) DeleteOne(_m *CampaignCharacter) *CampaignCharacterDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *CampaignCharacterClient) DeleteOneID(id int64) *CampaignCharacterDeleteOne {
+	builder := c.Delete().Where(campaigncharacter.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &CampaignCharacterDeleteOne{builder}
+}
+
+// Query returns a query builder for CampaignCharacter.
+func (c *CampaignCharacterClient) Query() *CampaignCharacterQuery {
+	return &CampaignCharacterQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeCampaignCharacter},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a CampaignCharacter entity by its id.
+func (c *CampaignCharacterClient) Get(ctx context.Context, id int64) (*CampaignCharacter, error) {
+	return c.Query().Where(campaigncharacter.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *CampaignCharacterClient) GetX(ctx context.Context, id int64) *CampaignCharacter {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryCampaign queries the campaign edge of a CampaignCharacter.
+func (c *CampaignCharacterClient) QueryCampaign(_m *CampaignCharacter) *CampaignQuery {
+	query := (&CampaignClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(campaigncharacter.Table, campaigncharacter.FieldID, id),
+			sqlgraph.To(campaign.Table, campaign.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, campaigncharacter.CampaignTable, campaigncharacter.CampaignColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCharacter queries the character edge of a CampaignCharacter.
+func (c *CampaignCharacterClient) QueryCharacter(_m *CampaignCharacter) *CharacterQuery {
+	query := (&CharacterClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(campaigncharacter.Table, campaigncharacter.FieldID, id),
+			sqlgraph.To(character.Table, character.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, campaigncharacter.CharacterTable, campaigncharacter.CharacterColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *CampaignCharacterClient) Hooks() []Hook {
+	return c.hooks.CampaignCharacter
+}
+
+// Interceptors returns the client interceptors.
+func (c *CampaignCharacterClient) Interceptors() []Interceptor {
+	return c.inters.CampaignCharacter
+}
+
+func (c *CampaignCharacterClient) mutate(ctx context.Context, m *CampaignCharacterMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&CampaignCharacterCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&CampaignCharacterUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&CampaignCharacterUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&CampaignCharacterDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown CampaignCharacter mutation op: %q", m.Op())
 	}
 }
 
@@ -2611,6 +2800,22 @@ func (c *CharacterClient) QueryUser(_m *Character) *UserQuery {
 			sqlgraph.From(character.Table, character.FieldID, id),
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.M2O, true, character.UserTable, character.UserColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// QueryCampaignLinks queries the campaign_links edge of a Character.
+func (c *CharacterClient) QueryCampaignLinks(_m *Character) *CampaignCharacterQuery {
+	query := (&CampaignCharacterClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(character.Table, character.FieldID, id),
+			sqlgraph.To(campaigncharacter.Table, campaigncharacter.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, character.CampaignLinksTable, character.CampaignLinksColumn),
 		)
 		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
 		return fromV, nil
@@ -11396,35 +11601,35 @@ func (c *UserClient) mutate(ctx context.Context, m *UserMutation) (Value, error)
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		AIEndpoint, BackupSetting, Campaign, CampaignCalendarEvent, CampaignMap,
-		CampaignMapPin, CampaignMember, CampaignRecap, CampaignTimelineEvent,
-		CampaignWikiPage, Character, CharacterClass, CharacterCondition,
-		CharacterCrafting, CharacterCurrency, CharacterFeat, CharacterFeature,
-		CharacterLocation, CharacterNPC, CharacterNote, CharacterProficiency,
-		CharacterResource, CharacterSpellcasting, CombatEntry, CombatLogEntry,
-		Companion, CompendiumBackground, CompendiumClass, CompendiumEquipment,
-		CompendiumFeat, CompendiumRace, CompendiumSpell, CraftingRecipe, DiceRoll,
-		DowntimeActivity, EmailSetting, EncounterMonster, EncounterTemplate, Faction,
-		FactionReputation, InventoryItem, JournalEntry, LevelUpPlan, Location, NPC,
-		OTelSetting, OneShotAct, OneShotActNPC, OneShotAdventure,
-		OneShotAdventureEncounter, OneShotItem, OneShotScene, PartyItem, Quest,
-		RestLog, Session, SessionPlan, ShareLink, Shop, ShopItem, ShopTransaction,
-		Spell, Upload, UploadLink, User []ent.Hook
+		AIEndpoint, BackupSetting, Campaign, CampaignCalendarEvent, CampaignCharacter,
+		CampaignMap, CampaignMapPin, CampaignMember, CampaignRecap,
+		CampaignTimelineEvent, CampaignWikiPage, Character, CharacterClass,
+		CharacterCondition, CharacterCrafting, CharacterCurrency, CharacterFeat,
+		CharacterFeature, CharacterLocation, CharacterNPC, CharacterNote,
+		CharacterProficiency, CharacterResource, CharacterSpellcasting, CombatEntry,
+		CombatLogEntry, Companion, CompendiumBackground, CompendiumClass,
+		CompendiumEquipment, CompendiumFeat, CompendiumRace, CompendiumSpell,
+		CraftingRecipe, DiceRoll, DowntimeActivity, EmailSetting, EncounterMonster,
+		EncounterTemplate, Faction, FactionReputation, InventoryItem, JournalEntry,
+		LevelUpPlan, Location, NPC, OTelSetting, OneShotAct, OneShotActNPC,
+		OneShotAdventure, OneShotAdventureEncounter, OneShotItem, OneShotScene,
+		PartyItem, Quest, RestLog, Session, SessionPlan, ShareLink, Shop, ShopItem,
+		ShopTransaction, Spell, Upload, UploadLink, User []ent.Hook
 	}
 	inters struct {
-		AIEndpoint, BackupSetting, Campaign, CampaignCalendarEvent, CampaignMap,
-		CampaignMapPin, CampaignMember, CampaignRecap, CampaignTimelineEvent,
-		CampaignWikiPage, Character, CharacterClass, CharacterCondition,
-		CharacterCrafting, CharacterCurrency, CharacterFeat, CharacterFeature,
-		CharacterLocation, CharacterNPC, CharacterNote, CharacterProficiency,
-		CharacterResource, CharacterSpellcasting, CombatEntry, CombatLogEntry,
-		Companion, CompendiumBackground, CompendiumClass, CompendiumEquipment,
-		CompendiumFeat, CompendiumRace, CompendiumSpell, CraftingRecipe, DiceRoll,
-		DowntimeActivity, EmailSetting, EncounterMonster, EncounterTemplate, Faction,
-		FactionReputation, InventoryItem, JournalEntry, LevelUpPlan, Location, NPC,
-		OTelSetting, OneShotAct, OneShotActNPC, OneShotAdventure,
-		OneShotAdventureEncounter, OneShotItem, OneShotScene, PartyItem, Quest,
-		RestLog, Session, SessionPlan, ShareLink, Shop, ShopItem, ShopTransaction,
-		Spell, Upload, UploadLink, User []ent.Interceptor
+		AIEndpoint, BackupSetting, Campaign, CampaignCalendarEvent, CampaignCharacter,
+		CampaignMap, CampaignMapPin, CampaignMember, CampaignRecap,
+		CampaignTimelineEvent, CampaignWikiPage, Character, CharacterClass,
+		CharacterCondition, CharacterCrafting, CharacterCurrency, CharacterFeat,
+		CharacterFeature, CharacterLocation, CharacterNPC, CharacterNote,
+		CharacterProficiency, CharacterResource, CharacterSpellcasting, CombatEntry,
+		CombatLogEntry, Companion, CompendiumBackground, CompendiumClass,
+		CompendiumEquipment, CompendiumFeat, CompendiumRace, CompendiumSpell,
+		CraftingRecipe, DiceRoll, DowntimeActivity, EmailSetting, EncounterMonster,
+		EncounterTemplate, Faction, FactionReputation, InventoryItem, JournalEntry,
+		LevelUpPlan, Location, NPC, OTelSetting, OneShotAct, OneShotActNPC,
+		OneShotAdventure, OneShotAdventureEncounter, OneShotItem, OneShotScene,
+		PartyItem, Quest, RestLog, Session, SessionPlan, ShareLink, Shop, ShopItem,
+		ShopTransaction, Spell, Upload, UploadLink, User []ent.Interceptor
 	}
 )

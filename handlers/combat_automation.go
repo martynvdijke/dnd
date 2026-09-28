@@ -265,11 +265,13 @@ func HandleCombatAttack(c *gin.Context) {
 			targetCampaignID = req.CampaignID
 		}
 	case "character":
-		err := db.DB.QueryRow("SELECT ac, name, campaign_id FROM characters WHERE id=?", req.TargetID).Scan(&targetAC, &targetName, &targetCampaignID)
+		err := db.DB.QueryRow("SELECT ac, name FROM characters WHERE id=?", req.TargetID).Scan(&targetAC, &targetName)
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "target not found"})
 			return
 		}
+		// The target's campaign comes from its first membership, if any.
+		db.DB.QueryRow("SELECT campaign_id FROM campaign_characters WHERE character_id=? ORDER BY campaign_id LIMIT 1", req.TargetID).Scan(&targetCampaignID)
 		if targetCampaignID != nil && *targetCampaignID == 0 {
 			targetCampaignID = nil
 		}

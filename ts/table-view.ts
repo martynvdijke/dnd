@@ -12,12 +12,21 @@ function isTableVisible(): boolean {
   return !!el && el.style.display !== 'none';
 }
 
+function inCampaign(ch: any, campaignId: number): boolean {
+  if (!ch) return false;
+  // Unassigned characters are usable in any campaign context.
+  if (!ch.campaigns || !ch.campaigns.length) return true;
+  return ch.campaigns.some((ca: any) => ca.id === campaignId);
+}
+
 async function resolveCharacter(campaignId: number): Promise<any | null> {
-  if (currentChar && (!currentChar.campaign_id || currentChar.campaign_id === campaignId)) return currentChar;
-  if (resolvedChar && resolvedChar.campaign_id === campaignId) return resolvedChar;
+  if (currentChar && inCampaign(currentChar, campaignId)) return currentChar;
+  if (resolvedChar && inCampaign(resolvedChar, campaignId)) return resolvedChar;
   try {
     const chars: any[] = await api('GET', '/api/characters');
-    const found = chars.find((c: any) => c.campaign_id === campaignId) || chars[0] || null;
+    const found = chars.find((c: any) => c.campaigns && c.campaigns.some((ca: any) => ca.id === campaignId))
+      || chars.find((c: any) => !c.campaigns || !c.campaigns.length)
+      || null;
     if (found) resolvedChar = found;
     return found;
   } catch {

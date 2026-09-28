@@ -1,7 +1,7 @@
 import { showView } from './navigation';
 import { esc, attrEscape, showModal, hideModal, toast } from './lib/dom';
 import { api } from './lib/api';
-import { currentUser, currentChar } from './lib/state';
+import { currentUser, currentChar, currentCampaign } from './lib/state';
 import { expose } from './lib/expose';
 
 // ─── Party View & Campaign Management ───
@@ -254,6 +254,11 @@ expose('doCreateCampaign', async function () {
     const description = (document.getElementById('newCampaignDesc') as HTMLTextAreaElement).value;
     const dmNotes = (document.getElementById('newCampaignDmNotes') as HTMLTextAreaElement).value;
     const created = await api('POST', '/api/campaigns', { name, party_name: partyName, description, dm_notes: dmNotes });
+    // Creating from the empty campaign picker: adopt the new campaign as DM
+    // so the roster flow and the following Party View operate on it.
+    if (!currentCampaign) {
+      (window as any).adoptCampaign?.(created);
+    }
     // Step 2: pick characters to attach to the new campaign's roster.
     try {
       const candidates = await loadRosterCandidates(created.id);

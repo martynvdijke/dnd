@@ -412,7 +412,7 @@ func TestCampaignAuthorization(t *testing.T) {
 	tc.del(fmt.Sprintf("/api/campaigns/%d", cid), nil)
 }
 
-func TestUpdateCharacterCampaignID(t *testing.T) {
+func TestUpdateCharacterCampaigns(t *testing.T) {
 	tc := newTestClient()
 	setupAdmin(t, tc)
 
@@ -430,20 +430,25 @@ func TestUpdateCharacterCampaignID(t *testing.T) {
 		"name": "Campaign Member", "race": "Human", "class": "Fighter", "level": 2,
 		"str": 10, "dex": 10, "con": 10, "int": 10, "wis": 10, "cha": 10,
 		"hp_max": 28, "hp_current": 22, "ac": 18, "initiative": 0, "speed": 30,
-		"campaign_id": cid,
+		"campaign_ids": []int{cid},
 	})
 	if resp.Code != 200 {
-		t.Fatalf("update with campaign_id failed: %d - %s", resp.Code, resp.Body.String())
+		t.Fatalf("update with campaign_ids failed: %d - %s", resp.Code, resp.Body.String())
 	}
 
 	resp = tc.get(fmt.Sprintf("/api/characters/%d", chid), nil)
 	readJSON(resp, &char)
-	if char["campaign_id"] != float64(cid) {
-		t.Fatalf("expected campaign_id %d, got %v", cid, char["campaign_id"])
+	campaigns, ok := char["campaigns"].([]any)
+	if !ok || len(campaigns) != 1 {
+		t.Fatalf("expected 1 campaign membership, got %v", char["campaigns"])
+	}
+	cm := campaigns[0].(map[string]any)
+	if cm["id"] != float64(cid) || cm["name"] != "Test Campaign" {
+		t.Fatalf("expected campaign %d named Test Campaign, got %v", cid, cm)
 	}
 }
 
-func TestCampaignDeleteUnassignsCharacters(t *testing.T) {
+func TestCampaignDeleteRemovesCharacterMemberships(t *testing.T) {
 	tc := newTestClient()
 	setupAdmin(t, tc)
 
@@ -455,7 +460,7 @@ func TestCampaignDeleteUnassignsCharacters(t *testing.T) {
 	readJSON(resp, &camp)
 	cid := int(camp["id"].(float64))
 
-	resp = tc.post("/api/characters", map[string]any{"name": "Temp Member", "race": "Gnome", "class": "Wizard", "campaign_id": cid})
+	resp = tc.post("/api/characters", map[string]any{"name": "Temp Member", "race": "Gnome", "class": "Wizard", "campaign_ids": []int{cid}})
 	if resp.Code != 201 {
 		t.Fatalf("create char failed: %d", resp.Code)
 	}
@@ -463,11 +468,11 @@ func TestCampaignDeleteUnassignsCharacters(t *testing.T) {
 	readJSON(resp, &char)
 	chid := int(char["id"].(float64))
 
-	// Verify character has campaign_id set via direct DB query
-	var dbCampID *int64
-	db.DB.QueryRow("SELECT campaign_id FROM characters WHERE id=?", chid).Scan(&dbCampID)
-	if dbCampID == nil || *dbCampID != int64(cid) {
-		t.Fatalf("DB campaign_id should be %d, got %v", cid, dbCampID)
+	// Verify character has a membership via direct DB query
+	var count int
+	db.DB.QueryRow("SELECT COUNT(*) FROM campaign_characters WHERE character_id=? AND campaign_id=?", chid, cid).Scan(&count)
+	if count != 1 {
+		t.Fatalf("expected 1 membership for campaign %d, got %d", cid, count)
 	}
 
 	resp = tc.del(fmt.Sprintf("/api/campaigns/%d", cid), nil)
@@ -475,9 +480,9 @@ func TestCampaignDeleteUnassignsCharacters(t *testing.T) {
 		t.Fatalf("delete campaign failed: %d - %s", resp.Code, resp.Body.String())
 	}
 
-	db.DB.QueryRow("SELECT campaign_id FROM characters WHERE id=?", chid).Scan(&dbCampID)
-	if dbCampID != nil {
-		t.Fatalf("expected campaign_id NULL after campaign delete, got %v", dbCampID)
+	db.DB.QueryRow("SELECT COUNT(*) FROM campaign_characters WHERE character_id=?", chid).Scan(&count)
+	if count != 0 {
+		t.Fatalf("expected memberships removed after campaign delete, got %d", count)
 	}
 }
 

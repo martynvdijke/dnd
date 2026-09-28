@@ -69,7 +69,7 @@ func HandleCampaignDMScreen(c *gin.Context) {
 
 	// Party status with active conditions.
 	party := []gin.H{}
-	charRows, err := db.DB.Query("SELECT id, name, hp_current, hp_max, ac FROM characters WHERE campaign_id=? ORDER BY name", campaignID)
+	charRows, err := db.DB.Query("SELECT c.id, c.name, c.hp_current, c.hp_max, c.ac FROM characters c JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=? ORDER BY c.name", campaignID)
 	if err == nil {
 		func() {
 			defer charRows.Close()

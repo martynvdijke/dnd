@@ -20,6 +20,8 @@ type Tx struct {
 	Campaign *CampaignClient
 	// CampaignCalendarEvent is the client for interacting with the CampaignCalendarEvent builders.
 	CampaignCalendarEvent *CampaignCalendarEventClient
+	// CampaignCharacter is the client for interacting with the CampaignCharacter builders.
+	CampaignCharacter *CampaignCharacterClient
 	// CampaignMap is the client for interacting with the CampaignMap builders.
 	CampaignMap *CampaignMapClient
 	// CampaignMapPin is the client for interacting with the CampaignMapPin builders.
@@ -277,6 +279,7 @@ func (tx *Tx) init() {
 	tx.BackupSetting = NewBackupSettingClient(tx.config)
 	tx.Campaign = NewCampaignClient(tx.config)
 	tx.CampaignCalendarEvent = NewCampaignCalendarEventClient(tx.config)
+	tx.CampaignCharacter = NewCampaignCharacterClient(tx.config)
 	tx.CampaignMap = NewCampaignMapClient(tx.config)
 	tx.CampaignMapPin = NewCampaignMapPinClient(tx.config)
 	tx.CampaignMember = NewCampaignMemberClient(tx.config)

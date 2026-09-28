@@ -11,6 +11,7 @@ import (
 	"villum/db"
 	"villum/ent"
 	"villum/ent/campaign"
+	"villum/ent/campaigncharacter"
 	"villum/ent/campaignmember"
 	"villum/ent/character"
 	"villum/ent/user"
@@ -143,7 +144,12 @@ func DeleteCampaign(c *gin.Context) {
 		WriteError(c, http.StatusForbidden, errAccessDenied)
 		return
 	}
-	db.Client.Character.Update().Where(character.CampaignID(id)).ClearCampaignID().Save(ctx)
+	if _, err := db.Client.CampaignCharacter.Delete().
+		Where(campaigncharacter.CampaignID(id)).
+		Exec(ctx); err != nil {
+		WriteError(c, http.StatusInternalServerError, err)
+		return
+	}
 	db.Client.Campaign.DeleteOneID(id).Exec(ctx)
 	WriteJSON(c, http.StatusOK, gin.H{"ok": true})
 }
@@ -252,11 +258,23 @@ func ListCampaignCharacterCandidates(c *gin.Context) {
 		usernames[u.ID] = u.Username
 	}
 	chars, err := db.Client.Character.Query().
-		Where(character.UserIDIn(memberIDs...), character.Or(character.CampaignIDIsNil(), character.CampaignIDEQ(campaignID))).
+		Where(character.UserIDIn(memberIDs...)).
 		Order(character.ByName()).All(ctx)
 	if err != nil {
 		WriteError(c, http.StatusInternalServerError, err)
 		return
+	}
+	rosterRows, err := db.Client.CampaignCharacter.Query().
+		Where(campaigncharacter.CampaignID(campaignID)).
+		Select(campaigncharacter.FieldCharacterID).
+		All(ctx)
+	if err != nil {
+		WriteError(c, http.StatusInternalServerError, err)
+		return
+	}
+	inRoster := make(map[int64]bool, len(rosterRows))
+	for _, row := range rosterRows {
+		inRoster[row.CharacterID] = true
 	}
 	out := make([]RosterCandidate, 0, len(chars))
 	for _, ch := range chars {
@@ -264,7 +282,7 @@ func ListCampaignCharacterCandidates(c *gin.Context) {
 			ID: ch.ID, UserID: ch.UserID, OwnerUsername: usernames[ch.UserID],
 			Name: ch.Name, Race: ch.Race, Class: ch.Class, Level: ch.Level,
 			PortraitURL: ch.PortraitURL, CharacterType: ch.CharacterType,
-			Owned: ch.UserID == currentUID, InRoster: ch.CampaignID != 0 && ch.CampaignID == campaignID,
+			Owned: ch.UserID == currentUID, InRoster: inRoster[ch.ID],
 		})
 	}
 	WriteJSON(c, http.StatusOK, out)
@@ -308,10 +326,6 @@ func AddCampaignCharacter(c *gin.Context) {
 		WriteError(c, http.StatusInternalServerError, err)
 		return
 	}
-	if ch.CampaignID != 0 && ch.CampaignID != campaignID {
-		WriteError(c, http.StatusConflict, strErr("character already assigned to another campaign"))
-		return
-	}
 	if ch.UserID != currentUID {
 		memberIDs, err := campaignMemberUserIDs(c, campaignID)
 		if err != nil {
@@ -330,7 +344,11 @@ func AddCampaignCharacter(c *gin.Context) {
 			return
 		}
 	}
-	if err := db.Client.Character.UpdateOneID(req.CharacterID).SetCampaignID(campaignID).Exec(ctx); err != nil {
+	if err := db.Client.CampaignCharacter.Create().
+		SetCampaignID(campaignID).
+		SetCharacterID(req.CharacterID).
+		OnConflict(sql.ResolveWithIgnore()).
+		Exec(ctx); err != nil {
 		WriteError(c, http.StatusInternalServerError, err)
 		return
 	}
@@ -360,20 +378,9 @@ func RemoveCampaignCharacter(c *gin.Context) {
 		WriteError(c, http.StatusForbidden, errAccessDenied)
 		return
 	}
-	ch, err := db.Client.Character.Get(ctx, characterID)
-	if ent.IsNotFound(err) {
-		WriteNotFound(c, "character not found")
-		return
-	}
-	if err != nil {
-		WriteError(c, http.StatusInternalServerError, err)
-		return
-	}
-	if ch.CampaignID != campaignID {
-		WriteJSON(c, http.StatusOK, gin.H{"ok": true})
-		return
-	}
-	if err := db.Client.Character.UpdateOneID(characterID).ClearCampaignID().Exec(ctx); err != nil {
+	if _, err := db.Client.CampaignCharacter.Delete().
+		Where(campaigncharacter.CampaignID(campaignID), campaigncharacter.CharacterID(characterID)).
+		Exec(ctx); err != nil {
 		WriteError(c, http.StatusInternalServerError, err)
 		return
 	}

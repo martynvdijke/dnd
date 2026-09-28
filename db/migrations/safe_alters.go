@@ -10,12 +10,10 @@ import (
 // ApplySafeAlters runs ALTER TABLE statements that safely add columns if they don't exist.
 func ApplySafeAlters(db *sql.DB) error {
 	alterStatements := []string{
-		"ALTER TABLE characters ADD COLUMN campaign_id INTEGER REFERENCES campaigns(id) ON DELETE SET NULL",
 		"ALTER TABLE characters ADD COLUMN character_type TEXT NOT NULL DEFAULT 'player'",
 		// Composite indexes for hot query patterns (must run after Schema.Create
 		// since ent owns these tables/columns).
 		"CREATE INDEX IF NOT EXISTS idx_characters_user_name_level ON characters (user_id, name, level)",
-		"CREATE INDEX IF NOT EXISTS idx_characters_campaign_name ON characters (campaign_id, name)",
 		"CREATE INDEX IF NOT EXISTS idx_spells_char_level_name ON spells (character_id, level, name)",
 		"CREATE INDEX IF NOT EXISTS idx_inventory_char_category_name ON inventory (character_id, category, name)",
 		"CREATE INDEX IF NOT EXISTS idx_sessions_char_date ON sessions (character_id, session_date)",
@@ -24,7 +22,7 @@ func ApplySafeAlters(db *sql.DB) error {
 		"CREATE INDEX IF NOT EXISTS idx_combat_campaign_turn ON combat_entries (campaign_id, turn_order)",
 		"CREATE INDEX IF NOT EXISTS idx_dice_rolls_user_timestamp ON dice_rolls (user_id, timestamp)",
 		"CREATE INDEX IF NOT EXISTS idx_campaigns_user_name ON campaigns (user_id, name)",
-		"UPDATE characters SET character_type='linked' WHERE campaign_id IS NOT NULL AND campaign_id != 0 AND EXISTS (SELECT 1 FROM campaign_members cm WHERE cm.campaign_id = characters.campaign_id AND cm.user_id != characters.user_id)",
+		"UPDATE characters SET character_type='linked' WHERE EXISTS (SELECT 1 FROM campaign_characters cc JOIN campaign_members cm ON cm.campaign_id = cc.campaign_id WHERE cc.character_id = characters.id AND cm.user_id != characters.user_id)",
 		"ALTER TABLE character_npcs ADD COLUMN interaction_count INTEGER NOT NULL DEFAULT 0",
 		"ALTER TABLE character_npcs ADD COLUMN last_interacted TEXT NOT NULL DEFAULT ''",
 		"ALTER TABLE characters ADD COLUMN death_saves_successes INTEGER NOT NULL DEFAULT 0",

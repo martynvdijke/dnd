@@ -304,7 +304,7 @@ func GetSharedEntity(c *gin.Context) {
 		ch := &models.Character{}
 		var ownerName string
 		err := db.DB.QueryRow(`
-			SELECT c.id, c.user_id, c.campaign_id, c.name, c.race, c.class, c.subclass, c.level, c.xp, c.background, c.alignment,
+			SELECT c.id, c.user_id, c.name, c.race, c.class, c.subclass, c.level, c.xp, c.background, c.alignment,
 				c.str, c.dex, c.con, c.int, c.wis, c.cha, c.ac, c.initiative, c.speed,
 				c.hp_max, c.hp_current, c.temp_hp, c.hit_dice, c.hit_dice_current,
 				c.proficiency_bonus, c.inspiration, c.passive_perception,
@@ -314,7 +314,7 @@ func GetSharedEntity(c *gin.Context) {
 				COALESCE(u.username, '')
 			FROM characters c LEFT JOIN users u ON u.id = c.user_id
 			WHERE c.id=?`, entityID).Scan(
-			&ch.ID, &ch.UserID, &ch.CampaignID, &ch.Name, &ch.Race, &ch.Class, &ch.Subclass, &ch.Level, &ch.XP,
+			&ch.ID, &ch.UserID, &ch.Name, &ch.Race, &ch.Class, &ch.Subclass, &ch.Level, &ch.XP,
 			&ch.Background, &ch.Alignment,
 			&ch.Str, &ch.Dex, &ch.Con, &ch.Int, &ch.Wis, &ch.Cha,
 			&ch.AC, &ch.Initiative, &ch.Speed,
@@ -330,6 +330,7 @@ func GetSharedEntity(c *gin.Context) {
 		}
 
 		ctx := c.Request.Context()
+		ch.Campaigns = characterCampaigns(ctx, ch.ID)
 		ch.Proficiencies = loadProficiencies(ctx, ch.ID)
 		ch.Features = loadFeatures(ctx, ch.ID)
 		ch.Spellcasting = loadSpellcasting(ctx, ch.ID)
@@ -356,16 +357,18 @@ func GetSharedEntity(c *gin.Context) {
 
 		rows, err := db.DB.Query(`
 			SELECT c.id, c.user_id, COALESCE(u.username, ''), c.name, c.race, c.class,
-				c.level, c.ac, c.hp_max, c.hp_current, c.temp_hp, c.campaign_id
-			FROM characters c LEFT JOIN users u ON u.id = c.user_id
-			WHERE c.campaign_id=? ORDER BY c.name`, campaignID)
+				c.level, c.ac, c.hp_max, c.hp_current, c.temp_hp, cc.campaign_id
+			FROM characters c
+			JOIN campaign_characters cc ON cc.character_id = c.id
+			LEFT JOIN users u ON u.id = c.user_id
+			WHERE cc.campaign_id=? ORDER BY c.name`, campaignID)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		defer rows.Close()
 
-		var members []PartyMember
+		members := []PartyMember{}
 		for rows.Next() {
 			var pm PartyMember
 			var cid *int64

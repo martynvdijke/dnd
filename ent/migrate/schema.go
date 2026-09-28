@@ -102,6 +102,44 @@ var (
 			},
 		},
 	}
+	// CampaignCharactersColumns holds the columns for the "campaign_characters" table.
+	CampaignCharactersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt64, Increment: true},
+		{Name: "campaign_id", Type: field.TypeInt64},
+		{Name: "character_id", Type: field.TypeInt64},
+	}
+	// CampaignCharactersTable holds the schema information for the "campaign_characters" table.
+	CampaignCharactersTable = &schema.Table{
+		Name:       "campaign_characters",
+		Columns:    CampaignCharactersColumns,
+		PrimaryKey: []*schema.Column{CampaignCharactersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "campaign_characters_campaigns_character_links",
+				Columns:    []*schema.Column{CampaignCharactersColumns[1]},
+				RefColumns: []*schema.Column{CampaignsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "campaign_characters_characters_campaign_links",
+				Columns:    []*schema.Column{CampaignCharactersColumns[2]},
+				RefColumns: []*schema.Column{CharactersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "campaigncharacter_campaign_id_character_id",
+				Unique:  true,
+				Columns: []*schema.Column{CampaignCharactersColumns[1], CampaignCharactersColumns[2]},
+			},
+			{
+				Name:    "campaigncharacter_character_id",
+				Unique:  false,
+				Columns: []*schema.Column{CampaignCharactersColumns[2]},
+			},
+		},
+	}
 	// CampaignMapsColumns holds the columns for the "campaign_maps" table.
 	CampaignMapsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt64, Increment: true},
@@ -363,7 +401,6 @@ var (
 		{Name: "death_saves_failures", Type: field.TypeInt, Default: 0},
 		{Name: "exhaustion_level", Type: field.TypeInt, Default: 0},
 		{Name: "concentrating_on", Type: field.TypeString, Default: ""},
-		{Name: "campaign_id", Type: field.TypeInt64, Nullable: true},
 		{Name: "compendium_race_id", Type: field.TypeInt64, Nullable: true},
 		{Name: "compendium_class_id", Type: field.TypeInt64, Nullable: true},
 		{Name: "compendium_background_id", Type: field.TypeInt64, Nullable: true},
@@ -380,7 +417,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "characters_users_characters",
-				Columns:    []*schema.Column{CharactersColumns[46]},
+				Columns:    []*schema.Column{CharactersColumns[45]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
@@ -389,7 +426,7 @@ var (
 			{
 				Name:    "character_user_id",
 				Unique:  false,
-				Columns: []*schema.Column{CharactersColumns[46]},
+				Columns: []*schema.Column{CharactersColumns[45]},
 			},
 		},
 	}
@@ -2184,6 +2221,7 @@ var (
 		BackupSettingsTable,
 		CampaignsTable,
 		CampaignCalendarEventsTable,
+		CampaignCharactersTable,
 		CampaignMapsTable,
 		CampaignMapPinsTable,
 		CampaignMembersTable,
@@ -2251,6 +2289,8 @@ var (
 func init() {
 	CampaignsTable.ForeignKeys[0].RefTable = UsersTable
 	CampaignCalendarEventsTable.ForeignKeys[0].RefTable = CampaignsTable
+	CampaignCharactersTable.ForeignKeys[0].RefTable = CampaignsTable
+	CampaignCharactersTable.ForeignKeys[1].RefTable = CharactersTable
 	CampaignMapsTable.ForeignKeys[0].RefTable = CampaignsTable
 	CampaignMapPinsTable.ForeignKeys[0].RefTable = CampaignMapsTable
 	CampaignMembersTable.ForeignKeys[0].RefTable = CampaignsTable

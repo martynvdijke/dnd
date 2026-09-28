@@ -178,9 +178,10 @@ test.describe('Campaign features', () => {
       const result = await page.evaluate(async (opts) => {
         const chars = await window.api('GET', '/api/characters');
         const char = chars.find((c: any) => c.name === opts.charName);
-        if (!char || !char.campaign_id) return { err: 'no campaign' };
+        const campaignId = char?.campaigns?.[0]?.id;
+        if (!char || !campaignId) return { err: 'no campaign' };
         try {
-          const dash = await window.api('GET', `/api/campaigns/${char.campaign_id}/dashboard`);
+          const dash = await window.api('GET', `/api/campaigns/${campaignId}/dashboard`);
           return { ok: true, data: dash };
         } catch (e) {
           return { ok: false, error: String(e) };

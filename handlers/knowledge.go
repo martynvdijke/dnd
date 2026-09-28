@@ -386,7 +386,7 @@ func BulkRevealKnowledge(c *gin.Context) {
 		return
 	}
 	// get all party characters (campaign characters type player)
-	rows, err2 := db.DB.Query(`SELECT id FROM characters WHERE campaign_id=?`, k.CampaignID)
+	rows, err2 := db.DB.Query(`SELECT c.id FROM characters c JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=?`, k.CampaignID)
 	var pids []int64
 	if err2 != nil {
 		middleware.LogWarn("knowledge", "query failed", "error", err2)

@@ -90,8 +90,6 @@ const (
 	FieldExhaustionLevel = "exhaustion_level"
 	// FieldConcentratingOn holds the string denoting the concentrating_on field in the database.
 	FieldConcentratingOn = "concentrating_on"
-	// FieldCampaignID holds the string denoting the campaign_id field in the database.
-	FieldCampaignID = "campaign_id"
 	// FieldCompendiumRaceID holds the string denoting the compendium_race_id field in the database.
 	FieldCompendiumRaceID = "compendium_race_id"
 	// FieldCompendiumClassID holds the string denoting the compendium_class_id field in the database.
@@ -106,6 +104,8 @@ const (
 	FieldUpdatedAt = "updated_at"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
+	// EdgeCampaignLinks holds the string denoting the campaign_links edge name in mutations.
+	EdgeCampaignLinks = "campaign_links"
 	// EdgeCurrency holds the string denoting the currency edge name in mutations.
 	EdgeCurrency = "currency"
 	// EdgeProficiencies holds the string denoting the proficiencies edge name in mutations.
@@ -161,6 +161,13 @@ const (
 	UserInverseTable = "users"
 	// UserColumn is the table column denoting the user relation/edge.
 	UserColumn = "user_id"
+	// CampaignLinksTable is the table that holds the campaign_links relation/edge.
+	CampaignLinksTable = "campaign_characters"
+	// CampaignLinksInverseTable is the table name for the CampaignCharacter entity.
+	// It exists in this package in order to avoid circular dependency with the "campaigncharacter" package.
+	CampaignLinksInverseTable = "campaign_characters"
+	// CampaignLinksColumn is the table column denoting the campaign_links relation/edge.
+	CampaignLinksColumn = "character_id"
 	// CurrencyTable is the table that holds the currency relation/edge.
 	CurrencyTable = "character_currency"
 	// CurrencyInverseTable is the table name for the CharacterCurrency entity.
@@ -366,7 +373,6 @@ var Columns = []string{
 	FieldDeathSavesFailures,
 	FieldExhaustionLevel,
 	FieldConcentratingOn,
-	FieldCampaignID,
 	FieldCompendiumRaceID,
 	FieldCompendiumClassID,
 	FieldCompendiumBackgroundID,
@@ -673,11 +679,6 @@ func ByConcentratingOn(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldConcentratingOn, opts...).ToFunc()
 }
 
-// ByCampaignID orders the results by the campaign_id field.
-func ByCampaignID(opts ...sql.OrderTermOption) OrderOption {
-	return sql.OrderByField(FieldCampaignID, opts...).ToFunc()
-}
-
 // ByCompendiumRaceID orders the results by the compendium_race_id field.
 func ByCompendiumRaceID(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldCompendiumRaceID, opts...).ToFunc()
@@ -712,6 +713,20 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 func ByUserField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newUserStep(), sql.OrderByField(field, opts...))
+	}
+}
+
+// ByCampaignLinksCount orders the results by campaign_links count.
+func ByCampaignLinksCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newCampaignLinksStep(), opts...)
+	}
+}
+
+// ByCampaignLinks orders the results by campaign_links terms.
+func ByCampaignLinks(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCampaignLinksStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
@@ -1041,6 +1056,13 @@ func newUserStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(UserInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.M2O, true, UserTable, UserColumn),
+	)
+}
+func newCampaignLinksStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CampaignLinksInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CampaignLinksTable, CampaignLinksColumn),
 	)
 }
 func newCurrencyStep() *sqlgraph.Step {

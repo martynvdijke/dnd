@@ -11,7 +11,6 @@ import (
 	"villum/ent/campaigncalendarevent"
 	"villum/ent/campaigntimelineevent"
 	"villum/ent/campaignwikipage"
-	"villum/ent/character"
 	"villum/ent/characterlocation"
 	"villum/ent/characternpc"
 	"villum/ent/encountertemplate"
@@ -83,7 +82,7 @@ func GetCampaignGraphData(c *gin.Context) {
 		}
 	}
 	// Characters
-	chars, _ := db.Client.Character.Query().Where(character.CampaignID(campaignID)).All(c.Request.Context())
+	chars, _ := db.Client.Character.Query().Where(characterInCampaign(campaignID)).All(c.Request.Context())
 	for _, ch := range chars {
 		nid := "char_" + strconv.FormatInt(ch.ID, 10)
 		addNode(&gd, nodeSet, nid, ch.Name+" (Lvl "+strconv.Itoa(ch.Level)+" "+ch.Race+" "+ch.Class+")", "character", "#8b0000", 28, ch.ID)
@@ -104,7 +103,7 @@ func GetCampaignGraphData(c *gin.Context) {
 		}
 	}
 	// Locations
-	cls, _ := db.Client.CharacterLocation.Query().Where(characterlocation.HasCharacterWith(character.CampaignID(campaignID))).WithLocation().All(c.Request.Context())
+	cls, _ := db.Client.CharacterLocation.Query().Where(characterlocation.HasCharacterWith(characterInCampaign(campaignID))).WithLocation().All(c.Request.Context())
 	for _, cl := range cls {
 		loc := cl.Edges.Location
 		nid := "loc_" + strconv.FormatInt(loc.ID, 10)
@@ -118,7 +117,7 @@ func GetCampaignGraphData(c *gin.Context) {
 		}
 	}
 	// NPCs
-	cnpcs, _ := db.Client.CharacterNPC.Query().Where(characternpc.HasCharacterWith(character.CampaignID(campaignID))).WithNpc().All(c.Request.Context())
+	cnpcs, _ := db.Client.CharacterNPC.Query().Where(characternpc.HasCharacterWith(characterInCampaign(campaignID))).WithNpc().All(c.Request.Context())
 	for _, cn := range cnpcs {
 		npcEnt := cn.Edges.Npc
 		nid := "npc_" + strconv.FormatInt(npcEnt.ID, 10)
@@ -136,7 +135,7 @@ func GetCampaignGraphData(c *gin.Context) {
 		}
 	}
 	// Quests
-	quests, _ := db.Client.Quest.Query().Where(quest.HasCharacterWith(character.CampaignID(campaignID))).All(c.Request.Context())
+	quests, _ := db.Client.Quest.Query().Where(quest.HasCharacterWith(characterInCampaign(campaignID))).All(c.Request.Context())
 	for _, q := range quests {
 		nid := "quest_" + strconv.FormatInt(q.ID, 10)
 		addNode(&gd, nodeSet, nid, q.Name+" ["+q.Status+"]", "quest", questColor(q.Status), 18, 0)
@@ -146,7 +145,7 @@ func GetCampaignGraphData(c *gin.Context) {
 		}
 	}
 	// Sessions
-	sessions, _ := db.Client.Session.Query().Where(session.HasCharacterWith(character.CampaignID(campaignID))).Order(session.BySessionDate()).Limit(30).All(c.Request.Context())
+	sessions, _ := db.Client.Session.Query().Where(session.HasCharacterWith(characterInCampaign(campaignID))).Order(session.BySessionDate()).Limit(30).All(c.Request.Context())
 	for _, s := range sessions {
 		nid := "session_" + strconv.FormatInt(s.ID, 10)
 		slabel := s.Title
@@ -168,7 +167,7 @@ func GetCampaignGraphData(c *gin.Context) {
 		factionIDs = append(factionIDs, f.ID)
 	}
 	for _, fid := range factionIDs {
-		frs, _ := db.Client.FactionReputation.Query().Where(factionreputation.And(factionreputation.FactionID(fid), factionreputation.HasCharacterWith(character.CampaignID(campaignID)))).All(c.Request.Context())
+		frs, _ := db.Client.FactionReputation.Query().Where(factionreputation.And(factionreputation.FactionID(fid), factionreputation.HasCharacterWith(characterInCampaign(campaignID)))).All(c.Request.Context())
 		for _, fr := range frs {
 			from := "char_" + strconv.FormatInt(fr.CharacterID, 10)
 			to := "faction_" + strconv.FormatInt(fid, 10)

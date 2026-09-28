@@ -8,7 +8,7 @@
 import { esc, toast } from '../lib/dom';
 import { api } from '../lib/api';
 import { expose } from '../lib/expose';
-import { currentCampaign } from '../lib/state';
+import { currentCampaign, currentChar } from '../lib/state';
 
 export async function loadCharacters() {
   try {
@@ -16,7 +16,7 @@ export async function loadCharacters() {
     // user-scoped endpoint for backward compatibility.
     const campaignId = currentCampaign?.id;
     const label = document.getElementById('campaignContextLabel');
-    if (label) label.textContent = currentCampaign?.name || 'No campaign';
+    if (label) label.textContent = currentCampaign ? (currentChar ? currentCampaign.name : 'Choose character') : 'No campaign';
     const chars = campaignId
       ? await api('GET', `/api/campaigns/${campaignId}/characters`)
       : await api('GET', '/api/characters');
@@ -35,6 +35,7 @@ export async function loadCharacters() {
             ${c.race_color ? `<span class="badge" style="background:${c.race_color};color:#fff">${esc(c.race)}</span>` : esc(c.race)}
             ${esc(c.class)} · Level ${c.level}
           </div>
+          ${(c.campaigns && c.campaigns.length) ? `<div class="mt-1 d-flex flex-wrap gap-1">${c.campaigns.map((ca: any) => `<span class="badge bg-dark border border-secondary" data-testid="character-campaign-badge">${esc(ca.name)}</span>`).join('')}</div>` : ''}
           <div class="char-hp mt-1">HP: ${c.hp_current}/${c.hp_max}</div>
         </div>
       </div>

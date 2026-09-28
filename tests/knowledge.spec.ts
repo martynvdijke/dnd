@@ -197,7 +197,7 @@ test.describe('Party Knowledge', () => {
       // ensure at least one character exists for known-by assertion
       const ch = await window.api('POST', '/api/characters', {
         name: 'RevealChar-' + Math.random().toString(36).slice(2, 6),
-        race: 'Human', class: 'Fighter', campaign_id: c.id,
+        race: 'Human', class: 'Fighter', campaign_ids: [c.id],
       });
       const k = await window.api('POST', `/api/campaigns/${c.id}/knowledge`, {
         title: opts.title, content: 'bulk reveal content', source: '', status: 'rumor',

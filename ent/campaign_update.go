@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"villum/ent/campaign"
 	"villum/ent/campaigncalendarevent"
+	"villum/ent/campaigncharacter"
 	"villum/ent/campaignmap"
 	"villum/ent/campaignmember"
 	"villum/ent/campaignrecap"
@@ -143,6 +144,21 @@ func (_u *CampaignUpdate) AddMembers(v ...*CampaignMember) *CampaignUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.AddMemberIDs(ids...)
+}
+
+// AddCharacterLinkIDs adds the "character_links" edge to the CampaignCharacter entity by IDs.
+func (_u *CampaignUpdate) AddCharacterLinkIDs(ids ...int64) *CampaignUpdate {
+	_u.mutation.AddCharacterLinkIDs(ids...)
+	return _u
+}
+
+// AddCharacterLinks adds the "character_links" edges to the CampaignCharacter entity.
+func (_u *CampaignUpdate) AddCharacterLinks(v ...*CampaignCharacter) *CampaignUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCharacterLinkIDs(ids...)
 }
 
 // AddCalendarEventIDs adds the "calendar_events" edge to the CampaignCalendarEvent entity by IDs.
@@ -355,6 +371,27 @@ func (_u *CampaignUpdate) RemoveMembers(v ...*CampaignMember) *CampaignUpdate {
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveMemberIDs(ids...)
+}
+
+// ClearCharacterLinks clears all "character_links" edges to the CampaignCharacter entity.
+func (_u *CampaignUpdate) ClearCharacterLinks() *CampaignUpdate {
+	_u.mutation.ClearCharacterLinks()
+	return _u
+}
+
+// RemoveCharacterLinkIDs removes the "character_links" edge to CampaignCharacter entities by IDs.
+func (_u *CampaignUpdate) RemoveCharacterLinkIDs(ids ...int64) *CampaignUpdate {
+	_u.mutation.RemoveCharacterLinkIDs(ids...)
+	return _u
+}
+
+// RemoveCharacterLinks removes "character_links" edges to CampaignCharacter entities.
+func (_u *CampaignUpdate) RemoveCharacterLinks(v ...*CampaignCharacter) *CampaignUpdate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCharacterLinkIDs(ids...)
 }
 
 // ClearCalendarEvents clears all "calendar_events" edges to the CampaignCalendarEvent entity.
@@ -738,6 +775,51 @@ func (_u *CampaignUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(campaignmember.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CharacterLinksCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.CharacterLinksTable,
+			Columns: []string{campaign.CharacterLinksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(campaigncharacter.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCharacterLinksIDs(); len(nodes) > 0 && !_u.mutation.CharacterLinksCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.CharacterLinksTable,
+			Columns: []string{campaign.CharacterLinksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(campaigncharacter.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CharacterLinksIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.CharacterLinksTable,
+			Columns: []string{campaign.CharacterLinksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(campaigncharacter.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {
@@ -1409,6 +1491,21 @@ func (_u *CampaignUpdateOne) AddMembers(v ...*CampaignMember) *CampaignUpdateOne
 	return _u.AddMemberIDs(ids...)
 }
 
+// AddCharacterLinkIDs adds the "character_links" edge to the CampaignCharacter entity by IDs.
+func (_u *CampaignUpdateOne) AddCharacterLinkIDs(ids ...int64) *CampaignUpdateOne {
+	_u.mutation.AddCharacterLinkIDs(ids...)
+	return _u
+}
+
+// AddCharacterLinks adds the "character_links" edges to the CampaignCharacter entity.
+func (_u *CampaignUpdateOne) AddCharacterLinks(v ...*CampaignCharacter) *CampaignUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddCharacterLinkIDs(ids...)
+}
+
 // AddCalendarEventIDs adds the "calendar_events" edge to the CampaignCalendarEvent entity by IDs.
 func (_u *CampaignUpdateOne) AddCalendarEventIDs(ids ...int64) *CampaignUpdateOne {
 	_u.mutation.AddCalendarEventIDs(ids...)
@@ -1619,6 +1716,27 @@ func (_u *CampaignUpdateOne) RemoveMembers(v ...*CampaignMember) *CampaignUpdate
 		ids[i] = v[i].ID
 	}
 	return _u.RemoveMemberIDs(ids...)
+}
+
+// ClearCharacterLinks clears all "character_links" edges to the CampaignCharacter entity.
+func (_u *CampaignUpdateOne) ClearCharacterLinks() *CampaignUpdateOne {
+	_u.mutation.ClearCharacterLinks()
+	return _u
+}
+
+// RemoveCharacterLinkIDs removes the "character_links" edge to CampaignCharacter entities by IDs.
+func (_u *CampaignUpdateOne) RemoveCharacterLinkIDs(ids ...int64) *CampaignUpdateOne {
+	_u.mutation.RemoveCharacterLinkIDs(ids...)
+	return _u
+}
+
+// RemoveCharacterLinks removes "character_links" edges to CampaignCharacter entities.
+func (_u *CampaignUpdateOne) RemoveCharacterLinks(v ...*CampaignCharacter) *CampaignUpdateOne {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveCharacterLinkIDs(ids...)
 }
 
 // ClearCalendarEvents clears all "calendar_events" edges to the CampaignCalendarEvent entity.
@@ -2032,6 +2150,51 @@ func (_u *CampaignUpdateOne) sqlSave(ctx context.Context) (_node *Campaign, err 
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(campaignmember.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.CharacterLinksCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.CharacterLinksTable,
+			Columns: []string{campaign.CharacterLinksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(campaigncharacter.FieldID, field.TypeInt64),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedCharacterLinksIDs(); len(nodes) > 0 && !_u.mutation.CharacterLinksCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.CharacterLinksTable,
+			Columns: []string{campaign.CharacterLinksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(campaigncharacter.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.CharacterLinksIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.CharacterLinksTable,
+			Columns: []string{campaign.CharacterLinksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(campaigncharacter.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

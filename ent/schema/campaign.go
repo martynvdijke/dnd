@@ -26,6 +26,7 @@ func (Campaign) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("user", User.Type).Ref("campaigns").Field("user_id").Unique().Required(),
 		edge.To("members", CampaignMember.Type),
+		edge.To("character_links", CampaignCharacter.Type),
 		edge.To("calendar_events", CampaignCalendarEvent.Type),
 		edge.To("timeline_events", CampaignTimelineEvent.Type),
 		edge.To("wiki_pages", CampaignWikiPage.Type),

@@ -39,7 +39,7 @@ func HtmxCampaignOverview(c *gin.Context) {
 
 	db.DB.QueryRow("SELECT name, COALESCE(party_name,'') FROM campaigns WHERE id=?", campaignID).Scan(&data.Name, &data.PartyName)
 
-	db.DB.QueryRow("SELECT COUNT(*) FROM quests q JOIN characters c ON q.character_id=c.id WHERE c.campaign_id=? AND q.status='active'", campaignID).Scan(&data.ActiveQuests)
+	db.DB.QueryRow("SELECT COUNT(*) FROM quests q JOIN characters c ON q.character_id=c.id JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=? AND q.status='active'", campaignID).Scan(&data.ActiveQuests)
 
 	rows, err := db.DB.Query("SELECT COUNT(*) FROM campaign_calendar_events WHERE campaign_id=? AND event_date >= date('now') AND event_type='session'", campaignID)
 	if err != nil {
@@ -57,9 +57,9 @@ func HtmxCampaignOverview(c *gin.Context) {
 
 	db.DB.QueryRow("SELECT COUNT(*) FROM campaign_members WHERE campaign_id=?", campaignID).Scan(&data.TotalMembers)
 
-	db.DB.QueryRow("SELECT COUNT(*) FROM character_conditions cc JOIN characters c ON cc.character_id=c.id WHERE c.campaign_id=?", campaignID).Scan(&data.ActiveConditions)
+	db.DB.QueryRow("SELECT COUNT(*) FROM character_conditions cc JOIN characters c ON cc.character_id=c.id JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=?", campaignID).Scan(&data.ActiveConditions)
 
-	db.DB.QueryRow("SELECT COUNT(*) FROM journal j JOIN characters c ON j.character_id=c.id WHERE c.campaign_id=? AND j.created_at >= datetime('now', '-7 days')", campaignID).Scan(&data.RecentJournal)
+	db.DB.QueryRow("SELECT COUNT(*) FROM journal j JOIN characters c ON j.character_id=c.id JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=? AND j.created_at >= datetime('now', '-7 days')", campaignID).Scan(&data.RecentJournal)
 
 	data.Weather = getCampaignWeather(campaignID)
 
@@ -97,7 +97,7 @@ func HtmxCampaignOverview(c *gin.Context) {
 		}()
 	}
 
-	charRows, err := db.DB.Query("SELECT id, name, race, class, level, hp_current, hp_max, COALESCE(portrait_url,'') FROM characters WHERE campaign_id=? ORDER BY name", campaignID)
+	charRows, err := db.DB.Query("SELECT c.id, c.name, c.race, c.class, c.level, c.hp_current, c.hp_max, COALESCE(c.portrait_url,'') FROM characters c JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=? ORDER BY name", campaignID)
 	if err != nil {
 		middleware.LogWarn("oneshot", "characters query failed", "error", err)
 	} else {
@@ -175,7 +175,8 @@ func HtmxCampaignOverview(c *gin.Context) {
 		SELECT dr.id, dr.expression, dr.total, dr.timestamp
 		FROM dice_rolls dr
 		JOIN characters c ON dr.character_id = c.id
-		WHERE c.campaign_id=?
+		JOIN campaign_characters cm ON cm.character_id=c.id
+		WHERE cm.campaign_id=?
 		ORDER BY dr.timestamp DESC, dr.id DESC LIMIT 5
 	`, campaignID)
 	if err != nil {

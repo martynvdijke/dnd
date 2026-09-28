@@ -41,6 +41,8 @@ type CampaignEdges struct {
 	User *User `json:"user,omitempty"`
 	// Members holds the value of the members edge.
 	Members []*CampaignMember `json:"members,omitempty"`
+	// CharacterLinks holds the value of the character_links edge.
+	CharacterLinks []*CampaignCharacter `json:"character_links,omitempty"`
 	// CalendarEvents holds the value of the calendar_events edge.
 	CalendarEvents []*CampaignCalendarEvent `json:"calendar_events,omitempty"`
 	// TimelineEvents holds the value of the timeline_events edge.
@@ -67,7 +69,7 @@ type CampaignEdges struct {
 	SessionPlans []*SessionPlan `json:"session_plans,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [14]bool
+	loadedTypes [15]bool
 }
 
 // UserOrErr returns the User value or an error if the edge
@@ -90,10 +92,19 @@ func (e CampaignEdges) MembersOrErr() ([]*CampaignMember, error) {
 	return nil, &NotLoadedError{edge: "members"}
 }
 
+// CharacterLinksOrErr returns the CharacterLinks value or an error if the edge
+// was not loaded in eager-loading.
+func (e CampaignEdges) CharacterLinksOrErr() ([]*CampaignCharacter, error) {
+	if e.loadedTypes[2] {
+		return e.CharacterLinks, nil
+	}
+	return nil, &NotLoadedError{edge: "character_links"}
+}
+
 // CalendarEventsOrErr returns the CalendarEvents value or an error if the edge
 // was not loaded in eager-loading.
 func (e CampaignEdges) CalendarEventsOrErr() ([]*CampaignCalendarEvent, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		return e.CalendarEvents, nil
 	}
 	return nil, &NotLoadedError{edge: "calendar_events"}
@@ -102,7 +113,7 @@ func (e CampaignEdges) CalendarEventsOrErr() ([]*CampaignCalendarEvent, error) {
 // TimelineEventsOrErr returns the TimelineEvents value or an error if the edge
 // was not loaded in eager-loading.
 func (e CampaignEdges) TimelineEventsOrErr() ([]*CampaignTimelineEvent, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[4] {
 		return e.TimelineEvents, nil
 	}
 	return nil, &NotLoadedError{edge: "timeline_events"}
@@ -111,7 +122,7 @@ func (e CampaignEdges) TimelineEventsOrErr() ([]*CampaignTimelineEvent, error) {
 // WikiPagesOrErr returns the WikiPages value or an error if the edge
 // was not loaded in eager-loading.
 func (e CampaignEdges) WikiPagesOrErr() ([]*CampaignWikiPage, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[5] {
 		return e.WikiPages, nil
 	}
 	return nil, &NotLoadedError{edge: "wiki_pages"}
@@ -120,7 +131,7 @@ func (e CampaignEdges) WikiPagesOrErr() ([]*CampaignWikiPage, error) {
 // EncounterTemplatesOrErr returns the EncounterTemplates value or an error if the edge
 // was not loaded in eager-loading.
 func (e CampaignEdges) EncounterTemplatesOrErr() ([]*EncounterTemplate, error) {
-	if e.loadedTypes[5] {
+	if e.loadedTypes[6] {
 		return e.EncounterTemplates, nil
 	}
 	return nil, &NotLoadedError{edge: "encounter_templates"}
@@ -129,7 +140,7 @@ func (e CampaignEdges) EncounterTemplatesOrErr() ([]*EncounterTemplate, error) {
 // MapsOrErr returns the Maps value or an error if the edge
 // was not loaded in eager-loading.
 func (e CampaignEdges) MapsOrErr() ([]*CampaignMap, error) {
-	if e.loadedTypes[6] {
+	if e.loadedTypes[7] {
 		return e.Maps, nil
 	}
 	return nil, &NotLoadedError{edge: "maps"}
@@ -138,7 +149,7 @@ func (e CampaignEdges) MapsOrErr() ([]*CampaignMap, error) {
 // RecapsOrErr returns the Recaps value or an error if the edge
 // was not loaded in eager-loading.
 func (e CampaignEdges) RecapsOrErr() ([]*CampaignRecap, error) {
-	if e.loadedTypes[7] {
+	if e.loadedTypes[8] {
 		return e.Recaps, nil
 	}
 	return nil, &NotLoadedError{edge: "recaps"}
@@ -147,7 +158,7 @@ func (e CampaignEdges) RecapsOrErr() ([]*CampaignRecap, error) {
 // CombatEntriesOrErr returns the CombatEntries value or an error if the edge
 // was not loaded in eager-loading.
 func (e CampaignEdges) CombatEntriesOrErr() ([]*CombatEntry, error) {
-	if e.loadedTypes[8] {
+	if e.loadedTypes[9] {
 		return e.CombatEntries, nil
 	}
 	return nil, &NotLoadedError{edge: "combat_entries"}
@@ -156,7 +167,7 @@ func (e CampaignEdges) CombatEntriesOrErr() ([]*CombatEntry, error) {
 // ShopsOrErr returns the Shops value or an error if the edge
 // was not loaded in eager-loading.
 func (e CampaignEdges) ShopsOrErr() ([]*Shop, error) {
-	if e.loadedTypes[9] {
+	if e.loadedTypes[10] {
 		return e.Shops, nil
 	}
 	return nil, &NotLoadedError{edge: "shops"}
@@ -165,7 +176,7 @@ func (e CampaignEdges) ShopsOrErr() ([]*Shop, error) {
 // FactionsOrErr returns the Factions value or an error if the edge
 // was not loaded in eager-loading.
 func (e CampaignEdges) FactionsOrErr() ([]*Faction, error) {
-	if e.loadedTypes[10] {
+	if e.loadedTypes[11] {
 		return e.Factions, nil
 	}
 	return nil, &NotLoadedError{edge: "factions"}
@@ -174,7 +185,7 @@ func (e CampaignEdges) FactionsOrErr() ([]*Faction, error) {
 // CombatLogEntriesOrErr returns the CombatLogEntries value or an error if the edge
 // was not loaded in eager-loading.
 func (e CampaignEdges) CombatLogEntriesOrErr() ([]*CombatLogEntry, error) {
-	if e.loadedTypes[11] {
+	if e.loadedTypes[12] {
 		return e.CombatLogEntries, nil
 	}
 	return nil, &NotLoadedError{edge: "combat_log_entries"}
@@ -183,7 +194,7 @@ func (e CampaignEdges) CombatLogEntriesOrErr() ([]*CombatLogEntry, error) {
 // PartyItemsOrErr returns the PartyItems value or an error if the edge
 // was not loaded in eager-loading.
 func (e CampaignEdges) PartyItemsOrErr() ([]*PartyItem, error) {
-	if e.loadedTypes[12] {
+	if e.loadedTypes[13] {
 		return e.PartyItems, nil
 	}
 	return nil, &NotLoadedError{edge: "party_items"}
@@ -192,7 +203,7 @@ func (e CampaignEdges) PartyItemsOrErr() ([]*PartyItem, error) {
 // SessionPlansOrErr returns the SessionPlans value or an error if the edge
 // was not loaded in eager-loading.
 func (e CampaignEdges) SessionPlansOrErr() ([]*SessionPlan, error) {
-	if e.loadedTypes[13] {
+	if e.loadedTypes[14] {
 		return e.SessionPlans, nil
 	}
 	return nil, &NotLoadedError{edge: "session_plans"}
@@ -285,6 +296,11 @@ func (_m *Campaign) QueryUser() *UserQuery {
 // QueryMembers queries the "members" edge of the Campaign entity.
 func (_m *Campaign) QueryMembers() *CampaignMemberQuery {
 	return NewCampaignClient(_m.config).QueryMembers(_m)
+}
+
+// QueryCharacterLinks queries the "character_links" edge of the Campaign entity.
+func (_m *Campaign) QueryCharacterLinks() *CampaignCharacterQuery {
+	return NewCampaignClient(_m.config).QueryCharacterLinks(_m)
 }
 
 // QueryCalendarEvents queries the "calendar_events" edge of the Campaign entity.

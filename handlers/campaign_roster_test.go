@@ -11,10 +11,10 @@ import (
 
 // seedRosterFixtures sets up: campaign 1 (owned by user 2, member user 3),
 // campaign 2 (owned by user 2), and characters across owners:
-//   - char 1: owned by user 2 (external to member user 3), unassigned
-//   - char 2: owned by user 3 (member), unassigned
-//   - char 3: owned by user 4 (stranger, not a member), unassigned
-//   - char 4: owned by user 2, assigned to campaign 2
+//   - char 1: owned by user 2 (external to member user 3), no memberships
+//   - char 2: owned by user 3 (member), no memberships
+//   - char 3: owned by user 4 (stranger, not a member), no memberships
+//   - char 4: owned by user 2, a member of campaign 2
 func seedRosterFixtures(t *testing.T) {
 	t.Helper()
 	testutil.NewDB(t)
@@ -42,13 +42,31 @@ func rosterRoutes(auth *gin.RouterGroup) {
 	auth.GET("/campaigns/:id/character-candidates", ListCampaignCharacterCandidates)
 }
 
-func characterCampaignID(t *testing.T, charID int64) int64 {
+func characterCampaignIDs(t *testing.T, charID int64) []int64 {
 	t.Helper()
-	var cid int64
-	if err := db.DB.QueryRow("SELECT COALESCE(campaign_id,0) FROM characters WHERE id=?", charID).Scan(&cid); err != nil {
-		t.Fatalf("read campaign_id of char %d: %v", charID, err)
+	rows, err := db.DB.Query("SELECT campaign_id FROM campaign_characters WHERE character_id=? ORDER BY campaign_id", charID)
+	if err != nil {
+		t.Fatalf("read memberships of char %d: %v", charID, err)
 	}
-	return cid
+	defer rows.Close()
+	var ids []int64
+	for rows.Next() {
+		var cid int64
+		if err := rows.Scan(&cid); err != nil {
+			t.Fatalf("scan membership of char %d: %v", charID, err)
+		}
+		ids = append(ids, cid)
+	}
+	return ids
+}
+
+func hasMembership(ids []int64, campaignID int64) bool {
+	for _, id := range ids {
+		if id == campaignID {
+			return true
+		}
+	}
+	return false
 }
 
 func TestAddCampaignCharacter(t *testing.T) {
@@ -59,8 +77,8 @@ func TestAddCampaignCharacter(t *testing.T) {
 		r := rosterRouter(rosterRoutes, 3, "player")
 		w := testutil.PostJSON(t, r, "/api/campaigns/1/characters", map[string]any{"character_id": 2})
 		testutil.AssertStatus(t, w, 201)
-		if got := characterCampaignID(t, 2); got != 1 {
-			t.Fatalf("expected char 2 campaign_id 1, got %d", got)
+		if !hasMembership(characterCampaignIDs(t, 2), 1) {
+			t.Fatalf("expected char 2 in campaign 1, got %v", characterCampaignIDs(t, 2))
 		}
 	})
 
@@ -68,8 +86,8 @@ func TestAddCampaignCharacter(t *testing.T) {
 		r := rosterRouter(rosterRoutes, 3, "player")
 		w := testutil.PostJSON(t, r, "/api/campaigns/1/characters", map[string]any{"character_id": 1})
 		testutil.AssertStatus(t, w, 201)
-		if got := characterCampaignID(t, 1); got != 1 {
-			t.Fatalf("expected char 1 campaign_id 1, got %d", got)
+		if !hasMembership(characterCampaignIDs(t, 1), 1) {
+			t.Fatalf("expected char 1 in campaign 1, got %v", characterCampaignIDs(t, 1))
 		}
 	})
 
@@ -77,8 +95,8 @@ func TestAddCampaignCharacter(t *testing.T) {
 		r := rosterRouter(rosterRoutes, 4, "player")
 		w := testutil.PostJSON(t, r, "/api/campaigns/1/characters", map[string]any{"character_id": 5})
 		testutil.AssertStatus(t, w, 403)
-		if got := characterCampaignID(t, 5); got != 0 {
-			t.Fatalf("expected char 5 unassigned, got campaign_id %d", got)
+		if len(characterCampaignIDs(t, 5)) != 0 {
+			t.Fatalf("expected char 5 without memberships, got %v", characterCampaignIDs(t, 5))
 		}
 	})
 
@@ -88,12 +106,29 @@ func TestAddCampaignCharacter(t *testing.T) {
 		testutil.AssertStatus(t, w, 400)
 	})
 
-	t.Run("character in another campaign is rejected", func(t *testing.T) {
+	t.Run("character in another campaign is attached to both", func(t *testing.T) {
 		r := rosterRouter(rosterRoutes, 3, "player")
 		w := testutil.PostJSON(t, r, "/api/campaigns/1/characters", map[string]any{"character_id": 4})
-		testutil.AssertStatus(t, w, 409)
-		if got := characterCampaignID(t, 4); got != 2 {
-			t.Fatalf("expected char 4 to stay in campaign 2, got %d", got)
+		testutil.AssertStatus(t, w, 201)
+		ids := characterCampaignIDs(t, 4)
+		if !hasMembership(ids, 1) || !hasMembership(ids, 2) {
+			t.Fatalf("expected char 4 in campaigns 1 and 2, got %v", ids)
+		}
+	})
+
+	t.Run("attach is idempotent", func(t *testing.T) {
+		r := rosterRouter(rosterRoutes, 3, "player")
+		w := testutil.PostJSON(t, r, "/api/campaigns/1/characters", map[string]any{"character_id": 4})
+		testutil.AssertStatus(t, w, 201)
+		ids := characterCampaignIDs(t, 4)
+		count := 0
+		for _, id := range ids {
+			if id == 1 {
+				count++
+			}
+		}
+		if count != 1 {
+			t.Fatalf("expected exactly one membership in campaign 1, got %v", ids)
 		}
 	})
 }
@@ -109,8 +144,8 @@ func TestRemoveCampaignCharacter(t *testing.T) {
 		r := rosterRouter(rosterRoutes, 3, "player")
 		w := testutil.Delete(t, r, "/api/campaigns/1/characters/5")
 		testutil.AssertStatus(t, w, 200)
-		if got := characterCampaignID(t, 5); got != 0 {
-			t.Fatalf("expected char 5 unassigned, got campaign_id %d", got)
+		if hasMembership(characterCampaignIDs(t, 5), 1) {
+			t.Fatalf("expected char 5 removed from campaign 1, got %v", characterCampaignIDs(t, 5))
 		}
 	})
 
@@ -118,21 +153,25 @@ func TestRemoveCampaignCharacter(t *testing.T) {
 		r := rosterRouter(rosterRoutes, 4, "player")
 		w := testutil.Delete(t, r, "/api/campaigns/1/characters/6")
 		testutil.AssertStatus(t, w, 403)
-		if got := characterCampaignID(t, 6); got != 1 {
-			t.Fatalf("expected char 6 to stay in campaign 1, got %d", got)
+		if !hasMembership(characterCampaignIDs(t, 6), 1) {
+			t.Fatalf("expected char 6 to stay in campaign 1, got %v", characterCampaignIDs(t, 6))
 		}
 	})
 
-	t.Run("detach does not clobber a newer assignment", func(t *testing.T) {
+	t.Run("detach is a no-op for a different campaign", func(t *testing.T) {
 		// Move char 6 to campaign 2, then attempt removal from campaign 1.
-		if _, err := db.DB.Exec("UPDATE characters SET campaign_id=2 WHERE id=6"); err != nil {
+		if _, err := db.DB.Exec("DELETE FROM campaign_characters WHERE campaign_id=1 AND character_id=6"); err != nil {
+			t.Fatalf("move char 6: %v", err)
+		}
+		if _, err := db.DB.Exec("INSERT INTO campaign_characters(campaign_id, character_id) VALUES(2, 6)"); err != nil {
 			t.Fatalf("move char 6: %v", err)
 		}
 		r := rosterRouter(rosterRoutes, 3, "player")
 		w := testutil.Delete(t, r, "/api/campaigns/1/characters/6")
 		testutil.AssertStatus(t, w, 200)
-		if got := characterCampaignID(t, 6); got != 2 {
-			t.Fatalf("expected char 6 to stay in campaign 2, got %d", got)
+		ids := characterCampaignIDs(t, 6)
+		if !hasMembership(ids, 2) || hasMembership(ids, 1) {
+			t.Fatalf("expected char 6 to stay in campaign 2 only, got %v", ids)
 		}
 	})
 }
@@ -179,13 +218,13 @@ func TestListCampaignCharacterCandidates(t *testing.T) {
 		if stranger {
 			t.Fatal("stranger-owned character must not appear as a candidate")
 		}
-		if otherCamp {
-			t.Fatal("character assigned to another campaign must not appear as a candidate")
+		if !otherCamp {
+			t.Fatal("character in another campaign must still appear as a candidate")
 		}
 	})
 
 	t.Run("attached characters are flagged in_roster", func(t *testing.T) {
-		if _, err := db.DB.Exec("UPDATE characters SET campaign_id=1 WHERE id=1"); err != nil {
+		if _, err := db.DB.Exec("INSERT OR IGNORE INTO campaign_characters(campaign_id, character_id) VALUES(1, 1)"); err != nil {
 			t.Fatalf("attach char 1: %v", err)
 		}
 		r := rosterRouter(rosterRoutes, 3, "player")

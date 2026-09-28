@@ -16,6 +16,13 @@ async function logoutAndLoginAs(page, username, password) {
     const o = document.getElementById('loadingOverlay');
     return o && o.classList.contains('d-none');
   }, { timeout: NAV_TIMEOUT }).catch(() => {});
+  // The API token is provisioned during init; without it, mutations made via
+  // window.api 401 with "API token required". Fail here with clear context.
+  await page.waitForFunction(
+    (user) => !!localStorage.getItem(`villum-api-token-${user}`),
+    username,
+    { timeout: NAV_TIMEOUT },
+  );
 }
 
 /**
@@ -122,7 +129,7 @@ test.describe('Campaign roster management', () => {
       const camp = await window.api('POST', '/api/campaigns', { name, party_name: 'Shared Party' });
       await window.api('POST', `/api/campaigns/${camp.id}/members`, { username: member });
       const adminCharRes = await window.api('POST', '/api/characters', {
-        name: adminChar, race: 'Dwarf', class: 'Cleric', campaign_id: camp.id,
+        name: adminChar, race: 'Dwarf', class: 'Cleric', campaign_ids: [camp.id],
       });
       return { campaignId: camp.id, adminCharId: adminCharRes.id };
     }, { name, member, adminChar });

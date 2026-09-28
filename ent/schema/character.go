@@ -53,7 +53,6 @@ func (Character) Fields() []ent.Field {
 		field.Int("death_saves_failures").Default(0),
 		field.Int("exhaustion_level").Default(0),
 		field.String("concentrating_on").Default(""),
-		field.Int64("campaign_id").Optional(),
 		field.Int64("compendium_race_id").Optional().Nillable(),
 		field.Int64("compendium_class_id").Optional().Nillable(),
 		field.Int64("compendium_background_id").Optional().Nillable(),
@@ -66,6 +65,7 @@ func (Character) Fields() []ent.Field {
 func (Character) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.From("user", User.Type).Ref("characters").Field("user_id").Unique().Required(),
+		edge.To("campaign_links", CampaignCharacter.Type),
 		edge.To("currency", CharacterCurrency.Type),
 		edge.To("proficiencies", CharacterProficiency.Type),
 		edge.To("features", CharacterFeature.Type),

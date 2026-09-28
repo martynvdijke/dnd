@@ -171,9 +171,16 @@ func SeedCharacterInCampaign(t *testing.T, id, userID, campaignID int64, name, r
 	t.Helper()
 	_, err := db.DB.Exec(
 		`INSERT OR IGNORE INTO characters(id, user_id, name, race, class, level,
-		 str, dex, con, int, wis, cha, hp_max, hp_current, ac, initiative, speed, campaign_id)
-		 VALUES(?, ?, ?, ?, ?, 1, 10, 10, 10, 10, 10, 10, 12, 12, 10, 0, 30, ?)`,
-		id, userID, name, race, class, campaignID,
+		 str, dex, con, int, wis, cha, hp_max, hp_current, ac, initiative, speed)
+		 VALUES(?, ?, ?, ?, ?, 1, 10, 10, 10, 10, 10, 10, 12, 12, 10, 0, 30)`,
+		id, userID, name, race, class,
+	)
+	if err != nil {
+		t.Fatalf("seed character: %v", err)
+	}
+	_, err = db.DB.Exec(
+		"INSERT OR IGNORE INTO campaign_characters(campaign_id, character_id) VALUES(?, ?)",
+		campaignID, id,
 	)
 	if err != nil {
 		t.Fatalf("seed character in campaign: %v", err)

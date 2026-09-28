@@ -235,6 +235,14 @@ func Init(dbPath string) error {
 		return err
 	}
 
+	// Move legacy characters.campaign_id links into campaign_characters and
+	// drop the column. Must run before ent's schema migration: ent rebuilds
+	// tables that have columns it no longer knows about, which would drop the
+	// legacy column and its data. No-op on databases that never had it.
+	if err := migrateCharacterCampaignMemberships(); err != nil {
+		return fmt.Errorf("character campaign memberships: %w", err)
+	}
+
 	// Auto-migrate ent schemas
 	if err := Client.Schema.Create(context.Background()); err != nil {
 		return fmt.Errorf("ent schema migrate: %w", err)

@@ -56,6 +56,18 @@ func (f CampaignCalendarEventFunc) Mutate(ctx context.Context, m ent.Mutation) (
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CampaignCalendarEventMutation", m)
 }
 
+// The CampaignCharacterFunc type is an adapter to allow the use of ordinary
+// function as CampaignCharacter mutator.
+type CampaignCharacterFunc func(context.Context, *ent.CampaignCharacterMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f CampaignCharacterFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.CampaignCharacterMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.CampaignCharacterMutation", m)
+}
+
 // The CampaignMapFunc type is an adapter to allow the use of ordinary
 // function as CampaignMap mutator.
 type CampaignMapFunc func(context.Context, *ent.CampaignMapMutation) (ent.Value, error)

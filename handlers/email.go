@@ -145,8 +145,8 @@ func SendCampaignHighlights(c *gin.Context) {
 
 	charRows, err := db.DB.Query(`
 		SELECT c.name, c.race, c.class, c.level, c.hp_max, c.hp_current, COALESCE(u.username, '')
-		FROM characters c LEFT JOIN users u ON u.id = c.user_id
-		WHERE c.campaign_id=? ORDER BY c.name`, req.CampaignID)
+		FROM characters c JOIN campaign_characters cm ON cm.character_id=c.id LEFT JOIN users u ON u.id = c.user_id
+		WHERE cm.campaign_id=? ORDER BY c.name`, req.CampaignID)
 	var chars []map[string]string
 	if err != nil {
 		middleware.LogWarn("email", "characters query failed", "error", err)
@@ -177,7 +177,8 @@ func SendCampaignHighlights(c *gin.Context) {
 	sessRows, err := db.DB.Query(`
 		SELECT s.title, s.session_date, s.important_events
 		FROM sessions s JOIN characters c ON c.id = s.character_id
-		WHERE c.campaign_id=? ORDER BY s.session_date DESC LIMIT 5`, req.CampaignID)
+		JOIN campaign_characters cm ON cm.character_id=c.id
+		WHERE cm.campaign_id=? ORDER BY s.session_date DESC LIMIT 5`, req.CampaignID)
 	var sessions []map[string]string
 	if err != nil {
 		middleware.LogWarn("email", "sessions query failed", "error", err)
@@ -198,7 +199,8 @@ func SendCampaignHighlights(c *gin.Context) {
 	questRows, err := db.DB.Query(`
 		SELECT q.name, q.status
 		FROM quests q JOIN characters c ON c.id = q.character_id
-		WHERE c.campaign_id=? AND q.status IN ('active','available')
+		JOIN campaign_characters cm ON cm.character_id=c.id
+		WHERE cm.campaign_id=? AND q.status IN ('active','available')
 		ORDER BY q.name LIMIT 10`, req.CampaignID)
 	var quests []map[string]string
 	if err != nil {

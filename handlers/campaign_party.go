@@ -11,6 +11,7 @@ import (
 	"villum/db"
 	"villum/ent"
 	"villum/ent/campaign"
+	"villum/ent/campaigncharacter"
 	"villum/ent/campaignmember"
 	"villum/ent/character"
 	"villum/ent/characterspellcasting"
@@ -93,17 +94,39 @@ func GetPartyView(c *gin.Context) {
 	}
 	var chars []*ent.Character
 	if includeAll {
-		chars, err = db.Client.Character.Query().WithUser().Order(character.ByCampaignID(), character.ByName()).All(ctx)
+		chars, err = db.Client.Character.Query().WithUser().Order(character.ByName()).All(ctx)
 	} else if len(uidList) == 0 {
 		WriteJSON(c, http.StatusOK, []CampaignGroup{})
 		return
 	} else {
-		chars, err = db.Client.Character.Query().Where(character.UserIDIn(uidList...)).WithUser().Order(character.ByCampaignID(), character.ByName()).All(ctx)
+		chars, err = db.Client.Character.Query().Where(character.UserIDIn(uidList...)).WithUser().Order(character.ByName()).All(ctx)
 	}
 	if err != nil {
 		WriteError(c, http.StatusInternalServerError, err)
 		return
 	}
+
+	// Characters are members of any number of campaigns; load the memberships
+	// for the visible characters in one query.
+	charIDs := make([]int64, 0, len(chars))
+	for _, ch := range chars {
+		charIDs = append(charIDs, ch.ID)
+	}
+	memberships := make(map[int64][]int64, len(charIDs))
+	if len(charIDs) > 0 {
+		links, lerr := db.Client.CampaignCharacter.Query().
+			Where(campaigncharacter.CharacterIDIn(charIDs...)).
+			Order(campaigncharacter.ByCampaignID()).
+			All(ctx)
+		if lerr != nil {
+			WriteError(c, http.StatusInternalServerError, lerr)
+			return
+		}
+		for _, link := range links {
+			memberships[link.CharacterID] = append(memberships[link.CharacterID], link.CampaignID)
+		}
+	}
+
 	campaigns := make(map[int64][]PartyMember)
 	var uncategorized []PartyMember
 	for _, ch := range chars {
@@ -119,18 +142,32 @@ func GetPartyView(c *gin.Context) {
 			raceColor = rc
 		}
 		pm := PartyMember{ID: ch.ID, UserID: ch.UserID, OwnerName: ownerName, Name: ch.Name, Race: ch.Race, RaceColor: raceColor, Class: ch.Class, Level: ch.Level, AC: ch.Ac, HPMax: ch.HpMax, HPCurrent: ch.HpCurrent, TempHP: ch.TempHp, Status: "alive", PortraitURL: ch.PortraitURL, CharacterType: ch.CharacterType, Owned: canEditCharacter(c, ch)}
-		if role == "admin" || (ch.CampaignID != 0 && dmCampaignIDs[ch.CampaignID]) {
+		charCampaignIDs := memberships[ch.ID]
+		if role == "admin" {
 			pm.DMNotes = ch.DmNotes
+		} else {
+			for _, cid := range charCampaignIDs {
+				if dmCampaignIDs[cid] {
+					pm.DMNotes = ch.DmNotes
+					break
+				}
+			}
 		}
 		if pm.HPCurrent <= 0 {
 			pm.Status = "down"
 		} else if float64(pm.HPCurrent)/float64(pm.HPMax) < 0.25 {
 			pm.Status = "injured"
 		}
-		if ch.CampaignID != 0 {
-			cid := ch.CampaignID
-			pm.CampaignID = &cid
-			campaigns[ch.CampaignID] = append(campaigns[ch.CampaignID], pm)
+		if len(charCampaignIDs) > 0 {
+			for _, cid := range charCampaignIDs {
+				if cid == 0 {
+					continue
+				}
+				campaignID := cid
+				member := pm
+				member.CampaignID = &campaignID
+				campaigns[cid] = append(campaigns[cid], member)
+			}
 		} else {
 			uncategorized = append(uncategorized, pm)
 		}

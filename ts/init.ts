@@ -85,30 +85,36 @@ const API_TOKEN_KEY = 'villum-api-token';
 // The token is scoped to the current user, so it is stored under a
 // user-specific key and never reused across a user switch.
 async function ensureApiToken(username: string): Promise<void> {
-  try {
-    const key = `${API_TOKEN_KEY}-${username}`;
-    const stored = localStorage.getItem(key);
-    if (stored) {
-      setApiToken(stored);
+  const key = `${API_TOKEN_KEY}-${username}`;
+  const stored = localStorage.getItem(key);
+  if (stored) {
+    setApiToken(stored);
+    return;
+  }
+  // The bootstrap can transiently fail under load. Retry briefly: a missing
+  // token would otherwise surface as a 401 on the user's first mutation.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const tokens = await api('GET', '/api/tokens');
+      const active = Array.isArray(tokens)
+        ? tokens.find((t: any) => !t.revoked_at && (!t.expires_at || new Date(t.expires_at) > new Date()))
+        : null;
+      if (active) {
+        // An active token exists but its secret was never stored locally
+        // (e.g. created from another device) — rotate to obtain a fresh secret.
+        const rotated = await api('POST', `/api/tokens/${active.id}/rotate`);
+        localStorage.setItem(key, rotated.token);
+        setApiToken(rotated.token);
+        return;
+      }
+      const created = await api('POST', '/api/tokens', { name: 'web-app' });
+      localStorage.setItem(key, created.token);
+      setApiToken(created.token);
       return;
+    } catch {
+      // Token bootstrap must not break the app shell; retry before giving up.
     }
-    const tokens = await api('GET', '/api/tokens');
-    const active = Array.isArray(tokens)
-      ? tokens.find((t: any) => !t.revoked_at && (!t.expires_at || new Date(t.expires_at) > new Date()))
-      : null;
-    if (active) {
-      // An active token exists but its secret was never stored locally
-      // (e.g. created from another device) — rotate to obtain a fresh secret.
-      const rotated = await api('POST', `/api/tokens/${active.id}/rotate`);
-      localStorage.setItem(key, rotated.token);
-      setApiToken(rotated.token);
-      return;
-    }
-    const created = await api('POST', '/api/tokens', { name: 'web-app' });
-    localStorage.setItem(key, created.token);
-    setApiToken(created.token);
-  } catch {
-    // Token bootstrap must not break the app shell.
+    await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
   }
 }
 
@@ -225,6 +231,8 @@ export async function init() {
     }
     if (location.hash && location.hash.length > 1) {
       navigateToInitialHash(applyRoute);
+    } else if (typeof (window as any).enterDefaultView === 'function') {
+      (window as any).enterDefaultView();
     } else {
       showView('characters');
     }

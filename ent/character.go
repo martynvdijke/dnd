@@ -95,8 +95,6 @@ type Character struct {
 	ExhaustionLevel int `json:"exhaustion_level,omitempty"`
 	// ConcentratingOn holds the value of the "concentrating_on" field.
 	ConcentratingOn string `json:"concentrating_on,omitempty"`
-	// CampaignID holds the value of the "campaign_id" field.
-	CampaignID int64 `json:"campaign_id,omitempty"`
 	// CompendiumRaceID holds the value of the "compendium_race_id" field.
 	CompendiumRaceID *int64 `json:"compendium_race_id,omitempty"`
 	// CompendiumClassID holds the value of the "compendium_class_id" field.
@@ -119,6 +117,8 @@ type Character struct {
 type CharacterEdges struct {
 	// User holds the value of the user edge.
 	User *User `json:"user,omitempty"`
+	// CampaignLinks holds the value of the campaign_links edge.
+	CampaignLinks []*CampaignCharacter `json:"campaign_links,omitempty"`
 	// Currency holds the value of the currency edge.
 	Currency []*CharacterCurrency `json:"currency,omitempty"`
 	// Proficiencies holds the value of the proficiencies edge.
@@ -167,7 +167,7 @@ type CharacterEdges struct {
 	CombatEntries []*CombatEntry `json:"combat_entries,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [24]bool
+	loadedTypes [25]bool
 }
 
 // UserOrErr returns the User value or an error if the edge
@@ -181,10 +181,19 @@ func (e CharacterEdges) UserOrErr() (*User, error) {
 	return nil, &NotLoadedError{edge: "user"}
 }
 
+// CampaignLinksOrErr returns the CampaignLinks value or an error if the edge
+// was not loaded in eager-loading.
+func (e CharacterEdges) CampaignLinksOrErr() ([]*CampaignCharacter, error) {
+	if e.loadedTypes[1] {
+		return e.CampaignLinks, nil
+	}
+	return nil, &NotLoadedError{edge: "campaign_links"}
+}
+
 // CurrencyOrErr returns the Currency value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) CurrencyOrErr() ([]*CharacterCurrency, error) {
-	if e.loadedTypes[1] {
+	if e.loadedTypes[2] {
 		return e.Currency, nil
 	}
 	return nil, &NotLoadedError{edge: "currency"}
@@ -193,7 +202,7 @@ func (e CharacterEdges) CurrencyOrErr() ([]*CharacterCurrency, error) {
 // ProficienciesOrErr returns the Proficiencies value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) ProficienciesOrErr() ([]*CharacterProficiency, error) {
-	if e.loadedTypes[2] {
+	if e.loadedTypes[3] {
 		return e.Proficiencies, nil
 	}
 	return nil, &NotLoadedError{edge: "proficiencies"}
@@ -202,7 +211,7 @@ func (e CharacterEdges) ProficienciesOrErr() ([]*CharacterProficiency, error) {
 // FeaturesOrErr returns the Features value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) FeaturesOrErr() ([]*CharacterFeature, error) {
-	if e.loadedTypes[3] {
+	if e.loadedTypes[4] {
 		return e.Features, nil
 	}
 	return nil, &NotLoadedError{edge: "features"}
@@ -211,7 +220,7 @@ func (e CharacterEdges) FeaturesOrErr() ([]*CharacterFeature, error) {
 // SpellcastingOrErr returns the Spellcasting value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) SpellcastingOrErr() ([]*CharacterSpellcasting, error) {
-	if e.loadedTypes[4] {
+	if e.loadedTypes[5] {
 		return e.Spellcasting, nil
 	}
 	return nil, &NotLoadedError{edge: "spellcasting"}
@@ -220,7 +229,7 @@ func (e CharacterEdges) SpellcastingOrErr() ([]*CharacterSpellcasting, error) {
 // SpellsOrErr returns the Spells value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) SpellsOrErr() ([]*Spell, error) {
-	if e.loadedTypes[5] {
+	if e.loadedTypes[6] {
 		return e.Spells, nil
 	}
 	return nil, &NotLoadedError{edge: "spells"}
@@ -229,7 +238,7 @@ func (e CharacterEdges) SpellsOrErr() ([]*Spell, error) {
 // InventoryOrErr returns the Inventory value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) InventoryOrErr() ([]*InventoryItem, error) {
-	if e.loadedTypes[6] {
+	if e.loadedTypes[7] {
 		return e.Inventory, nil
 	}
 	return nil, &NotLoadedError{edge: "inventory"}
@@ -238,7 +247,7 @@ func (e CharacterEdges) InventoryOrErr() ([]*InventoryItem, error) {
 // ClassesOrErr returns the Classes value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) ClassesOrErr() ([]*CharacterClass, error) {
-	if e.loadedTypes[7] {
+	if e.loadedTypes[8] {
 		return e.Classes, nil
 	}
 	return nil, &NotLoadedError{edge: "classes"}
@@ -247,7 +256,7 @@ func (e CharacterEdges) ClassesOrErr() ([]*CharacterClass, error) {
 // ConditionsOrErr returns the Conditions value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) ConditionsOrErr() ([]*CharacterCondition, error) {
-	if e.loadedTypes[8] {
+	if e.loadedTypes[9] {
 		return e.Conditions, nil
 	}
 	return nil, &NotLoadedError{edge: "conditions"}
@@ -256,7 +265,7 @@ func (e CharacterEdges) ConditionsOrErr() ([]*CharacterCondition, error) {
 // FeatsOrErr returns the Feats value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) FeatsOrErr() ([]*CharacterFeat, error) {
-	if e.loadedTypes[9] {
+	if e.loadedTypes[10] {
 		return e.Feats, nil
 	}
 	return nil, &NotLoadedError{edge: "feats"}
@@ -265,7 +274,7 @@ func (e CharacterEdges) FeatsOrErr() ([]*CharacterFeat, error) {
 // CompanionsOrErr returns the Companions value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) CompanionsOrErr() ([]*Companion, error) {
-	if e.loadedTypes[10] {
+	if e.loadedTypes[11] {
 		return e.Companions, nil
 	}
 	return nil, &NotLoadedError{edge: "companions"}
@@ -274,7 +283,7 @@ func (e CharacterEdges) CompanionsOrErr() ([]*Companion, error) {
 // NotesOrErr returns the Notes value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) NotesOrErr() ([]*CharacterNote, error) {
-	if e.loadedTypes[11] {
+	if e.loadedTypes[12] {
 		return e.Notes, nil
 	}
 	return nil, &NotLoadedError{edge: "notes"}
@@ -283,7 +292,7 @@ func (e CharacterEdges) NotesOrErr() ([]*CharacterNote, error) {
 // ResourcesOrErr returns the Resources value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) ResourcesOrErr() ([]*CharacterResource, error) {
-	if e.loadedTypes[12] {
+	if e.loadedTypes[13] {
 		return e.Resources, nil
 	}
 	return nil, &NotLoadedError{edge: "resources"}
@@ -292,7 +301,7 @@ func (e CharacterEdges) ResourcesOrErr() ([]*CharacterResource, error) {
 // CraftingOrErr returns the Crafting value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) CraftingOrErr() ([]*CharacterCrafting, error) {
-	if e.loadedTypes[13] {
+	if e.loadedTypes[14] {
 		return e.Crafting, nil
 	}
 	return nil, &NotLoadedError{edge: "crafting"}
@@ -301,7 +310,7 @@ func (e CharacterEdges) CraftingOrErr() ([]*CharacterCrafting, error) {
 // SessionsOrErr returns the Sessions value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) SessionsOrErr() ([]*Session, error) {
-	if e.loadedTypes[14] {
+	if e.loadedTypes[15] {
 		return e.Sessions, nil
 	}
 	return nil, &NotLoadedError{edge: "sessions"}
@@ -310,7 +319,7 @@ func (e CharacterEdges) SessionsOrErr() ([]*Session, error) {
 // QuestsOrErr returns the Quests value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) QuestsOrErr() ([]*Quest, error) {
-	if e.loadedTypes[15] {
+	if e.loadedTypes[16] {
 		return e.Quests, nil
 	}
 	return nil, &NotLoadedError{edge: "quests"}
@@ -319,7 +328,7 @@ func (e CharacterEdges) QuestsOrErr() ([]*Quest, error) {
 // JournalOrErr returns the Journal value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) JournalOrErr() ([]*JournalEntry, error) {
-	if e.loadedTypes[16] {
+	if e.loadedTypes[17] {
 		return e.Journal, nil
 	}
 	return nil, &NotLoadedError{edge: "journal"}
@@ -328,7 +337,7 @@ func (e CharacterEdges) JournalOrErr() ([]*JournalEntry, error) {
 // RestLogsOrErr returns the RestLogs value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) RestLogsOrErr() ([]*RestLog, error) {
-	if e.loadedTypes[17] {
+	if e.loadedTypes[18] {
 		return e.RestLogs, nil
 	}
 	return nil, &NotLoadedError{edge: "rest_logs"}
@@ -337,7 +346,7 @@ func (e CharacterEdges) RestLogsOrErr() ([]*RestLog, error) {
 // DowntimeActivitiesOrErr returns the DowntimeActivities value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) DowntimeActivitiesOrErr() ([]*DowntimeActivity, error) {
-	if e.loadedTypes[18] {
+	if e.loadedTypes[19] {
 		return e.DowntimeActivities, nil
 	}
 	return nil, &NotLoadedError{edge: "downtime_activities"}
@@ -346,7 +355,7 @@ func (e CharacterEdges) DowntimeActivitiesOrErr() ([]*DowntimeActivity, error) {
 // LevelUpPlansOrErr returns the LevelUpPlans value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) LevelUpPlansOrErr() ([]*LevelUpPlan, error) {
-	if e.loadedTypes[19] {
+	if e.loadedTypes[20] {
 		return e.LevelUpPlans, nil
 	}
 	return nil, &NotLoadedError{edge: "level_up_plans"}
@@ -355,7 +364,7 @@ func (e CharacterEdges) LevelUpPlansOrErr() ([]*LevelUpPlan, error) {
 // CharacterLocationsOrErr returns the CharacterLocations value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) CharacterLocationsOrErr() ([]*CharacterLocation, error) {
-	if e.loadedTypes[20] {
+	if e.loadedTypes[21] {
 		return e.CharacterLocations, nil
 	}
 	return nil, &NotLoadedError{edge: "character_locations"}
@@ -364,7 +373,7 @@ func (e CharacterEdges) CharacterLocationsOrErr() ([]*CharacterLocation, error) 
 // CharacterNpcsOrErr returns the CharacterNpcs value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) CharacterNpcsOrErr() ([]*CharacterNPC, error) {
-	if e.loadedTypes[21] {
+	if e.loadedTypes[22] {
 		return e.CharacterNpcs, nil
 	}
 	return nil, &NotLoadedError{edge: "character_npcs"}
@@ -373,7 +382,7 @@ func (e CharacterEdges) CharacterNpcsOrErr() ([]*CharacterNPC, error) {
 // FactionReputationsOrErr returns the FactionReputations value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) FactionReputationsOrErr() ([]*FactionReputation, error) {
-	if e.loadedTypes[22] {
+	if e.loadedTypes[23] {
 		return e.FactionReputations, nil
 	}
 	return nil, &NotLoadedError{edge: "faction_reputations"}
@@ -382,7 +391,7 @@ func (e CharacterEdges) FactionReputationsOrErr() ([]*FactionReputation, error) 
 // CombatEntriesOrErr returns the CombatEntries value or an error if the edge
 // was not loaded in eager-loading.
 func (e CharacterEdges) CombatEntriesOrErr() ([]*CombatEntry, error) {
-	if e.loadedTypes[23] {
+	if e.loadedTypes[24] {
 		return e.CombatEntries, nil
 	}
 	return nil, &NotLoadedError{edge: "combat_entries"}
@@ -393,7 +402,7 @@ func (*Character) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case character.FieldID, character.FieldUserID, character.FieldLevel, character.FieldXp, character.FieldStr, character.FieldDex, character.FieldCon, character.FieldInt, character.FieldWis, character.FieldCha, character.FieldAc, character.FieldInitiative, character.FieldSpeed, character.FieldHpMax, character.FieldHpCurrent, character.FieldTempHp, character.FieldHitDiceCurrent, character.FieldProficiencyBonus, character.FieldInspiration, character.FieldPassivePerception, character.FieldHpAutoCalc, character.FieldDeathSavesSuccesses, character.FieldDeathSavesFailures, character.FieldExhaustionLevel, character.FieldCampaignID, character.FieldCompendiumRaceID, character.FieldCompendiumClassID, character.FieldCompendiumBackgroundID:
+		case character.FieldID, character.FieldUserID, character.FieldLevel, character.FieldXp, character.FieldStr, character.FieldDex, character.FieldCon, character.FieldInt, character.FieldWis, character.FieldCha, character.FieldAc, character.FieldInitiative, character.FieldSpeed, character.FieldHpMax, character.FieldHpCurrent, character.FieldTempHp, character.FieldHitDiceCurrent, character.FieldProficiencyBonus, character.FieldInspiration, character.FieldPassivePerception, character.FieldHpAutoCalc, character.FieldDeathSavesSuccesses, character.FieldDeathSavesFailures, character.FieldExhaustionLevel, character.FieldCompendiumRaceID, character.FieldCompendiumClassID, character.FieldCompendiumBackgroundID:
 			values[i] = new(sql.NullInt64)
 		case character.FieldName, character.FieldRace, character.FieldClass, character.FieldSubclass, character.FieldBackground, character.FieldAlignment, character.FieldHitDice, character.FieldPersonalityTraits, character.FieldIdeals, character.FieldBonds, character.FieldFlaws, character.FieldAppearance, character.FieldBackstory, character.FieldPortraitURL, character.FieldDmNotes, character.FieldConcentratingOn, character.FieldCharacterType, character.FieldCreatedAt, character.FieldUpdatedAt:
 			values[i] = new(sql.NullString)
@@ -652,12 +661,6 @@ func (_m *Character) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.ConcentratingOn = value.String
 			}
-		case character.FieldCampaignID:
-			if value, ok := values[i].(*sql.NullInt64); !ok {
-				return fmt.Errorf("unexpected type %T for field campaign_id", values[i])
-			} else if value.Valid {
-				_m.CampaignID = value.Int64
-			}
 		case character.FieldCompendiumRaceID:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
 				return fmt.Errorf("unexpected type %T for field compendium_race_id", values[i])
@@ -713,6 +716,11 @@ func (_m *Character) Value(name string) (ent.Value, error) {
 // QueryUser queries the "user" edge of the Character entity.
 func (_m *Character) QueryUser() *UserQuery {
 	return NewCharacterClient(_m.config).QueryUser(_m)
+}
+
+// QueryCampaignLinks queries the "campaign_links" edge of the Character entity.
+func (_m *Character) QueryCampaignLinks() *CampaignCharacterQuery {
+	return NewCharacterClient(_m.config).QueryCampaignLinks(_m)
 }
 
 // QueryCurrency queries the "currency" edge of the Character entity.
@@ -969,9 +977,6 @@ func (_m *Character) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("concentrating_on=")
 	builder.WriteString(_m.ConcentratingOn)
-	builder.WriteString(", ")
-	builder.WriteString("campaign_id=")
-	builder.WriteString(fmt.Sprintf("%v", _m.CampaignID))
 	builder.WriteString(", ")
 	if v := _m.CompendiumRaceID; v != nil {
 		builder.WriteString("compendium_race_id=")

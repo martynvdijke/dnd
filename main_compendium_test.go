@@ -689,8 +689,8 @@ func TestShareLinks(t *testing.T) {
 	// Assign character to campaign
 	tc.put(fmt.Sprintf("/api/characters/%d", cid), map[string]any{
 		"name": "Shareable Hero", "race": "Elf", "class": "Ranger", "level": 3,
-		"campaign_id": campaignID,
-		"str":         12, "dex": 16, "con": 14, "int": 10, "wis": 14, "cha": 8,
+		"campaign_ids": []int{campaignID},
+		"str":          12, "dex": 16, "con": 14, "int": 10, "wis": 14, "cha": 8,
 		"hp_max": 28, "hp_current": 22, "ac": 15, "initiative": 3, "speed": 30,
 	})
 

@@ -163,7 +163,7 @@ func CastSpell(c *gin.Context) {
 	}
 
 	var campaignID int64
-	db.DB.QueryRow("SELECT COALESCE(campaign_id,0) FROM characters WHERE id=?", charID).Scan(&campaignID)
+	db.DB.QueryRow("SELECT COALESCE((SELECT campaign_id FROM campaign_characters WHERE character_id=? ORDER BY campaign_id LIMIT 1),0)", charID).Scan(&campaignID)
 	var campPtr *int64
 	if campaignID > 0 {
 		campPtr = &campaignID

@@ -313,7 +313,7 @@ func TestCampaigns(t *testing.T) {
 	// Create character in campaign
 	resp = tc.post("/api/characters", map[string]any{
 		"name": "Campaign Hero", "race": "Half-Elf", "class": "Paladin",
-		"campaign_id": cid,
+		"campaign_ids": []int{cid},
 	})
 	if resp.Code != 201 {
 		t.Fatalf("create char in campaign failed: %d", resp.Code)
@@ -491,8 +491,8 @@ func TestPartyView(t *testing.T) {
 	cid := int(camp["id"].(float64))
 
 	// Create characters assigned to campaign
-	tc.post("/api/characters", map[string]any{"name": "Party Hero 1", "race": "Human", "class": "Fighter", "hp_max": 30, "hp_current": 25, "campaign_id": cid})
-	tc.post("/api/characters", map[string]any{"name": "Party Hero 2", "race": "Elf", "class": "Wizard", "hp_max": 20, "hp_current": 20, "campaign_id": cid})
+	tc.post("/api/characters", map[string]any{"name": "Party Hero 1", "race": "Human", "class": "Fighter", "hp_max": 30, "hp_current": 25, "campaign_ids": []int{cid}})
+	tc.post("/api/characters", map[string]any{"name": "Party Hero 2", "race": "Elf", "class": "Wizard", "hp_max": 20, "hp_current": 20, "campaign_ids": []int{cid}})
 
 	resp = tc.get("/api/party", nil)
 	if resp.Code != 200 {
@@ -595,7 +595,7 @@ func TestCampaignGraphData(t *testing.T) {
 
 	resp = tc.post("/api/characters", map[string]any{
 		"name": "Graph Hero", "race": "Elf", "class": "Ranger",
-		"campaign_id": campID, "level": 3,
+		"campaign_ids": []int{campID}, "level": 3,
 	})
 	var char map[string]any
 	readJSON(resp, &char)

@@ -53,7 +53,7 @@ func retrieveCampaignContext(campaignID, userID int64, isAdmin bool, query strin
 		}
 		return out
 	}
-	add("character", queryIDs("SELECT id FROM characters WHERE campaign_id=?", campaignID))
+	add("character", queryIDs("SELECT c.id FROM characters c JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=?", campaignID))
 	add("campaign", queryIDs("SELECT id FROM campaigns WHERE id=?", campaignID))
 	add("wiki", queryIDs("SELECT id FROM campaign_wiki_pages WHERE campaign_id=?", campaignID))
 	add("timeline", queryIDs("SELECT id FROM campaign_timeline_events WHERE campaign_id=?", campaignID))
@@ -63,10 +63,10 @@ func retrieveCampaignContext(campaignID, userID int64, isAdmin bool, query strin
 	add("adventure", queryIDs("SELECT id FROM oneshot_adventures WHERE campaign_id=?", campaignID))
 	add("encounter", queryIDs("SELECT id FROM encounter_templates WHERE campaign_id=?", campaignID))
 	add("npc", queryIDs("SELECT npc_id FROM campaign_npcs WHERE campaign_id=?", campaignID))
-	add("session", queryIDs("SELECT s.id FROM sessions s JOIN characters c ON s.character_id=c.id WHERE c.campaign_id=?", campaignID))
-	add("quest", queryIDs("SELECT q.id FROM quests q JOIN characters c ON q.character_id=c.id WHERE c.campaign_id=?", campaignID))
-	add("journal", queryIDs("SELECT j.id FROM journal j JOIN characters c ON j.character_id=c.id WHERE c.campaign_id=?", campaignID))
-	add("note", queryIDs("SELECT n.id FROM character_notes n JOIN characters c ON n.character_id=c.id WHERE c.campaign_id=?", campaignID))
+	add("session", queryIDs("SELECT s.id FROM sessions s JOIN characters c ON s.character_id=c.id JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=?", campaignID))
+	add("quest", queryIDs("SELECT q.id FROM quests q JOIN characters c ON q.character_id=c.id JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=?", campaignID))
+	add("journal", queryIDs("SELECT j.id FROM journal j JOIN characters c ON j.character_id=c.id JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=?", campaignID))
+	add("note", queryIDs("SELECT n.id FROM character_notes n JOIN characters c ON n.character_id=c.id JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=?", campaignID))
 	add("recap", queryIDs("SELECT id FROM campaign_recaps WHERE campaign_id=?", campaignID))
 
 	ftsQ := buildFTS5Query(query)

@@ -249,11 +249,6 @@ func ConcentratingOn(v string) predicate.Character {
 	return predicate.Character(sql.FieldEQ(FieldConcentratingOn, v))
 }
 
-// CampaignID applies equality check predicate on the "campaign_id" field. It's identical to CampaignIDEQ.
-func CampaignID(v int64) predicate.Character {
-	return predicate.Character(sql.FieldEQ(FieldCampaignID, v))
-}
-
 // CompendiumRaceID applies equality check predicate on the "compendium_race_id" field. It's identical to CompendiumRaceIDEQ.
 func CompendiumRaceID(v int64) predicate.Character {
 	return predicate.Character(sql.FieldEQ(FieldCompendiumRaceID, v))
@@ -2224,56 +2219,6 @@ func ConcentratingOnContainsFold(v string) predicate.Character {
 	return predicate.Character(sql.FieldContainsFold(FieldConcentratingOn, v))
 }
 
-// CampaignIDEQ applies the EQ predicate on the "campaign_id" field.
-func CampaignIDEQ(v int64) predicate.Character {
-	return predicate.Character(sql.FieldEQ(FieldCampaignID, v))
-}
-
-// CampaignIDNEQ applies the NEQ predicate on the "campaign_id" field.
-func CampaignIDNEQ(v int64) predicate.Character {
-	return predicate.Character(sql.FieldNEQ(FieldCampaignID, v))
-}
-
-// CampaignIDIn applies the In predicate on the "campaign_id" field.
-func CampaignIDIn(vs ...int64) predicate.Character {
-	return predicate.Character(sql.FieldIn(FieldCampaignID, vs...))
-}
-
-// CampaignIDNotIn applies the NotIn predicate on the "campaign_id" field.
-func CampaignIDNotIn(vs ...int64) predicate.Character {
-	return predicate.Character(sql.FieldNotIn(FieldCampaignID, vs...))
-}
-
-// CampaignIDGT applies the GT predicate on the "campaign_id" field.
-func CampaignIDGT(v int64) predicate.Character {
-	return predicate.Character(sql.FieldGT(FieldCampaignID, v))
-}
-
-// CampaignIDGTE applies the GTE predicate on the "campaign_id" field.
-func CampaignIDGTE(v int64) predicate.Character {
-	return predicate.Character(sql.FieldGTE(FieldCampaignID, v))
-}
-
-// CampaignIDLT applies the LT predicate on the "campaign_id" field.
-func CampaignIDLT(v int64) predicate.Character {
-	return predicate.Character(sql.FieldLT(FieldCampaignID, v))
-}
-
-// CampaignIDLTE applies the LTE predicate on the "campaign_id" field.
-func CampaignIDLTE(v int64) predicate.Character {
-	return predicate.Character(sql.FieldLTE(FieldCampaignID, v))
-}
-
-// CampaignIDIsNil applies the IsNil predicate on the "campaign_id" field.
-func CampaignIDIsNil() predicate.Character {
-	return predicate.Character(sql.FieldIsNull(FieldCampaignID))
-}
-
-// CampaignIDNotNil applies the NotNil predicate on the "campaign_id" field.
-func CampaignIDNotNil() predicate.Character {
-	return predicate.Character(sql.FieldNotNull(FieldCampaignID))
-}
-
 // CompendiumRaceIDEQ applies the EQ predicate on the "compendium_race_id" field.
 func CompendiumRaceIDEQ(v int64) predicate.Character {
 	return predicate.Character(sql.FieldEQ(FieldCompendiumRaceID, v))
@@ -2634,6 +2579,29 @@ func HasUser() predicate.Character {
 func HasUserWith(preds ...predicate.User) predicate.Character {
 	return predicate.Character(func(s *sql.Selector) {
 		step := newUserStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasCampaignLinks applies the HasEdge predicate on the "campaign_links" edge.
+func HasCampaignLinks() predicate.Character {
+	return predicate.Character(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, CampaignLinksTable, CampaignLinksColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCampaignLinksWith applies the HasEdge predicate on the "campaign_links" edge with a given conditions (other predicates).
+func HasCampaignLinksWith(preds ...predicate.CampaignCharacter) predicate.Character {
+	return predicate.Character(func(s *sql.Selector) {
+		step := newCampaignLinksStep()
 		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
 			for _, p := range preds {
 				p(s)

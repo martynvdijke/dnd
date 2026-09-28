@@ -475,6 +475,29 @@ func HasMembersWith(preds ...predicate.CampaignMember) predicate.Campaign {
 	})
 }
 
+// HasCharacterLinks applies the HasEdge predicate on the "character_links" edge.
+func HasCharacterLinks() predicate.Campaign {
+	return predicate.Campaign(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, CharacterLinksTable, CharacterLinksColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasCharacterLinksWith applies the HasEdge predicate on the "character_links" edge with a given conditions (other predicates).
+func HasCharacterLinksWith(preds ...predicate.CampaignCharacter) predicate.Campaign {
+	return predicate.Campaign(func(s *sql.Selector) {
+		step := newCharacterLinksStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
 // HasCalendarEvents applies the HasEdge predicate on the "calendar_events" edge.
 func HasCalendarEvents() predicate.Campaign {
 	return predicate.Campaign(func(s *sql.Selector) {

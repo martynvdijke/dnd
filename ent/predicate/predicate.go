@@ -18,6 +18,9 @@ type Campaign func(*sql.Selector)
 // CampaignCalendarEvent is the predicate function for campaigncalendarevent builders.
 type CampaignCalendarEvent func(*sql.Selector)
 
+// CampaignCharacter is the predicate function for campaigncharacter builders.
+type CampaignCharacter func(*sql.Selector)
+
 // CampaignMap is the predicate function for campaignmap builders.
 type CampaignMap func(*sql.Selector)
 
