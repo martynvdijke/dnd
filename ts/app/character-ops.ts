@@ -112,6 +112,14 @@ expose('printChar', async function () {
   }
 });
 
+expose('exportPdf', function () {
+  if (!currentChar) return;
+  const win = window.open(`/api/characters/${currentChar.id}/print?format=html`, '_blank');
+  if (win) {
+    win.addEventListener('load', () => win.print());
+  }
+});
+
 expose('deleteChar', async function () {
   if (!currentChar) return;
   if (!confirm('Delete this character?')) return;

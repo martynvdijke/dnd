@@ -64,4 +64,32 @@ test.describe('Character management', () => {
     const abilityValues = await page.locator('.ability-box .stepper-value').allTextContents();
     expect(abilityValues.length).toBeGreaterThanOrEqual(6);
   });
+
+  test('exports a printable PDF sheet', async ({ page }) => {
+    const name = uniqueName();
+    await page.getByTestId('new-character').click();
+    await page.fill('#newName', name);
+    await page.fill('#newRace', 'Halfling');
+    await page.fill('#newClass', 'Rogue');
+    await page.click('.modal button:has-text("Create")');
+    await waitModalClosed(page);
+
+    await page.locator('.character-card').filter({ hasText: name }).click();
+    await waitLoadingDone(page);
+    await expect(page.getByTestId('export-pdf')).toBeVisible();
+
+    const id = await page.evaluate(async (n) => {
+      const res = await fetch('/api/characters', { credentials: 'include' });
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : (data.characters || []);
+      const c = list.find((x: any) => x.name === n);
+      return c ? c.id : 0;
+    }, name);
+    expect(id).toBeGreaterThan(0);
+
+    const resp = await page.request.get(`/api/characters/${id}/print?format=html`);
+    expect(resp.status()).toBe(200);
+    expect(resp.headers()['content-type']).toContain('text/html');
+    expect(await resp.text()).toContain(name);
+  });
 });

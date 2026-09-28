@@ -27,9 +27,10 @@ type dndBeyondSource struct{}
 type foundryActorSource struct{}
 type fiveEToolsSource struct{}
 type foundryPackSource struct{}
+type open5eSource struct{}
 
 var characterSources = map[string]CharacterSource{"dndbeyond": dndBeyondSource{}, "foundry-actor": foundryActorSource{}}
-var compendiumSources = map[string]CompendiumSource{"5etools": fiveEToolsSource{}, "foundry-pack": foundryPackSource{}}
+var compendiumSources = map[string]CompendiumSource{"5etools": fiveEToolsSource{}, "foundry-pack": foundryPackSource{}, "open5e": open5eSource{}}
 
 func (dndBeyondSource) Parse(raw []byte) ([]models.ImportCharacter, error) {
 	var top map[string]any
@@ -490,6 +491,32 @@ func (foundryPackSource) Parse(raw []byte) ([]map[string]any, error) {
 		}
 	}
 	return nil, fmt.Errorf("invalid JSON: expected array or entries/items object")
+}
+
+// open5eSource parses Open5e API responses. Open5e returns
+// {"count":N,"next":url,"previous":url,"results":[...]}; a bare array or a
+// single entry object is also accepted for hand-saved payloads.
+func (open5eSource) Parse(raw []byte) ([]map[string]any, error) {
+	var arr []map[string]any
+	if err := json.Unmarshal(raw, &arr); err == nil {
+		return arr, nil
+	}
+	var obj map[string]any
+	if err := json.Unmarshal(raw, &obj); err != nil {
+		return nil, fmt.Errorf("invalid JSON: %w", err)
+	}
+	if results, ok := obj["results"].([]any); ok {
+		out := make([]map[string]any, 0, len(results))
+		for _, e := range results {
+			m, ok := e.(map[string]any)
+			if !ok {
+				return nil, fmt.Errorf("invalid entry type")
+			}
+			out = append(out, m)
+		}
+		return out, nil
+	}
+	return []map[string]any{obj}, nil
 }
 
 func suggestMapping(entries []map[string]any, fields []models.SchemaField) []FieldMapping {

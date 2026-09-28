@@ -676,6 +676,12 @@ func PrintCharacter(c *gin.Context) {
 	ch.Currency = loadCurrency(ctx, ch.ID)
 	computeMods(ch)
 
+	if c.DefaultQuery("format", "text") == "html" {
+		c.Header("Content-Type", "text/html; charset=utf-8")
+		c.String(http.StatusOK, characterToHTML(ch))
+		return
+	}
+
 	c.Header("Content-Type", "text/plain; charset=utf-8")
 	c.String(http.StatusOK, characterToText(ch))
 }
