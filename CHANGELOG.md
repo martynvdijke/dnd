@@ -1,3 +1,10 @@
+# [2.84.0](https://github.com/martynvdijke/dnd/compare/v2.83.0...v2.84.0) (2026-09-28)
+
+
+### Features
+
+* add Open5e compendium import and printable character sheets ([#156](https://github.com/martynvdijke/dnd/issues/156)) ([f4239da](https://github.com/martynvdijke/dnd/commit/f4239dacca03fc89b5a45b4544c3de705076c005))
+
 # [2.83.0](https://github.com/martynvdijke/dnd/compare/v2.82.0...v2.83.0) (2026-09-28)
 
 
