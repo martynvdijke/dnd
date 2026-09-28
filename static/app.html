@@ -18,11 +18,11 @@
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
 </head>
 <body>
-<a href="#main" class="skip-link" data-testid="skip-link">Skip to content</a>
+<a href="#main" class="skip-link" data-testid="skip-link" data-i18n="skip.link">Skip to content</a>
 <!-- Offline Indicator -->
 <div id="offlineBanner" class="offline-banner" style="display:none">
   <i class="fa-solid fa-wifi-slash me-1" aria-hidden="true"></i>
-  You are offline — some features may be unavailable
+  <span data-i18n="offline.banner">You are offline — some features may be unavailable</span>
 </div>
 
 <nav class="navbar navbar-expand-md sticky-top">
@@ -33,32 +33,36 @@
     </button>
     <div class="collapse navbar-collapse" id="mainNav">
       <ul class="navbar-nav me-auto mb-2 mb-md-0">
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showView('characters');loadCharacters();return false"><i class="fa-solid fa-users me-1" aria-hidden="true"></i>Characters</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showParty();return false"><i class="fa-solid fa-flag me-1" aria-hidden="true"></i>Party View</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showCompendium();return false"><i class="fa-solid fa-book me-1" aria-hidden="true"></i>Compendium</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showView('dice');renderDiceTab();return false"><i class="fa-solid fa-dice me-1" aria-hidden="true"></i>Dice</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showEncounterBuilder();return false"><i class="fa-solid fa-crosshairs me-1" aria-hidden="true"></i>Encounters</a></li>
-        <li class="nav-item" id="oneshotNavItem" style="display:none"><a class="nav-link" href="#" onclick="showOneShots();return false"><i class="fa-solid fa-scroll me-1" aria-hidden="true"></i>One-Shots</a></li>
-        <li class="nav-item" id="combatNavItem" style="display:none"><a class="nav-link" href="#" onclick="showCombatTracker();return false"><i class="fa-solid fa-swords me-1" aria-hidden="true"></i>Combat</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showTimeline();return false"><i class="fa-solid fa-timeline me-1" aria-hidden="true"></i>Timeline</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showWorld();return false"><i class="fa-solid fa-map me-1" aria-hidden="true"></i>World</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="showRecaps();return false" data-testid="nav-recaps"><i class="fa-solid fa-book-open me-1" aria-hidden="true"></i>Sessions</a></li>
-        <li class="nav-item" id="factionsNavItem" style="display:none"><a class="nav-link" href="#" onclick="showFactions();return false"><i class="fa-solid fa-flag me-1" aria-hidden="true"></i>Factions</a></li>
-        <li class="nav-item" id="shopsNavItem" style="display:none"><a class="nav-link" href="#" onclick="showShops();return false"><i class="fa-solid fa-store me-1" aria-hidden="true"></i>Shops</a></li>
-        <li class="nav-item" id="knowledgeNavItem" style="display:none"><a class="nav-link" href="#" onclick="showKnowledge();return false"><i class="fa-solid fa-lightbulb me-1" aria-hidden="true"></i>Knowledge</a></li>
-        <li class="nav-item" id="copilotNavItem" style="display:none"><a class="nav-link" href="#" onclick="showCopilot();return false"><i class="fa-solid fa-robot me-1" aria-hidden="true"></i>Copilot</a></li>
-        <li class="nav-item" id="adminNavItem" style="display:none"><a class="nav-link" href="/admin"><i class="fa-solid fa-shield-halved me-1" aria-hidden="true"></i>Admin</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showView('characters');loadCharacters();return false"><i class="fa-solid fa-users me-1" aria-hidden="true"></i><span data-i18n="nav.characters">Characters</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showParty();return false"><i class="fa-solid fa-flag me-1" aria-hidden="true"></i><span data-i18n="nav.party">Party View</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showCompendium();return false"><i class="fa-solid fa-book me-1" aria-hidden="true"></i><span data-i18n="nav.compendium">Compendium</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showView('dice');renderDiceTab();return false"><i class="fa-solid fa-dice me-1" aria-hidden="true"></i><span data-i18n="nav.dice">Dice</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showEncounterBuilder();return false"><i class="fa-solid fa-crosshairs me-1" aria-hidden="true"></i><span data-i18n="nav.encounters">Encounters</span></a></li>
+        <li class="nav-item" id="oneshotNavItem" style="display:none"><a class="nav-link" href="#" onclick="showOneShots();return false"><i class="fa-solid fa-scroll me-1" aria-hidden="true"></i><span data-i18n="nav.oneshots">One-Shots</span></a></li>
+        <li class="nav-item" id="combatNavItem" style="display:none"><a class="nav-link" href="#" onclick="showCombatTracker();return false"><i class="fa-solid fa-swords me-1" aria-hidden="true"></i><span data-i18n="nav.combat">Combat</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showTimeline();return false"><i class="fa-solid fa-timeline me-1" aria-hidden="true"></i><span data-i18n="nav.timeline">Timeline</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showWorld();return false"><i class="fa-solid fa-map me-1" aria-hidden="true"></i><span data-i18n="nav.world">World</span></a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="showRecaps();return false" data-testid="nav-recaps"><i class="fa-solid fa-book-open me-1" aria-hidden="true"></i><span data-i18n="nav.sessions">Sessions</span></a></li>
+        <li class="nav-item" id="factionsNavItem" style="display:none"><a class="nav-link" href="#" onclick="showFactions();return false"><i class="fa-solid fa-flag me-1" aria-hidden="true"></i><span data-i18n="nav.factions">Factions</span></a></li>
+        <li class="nav-item" id="shopsNavItem" style="display:none"><a class="nav-link" href="#" onclick="showShops();return false"><i class="fa-solid fa-store me-1" aria-hidden="true"></i><span data-i18n="nav.shops">Shops</span></a></li>
+        <li class="nav-item" id="knowledgeNavItem" style="display:none"><a class="nav-link" href="#" onclick="showKnowledge();return false"><i class="fa-solid fa-lightbulb me-1" aria-hidden="true"></i><span data-i18n="nav.knowledge">Knowledge</span></a></li>
+        <li class="nav-item" id="copilotNavItem" style="display:none"><a class="nav-link" href="#" onclick="showCopilot();return false"><i class="fa-solid fa-robot me-1" aria-hidden="true"></i><span data-i18n="nav.copilot">Copilot</span></a></li>
+        <li class="nav-item" id="adminNavItem" style="display:none"><a class="nav-link" href="/admin"><i class="fa-solid fa-shield-halved me-1" aria-hidden="true"></i><span data-i18n="nav.admin">Admin</span></a></li>
       </ul>
       <div class="d-flex me-2" role="search">
         <div class="input-group input-group-sm">
-          <input class="form-control" type="search" id="searchInput" data-testid="search-input" placeholder="Search everything..." aria-label="Search" style="min-width:180px">
+          <input class="form-control" type="search" id="searchInput" data-testid="search-input" placeholder="Search everything..." data-i18n-placeholder="search.placeholder" aria-label="Search" data-i18n-aria-label="search.aria" style="min-width:180px">
           <button class="btn btn-outline-gold" id="searchBtn" data-testid="search-submit"><i class="fa-solid fa-search" aria-hidden="true"></i></button>
         </div>
       </div>
       <span class="navbar-text me-3" id="userName"></span>
-      <a href="#" class="btn btn-outline-primary btn-sm" onclick="logout();return false"><i class="fa-solid fa-right-from-bracket me-1" aria-hidden="true"></i>Logout</a>
+      <a href="#" class="btn btn-outline-primary btn-sm" onclick="logout();return false"><i class="fa-solid fa-right-from-bracket me-1" aria-hidden="true"></i><span data-i18n="action.logout">Logout</span></a>
     </div>
-    <button class="btn btn-outline-gold btn-sm me-2" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode"><i class="fa-solid fa-moon" aria-hidden="true" id="themeIcon"></i></button>
+    <select class="form-select form-select-sm locale-select me-2" id="localeSelect" data-testid="locale-select" aria-label="Language" data-i18n-aria-label="locale.label" data-i18n-title="locale.label" title="Language" onchange="setLocale(this.value)">
+      <option value="en">English</option>
+      <option value="nl">Nederlands</option>
+    </select>
+    <button class="btn btn-outline-gold btn-sm me-2" id="themeToggle" onclick="toggleTheme()" data-i18n-title="theme.toggle" title="Toggle dark/light mode"><i class="fa-solid fa-moon" aria-hidden="true" id="themeIcon"></i></button>
   </div>
 </nav>
 
@@ -75,22 +79,22 @@
   </div>
   <div class="sidebar-section">
     <ul class="sidebar-nav">
-      <li><button class="sidebar-nav-item active" data-nav="characters" data-testid="nav-characters" onclick="showView('characters');loadCharacters()"><i class="fa-solid fa-users" aria-hidden="true"></i><span class="sidebar-label">Characters</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="party" data-testid="nav-party" onclick="showParty()"><i class="fa-solid fa-flag" aria-hidden="true"></i><span class="sidebar-label">Party View</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="shared" data-testid="nav-shared" onclick="openSharedLinks()"><i class="fa-solid fa-share-nodes" aria-hidden="true"></i><span class="sidebar-label">Shared Links</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="compendium" data-testid="nav-compendium" onclick="showCompendium()"><i class="fa-solid fa-book" aria-hidden="true"></i><span class="sidebar-label">Compendium</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="dice" data-testid="nav-dice" onclick="showView('dice');renderDiceTab()"><i class="fa-solid fa-dice" aria-hidden="true"></i><span class="sidebar-label">Dice</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="encounters" data-testid="nav-encounters" onclick="showEncounterBuilder()"><i class="fa-solid fa-crosshairs" aria-hidden="true"></i><span class="sidebar-label">Encounters</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="oneshots" data-testid="nav-oneshots" id="sidebarOneshotNav" style="display:none" onclick="showOneShots()"><i class="fa-solid fa-scroll" aria-hidden="true"></i><span class="sidebar-label">One-Shots</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="combat" data-testid="nav-combat" id="sidebarCombatNav" style="display:none" onclick="showCombatTracker()"><i class="fa-solid fa-swords" aria-hidden="true"></i><span class="sidebar-label">Combat</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="timeline" data-testid="nav-timeline" onclick="showTimeline()"><i class="fa-solid fa-timeline" aria-hidden="true"></i><span class="sidebar-label">Timeline</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="world" data-testid="nav-world" onclick="showWorld()"><i class="fa-solid fa-map" aria-hidden="true"></i><span class="sidebar-label">World</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="recaps" data-testid="nav-recaps" onclick="showRecaps()"><i class="fa-solid fa-book-open" aria-hidden="true"></i><span class="sidebar-label">Sessions</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="factions" data-testid="nav-factions" id="sidebarFactionsNav" style="display:none" onclick="showFactions()"><i class="fa-solid fa-flag" aria-hidden="true"></i><span class="sidebar-label">Factions</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="shops" data-testid="nav-shops" id="sidebarShopsNav" style="display:none" onclick="showShops()"><i class="fa-solid fa-store" aria-hidden="true"></i><span class="sidebar-label">Shops</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="knowledge" data-testid="nav-knowledge" id="sidebarKnowledgeNav" style="display:none" onclick="showKnowledge()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i><span class="sidebar-label">Knowledge</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="copilot" data-testid="nav-copilot" id="sidebarCopilotNav" style="display:none" onclick="showCopilot()"><i class="fa-solid fa-robot" aria-hidden="true"></i><span class="sidebar-label">Copilot</span></button></li>
-      <li><button class="sidebar-nav-item" data-nav="admin" data-testid="nav-admin" id="sidebarAdminNav" style="display:none" onclick="window.location.href='/admin'"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i><span class="sidebar-label">Admin</span></button></li>
+      <li><button class="sidebar-nav-item active" data-nav="characters" data-testid="nav-characters" onclick="showView('characters');loadCharacters()"><i class="fa-solid fa-users" aria-hidden="true"></i><span class="sidebar-label" data-i18n="nav.characters">Characters</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="party" data-testid="nav-party" onclick="showParty()"><i class="fa-solid fa-flag" aria-hidden="true"></i><span class="sidebar-label" data-i18n="nav.party">Party View</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="shared" data-testid="nav-shared" onclick="openSharedLinks()"><i class="fa-solid fa-share-nodes" aria-hidden="true"></i><span class="sidebar-label" data-i18n="nav.shared">Shared Links</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="compendium" data-testid="nav-compendium" onclick="showCompendium()"><i class="fa-solid fa-book" aria-hidden="true"></i><span class="sidebar-label" data-i18n="nav.compendium">Compendium</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="dice" data-testid="nav-dice" onclick="showView('dice');renderDiceTab()"><i class="fa-solid fa-dice" aria-hidden="true"></i><span class="sidebar-label" data-i18n="nav.dice">Dice</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="encounters" data-testid="nav-encounters" onclick="showEncounterBuilder()"><i class="fa-solid fa-crosshairs" aria-hidden="true"></i><span class="sidebar-label" data-i18n="nav.encounters">Encounters</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="oneshots" data-testid="nav-oneshots" id="sidebarOneshotNav" style="display:none" onclick="showOneShots()"><i class="fa-solid fa-scroll" aria-hidden="true"></i><span class="sidebar-label" data-i18n="nav.oneshots">One-Shots</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="combat" data-testid="nav-combat" id="sidebarCombatNav" style="display:none" onclick="showCombatTracker()"><i class="fa-solid fa-swords" aria-hidden="true"></i><span class="sidebar-label" data-i18n="nav.combat">Combat</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="timeline" data-testid="nav-timeline" onclick="showTimeline()"><i class="fa-solid fa-timeline" aria-hidden="true"></i><span class="sidebar-label" data-i18n="nav.timeline">Timeline</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="world" data-testid="nav-world" onclick="showWorld()"><i class="fa-solid fa-map" aria-hidden="true"></i><span class="sidebar-label" data-i18n="nav.world">World</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="recaps" data-testid="nav-recaps" onclick="showRecaps()"><i class="fa-solid fa-book-open" aria-hidden="true"></i><span class="sidebar-label" data-i18n="nav.sessions">Sessions</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="factions" data-testid="nav-factions" id="sidebarFactionsNav" style="display:none" onclick="showFactions()"><i class="fa-solid fa-flag" aria-hidden="true"></i><span class="sidebar-label" data-i18n="nav.factions">Factions</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="shops" data-testid="nav-shops" id="sidebarShopsNav" style="display:none" onclick="showShops()"><i class="fa-solid fa-store" aria-hidden="true"></i><span class="sidebar-label" data-i18n="nav.shops">Shops</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="knowledge" data-testid="nav-knowledge" id="sidebarKnowledgeNav" style="display:none" onclick="showKnowledge()"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i><span class="sidebar-label" data-i18n="nav.knowledge">Knowledge</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="copilot" data-testid="nav-copilot" id="sidebarCopilotNav" style="display:none" onclick="showCopilot()"><i class="fa-solid fa-robot" aria-hidden="true"></i><span class="sidebar-label" data-i18n="nav.copilot">Copilot</span></button></li>
+      <li><button class="sidebar-nav-item" data-nav="admin" data-testid="nav-admin" id="sidebarAdminNav" style="display:none" onclick="window.location.href='/admin'"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i><span class="sidebar-label" data-i18n="nav.admin">Admin</span></button></li>
     </ul>
   </div>
   <div class="sidebar-section" style="margin-top:auto;border-top:1px solid var(--border-light);padding-top:0.5rem">
@@ -276,23 +280,23 @@
   <div class="bottom-tab-bar" id="bottomTabBar">
     <button class="bottom-tab-item active" data-nav="characters" data-testid="nav-characters" onclick="showView('characters');loadCharacters()">
       <i class="fa-solid fa-users" aria-hidden="true"></i>
-      <span>Characters</span>
+      <span data-i18n="nav.characters">Characters</span>
     </button>
     <button class="bottom-tab-item" data-nav="party" data-testid="nav-party" onclick="showParty()">
       <i class="fa-solid fa-flag" aria-hidden="true"></i>
-      <span>Party</span>
+      <span data-i18n="nav.partyShort">Party</span>
     </button>
     <button class="bottom-tab-item" data-nav="dice" data-testid="nav-dice" onclick="showView('dice');renderDiceTab()">
       <i class="fa-solid fa-dice" aria-hidden="true"></i>
-      <span>Dice</span>
+      <span data-i18n="nav.dice">Dice</span>
     </button>
     <button class="bottom-tab-item" data-nav="compendium" data-testid="nav-compendium" onclick="showCompendium()">
       <i class="fa-solid fa-book" aria-hidden="true"></i>
-      <span>Compendium</span>
+      <span data-i18n="nav.compendium">Compendium</span>
     </button>
     <button class="bottom-tab-item" data-nav="more" data-testid="nav-more" id="moreTabBtn" onclick="showMoreNav()">
       <i class="fa-solid fa-ellipsis" aria-hidden="true"></i>
-      <span>More</span>
+      <span data-i18n="nav.more">More</span>
     </button>
   </div>
 

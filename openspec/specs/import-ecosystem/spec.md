@@ -15,7 +15,7 @@ The system SHALL import characters from D&D Beyond and Foundry VTT actor payload
 - **THEN** abilities, HP, AC and owned weapons are mapped into a Villum character
 
 ### Requirement: External compendium import
-The system SHALL import 5e.tools and Foundry JSON source packs into a compendium schema using field mapping, reusing the existing compendium import pipeline for validation, dedup and logging.
+The system SHALL import 5e.tools, Foundry JSON source packs, and Open5e API payloads into a compendium schema using field mapping, reusing the existing compendium import pipeline for validation, dedup and logging.
 
 #### Scenario: 5e.tools pack imported
 - **WHEN** a user imports a 5e.tools JSON file into a schema
@@ -24,6 +24,14 @@ The system SHALL import 5e.tools and Foundry JSON source packs into a compendium
 #### Scenario: Foundry LevelDB pack rejected clearly
 - **WHEN** a user supplies a Foundry LevelDB `.db` pack
 - **THEN** the system reports that only JSON source packs are supported and imports nothing
+
+#### Scenario: Open5e payload imported
+- **WHEN** a user imports an Open5e API response (a `results` array) into a schema
+- **THEN** each result becomes a compendium entry under that schema with names mapped from the source
+
+#### Scenario: Open5e fetched by URL
+- **WHEN** a user imports from an Open5e API URL
+- **THEN** the response is fetched through the existing SSRF-guarded, size-bounded fetch and parsed as Open5e results
 
 ### Requirement: Dry-run preview
 Every external import SHALL support a dry-run that reports, without writing, how many rows would be created, skipped, or treated as duplicates.
