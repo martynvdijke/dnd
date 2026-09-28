@@ -1,13 +1,15 @@
 /**
  * Battlemap: the campaign's active map as a tactical surface with draggable
  * tokens. Tokens linked to a combat entry mirror its live HP/AC, so the board
- * is fed by the encounter tracker.
+ * is fed by the encounter tracker. An SVG overlay draws token auras, DM-authored
+ * line-of-sight walls, and the selected token's visibility polygon.
  */
 import { expose } from './lib/expose';
 import { api } from './lib/api';
 import { esc, showModal, hideModal, toast } from './lib/dom';
 import { showView } from './navigation';
 import { currentCampaign } from './lib/state';
+import { computeVisibilityPolygon, polygonPath, type Segment } from './lib/vision';
 
 interface BattlemapToken {
   id: number;
@@ -21,15 +23,26 @@ interface BattlemapToken {
   hp_max?: number;
   ac?: number;
   conditions?: string;
+  aura_radius?: number;
+  vision_radius?: number;
 }
 
 interface BattlemapData {
   map: {
     id: number; name: string; image_url: string; width: number; height: number;
-    grid_size: number; grid_units: string;
+    grid_size: number; grid_units: string; walls?: Segment[];
   } | null;
   tokens: BattlemapToken[];
 }
+
+// Board state kept between renders so toggles do not refetch.
+let lastData: BattlemapData | null = null;
+let lastCid: number | null = null;
+let wallMode = false;
+let visionOn = false;
+let selectedTokenId: number | null = null;
+let pendingWalls: Segment[] = [];
+let pendingPoint: { x: number; y: number } | null = null;
 
 function campaignId(): number | null {
   return (currentCampaign as any)?.id ?? null;
@@ -44,11 +57,25 @@ function gridOverlay(map: BattlemapData['map']): string {
   return `<div style="position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(to right, rgba(255,255,255,.14) 1px, transparent 1px),linear-gradient(to bottom, rgba(255,255,255,.14) 1px, transparent 1px);background-size:${100 / cols}% ${100 / rows}%"></div>`;
 }
 
+function parseConditions(raw?: string): string[] {
+  if (!raw) return [];
+  try {
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.map(String) : [];
+  } catch {
+    return raw.split(',').map((s) => s.trim()).filter(Boolean);
+  }
+}
+
 function tokenHtml(t: BattlemapToken): string {
   const size = 46 * (t.size || 1);
   const hp = t.hp_max != null && t.hp_current != null
     ? `<div style="margin-top:3px;background:#000;border-radius:3px;width:${size}px;height:5px;overflow:hidden"><div style="height:100%;width:${Math.max(0, Math.min(100, Math.round((t.hp_current / Math.max(1, t.hp_max)) * 100)))}%;background:${t.hp_current / Math.max(1, t.hp_max) > 0.5 ? '#2f9e44' : t.hp_current / Math.max(1, t.hp_max) > 0.25 ? '#d9a441' : '#e03131'}"></div></div>
        <span class="bm-hp" style="font-size:10px;color:#fff;text-shadow:0 0 3px #000">${t.hp_current}/${t.hp_max}</span>`
+    : '';
+  const conds = parseConditions(t.conditions);
+  const badges = conds.length
+    ? `<div class="bm-conditions" style="display:flex;gap:2px;flex-wrap:wrap;justify-content:center;max-width:${size + 20}px">${conds.map((c) => `<span class="bm-condition" style="font-size:9px;background:#5c1f1f;color:#ffd7d7;border-radius:3px;padding:0 3px;white-space:nowrap">${esc(c)}</span>`).join('')}</div>`
     : '';
   return `
     <div class="bm-token" data-id="${t.id}" data-name="${esc(t.name)}"
@@ -56,8 +83,79 @@ function tokenHtml(t: BattlemapToken): string {
       <div style="width:${size}px;height:${size}px;border-radius:50%;background:${esc(t.color)};border:2px solid #111;box-shadow:0 2px 6px rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;user-select:none" title="${esc(t.name)}${t.ac != null ? ' · AC ' + t.ac : ''}">${esc(t.name.slice(0, 2).toUpperCase())}</div>
       <span style="font-size:11px;color:#fff;text-shadow:0 0 3px #000;white-space:nowrap">${esc(t.name)}</span>
       ${hp}
+      ${badges}
       <button class="btn btn-sm btn-outline-danger bm-remove" style="position:absolute;top:-8px;right:-8px;--bs-btn-padding-y:0;--bs-btn-padding-x:4px;--bs-btn-font-size:9px;line-height:1" onclick="event.stopPropagation();battlemapRemoveToken(${t.id})" title="Remove token">×</button>
     </div>`;
+}
+
+/** SVG overlay: auras, walls, and the vision mask. Coordinates are map pixels. */
+function overlaySvg(map: BattlemapData['map'], tokens: BattlemapToken[]): string {
+  const w = map?.width || 1000;
+  const h = map?.height || 800;
+  const g = map?.grid_size || 50;
+  const walls: Segment[] = [...(map?.walls || []), ...pendingWalls];
+  const parts: string[] = [];
+
+  for (const t of tokens) {
+    const r = (t.aura_radius || 0) * g;
+    if (r > 0) {
+      parts.push(`<circle class="bm-aura" cx="${t.x * w}" cy="${t.y * h}" r="${r}" fill="${esc(t.color)}" fill-opacity="0.16" stroke="${esc(t.color)}" stroke-opacity="0.5" stroke-width="2"/>`);
+    }
+  }
+  for (const s of walls) {
+    parts.push(`<line class="bm-wall" x1="${s.x1 * w}" y1="${s.y1 * h}" x2="${s.x2 * w}" y2="${s.y2 * h}" stroke="#e0b84a" stroke-width="3" stroke-linecap="round"/>`);
+  }
+  if (pendingPoint) {
+    parts.push(`<circle cx="${pendingPoint.x * w}" cy="${pendingPoint.y * h}" r="4" fill="#e0b84a"/>`);
+  }
+
+  if (visionOn && selectedTokenId != null) {
+    const t = tokens.find((x) => x.id === selectedTokenId);
+    if (t) {
+      const radius = (t.vision_radius || 12) * g;
+      const poly = computeVisibilityPolygon({ x: t.x * w, y: t.y * h }, walls, radius);
+      if (poly.length) {
+        parts.push(`<path class="bm-vision-mask" d="M 0 0 H ${w} V ${h} H 0 Z ${polygonPath(poly)}" fill="rgba(0,0,0,0.72)" fill-rule="evenodd"/>`);
+      }
+    }
+  }
+
+  return `<svg id="bmOverlay" data-testid="bm-overlay" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1">${parts.join('')}</svg>`;
+}
+
+function toolbar(cid: number, map: BattlemapData['map'], tokens: BattlemapToken[]): string {
+  const tokenOptions = tokens.map((t) => `<option value="${t.id}" ${t.id === selectedTokenId ? 'selected' : ''}>${esc(t.name)}</option>`).join('');
+  return `
+    <div class="d-flex gap-2 mb-2 align-items-center flex-wrap">
+      <button class="btn btn-sm btn-gold" onclick="battlemapSync(${cid})"><i class="fa-solid fa-arrows-to-dot me-1"></i>Sync Combatants</button>
+      <button class="btn btn-sm btn-outline-light" onclick="battlemapAddToken(${cid})"><i class="fa-solid fa-plus me-1"></i>Add Token</button>
+      <button class="btn btn-sm ${wallMode ? 'btn-warning' : 'btn-outline-light'}" data-testid="bm-walls-toggle" onclick="battlemapToggleWalls()"><i class="fa-solid fa-grip-lines-vertical me-1"></i>Walls</button>
+      ${wallMode ? `<button class="btn btn-sm btn-success" data-testid="bm-walls-save" onclick="battlemapSaveWalls()">Save Walls</button>
+        <button class="btn btn-sm btn-outline-danger" data-testid="bm-walls-clear" onclick="battlemapClearWalls()">Clear</button>` : ''}
+      <button class="btn btn-sm ${visionOn ? 'btn-warning' : 'btn-outline-light'}" data-testid="bm-vision-toggle" onclick="battlemapToggleVision()"><i class="fa-solid fa-eye me-1"></i>Vision</button>
+      ${visionOn ? `<select class="form-select form-select-sm" style="width:auto" data-testid="bm-vision-token" onchange="battlemapVisionToken(this.value)"><option value="">— viewer —</option>${tokenOptions}</select>` : ''}
+      ${map ? `<span class="ms-auto small text-muted">${esc(map.name)} · grid ${map.grid_size}${esc(map.grid_units || '')}</span>` : ''}
+    </div>`;
+}
+
+function renderBoard(): void {
+  const el = document.getElementById('battlemapContent');
+  if (!el || !lastData || lastCid == null) return;
+  const map = lastData.map;
+  const bg = map?.image_url
+    ? `background-image:url('${esc(map.image_url)}');background-size:cover;background-position:center`
+    : 'background:#15130f';
+  el.innerHTML = `
+    ${toolbar(lastCid, map, lastData.tokens)}
+    ${!map ? '<p class="text-muted">No map yet — add one in the World view first.</p>' : ''}
+    <div id="battlemapBoard" data-testid="battlemap-board"
+         style="position:relative;width:100%;aspect-ratio:${map?.width || 1000}/${map?.height || 800};${bg};border:1px solid var(--bs-border-color);border-radius:8px;overflow:hidden">
+      ${map ? gridOverlay(map) : ''}
+      ${map ? overlaySvg(map, lastData.tokens) : ''}
+      ${lastData.tokens.map(tokenHtml).join('')}
+    </div>`;
+  attachDrag();
+  attachWallClicks();
 }
 
 export async function showBattlemap(campaignIdOverride?: number): Promise<void> {
@@ -76,23 +174,9 @@ export async function showBattlemap(campaignIdOverride?: number): Promise<void> 
     el.innerHTML = `<p class="text-danger">Could not load the battlemap (${esc(e.message || 'error')}).</p>`;
     return;
   }
-  const map = data.map;
-  const bg = map?.image_url
-    ? `background-image:url('${esc(map.image_url)}');background-size:cover;background-position:center`
-    : 'background:#15130f';
-  el.innerHTML = `
-    <div class="d-flex gap-2 mb-2 align-items-center">
-      <button class="btn btn-sm btn-gold" onclick="battlemapSync(${cid})"><i class="fa-solid fa-arrows-to-dot me-1"></i>Sync Combatants</button>
-      <button class="btn btn-sm btn-outline-light" onclick="battlemapAddToken(${cid})"><i class="fa-solid fa-plus me-1"></i>Add Token</button>
-      ${map ? `<span class="ms-auto small text-muted">${esc(map.name)} · grid ${map.grid_size}${esc(map.grid_units || '')}</span>` : ''}
-    </div>
-    ${!map ? '<p class="text-muted">No map yet — add one in the World view first.</p>' : ''}
-    <div id="battlemapBoard" data-testid="battlemap-board"
-         style="position:relative;width:100%;aspect-ratio:${map?.width || 1000}/${map?.height || 800};${bg};border:1px solid var(--bs-border-color);border-radius:8px;overflow:hidden">
-      ${map ? gridOverlay(map) : ''}
-      ${data.tokens.map(tokenHtml).join('')}
-    </div>`;
-  attachDrag();
+  lastData = data;
+  lastCid = cid;
+  renderBoard();
 }
 
 function attachDrag(): void {
@@ -100,6 +184,7 @@ function attachDrag(): void {
   if (!board) return;
   board.querySelectorAll<HTMLElement>('.bm-token').forEach(tok => {
     tok.addEventListener('pointerdown', (ev) => {
+      if (wallMode) return;
       if ((ev.target as HTMLElement).classList.contains('bm-remove')) return;
       ev.preventDefault();
       tok.setPointerCapture(ev.pointerId);
@@ -130,11 +215,66 @@ function attachDrag(): void {
   });
 }
 
+/** In wall mode, clicking the board adds a point; every two points form a wall. */
+function attachWallClicks(): void {
+  const board = document.getElementById('battlemapBoard');
+  if (!board || !wallMode) return;
+  board.style.cursor = 'crosshair';
+  board.addEventListener('pointerdown', (ev) => {
+    const rect = board.getBoundingClientRect();
+    const p = {
+      x: Math.min(1, Math.max(0, (ev.clientX - rect.left) / rect.width)),
+      y: Math.min(1, Math.max(0, (ev.clientY - rect.top) / rect.height)),
+    };
+    if (!pendingPoint) {
+      pendingPoint = p;
+    } else {
+      pendingWalls.push({ x1: pendingPoint.x, y1: pendingPoint.y, x2: p.x, y2: p.y });
+      pendingPoint = null;
+    }
+    renderBoard();
+  });
+}
+
 async function refresh(campaignId: number): Promise<void> {
   await showBattlemap(campaignId);
 }
 
 expose('showBattlemap', showBattlemap);
+
+expose('battlemapToggleWalls', function () {
+  wallMode = !wallMode;
+  pendingPoint = null;
+  renderBoard();
+});
+
+expose('battlemapToggleVision', function () {
+  visionOn = !visionOn;
+  renderBoard();
+});
+
+expose('battlemapVisionToken', function (value: string) {
+  selectedTokenId = value ? Number(value) : null;
+  renderBoard();
+});
+
+expose('battlemapSaveWalls', async function () {
+  if (lastCid == null || !lastData?.map) return;
+  const walls = [...(lastData.map.walls || []), ...pendingWalls];
+  try {
+    await api('PUT', `/api/maps/${lastData.map.id}/walls`, { walls });
+    pendingWalls = [];
+    pendingPoint = null;
+    toast('Walls saved');
+    await refresh(lastCid);
+  } catch (e: any) { toast(e.message, true); }
+});
+
+expose('battlemapClearWalls', function () {
+  pendingWalls = [];
+  pendingPoint = null;
+  renderBoard();
+});
 
 expose('battlemapSync', async function (campaignId: number) {
   try {
@@ -154,7 +294,9 @@ expose('battlemapAddToken', async function (campaignId: number) {
     <label class="form-label small">Name</label>
     <input id="bmTokenName" class="form-control mb-2" placeholder="Optional for a combatant">
     <label class="form-label small">Colour</label>
-    <input id="bmTokenColor" type="color" class="form-control form-control-color mb-3" value="#b8963e">
+    <input id="bmTokenColor" type="color" class="form-control form-control-color mb-2" value="#b8963e">
+    <label class="form-label small">Aura radius (grid cells)</label>
+    <input id="bmTokenAura" type="number" min="0" step="1" class="form-control mb-3" value="0">
     <button class="btn btn-gold w-100" onclick="battlemapSaveToken(${campaignId})">Add</button>`);
 });
 
@@ -162,9 +304,11 @@ expose('battlemapSaveToken', async function (campaignId: number) {
   const entry = (document.getElementById('bmTokenEntry') as HTMLSelectElement)?.value;
   const name = (document.getElementById('bmTokenName') as HTMLInputElement)?.value || '';
   const color = (document.getElementById('bmTokenColor') as HTMLInputElement)?.value || '#b8963e';
+  const aura = Number((document.getElementById('bmTokenAura') as HTMLInputElement)?.value || 0);
   try {
     await api('POST', `/api/campaigns/${campaignId}/battlemap/tokens`, {
       combat_entry_id: entry ? Number(entry) : null, name, color,
+      aura_radius: aura,
       x: 0.5 + (Math.random() - 0.5) * 0.2, y: 0.5 + (Math.random() - 0.5) * 0.2,
     });
     hideModal();

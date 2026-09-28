@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -30,6 +31,8 @@ type battlemapToken struct {
 	HPMax         *int    `json:"hp_max,omitempty"`
 	AC            *int    `json:"ac,omitempty"`
 	Conditions    string  `json:"conditions,omitempty"`
+	AuraRadius    float64 `json:"aura_radius"`
+	VisionRadius  float64 `json:"vision_radius"`
 }
 
 type battlemapTokenRequest struct {
@@ -39,6 +42,8 @@ type battlemapTokenRequest struct {
 	Y             *float64 `json:"y"`
 	Color         string   `json:"color"`
 	Size          *float64 `json:"size"`
+	AuraRadius    *float64 `json:"aura_radius"`
+	VisionRadius  *float64 `json:"vision_radius"`
 }
 
 func clamp01(v float64) float64 {
@@ -56,7 +61,7 @@ func scanBattlemapToken(scan func(dest ...any) error) (battlemapToken, error) {
 	var entryID sql.NullInt64
 	var hpCur, hpMax, ac sql.NullInt64
 	var conds sql.NullString
-	err := scan(&t.ID, &t.CampaignID, &entryID, &t.Name, &t.X, &t.Y, &t.Color, &t.Size, &hpCur, &hpMax, &ac, &conds)
+	err := scan(&t.ID, &t.CampaignID, &entryID, &t.Name, &t.X, &t.Y, &t.Color, &t.Size, &hpCur, &hpMax, &ac, &conds, &t.AuraRadius, &t.VisionRadius)
 	if entryID.Valid {
 		t.CombatEntryID = &entryID.Int64
 	}
@@ -78,7 +83,7 @@ func scanBattlemapToken(scan func(dest ...any) error) (battlemapToken, error) {
 
 const battlemapTokenSelect = `
 SELECT t.id, t.campaign_id, t.combat_entry_id, t.name, t.x, t.y, t.color, t.size,
-       ce.hp_current, ce.hp_max, ce.ac, ce.condition_ids
+       ce.hp_current, ce.hp_max, ce.ac, ce.condition_ids, t.aura_radius, t.vision_radius
 FROM battlemap_tokens t
 LEFT JOIN combat_entries ce ON ce.id = t.combat_entry_id
 WHERE t.campaign_id = ? ORDER BY t.id`
@@ -104,18 +109,18 @@ func loadBattlemapTokens(campaignID int64) []battlemapToken {
 // surface, or nil when the campaign has no map yet.
 func campaignBattlemapMeta(campaignID int64) gin.H {
 	var id int64
-	var name, imageURL, gridUnits string
+	var name, imageURL, gridUnits, walls string
 	var width, height, gridSize int
 	err := db.DB.QueryRow(`
-		SELECT id, name, image_url, width, height, grid_size, COALESCE(grid_units,'ft')
+		SELECT id, name, image_url, width, height, grid_size, COALESCE(grid_units,'ft'), COALESCE(walls,'[]')
 		FROM campaign_maps WHERE campaign_id = ?
 		ORDER BY is_active DESC, id LIMIT 1`, campaignID).
-		Scan(&id, &name, &imageURL, &width, &height, &gridSize, &gridUnits)
+		Scan(&id, &name, &imageURL, &width, &height, &gridSize, &gridUnits, &walls)
 	if err != nil {
 		return nil
 	}
 	return gin.H{"id": id, "name": name, "image_url": imageURL, "width": width,
-		"height": height, "grid_size": gridSize, "grid_units": gridUnits}
+		"height": height, "grid_size": gridSize, "grid_units": gridUnits, "walls": json.RawMessage(walls)}
 }
 
 // GetCampaignBattlemap returns the active map plus every token for the campaign.
@@ -171,9 +176,16 @@ func CreateBattlemapToken(c *gin.Context) {
 	if color == "" {
 		color = "#b8963e"
 	}
+	var aura, vision float64
+	if req.AuraRadius != nil && *req.AuraRadius > 0 {
+		aura = *req.AuraRadius
+	}
+	if req.VisionRadius != nil && *req.VisionRadius > 0 {
+		vision = *req.VisionRadius
+	}
 	res, err := db.DB.Exec(`
-		INSERT INTO battlemap_tokens (campaign_id, combat_entry_id, name, x, y, color, size)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`, campaignID, req.CombatEntryID, name, x, y, color, size)
+		INSERT INTO battlemap_tokens (campaign_id, combat_entry_id, name, x, y, color, size, aura_radius, vision_radius)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, campaignID, req.CombatEntryID, name, x, y, color, size, aura, vision)
 	if err != nil {
 		WriteError(c, http.StatusInternalServerError, strErr("could not create token"))
 		return
@@ -224,6 +236,12 @@ func UpdateBattlemapToken(c *gin.Context) {
 	}
 	if req.Size != nil && *req.Size > 0 {
 		db.DB.Exec("UPDATE battlemap_tokens SET size=?, updated_at=datetime('now') WHERE id=?", *req.Size, id)
+	}
+	if req.AuraRadius != nil {
+		db.DB.Exec("UPDATE battlemap_tokens SET aura_radius=?, updated_at=datetime('now') WHERE id=?", *req.AuraRadius, id)
+	}
+	if req.VisionRadius != nil {
+		db.DB.Exec("UPDATE battlemap_tokens SET vision_radius=?, updated_at=datetime('now') WHERE id=?", *req.VisionRadius, id)
 	}
 	SendBattlemapUpdate(campaignID)
 	var updated *battlemapToken
