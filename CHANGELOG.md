@@ -1,3 +1,10 @@
+# [2.83.0](https://github.com/martynvdijke/dnd/compare/v2.82.0...v2.83.0) (2026-09-28)
+
+
+### Features
+
+* add battlemap line-of-sight, walls, and token auras ([#155](https://github.com/martynvdijke/dnd/issues/155)) ([f7804d6](https://github.com/martynvdijke/dnd/commit/f7804d678dff7fb6d934c7d9ac4344be2be6d31a))
+
 # [2.82.0](https://github.com/martynvdijke/dnd/compare/v2.81.0...v2.82.0) (2026-09-27)
 
 
