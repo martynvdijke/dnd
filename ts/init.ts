@@ -225,6 +225,8 @@ export async function init() {
     }
     if (location.hash && location.hash.length > 1) {
       navigateToInitialHash(applyRoute);
+    } else if (typeof (window as any).enterDefaultView === 'function') {
+      (window as any).enterDefaultView();
     } else {
       showView('characters');
     }

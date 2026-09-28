@@ -146,7 +146,7 @@ func TestTransferImport(t *testing.T) {
 
 	// Build a transfer envelope that imports campaign+character to user 2.
 	// old_id=1 campaign should get remapped to a new ID, and the character's
-	// campaign_id should follow.
+	// campaign membership should follow.
 	envelope := TransferEnvelope{
 		VillumTransfer: TransferMeta{
 			Version:    1,
@@ -165,12 +165,12 @@ func TestTransferImport(t *testing.T) {
 			{
 				Type: "character", OriginalID: 1,
 				Data: map[string]any{
-					"name":        "Imported Hero",
-					"race":        "Elf",
-					"class":       "Ranger",
-					"level":       3,
-					"campaign_id": int64(1), // references old campaign ID
-					"str":         int64(12), "dex": int64(16), "con": int64(14),
+					"name":         "Imported Hero",
+					"race":         "Elf",
+					"class":        "Ranger",
+					"level":        3,
+					"campaign_ids": []any{int64(1)}, // references old campaign ID
+					"str":          int64(12), "dex": int64(16), "con": int64(14),
 					"int": int64(10), "wis": int64(14), "cha": int64(10),
 					"hp_max": int64(30), "hp_current": int64(30),
 					"ac": int64(15), "initiative": int64(3), "speed": int64(30),
@@ -228,15 +228,19 @@ func TestTransferImport(t *testing.T) {
 		if partyName != "New Party" {
 			t.Errorf("expected party_name 'New Party', got %s", partyName)
 		}
-		// Verify character was inserted with campaign_id remapped.
-		var charCampaignID int64
+		// Verify character was inserted with its membership remapped.
+		var charID, charCampaignID int64
 		var charName string
-		err = db.DB.QueryRow("SELECT campaign_id, name FROM characters WHERE name='Imported Hero'").Scan(&charCampaignID, &charName)
+		err = db.DB.QueryRow("SELECT id, name FROM characters WHERE name='Imported Hero'").Scan(&charID, &charName)
 		if err != nil {
 			t.Fatalf("character not found: %v", err)
 		}
+		err = db.DB.QueryRow("SELECT campaign_id FROM campaign_characters WHERE character_id=?", charID).Scan(&charCampaignID)
+		if err != nil {
+			t.Fatalf("character membership not found: %v", err)
+		}
 		if charCampaignID != newCampaignID {
-			t.Errorf("expected character campaign_id %d (remapped), got %d", newCampaignID, charCampaignID)
+			t.Errorf("expected character membership %d (remapped), got %d", newCampaignID, charCampaignID)
 		}
 		// Character should be owned by user 2.
 		var userID int64

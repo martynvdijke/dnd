@@ -122,7 +122,7 @@ test.describe('Campaign roster management', () => {
       const camp = await window.api('POST', '/api/campaigns', { name, party_name: 'Shared Party' });
       await window.api('POST', `/api/campaigns/${camp.id}/members`, { username: member });
       const adminCharRes = await window.api('POST', '/api/characters', {
-        name: adminChar, race: 'Dwarf', class: 'Cleric', campaign_id: camp.id,
+        name: adminChar, race: 'Dwarf', class: 'Cleric', campaign_ids: [camp.id],
       });
       return { campaignId: camp.id, adminCharId: adminCharRes.id };
     }, { name, member, adminChar });

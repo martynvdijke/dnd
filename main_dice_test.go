@@ -307,7 +307,7 @@ func TestCampaignDashboard(t *testing.T) {
 	// Add a character
 	resp = tc.post("/api/characters", map[string]any{
 		"name": "Dash Hero", "race": "Human", "class": "Fighter",
-		"hp_max": 30, "hp_current": 25, "campaign_id": cid,
+		"hp_max": 30, "hp_current": 25, "campaign_ids": []int{cid},
 	})
 	var char map[string]any
 	readJSON(resp, &char)

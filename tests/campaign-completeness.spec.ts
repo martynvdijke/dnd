@@ -29,7 +29,7 @@ test.describe('Campaign Completeness', () => {
         str: 15, dex: 14, con: 13, int: 12, wis: 10, cha: 8,
         hp_max: 50, hp_current: 50,
         ac: 17, speed: 30,
-        campaign_id: cid,
+        campaign_ids: [cid],
       });
     }, campaignId);
   });

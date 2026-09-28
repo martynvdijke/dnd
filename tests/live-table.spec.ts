@@ -13,7 +13,7 @@ test.describe('Live Table', () => {
     const charName = uniqueName();
     const campId = await page.evaluate(async (opts) => {
       const c = await window.api('POST', '/api/campaigns', { name: opts.campName, description: 'lt', dm_notes: '' });
-      await window.api('POST', '/api/characters', { name: opts.charName, race: 'Human', class: 'Fighter', level: 1, campaign_id: c.id, hp_max: 10, hp_current: 10, ac: 15 });
+      await window.api('POST', '/api/characters', { name: opts.charName, race: 'Human', class: 'Fighter', level: 1, campaign_ids: [c.id], hp_max: 10, hp_current: 10, ac: 15 });
       return c.id;
     }, { campName, charName });
 
@@ -33,7 +33,7 @@ test.describe('Live Table', () => {
     const charName = uniqueName();
     const campId = await page.evaluate(async (opts) => {
       const c = await window.api('POST', '/api/campaigns', { name: opts.campName, description: 'lt', dm_notes: '' });
-      await window.api('POST', '/api/characters', { name: opts.charName, race: 'Human', class: 'Fighter', level: 1, campaign_id: c.id, hp_max: 10, hp_current: 10, ac: 15 });
+      await window.api('POST', '/api/characters', { name: opts.charName, race: 'Human', class: 'Fighter', level: 1, campaign_ids: [c.id], hp_max: 10, hp_current: 10, ac: 15 });
       return c.id;
     }, { campName, charName });
 
@@ -51,7 +51,7 @@ test.describe('Live Table', () => {
     const hiddenTitle = `Hidden-${uniqueName()}`;
     const campId = await page.evaluate(async (opts) => {
       const c = await window.api('POST', '/api/campaigns', { name: opts.campName, description: 'lt', dm_notes: '' });
-      await window.api('POST', '/api/characters', { name: opts.charName, race: 'Human', class: 'Fighter', level: 1, campaign_id: c.id, hp_max: 10, hp_current: 10, ac: 15 });
+      await window.api('POST', '/api/characters', { name: opts.charName, race: 'Human', class: 'Fighter', level: 1, campaign_ids: [c.id], hp_max: 10, hp_current: 10, ac: 15 });
       await window.api('POST', `/api/campaigns/${c.id}/knowledge`, { title: opts.sharedTitle, content: 'visible', source: '', status: 'revealed', shared: true });
       await window.api('POST', `/api/campaigns/${c.id}/knowledge`, { title: opts.hiddenTitle, content: 'secret', source: '', status: 'rumor', shared: false });
       return c.id;
@@ -91,7 +91,7 @@ test.describe('Live Table', () => {
     ]);
     await memberPage.waitForFunction(() => (window as any).__wsReady === true, { timeout: 60000 });
     await memberPage.evaluate(async (opts) => {
-      await window.api('POST', '/api/characters', { name: opts.charName, race: 'Human', class: 'Fighter', level: 1, campaign_id: opts.cid, hp_max: 10, hp_current: 10, ac: 15 });
+      await window.api('POST', '/api/characters', { name: opts.charName, race: 'Human', class: 'Fighter', level: 1, campaign_ids: [opts.cid], hp_max: 10, hp_current: 10, ac: 15 });
     }, { charName, cid: campId });
     await memberPage.evaluate((cid) => window.showTable(cid), campId);
     await expect(memberPage.locator('[data-testid="table-view"]')).toBeVisible({ timeout: NAV_TIMEOUT });

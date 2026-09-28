@@ -144,7 +144,7 @@ func buildRecapTemplate(campaignID int64) (string, *string, *string) {
 	var recaps []RecapSection
 
 	// Get character names
-	charRows, err := db.DB.Query("SELECT id, name, race, class FROM characters WHERE campaign_id=?", campaignID)
+	charRows, err := db.DB.Query("SELECT c.id, c.name, c.race, c.class FROM characters c JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=?", campaignID)
 	var charNames []string
 	if err != nil {
 		middleware.LogWarn("recaps", "character names query failed", "error", err)
@@ -199,7 +199,8 @@ func buildRecapTemplate(campaignID int64) (string, *string, *string) {
 	questRows, err := db.DB.Query(`
 		SELECT q.name, q.description FROM quests q
 		JOIN characters c ON q.character_id=c.id
-		WHERE c.campaign_id=? AND q.status='complete' AND q.updated_at >= datetime('now', '-30 days')
+		JOIN campaign_characters cm ON cm.character_id=c.id
+		WHERE cm.campaign_id=? AND q.status='complete' AND q.updated_at >= datetime('now', '-30 days')
 		ORDER BY q.updated_at DESC LIMIT 5`, campaignID)
 	var completedQuests []string
 	if err != nil {
@@ -228,7 +229,8 @@ func buildRecapTemplate(campaignID int64) (string, *string, *string) {
 	aRows, err := db.DB.Query(`
 		SELECT q.name, q.description FROM quests q
 		JOIN characters c ON q.character_id=c.id
-		WHERE c.campaign_id=? AND q.status='active' ORDER BY q.name`, campaignID)
+		JOIN campaign_characters cm ON cm.character_id=c.id
+		WHERE cm.campaign_id=? AND q.status='active' ORDER BY q.name`, campaignID)
 	var activeQuests []string
 	if err != nil {
 		middleware.LogWarn("recaps", "active quests query failed", "error", err)
@@ -256,7 +258,8 @@ func buildRecapTemplate(campaignID int64) (string, *string, *string) {
 	sessRows, err := db.DB.Query(`
 		SELECT s.title, s.notes, s.session_date FROM sessions s
 		JOIN characters c ON s.character_id=c.id
-		WHERE c.campaign_id=? AND s.created_at >= datetime('now', '-30 days')
+		JOIN campaign_characters cm ON cm.character_id=c.id
+		WHERE cm.campaign_id=? AND s.created_at >= datetime('now', '-30 days')
 		ORDER BY s.session_date DESC LIMIT 5`, campaignID)
 	var recentSessions []string
 	if err != nil {
@@ -310,7 +313,8 @@ func buildRecapTemplate(campaignID int64) (string, *string, *string) {
 	condRows, err := db.DB.Query(`
 		SELECT cc.name, c.name FROM character_conditions cc
 		JOIN characters c ON cc.character_id=c.id
-		WHERE c.campaign_id=? AND cc.duration > 0`, campaignID)
+		JOIN campaign_characters cm ON cm.character_id=c.id
+		WHERE cm.campaign_id=? AND cc.duration > 0`, campaignID)
 	var conditions []string
 	if err != nil {
 		middleware.LogWarn("recaps", "active conditions query failed", "error", err)

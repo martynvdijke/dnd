@@ -325,7 +325,8 @@ func TestCampaignDashboard(t *testing.T) {
 	// Seed data
 	db.DB.Exec("INSERT INTO users(id, username, password, role) VALUES(1, 'test', 'hash', 'admin')")
 	db.DB.Exec("INSERT INTO campaigns(id, name, user_id, party_name) VALUES(1, 'Test Campaign', 1, 'The Heroes')")
-	db.DB.Exec("INSERT INTO characters(id, user_id, name, race, class, level, hp_max, hp_current, campaign_id, str, dex, con, int, wis, cha, ac, speed) VALUES(1, 1, 'Hero', 'Human', 'Fighter', 5, 50, 50, 1, 15, 14, 13, 12, 10, 8, 17, 30)")
+	db.DB.Exec("INSERT INTO characters(id, user_id, name, race, class, level, hp_max, hp_current, str, dex, con, int, wis, cha, ac, speed) VALUES(1, 1, 'Hero', 'Human', 'Fighter', 5, 50, 50, 15, 14, 13, 12, 10, 8, 17, 30)")
+	db.DB.Exec("INSERT INTO campaign_characters(campaign_id, character_id) VALUES(1, 1)")
 
 	t.Run("Dashboard returns campaign data", func(t *testing.T) {
 		w := httptest.NewRecorder()
@@ -395,7 +396,8 @@ func TestExhaustionAPI(t *testing.T) {
 	// Need Ent schema tables created by migration, plus seed data
 	db.DB.Exec("INSERT INTO users(id, username, password, role) VALUES(1, 'test', 'hash', 'admin')")
 	db.DB.Exec("INSERT INTO campaigns(id, user_id, name) VALUES(1, 1, 'Test Campaign')")
-	db.DB.Exec("INSERT INTO characters(id, user_id, name, race, class, level, hp_max, hp_current, campaign_id, str, dex, con, int, wis, cha, ac, speed) VALUES(1, 1, 'Hero', 'Human', 'Fighter', 5, 50, 50, 1, 15, 14, 13, 12, 10, 8, 17, 30)")
+	db.DB.Exec("INSERT INTO characters(id, user_id, name, race, class, level, hp_max, hp_current, str, dex, con, int, wis, cha, ac, speed) VALUES(1, 1, 'Hero', 'Human', 'Fighter', 5, 50, 50, 15, 14, 13, 12, 10, 8, 17, 30)")
+	db.DB.Exec("INSERT INTO campaign_characters(campaign_id, character_id) VALUES(1, 1)")
 
 	t.Run("Set exhaustion to 3", func(t *testing.T) {
 		w := httptest.NewRecorder()
@@ -484,7 +486,8 @@ func TestBatchSpellPrep(t *testing.T) {
 	// Seed data
 	db.DB.Exec("INSERT INTO users(id, username, password, role) VALUES(1, 'test', 'hash', 'admin')")
 	db.DB.Exec("INSERT INTO campaigns(id, user_id, name) VALUES(1, 1, 'Test Campaign')")
-	db.DB.Exec("INSERT INTO characters(id, user_id, name, race, class, level, hp_max, hp_current, campaign_id, str, dex, con, int, wis, cha, ac, speed) VALUES(1, 1, 'Hero', 'Human', 'Fighter', 5, 50, 50, 1, 15, 14, 13, 12, 10, 8, 17, 30)")
+	db.DB.Exec("INSERT INTO characters(id, user_id, name, race, class, level, hp_max, hp_current, str, dex, con, int, wis, cha, ac, speed) VALUES(1, 1, 'Hero', 'Human', 'Fighter', 5, 50, 50, 15, 14, 13, 12, 10, 8, 17, 30)")
+	db.DB.Exec("INSERT INTO campaign_characters(campaign_id, character_id) VALUES(1, 1)")
 	db.DB.Exec("INSERT INTO spells(id, character_id, name, level, school, prepared) VALUES(1, 1, 'Fireball', 3, 'evocation', true)")
 	db.DB.Exec("INSERT INTO spells(id, character_id, name, level, school, prepared) VALUES(2, 1, 'Shield', 1, 'abjuration', true)")
 

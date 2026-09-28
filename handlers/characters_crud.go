@@ -12,6 +12,7 @@ import (
 	"villum/db"
 	"villum/ent"
 	"villum/ent/campaign"
+	"villum/ent/campaigncharacter"
 	"villum/ent/campaignmember"
 	"villum/ent/character"
 	"villum/ent/characterproficiency"
@@ -55,19 +56,19 @@ func ListCharacters(c *gin.Context) {
 	role, _ := c.Get("role")
 
 	type CharSummary struct {
-		ID            int64  `json:"id"`
-		UserID        int64  `json:"user_id"`
-		Name          string `json:"name"`
-		Race          string `json:"race"`
-		Class         string `json:"class"`
-		Level         int    `json:"level"`
-		HPMax         int    `json:"hp_max"`
-		HPCurrent     int    `json:"hp_current"`
-		PortraitURL   string `json:"portrait_url,omitempty"`
-		CampaignID    int64  `json:"campaign_id,omitempty"`
-		RaceColor     string `json:"race_color,omitempty"`
-		CharacterType string `json:"character_type"`
-		CanEdit       bool   `json:"can_edit"`
+		ID            int64                `json:"id"`
+		UserID        int64                `json:"user_id"`
+		Name          string               `json:"name"`
+		Race          string               `json:"race"`
+		Class         string               `json:"class"`
+		Level         int                  `json:"level"`
+		HPMax         int                  `json:"hp_max"`
+		HPCurrent     int                  `json:"hp_current"`
+		PortraitURL   string               `json:"portrait_url,omitempty"`
+		RaceColor     string               `json:"race_color,omitempty"`
+		CharacterType string               `json:"character_type"`
+		CanEdit       bool                 `json:"can_edit"`
+		Campaigns     []models.CampaignRef `json:"campaigns"`
 	}
 	chars := []CharSummary{}
 	raceColors := GetRaceColorMap()
@@ -98,7 +99,7 @@ func ListCharacters(c *gin.Context) {
 				return
 			}
 			for _, e := range entChars {
-				ch := CharSummary{ID: e.ID, UserID: e.UserID, Name: e.Name, Race: e.Race, Class: e.Class, Level: e.Level, HPMax: e.HpMax, HPCurrent: e.HpCurrent, PortraitURL: e.PortraitURL, CharacterType: e.CharacterType, CampaignID: e.CampaignID, CanEdit: canEditCharacter(c, e)}
+				ch := CharSummary{ID: e.ID, UserID: e.UserID, Name: e.Name, Race: e.Race, Class: e.Class, Level: e.Level, HPMax: e.HpMax, HPCurrent: e.HpCurrent, PortraitURL: e.PortraitURL, CharacterType: e.CharacterType, CanEdit: canEditCharacter(c, e)}
 				ch.RaceColor = raceColors[ch.Race]
 				chars = append(chars, ch)
 			}
@@ -111,9 +112,25 @@ func ListCharacters(c *gin.Context) {
 			return
 		}
 		for _, e := range entChars {
-			ch := CharSummary{ID: e.ID, UserID: e.UserID, Name: e.Name, Race: e.Race, Class: e.Class, Level: e.Level, HPMax: e.HpMax, HPCurrent: e.HpCurrent, PortraitURL: e.PortraitURL, CharacterType: e.CharacterType, CampaignID: e.CampaignID, CanEdit: canEditCharacter(c, e)}
+			ch := CharSummary{ID: e.ID, UserID: e.UserID, Name: e.Name, Race: e.Race, Class: e.Class, Level: e.Level, HPMax: e.HpMax, HPCurrent: e.HpCurrent, PortraitURL: e.PortraitURL, CharacterType: e.CharacterType, CanEdit: canEditCharacter(c, e)}
 			ch.RaceColor = raceColors[ch.Race]
 			chars = append(chars, ch)
+		}
+	}
+	ids := make([]int64, 0, len(chars))
+	for _, ch := range chars {
+		ids = append(ids, ch.ID)
+	}
+	refs, err := characterCampaignRefs(c.Request.Context(), ids)
+	if err != nil {
+		WriteError(c, http.StatusInternalServerError, err)
+		return
+	}
+	for i := range chars {
+		if refs[chars[i].ID] == nil {
+			chars[i].Campaigns = []models.CampaignRef{}
+		} else {
+			chars[i].Campaigns = refs[chars[i].ID]
 		}
 	}
 	c.JSON(http.StatusOK, chars)
@@ -146,25 +163,46 @@ func ListCampaignCharacters(c *gin.Context) {
 	}
 
 	type CampaignCharSummary struct {
-		ID            int64  `json:"id"`
-		UserID        int64  `json:"user_id"`
-		Name          string `json:"name"`
-		Race          string `json:"race"`
-		Class         string `json:"class"`
-		Level         int    `json:"level"`
-		HPMax         int    `json:"hp_max"`
-		HPCurrent     int    `json:"hp_current"`
-		PortraitURL   string `json:"portrait_url,omitempty"`
-		RaceColor     string `json:"race_color,omitempty"`
-		CharacterType string `json:"character_type"`
-		CampaignID    int64  `json:"campaign_id"`
-		Owned         bool   `json:"owned"`
+		ID            int64                `json:"id"`
+		UserID        int64                `json:"user_id"`
+		Name          string               `json:"name"`
+		Race          string               `json:"race"`
+		Class         string               `json:"class"`
+		Level         int                  `json:"level"`
+		HPMax         int                  `json:"hp_max"`
+		HPCurrent     int                  `json:"hp_current"`
+		PortraitURL   string               `json:"portrait_url,omitempty"`
+		RaceColor     string               `json:"race_color,omitempty"`
+		CharacterType string               `json:"character_type"`
+		Campaigns     []models.CampaignRef `json:"campaigns"`
+		Owned         bool                 `json:"owned"`
 	}
 
+	links, err := db.Client.CampaignCharacter.Query().
+		Where(campaigncharacter.CampaignID(campaignID)).
+		Select(campaigncharacter.FieldCharacterID).
+		All(ctx)
+	if err != nil {
+		WriteError(c, http.StatusInternalServerError, err)
+		return
+	}
+	if len(links) == 0 {
+		c.JSON(http.StatusOK, []CampaignCharSummary{})
+		return
+	}
+	charIDs := make([]int64, 0, len(links))
+	for _, link := range links {
+		charIDs = append(charIDs, link.CharacterID)
+	}
 	chars, err := db.Client.Character.Query().
-		Where(character.CampaignID(campaignID)).
+		Where(character.IDIn(charIDs...)).
 		Order(ent.Desc(character.FieldUpdatedAt)).
 		All(ctx)
+	if err != nil {
+		WriteError(c, http.StatusInternalServerError, err)
+		return
+	}
+	refs, err := characterCampaignRefs(ctx, charIDs)
 	if err != nil {
 		WriteError(c, http.StatusInternalServerError, err)
 		return
@@ -173,6 +211,10 @@ func ListCampaignCharacters(c *gin.Context) {
 	raceColors := GetRaceColorMap()
 	out := make([]CampaignCharSummary, 0, len(chars))
 	for _, e := range chars {
+		campaigns := refs[e.ID]
+		if campaigns == nil {
+			campaigns = []models.CampaignRef{}
+		}
 		out = append(out, CampaignCharSummary{
 			ID:            e.ID,
 			UserID:        e.UserID,
@@ -185,7 +227,7 @@ func ListCampaignCharacters(c *gin.Context) {
 			PortraitURL:   e.PortraitURL,
 			RaceColor:     raceColors[e.Race],
 			CharacterType: e.CharacterType,
-			CampaignID:    e.CampaignID,
+			Campaigns:     campaigns,
 			Owned:         canEditCharacter(c, e),
 		})
 	}
@@ -263,6 +305,7 @@ func GetCharacter(c *gin.Context) {
 
 	// Load sub-resources
 	ctx := c.Request.Context()
+	ch.Campaigns = characterCampaigns(ctx, ch.ID)
 	ch.Proficiencies = loadProficiencies(ctx, ch.ID)
 	ch.Features = loadFeatures(ctx, ch.ID)
 	ch.Spellcasting = loadSpellcasting(ctx, ch.ID)
@@ -378,8 +421,16 @@ func CreateCharacter(c *gin.Context) {
 		SetUpdatedAt(now).
 		SetCharacterType(ch.CharacterType)
 
-	if ch.CampaignID != nil {
-		charCreate.SetCampaignID(*ch.CampaignID)
+	desiredCampaigns := make([]int64, 0, len(ch.CampaignIDs))
+	for _, cid := range ch.CampaignIDs {
+		if cid == 0 {
+			continue
+		}
+		if !isCampaignMember(c, cid) {
+			WriteError(c, http.StatusForbidden, strErr("cannot add character to a campaign you are not a member of"))
+			return
+		}
+		desiredCampaigns = append(desiredCampaigns, cid)
 	}
 
 	char, err := charCreate.Save(c.Request.Context())
@@ -395,6 +446,11 @@ func CreateCharacter(c *gin.Context) {
 
 	ch.ID = id
 	ch.UserID = uid
+	if err := replaceCharacterCampaigns(c.Request.Context(), id, desiredCampaigns); err != nil {
+		WriteError(c, http.StatusInternalServerError, err)
+		return
+	}
+	ch.Campaigns = characterCampaigns(c.Request.Context(), id)
 	db.DB.Exec("PRAGMA wal_checkpoint(PASSIVE)")
 	c.JSON(http.StatusCreated, ch)
 }
@@ -488,12 +544,6 @@ func UpdateCharacter(c *gin.Context) {
 		SetPortraitURL(ch.PortraitURL).
 		SetUpdatedAt(time.Now().Format("2006-01-02 15:04:05"))
 
-	if ch.CampaignID != nil {
-		upd.SetCampaignID(*ch.CampaignID)
-	} else {
-		upd.ClearCampaignID()
-	}
-
 	// DM notes: only persist when explicitly sent by an admin or the campaign DM.
 	if dmNotesSent {
 		role, _ := c.Get("role")
@@ -502,6 +552,43 @@ func UpdateCharacter(c *gin.Context) {
 			if json.Unmarshal(raw["dm_notes"], &note) == nil {
 				upd.SetDmNotes(note)
 			}
+		}
+	}
+
+	if _, ok := raw["campaign_ids"]; ok {
+		uidVal, _ := c.Get("user_id")
+		uid, _ := uidVal.(int64)
+		role, _ := c.Get("role")
+		if role != "admin" && entChar.UserID != uid {
+			WriteError(c, http.StatusForbidden, strErr("only the character owner can change campaign memberships"))
+			return
+		}
+		for _, cid := range ch.CampaignIDs {
+			if cid != 0 && !isCampaignMember(c, cid) {
+				WriteError(c, http.StatusForbidden, strErr("cannot add character to a campaign you are not a member of"))
+				return
+			}
+		}
+		currentIDs, err := characterMemberCampaignIDs(c.Request.Context(), id)
+		if err != nil {
+			WriteError(c, http.StatusInternalServerError, err)
+			return
+		}
+		want := make(map[int64]bool, len(ch.CampaignIDs))
+		for _, cid := range ch.CampaignIDs {
+			if cid != 0 {
+				want[cid] = true
+			}
+		}
+		for _, cid := range currentIDs {
+			if !want[cid] && !isCampaignMember(c, cid) {
+				WriteError(c, http.StatusForbidden, strErr("cannot remove a membership in a campaign you are not a member of"))
+				return
+			}
+		}
+		if err := replaceCharacterCampaigns(c.Request.Context(), id, ch.CampaignIDs); err != nil {
+			WriteError(c, http.StatusInternalServerError, err)
+			return
 		}
 	}
 
@@ -552,7 +639,9 @@ func UpdateCharacter(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 		return
 	}
-	c.JSON(http.StatusOK, entCharacterToModel(updated))
+	updatedChar := entCharacterToModel(updated)
+	updatedChar.Campaigns = characterCampaigns(c.Request.Context(), id)
+	c.JSON(http.StatusOK, updatedChar)
 }
 
 // UpdateCharacterDMNotes persists the DM's private notes for a character.
@@ -636,6 +725,7 @@ func ExportCharacter(c *gin.Context) {
 	ch := entCharacterToModel(entChar)
 
 	ctx := c.Request.Context()
+	ch.Campaigns = characterCampaigns(ctx, ch.ID)
 	ch.Proficiencies = loadProficiencies(ctx, ch.ID)
 	ch.Features = loadFeatures(ctx, ch.ID)
 	ch.Spellcasting = loadSpellcasting(ctx, ch.ID)
@@ -668,6 +758,7 @@ func PrintCharacter(c *gin.Context) {
 	ch := entCharacterToModel(entChar)
 
 	ctx := c.Request.Context()
+	ch.Campaigns = characterCampaigns(ctx, ch.ID)
 	ch.Proficiencies = loadProficiencies(ctx, ch.ID)
 	ch.Features = loadFeatures(ctx, ch.ID)
 	ch.Spellcasting = loadSpellcasting(ctx, ch.ID)
@@ -689,47 +780,46 @@ func PrintCharacter(c *gin.Context) {
 func isDMOfCharacter(c *gin.Context, characterID int64) bool {
 	currentUID, _ := c.Get("user_id")
 	uid, _ := currentUID.(int64)
-
-	entChar, err := db.Client.Character.Query().
-		Where(character.ID(characterID)).
-		Select(character.FieldCampaignID).
-		Only(c.Request.Context())
-	if err != nil {
+	if uid == 0 {
 		return false
 	}
 
-	if entChar.CampaignID != 0 {
-		count, err := db.Client.CampaignMember.Query().
-			Where(
-				campaignmember.CampaignIDEQ(entChar.CampaignID),
-				campaignmember.UserIDEQ(uid),
-				campaignmember.RoleEQ("dm"),
-			).
-			Count(c.Request.Context())
-		return err == nil && count > 0
-	}
-	return false
+	// The character is run/played by the caller if they own any campaign the
+	// character is a member of, or hold the "dm" role in one.
+	count, err := db.Client.CampaignCharacter.Query().
+		Where(
+			campaigncharacter.CharacterID(characterID),
+			campaigncharacter.HasCampaignWith(
+				campaign.Or(
+					campaign.UserID(uid),
+					campaign.HasMembersWith(
+						campaignmember.UserID(uid),
+						campaignmember.RoleEQ("dm"),
+					),
+				),
+			),
+		).
+		Count(c.Request.Context())
+	return err == nil && count > 0
 }
 
-// isCampaignMemberOfCharacter reports whether the requester is a member of the
-// character's campaign (any role).
+// isCampaignMemberOfCharacter reports whether the requester is a member of any
+// campaign the character belongs to (any role).
 func isCampaignMemberOfCharacter(c *gin.Context, characterID int64) bool {
 	currentUID, _ := c.Get("user_id")
 	uid, _ := currentUID.(int64)
 	if uid == 0 {
 		return false
 	}
-	entChar, err := db.Client.Character.Query().
-		Where(character.ID(characterID)).
-		Select(character.FieldCampaignID).
-		Only(c.Request.Context())
-	if err != nil || entChar.CampaignID == 0 {
-		return false
-	}
-	count, err := db.Client.CampaignMember.Query().
+	count, err := db.Client.CampaignCharacter.Query().
 		Where(
-			campaignmember.CampaignIDEQ(entChar.CampaignID),
-			campaignmember.UserIDEQ(uid),
+			campaigncharacter.CharacterID(characterID),
+			campaigncharacter.HasCampaignWith(
+				campaign.Or(
+					campaign.UserID(uid),
+					campaign.HasMembersWith(campaignmember.UserID(uid)),
+				),
+			),
 		).
 		Count(c.Request.Context())
 	return err == nil && count > 0

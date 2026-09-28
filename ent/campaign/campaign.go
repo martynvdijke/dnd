@@ -28,6 +28,8 @@ const (
 	EdgeUser = "user"
 	// EdgeMembers holds the string denoting the members edge name in mutations.
 	EdgeMembers = "members"
+	// EdgeCharacterLinks holds the string denoting the character_links edge name in mutations.
+	EdgeCharacterLinks = "character_links"
 	// EdgeCalendarEvents holds the string denoting the calendar_events edge name in mutations.
 	EdgeCalendarEvents = "calendar_events"
 	// EdgeTimelineEvents holds the string denoting the timeline_events edge name in mutations.
@@ -68,6 +70,13 @@ const (
 	MembersInverseTable = "campaign_members"
 	// MembersColumn is the table column denoting the members relation/edge.
 	MembersColumn = "campaign_id"
+	// CharacterLinksTable is the table that holds the character_links relation/edge.
+	CharacterLinksTable = "campaign_characters"
+	// CharacterLinksInverseTable is the table name for the CampaignCharacter entity.
+	// It exists in this package in order to avoid circular dependency with the "campaigncharacter" package.
+	CharacterLinksInverseTable = "campaign_characters"
+	// CharacterLinksColumn is the table column denoting the character_links relation/edge.
+	CharacterLinksColumn = "campaign_id"
 	// CalendarEventsTable is the table that holds the calendar_events relation/edge.
 	CalendarEventsTable = "campaign_calendar_events"
 	// CalendarEventsInverseTable is the table name for the CampaignCalendarEvent entity.
@@ -242,6 +251,20 @@ func ByMembersCount(opts ...sql.OrderTermOption) OrderOption {
 func ByMembers(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
 	return func(s *sql.Selector) {
 		sqlgraph.OrderByNeighborTerms(s, newMembersStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByCharacterLinksCount orders the results by character_links count.
+func ByCharacterLinksCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newCharacterLinksStep(), opts...)
+	}
+}
+
+// ByCharacterLinks orders the results by character_links terms.
+func ByCharacterLinks(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newCharacterLinksStep(), append([]sql.OrderTerm{term}, terms...)...)
 	}
 }
 
@@ -424,6 +447,13 @@ func newMembersStep() *sqlgraph.Step {
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(MembersInverseTable, FieldID),
 		sqlgraph.Edge(sqlgraph.O2M, false, MembersTable, MembersColumn),
+	)
+}
+func newCharacterLinksStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(CharacterLinksInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, CharacterLinksTable, CharacterLinksColumn),
 	)
 }
 func newCalendarEventsStep() *sqlgraph.Step {

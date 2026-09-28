@@ -3,7 +3,6 @@ package models
 type Character struct {
 	ID                     int64  `json:"id"`
 	UserID                 int64  `json:"user_id"`
-	CampaignID             *int64 `json:"campaign_id,omitempty"`
 	CharacterType          string `json:"character_type"`
 	CompendiumRaceID       *int64 `json:"compendium_race_id,omitempty"`
 	CompendiumClassID      *int64 `json:"compendium_class_id,omitempty"`
@@ -76,6 +75,17 @@ type Character struct {
 	Inventory     []InventoryItem `json:"inventory,omitempty"`
 	Currency      *Currency       `json:"currency,omitempty"`
 	Classes       []CharClass     `json:"classes,omitempty"`
+	Campaigns     []CampaignRef   `json:"campaigns"`
+
+	// CampaignIDs is the input form for setting memberships on create/update.
+	CampaignIDs []int64 `json:"campaign_ids,omitempty"`
+}
+
+// CampaignRef names a campaign a character belongs to. Names are included so
+// payloads remain useful to owners who are not members of that campaign.
+type CampaignRef struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
 }
 
 type Currency struct {

@@ -153,6 +153,9 @@ func HandleImportTransfer(c *gin.Context) {
 				idMapping[t] = make(map[int64]int64)
 			}
 			idMapping[t][ent.OriginalID] = newID
+			if t == "character" {
+				importCharacterCampaigns(tx, data, newID, idMapping)
+			}
 			results = append(results, TransferEntityResult{
 				Type: t, OriginalID: ent.OriginalID, NewID: newID, Status: "imported",
 			})
@@ -301,6 +304,26 @@ func execInsert(tx *sql.Tx, sql string, args []any) (int64, error) {
 		return 0, err
 	}
 	return id, nil
+}
+
+// importCharacterCampaigns recreates campaign memberships for an imported
+// character, remapping campaign IDs to the freshly imported campaigns.
+func importCharacterCampaigns(tx *sql.Tx, data map[string]any, characterID int64, idMapping map[string]map[int64]int64) {
+	list, ok := data["campaign_ids"].([]any)
+	if !ok {
+		return
+	}
+	for _, v := range list {
+		oldID, ok := toInt64(v)
+		if !ok || oldID == 0 {
+			continue
+		}
+		newID, ok := idMapping["campaign"][oldID]
+		if !ok {
+			continue
+		}
+		tx.Exec("INSERT OR IGNORE INTO campaign_characters(campaign_id, character_id) VALUES(?, ?)", newID, characterID)
+	}
 }
 
 // remapFK replaces a foreign key value in data from old ID to new ID using idMapping.

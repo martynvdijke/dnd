@@ -12,7 +12,7 @@ test.describe('Combat Automation', () => {
       const suffix = Date.now();
       const targetName = `Target-${suffix}`;
       const camp = await window.api('POST', '/api/campaigns', { name: `CA-${suffix}`, description: 'automation' });
-      const char = await window.api('POST', '/api/characters', { name: `Attacker-${suffix}`, campaign_id: camp.id, hp_max: 20, hp_current: 20, ac: 15, level: 1 });
+      const char = await window.api('POST', '/api/characters', { name: `Attacker-${suffix}`, campaign_ids: [camp.id], hp_max: 20, hp_current: 20, ac: 15, level: 1 });
       // add weapon inventory
       await window.api('POST', `/api/characters/${char.id}/inventory`, { name: `Sword-${suffix}`, damage_dice: '1d8', damage_type: 'slashing', is_equipped: true, quantity: 1 });
       // create combat entry target with very low AC so hit is likely

@@ -20,7 +20,7 @@ func TestCompositeIndexesUsed(t *testing.T) {
 		index   string
 	}{
 		{"SELECT id FROM characters WHERE user_id=1 ORDER BY name, level", "idx_characters_user_name_level"},
-		{"SELECT id FROM characters WHERE campaign_id=1 ORDER BY name", "idx_characters_campaign_name"},
+		{"SELECT character_id FROM campaign_characters WHERE campaign_id=1", "campaigncharacter_campaign_id_character_id"},
 		{"SELECT id FROM spells WHERE character_id=1 ORDER BY level, name", "idx_spells_char_level_name"},
 		{"SELECT id FROM inventory WHERE character_id=1 ORDER BY category, name", "idx_inventory_char_category_name"},
 		{"SELECT id FROM sessions WHERE character_id=1 ORDER BY session_date", "idx_sessions_char_date"},

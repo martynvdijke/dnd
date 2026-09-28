@@ -306,6 +306,12 @@ func doExport(c *gin.Context, req exportRequest) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %v", t, err)})
 			return
 		}
+		if t == "character" {
+			if err := attachCharacterCampaignIDs(tx, rows, req.CampaignID); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("%s: %v", t, err)})
+				return
+			}
+		}
 		for _, row := range rows {
 			originalID, _ := row["id"].(int64)
 			env.Entities = append(env.Entities, TransferEntity{
@@ -397,12 +403,6 @@ func filterByCampaign(tx *sql.Tx, info registry.EntityInfo, ids []int64, campaig
 	if len(ids) == 0 {
 		return nil
 	}
-	// Determine which column to check for campaign association.
-	campaignCol := campaignColumn(info.Type)
-	if campaignCol == "" {
-		// Entity type doesn't have campaign association; include all.
-		return ids
-	}
 	placeholders := make([]string, len(ids))
 	args := make([]any, 0, len(ids)+1)
 	args = append(args, campaignID)
@@ -410,8 +410,21 @@ func filterByCampaign(tx *sql.Tx, info registry.EntityInfo, ids []int64, campaig
 		placeholders[i] = "?"
 		args = append(args, id)
 	}
-	query := fmt.Sprintf("SELECT id FROM %q WHERE %s = ? AND id IN (%s)",
-		info.Table, campaignCol, strings.Join(placeholders, ","))
+	var query string
+	if info.Type == "character" {
+		// Characters join campaigns through campaign_characters.
+		query = fmt.Sprintf("SELECT c.id FROM characters c JOIN campaign_characters cc ON cc.character_id = c.id WHERE cc.campaign_id = ? AND c.id IN (%s)",
+			strings.Join(placeholders, ","))
+	} else {
+		// Determine which column to check for campaign association.
+		campaignCol := campaignColumn(info.Type)
+		if campaignCol == "" {
+			// Entity type doesn't have campaign association; include all.
+			return ids
+		}
+		query = fmt.Sprintf("SELECT id FROM %q WHERE %s = ? AND id IN (%s)",
+			info.Table, campaignCol, strings.Join(placeholders, ","))
+	}
 	rows, err := tx.Query(query, args...)
 	if err != nil {
 		return ids // fail open on error
@@ -428,12 +441,64 @@ func filterByCampaign(tx *sql.Tx, info registry.EntityInfo, ids []int64, campaig
 	return filtered
 }
 
+// attachCharacterCampaignIDs adds a campaign_ids list to exported character rows
+// so imports can recreate campaign memberships. When the export is scoped to a
+// single campaign, only that campaign is included.
+func attachCharacterCampaignIDs(tx *sql.Tx, rows []map[string]any, scoped *int64) error {
+	if len(rows) == 0 {
+		return nil
+	}
+	ids := make([]int64, 0, len(rows))
+	byID := make(map[int64]map[string]any, len(rows))
+	for _, row := range rows {
+		id, _ := toInt64(row["id"])
+		if id == 0 {
+			continue
+		}
+		ids = append(ids, id)
+		byID[id] = row
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	placeholders := make([]string, len(ids))
+	args := make([]any, 0, len(ids)+1)
+	if scoped != nil {
+		args = append(args, *scoped)
+	}
+	for i, id := range ids {
+		placeholders[i] = "?"
+		args = append(args, id)
+	}
+	inClause := fmt.Sprintf("character_id IN (%s)", strings.Join(placeholders, ","))
+	where := inClause
+	if scoped != nil {
+		where = "campaign_id = ? AND " + inClause
+	}
+	rowsOut, err := tx.Query("SELECT character_id, campaign_id FROM campaign_characters WHERE "+where, args...)
+	if err != nil {
+		return err
+	}
+	defer rowsOut.Close()
+	for rowsOut.Next() {
+		var charID, campaignID int64
+		if rowsOut.Scan(&charID, &campaignID) != nil {
+			continue
+		}
+		if row, ok := byID[charID]; ok {
+			list, _ := row["campaign_ids"].([]int64)
+			row["campaign_ids"] = append(list, campaignID)
+		}
+	}
+	return rowsOut.Err()
+}
+
 // campaignColumn returns the SQL column name used to associate entities with a campaign.
 func campaignColumn(entityType string) string {
 	switch entityType {
 	case "campaign":
 		return "id"
-	case "character", "encounter", "shop", "faction", "adventure":
+	case "encounter", "shop", "faction", "adventure":
 		return "campaign_id"
 	case "timeline":
 		return "campaign_id"
@@ -468,7 +533,6 @@ var fkColumns = map[string][]struct {
 	Ref    string // referenced entity type
 	Prefix string // if set, remap only if value starts with this (for string-encoded refs)
 }{
-	"character": {{Col: "campaign_id", Ref: "campaign"}},
 	"encounter": {{Col: "campaign_id", Ref: "campaign"}},
 	"shop":      {{Col: "campaign_id", Ref: "campaign"}, {Col: "oneshot_adventure_id", Ref: "adventure"}},
 	"faction":   {{Col: "campaign_id", Ref: "campaign"}},

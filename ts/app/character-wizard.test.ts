@@ -24,7 +24,7 @@ vi.mock('../lib/expose', () => ({ expose: () => {} }));
 
 import {
   newCharWizard, wizardNext, wizardSetMethod, wizardCreate,
-  wizardToggleSkill, wizardToggleSave,
+  wizardToggleSkill, wizardToggleSave, wizardToggleCampaign,
 } from './character-wizard';
 
 const body = () => document.getElementById('genericModalBody')!.innerHTML;
@@ -90,5 +90,23 @@ describe('character wizard', () => {
     expect(apiMock).toHaveBeenCalledWith('POST', '/api/characters/7/proficiencies', { character_id: 7, type: 'save', name: 'dex' });
     expect(hideModalMock).toHaveBeenCalled();
     expect((window as any).openChar).toHaveBeenCalledWith(7);
+  });
+
+  it('submits campaign memberships selected on the review step', async () => {
+    apiMock.mockImplementation((method: string, path: string) => {
+      if (method === 'GET' && path === '/api/campaigns/mine') return Promise.resolve([{ id: 3, name: 'Strahd', my_role: 'dm' }]);
+      if (method === 'POST' && path === '/api/characters') return Promise.resolve({ id: 9 });
+      return Promise.resolve({});
+    });
+    newCharWizard();
+    (document.getElementById('wizName') as HTMLInputElement).value = 'Aria';
+    wizardNext(); // -> abilities
+    wizardNext(); // -> proficiencies
+    wizardNext(); // -> review
+    await vi.waitFor(() => expect(body()).toContain('id="wizCampaign-3"'));
+    wizardToggleCampaign(3);
+    await wizardCreate();
+
+    expect(apiMock).toHaveBeenCalledWith('POST', '/api/characters', expect.objectContaining({ name: 'Aria', campaign_ids: [3] }));
   });
 });

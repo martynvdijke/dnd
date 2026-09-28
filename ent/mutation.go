@@ -11,6 +11,7 @@ import (
 	"villum/ent/backupsetting"
 	"villum/ent/campaign"
 	"villum/ent/campaigncalendarevent"
+	"villum/ent/campaigncharacter"
 	"villum/ent/campaignmap"
 	"villum/ent/campaignmappin"
 	"villum/ent/campaignmember"
@@ -91,6 +92,7 @@ const (
 	TypeBackupSetting             = "BackupSetting"
 	TypeCampaign                  = "Campaign"
 	TypeCampaignCalendarEvent     = "CampaignCalendarEvent"
+	TypeCampaignCharacter         = "CampaignCharacter"
 	TypeCampaignMap               = "CampaignMap"
 	TypeCampaignMapPin            = "CampaignMapPin"
 	TypeCampaignMember            = "CampaignMember"
@@ -1914,6 +1916,9 @@ type CampaignMutation struct {
 	members                    map[int64]struct{}
 	removedmembers             map[int64]struct{}
 	clearedmembers             bool
+	character_links            map[int64]struct{}
+	removedcharacter_links     map[int64]struct{}
+	clearedcharacter_links     bool
 	calendar_events            map[int64]struct{}
 	removedcalendar_events     map[int64]struct{}
 	clearedcalendar_events     bool
@@ -2354,6 +2359,60 @@ func (m *CampaignMutation) ResetMembers() {
 	m.members = nil
 	m.clearedmembers = false
 	m.removedmembers = nil
+}
+
+// AddCharacterLinkIDs adds the "character_links" edge to the CampaignCharacter entity by ids.
+func (m *CampaignMutation) AddCharacterLinkIDs(ids ...int64) {
+	if m.character_links == nil {
+		m.character_links = make(map[int64]struct{})
+	}
+	for i := range ids {
+		m.character_links[ids[i]] = struct{}{}
+	}
+}
+
+// ClearCharacterLinks clears the "character_links" edge to the CampaignCharacter entity.
+func (m *CampaignMutation) ClearCharacterLinks() {
+	m.clearedcharacter_links = true
+}
+
+// CharacterLinksCleared reports if the "character_links" edge to the CampaignCharacter entity was cleared.
+func (m *CampaignMutation) CharacterLinksCleared() bool {
+	return m.clearedcharacter_links
+}
+
+// RemoveCharacterLinkIDs removes the "character_links" edge to the CampaignCharacter entity by IDs.
+func (m *CampaignMutation) RemoveCharacterLinkIDs(ids ...int64) {
+	if m.removedcharacter_links == nil {
+		m.removedcharacter_links = make(map[int64]struct{})
+	}
+	for i := range ids {
+		delete(m.character_links, ids[i])
+		m.removedcharacter_links[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedCharacterLinks returns the removed IDs of the "character_links" edge to the CampaignCharacter entity.
+func (m *CampaignMutation) RemovedCharacterLinksIDs() (ids []int64) {
+	for id := range m.removedcharacter_links {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// CharacterLinksIDs returns the "character_links" edge IDs in the mutation.
+func (m *CampaignMutation) CharacterLinksIDs() (ids []int64) {
+	for id := range m.character_links {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetCharacterLinks resets all changes to the "character_links" edge.
+func (m *CampaignMutation) ResetCharacterLinks() {
+	m.character_links = nil
+	m.clearedcharacter_links = false
+	m.removedcharacter_links = nil
 }
 
 // AddCalendarEventIDs adds the "calendar_events" edge to the CampaignCalendarEvent entity by ids.
@@ -3225,12 +3284,15 @@ func (m *CampaignMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CampaignMutation) AddedEdges() []string {
-	edges := make([]string, 0, 14)
+	edges := make([]string, 0, 15)
 	if m.user != nil {
 		edges = append(edges, campaign.EdgeUser)
 	}
 	if m.members != nil {
 		edges = append(edges, campaign.EdgeMembers)
+	}
+	if m.character_links != nil {
+		edges = append(edges, campaign.EdgeCharacterLinks)
 	}
 	if m.calendar_events != nil {
 		edges = append(edges, campaign.EdgeCalendarEvents)
@@ -3282,6 +3344,12 @@ func (m *CampaignMutation) AddedIDs(name string) []ent.Value {
 	case campaign.EdgeMembers:
 		ids := make([]ent.Value, 0, len(m.members))
 		for id := range m.members {
+			ids = append(ids, id)
+		}
+		return ids
+	case campaign.EdgeCharacterLinks:
+		ids := make([]ent.Value, 0, len(m.character_links))
+		for id := range m.character_links {
 			ids = append(ids, id)
 		}
 		return ids
@@ -3363,9 +3431,12 @@ func (m *CampaignMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CampaignMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 14)
+	edges := make([]string, 0, 15)
 	if m.removedmembers != nil {
 		edges = append(edges, campaign.EdgeMembers)
+	}
+	if m.removedcharacter_links != nil {
+		edges = append(edges, campaign.EdgeCharacterLinks)
 	}
 	if m.removedcalendar_events != nil {
 		edges = append(edges, campaign.EdgeCalendarEvents)
@@ -3413,6 +3484,12 @@ func (m *CampaignMutation) RemovedIDs(name string) []ent.Value {
 	case campaign.EdgeMembers:
 		ids := make([]ent.Value, 0, len(m.removedmembers))
 		for id := range m.removedmembers {
+			ids = append(ids, id)
+		}
+		return ids
+	case campaign.EdgeCharacterLinks:
+		ids := make([]ent.Value, 0, len(m.removedcharacter_links))
+		for id := range m.removedcharacter_links {
 			ids = append(ids, id)
 		}
 		return ids
@@ -3494,12 +3571,15 @@ func (m *CampaignMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CampaignMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 14)
+	edges := make([]string, 0, 15)
 	if m.cleareduser {
 		edges = append(edges, campaign.EdgeUser)
 	}
 	if m.clearedmembers {
 		edges = append(edges, campaign.EdgeMembers)
+	}
+	if m.clearedcharacter_links {
+		edges = append(edges, campaign.EdgeCharacterLinks)
 	}
 	if m.clearedcalendar_events {
 		edges = append(edges, campaign.EdgeCalendarEvents)
@@ -3548,6 +3628,8 @@ func (m *CampaignMutation) EdgeCleared(name string) bool {
 		return m.cleareduser
 	case campaign.EdgeMembers:
 		return m.clearedmembers
+	case campaign.EdgeCharacterLinks:
+		return m.clearedcharacter_links
 	case campaign.EdgeCalendarEvents:
 		return m.clearedcalendar_events
 	case campaign.EdgeTimelineEvents:
@@ -3596,6 +3678,9 @@ func (m *CampaignMutation) ResetEdge(name string) error {
 		return nil
 	case campaign.EdgeMembers:
 		m.ResetMembers()
+		return nil
+	case campaign.EdgeCharacterLinks:
+		m.ResetCharacterLinks()
 		return nil
 	case campaign.EdgeCalendarEvents:
 		m.ResetCalendarEvents()
@@ -4348,6 +4433,495 @@ func (m *CampaignCalendarEventMutation) ResetEdge(name string) error {
 		return nil
 	}
 	return fmt.Errorf("unknown CampaignCalendarEvent edge %s", name)
+}
+
+// CampaignCharacterMutation represents an operation that mutates the CampaignCharacter nodes in the graph.
+type CampaignCharacterMutation struct {
+	config
+	op               Op
+	typ              string
+	id               *int64
+	clearedFields    map[string]struct{}
+	campaign         *int64
+	clearedcampaign  bool
+	character        *int64
+	clearedcharacter bool
+	done             bool
+	oldValue         func(context.Context) (*CampaignCharacter, error)
+	predicates       []predicate.CampaignCharacter
+}
+
+var _ ent.Mutation = (*CampaignCharacterMutation)(nil)
+
+// campaigncharacterOption allows management of the mutation configuration using functional options.
+type campaigncharacterOption func(*CampaignCharacterMutation)
+
+// newCampaignCharacterMutation creates new mutation for the CampaignCharacter entity.
+func newCampaignCharacterMutation(c config, op Op, opts ...campaigncharacterOption) *CampaignCharacterMutation {
+	m := &CampaignCharacterMutation{
+		config:        c,
+		op:            op,
+		typ:           TypeCampaignCharacter,
+		clearedFields: make(map[string]struct{}),
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m
+}
+
+// withCampaignCharacterID sets the ID field of the mutation.
+func withCampaignCharacterID(id int64) campaigncharacterOption {
+	return func(m *CampaignCharacterMutation) {
+		var (
+			err   error
+			once  sync.Once
+			value *CampaignCharacter
+		)
+		m.oldValue = func(ctx context.Context) (*CampaignCharacter, error) {
+			once.Do(func() {
+				if m.done {
+					err = errors.New("querying old values post mutation is not allowed")
+				} else {
+					value, err = m.Client().CampaignCharacter.Get(ctx, id)
+				}
+			})
+			return value, err
+		}
+		m.id = &id
+	}
+}
+
+// withCampaignCharacter sets the old CampaignCharacter of the mutation.
+func withCampaignCharacter(node *CampaignCharacter) campaigncharacterOption {
+	return func(m *CampaignCharacterMutation) {
+		m.oldValue = func(context.Context) (*CampaignCharacter, error) {
+			return node, nil
+		}
+		m.id = &node.ID
+	}
+}
+
+// Client returns a new `ent.Client` from the mutation. If the mutation was
+// executed in a transaction (ent.Tx), a transactional client is returned.
+func (m CampaignCharacterMutation) Client() *Client {
+	client := &Client{config: m.config}
+	client.init()
+	return client
+}
+
+// Tx returns an `ent.Tx` for mutations that were executed in transactions;
+// it returns an error otherwise.
+func (m CampaignCharacterMutation) Tx() (*Tx, error) {
+	if _, ok := m.driver.(*txDriver); !ok {
+		return nil, errors.New("ent: mutation is not running in a transaction")
+	}
+	tx := &Tx{config: m.config}
+	tx.init()
+	return tx, nil
+}
+
+// SetID sets the value of the id field. Note that this
+// operation is only accepted on creation of CampaignCharacter entities.
+func (m *CampaignCharacterMutation) SetID(id int64) {
+	m.id = &id
+}
+
+// ID returns the ID value in the mutation. Note that the ID is only available
+// if it was provided to the builder or after it was returned from the database.
+func (m *CampaignCharacterMutation) ID() (id int64, exists bool) {
+	if m.id == nil {
+		return
+	}
+	return *m.id, true
+}
+
+// IDs queries the database and returns the entity ids that match the mutation's predicate.
+// That means, if the mutation is applied within a transaction with an isolation level such
+// as sql.LevelSerializable, the returned ids match the ids of the rows that will be updated
+// or updated by the mutation.
+func (m *CampaignCharacterMutation) IDs(ctx context.Context) ([]int64, error) {
+	switch {
+	case m.op.Is(OpUpdateOne | OpDeleteOne):
+		id, exists := m.ID()
+		if exists {
+			return []int64{id}, nil
+		}
+		fallthrough
+	case m.op.Is(OpUpdate | OpDelete):
+		return m.Client().CampaignCharacter.Query().Where(m.predicates...).IDs(ctx)
+	default:
+		return nil, fmt.Errorf("IDs is not allowed on %s operations", m.op)
+	}
+}
+
+// SetCampaignID sets the "campaign_id" field.
+func (m *CampaignCharacterMutation) SetCampaignID(i int64) {
+	m.campaign = &i
+}
+
+// CampaignID returns the value of the "campaign_id" field in the mutation.
+func (m *CampaignCharacterMutation) CampaignID() (r int64, exists bool) {
+	v := m.campaign
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCampaignID returns the old "campaign_id" field's value of the CampaignCharacter entity.
+// If the CampaignCharacter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CampaignCharacterMutation) OldCampaignID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCampaignID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCampaignID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCampaignID: %w", err)
+	}
+	return oldValue.CampaignID, nil
+}
+
+// ResetCampaignID resets all changes to the "campaign_id" field.
+func (m *CampaignCharacterMutation) ResetCampaignID() {
+	m.campaign = nil
+}
+
+// SetCharacterID sets the "character_id" field.
+func (m *CampaignCharacterMutation) SetCharacterID(i int64) {
+	m.character = &i
+}
+
+// CharacterID returns the value of the "character_id" field in the mutation.
+func (m *CampaignCharacterMutation) CharacterID() (r int64, exists bool) {
+	v := m.character
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCharacterID returns the old "character_id" field's value of the CampaignCharacter entity.
+// If the CampaignCharacter object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *CampaignCharacterMutation) OldCharacterID(ctx context.Context) (v int64, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCharacterID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCharacterID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCharacterID: %w", err)
+	}
+	return oldValue.CharacterID, nil
+}
+
+// ResetCharacterID resets all changes to the "character_id" field.
+func (m *CampaignCharacterMutation) ResetCharacterID() {
+	m.character = nil
+}
+
+// ClearCampaign clears the "campaign" edge to the Campaign entity.
+func (m *CampaignCharacterMutation) ClearCampaign() {
+	m.clearedcampaign = true
+	m.clearedFields[campaigncharacter.FieldCampaignID] = struct{}{}
+}
+
+// CampaignCleared reports if the "campaign" edge to the Campaign entity was cleared.
+func (m *CampaignCharacterMutation) CampaignCleared() bool {
+	return m.clearedcampaign
+}
+
+// CampaignIDs returns the "campaign" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CampaignID instead. It exists only for internal usage by the builders.
+func (m *CampaignCharacterMutation) CampaignIDs() (ids []int64) {
+	if id := m.campaign; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCampaign resets all changes to the "campaign" edge.
+func (m *CampaignCharacterMutation) ResetCampaign() {
+	m.campaign = nil
+	m.clearedcampaign = false
+}
+
+// ClearCharacter clears the "character" edge to the Character entity.
+func (m *CampaignCharacterMutation) ClearCharacter() {
+	m.clearedcharacter = true
+	m.clearedFields[campaigncharacter.FieldCharacterID] = struct{}{}
+}
+
+// CharacterCleared reports if the "character" edge to the Character entity was cleared.
+func (m *CampaignCharacterMutation) CharacterCleared() bool {
+	return m.clearedcharacter
+}
+
+// CharacterIDs returns the "character" edge IDs in the mutation.
+// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
+// CharacterID instead. It exists only for internal usage by the builders.
+func (m *CampaignCharacterMutation) CharacterIDs() (ids []int64) {
+	if id := m.character; id != nil {
+		ids = append(ids, *id)
+	}
+	return
+}
+
+// ResetCharacter resets all changes to the "character" edge.
+func (m *CampaignCharacterMutation) ResetCharacter() {
+	m.character = nil
+	m.clearedcharacter = false
+}
+
+// Where appends a list predicates to the CampaignCharacterMutation builder.
+func (m *CampaignCharacterMutation) Where(ps ...predicate.CampaignCharacter) {
+	m.predicates = append(m.predicates, ps...)
+}
+
+// WhereP appends storage-level predicates to the CampaignCharacterMutation builder. Using this method,
+// users can use type-assertion to append predicates that do not depend on any generated package.
+func (m *CampaignCharacterMutation) WhereP(ps ...func(*sql.Selector)) {
+	p := make([]predicate.CampaignCharacter, len(ps))
+	for i := range ps {
+		p[i] = ps[i]
+	}
+	m.Where(p...)
+}
+
+// Op returns the operation name.
+func (m *CampaignCharacterMutation) Op() Op {
+	return m.op
+}
+
+// SetOp allows setting the mutation operation.
+func (m *CampaignCharacterMutation) SetOp(op Op) {
+	m.op = op
+}
+
+// Type returns the node type of this mutation (CampaignCharacter).
+func (m *CampaignCharacterMutation) Type() string {
+	return m.typ
+}
+
+// Fields returns all fields that were changed during this mutation. Note that in
+// order to get all numeric fields that were incremented/decremented, call
+// AddedFields().
+func (m *CampaignCharacterMutation) Fields() []string {
+	fields := make([]string, 0, 2)
+	if m.campaign != nil {
+		fields = append(fields, campaigncharacter.FieldCampaignID)
+	}
+	if m.character != nil {
+		fields = append(fields, campaigncharacter.FieldCharacterID)
+	}
+	return fields
+}
+
+// Field returns the value of a field with the given name. The second boolean
+// return value indicates that this field was not set, or was not defined in the
+// schema.
+func (m *CampaignCharacterMutation) Field(name string) (ent.Value, bool) {
+	switch name {
+	case campaigncharacter.FieldCampaignID:
+		return m.CampaignID()
+	case campaigncharacter.FieldCharacterID:
+		return m.CharacterID()
+	}
+	return nil, false
+}
+
+// OldField returns the old value of the field from the database. An error is
+// returned if the mutation operation is not UpdateOne, or the query to the
+// database failed.
+func (m *CampaignCharacterMutation) OldField(ctx context.Context, name string) (ent.Value, error) {
+	switch name {
+	case campaigncharacter.FieldCampaignID:
+		return m.OldCampaignID(ctx)
+	case campaigncharacter.FieldCharacterID:
+		return m.OldCharacterID(ctx)
+	}
+	return nil, fmt.Errorf("unknown CampaignCharacter field %s", name)
+}
+
+// SetField sets the value of a field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *CampaignCharacterMutation) SetField(name string, value ent.Value) error {
+	switch name {
+	case campaigncharacter.FieldCampaignID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCampaignID(v)
+		return nil
+	case campaigncharacter.FieldCharacterID:
+		v, ok := value.(int64)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCharacterID(v)
+		return nil
+	}
+	return fmt.Errorf("unknown CampaignCharacter field %s", name)
+}
+
+// AddedFields returns all numeric fields that were incremented/decremented during
+// this mutation.
+func (m *CampaignCharacterMutation) AddedFields() []string {
+	var fields []string
+	return fields
+}
+
+// AddedField returns the numeric value that was incremented/decremented on a field
+// with the given name. The second boolean return value indicates that this field
+// was not set, or was not defined in the schema.
+func (m *CampaignCharacterMutation) AddedField(name string) (ent.Value, bool) {
+	switch name {
+	}
+	return nil, false
+}
+
+// AddField adds the value to the field with the given name. It returns an error if
+// the field is not defined in the schema, or if the type mismatched the field
+// type.
+func (m *CampaignCharacterMutation) AddField(name string, value ent.Value) error {
+	switch name {
+	}
+	return fmt.Errorf("unknown CampaignCharacter numeric field %s", name)
+}
+
+// ClearedFields returns all nullable fields that were cleared during this
+// mutation.
+func (m *CampaignCharacterMutation) ClearedFields() []string {
+	return nil
+}
+
+// FieldCleared returns a boolean indicating if a field with the given name was
+// cleared in this mutation.
+func (m *CampaignCharacterMutation) FieldCleared(name string) bool {
+	_, ok := m.clearedFields[name]
+	return ok
+}
+
+// ClearField clears the value of the field with the given name. It returns an
+// error if the field is not defined in the schema.
+func (m *CampaignCharacterMutation) ClearField(name string) error {
+	return fmt.Errorf("unknown CampaignCharacter nullable field %s", name)
+}
+
+// ResetField resets all changes in the mutation for the field with the given name.
+// It returns an error if the field is not defined in the schema.
+func (m *CampaignCharacterMutation) ResetField(name string) error {
+	switch name {
+	case campaigncharacter.FieldCampaignID:
+		m.ResetCampaignID()
+		return nil
+	case campaigncharacter.FieldCharacterID:
+		m.ResetCharacterID()
+		return nil
+	}
+	return fmt.Errorf("unknown CampaignCharacter field %s", name)
+}
+
+// AddedEdges returns all edge names that were set/added in this mutation.
+func (m *CampaignCharacterMutation) AddedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.campaign != nil {
+		edges = append(edges, campaigncharacter.EdgeCampaign)
+	}
+	if m.character != nil {
+		edges = append(edges, campaigncharacter.EdgeCharacter)
+	}
+	return edges
+}
+
+// AddedIDs returns all IDs (to other nodes) that were added for the given edge
+// name in this mutation.
+func (m *CampaignCharacterMutation) AddedIDs(name string) []ent.Value {
+	switch name {
+	case campaigncharacter.EdgeCampaign:
+		if id := m.campaign; id != nil {
+			return []ent.Value{*id}
+		}
+	case campaigncharacter.EdgeCharacter:
+		if id := m.character; id != nil {
+			return []ent.Value{*id}
+		}
+	}
+	return nil
+}
+
+// RemovedEdges returns all edge names that were removed in this mutation.
+func (m *CampaignCharacterMutation) RemovedEdges() []string {
+	edges := make([]string, 0, 2)
+	return edges
+}
+
+// RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
+// the given name in this mutation.
+func (m *CampaignCharacterMutation) RemovedIDs(name string) []ent.Value {
+	return nil
+}
+
+// ClearedEdges returns all edge names that were cleared in this mutation.
+func (m *CampaignCharacterMutation) ClearedEdges() []string {
+	edges := make([]string, 0, 2)
+	if m.clearedcampaign {
+		edges = append(edges, campaigncharacter.EdgeCampaign)
+	}
+	if m.clearedcharacter {
+		edges = append(edges, campaigncharacter.EdgeCharacter)
+	}
+	return edges
+}
+
+// EdgeCleared returns a boolean which indicates if the edge with the given name
+// was cleared in this mutation.
+func (m *CampaignCharacterMutation) EdgeCleared(name string) bool {
+	switch name {
+	case campaigncharacter.EdgeCampaign:
+		return m.clearedcampaign
+	case campaigncharacter.EdgeCharacter:
+		return m.clearedcharacter
+	}
+	return false
+}
+
+// ClearEdge clears the value of the edge with the given name. It returns an error
+// if that edge is not defined in the schema.
+func (m *CampaignCharacterMutation) ClearEdge(name string) error {
+	switch name {
+	case campaigncharacter.EdgeCampaign:
+		m.ClearCampaign()
+		return nil
+	case campaigncharacter.EdgeCharacter:
+		m.ClearCharacter()
+		return nil
+	}
+	return fmt.Errorf("unknown CampaignCharacter unique edge %s", name)
+}
+
+// ResetEdge resets all changes to the edge with the given name in this mutation.
+// It returns an error if the edge is not defined in the schema.
+func (m *CampaignCharacterMutation) ResetEdge(name string) error {
+	switch name {
+	case campaigncharacter.EdgeCampaign:
+		m.ResetCampaign()
+		return nil
+	case campaigncharacter.EdgeCharacter:
+		m.ResetCharacter()
+		return nil
+	}
+	return fmt.Errorf("unknown CampaignCharacter edge %s", name)
 }
 
 // CampaignMapMutation represents an operation that mutates the CampaignMap nodes in the graph.
@@ -10122,8 +10696,6 @@ type CharacterMutation struct {
 	exhaustion_level            *int
 	addexhaustion_level         *int
 	concentrating_on            *string
-	campaign_id                 *int64
-	addcampaign_id              *int64
 	compendium_race_id          *int64
 	addcompendium_race_id       *int64
 	compendium_class_id         *int64
@@ -10136,6 +10708,9 @@ type CharacterMutation struct {
 	clearedFields               map[string]struct{}
 	user                        *int64
 	cleareduser                 bool
+	campaign_links              map[int64]struct{}
+	removedcampaign_links       map[int64]struct{}
+	clearedcampaign_links       bool
 	currency                    map[int]struct{}
 	removedcurrency             map[int]struct{}
 	clearedcurrency             bool
@@ -12158,76 +12733,6 @@ func (m *CharacterMutation) ResetConcentratingOn() {
 	m.concentrating_on = nil
 }
 
-// SetCampaignID sets the "campaign_id" field.
-func (m *CharacterMutation) SetCampaignID(i int64) {
-	m.campaign_id = &i
-	m.addcampaign_id = nil
-}
-
-// CampaignID returns the value of the "campaign_id" field in the mutation.
-func (m *CharacterMutation) CampaignID() (r int64, exists bool) {
-	v := m.campaign_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// OldCampaignID returns the old "campaign_id" field's value of the Character entity.
-// If the Character object wasn't provided to the builder, the object is fetched from the database.
-// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
-func (m *CharacterMutation) OldCampaignID(ctx context.Context) (v int64, err error) {
-	if !m.op.Is(OpUpdateOne) {
-		return v, errors.New("OldCampaignID is only allowed on UpdateOne operations")
-	}
-	if m.id == nil || m.oldValue == nil {
-		return v, errors.New("OldCampaignID requires an ID field in the mutation")
-	}
-	oldValue, err := m.oldValue(ctx)
-	if err != nil {
-		return v, fmt.Errorf("querying old value for OldCampaignID: %w", err)
-	}
-	return oldValue.CampaignID, nil
-}
-
-// AddCampaignID adds i to the "campaign_id" field.
-func (m *CharacterMutation) AddCampaignID(i int64) {
-	if m.addcampaign_id != nil {
-		*m.addcampaign_id += i
-	} else {
-		m.addcampaign_id = &i
-	}
-}
-
-// AddedCampaignID returns the value that was added to the "campaign_id" field in this mutation.
-func (m *CharacterMutation) AddedCampaignID() (r int64, exists bool) {
-	v := m.addcampaign_id
-	if v == nil {
-		return
-	}
-	return *v, true
-}
-
-// ClearCampaignID clears the value of the "campaign_id" field.
-func (m *CharacterMutation) ClearCampaignID() {
-	m.campaign_id = nil
-	m.addcampaign_id = nil
-	m.clearedFields[character.FieldCampaignID] = struct{}{}
-}
-
-// CampaignIDCleared returns if the "campaign_id" field was cleared in this mutation.
-func (m *CharacterMutation) CampaignIDCleared() bool {
-	_, ok := m.clearedFields[character.FieldCampaignID]
-	return ok
-}
-
-// ResetCampaignID resets all changes to the "campaign_id" field.
-func (m *CharacterMutation) ResetCampaignID() {
-	m.campaign_id = nil
-	m.addcampaign_id = nil
-	delete(m.clearedFields, character.FieldCampaignID)
-}
-
 // SetCompendiumRaceID sets the "compendium_race_id" field.
 func (m *CharacterMutation) SetCompendiumRaceID(i int64) {
 	m.compendium_race_id = &i
@@ -12571,6 +13076,60 @@ func (m *CharacterMutation) UserIDs() (ids []int64) {
 func (m *CharacterMutation) ResetUser() {
 	m.user = nil
 	m.cleareduser = false
+}
+
+// AddCampaignLinkIDs adds the "campaign_links" edge to the CampaignCharacter entity by ids.
+func (m *CharacterMutation) AddCampaignLinkIDs(ids ...int64) {
+	if m.campaign_links == nil {
+		m.campaign_links = make(map[int64]struct{})
+	}
+	for i := range ids {
+		m.campaign_links[ids[i]] = struct{}{}
+	}
+}
+
+// ClearCampaignLinks clears the "campaign_links" edge to the CampaignCharacter entity.
+func (m *CharacterMutation) ClearCampaignLinks() {
+	m.clearedcampaign_links = true
+}
+
+// CampaignLinksCleared reports if the "campaign_links" edge to the CampaignCharacter entity was cleared.
+func (m *CharacterMutation) CampaignLinksCleared() bool {
+	return m.clearedcampaign_links
+}
+
+// RemoveCampaignLinkIDs removes the "campaign_links" edge to the CampaignCharacter entity by IDs.
+func (m *CharacterMutation) RemoveCampaignLinkIDs(ids ...int64) {
+	if m.removedcampaign_links == nil {
+		m.removedcampaign_links = make(map[int64]struct{})
+	}
+	for i := range ids {
+		delete(m.campaign_links, ids[i])
+		m.removedcampaign_links[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedCampaignLinks returns the removed IDs of the "campaign_links" edge to the CampaignCharacter entity.
+func (m *CharacterMutation) RemovedCampaignLinksIDs() (ids []int64) {
+	for id := range m.removedcampaign_links {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// CampaignLinksIDs returns the "campaign_links" edge IDs in the mutation.
+func (m *CharacterMutation) CampaignLinksIDs() (ids []int64) {
+	for id := range m.campaign_links {
+		ids = append(ids, id)
+	}
+	return
+}
+
+// ResetCampaignLinks resets all changes to the "campaign_links" edge.
+func (m *CharacterMutation) ResetCampaignLinks() {
+	m.campaign_links = nil
+	m.clearedcampaign_links = false
+	m.removedcampaign_links = nil
 }
 
 // AddCurrencyIDs adds the "currency" edge to the CharacterCurrency entity by ids.
@@ -13849,7 +14408,7 @@ func (m *CharacterMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *CharacterMutation) Fields() []string {
-	fields := make([]string, 0, 46)
+	fields := make([]string, 0, 45)
 	if m.user != nil {
 		fields = append(fields, character.FieldUserID)
 	}
@@ -13967,9 +14526,6 @@ func (m *CharacterMutation) Fields() []string {
 	if m.concentrating_on != nil {
 		fields = append(fields, character.FieldConcentratingOn)
 	}
-	if m.campaign_id != nil {
-		fields = append(fields, character.FieldCampaignID)
-	}
 	if m.compendium_race_id != nil {
 		fields = append(fields, character.FieldCompendiumRaceID)
 	}
@@ -14074,8 +14630,6 @@ func (m *CharacterMutation) Field(name string) (ent.Value, bool) {
 		return m.ExhaustionLevel()
 	case character.FieldConcentratingOn:
 		return m.ConcentratingOn()
-	case character.FieldCampaignID:
-		return m.CampaignID()
 	case character.FieldCompendiumRaceID:
 		return m.CompendiumRaceID()
 	case character.FieldCompendiumClassID:
@@ -14175,8 +14729,6 @@ func (m *CharacterMutation) OldField(ctx context.Context, name string) (ent.Valu
 		return m.OldExhaustionLevel(ctx)
 	case character.FieldConcentratingOn:
 		return m.OldConcentratingOn(ctx)
-	case character.FieldCampaignID:
-		return m.OldCampaignID(ctx)
 	case character.FieldCompendiumRaceID:
 		return m.OldCompendiumRaceID(ctx)
 	case character.FieldCompendiumClassID:
@@ -14471,13 +15023,6 @@ func (m *CharacterMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetConcentratingOn(v)
 		return nil
-	case character.FieldCampaignID:
-		v, ok := value.(int64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.SetCampaignID(v)
-		return nil
 	case character.FieldCompendiumRaceID:
 		v, ok := value.(int64)
 		if !ok {
@@ -14594,9 +15139,6 @@ func (m *CharacterMutation) AddedFields() []string {
 	if m.addexhaustion_level != nil {
 		fields = append(fields, character.FieldExhaustionLevel)
 	}
-	if m.addcampaign_id != nil {
-		fields = append(fields, character.FieldCampaignID)
-	}
 	if m.addcompendium_race_id != nil {
 		fields = append(fields, character.FieldCompendiumRaceID)
 	}
@@ -14658,8 +15200,6 @@ func (m *CharacterMutation) AddedField(name string) (ent.Value, bool) {
 		return m.AddedDeathSavesFailures()
 	case character.FieldExhaustionLevel:
 		return m.AddedExhaustionLevel()
-	case character.FieldCampaignID:
-		return m.AddedCampaignID()
 	case character.FieldCompendiumRaceID:
 		return m.AddedCompendiumRaceID()
 	case character.FieldCompendiumClassID:
@@ -14829,13 +15369,6 @@ func (m *CharacterMutation) AddField(name string, value ent.Value) error {
 		}
 		m.AddExhaustionLevel(v)
 		return nil
-	case character.FieldCampaignID:
-		v, ok := value.(int64)
-		if !ok {
-			return fmt.Errorf("unexpected type %T for field %s", value, name)
-		}
-		m.AddCampaignID(v)
-		return nil
 	case character.FieldCompendiumRaceID:
 		v, ok := value.(int64)
 		if !ok {
@@ -14865,9 +15398,6 @@ func (m *CharacterMutation) AddField(name string, value ent.Value) error {
 // mutation.
 func (m *CharacterMutation) ClearedFields() []string {
 	var fields []string
-	if m.FieldCleared(character.FieldCampaignID) {
-		fields = append(fields, character.FieldCampaignID)
-	}
 	if m.FieldCleared(character.FieldCompendiumRaceID) {
 		fields = append(fields, character.FieldCompendiumRaceID)
 	}
@@ -14891,9 +15421,6 @@ func (m *CharacterMutation) FieldCleared(name string) bool {
 // error if the field is not defined in the schema.
 func (m *CharacterMutation) ClearField(name string) error {
 	switch name {
-	case character.FieldCampaignID:
-		m.ClearCampaignID()
-		return nil
 	case character.FieldCompendiumRaceID:
 		m.ClearCompendiumRaceID()
 		return nil
@@ -15028,9 +15555,6 @@ func (m *CharacterMutation) ResetField(name string) error {
 	case character.FieldConcentratingOn:
 		m.ResetConcentratingOn()
 		return nil
-	case character.FieldCampaignID:
-		m.ResetCampaignID()
-		return nil
 	case character.FieldCompendiumRaceID:
 		m.ResetCompendiumRaceID()
 		return nil
@@ -15055,9 +15579,12 @@ func (m *CharacterMutation) ResetField(name string) error {
 
 // AddedEdges returns all edge names that were set/added in this mutation.
 func (m *CharacterMutation) AddedEdges() []string {
-	edges := make([]string, 0, 24)
+	edges := make([]string, 0, 25)
 	if m.user != nil {
 		edges = append(edges, character.EdgeUser)
+	}
+	if m.campaign_links != nil {
+		edges = append(edges, character.EdgeCampaignLinks)
 	}
 	if m.currency != nil {
 		edges = append(edges, character.EdgeCurrency)
@@ -15139,6 +15666,12 @@ func (m *CharacterMutation) AddedIDs(name string) []ent.Value {
 		if id := m.user; id != nil {
 			return []ent.Value{*id}
 		}
+	case character.EdgeCampaignLinks:
+		ids := make([]ent.Value, 0, len(m.campaign_links))
+		for id := range m.campaign_links {
+			ids = append(ids, id)
+		}
+		return ids
 	case character.EdgeCurrency:
 		ids := make([]ent.Value, 0, len(m.currency))
 		for id := range m.currency {
@@ -15283,7 +15816,10 @@ func (m *CharacterMutation) AddedIDs(name string) []ent.Value {
 
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *CharacterMutation) RemovedEdges() []string {
-	edges := make([]string, 0, 24)
+	edges := make([]string, 0, 25)
+	if m.removedcampaign_links != nil {
+		edges = append(edges, character.EdgeCampaignLinks)
+	}
 	if m.removedcurrency != nil {
 		edges = append(edges, character.EdgeCurrency)
 	}
@@ -15360,6 +15896,12 @@ func (m *CharacterMutation) RemovedEdges() []string {
 // the given name in this mutation.
 func (m *CharacterMutation) RemovedIDs(name string) []ent.Value {
 	switch name {
+	case character.EdgeCampaignLinks:
+		ids := make([]ent.Value, 0, len(m.removedcampaign_links))
+		for id := range m.removedcampaign_links {
+			ids = append(ids, id)
+		}
+		return ids
 	case character.EdgeCurrency:
 		ids := make([]ent.Value, 0, len(m.removedcurrency))
 		for id := range m.removedcurrency {
@@ -15504,9 +16046,12 @@ func (m *CharacterMutation) RemovedIDs(name string) []ent.Value {
 
 // ClearedEdges returns all edge names that were cleared in this mutation.
 func (m *CharacterMutation) ClearedEdges() []string {
-	edges := make([]string, 0, 24)
+	edges := make([]string, 0, 25)
 	if m.cleareduser {
 		edges = append(edges, character.EdgeUser)
+	}
+	if m.clearedcampaign_links {
+		edges = append(edges, character.EdgeCampaignLinks)
 	}
 	if m.clearedcurrency {
 		edges = append(edges, character.EdgeCurrency)
@@ -15586,6 +16131,8 @@ func (m *CharacterMutation) EdgeCleared(name string) bool {
 	switch name {
 	case character.EdgeUser:
 		return m.cleareduser
+	case character.EdgeCampaignLinks:
+		return m.clearedcampaign_links
 	case character.EdgeCurrency:
 		return m.clearedcurrency
 	case character.EdgeProficiencies:
@@ -15653,6 +16200,9 @@ func (m *CharacterMutation) ResetEdge(name string) error {
 	switch name {
 	case character.EdgeUser:
 		m.ResetUser()
+		return nil
+	case character.EdgeCampaignLinks:
+		m.ResetCampaignLinks()
 		return nil
 	case character.EdgeCurrency:
 		m.ResetCurrency()

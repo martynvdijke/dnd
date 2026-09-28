@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"villum/ent/campaign"
 	"villum/ent/campaigncalendarevent"
+	"villum/ent/campaigncharacter"
 	"villum/ent/campaignmap"
 	"villum/ent/campaignmember"
 	"villum/ent/campaignrecap"
@@ -127,6 +128,21 @@ func (_c *CampaignCreate) AddMembers(v ...*CampaignMember) *CampaignCreate {
 		ids[i] = v[i].ID
 	}
 	return _c.AddMemberIDs(ids...)
+}
+
+// AddCharacterLinkIDs adds the "character_links" edge to the CampaignCharacter entity by IDs.
+func (_c *CampaignCreate) AddCharacterLinkIDs(ids ...int64) *CampaignCreate {
+	_c.mutation.AddCharacterLinkIDs(ids...)
+	return _c
+}
+
+// AddCharacterLinks adds the "character_links" edges to the CampaignCharacter entity.
+func (_c *CampaignCreate) AddCharacterLinks(v ...*CampaignCharacter) *CampaignCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddCharacterLinkIDs(ids...)
 }
 
 // AddCalendarEventIDs adds the "calendar_events" edge to the CampaignCalendarEvent entity by IDs.
@@ -464,6 +480,22 @@ func (_c *CampaignCreate) createSpec() (*Campaign, *sqlgraph.CreateSpec) {
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
 				IDSpec: sqlgraph.NewFieldSpec(campaignmember.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CharacterLinksIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   campaign.CharacterLinksTable,
+			Columns: []string{campaign.CharacterLinksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(campaigncharacter.FieldID, field.TypeInt64),
 			},
 		}
 		for _, k := range nodes {

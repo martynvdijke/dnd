@@ -12,6 +12,7 @@ import (
 	"villum/ent/backupsetting"
 	"villum/ent/campaign"
 	"villum/ent/campaigncalendarevent"
+	"villum/ent/campaigncharacter"
 	"villum/ent/campaignmap"
 	"villum/ent/campaignmappin"
 	"villum/ent/campaignmember"
@@ -141,6 +142,7 @@ func checkColumn(t, c string) error {
 			backupsetting.Table:             backupsetting.ValidColumn,
 			campaign.Table:                  campaign.ValidColumn,
 			campaigncalendarevent.Table:     campaigncalendarevent.ValidColumn,
+			campaigncharacter.Table:         campaigncharacter.ValidColumn,
 			campaignmap.Table:               campaignmap.ValidColumn,
 			campaignmappin.Table:            campaignmappin.ValidColumn,
 			campaignmember.Table:            campaignmember.ValidColumn,

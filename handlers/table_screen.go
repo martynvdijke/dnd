@@ -103,7 +103,7 @@ func TableStateForCampaign(campaignID int64) gin.H {
 	if rows, err := db.DB.Query(`
 		SELECT c.id, c.name, COALESCE(c.class,''), c.level, c.hp_current, c.hp_max, c.ac,
 			COALESCE((SELECT GROUP_CONCAT(cc.name, ', ') FROM character_conditions cc WHERE cc.character_id = c.id), '')
-		FROM characters c WHERE c.campaign_id=? ORDER BY c.name`, campaignID); err == nil {
+		FROM characters c JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=? ORDER BY c.name`, campaignID); err == nil {
 		defer rows.Close()
 		for rows.Next() {
 			var ch tableCharacter
@@ -130,7 +130,8 @@ func TableStateForCampaign(campaignID int64) gin.H {
 	if rows, err := db.DB.Query(`
 		SELECT COALESCE(c.name,''), dr.expression, dr.total, COALESCE(dr.result,''), COALESCE(dr.timestamp,'')
 		FROM dice_rolls dr LEFT JOIN characters c ON c.id = dr.character_id
-		WHERE c.campaign_id=? ORDER BY dr.timestamp DESC, dr.id DESC LIMIT 10`, campaignID); err == nil {
+		JOIN campaign_characters cm ON cm.character_id=c.id
+		WHERE cm.campaign_id=? ORDER BY dr.timestamp DESC, dr.id DESC LIMIT 10`, campaignID); err == nil {
 		defer rows.Close()
 		for rows.Next() {
 			var r tableRoll

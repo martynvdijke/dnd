@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"villum/ent/campaigncharacter"
 	"villum/ent/character"
 	"villum/ent/characterclass"
 	"villum/ent/charactercondition"
@@ -583,20 +584,6 @@ func (_c *CharacterCreate) SetNillableConcentratingOn(v *string) *CharacterCreat
 	return _c
 }
 
-// SetCampaignID sets the "campaign_id" field.
-func (_c *CharacterCreate) SetCampaignID(v int64) *CharacterCreate {
-	_c.mutation.SetCampaignID(v)
-	return _c
-}
-
-// SetNillableCampaignID sets the "campaign_id" field if the given value is not nil.
-func (_c *CharacterCreate) SetNillableCampaignID(v *int64) *CharacterCreate {
-	if v != nil {
-		_c.SetCampaignID(*v)
-	}
-	return _c
-}
-
 // SetCompendiumRaceID sets the "compendium_race_id" field.
 func (_c *CharacterCreate) SetCompendiumRaceID(v int64) *CharacterCreate {
 	_c.mutation.SetCompendiumRaceID(v)
@@ -690,6 +677,21 @@ func (_c *CharacterCreate) SetID(v int64) *CharacterCreate {
 // SetUser sets the "user" edge to the User entity.
 func (_c *CharacterCreate) SetUser(v *User) *CharacterCreate {
 	return _c.SetUserID(v.ID)
+}
+
+// AddCampaignLinkIDs adds the "campaign_links" edge to the CampaignCharacter entity by IDs.
+func (_c *CharacterCreate) AddCampaignLinkIDs(ids ...int64) *CharacterCreate {
+	_c.mutation.AddCampaignLinkIDs(ids...)
+	return _c
+}
+
+// AddCampaignLinks adds the "campaign_links" edges to the CampaignCharacter entity.
+func (_c *CharacterCreate) AddCampaignLinks(v ...*CampaignCharacter) *CharacterCreate {
+	ids := make([]int64, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddCampaignLinkIDs(ids...)
 }
 
 // AddCurrencyIDs adds the "currency" edge to the CharacterCurrency entity by IDs.
@@ -1554,10 +1556,6 @@ func (_c *CharacterCreate) createSpec() (*Character, *sqlgraph.CreateSpec) {
 		_spec.SetField(character.FieldConcentratingOn, field.TypeString, value)
 		_node.ConcentratingOn = value
 	}
-	if value, ok := _c.mutation.CampaignID(); ok {
-		_spec.SetField(character.FieldCampaignID, field.TypeInt64, value)
-		_node.CampaignID = value
-	}
 	if value, ok := _c.mutation.CompendiumRaceID(); ok {
 		_spec.SetField(character.FieldCompendiumRaceID, field.TypeInt64, value)
 		_node.CompendiumRaceID = &value
@@ -1597,6 +1595,22 @@ func (_c *CharacterCreate) createSpec() (*Character, *sqlgraph.CreateSpec) {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
 		_node.UserID = nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.CampaignLinksIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   character.CampaignLinksTable,
+			Columns: []string{character.CampaignLinksColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(campaigncharacter.FieldID, field.TypeInt64),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.CurrencyIDs(); len(nodes) > 0 {
@@ -2619,30 +2633,6 @@ func (u *CharacterUpsert) UpdateConcentratingOn() *CharacterUpsert {
 	return u
 }
 
-// SetCampaignID sets the "campaign_id" field.
-func (u *CharacterUpsert) SetCampaignID(v int64) *CharacterUpsert {
-	u.Set(character.FieldCampaignID, v)
-	return u
-}
-
-// UpdateCampaignID sets the "campaign_id" field to the value that was provided on create.
-func (u *CharacterUpsert) UpdateCampaignID() *CharacterUpsert {
-	u.SetExcluded(character.FieldCampaignID)
-	return u
-}
-
-// AddCampaignID adds v to the "campaign_id" field.
-func (u *CharacterUpsert) AddCampaignID(v int64) *CharacterUpsert {
-	u.Add(character.FieldCampaignID, v)
-	return u
-}
-
-// ClearCampaignID clears the value of the "campaign_id" field.
-func (u *CharacterUpsert) ClearCampaignID() *CharacterUpsert {
-	u.SetNull(character.FieldCampaignID)
-	return u
-}
-
 // SetCompendiumRaceID sets the "compendium_race_id" field.
 func (u *CharacterUpsert) SetCompendiumRaceID(v int64) *CharacterUpsert {
 	u.Set(character.FieldCompendiumRaceID, v)
@@ -3496,34 +3486,6 @@ func (u *CharacterUpsertOne) SetConcentratingOn(v string) *CharacterUpsertOne {
 func (u *CharacterUpsertOne) UpdateConcentratingOn() *CharacterUpsertOne {
 	return u.Update(func(s *CharacterUpsert) {
 		s.UpdateConcentratingOn()
-	})
-}
-
-// SetCampaignID sets the "campaign_id" field.
-func (u *CharacterUpsertOne) SetCampaignID(v int64) *CharacterUpsertOne {
-	return u.Update(func(s *CharacterUpsert) {
-		s.SetCampaignID(v)
-	})
-}
-
-// AddCampaignID adds v to the "campaign_id" field.
-func (u *CharacterUpsertOne) AddCampaignID(v int64) *CharacterUpsertOne {
-	return u.Update(func(s *CharacterUpsert) {
-		s.AddCampaignID(v)
-	})
-}
-
-// UpdateCampaignID sets the "campaign_id" field to the value that was provided on create.
-func (u *CharacterUpsertOne) UpdateCampaignID() *CharacterUpsertOne {
-	return u.Update(func(s *CharacterUpsert) {
-		s.UpdateCampaignID()
-	})
-}
-
-// ClearCampaignID clears the value of the "campaign_id" field.
-func (u *CharacterUpsertOne) ClearCampaignID() *CharacterUpsertOne {
-	return u.Update(func(s *CharacterUpsert) {
-		s.ClearCampaignID()
 	})
 }
 
@@ -4564,34 +4526,6 @@ func (u *CharacterUpsertBulk) SetConcentratingOn(v string) *CharacterUpsertBulk 
 func (u *CharacterUpsertBulk) UpdateConcentratingOn() *CharacterUpsertBulk {
 	return u.Update(func(s *CharacterUpsert) {
 		s.UpdateConcentratingOn()
-	})
-}
-
-// SetCampaignID sets the "campaign_id" field.
-func (u *CharacterUpsertBulk) SetCampaignID(v int64) *CharacterUpsertBulk {
-	return u.Update(func(s *CharacterUpsert) {
-		s.SetCampaignID(v)
-	})
-}
-
-// AddCampaignID adds v to the "campaign_id" field.
-func (u *CharacterUpsertBulk) AddCampaignID(v int64) *CharacterUpsertBulk {
-	return u.Update(func(s *CharacterUpsert) {
-		s.AddCampaignID(v)
-	})
-}
-
-// UpdateCampaignID sets the "campaign_id" field to the value that was provided on create.
-func (u *CharacterUpsertBulk) UpdateCampaignID() *CharacterUpsertBulk {
-	return u.Update(func(s *CharacterUpsert) {
-		s.UpdateCampaignID()
-	})
-}
-
-// ClearCampaignID clears the value of the "campaign_id" field.
-func (u *CharacterUpsertBulk) ClearCampaignID() *CharacterUpsertBulk {
-	return u.Update(func(s *CharacterUpsert) {
-		s.ClearCampaignID()
 	})
 }
 

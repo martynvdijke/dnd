@@ -149,7 +149,7 @@ func TestCampaignMembers(t *testing.T) {
 	})
 }
 
-func TestCampaignUnassignsCharacters(t *testing.T) {
+func TestCampaignRemovesCharacterMemberships(t *testing.T) {
 	testutil.NewDB(t)
 	defer testutil.CloseDB(t)
 	testutil.SeedUser(t, 1, "admin", "admin")
@@ -157,8 +157,8 @@ func TestCampaignUnassignsCharacters(t *testing.T) {
 	testutil.SeedCampaign(t, 1, "Delete Campaign", "Party", 1)
 	testutil.SeedCharacter(t, 1, 1, "Temp Member", "Gnome", "Wizard")
 
-	// Assign character to campaign via raw SQL
-	_, err := db.DB.Exec("UPDATE characters SET campaign_id = 1 WHERE id = 1")
+	// Assign character to campaign via membership
+	_, err := db.DB.Exec("INSERT INTO campaign_characters(campaign_id, character_id) VALUES(1, 1)")
 	if err != nil {
 		t.Fatalf("assign char to campaign: %v", err)
 	}
@@ -167,14 +167,14 @@ func TestCampaignUnassignsCharacters(t *testing.T) {
 		auth.DELETE("/campaigns/:id", DeleteCampaign)
 	})
 
-	t.Run("delete campaign unassigns characters", func(t *testing.T) {
+	t.Run("delete campaign removes character memberships", func(t *testing.T) {
 		w := testutil.Delete(t, r, "/api/campaigns/1")
 		testutil.AssertStatus(t, w, 200)
 
-		var campaignID *int64
-		_ = db.DB.QueryRow("SELECT campaign_id FROM characters WHERE id = 1").Scan(&campaignID)
-		if campaignID != nil {
-			t.Fatalf("expected campaign_id to be NULL after campaign delete, got %v", *campaignID)
+		var count int
+		_ = db.DB.QueryRow("SELECT COUNT(*) FROM campaign_characters WHERE character_id = 1").Scan(&count)
+		if count != 0 {
+			t.Fatalf("expected no memberships after campaign delete, got %d", count)
 		}
 	})
 }

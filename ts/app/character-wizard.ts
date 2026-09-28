@@ -6,6 +6,7 @@
 import { esc, showModal, hideModal, toast } from '../lib/dom';
 import { api } from '../lib/api';
 import { expose } from '../lib/expose';
+import { currentCampaign } from '../lib/state';
 
 const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const;
 type Ability = (typeof ABILITIES)[number];
@@ -31,6 +32,7 @@ interface WizardState {
   abilities: Record<Ability, number>;
   skills: string[];
   saves: Ability[];
+  campaignIds: number[];
 }
 
 const STEP_TITLES = ['Identity', 'Abilities', 'Proficiencies', 'Review'];
@@ -41,6 +43,7 @@ function defaultState(): WizardState {
   return {
     step: 0, name: '', race: '', class: '', background: '', level: 1,
     method: 'array', abilities, skills: [], saves: [],
+    campaignIds: currentCampaign ? [currentCampaign.id] : [],
   };
 }
 
@@ -144,13 +147,34 @@ function bodyFor(step: number): string {
       <div class="small text-muted mb-2">${ABILITIES.map(a => `${a.toUpperCase()} ${state.abilities[a]} (${mod(state.abilities[a])})`).join(' · ')}</div>
       <div class="small text-muted mb-2">Skills: ${state.skills.length ? esc(state.skills.join(', ')) : 'none'}</div>
       <div class="small text-muted mb-2">Saves: ${state.saves.length ? esc(state.saves.map(s => s.toUpperCase()).join(', ')) : 'none'}</div>
+      <h6 class="mt-3">Campaigns</h6>
+      <div class="small text-muted mb-1">Attach this character to the campaigns it plays in. Unassigned characters are still available in any campaign context.</div>
+      <div id="wizCampaigns" data-testid="wizard-campaigns"><div class="small text-muted">Loading campaigns...</div></div>
     </div>
     ${nav(true)}`;
+}
+
+async function loadWizardCampaigns(): Promise<void> {
+  const el = document.getElementById('wizCampaigns');
+  if (!el) return;
+  try {
+    const campaigns: any[] = await api('GET', '/api/campaigns/mine');
+    el.innerHTML = campaigns.length
+      ? campaigns.map((c: any) => `
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="wizCampaign-${c.id}"${state.campaignIds.includes(c.id) ? ' checked' : ''} data-testid="wizard-campaign-option" onchange="wizardToggleCampaign(${c.id})">
+            <label class="form-check-label" for="wizCampaign-${c.id}">${esc(c.name)}${c.my_role === 'dm' ? ' <span class="badge bg-secondary">DM</span>' : ''}</label>
+          </div>`).join('')
+      : '<div class="small text-muted">You are not a member of any campaign yet.</div>';
+  } catch {
+    el.innerHTML = '<div class="small text-muted">Could not load campaigns.</div>';
+  }
 }
 
 function render(): void {
   showModal(`Guided Builder — ${STEP_TITLES[state.step]} (Step ${state.step + 1} of 4)`, bodyFor(state.step));
   if (state.step === 0) void loadDatalists();
+  if (state.step === 3) void loadWizardCampaigns();
 }
 
 async function loadDatalists(): Promise<void> {
@@ -216,6 +240,12 @@ export function wizardToggleSave(ability: string): void {
   else state.saves.push(a);
 }
 
+export function wizardToggleCampaign(campaignId: number): void {
+  const i = state.campaignIds.indexOf(campaignId);
+  if (i >= 0) state.campaignIds.splice(i, 1);
+  else state.campaignIds.push(campaignId);
+}
+
 export async function wizardCreate(): Promise<void> {
   collect();
   if (!state.name.trim()) {
@@ -229,6 +259,7 @@ export async function wizardCreate(): Promise<void> {
       class: state.class,
       background: state.background,
       level: state.level,
+      campaign_ids: state.campaignIds,
       ...state.abilities,
     });
     if (!char.id) throw new Error('Character creation failed');
@@ -258,4 +289,5 @@ expose('wizardSetMethod', wizardSetMethod);
 expose('wizardUpdateMods', wizardUpdateMods);
 expose('wizardToggleSkill', wizardToggleSkill);
 expose('wizardToggleSave', wizardToggleSave);
+expose('wizardToggleCampaign', wizardToggleCampaign);
 expose('wizardCreate', wizardCreate);

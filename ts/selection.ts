@@ -20,6 +20,41 @@ const LS_CHARACTER = 'villum_character';
 export interface CampaignSelection {
   id: number;
   name: string;
+  my_role?: string;
+}
+
+function isDmCampaign(camp: any): boolean {
+  return camp?.my_role === 'dm';
+}
+
+function enterPartyView(): void {
+  const w = window as unknown as Record<string, () => void> & { showParty?: () => void };
+  if (typeof w.showParty === 'function') w.showParty();
+  else showView('party');
+}
+
+/** Persist a campaign as the active selection without navigating. */
+export function adoptCampaign(camp: any): void {
+  localStorage.setItem(LS_CAMPAIGN, JSON.stringify({ id: camp.id, name: camp.name }));
+  setCurrentCampaign(camp);
+  setCurrentChar(null);
+  localStorage.removeItem(LS_CHARACTER);
+}
+
+/** Role-aware default view for the active campaign. */
+export function enterDefaultView(): void {
+  if (isDmCampaign(currentCampaign)) enterPartyView();
+  else showView('characters');
+}
+
+async function campaignIsDm(campaignId: number): Promise<boolean> {
+  if (currentCampaign && currentCampaign.id === campaignId) return isDmCampaign(currentCampaign);
+  try {
+    const campaigns = await api('GET', '/api/campaigns/mine');
+    return isDmCampaign(campaigns.find((c: any) => c.id === campaignId));
+  } catch {
+    return false;
+  }
 }
 
 export function getStoredCampaign(): CampaignSelection | null {
@@ -63,6 +98,7 @@ export async function loadCampaignPicker(): Promise<void> {
           <i class="fa-solid fa-users fa-2x mb-3 d-block" aria-hidden="true"></i>
           <p class="text-muted mb-2">You are not part of any campaign yet.</p>
           <p class="text-muted small mb-3">Create a campaign or ask your Dungeon Master to add you.</p>
+          <button class="btn btn-gold" data-testid="create-campaign-from-picker" onclick="showCreateCampaign()"><i class="fa-solid fa-plus me-1" aria-hidden="true"></i>Create Campaign</button>
         </div>`;
       return;
     }
@@ -97,6 +133,10 @@ export async function selectCampaign(id: number): Promise<void> {
     localStorage.setItem(LS_CAMPAIGN, JSON.stringify({ id: camp.id, name: camp.name }));
     setCurrentCampaign(camp);
     setCurrentChar(null);
+    if (isDmCampaign(camp)) {
+      enterPartyView();
+      return;
+    }
     await loadCharacterPicker(camp.id);
   } catch (e: any) {
     toast(e.message, true);
@@ -106,6 +146,12 @@ export async function selectCampaign(id: number): Promise<void> {
 export async function loadCharacterPicker(campaignId: number): Promise<void> {
   showView('characterPicker');
   const container = document.getElementById('characterPickerList')!;
+  const dm = await campaignIsDm(campaignId);
+  const dmBtn = document.getElementById('continueAsDmBtn');
+  if (dmBtn) {
+    dmBtn.style.display = dm ? '' : 'none';
+    dmBtn.setAttribute('onclick', `continueAsDm(${campaignId})`);
+  }
   container.innerHTML = '<div class="text-center text-muted py-4"><i class="fa-solid fa-spinner fa-spin me-2"></i>Loading characters...</div>';
   try {
     const [chars, mine] = await Promise.all([
@@ -115,7 +161,7 @@ export async function loadCharacterPicker(campaignId: number): Promise<void> {
     // Characters that belong to the current user but are not assigned to a
     // campaign are surfaced under an "Unassigned" group so they are not lost.
     const assignedIds = new Set((chars as any[]).map((c: any) => c.id));
-    const unassigned = (mine as any[]).filter((c: any) => !c.campaign_id && !assignedIds.has(c.id));
+    const unassigned = (mine as any[]).filter((c: any) => !(c.campaigns && c.campaigns.length) && !assignedIds.has(c.id));
     const card = (c: any) => `
       <div class="col-md-6 col-lg-4">
         <div class="character-card" data-testid="character-picker-card" onclick="selectCharacter(${c.id})">
@@ -158,6 +204,17 @@ export async function loadCharacterPicker(campaignId: number): Promise<void> {
     container.innerHTML = '';
     toast(e.message, true);
   }
+}
+
+export function continueAsDm(campaignId?: number): void {
+  const id = campaignId ?? currentCampaign?.id ?? getStoredCampaign()?.id;
+  if (!id) {
+    void loadCampaignPicker();
+    return;
+  }
+  setCurrentChar(null);
+  localStorage.removeItem(LS_CHARACTER);
+  enterPartyView();
 }
 
 export async function selectCharacter(id: number): Promise<void> {
@@ -228,3 +285,6 @@ expose('loadCharacterPicker', loadCharacterPicker);
 expose('selectCampaign', selectCampaign);
 expose('selectCharacter', selectCharacter);
 expose('validateSelection', validateSelection);
+expose('adoptCampaign', adoptCampaign);
+expose('enterDefaultView', enterDefaultView);
+expose('continueAsDm', continueAsDm);

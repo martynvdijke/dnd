@@ -29,10 +29,13 @@ func TestCharacterPermissionMatrix(t *testing.T) {
 	if _, err := db.DB.Exec("UPDATE characters SET character_type='linked' WHERE id=2"); err != nil {
 		t.Fatalf("update char 2: %v", err)
 	}
-	// char 3: owned by user 1 (admin), linked, in campaign 1 → user 2 is its DM
+	// char 3: owned by user 1 (admin), linked, member of campaign 1 → user 2 is its DM
 	testutil.SeedCharacter(t, 3, 1, "DMChar", "Dwarf", "Cleric")
-	if _, err := db.DB.Exec("UPDATE characters SET character_type='linked', campaign_id=1 WHERE id=3"); err != nil {
+	if _, err := db.DB.Exec("UPDATE characters SET character_type='linked' WHERE id=3"); err != nil {
 		t.Fatalf("update char 3: %v", err)
+	}
+	if _, err := db.DB.Exec("INSERT INTO campaign_characters(campaign_id, character_id) VALUES(1, 3)"); err != nil {
+		t.Fatalf("join char 3 to campaign: %v", err)
 	}
 
 	router := func(auth *gin.RouterGroup) {
@@ -63,8 +66,8 @@ func TestCharacterPermissionMatrix(t *testing.T) {
 	})
 	t.Run("campaign DM can edit linked character", func(t *testing.T) {
 		r := testutil.NewRouterWithUser(router, 2, "player")
-		// campaign_id must be preserved: UpdateCharacter writes it back from the body
-		dmBody := map[string]any{"name": "DMChar", "race": "Dwarf", "class": "Cleric", "campaign_id": 1}
+		// membership is established by the fixture; the update itself must not disturb it
+		dmBody := map[string]any{"name": "DMChar", "race": "Dwarf", "class": "Cleric"}
 		w := testutil.PutJSON(t, r, "/api/characters/3", dmBody)
 		testutil.AssertStatus(t, w, 200)
 	})

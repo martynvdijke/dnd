@@ -302,7 +302,7 @@ expose('showAttackModal', async function (entryId: number): Promise<void> {
   } catch { chars = []; }
   const cid = (currentCampaign as any)?.id;
   if (cid) {
-    const filtered = chars.filter((c: any) => !c.campaign_id || c.campaign_id === cid);
+    const filtered = chars.filter((c: any) => !c.campaigns || !c.campaigns.length || c.campaigns.some((ca: any) => ca.id === cid));
     if (filtered.length) chars = filtered;
   }
   showModal('Attack', `

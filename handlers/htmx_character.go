@@ -31,7 +31,7 @@ func HtmxListNotes(c *gin.Context) {
 			db.DB.QueryRow("SELECT user_id FROM characters WHERE id=?", charID).Scan(&ownerID)
 			if ownerID != userID {
 				var isDM bool
-				db.DB.QueryRow(`SELECT COUNT(*) > 0 FROM campaign_members cm JOIN characters c ON c.campaign_id = cm.campaign_id WHERE c.id=? AND cm.user_id=? AND cm.role='dm'`, charID, userID).Scan(&isDM)
+				db.DB.QueryRow(`SELECT COUNT(*) > 0 FROM campaign_characters cc JOIN campaign_members cm ON cm.campaign_id = cc.campaign_id WHERE cc.character_id=? AND cm.user_id=? AND cm.role='dm'`, charID, userID).Scan(&isDM)
 				if !isDM {
 					continue
 				}

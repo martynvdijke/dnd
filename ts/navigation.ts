@@ -2,7 +2,7 @@ import type { ViewState } from './types';
 import { openBottomSheet } from './bottom-sheet';
 import { updateFabForView } from './fab';
 import { navigate as routerNavigate } from './router';
-import { currentCampaign, currentUser } from './lib/state';
+import { currentCampaign, currentChar, currentUser } from './lib/state';
 import { expose } from './lib/expose';
 import { applyTranslations } from './lib/i18n';
 
@@ -93,6 +93,18 @@ export function showView(view: ViewState): void {
   const needsCampaign = currentUser != null && currentUser?.role !== 'admin';
   if (needsCampaign && view !== 'campaignPicker' && view !== 'characterPicker' && !currentCampaign) {
     (window as any).loadCampaignPicker?.();
+    return;
+  }
+  // Character-only views: a DM may run a campaign with no active character.
+  // Send them back to the Party View with guidance instead of a blank sheet.
+  if (view === 'sheet' && currentUser != null && currentUser?.role !== 'admin' && !currentChar) {
+    (window as any).toast?.('Choose a character from the Party View to open a sheet', true);
+    if (typeof (window as any).showParty === 'function') (window as any).showParty();
+    else {
+      switchView('party');
+      if (!navigatingFromRouter && !initialLoad) routerNavigate('party');
+      initialLoad = false;
+    }
     return;
   }
   switchView(view);

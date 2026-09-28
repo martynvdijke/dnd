@@ -228,10 +228,10 @@ func HandleCharacterHP(c *gin.Context) {
 		return
 	}
 	var campaignID *int64
-	db.DB.QueryRow("SELECT campaign_id FROM characters WHERE id=?", charID).Scan(&campaignID)
-	// treat 0 as nil
-	if campaignID != nil && *campaignID == 0 {
-		campaignID = nil
+	// Characters may belong to several campaigns; bookkeeping uses the first membership.
+	var cid int64
+	if db.DB.QueryRow("SELECT campaign_id FROM campaign_characters WHERE character_id=? ORDER BY campaign_id LIMIT 1", charID).Scan(&cid) == nil {
+		campaignID = &cid
 	}
 	result, err := applyHPChange(charID, req.Delta, req.Type, req.Source, campaignID)
 	if err != nil {
@@ -289,10 +289,10 @@ func HandleSaveVsDC(c *gin.Context) {
 	db.DB.QueryRow("SELECT name FROM characters WHERE id=?", req.CharacterID).Scan(&actorName)
 	campID := req.CampaignID
 	if campID == nil {
-		var cid *int64
-		db.DB.QueryRow("SELECT campaign_id FROM characters WHERE id=?", req.CharacterID).Scan(&cid)
-		if cid != nil && *cid != 0 {
-			campID = cid
+		// Fall back to the first membership when the request has no campaign context.
+		var cid int64
+		if db.DB.QueryRow("SELECT campaign_id FROM campaign_characters WHERE character_id=? ORDER BY campaign_id LIMIT 1", req.CharacterID).Scan(&cid) == nil {
+			campID = &cid
 		}
 	}
 	descBytes, _ := json.Marshal(map[string]any{"ability": ability, "dc": req.DC, "success": success, "total": result.Total})
