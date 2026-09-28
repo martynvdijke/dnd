@@ -1,3 +1,10 @@
+# [2.86.0](https://github.com/martynvdijke/dnd/compare/v2.85.0...v2.86.0) (2026-09-28)
+
+
+### Features
+
+* multi-campaign characters and role-aware campaign selection ([#160](https://github.com/martynvdijke/dnd/issues/160)) ([c7c0005](https://github.com/martynvdijke/dnd/commit/c7c0005e7aed39750fb3361931c22e56b4d7341a))
+
 # [2.85.0](https://github.com/martynvdijke/dnd/compare/v2.84.0...v2.85.0) (2026-09-28)
 
 
