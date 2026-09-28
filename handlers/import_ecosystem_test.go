@@ -256,3 +256,51 @@ func TestFetchExternalURLLoopbackRejected(t *testing.T) {
 		t.Fatal("expected error localhost")
 	}
 }
+
+func TestOpen5eSourceParse(t *testing.T) {
+	src := open5eSource{}
+	// Open5e API envelope.
+	entries, err := src.Parse([]byte(`{"count":2,"next":null,"results":[{"name":"Fireball"},{"name":"Magic Missile"}]}`))
+	if err != nil || len(entries) != 2 || entries[0]["name"] != "Fireball" {
+		t.Fatalf("results envelope: %v %d", err, len(entries))
+	}
+	// Bare array.
+	entries, err = src.Parse([]byte(`[{"name":"A"},{"name":"B"}]`))
+	if err != nil || len(entries) != 2 {
+		t.Fatalf("bare array: %v %d", err, len(entries))
+	}
+	// Single object.
+	entries, err = src.Parse([]byte(`{"name":"Solo"}`))
+	if err != nil || len(entries) != 1 || entries[0]["name"] != "Solo" {
+		t.Fatalf("single: %v %d", err, len(entries))
+	}
+	// Invalid JSON.
+	if _, err := src.Parse([]byte(`{not json`)); err == nil {
+		t.Fatal("expected error for invalid JSON")
+	}
+}
+
+func TestExternalImportOpen5e(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	_, err := db.DB.Exec(`INSERT INTO compendium_schemas(id, type_name, display_name, fields) VALUES(1,'spell','Spell','[{"name":"name","label":"Name","type":"string","required":true}]')`)
+	if err != nil {
+		t.Fatalf("seed schema %v", err)
+	}
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.POST("/import/external", HandleExternalImport)
+	})
+	payload, _ := json.Marshal(map[string]any{"results": []map[string]any{{"name": "Fireball"}, {"name": "Magic Missile"}}})
+	req := map[string]any{"source": "open5e", "kind": "compendium", "schema_id": float64(1), "payload": json.RawMessage(payload), "dedup_action": "skip"}
+	w := testutil.PostJSON(t, r, "/api/import/external", req)
+	testutil.AssertStatus(t, w, 200)
+	var resp map[string]any
+	testutil.ParseJSON(t, w, &resp)
+	if int(resp["created"].(float64)) != 2 {
+		t.Fatalf("open5e import created %v", resp)
+	}
+	if testutil.CountRows(t, "compendium_entries") != 2 {
+		t.Fatalf("expected 2 entries")
+	}
+}

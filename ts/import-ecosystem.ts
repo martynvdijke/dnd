@@ -8,7 +8,7 @@ let lastLogId: string | number | null = null;
 
 function sourceOptions(kind: string): string {
   if (kind === 'compendium') {
-    return '<option value="5etools">5e.tools</option><option value="foundry-pack">Foundry JSON pack</option>';
+    return '<option value="5etools">5e.tools</option><option value="foundry-pack">Foundry JSON pack</option><option value="open5e">Open5e API</option>';
   }
   return '<option value="dndbeyond">D&D Beyond</option><option value="foundry-actor">Foundry VTT actor</option>';
 }
