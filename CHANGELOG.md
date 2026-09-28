@@ -1,3 +1,10 @@
+# [2.85.0](https://github.com/martynvdijke/dnd/compare/v2.84.0...v2.85.0) (2026-09-28)
+
+
+### Features
+
+* add runtime localization with English and Dutch ([#157](https://github.com/martynvdijke/dnd/issues/157)) ([899043d](https://github.com/martynvdijke/dnd/commit/899043dcf951c25545e74fbb4f63e74229da2af3))
+
 # [2.84.0](https://github.com/martynvdijke/dnd/compare/v2.83.0...v2.84.0) (2026-09-28)
 
 
