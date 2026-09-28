@@ -147,6 +147,10 @@ func ApplySafeAlters(db *sql.DB) error {
 		"ALTER TABLE combat_entries ADD COLUMN reaction_used INTEGER NOT NULL DEFAULT 0",
 		"ALTER TABLE combat_entries ADD COLUMN movement_used INTEGER NOT NULL DEFAULT 0",
 		"ALTER TABLE combat_entries ADD COLUMN movement_max INTEGER NOT NULL DEFAULT 30",
+		// Line-of-sight walls on maps and aura/vision radii on battlemap tokens.
+		"ALTER TABLE campaign_maps ADD COLUMN walls TEXT NOT NULL DEFAULT '[]'",
+		"ALTER TABLE battlemap_tokens ADD COLUMN aura_radius REAL NOT NULL DEFAULT 0",
+		"ALTER TABLE battlemap_tokens ADD COLUMN vision_radius REAL NOT NULL DEFAULT 0",
 	}
 
 	for _, stmt := range alterStatements {

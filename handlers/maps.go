@@ -121,8 +121,73 @@ func UpdateFogOfWar(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
+// mapCampaignID resolves a map id to its campaign, for membership checks.
+func mapCampaignID(mapID int64) (int64, bool) {
+	var campaignID int64
+	if err := db.DB.QueryRow("SELECT campaign_id FROM campaign_maps WHERE id=?", mapID).Scan(&campaignID); err != nil {
+		return 0, false
+	}
+	return campaignID, true
+}
+
+// GetMapWalls returns the line-of-sight wall segments for a map.
+func GetMapWalls(c *gin.Context) {
+	mapID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	campaignID, ok := mapCampaignID(mapID)
+	if !ok {
+		WriteNotFound(c, "map not found")
+		return
+	}
+	if !isCampaignMember(c, campaignID) {
+		WriteError(c, http.StatusForbidden, errAccessDenied)
+		return
+	}
+	var walls string
+	if err := db.DB.QueryRow("SELECT COALESCE(walls,'[]') FROM campaign_maps WHERE id=?", mapID).Scan(&walls); err != nil {
+		WriteNotFound(c, "map not found")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"walls": json.RawMessage(walls)})
+}
+
+// UpdateMapWalls replaces the wall segments for a map (DM only).
+func UpdateMapWalls(c *gin.Context) {
+	mapID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	campaignID, ok := mapCampaignID(mapID)
+	if !ok {
+		WriteNotFound(c, "map not found")
+		return
+	}
+	if !isCampaignDM(c, campaignID) {
+		WriteError(c, http.StatusForbidden, errAccessDenied)
+		return
+	}
+	var req struct {
+		Walls json.RawMessage `json:"walls"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		WriteError(c, http.StatusBadRequest, strErr("invalid walls payload"))
+		return
+	}
+	var segs []struct {
+		X1 float64 `json:"x1"`
+		Y1 float64 `json:"y1"`
+		X2 float64 `json:"x2"`
+		Y2 float64 `json:"y2"`
+	}
+	if err := json.Unmarshal(req.Walls, &segs); err != nil {
+		WriteError(c, http.StatusBadRequest, strErr("walls must be an array of segments"))
+		return
+	}
+	if _, err := db.DB.Exec("UPDATE campaign_maps SET walls=? WHERE id=?", string(req.Walls), mapID); err != nil {
+		WriteError(c, http.StatusInternalServerError, strErr("could not save walls"))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
 func ListMapPins(c *gin.Context) {
-	mapID, _ := strconv.ParseInt(c.Param("mapId"), 10, 64)
+	mapID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	rows, err := db.DB.Query("SELECT id,map_id,name,type,x,y,icon,color,description,linked_entity_type,linked_entity_id,is_hidden,sort_order,COALESCE(snap_to_grid,0) FROM campaign_map_pins WHERE map_id=? ORDER BY sort_order,name", mapID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -139,7 +204,7 @@ func ListMapPins(c *gin.Context) {
 }
 
 func CreateMapPin(c *gin.Context) {
-	mapID, _ := strconv.ParseInt(c.Param("mapId"), 10, 64)
+	mapID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var p MapPin
 	if err := c.ShouldBindJSON(&p); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

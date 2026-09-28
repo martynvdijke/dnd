@@ -68,9 +68,11 @@ func RegisterCampaignRoutes(r *gin.RouterGroup) {
 	r.DELETE("/maps/:id", DeleteCampaignMap)
 	r.POST("/campaigns/:id/maps/:mapId/activate", SetActiveCampaignMap)
 	r.PUT("/maps/:id/fog", UpdateFogOfWar)
+	r.GET("/maps/:id/walls", GetMapWalls)
+	r.PUT("/maps/:id/walls", UpdateMapWalls)
 	r.GET("/campaigns/:id/maps/active", GetActiveCampaignMap)
-	r.GET("/maps/:mapId/pins", ListMapPins)
-	r.POST("/maps/:mapId/pins", CreateMapPin)
+	r.GET("/maps/:id/pins", ListMapPins)
+	r.POST("/maps/:id/pins", CreateMapPin)
 	r.PUT("/map-pins/:id", UpdateMapPin)
 	r.DELETE("/map-pins/:id", DeleteMapPin)
 
