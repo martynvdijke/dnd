@@ -4,6 +4,7 @@ import { updateFabForView } from './fab';
 import { navigate as routerNavigate } from './router';
 import { currentCampaign, currentUser } from './lib/state';
 import { expose } from './lib/expose';
+import { applyTranslations } from './lib/i18n';
 
 export interface ViewItem {
   id: ViewState;
@@ -113,6 +114,8 @@ export function showViewFromRouter(view: ViewState): void {
 
 export function updateActiveTab(view: ViewState): void {
   document.body.setAttribute('data-active-tab', view);
+  // Re-apply translations so dynamically rendered views pick up the active locale.
+  applyTranslations();
   const tabs = document.querySelectorAll<HTMLElement>('[data-nav]');
   tabs.forEach(tab => {
     const navView = tab.getAttribute('data-nav');

@@ -21,6 +21,7 @@ import { initPdfViewerCleanup } from './pdf-viewer';
 import type { ViewState } from './types';
 import { setCurrentUser, setAllLocations, setAllNPCs } from './lib/state';
 import { initSpellCompendium } from './spell-compendium';
+import { initI18n } from './lib/i18n';
 import { playAmbience, stopAmbience } from './lib/ambience';
 
 // ─── WebSocket ───
@@ -114,6 +115,7 @@ async function ensureApiToken(username: string): Promise<void> {
 // ─── Init — called from app.ts after imports ───
 
 export async function init() {
+  initI18n();
   initBridge();
   initTheme();
   initShortcuts();

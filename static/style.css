@@ -3959,3 +3959,6 @@ body.session-mode .sheet-section-acc:not(#sheet-acc-combat) { display: none; }
 /* Skip link: visible only when focused, first focusable element on the page */
 .skip-link{position:absolute;left:-9999px;top:0;z-index:2000;background:var(--gold,#b8963e);color:#1a1a1a;font-weight:600;padding:.5rem 1rem;border-radius:0 0 .5rem 0;text-decoration:none}
 .skip-link:focus{left:0;outline:2px solid #fff;outline-offset:2px}
+
+/* Language switcher in the top navigation */
+.locale-select{width:auto;max-width:9rem;border-color:var(--border-light);background:transparent;color:inherit;font-size:.8rem}
