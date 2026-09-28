@@ -48,6 +48,13 @@ async function logoutAndLoginAs(page, username, password) {
     page.getByTestId('login-submit').click(),
   ]);
   await waitLoadingDone(page);
+  // The API token is provisioned during init; without it, mutations made via
+  // window.api 401 with "API token required". Fail here with clear context.
+  await page.waitForFunction(
+    (user) => !!localStorage.getItem(`villum-api-token-${user}`),
+    username,
+    { timeout: NAV_TIMEOUT },
+  );
 }
 
 test.describe('Campaign-first character selection', () => {
