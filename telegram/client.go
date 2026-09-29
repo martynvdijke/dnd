@@ -57,6 +57,7 @@ func newBotClient(token, apiBase string, handler tgbot.HandlerFunc) (*tgbot.Bot,
 		opts = append(opts, tgbot.WithAllowedUpdates(tgbot.AllowedUpdates{
 			tgmodels.AllowedUpdateMessage,
 			tgmodels.AllowedUpdateCallbackQuery,
+			tgmodels.AllowedUpdateMyChatMember,
 		}))
 	}
 	if apiBase != "" && apiBase != defaultAPIBase {

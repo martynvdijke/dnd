@@ -2,6 +2,7 @@ package telegram
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -234,6 +235,10 @@ func HandleUpdate(ctx context.Context, upd *tgmodels.Update) {
 		handleCallback(ctx, upd.CallbackQuery)
 		return
 	}
+	if upd.MyChatMember != nil {
+		handleMyChatMember(upd.MyChatMember)
+		return
+	}
 	msg := upd.Message
 	if msg == nil || msg.From == nil {
 		return
@@ -288,4 +293,44 @@ func splitCommand(text string) (string, []string, bool) {
 		name = name[:i]
 	}
 	return name, fields[1:], true
+}
+
+// handleMyChatMember welcomes the bot when it is added to a group chat.
+func handleMyChatMember(mc *tgmodels.ChatMemberUpdated) {
+	if mc == nil {
+		return
+	}
+	if mc.Chat.Type != tgmodels.ChatTypeGroup && mc.Chat.Type != tgmodels.ChatTypeSupergroup {
+		return
+	}
+	if !botMemberStatus(mc.NewChatMember.Type) || !botWasAbsent(mc.OldChatMember.Type) {
+		return
+	}
+	sendReply(mc.Chat.ID, groupWelcomeText(mc.Chat.ID))
+}
+
+func botMemberStatus(t tgmodels.ChatMemberType) bool {
+	switch t {
+	case tgmodels.ChatMemberTypeOwner, tgmodels.ChatMemberTypeAdministrator, tgmodels.ChatMemberTypeMember:
+		return true
+	default:
+		return false
+	}
+}
+
+func botWasAbsent(t tgmodels.ChatMemberType) bool {
+	switch t {
+	case "", tgmodels.ChatMemberTypeLeft, tgmodels.ChatMemberTypeBanned:
+		return true
+	default:
+		return false
+	}
+}
+
+// groupWelcomeText greets a group and points at the campaign binding step.
+func groupWelcomeText(chatID int64) string {
+	if cc, ok := boundCampaign(chatID); ok {
+		return fmt.Sprintf("🤖 Thanks for adding me! This chat is connected to <b>%s</b>.\n\nTry /items, /quests, /visits or /stats.", escapeHTML(cc.Name))
+	}
+	return "🤖 Thanks for adding me!\n\nA campaign DM can connect this chat to a campaign in Villum under <b>Campaign → Telegram</b>. After that, /items, /quests, /visits and /stats work here.\n\nUse /help to see everything I can do."
 }

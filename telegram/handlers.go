@@ -52,7 +52,7 @@ func runHelp(c *cmdContext) botReply {
 
 func runStart(c *cmdContext) botReply {
 	if len(c.args) == 0 {
-		return botReply{Text: helpText()}
+		return botReply{Text: welcomeText(), Keyboard: navKeyboard()}
 	}
 	code := strings.ToUpper(strings.TrimSpace(c.args[0]))
 	userID, ok := ConsumeLinkCode(hashCode(code))
@@ -63,7 +63,18 @@ func runStart(c *cmdContext) botReply {
 		middleware.LogWarn("telegram", "upsert identity failed", "error", err)
 		return botReply{Text: "Linking failed, try again."}
 	}
-	return botReply{Text: "Linked! Try /help to see what I can do."}
+	return botReply{Text: "✅ Linked! Try /claim to pick your character, /create to make a new one, or /help to see everything I can do.", Keyboard: navKeyboard()}
+}
+
+// welcomeText is the friendly first-run message for /start without a code.
+func welcomeText() string {
+	return "👋 <b>Welcome to the Villum bot!</b>\n\n" +
+		"I bring your table to Telegram: recaps, campaign overviews, party loot, open quests, location visits and character sheets.\n\n" +
+		"<b>Link your account</b>\n" +
+		"1. Open Villum → <b>Settings → Telegram</b>.\n" +
+		"2. Generate a link code.\n" +
+		"3. Send <code>/start &lt;code&gt;</code> here.\n\n" +
+		"Once linked, try /claim to pick your character or /create to make one. /help lists everything."
 }
 
 func runUnlink(c *cmdContext) botReply {
