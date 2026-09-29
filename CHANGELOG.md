@@ -1,3 +1,10 @@
+# [2.90.0](https://github.com/martynvdijke/dnd/compare/v2.89.0...v2.90.0) (2026-09-29)
+
+
+### Features
+
+* **telegram:** add group commands and friendlier onboarding ([#167](https://github.com/martynvdijke/dnd/issues/167)) ([4403bde](https://github.com/martynvdijke/dnd/commit/4403bde4601d5795afcaf515d20915d8442d3e1a))
+
 # [2.89.0](https://github.com/martynvdijke/dnd/compare/v2.88.0...v2.89.0) (2026-09-29)
 
 
