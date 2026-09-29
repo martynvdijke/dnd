@@ -1,3 +1,10 @@
+# [2.88.0](https://github.com/martynvdijke/dnd/compare/v2.87.0...v2.88.0) (2026-09-29)
+
+
+### Features
+
+* wire one-shot prep and run surfaces ([#163](https://github.com/martynvdijke/dnd/issues/163)) ([d7d4bc8](https://github.com/martynvdijke/dnd/commit/d7d4bc892db6f1793d1fdab2d225d75ff4caf518))
+
 # [2.87.0](https://github.com/martynvdijke/dnd/compare/v2.86.0...v2.87.0) (2026-09-29)
 
 
