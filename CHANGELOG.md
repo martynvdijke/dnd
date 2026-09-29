@@ -1,3 +1,10 @@
+# [2.89.0](https://github.com/martynvdijke/dnd/compare/v2.88.0...v2.89.0) (2026-09-29)
+
+
+### Features
+
+* **telegram:** port bot runtime to go-telegram/bot with character commands ([#165](https://github.com/martynvdijke/dnd/issues/165)) ([7d83d07](https://github.com/martynvdijke/dnd/commit/7d83d07988debd5e4e59441f9841f55ce24412df))
+
 # [2.88.0](https://github.com/martynvdijke/dnd/compare/v2.87.0...v2.88.0) (2026-09-29)
 
 
