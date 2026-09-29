@@ -38,6 +38,7 @@
   <li class="nav-item"><button class="nav-link" id="tabBackupBtn" onclick="showAdminTab('backup')"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Backup</button></li>
   <li class="nav-item"><button class="nav-link" id="tabEmailBtn" onclick="showAdminTab('email')"><i class="fa-solid fa-envelope me-1" aria-hidden="true"></i>Email</button></li>
   <li class="nav-item"><button class="nav-link" id="tabPushBtn" onclick="showAdminTab('push')"><i class="fa-solid fa-bell me-1" aria-hidden="true"></i>Push</button></li>
+  <li class="nav-item"><button class="nav-link" id="tabTelegramBtn" onclick="showAdminTab('telegram')"><i class="fa-brands fa-telegram me-1" aria-hidden="true"></i>Telegram</button></li>
   <li class="nav-item"><button class="nav-link" id="tabWledBtn" onclick="showAdminTab('wled')"><i class="fa-solid fa-lightbulb me-1" aria-hidden="true"></i>WLED</button></li>
   <li class="nav-item"><button class="nav-link" id="tabAIEndpointsBtn" onclick="showAdminTab('ai-endpoints')"><i class="fa-solid fa-robot me-1" aria-hidden="true"></i>AI Endpoints</button></li>
   <li class="nav-item"><button class="nav-link" id="tabAnalyticsBtn" onclick="showAdminTab('analytics')"><i class="fa-solid fa-chart-line me-1" aria-hidden="true"></i>Analytics</button></li>
@@ -268,6 +269,44 @@
       </div>
       <button class="btn btn-gold" onclick="savePushSettings()" data-testid="push-save-settings"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Save Push Settings</button>
       <button class="btn btn-outline-primary ms-2" onclick="testPushNotification()" data-testid="push-test-send"><i class="fa-solid fa-paper-plane me-1" aria-hidden="true"></i>Test Push</button>
+    </div>
+  </div>
+</div>
+
+<div id="adminTelegram" style="display:none">
+  <div class="card">
+    <div class="card-header"><i class="fa-brands fa-telegram me-2" aria-hidden="true"></i>Telegram Bot</div>
+    <div class="card-body">
+      <div class="mb-3">
+        <label class="form-label" for="telegramToken">Bot Token</label>
+        <input type="password" id="telegramToken" class="form-control" placeholder="Leave blank to keep current" data-testid="telegram-token" autocomplete="off">
+        <div class="form-text" id="telegramTokenMasked" data-testid="telegram-token-masked">No token configured</div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="telegramMode">Transport mode</label>
+        <select id="telegramMode" class="form-select" data-testid="telegram-mode">
+          <option value="off">Off</option>
+          <option value="polling">Polling</option>
+          <option value="webhook">Webhook</option>
+          <option value="auto">Auto</option>
+        </select>
+        <div class="form-text">Webhook needs a public HTTPS URL. Use polling or auto if this server is not publicly reachable.</div>
+      </div>
+      <div class="mb-3" id="telegramWebhookField" style="display:none">
+        <label class="form-label" for="telegramWebhookUrl">Webhook URL</label>
+        <input type="text" id="telegramWebhookUrl" class="form-control" readonly data-testid="telegram-webhook-url">
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="telegramGraceMinutes">Grace period (minutes)</label>
+        <input type="number" id="telegramGraceMinutes" class="form-control" value="30" min="1" data-testid="telegram-grace-minutes" style="max-width:200px">
+        <div class="form-text">Delay after a session ends before auto-posting the recap.</div>
+      </div>
+      <div class="mb-3 small text-muted" id="telegramStatus" data-testid="telegram-status">Loading...</div>
+      <div class="d-flex gap-2 flex-wrap">
+        <button class="btn btn-gold" onclick="saveTelegramSettings()" data-testid="telegram-save" id="telegramSaveBtn"><i class="fa-solid fa-floppy-disk me-1" aria-hidden="true"></i>Save Telegram Settings</button>
+        <button class="btn btn-outline-primary" onclick="testTelegramSettings()" data-testid="telegram-test" id="telegramTestBtn"><i class="fa-solid fa-paper-plane me-1" aria-hidden="true"></i>Send test message</button>
+        <button class="btn btn-outline-danger" onclick="clearTelegramToken()" data-testid="telegram-clear-token"><i class="fa-solid fa-trash me-1" aria-hidden="true"></i>Clear token</button>
+      </div>
     </div>
   </div>
 </div>

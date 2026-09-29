@@ -164,6 +164,7 @@ expose('showParty', async function () {
             <button class="btn btn-sm btn-outline-gold" onclick="showEncounterDifficulty()"><i class="fa-solid fa-crosshairs me-1"></i>Difficulty</button>
             <button class="btn btn-sm btn-outline-gold" onclick="showTreasureGenerator()"><i class="fa-solid fa-coins me-1"></i>Treasure</button>
             <button class="btn btn-sm btn-outline-primary" onclick="showRaceColors()"><i class="fa-solid fa-palette me-1"></i>Race Colors</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="showCampaignTelegram(${g.id})" data-testid="telegram-campaign-open-${g.id}"><i class="fa-brands fa-telegram me-1"></i>Telegram</button>
           </div>
         </div>
         ` : ''}

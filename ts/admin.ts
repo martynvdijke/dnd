@@ -8,6 +8,7 @@ import './admin/logs';
 import './admin/users';
 import './admin/schemas';
 import './admin/integrations';
+import './admin/telegram';
 import './admin/import-wizard';
 import './admin/events';
 import './admin/utils';
@@ -86,7 +87,7 @@ function showAdminTab(tab: string) {
   document.querySelectorAll('#adminTabs .nav-link').forEach(el => el.classList.remove('active'));
   const tabBtn = document.getElementById('tab' + capitalize(tab) + 'Btn');
   if (tabBtn) tabBtn.classList.add('active');
-  const allTabs = ['users', 'unified-compendium', 'backup', 'email', 'push', 'wled', 'ai-endpoints', 'analytics', 'telemetry', 'events', 'import', 'e-ink', 'settings', 'logs'];
+  const allTabs = ['users', 'unified-compendium', 'backup', 'email', 'push', 'telegram', 'wled', 'ai-endpoints', 'analytics', 'telemetry', 'events', 'import', 'e-ink', 'settings', 'logs'];
   allTabs.forEach(s => {
     const parts = s.split('-').map((p, i) => i === 0 ? capitalize(p) : capitalize(p));
     const id = 'admin' + parts.join('');
@@ -99,6 +100,7 @@ function showAdminTab(tab: string) {
   if (tab === 'backup') { w.loadBackupSettings?.(); w.loadBackupList?.(); }
   if (tab === 'email') w.loadEmailSettings?.();
   if (tab === 'push') w.loadPushSettings?.();
+  if (tab === 'telegram') w.loadTelegramSettings?.();
   if (tab === 'wled') w.loadWledSettings?.();
   if (tab === 'ai-endpoints') w.loadAIEndpoints?.();
   if (tab === 'analytics') w.loadUmamiSettings?.();

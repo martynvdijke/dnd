@@ -3,6 +3,7 @@ import type { Page, BrowserContext } from '@playwright/test';
 import { spawn, spawnSync, type ChildProcess } from 'child_process';
 import http from 'http';
 import fs from 'fs';
+import { TelegramMock } from './telegram-mock.js';
 
 // Re-export runtime values and types that test files need from @playwright/test
 export { expect };
@@ -89,6 +90,8 @@ type WorkerData = {
   port: number;
   proc: ChildProcess;
   dbPath: string;
+  telegramMock: TelegramMock;
+  telegramMockUrl: string;
 };
 
 // Worker-scoped fixture: starts a Go server per worker with isolated DB.
@@ -100,12 +103,20 @@ export const test = base.extend<{}, { workerData: WorkerData }>({
       freePort(port);               // kill orphaned server from a previous aborted run
       cleanupServer(null, dbPath);  // clean any DB leftovers from previous runs
 
+      // Start a per-worker Telegram Bot API mock so TELEGRAM_API_BASE is stable
+      // across the worker lifecycle. Reuses the same mock URL for the Go server.
+      const telegramMock = new TelegramMock({ token: process.env.TELEGRAM_BOT_TOKEN || 'test-bot-token-123456:ABC', username: process.env.TELEGRAM_BOT_USERNAME || 'testvillumbot' });
+      const telegramMockUrl = await telegramMock.start();
+
       const proc = spawn(SERVER_BIN, [], {
         env: {
           ...process.env,
           DB_PATH: dbPath,
           PORT: String(port),
           AUTO_SETUP: 'true',
+          TELEGRAM_API_BASE: telegramMockUrl,
+          TELEGRAM_BOT_TOKEN: telegramMock.botToken,
+          TELEGRAM_BOT_USERNAME: telegramMock.botUsername,
         },
         stdio: 'pipe',
         detached: false,
@@ -133,9 +144,10 @@ export const test = base.extend<{}, { workerData: WorkerData }>({
         throw err;
       }
 
-      await use({ port, proc, dbPath });
+      await use({ port, proc, dbPath, telegramMock, telegramMockUrl });
 
       cleanupServer(proc, dbPath);
+      await telegramMock.stop();
     },
     { scope: 'worker' },
   ],
