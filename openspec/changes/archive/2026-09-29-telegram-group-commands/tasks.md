@@ -25,7 +25,7 @@
 - [x] 4.5 Run `go test ./telegram/...`, `task lint:e2e`, and `npx tsc --noEmit` until green
 
 ## 5. Ship
-- [ ] 5.1 Run the full local gates (`task ci`) until green
-- [ ] 5.2 Commit with Conventional Commits, push the branch, open the PR with `gh pr create --fill`
-- [ ] 5.3 Wait for checks (`gh pr checks --watch`); on red read `gh run view --log-failed`, fix, push, re-wait
-- [ ] 5.4 Merge when green (`gh pr merge --squash --delete-branch`) and archive the OpenSpec change
+- [x] 5.1 Run the full local gates (`task ci`) until green
+- [x] 5.2 Commit with Conventional Commits, push the branch, open the PR with `gh pr create --fill`
+- [x] 5.3 Wait for checks (`gh pr checks --watch`); on red read `gh run view --log-failed`, fix, push, re-wait
+- [x] 5.4 Merge when green (`gh pr merge --squash --delete-branch`) and archive the OpenSpec change
