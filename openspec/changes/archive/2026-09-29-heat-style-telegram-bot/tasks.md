@@ -45,10 +45,10 @@
 - [x] Extend `tests/telegram.spec.ts`: exercise `/help`, `/characters`, `/claim`, `/sheet`, and `/create` through the webhook against the mock, asserting `sentMessages` content, plus a happy-path recap delivery regression
 - [x] Verify existing telegram e2e flows still pass (admin token/mode/grace, account link/unlink, campaign chat binding, webhook 403) and no new `data-testid` is introduced without e2e references
 - [x] Run `go test ./telegram/... ./handlers/...` with coverage and confirm the Go floors (total ≥20%, `handlers/` ≥40%) and vitest floors are unaffected
-- [ ] Run `task ci` (typecheck, vitest, build, e2e, coverage gates) until green
+- [x] Run `task ci` (typecheck, vitest, build, e2e, coverage gates) until green
 
 ## 6. Ship
 
-- [ ] Commit with Conventional Commits (e.g. `feat(telegram): port bot runtime to go-telegram/bot with character commands`), push the branch, and open the PR with `gh pr create --fill`
-- [ ] Wait for checks (`gh pr checks --watch`); on red, read `gh run view --log-failed`, fix, push, and re-wait
-- [ ] Merge when green (`gh pr merge --squash --delete-branch`) and archive the OpenSpec change
+- [x] Commit with Conventional Commits (e.g. `feat(telegram): port bot runtime to go-telegram/bot with character commands`), push the branch, and open the PR with `gh pr create --fill`
+- [x] Wait for checks (`gh pr checks --watch`); on red, read `gh run view --log-failed`, fix, push, and re-wait
+- [x] Merge when green (`gh pr merge --squash --delete-branch`) and archive the OpenSpec change
