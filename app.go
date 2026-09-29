@@ -8,10 +8,9 @@ import (
 	"villum/db"
 	"villum/handlers"
 	"villum/middleware"
+	"villum/telegram"
 )
 
-// initMedia resolves the media directory from env/DB path, creates it,
-// and configures the handlers package. Returns the resolved mediaPath.
 func initMedia(dbPath string) string {
 	mediaPath := os.Getenv("MEDIA_PATH")
 	if mediaPath == "" {
@@ -28,8 +27,6 @@ func initMedia(dbPath string) string {
 	return mediaPath
 }
 
-// registerSchedulers wires session/DB stores and starts background schedulers.
-// Returns a channel that controls the push reminder scheduler lifetime.
 func registerSchedulers() chan struct{} {
 	middleware.Store = middleware.NewDBSessionStore(db.DB)
 	middleware.TokenDB = db.DB
@@ -38,5 +35,10 @@ func registerSchedulers() chan struct{} {
 	handlers.StartDBCleanupTask()
 	pushStop := make(chan struct{})
 	handlers.StartPushReminderScheduler(pushStop)
+	telegram.EnsureWebhookState()
+	telegramStop := make(chan struct{})
+	telegram.StartTelegramPoller(telegramStop)
+	telegram.StartTelegramAutoPostScheduler(telegramStop)
+	_ = telegramStop
 	return pushStop
 }

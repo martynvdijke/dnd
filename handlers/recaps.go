@@ -10,6 +10,7 @@ import (
 
 	"villum/db"
 	"villum/middleware"
+	"villum/telegram"
 )
 
 type CampaignRecap struct {
@@ -94,6 +95,7 @@ func CreateCampaignRecap(c *gin.Context) {
 	}
 	id, _ := result.LastInsertId()
 	NotifyCampaignRecapPublished(campaignID, id, req.Title)
+	telegram.DeliverRecap(id, "manual")
 	c.JSON(http.StatusCreated, gin.H{"id": id})
 }
 
@@ -432,6 +434,7 @@ func MarkRecapAsSent(c *gin.Context) {
 		return
 	}
 	NotifyCampaignRecapPublished(campaignID, id, title)
+	telegram.DeliverRecap(id, "manual")
 	db.DB.Exec("UPDATE campaign_recaps SET is_sent=1 WHERE id=?", id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

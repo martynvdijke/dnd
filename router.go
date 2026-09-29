@@ -53,6 +53,7 @@ func setupRouter(mediaPath string) (*gin.Engine, func()) {
 
 	// Public routes
 	handlers.RegisterPublicRoutes(r)
+	handlers.RegisterTelegramPublicRoutes(r)
 
 	// WebSocket (auth required, no CSRF)
 	ws := r.Group("/api")
@@ -79,6 +80,7 @@ func setupRouter(mediaPath string) (*gin.Engine, func()) {
 		handlers.RegisterMiscAuthRoutes(auth)
 		handlers.RegisterTransferRoutes(auth)
 		handlers.RegisterLinkRoutes(auth)
+		handlers.RegisterTelegramRoutes(auth)
 	}
 
 	// API token lifecycle (session + CSRF protected, but NOT API-token protected)
@@ -104,6 +106,7 @@ func setupRouter(mediaPath string) (*gin.Engine, func()) {
 		handlers.RegisterAdminRoutes(admin)
 		handlers.RegisterAdminAIRoutes(admin)
 		handlers.RegisterAdminCompendiumRoutes(admin)
+		handlers.RegisterTelegramAdminRoutes(admin)
 	}
 
 	// Static & HTML page serving

@@ -832,6 +832,10 @@ import { initPdfViewerCleanup } from './pdf-viewer';
 import './app/map-measurement';
 import { init } from './init';
 
+// Telegram integrations
+import './campaign/telegram';
+import './account/telegram';
+
 // PWA → register service worker for offline support
 import { registerSW } from './pwa';
 
