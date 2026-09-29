@@ -1,3 +1,10 @@
+# [2.87.0](https://github.com/martynvdijke/dnd/compare/v2.86.0...v2.87.0) (2026-09-29)
+
+
+### Features
+
+* add Telegram recap bot ([#161](https://github.com/martynvdijke/dnd/issues/161)) ([4614e92](https://github.com/martynvdijke/dnd/commit/4614e92cd3ca86a777f9ad7e1a05d26f00a2f5bd))
+
 # [2.86.0](https://github.com/martynvdijke/dnd/compare/v2.85.0...v2.86.0) (2026-09-28)
 
 
