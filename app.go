@@ -37,7 +37,8 @@ func registerSchedulers() chan struct{} {
 	handlers.StartPushReminderScheduler(pushStop)
 	telegram.EnsureWebhookState()
 	telegramStop := make(chan struct{})
-	telegram.StartTelegramPoller(telegramStop)
+	telegram.StartBot(telegramStop)
+	telegram.SetCharacterCreator(handlers.BotCharacterCreator)
 	telegram.StartTelegramAutoPostScheduler(telegramStop)
 	_ = telegramStop
 	return pushStop

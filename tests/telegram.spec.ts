@@ -326,4 +326,72 @@ test.describe('Telegram', () => {
     const r2 = await page.request.post('/api/telegram/webhook', { data: fakeUpdate });
     expect(r2.status()).toBe(403);
   });
+
+  test('bot commands: help, characters, claim, sheet and create via the bot', async ({ page, workerData }) => {
+    // slow: waits for the supervised client to start and for webhook-driven replies
+    test.slow();
+    const secret = 'cmd-secret-' + Date.now();
+    const save = await apiWithToken(page, 'POST', '/api/admin/telegram-settings', {
+      token: workerData.telegramMock.botToken,
+      mode: 'polling',
+      webhook_secret: secret,
+    });
+    expect(save.ok()).toBeTruthy();
+
+    // The native command menu is registered when the supervised client starts.
+    await expect.poll(() => workerData.telegramMock.commands.length, { timeout: 20000 }).toBeGreaterThan(0);
+    const menu = workerData.telegramMock.commands.map((c) => c.command);
+    expect(menu).toContain('help');
+    expect(menu).toContain('characters');
+    expect(menu).toContain('create');
+
+    // Link a fresh Telegram user through a real generated code.
+    const codeResp = await apiWithToken(page, 'POST', '/api/telegram/link-code');
+    expect(codeResp.ok()).toBeTruthy();
+    const code = (await codeResp.json()).code as string;
+    const tgUser = { id: 555000111, is_bot: false, first_name: 'Cmd', username: 'e2e_cmd' };
+    const chat = { id: 555000111, type: 'private' };
+    let updateID = 700000;
+
+    const send = async (text: string): Promise<string> => {
+      workerData.telegramMock.clear();
+      const resp = await page.request.post('/api/telegram/webhook', {
+        data: { update_id: ++updateID, message: { message_id: 1, from: tgUser, chat, text } },
+        headers: { 'X-Telegram-Bot-Api-Secret-Token': secret },
+      });
+      expect(resp.status()).toBe(200);
+      await expect.poll(() => workerData.telegramMock.sentMessages.length, { timeout: 15000 }).toBeGreaterThan(0);
+      return workerData.telegramMock.sentMessages.map((m) => m.text).join('\n---\n');
+    };
+
+    expect(await send(`/start ${code}`)).toContain('Linked');
+
+    const help = await send('/help');
+    expect(help).toContain('/create');
+    expect(help).toContain('/sheet');
+
+    const empty = await send('/characters');
+    expect(empty).toContain('Use /create');
+
+    expect(await send('/create')).toContain("character's name");
+    expect(await send('E2E Hero')).toContain('race');
+    expect(await send('Elf')).toContain('class');
+    const levelStep = await send('Ranger');
+    expect(levelStep).toMatch(/level/i);
+    const campaignStep = await send('3');
+    expect(campaignStep).toMatch(/campaign|Created/i);
+    const created = campaignStep.includes('Created') ? campaignStep : await send('none');
+    expect(created).toContain('Created');
+    expect(created).toContain('E2E Hero');
+
+    const sheet = await send('/sheet');
+    expect(sheet).toContain('E2E Hero');
+    expect(sheet).toContain('Ranger');
+
+    const claim = await send('/claim');
+    expect(claim).toContain('Currently claimed');
+
+    const list = await send('/characters');
+    expect(list).toContain('E2E Hero');
+  });
 });

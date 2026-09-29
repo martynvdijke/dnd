@@ -2,14 +2,54 @@ import http from 'node:http';
 
 export type SentMessage = { chat_id: number; text: string; method: string; body: any };
 
+/**
+ * Fields of a Bot API request. go-telegram/bot always sends multipart/form-data,
+ * but the JSON fallback is kept so older payloads keep working.
+ */
+async function parseRequestFields(req: http.IncomingMessage, body: Buffer): Promise<Record<string, string>> {
+  const contentType = req.headers['content-type'] || '';
+  const fields: Record<string, string> = {};
+  if (contentType.includes('multipart/form-data')) {
+    const request = new Request('http://localhost/', {
+      method: 'POST',
+      headers: { 'content-type': contentType },
+      body,
+    });
+    const form = await request.formData();
+    for (const [key, value] of form.entries()) {
+      fields[key] = typeof value === 'string' ? value : `[file:${value.name || 'upload'}]`;
+    }
+    return fields;
+  }
+  if (body.length > 0) {
+    try {
+      const parsed = JSON.parse(body.toString('utf8'));
+      for (const [key, value] of Object.entries(parsed || {})) {
+        fields[key] = typeof value === 'string' ? value : JSON.stringify(value);
+      }
+    } catch {
+      // Not JSON and not multipart: leave fields empty.
+    }
+  }
+  return fields;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export class TelegramMock {
   server: http.Server | null = null;
   url = '';
   sentMessages: SentMessage[] = [];
+  /** Commands registered through setMyCommands. */
+  commands: { command: string; description: string }[] = [];
   webhookUrl: string | null = null;
   webhookSecret: string | null = null;
   botToken: string;
   botUsername: string;
+  /** Longest delay applied to an empty getUpdates long poll. */
+  pollDelayMs = 1250;
 
   constructor(opts?: { token?: string; username?: string }) {
     this.botToken = opts?.token || 'test-bot-token';
@@ -23,53 +63,64 @@ export class TelegramMock {
   async start(): Promise<string> {
     return new Promise((resolve, reject) => {
       const srv = http.createServer((req, res) => {
-        let body = '';
-        req.on('data', (c) => (body += c));
-        req.on('end', () => {
+        const chunks: Buffer[] = [];
+        req.on('data', (c: Buffer) => chunks.push(c));
+        req.on('end', async () => {
           const u = new URL(req.url || '/', 'http://localhost');
           const pathname = u.pathname;
           // Match /bot<token>/<method>
           const m = pathname.match(/^\/bot[^/]+\/(.+)$/);
           const method = m ? m[1] : pathname.replace(/^\//, '');
-          let parsed: any = {};
-          try { parsed = body ? JSON.parse(body) : {}; } catch {}
+          const fields = await parseRequestFields(req, Buffer.concat(chunks));
+          const num = (v: string | undefined) => Number(v ?? 0);
           const json = (obj: any) => {
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(obj));
           };
+
           if (method === 'getMe') {
             return json({ ok: true, result: { id: 123456, is_bot: true, first_name: 'TestBot', username: this.botUsername } });
           }
           if (method === 'sendMessage') {
-            this.sentMessages.push({ chat_id: parsed.chat_id, text: parsed.text, method: 'sendMessage', body: parsed });
+            this.sentMessages.push({ chat_id: num(fields.chat_id), text: fields.text ?? '', method: 'sendMessage', body: fields });
             return json({ ok: true, result: { message_id: this.sentMessages.length } });
           }
           if (method === 'sendDocument') {
-            // multipart handled elsewhere; treat as ok
-            this.sentMessages.push({ chat_id: parsed.chat_id ?? 0, text: '[document]', method: 'sendDocument', body: parsed });
+            this.sentMessages.push({ chat_id: num(fields.chat_id), text: '[document]', method: 'sendDocument', body: fields });
             return json({ ok: true, result: { message_id: this.sentMessages.length } });
           }
           if (method === 'getChat') {
-            const cid = parsed.chat_id ?? 0;
+            const cid = num(fields.chat_id);
             return json({ ok: true, result: { id: cid, type: cid < 0 ? 'supergroup' : 'private', title: `Chat ${cid}`, username: '' } });
           }
           if (method === 'getUpdates') {
+            // Honor the long-poll timeout so the bot does not busy-loop, but
+            // keep it short so test shutdown stays fast.
+            const timeoutSec = num(fields.timeout);
+            const wait = Math.min(Math.max(timeoutSec * 1000, 1000), this.pollDelayMs);
+            await delay(wait);
             return json({ ok: true, result: [] });
           }
+          if (method === 'setMyCommands') {
+            try {
+              this.commands = JSON.parse(fields.commands || '[]');
+            } catch {
+              this.commands = [];
+            }
+            return json({ ok: true, result: true });
+          }
+          if (method === 'answerCallbackQuery') {
+            return json({ ok: true, result: true });
+          }
           if (method === 'setWebhook') {
-            this.webhookUrl = parsed.url || null;
-            this.webhookSecret = parsed.secret_token || null;
+            this.webhookUrl = fields.url || null;
+            this.webhookSecret = fields.secret_token || null;
             return json({ ok: true, result: true, description: 'Webhook was set' });
           }
           if (method === 'deleteWebhook') {
             this.webhookUrl = null;
             this.webhookSecret = null;
             return json({ ok: true, result: true });
-          }
-          // Fallback: treat any multipart sendDocument as success too (raw body not JSON)
-          if (req.headers['content-type']?.includes('multipart/form-data')) {
-            this.sentMessages.push({ chat_id: 0, text: '[document-multipart]', method: 'sendDocument', body: {} });
-            return json({ ok: true, result: { message_id: this.sentMessages.length } });
           }
           return json({ ok: true, result: {} });
         });
@@ -86,7 +137,9 @@ export class TelegramMock {
 
   async stop(): Promise<void> {
     if (!this.server) return;
-    await new Promise<void>((r) => this.server!.close(() => r()));
+    const srv = this.server;
+    srv.closeAllConnections();
+    await new Promise<void>((r) => srv.close(() => r()));
     this.server = null;
   }
 }
