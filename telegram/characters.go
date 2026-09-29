@@ -220,6 +220,11 @@ func runSheet(c *cmdContext) botReply {
 }
 
 func runStats(c *cmdContext) botReply {
+	// In a campaign chat, /stats shows the campaign statistics; character
+	// stats stay in private chats where a claim makes sense.
+	if cc, ok := boundCampaign(c.chatID); ok {
+		return campaignStatsReply(cc)
+	}
 	uid, ok := linkedUser(c)
 	if !ok {
 		return botReply{}

@@ -792,3 +792,126 @@ func TestSupervisorReconcile(t *testing.T) {
 		t.Fatalf("expected client to stop when settings are cleared")
 	}
 }
+
+func TestGroupCommandsBoundChat(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "dm", "user")
+	testutil.SeedCampaign(t, 7, "Sunken Crown", "The Party", 1)
+	testutil.SeedCharacterInCampaign(t, 11, 1, 7, "Aria", "Elf", "Ranger")
+	if _, err := db.DB.Exec(`INSERT INTO party_items (campaign_id, name, quantity, notes) VALUES (7, 'Rope', 3, ''), (7, '<b>Bomb</b>', 1, '')`); err != nil {
+		t.Fatalf("seed party items: %v", err)
+	}
+	if _, err := db.DB.Exec(`INSERT INTO quests (character_id, name, status, objectives) VALUES (11, 'Find the Sunken Crown', 'active', 'Search the harbor')`); err != nil {
+		t.Fatalf("seed quest: %v", err)
+	}
+	res, err := db.DB.Exec(`INSERT INTO locations (user_id, name, type) VALUES (1, 'Waterdeep', 'city')`)
+	if err != nil {
+		t.Fatalf("seed location: %v", err)
+	}
+	locID, err := res.LastInsertId()
+	if err != nil {
+		t.Fatalf("location id: %v", err)
+	}
+	if _, err := db.DB.Exec(`INSERT INTO character_locations (character_id, location_id, relationship) VALUES (11, ?, 'visited')`, locID); err != nil {
+		t.Fatalf("seed character location: %v", err)
+	}
+	groupChat := int64(-100123)
+	if err := UpsertCampaignTelegramSettings(CampaignTelegramSettings{CampaignID: 7, ChatID: &groupChat, IsEnabled: true}); err != nil {
+		t.Fatalf("bind chat: %v", err)
+	}
+	var sent []string
+	recordingMock(t, &sent)
+
+	cases := []struct{ text, want string }{
+		{"/items", "Rope"},
+		{"/quests", "Find the Sunken Crown"},
+		{"/visits", "Waterdeep"},
+		{"/stats", "Statistics"},
+	}
+	for i, tc := range cases {
+		HandleUpdate(context.Background(), messageUpdate(int64(900+i), groupChat, 999999, tc.text))
+		if len(sent) == 0 || !strings.Contains(sent[len(sent)-1], tc.want) {
+			t.Fatalf("%s reply does not contain %q: %v", tc.text, tc.want, sent)
+		}
+	}
+	joined := strings.Join(sent, "\n")
+	if strings.Contains(joined, "<b>Bomb</b>") || !strings.Contains(joined, "&lt;b&gt;Bomb&lt;/b&gt;") {
+		t.Fatalf("hostile item text was not escaped: %q", joined)
+	}
+}
+
+func TestGroupCommandsUnboundChat(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	var sent []string
+	recordingMock(t, &sent)
+	groupChat := int64(-100777)
+	HandleUpdate(context.Background(), messageUpdate(910, groupChat, 999999, "/items"))
+	if len(sent) == 0 || !strings.Contains(sent[len(sent)-1], "not connected to a campaign") {
+		t.Fatalf("expected binding instructions, got %v", sent)
+	}
+}
+
+func TestStartWelcomeAndLink(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 5, "player", "user")
+	var sent []string
+	recordingMock(t, &sent)
+
+	HandleUpdate(context.Background(), messageUpdate(920, 555, 555, "/start"))
+	if len(sent) == 0 || !strings.Contains(sent[len(sent)-1], "Welcome") {
+		t.Fatalf("expected welcome, got %v", sent)
+	}
+
+	code, _, err := CreateLinkCode(5)
+	if err != nil {
+		t.Fatalf("create link code: %v", err)
+	}
+	HandleUpdate(context.Background(), messageUpdate(921, 555, 555, "/start "+code))
+	last := sent[len(sent)-1]
+	if !strings.Contains(last, "Linked") || !strings.Contains(last, "/claim") {
+		t.Fatalf("expected post-link guidance, got %q", last)
+	}
+}
+
+func TestGroupWelcome(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	var sent []string
+	recordingMock(t, &sent)
+
+	chat := tgmodels.Chat{ID: -100999, Type: tgmodels.ChatTypeSupergroup}
+	added := &tgmodels.ChatMemberUpdated{
+		Chat:          chat,
+		From:          tgmodels.User{ID: 1},
+		NewChatMember: tgmodels.ChatMember{Type: tgmodels.ChatMemberTypeMember},
+		OldChatMember: tgmodels.ChatMember{Type: tgmodels.ChatMemberTypeLeft},
+	}
+	HandleUpdate(context.Background(), &tgmodels.Update{ID: 930, MyChatMember: added})
+	if len(sent) == 0 || !strings.Contains(sent[len(sent)-1], "Thanks for adding me") {
+		t.Fatalf("expected group welcome, got %v", sent)
+	}
+
+	before := len(sent)
+	HandleUpdate(context.Background(), &tgmodels.Update{ID: 931, MyChatMember: &tgmodels.ChatMemberUpdated{
+		Chat:          chat,
+		NewChatMember: tgmodels.ChatMember{Type: tgmodels.ChatMemberTypeMember},
+		OldChatMember: tgmodels.ChatMember{Type: tgmodels.ChatMemberTypeMember},
+	}})
+	if len(sent) != before {
+		t.Fatalf("expected no reply for an ordinary member update, got %v", sent[before:])
+	}
+
+	testutil.SeedUser(t, 1, "dm", "user")
+	testutil.SeedCampaign(t, 7, "Sunken Crown", "The Party", 1)
+	groupChat := chat.ID
+	if err := UpsertCampaignTelegramSettings(CampaignTelegramSettings{CampaignID: 7, ChatID: &groupChat, IsEnabled: true}); err != nil {
+		t.Fatalf("bind chat: %v", err)
+	}
+	HandleUpdate(context.Background(), &tgmodels.Update{ID: 932, MyChatMember: added})
+	if last := sent[len(sent)-1]; !strings.Contains(last, "Sunken Crown") {
+		t.Fatalf("expected connected campaign name, got %q", last)
+	}
+}

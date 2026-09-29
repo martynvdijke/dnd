@@ -49,17 +49,20 @@ func init() {
 	commandRegistry = []command{
 		{name: "characters", usage: "/characters", desc: "List your characters", category: catCharacters, showNav: true, run: runCharacters},
 		{name: "sheet", usage: "/sheet [name|id]", desc: "Show a character sheet", category: catCharacters, showNav: true, run: runSheet},
-		{name: "stats", usage: "/stats [name|id]", desc: "Show a character's stats", category: catCharacters, showNav: true, run: runStats},
+		{name: "stats", usage: "/stats [name|id]", desc: "Show character or campaign statistics", category: catCharacters, showNav: true, run: runStats},
 		{name: "claim", usage: "/claim [name|id]", desc: "Claim a character as yours", category: catCharacters, run: runClaim},
 		{name: "unclaim", usage: "/unclaim", desc: "Release your claimed character", category: catCharacters, run: runUnclaim},
 		{name: "create", usage: "/create", desc: "Create a character step by step", category: catCharacters, run: runCreate},
 		{name: "overview", usage: "/overview [campaign]", desc: "Show campaign overviews", category: catCampaign, showNav: true, run: runOverview},
 		{name: "recap", usage: "/recap [campaign]", desc: "Show recaps for a campaign", category: catCampaign, run: runRecap},
 		{name: "lastrecap", usage: "/lastrecap", desc: "Show the most recent recap", category: catCampaign, run: runLastRecap},
+		{name: "items", usage: "/items", desc: "List campaign party items", category: catCampaign, run: runItems},
+		{name: "quests", usage: "/quests", desc: "List the party's open quests", category: catCampaign, run: runQuests},
+		{name: "visits", usage: "/visits", desc: "List party location visits", category: catCampaign, run: runVisits},
 		{name: "subscribe", usage: "/subscribe", desc: "Receive recap copies as DMs", category: catNotifications, run: runSubscribe},
 		{name: "unsubscribe", usage: "/unsubscribe", desc: "Stop DM recap copies", category: catNotifications, run: runUnsubscribe},
 		{name: "status", usage: "/status", desc: "Show your link and claim status", category: catBot, run: runStatus},
-		{name: "help", usage: "/help", desc: "Show this command list", category: catBot, run: runHelp},
+		{name: "help", usage: "/help", desc: "Show this command list", category: catBot, showNav: true, run: runHelp},
 		{name: "start", usage: "/start <code>", desc: "Link your Villum account", category: catBot, run: runStart},
 		{name: "unlink", usage: "/unlink", desc: "Unlink your account", category: catBot, run: runUnlink},
 		{name: "cancel", usage: "/cancel", desc: "Cancel the current step-by-step flow", category: catBot, run: runCancel},
@@ -112,7 +115,11 @@ func helpText() string {
 }
 
 func linkingHelpText() string {
-	return "Link your Villum account first:\n1. Open Villum → Settings → Telegram.\n2. Generate a link code.\n3. Send <code>/start &lt;code&gt;</code> here."
+	return "🔗 <b>Link your Villum account first</b>\n\n" +
+		"1. Open Villum → <b>Settings → Telegram</b>.\n" +
+		"2. Generate a link code.\n" +
+		"3. Send <code>/start &lt;code&gt;</code> here.\n\n" +
+		"Linking unlocks /recap, /characters, /sheet, /stats, /claim and /create."
 }
 
 // botCommandList is the native menu payload derived from the registry.
