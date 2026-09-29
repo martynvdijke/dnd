@@ -9,7 +9,7 @@
     </div>
     <div class="btn-group">
       <button class="btn btn-outline-primary" onclick="print()"><i class="fas fa-print me-1"></i>Print Flow</button>
-      <a href="/htmx/oneshot-adventures" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Back</a>
+      <button class="btn btn-outline-primary" hx-get="/htmx/oneshot-adventures/{{.D.Adventure.ID}}" hx-target="#oneshotSection" hx-swap="innerHTML" data-testid="prep-back"><i class="fas fa-arrow-left me-1"></i>Back</button>
     </div>
   </div>
 
@@ -79,7 +79,7 @@
         </div>
         <div class="card-body">
           {{if eq (len .D.Clues) 0}}
-            <p class="text-muted">No clues yet. <a href="javascript:void(0)" onclick="showView('clues')" hx-get="/htmx/clues?adventure_id={{.D.Adventure.ID}}">Add clues</a></p>
+            <p class="text-muted">No clues yet. <a href="javascript:void(0)" hx-get="/htmx/oneshot-adventures/{{.D.Adventure.ID}}/clues" hx-target="#oneshotSection" hx-swap="innerHTML" data-testid="prep-add-clues">Add clues</a></p>
           {{else}}
           <div class="list-group">
             {{range .D.Clues}}
@@ -124,8 +124,8 @@
           <div class="d-grid gap-2">
             {{if .D.SessionID}}
               <a href="javascript:void(0)" class="btn btn-success"
-                 hx-get="/htmx/session-pacing/{{.D.SessionID}}" hx-target="#pacingDashboard" hx-swap="innerHTML"
-                 onclick="document.getElementById('pacingDashboard').classList.remove('d-none')">
+                 hx-get="/htmx/session-pacing/{{.D.SessionID}}" hx-target="#pacingDashboard" hx-swap="outerHTML"
+                 data-testid="prep-resume-session">
                 <i class="fas fa-play me-1"></i>Resume Session
               </a>
             {{else}}
@@ -133,21 +133,23 @@
                 hx-post="/api/oneshot-adventures/{{.D.Adventure.ID}}/pacing/start"
                 hx-trigger="click"
                 hx-swap="none"
-                onclick="setTimeout(function(){window.location.reload()}, 500)">
+                onclick="setTimeout(function(){window.location.reload()}, 500)"
+                data-testid="prep-start-session">
                 <i class="fas fa-play me-1"></i>Start Session
               </button>
             {{end}}
-            <a href="/htmx/oneshot-adventures/{{.D.Adventure.ID}}" class="btn btn-outline-primary">
-              <i class="fas fa-edit me-1"></i>Edit Adventure
+            <a href="javascript:void(0)" class="btn btn-outline-primary"
+               hx-get="/htmx/oneshot-adventures/{{.D.Adventure.ID}}/dashboard" hx-target="#oneshotSection" hx-swap="innerHTML">
+              <i class="fas fa-edit me-1"></i>Refresh
             </a>
             <a href="javascript:void(0)" class="btn btn-outline-info"
                hx-get="/htmx/oneshot-adventures/{{.D.Adventure.ID}}/session-flow" hx-target="#sessionFlowView" hx-swap="innerHTML"
                onclick="document.getElementById('sessionFlowView').classList.remove('d-none')">
               <i class="fas fa-scroll me-1"></i>Session Flow
             </a>
-            <a href="/htmx/generators" class="btn btn-outline-warning">
+            <button type="button" class="btn btn-outline-warning" onclick="showDmTools()" data-testid="prep-generators">
               <i class="fas fa-dice me-1"></i>Generators
-            </a>
+            </button>
           </div>
         </div>
       </div>

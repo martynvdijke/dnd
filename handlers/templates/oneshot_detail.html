@@ -15,6 +15,15 @@
   </div>
 </div>
 
+<div class="d-flex flex-wrap gap-1 mb-3">
+  <button class="btn btn-sm btn-primary" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}/dashboard" hx-target="#oneshotSection" hx-swap="innerHTML" data-testid="oneshot-prep-dashboard"><i class="fa-solid fa-clipboard-list me-1"></i>Prep</button>
+  <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}/dm-screen" hx-target="#oneshotSection" hx-swap="innerHTML" data-testid="oneshot-dm-screen"><i class="fa-solid fa-shield-halved me-1"></i>DM Screen</button>
+  <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}/clues" hx-target="#oneshotSection" hx-swap="innerHTML" data-testid="oneshot-clues"><i class="fa-solid fa-magnifying-glass me-1"></i>Clues</button>
+  <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/pregens" hx-target="#oneshotSection" hx-swap="innerHTML" data-testid="oneshot-pregens"><i class="fa-solid fa-users me-1"></i>Pregens</button>
+  <button class="btn btn-sm btn-outline-secondary" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}/session-flow" hx-target="#oneshotSection" hx-swap="innerHTML" data-testid="oneshot-session-flow"><i class="fa-solid fa-list-ol me-1"></i>Session Flow</button>
+  <button class="btn btn-sm btn-success" onclick="runOneShot({{.Adventure.ID}})" data-testid="oneshot-run"><i class="fa-solid fa-play me-1"></i>Run</button>
+</div>
+
 {{if .Adventure.Premise}}
 <div class="card mb-3">
   <div class="card-body py-2">

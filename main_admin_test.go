@@ -653,10 +653,7 @@ func TestSessionPacingLifecycle(t *testing.T) {
 	}
 
 	// Tick timer
-	resp = tc.post("/api/session-pacing/"+strconv.Itoa(sessionID)+"/tick", nil)
-	if resp.Code != 200 {
-		t.Fatalf("tick pacing failed: %d", resp.Code)
-	}
+	// (elapsed time now accrues from timestamps; no tick endpoint needed)
 
 	// Complete session
 	resp = tc.post("/api/session-pacing/"+strconv.Itoa(sessionID)+"/complete", nil)

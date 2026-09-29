@@ -38,7 +38,7 @@ export function parseHash(hash: string): Route {
   const params: Record<string, string> = {};
 
   // View-specific param extraction
-  if ((view === 'sheet' || view === 'singleEncounter') && parts[1]) {
+  if ((view === 'sheet' || view === 'singleEncounter' || view === 'adventures') && parts[1]) {
     params.id = parts[1];
     if (parts[2]) params.tab = parts[2];
   }

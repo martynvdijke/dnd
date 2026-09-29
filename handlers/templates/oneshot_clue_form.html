@@ -3,8 +3,7 @@
     <h6 class="mb-0">{{if .Clue}}Edit Clue{{else}}New Clue{{end}}</h6>
   </div>
   <div class="card-body">
-    <form hx-{{if .Clue}}put="/htmx/clues/{{.Clue.ID}}"{{else}}post="/htmx/oneshot-adventures/{{.AdventureID}}/clues"{{end}}
-          hx-target="#clueList" hx-swap="outerHTML">
+    {{if .Clue}}<form hx-put="/htmx/clues/{{.Clue.ID}}" hx-target="#oneshotSection" hx-swap="innerHTML">{{else}}<form hx-post="/htmx/oneshot-adventures/{{.AdventureID}}/clues" hx-target="#oneshotSection" hx-swap="innerHTML">{{end}}
       <div class="mb-2">
         <label class="form-label">Title</label>
         <input type="text" name="title" class="form-control" required value="{{if .Clue}}{{.Clue.Title}}{{end}}">
@@ -27,6 +26,12 @@
           <label class="form-label">Sort Order</label>
           <input type="number" name="sort_order" class="form-control" value="{{if .Clue}}{{.Clue.SortOrder}}{{else}}0{{end}}">
         </div>
+      </div>
+      <div class="form-check mb-2">
+        <input class="form-check-input" type="checkbox" name="is_red_herring" id="clueRedHerring{{if .Clue}}{{.Clue.ID}}{{else}}New{{end}}" value="1" {{if and .Clue .Clue.IsRedHerring}}checked{{end}}>
+        <label class="form-check-label small" for="clueRedHerring{{if .Clue}}{{.Clue.ID}}{{else}}New{{end}}">
+          <i class="fa-solid fa-fish me-1 text-warning"></i>Red herring
+        </label>
       </div>
       <div class="mb-2">
         <label class="form-label">Notes (DM only)</label>

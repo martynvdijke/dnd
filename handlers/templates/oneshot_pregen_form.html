@@ -1,0 +1,104 @@
+<div class="card mb-3 border-primary">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h6 class="mb-0">{{if .Pregen}}Edit: {{.Pregen.Name}}{{else}}New Pregenerated Character{{end}}</h6>
+    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('pregenForm').innerHTML=''">
+      <i class="fa-solid fa-xmark"></i> Cancel
+    </button>
+  </div>
+  <div class="card-body">
+    {{if .Pregen}}<form hx-put="/htmx/pregens/{{.Pregen.ID}}" hx-target="#pregenSection" hx-swap="outerHTML">{{else}}<form hx-post="/htmx/pregens" hx-target="#pregenSection" hx-swap="outerHTML">{{end}}
+      <div class="row g-2 mb-2">
+        <div class="col-md-4">
+          <label class="form-label small mb-0">Name</label>
+          <input type="text" name="name" class="form-control form-control-sm" required value="{{if .Pregen}}{{.Pregen.Name}}{{end}}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small mb-0">Race</label>
+          <input type="text" name="race" class="form-control form-control-sm" value="{{if .Pregen}}{{.Pregen.Race}}{{end}}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small mb-0">Class</label>
+          <input type="text" name="class" class="form-control form-control-sm" value="{{if .Pregen}}{{.Pregen.Class}}{{end}}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small mb-0">Subclass</label>
+          <input type="text" name="subclass" class="form-control form-control-sm" value="{{if .Pregen}}{{.Pregen.Subclass}}{{end}}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small mb-0">Level</label>
+          <input type="number" name="level" class="form-control form-control-sm" min="1" max="20" value="{{if .Pregen}}{{.Pregen.Level}}{{else}}1{{end}}">
+        </div>
+      </div>
+      <div class="row g-2 mb-2">
+        <div class="col-md-3">
+          <label class="form-label small mb-0">Background</label>
+          <input type="text" name="background" class="form-control form-control-sm" value="{{if .Pregen}}{{.Pregen.Background}}{{end}}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label small mb-0">Alignment</label>
+          <input type="text" name="alignment" class="form-control form-control-sm" value="{{if .Pregen}}{{.Pregen.Alignment}}{{end}}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small mb-0">HP</label>
+          <input type="number" name="hp" class="form-control form-control-sm" value="{{if .Pregen}}{{.Pregen.HP}}{{else}}1{{end}}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small mb-0">AC</label>
+          <input type="number" name="ac" class="form-control form-control-sm" value="{{if .Pregen}}{{.Pregen.AC}}{{else}}10{{end}}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small mb-0">Speed</label>
+          <input type="number" name="speed" class="form-control form-control-sm" value="{{if .Pregen}}{{.Pregen.Speed}}{{else}}30{{end}}">
+        </div>
+      </div>
+      <div class="row g-2 mb-2">
+        {{$p := .Pregen}}
+        <div class="col"><label class="form-label small mb-0">STR</label><input type="number" name="str" class="form-control form-control-sm" value="{{if $p}}{{$p.Str}}{{else}}10{{end}}"></div>
+        <div class="col"><label class="form-label small mb-0">DEX</label><input type="number" name="dex" class="form-control form-control-sm" value="{{if $p}}{{$p.Dex}}{{else}}10{{end}}"></div>
+        <div class="col"><label class="form-label small mb-0">CON</label><input type="number" name="con" class="form-control form-control-sm" value="{{if $p}}{{$p.Con}}{{else}}10{{end}}"></div>
+        <div class="col"><label class="form-label small mb-0">INT</label><input type="number" name="int" class="form-control form-control-sm" value="{{if $p}}{{$p.Int}}{{else}}10{{end}}"></div>
+        <div class="col"><label class="form-label small mb-0">WIS</label><input type="number" name="wis" class="form-control form-control-sm" value="{{if $p}}{{$p.Wis}}{{else}}10{{end}}"></div>
+        <div class="col"><label class="form-label small mb-0">CHA</label><input type="number" name="cha" class="form-control form-control-sm" value="{{if $p}}{{$p.Cha}}{{else}}10{{end}}"></div>
+      </div>
+      <div class="mb-2">
+        <label class="form-label small mb-0">Skills</label>
+        <input type="text" name="skills" class="form-control form-control-sm" value="{{if .Pregen}}{{.Pregen.Skills}}{{end}}">
+      </div>
+      <div class="row g-2 mb-2">
+        <div class="col-md-6">
+          <label class="form-label small mb-0">Equipment</label>
+          <textarea name="equipment" class="form-control form-control-sm" rows="2">{{if .Pregen}}{{.Pregen.Equipment}}{{end}}</textarea>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small mb-0">Spells</label>
+          <textarea name="spells" class="form-control form-control-sm" rows="2">{{if .Pregen}}{{.Pregen.Spells}}{{end}}</textarea>
+        </div>
+      </div>
+      <div class="row g-2 mb-2">
+        <div class="col-md-6">
+          <label class="form-label small mb-0">Features</label>
+          <textarea name="features" class="form-control form-control-sm" rows="2">{{if .Pregen}}{{.Pregen.Features}}{{end}}</textarea>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small mb-0">Personality</label>
+          <textarea name="personality" class="form-control form-control-sm" rows="2">{{if .Pregen}}{{.Pregen.Personality}}{{end}}</textarea>
+        </div>
+      </div>
+      <div class="mb-2">
+        <label class="form-label small mb-0">Backstory</label>
+        <textarea name="backstory" class="form-control form-control-sm" rows="2">{{if .Pregen}}{{.Pregen.Backstory}}{{end}}</textarea>
+      </div>
+      <div class="row g-2 mb-2">
+        <div class="col-md-6">
+          <label class="form-label small mb-0">Portrait URL</label>
+          <input type="text" name="portrait_url" class="form-control form-control-sm" value="{{if .Pregen}}{{.Pregen.PortraitURL}}{{end}}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small mb-0">Notes</label>
+          <input type="text" name="notes" class="form-control form-control-sm" value="{{if .Pregen}}{{.Pregen.Notes}}{{end}}">
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">{{if .Pregen}}Save Changes{{else}}Create Character{{end}}</button>
+    </form>
+  </div>
+</div>

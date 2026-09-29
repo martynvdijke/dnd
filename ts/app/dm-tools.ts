@@ -65,6 +65,16 @@ expose('showDmTools', function () {
         </div>
       </div>
     </div>
+    <div class="border rounded p-2 mb-3">
+      <label class="form-label small mb-1">One-shot generators</label>
+      <div class="d-flex flex-wrap gap-1">
+        <button class="btn btn-sm btn-outline-gold" data-testid="dm-tool-hook" onclick="dmGenerateHook()">Adventure Hook</button>
+        <button class="btn btn-sm btn-outline-gold" data-testid="dm-tool-dressing" onclick="dmGenerateDungeonDressing()">Dungeon Dressing</button>
+        <button class="btn btn-sm btn-outline-gold" data-testid="dm-tool-tavern" onclick="dmGenerateTavern()">Tavern</button>
+        <button class="btn btn-sm btn-outline-gold" data-testid="dm-tool-urban" onclick="dmGenerateUrbanEncounter()">Urban Encounter</button>
+        <button class="btn btn-sm btn-outline-gold" data-testid="dm-tool-road" onclick="dmGenerateRoadEncounter()">Road Encounter</button>
+      </div>
+    </div>
     <div id="dmToolsResult" class="small"></div>
   `);
 });
@@ -131,6 +141,93 @@ expose('dmDailyBudget', async function () {
   } catch (e: any) {
     el.innerHTML = `<p class="text-danger">${esc(e.message)}</p>`;
   }
+});
+
+// ─── DM Tools: one-shot generators ───
+
+function dmOneShotResult(targetId: string, html: string): void {
+  const el = document.getElementById(targetId);
+  if (el) el.innerHTML = html;
+}
+
+function dmOneShotError(targetId: string, message: string): void {
+  dmOneShotResult(targetId, `<p class="text-danger">${esc(message)}</p>`);
+}
+
+expose('dmGenerateHook', async function (targetId = 'dmToolsResult') {
+  try {
+    const h = await api<any>('GET', '/api/generate/adventure-hook');
+    dmOneShotResult(targetId, `
+      <div class="dash-card">
+        <h6>${esc(h.hook_name || 'Adventure Hook')} <span class="badge bg-secondary">${esc(h.hook_type || '')}</span></h6>
+        <div><strong>Villain:</strong> ${esc(h.villain || '—')}</div>
+        <div><strong>MacGuffin:</strong> ${esc(h.macguffin || '—')}</div>
+        <div><strong>Stakes:</strong> ${esc(h.stakes || '—')}</div>
+        <div><strong>Location:</strong> ${esc(h.location_hint || '—')}</div>
+        <div><strong>Twist:</strong> ${esc(h.twist || '—')}</div>
+      </div>`);
+  } catch (e: any) { dmOneShotError(targetId, e.message); }
+});
+
+expose('dmGenerateDungeonDressing', async function (targetId = 'dmToolsResult') {
+  try {
+    const d = await api<any>('GET', '/api/generate/dungeon-dressing');
+    dmOneShotResult(targetId, `
+      <div class="dash-card">
+        <h6>Dungeon Dressing</h6>
+        <div><strong>Room:</strong> ${esc(d.room_type || '—')} · ${esc(d.size || '')} · ${esc(d.shape || '')}</div>
+        <div><strong>Floor:</strong> ${esc(d.floor || '—')} · <strong>Walls:</strong> ${esc(d.walls || '—')} · <strong>Ceiling:</strong> ${esc(d.ceiling || '—')}</div>
+        <div><strong>Sound:</strong> ${esc(d.sound || '—')} · <strong>Smell:</strong> ${esc(d.smell || '—')}</div>
+        <div><strong>Light:</strong> ${esc(d.light || '—')} · <strong>Temperature:</strong> ${esc(d.temperature || '—')}</div>
+        <div><strong>Debris:</strong> ${esc(d.debris || '—')}</div>
+      </div>`);
+  } catch (e: any) { dmOneShotError(targetId, e.message); }
+});
+
+expose('dmGenerateTavern', async function (targetId = 'dmToolsResult') {
+  try {
+    const t = await api<any>('GET', '/api/generate/tavern');
+    const clientele = (t.clientele || []).map((c: string) => esc(c)).join(', ') || '—';
+    const rumors = (t.rumors || []).map((r: string) => esc(r)).join(' · ') || '—';
+    dmOneShotResult(targetId, `
+      <div class="dash-card">
+        <h6>${esc(t.name || 'Tavern')}</h6>
+        <div><strong>Proprietor:</strong> ${esc(t.proprietor || '—')} — ${esc(t.proprietor_trait || '')}</div>
+        <div><strong>Clientele:</strong> ${clientele}</div>
+        <div><strong>Drink:</strong> ${esc(t.specialty_drink || '—')} — ${esc(t.drink_description || '')}</div>
+        <div><strong>Atmosphere:</strong> ${esc(t.atmosphere || '—')}</div>
+        <div><strong>Prices:</strong> ${esc(t.prices || '—')}</div>
+        <div><strong>Rumors:</strong> ${rumors}</div>
+      </div>`);
+  } catch (e: any) { dmOneShotError(targetId, e.message); }
+});
+
+expose('dmGenerateUrbanEncounter', async function (targetId = 'dmToolsResult') {
+  try {
+    const u = await api<any>('GET', '/api/generate/urban-encounter');
+    dmOneShotResult(targetId, `
+      <div class="dash-card">
+        <h6>Urban Encounter <span class="badge bg-secondary">${esc(u.theme || '')}</span></h6>
+        <div><strong>NPC:</strong> ${esc(u.npc || '—')}</div>
+        <div>${esc(u.description || '')}</div>
+        <div><strong>Complication:</strong> ${esc(u.complication || '—')}</div>
+        <div><strong>Resolution:</strong> ${esc(u.possible_resolution || '—')}</div>
+      </div>`);
+  } catch (e: any) { dmOneShotError(targetId, e.message); }
+});
+
+expose('dmGenerateRoadEncounter', async function (targetId = 'dmToolsResult') {
+  try {
+    const r = await api<any>('GET', '/api/generate/road-encounter');
+    dmOneShotResult(targetId, `
+      <div class="dash-card">
+        <h6>Road Encounter <span class="badge bg-secondary">${esc(r.terrain || '')}</span> <span class="badge bg-secondary">${esc(r.encounter_type || '')}</span></h6>
+        <div>${esc(r.description || '')}</div>
+        <div><strong>Creatures:</strong> ${esc(r.creatures || '—')}</div>
+        <div><strong>Loot hint:</strong> ${esc(r.loot_hint || '—')}</div>
+        <div><strong>Complication:</strong> ${esc(r.complication || '—')}</div>
+      </div>`);
+  } catch (e: any) { dmOneShotError(targetId, e.message); }
 });
 
 // ─── DM Screen: live campaign aggregate ───

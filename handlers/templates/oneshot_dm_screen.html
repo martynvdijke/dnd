@@ -6,11 +6,12 @@
     <div>
       <span class="badge bg-secondary">{{.Adventure.Difficulty}}</span>
       <span class="badge bg-info">{{.Adventure.EstimatedMinutes}}min</span>
+      <button class="btn btn-sm btn-outline-secondary ms-2" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}" hx-target="#oneshotSection" hx-swap="innerHTML" data-testid="dmscreen-back"><i class="fas fa-arrow-left me-1"></i>Back</button>
     </div>
   </div>
   <div class="card-body">
     <!-- Tab Navigation -->
-    <ul class="nav nav-tabs mb-3" id="dmScreenTabs" role="tablist">
+    <ul class="nav nav-tabs mb-3" id="dmScreenTabs" role="tablist" data-adventure-id="{{.Adventure.ID}}">
       <li class="nav-item" role="presentation">
         <button class="nav-link active" id="quickref-tab" data-bs-toggle="tab" data-bs-target="#quickref" type="button" role="tab">
           <i class="fas fa-book me-1"></i>Quick Reference
@@ -76,7 +77,7 @@
                 <i class="fas fa-dice-d20 fa-3x mb-3 text-primary"></i>
                 <h6>Dice Roller</h6>
                 <p class="small text-muted">Roll any dice for quick resolution</p>
-                <a href="/dice" class="btn btn-outline-primary btn-sm" target="_blank">Open Dice Roller</a>
+                <a href="#/dice" class="btn btn-outline-primary btn-sm" target="_blank">Open Dice Roller</a>
               </div>
             </div>
           </div>
@@ -86,7 +87,7 @@
                 <i class="fas fa-robot fa-3x mb-3 text-success"></i>
                 <h6>Adventure Hooks</h6>
                 <p class="small text-muted">Generate random adventure hooks</p>
-                <button class="btn btn-outline-success btn-sm" hx-get="/api/generate/adventure-hook" hx-target="#hookResult" hx-swap="innerHTML">
+                <button class="btn btn-outline-success btn-sm" onclick="dmGenerateHook('hookResult')" data-testid="dm-screen-hook">
                   Generate Hook
                 </button>
                 <div id="hookResult" class="mt-2 small"></div>
@@ -99,7 +100,7 @@
                 <i class="fas fa-city fa-3x mb-3 text-warning"></i>
                 <h6>Random Generators</h6>
                 <p class="small text-muted">Taverns, encounters, dungeon dressing</p>
-                <a href="/oneshot-generators" class="btn btn-outline-warning btn-sm">Open Generators</a>
+                <button class="btn btn-outline-warning btn-sm" onclick="showDmTools()" data-testid="dm-screen-generators">Open Generators</button>
               </div>
             </div>
           </div>
@@ -109,7 +110,7 @@
                 <i class="fas fa-clock fa-3x mb-3 text-info"></i>
                 <h6>Session Pacing</h6>
                 <p class="small text-muted">Track time and progress</p>
-                <button class="btn btn-outline-info btn-sm" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}" hx-target="#viewContent" hx-swap="innerHTML">
+                <button class="btn btn-outline-info btn-sm" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}" hx-target="#oneshotSection" hx-swap="innerHTML">
                   Open Adventure
                 </button>
               </div>
@@ -121,7 +122,7 @@
                 <i class="fas fa-users fa-3x mb-3 text-danger"></i>
                 <h6>NPCs & Encounters</h6>
                 <p class="small text-muted">View linked NPCs and encounters</p>
-                <button class="btn btn-outline-danger btn-sm" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}/edit" hx-target="#viewContent" hx-swap="innerHTML">
+                <button class="btn btn-outline-danger btn-sm" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}/edit" hx-target="#genericModalBody" hx-swap="innerHTML" onclick="document.getElementById('genericModalTitle').textContent='Edit One-Shot';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()">
                   Edit Adventure
                 </button>
               </div>
@@ -133,7 +134,7 @@
                 <i class="fas fa-print fa-3x mb-3 text-secondary"></i>
                 <h6>Session Flow</h6>
                 <p class="small text-muted">Print-friendly session overview</p>
-                <button class="btn btn-outline-secondary btn-sm" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}/session-flow" hx-target="#viewContent" hx-swap="innerHTML">
+                <button class="btn btn-outline-secondary btn-sm" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}/session-flow" hx-target="#oneshotSection" hx-swap="innerHTML">
                   View Session Flow
                 </button>
               </div>
@@ -201,17 +202,31 @@ function hideNewNoteForm() {
   document.getElementById('noteTitle').value = '';
   document.getElementById('noteContent').value = '';
 }
+function dmScreenHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+  };
+}
+function refreshDmScreen() {
+  var tabs = document.getElementById('dmScreenTabs');
+  var advId = tabs && tabs.getAttribute('data-adventure-id');
+  var target = document.getElementById('oneshotSection');
+  if (advId && target) {
+    htmx.ajax('GET', '/htmx/oneshot-adventures/' + advId + '/dm-screen', {target: '#oneshotSection', swap: 'innerHTML'});
+  }
+}
 function saveNote(advId) {
   var title = document.getElementById('noteTitle').value.trim();
   var content = document.getElementById('noteContent').value.trim();
   if (!title) { alert('Please enter a title'); return; }
   fetch('/api/oneshot-adventures/' + advId + '/notes', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: dmScreenHeaders(),
     body: JSON.stringify({title: title, content: content})
   }).then(function(r) { return r.json(); }).then(function() {
-    htmx.trigger('#dmScreenTabs', 'dmNoteSaved');
     hideNewNoteForm();
+    refreshDmScreen();
   });
 }
 function editNote(id, title, content) {
@@ -222,10 +237,10 @@ function editNote(id, title, content) {
   if (newContent === null) return;
   fetch('/api/dm-notes/' + id, {
     method: 'PUT',
-    headers: {'Content-Type': 'application/json'},
+    headers: dmScreenHeaders(),
     body: JSON.stringify({title: newTitle, content: newContent})
   }).then(function() {
-    htmx.trigger('#dmScreenTabs', 'dmNoteSaved');
+    refreshDmScreen();
   });
 }
 </script>

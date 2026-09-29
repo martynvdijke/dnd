@@ -67,7 +67,14 @@ expose('navigateSearchResult', function (type: string, id: number, name: string)
     case 'compendium': (window as any).showCompendium?.(); return;
     case 'shop': showView('shops'); return;
     case 'faction': showView('factions'); return;
-    case 'adventure':
+    case 'adventure': {
+      // Deep link so the one-shot view opens the selected adventure, not just
+      // the list. The router applies the route via init.ts applyRoute().
+      const hash = `#/adventures/${id}`;
+      if (location.hash === hash) (window as any).openOneShot?.(id);
+      else routerNavigate('adventures' as any, { id: String(id) });
+      return;
+    }
     case 'item': showView('oneshot'); return;
     case 'wiki': showView('wiki'); return;
     case 'timeline': showView('timeline'); return;

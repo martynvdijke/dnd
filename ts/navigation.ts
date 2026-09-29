@@ -51,20 +51,23 @@ export function getCurrentView(): ViewState {
  * Internal implementation of view switching.
  */
 function switchView(view: ViewState): void {
-  currentView = view;
+  // One-shot deep links (#/adventures/:id) render the one-shot view; the
+  // detail is loaded by the route handler via openOneShot().
+  const canonical: ViewState = view === 'adventures' ? 'oneshot' : view;
+  currentView = canonical;
   views.forEach(v => {
     const el = document.getElementById(v.divId);
     if (el) {
-      const isVisible = v.id === view ||
-        (view === 'sheet' && v.id === 'characters');
+      const isVisible = v.id === canonical ||
+        (canonical === 'sheet' && v.id === 'characters');
       el.style.display = isVisible ? 'block' : 'none';
     }
   });
-  updateActiveTab(view);
-  updateFabForView(view);
-  if (view === 'party') {
+  updateActiveTab(canonical);
+  updateFabForView(canonical);
+  if (canonical === 'party') {
     (window as any).renderPartySubTabBar?.('overview');
-  } else if (view === 'dice') {
+  } else if (canonical === 'dice') {
     // The dice view has no static content (see #diceViewSection in
     // app.html); renderDiceTab() must run when arriving via router
     // navigation (deep links, reloads, back/forward) so the roller is

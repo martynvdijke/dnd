@@ -356,6 +356,7 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 		{"GET", "/htmx/oneshot-acts/:id/edit", HtmxEditActForm},
 		{"PUT", "/htmx/oneshot-acts/:id", HtmxUpdateAct},
 		{"GET", "/htmx/oneshot-acts/:id/details", HtmxActDetails},
+		{"PUT", "/htmx/oneshot-acts/:id/notes", HtmxUpdateActNotes},
 		{"GET", "/htmx/oneshot-acts/:id/encounters", HtmxActEncounters},
 		{"POST", "/htmx/oneshot-acts/:id/encounters", HtmxLinkActEncounter},
 		{"DELETE", "/htmx/oneshot-acts/:id/encounters/:eid", HtmxUnlinkActEncounter},
@@ -372,11 +373,20 @@ func HtmxRegisterRoutes(r *gin.RouterGroup) {
 
 		// Session Pacing
 		{"GET", "/htmx/session-pacing/:id", HtmxGetPacingDashboard},
+		{"POST", "/htmx/session-pacing/:id/pause", HtmxPausePacingSession},
+		{"POST", "/htmx/session-pacing/:id/resume", HtmxResumePacingSession},
+		{"POST", "/htmx/session-pacing/:id/next-scene", HtmxAdvancePacingSession},
+		{"POST", "/htmx/session-pacing/:id/complete", HtmxCompletePacingSession},
 
 		// Pregenerated Characters
 		{"GET", "/htmx/pregens", HtmxListPregens},
 		{"GET", "/htmx/pregens/generate", HtmxGeneratePregen},
+		{"GET", "/htmx/pregens/new", HtmxNewPregenForm},
 		{"GET", "/htmx/pregens/:id", HtmxPregenCard},
+		{"GET", "/htmx/pregens/:id/edit", HtmxEditPregenForm},
+		{"POST", "/htmx/pregens", HtmxCreatePregen},
+		{"PUT", "/htmx/pregens/:id", HtmxUpdatePregen},
+		{"DELETE", "/htmx/pregens/:id", HtmxDeletePregen},
 
 		// Prep Dashboard
 		{"GET", "/htmx/oneshot-adventures/:id/dashboard", HtmxGetPrepDashboard},

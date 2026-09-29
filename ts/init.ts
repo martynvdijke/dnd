@@ -140,6 +140,9 @@ export async function init() {
       // hash write would loop through hashchange forever.
       if (!c || c.id !== id) (window as any).openChar?.(id, route.params.tab);
       else if (route.params.tab) (window as any).switchTab?.(route.params.tab);
+    } else if (route.view === 'adventures' && route.params.id) {
+      showViewFromRouter('oneshot');
+      (window as any).openOneShot?.(Number(route.params.id));
     } else {
       showViewFromRouter(route.view as ViewState);
     }

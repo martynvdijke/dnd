@@ -207,7 +207,6 @@ func ImportCompendiumEquipmentToOneShot(c *gin.Context) {
 		CompendiumEntryID     int64  `json:"compendium_entry_id"`
 		AdventureID           int64  `json:"adventure_id"`
 		ActID                 *int64 `json:"act_id,omitempty"`
-		SceneID               *int64 `json:"scene_id,omitempty"`
 		Quantity              int    `json:"quantity"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -225,8 +224,8 @@ func ImportCompendiumEquipmentToOneShot(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "compendium entry not found"})
 			return
 		}
-		result, err := db.DB.Exec(`INSERT INTO oneshot_items(adventure_id, act_id, scene_id, name, description, category, quantity, weight, price_gp, is_magical, compendium_entry_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
-			req.AdventureID, req.ActID, req.SceneID, snap.Name, snap.Description, snap.Category, req.Quantity, snap.Weight, parsePriceGP(snap.Cost), false, req.CompendiumEntryID)
+		result, err := db.DB.Exec(`INSERT INTO oneshot_items(adventure_id, act_id, name, description, category, quantity, weight, price_gp, is_magical, compendium_entry_id) VALUES(?,?,?,?,?,?,?,?,?,?)`,
+			req.AdventureID, req.ActID, snap.Name, snap.Description, snap.Category, req.Quantity, snap.Weight, parsePriceGP(snap.Cost), false, req.CompendiumEntryID)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -251,8 +250,8 @@ func ImportCompendiumEquipmentToOneShot(c *gin.Context) {
 
 	isMagical := strings.EqualFold(e.ItemRarity, "rare") || strings.EqualFold(e.ItemRarity, "very rare") || strings.EqualFold(e.ItemRarity, "legendary") || strings.EqualFold(e.ItemRarity, "artifact")
 
-	result, err := db.DB.Exec(`INSERT INTO oneshot_items(adventure_id, act_id, scene_id, name, description, category, quantity, weight, price_gp, is_magical, compendium_equipment_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
-		req.AdventureID, req.ActID, req.SceneID, e.Name, e.Description, e.Category, req.Quantity, e.Weight, priceGP, isMagical, req.CompendiumEquipmentID)
+	result, err := db.DB.Exec(`INSERT INTO oneshot_items(adventure_id, act_id, name, description, category, quantity, weight, price_gp, is_magical, compendium_equipment_id) VALUES(?,?,?,?,?,?,?,?,?,?)`,
+		req.AdventureID, req.ActID, e.Name, e.Description, e.Category, req.Quantity, e.Weight, priceGP, isMagical, req.CompendiumEquipmentID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

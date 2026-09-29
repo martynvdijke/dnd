@@ -18,7 +18,7 @@
       <button class="btn btn-sm btn-primary" hx-get="/htmx/clues/{{.Clue.ID}}/edit" hx-target="#clueForm" hx-swap="innerHTML">
         <i class="fas fa-edit me-1"></i>Edit
       </button>
-      <button class="btn btn-sm btn-danger" hx-delete="/htmx/clues/{{.Clue.ID}}" hx-target="#clueList" hx-swap="outerHTML" hx-confirm="Delete this clue?">
+      <button class="btn btn-sm btn-danger" hx-delete="/htmx/clues/{{.Clue.ID}}" hx-target="#oneshotSection" hx-swap="innerHTML" hx-confirm="Delete this clue?">
         <i class="fas fa-trash me-1"></i>Delete
       </button>
     </div>

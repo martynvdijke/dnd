@@ -4,6 +4,11 @@
     <div>
       <span class="badge bg-secondary me-1">{{.Adventure.Difficulty}}</span>
       <span class="badge bg-info">{{.TotalTime}} min total</span>
+      <button class="btn btn-sm btn-outline-secondary ms-1 d-print-none"
+        hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}"
+        hx-target="#oneshotSection" hx-swap="innerHTML" data-testid="flow-back">
+        <i class="fas fa-arrow-left me-1"></i>Back
+      </button>
     </div>
   </div>
   <div class="card-body">

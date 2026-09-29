@@ -47,13 +47,12 @@ func RegisterDMOneShotRoutes(r *gin.RouterGroup) {
 
 	// Session Pacing
 	r.POST("/oneshot-adventures/:id/pacing/start", StartPacingSession)
-	r.GET("/oneshot-adventures/:id/pacing", GetPacingSession)
+	r.GET("/oneshot-adventures/:id/pacing", GetAdventurePacing)
 	r.GET("/session-pacing/:id", GetPacingSession)
 	r.POST("/session-pacing/:id/pause", PausePacingSession)
 	r.POST("/session-pacing/:id/resume", ResumePacingSession)
 	r.POST("/session-pacing/:id/next-scene", AdvanceToNextScene)
 	r.POST("/session-pacing/:id/complete", CompletePacingSession)
-	r.POST("/session-pacing/:id/tick", UpdatePacingTimers)
 
 	// Clue/Mystery Tracker
 	r.GET("/oneshot-adventures/:id/clues", ListClues)
