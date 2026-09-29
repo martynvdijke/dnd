@@ -41,4 +41,4 @@
 ## 7. OpenSpec and verification
 
 - [x] 7.1 Check off `link-oneshot-acts-encounters` tasks and archive the change (`openspec archive`), committing the merged spec under `openspec/specs/oneshot-act-encounters/`
-- [ ] 7.2 `task ci` green (includes e2e and coverage gates), PR opened and merged via the standard flow
+- [x] 7.2 `task ci` green (includes e2e and coverage gates), PR opened and merged via the standard flow
