@@ -149,6 +149,11 @@ func ApplySafeAlters(db *sql.DB) error {
 		"ALTER TABLE campaign_maps ADD COLUMN walls TEXT NOT NULL DEFAULT '[]'",
 		"ALTER TABLE battlemap_tokens ADD COLUMN aura_radius REAL NOT NULL DEFAULT 0",
 		"ALTER TABLE battlemap_tokens ADD COLUMN vision_radius REAL NOT NULL DEFAULT 0",
+		// Media kinds on uploads (ent-owned; ent adds the columns to existing
+		// DBs, this backfill and the indexes are raw-only concerns).
+		"UPDATE uploads SET kind='pdf' WHERE lower(ext)='.pdf' AND kind != 'pdf'",
+		"CREATE INDEX IF NOT EXISTS idx_uploads_kind ON uploads(kind)",
+		"CREATE INDEX IF NOT EXISTS idx_uploads_telegram_unique ON uploads(telegram_file_unique_id)",
 	}
 
 	for _, stmt := range alterStatements {

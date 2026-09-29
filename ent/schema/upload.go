@@ -26,6 +26,9 @@ func (Upload) Fields() []ent.Field {
 		field.String("thumbnail_url").Optional(),
 		field.String("owner_type").Default(""),
 		field.Int64("owner_id").Default(0),
+		field.String("kind").Default("image"),
+		field.String("source").Default("upload"),
+		field.String("telegram_file_unique_id").Default(""),
 		field.String("created_at").Default(""),
 	}
 }

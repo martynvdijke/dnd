@@ -8,6 +8,7 @@ import (
 	"villum/db"
 	"villum/handlers"
 	"villum/middleware"
+	"villum/models"
 	"villum/telegram"
 )
 
@@ -35,6 +36,16 @@ func registerSchedulers() chan struct{} {
 	handlers.StartDBCleanupTask()
 	pushStop := make(chan struct{})
 	handlers.StartPushReminderScheduler(pushStop)
+	// Inbound Telegram media shares the HTTP upload pipeline for hashing,
+	// resizing and dedupe; the seam exists because telegram cannot import handlers.
+	telegram.SetMediaSaver(func(req telegram.MediaSaveRequest) (*models.Upload, error) {
+		source := req.Source
+		if source == "" {
+			source = "telegram"
+		}
+		upload, _, err := handlers.SaveMediaBytes(req.Name, req.Data, req.OwnerType, req.OwnerID, source, req.TelegramFileUniqueID)
+		return upload, err
+	})
 	telegram.EnsureWebhookState()
 	telegramStop := make(chan struct{})
 	telegram.StartTelegramPoller(telegramStop)
