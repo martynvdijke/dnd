@@ -28,10 +28,8 @@ func scanAutoPost(now time.Time) {
 	grace := GetGraceMinutes()
 	cutoff := now.UTC().Add(-time.Duration(grace) * time.Minute).Format("2006-01-02 15:04:05")
 	rows, err := db.DB.Query(`
-		SELECT r.id FROM campaign_recaps r
-		JOIN campaign_telegram_settings s ON s.campaign_id=r.campaign_id
+		SELECT r.id, r.campaign_id FROM campaign_recaps r
 		WHERE r.is_sent=0 AND r.session_end_date IS NOT NULL AND r.session_end_date != ''
-		  AND s.auto_post_enabled=1 AND s.is_enabled=1
 		  AND datetime(r.session_end_date) <= datetime(?)
 		  AND NOT EXISTS (SELECT 1 FROM telegram_deliveries d WHERE d.recap_id=r.id)
 	`, cutoff)
@@ -39,10 +37,26 @@ func scanAutoPost(now time.Time) {
 		middleware.LogWarn("telegram", "auto-post scan failed", "error", err)
 		return
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var id int64
-		_ = rows.Scan(&id)
-		DeliverRecap(id, "auto")
+	type pendingRecap struct {
+		id         int64
+		campaignID int64
+	}
+	var pending []pendingRecap
+	func() {
+		defer rows.Close()
+		for rows.Next() {
+			var p pendingRecap
+			if err := rows.Scan(&p.id, &p.campaignID); err != nil {
+				continue
+			}
+			pending = append(pending, p)
+		}
+	}()
+	for _, p := range pending {
+		settings, found, err := GetCampaignTelegramSettings(p.campaignID)
+		if err != nil || !found || !settings.IsEnabled || !settings.AutoPostEnabled {
+			continue
+		}
+		DeliverRecap(p.id, "auto")
 	}
 }
