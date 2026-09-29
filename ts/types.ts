@@ -11,6 +11,7 @@ export type ViewState =
   | 'combatTracker'
   | 'wiki'
   | 'oneshot'
+  | 'adventures'
   | 'factions'
   | 'shops'
   | 'knowledge'

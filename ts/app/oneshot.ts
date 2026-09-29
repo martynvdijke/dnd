@@ -781,3 +781,67 @@ expose('deleteActNpc', async function (id: number, actId: number) {
     await refreshActDetails(actId);
   } catch (e: any) { toast(e.message, true); }
 });
+
+// ─── Act DM Notes (inline form) ───
+
+expose('showAddActNoteForm', function (actId: number) {
+  hideModal();
+  showModal('Add Act Note', `
+    <div class="mb-2"><label class="form-label small">Title</label><input id="actNoteTitle" class="form-control form-control-sm"></div>
+    <div class="mb-2"><label class="form-label small">Content</label><textarea id="actNoteContent" class="form-control form-control-sm" rows="3"></textarea></div>
+    <button class="btn btn-primary w-100" onclick="saveActNote(${actId})">Add Note</button>`);
+  document.getElementById('genericModal')?.classList.add('show');
+});
+
+expose('saveActNote', async function (actId: number) {
+  const title = (document.getElementById('actNoteTitle') as HTMLInputElement)?.value?.trim() || '';
+  const content = (document.getElementById('actNoteContent') as HTMLTextAreaElement)?.value || '';
+  if (!title) { toast('Title is required', true); return; }
+  try {
+    await api('POST', `/api/oneshot-acts/${actId}/notes`, { title, content });
+    hideModal();
+    toast('Note added');
+    await refreshActDetails(actId);
+  } catch (e: any) { toast(e.message, true); }
+});
+
+// ─── Scene Dialog Reordering ───
+
+expose('initDialogSort', function () {
+  const container = document.querySelector('.sortable-dialogs[data-scene-id]') as HTMLElement | null;
+  if (!container || (container as any)._dialogSortInitialized) return;
+  const sceneId = parseInt(container.getAttribute('data-scene-id') || '0');
+  if (!sceneId) return;
+  (container as any)._dialogSortInitialized = true;
+  new (window as any).Sortable(container, {
+    handle: '.sortable-handle',
+    animation: 150,
+    draggable: '.dialog-card',
+    onEnd: async function () {
+      const order = Array.from(container.querySelectorAll('.dialog-card')).map((el: any) => parseInt(el.getAttribute('data-id') || '0'));
+      try {
+        await api('PUT', `/api/oneshot-scenes/${sceneId}/dialogs/reorder`, { order });
+      } catch (e: any) { toast(e.message, true); }
+    }
+  });
+});
+
+// ─── Prep/Run Navigation ───
+
+function loadOneShotFragment(url: string): void {
+  (window as any).htmx?.ajax('GET', url, { target: '#oneshotSection', swap: 'innerHTML' });
+}
+
+// Router-driven navigation: the view is already active, so only load the detail.
+expose('openOneShot', function (id: number) {
+  loadOneShotFragment(`/htmx/oneshot-adventures/${id}`);
+});
+
+expose('runOneShot', async function (adventureId: number) {
+  try {
+    const res: any = await api('POST', `/api/oneshot-adventures/${adventureId}/pacing/start`, {});
+    const sessionId = res?.id;
+    if (!sessionId) throw new Error('Could not start the pacing session');
+    loadOneShotFragment(`/htmx/session-pacing/${sessionId}`);
+  } catch (e: any) { toast(e.message, true); }
+});

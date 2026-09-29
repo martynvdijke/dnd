@@ -225,6 +225,20 @@ func HtmxUpdateAct(c *gin.Context) {
 	db.DB.QueryRow("SELECT adventure_id FROM oneshot_acts WHERE id=?", id).Scan(&adventureID)
 	ReRenderOneShotDetail(c, adventureID)
 }
+
+// HtmxUpdateActNotes saves only the act notes so inline autosave cannot
+// clobber the act's title, description or estimated minutes.
+func HtmxUpdateActNotes(c *gin.Context) {
+	id := c.Param("id")
+	notes := c.PostForm("notes")
+
+	if _, err := db.DB.Exec("UPDATE oneshot_acts SET notes=? WHERE id=?", notes, id); err != nil {
+		c.String(http.StatusInternalServerError, "update error: %v", err)
+		return
+	}
+
+	HtmxActDetails(c)
+}
 func HtmxDeleteAct(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	var adventureID int64

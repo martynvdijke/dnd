@@ -13,8 +13,12 @@ import (
 )
 
 func HtmxListClues(c *gin.Context) {
-	adventureID := c.Param("id")
+	renderClueList(c, c.Param("id"))
+}
 
+// renderClueList renders the clue board for an adventure id. Callers that
+// received a clue id (update/delete) pass the resolved adventure id.
+func renderClueList(c *gin.Context, adventureID any) {
 	rows, err := db.DB.Query("SELECT id, adventure_id, title, description, clue_type, is_red_herring, is_revealed, sort_order, notes, created_at, updated_at FROM clues WHERE adventure_id=? ORDER BY sort_order, id", adventureID)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "query error")
@@ -82,7 +86,7 @@ func HtmxCreateClue(c *gin.Context) {
 	notes := c.PostForm("notes")
 
 	db.DB.Exec("INSERT INTO clues(adventure_id, title, description, clue_type, is_red_herring, sort_order, notes) VALUES(?,?,?,?,?,?,?)",
-		adventureID, title, description, clueType, 0, sortOrder, notes)
+		adventureID, title, description, clueType, boolToInt(c.PostForm("is_red_herring") != ""), sortOrder, notes)
 
 	HtmxListClues(c)
 }
@@ -110,10 +114,13 @@ func HtmxUpdateClue(c *gin.Context) {
 	sortOrder, _ := strconv.Atoi(c.PostForm("sort_order"))
 	notes := c.PostForm("notes")
 
-	db.DB.Exec("UPDATE clues SET title=?, description=?, clue_type=?, sort_order=?, notes=?, updated_at=datetime('now') WHERE id=?",
-		title, description, clueType, sortOrder, notes, id)
+	db.DB.Exec("UPDATE clues SET title=?, description=?, clue_type=?, is_red_herring=?, sort_order=?, notes=?, updated_at=datetime('now') WHERE id=?",
+		title, description, clueType, boolToInt(c.PostForm("is_red_herring") != ""), sortOrder, notes, id)
 
-	HtmxGetClueDetail(c)
+	// The route parameter is the clue id; the board needs the adventure id.
+	var advID int64
+	db.DB.QueryRow("SELECT adventure_id FROM clues WHERE id=?", id).Scan(&advID)
+	renderClueList(c, advID)
 }
 
 func HtmxDeleteClue(c *gin.Context) {
@@ -123,7 +130,7 @@ func HtmxDeleteClue(c *gin.Context) {
 	db.DB.QueryRow("SELECT adventure_id FROM clues WHERE id=?", id).Scan(&advID)
 	db.DB.Exec("DELETE FROM clues WHERE id=?", id)
 	if advID > 0 {
-		HtmxListClues(c)
+		renderClueList(c, advID)
 		return
 	}
 	c.String(http.StatusOK, "Deleted")
@@ -377,16 +384,19 @@ func HtmxGetPrepDashboard(c *gin.Context) {
 		}
 	}
 
-	// Check for pacing session
+	// Check for pacing session; elapsed is timestamp-derived while running.
 	var sessionID *int64
 	var pacing *models.SessionPacing
 	var sid int64
-	var pacingStatus string
-	err = db.DB.QueryRow("SELECT id, status FROM session_pacing WHERE adventure_id=? AND status IN ('running','paused') ORDER BY id DESC LIMIT 1", adventureID).Scan(&sid, &pacingStatus)
+	var pacingStatus, pacingStartedAt string
+	var pacingElapsed int
+	err = db.DB.QueryRow("SELECT id, status, elapsed_seconds, started_at FROM session_pacing WHERE adventure_id=? AND status IN ('running','paused') ORDER BY id DESC LIMIT 1", adventureID).Scan(&sid, &pacingStatus, &pacingElapsed, &pacingStartedAt)
 	if err == nil {
 		sessionID = &sid
-		pacing = &models.SessionPacing{ID: sid, Status: pacingStatus}
-		db.DB.QueryRow("SELECT COALESCE(SUM(elapsed_seconds),0) FROM scene_timings WHERE session_id=?", sid).Scan(&pacing.ElapsedSeconds)
+		if pacingStatus == "running" {
+			pacingElapsed += pacingSecondsSince(pacingStartedAt)
+		}
+		pacing = &models.SessionPacing{ID: sid, Status: pacingStatus, ElapsedSeconds: pacingElapsed}
 	}
 
 	prepData := models.PrepDashboardData{

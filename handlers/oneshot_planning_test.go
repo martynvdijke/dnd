@@ -285,12 +285,11 @@ func TestSessionPacing(t *testing.T) {
 
 	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
 		auth.POST("/oneshot-adventures/:id/pacing/start", StartPacingSession)
-		auth.GET("/oneshot-adventures/:id/pacing", GetPacingSession)
+		auth.GET("/oneshot-adventures/:id/pacing", GetAdventurePacing)
 		auth.POST("/session-pacing/:id/pause", PausePacingSession)
 		auth.POST("/session-pacing/:id/resume", ResumePacingSession)
 		auth.POST("/session-pacing/:id/complete", CompletePacingSession)
 		auth.POST("/session-pacing/:id/next-scene", AdvanceToNextScene)
-		auth.POST("/session-pacing/:id/tick", UpdatePacingTimers)
 	})
 
 	var pacingID float64
@@ -351,14 +350,31 @@ func TestSessionPacing(t *testing.T) {
 		testutil.AssertStatus(t, w, 200)
 	})
 
-	t.Run("update pacing timers returns 200", func(t *testing.T) {
+	t.Run("elapsed accrues from timestamps and pause freezes it", func(t *testing.T) {
 		if pacingID == 0 {
 			t.Skip("no pacing session")
 		}
-		w := testutil.PostJSON(t, r, "/api/session-pacing/"+formatInt(pacingID)+"/tick", map[string]any{
-			"elapsed_seconds": 60,
-		})
+		// Simulate 125 seconds of running time without any tick heartbeat.
+		db.DB.Exec("UPDATE session_pacing SET status='running', started_at=datetime('now','-125 seconds') WHERE id=?", int64(pacingID))
+
+		w := testutil.Get(t, r, "/api/oneshot-adventures/1/pacing")
 		testutil.AssertStatus(t, w, 200)
+		var result map[string]any
+		testutil.ParseJSON(t, w, &result)
+		elapsed, _ := result["elapsed_seconds"].(float64)
+		if elapsed < 120 {
+			t.Fatalf("expected accrued elapsed >= 120, got %v", elapsed)
+		}
+
+		w = testutil.PostJSON(t, r, "/api/session-pacing/"+formatInt(pacingID)+"/pause", nil)
+		testutil.AssertStatus(t, w, 200)
+
+		w = testutil.Get(t, r, "/api/oneshot-adventures/1/pacing")
+		testutil.ParseJSON(t, w, &result)
+		pausedElapsed, _ := result["elapsed_seconds"].(float64)
+		if pausedElapsed < elapsed {
+			t.Fatalf("pause dropped elapsed: %v -> %v", elapsed, pausedElapsed)
+		}
 	})
 
 	t.Run("complete pacing returns 200", func(t *testing.T) {

@@ -212,18 +212,7 @@ func getCampaignWeather(campaignID int64) *WeatherResult {
 func HtmxGetPacingDashboard(c *gin.Context) {
 	sessionID := c.Param("id")
 
-	var s models.SessionPacing
-	err := db.DB.QueryRow(`
-		SELECT sp.id, sp.adventure_id, sp.current_act_id, sp.current_scene_id, sp.status, sp.elapsed_seconds, sp.started_at, COALESCE(sp.completed_at,''),
-			COALESCE(oa.title,''), COALESCE(a.title,''), COALESCE(sc.title,''), COALESCE(sc.estimated_minutes,0),
-			COALESCE(a.number,0), COALESCE(sc.number,0)
-		FROM session_pacing sp
-		LEFT JOIN oneshot_adventures oa ON oa.id = sp.adventure_id
-		LEFT JOIN oneshot_acts a ON a.id = sp.current_act_id
-		LEFT JOIN oneshot_scenes sc ON sc.id = sp.current_scene_id
-		WHERE sp.id=?
-	`, sessionID).Scan(&s.ID, &s.AdventureID, &s.CurrentActID, &s.CurrentSceneID, &s.Status, &s.ElapsedSeconds, &s.StartedAt, &s.CompletedAt,
-		&s.AdventureTitle, &s.ActTitle, &s.SceneTitle, &s.SceneEstimated, &s.ActNumber, &s.SceneNumber)
+	s, err := loadPacingSession(sessionID)
 	if err != nil {
 		c.String(http.StatusNotFound, "Session not found")
 		return
@@ -232,34 +221,37 @@ func HtmxGetPacingDashboard(c *gin.Context) {
 	db.DB.QueryRow("SELECT COUNT(*) FROM oneshot_acts WHERE adventure_id=?", s.AdventureID).Scan(&s.TotalActs)
 	db.DB.QueryRow("SELECT COUNT(*) FROM oneshot_scenes sc JOIN oneshot_acts a ON a.id=sc.act_id WHERE a.adventure_id=?", s.AdventureID).Scan(&s.TotalScenes)
 
-	rows, err := db.DB.Query(`
-		SELECT st.id, st.session_id, st.scene_id, st.elapsed_seconds, st.status, COALESCE(st.started_at,''), COALESCE(st.completed_at,''),
-			COALESCE(sc.title,''), COALESCE(sc.scene_type,''), COALESCE(sc.estimated_minutes,0)
-		FROM scene_timings st
-		LEFT JOIN oneshot_scenes sc ON sc.id = st.scene_id
-		WHERE st.session_id=?
-		ORDER BY st.id
-	`, sessionID)
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var st models.SceneTiming
-			if err := rows.Scan(&st.ID, &st.SessionID, &st.SceneID, &st.ElapsedSeconds, &st.Status, &st.StartedAt, &st.CompletedAt,
-				&st.SceneTitle, &st.SceneType, &st.EstimatedMin); err == nil {
-				s.SceneTimings = append(s.SceneTimings, st)
-			}
-		}
-	}
-
 	paceCls, pacePct, paceLbl := computePace(s.SceneEstimated, s.SceneTimings)
 
 	renderTemplate(c, "oneshot_pacing.html", gin.H{
-		"Session":     s,
+		"Session":     *s,
 		"Elapsed":     formatDuration(s.ElapsedSeconds),
 		"PaceClass":   paceCls,
 		"PacePercent": pacePct,
 		"PaceLabel":   paceLbl,
 	})
+}
+
+// HTMX pacing controls re-render the dashboard fragment after mutating the
+// session, so the dashboard buttons never swap raw JSON into the page.
+func HtmxPausePacingSession(c *gin.Context) {
+	pausePacingSession(c.Param("id"))
+	HtmxGetPacingDashboard(c)
+}
+
+func HtmxResumePacingSession(c *gin.Context) {
+	resumePacingSession(c.Param("id"))
+	HtmxGetPacingDashboard(c)
+}
+
+func HtmxAdvancePacingSession(c *gin.Context) {
+	advancePacingSession(c.Param("id"))
+	HtmxGetPacingDashboard(c)
+}
+
+func HtmxCompletePacingSession(c *gin.Context) {
+	completePacingSession(c.Param("id"))
+	HtmxGetPacingDashboard(c)
 }
 
 func computePace(estimatedMin int, timings []models.SceneTiming) (class string, percent int, label string) {

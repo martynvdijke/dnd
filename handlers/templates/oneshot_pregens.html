@@ -1,19 +1,23 @@
-<div class="card">
+<div class="card" id="pregenSection">
   <div class="card-header d-flex justify-content-between align-items-center">
     <h5 class="mb-0"><i class="fas fa-users me-2"></i>Pregenerated Characters</h5>
     <div>
-      <button class="btn btn-outline-primary btn-sm me-2" hx-get="/htmx/pregens/generate" hx-target="#pregenList" hx-swap="innerHTML">
+      <button class="btn btn-outline-secondary btn-sm me-2" hx-get="/htmx/oneshot-adventures" hx-target="#oneshotSection" hx-swap="innerHTML" data-testid="pregens-back">
+        <i class="fas fa-arrow-left me-1"></i>Back
+      </button>
+      <button class="btn btn-outline-primary btn-sm me-2" hx-get="/htmx/pregens/generate" hx-target="#pregenSection" hx-swap="outerHTML" data-testid="pregen-generate">
         <i class="fas fa-dice me-1"></i>Quick Generate
       </button>
-      <a href="#" class="btn btn-primary btn-sm" onclick="showPregenForm(0)">
+      <button class="btn btn-primary btn-sm" hx-get="/htmx/pregens/new" hx-target="#pregenForm" hx-swap="innerHTML" data-testid="pregen-new">
         <i class="fas fa-plus me-1"></i>New Character
-      </a>
+      </button>
     </div>
   </div>
-  <div class="card-body" id="pregenList">
-    <div class="row">
+  <div class="card-body">
+    <div id="pregenForm"></div>
+    <div class="row" id="pregenList">
       {{range .Pregens}}
-      <div class="col-md-6 col-lg-4 mb-3">
+      <div class="col-md-6 col-lg-4 mb-3" data-pregen-id="{{.ID}}">
         <div class="card h-100 border-primary">
           <div class="card-body">
             <h6 class="card-title">{{.Name}}</h6>
@@ -30,13 +34,13 @@
             </div>
           </div>
           <div class="card-footer bg-transparent d-flex justify-content-between">
-            <button class="btn btn-sm btn-outline-info" hx-get="/htmx/pregens/{{.ID}}" hx-target="#pregenDetail" hx-swap="innerHTML">
+            <button class="btn btn-sm btn-outline-info" hx-get="/htmx/pregens/{{.ID}}" hx-target="#pregenDetail" hx-swap="innerHTML" data-testid="pregen-view">
               <i class="fas fa-eye"></i>
             </button>
-            <button class="btn btn-sm btn-outline-secondary" onclick="editPregen({{.ID}})">
+            <button class="btn btn-sm btn-outline-secondary" hx-get="/htmx/pregens/{{.ID}}/edit" hx-target="#pregenForm" hx-swap="innerHTML" data-testid="pregen-edit">
               <i class="fas fa-edit"></i>
             </button>
-            <button class="btn btn-sm btn-outline-danger" hx-delete="/api/pregens/{{.ID}}" hx-confirm="Delete this pregen?" hx-target="#pregenList" hx-swap="innerHTML" hx-trigger="click">
+            <button class="btn btn-sm btn-outline-danger" hx-delete="/htmx/pregens/{{.ID}}" hx-confirm="Delete this pregen?" hx-target="#pregenSection" hx-swap="outerHTML" data-testid="pregen-delete">
               <i class="fas fa-trash"></i>
             </button>
           </div>

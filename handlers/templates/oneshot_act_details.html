@@ -2,8 +2,8 @@
   <div class="mb-3">
     <label class="form-label small fw-bold">Notes</label>
     <textarea class="form-control form-control-sm" name="notes" rows="2"
-      hx-put="/htmx/oneshot-acts/{{.Act.ID}}"
-      hx-target="#oneshotSection" hx-swap="innerHTML"
+      hx-put="/htmx/oneshot-acts/{{.Act.ID}}/notes"
+      hx-target="#actDetails{{.Act.ID}}" hx-swap="outerHTML"
       hx-trigger="blur, change delay:1000ms"
       hx-include="closest div">{{.Act.Notes}}</textarea>
   </div>
