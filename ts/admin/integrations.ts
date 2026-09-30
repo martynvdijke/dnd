@@ -313,8 +313,8 @@ expose('testAIEndpoint', async function (id: number) {
   if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
   try {
     const result = await api('POST', `/api/admin/ai-endpoints/${id}/test`);
-    if (result.success) toast('Connection successful (status ' + result.status + ')');
-    else toast('Test failed: ' + (result.error || 'Unknown error'), true);
+    if (result.success) toast('Connection successful');
+    else toast('Test failed: ' + (result.message || 'Unknown error'), true);
   } catch (e: any) { renderError(e); }
   if (btn) btn.innerHTML = '<i class="fa-solid fa-flask"></i>';
 });

@@ -80,7 +80,7 @@ func generateText(ctx context.Context, endpointID int64, prompt, system string, 
 	}
 	sid := resolveSessionID(sessionID)
 	body, _ := json.Marshal(payload)
-	httpReq, err := http.NewRequest("POST", endpoint.BaseURL+"/chat/completions", bytes.NewReader(body))
+	httpReq, err := http.NewRequest("POST", aiRequestURL(endpoint.BaseURL, "/chat/completions"), bytes.NewReader(body))
 	if err != nil {
 		return "", "", &aiGenError{Status: 500, Msg: fmt.Sprintf("failed to create request: %s", sanitizeError(err))}
 	}
@@ -155,6 +155,47 @@ func resolveSessionID(inbound string) string {
 		return strings.TrimSpace(inbound)
 	}
 	return generateSessionID()
+}
+
+// aiEndpointOperationPaths are operation suffixes that users sometimes paste
+// into the configured base URL even though villum appends them itself. Keeping
+// the base URL free of them avoids building URLs like
+// "https://host/v1/chat/completions/chat/completions".
+var aiEndpointOperationPaths = []string{
+	"/chat/completions",
+	"/images/generations",
+	"/completions",
+}
+
+// normalizeAIBaseURL trims surrounding whitespace and trailing slashes and
+// strips a trailing operation path so the stored/displayed URL is the base.
+func normalizeAIBaseURL(raw string) string {
+	u := strings.TrimSpace(raw)
+	u = strings.TrimRight(u, "/")
+	for _, suffix := range aiEndpointOperationPaths {
+		if strings.HasSuffix(u, suffix) {
+			u = strings.TrimRight(strings.TrimSuffix(u, suffix), "/")
+			break
+		}
+	}
+	return u
+}
+
+// aiRequestURL builds the final request URL for an operation from a base URL
+// that may still contain an operation suffix.
+func aiRequestURL(baseURL, operationPath string) string {
+	return normalizeAIBaseURL(baseURL) + operationPath
+}
+
+// validateAIBaseURL normalizes a configured base URL and checks it is an
+// absolute http(s) URL.
+func validateAIBaseURL(raw string) (string, bool) {
+	u := normalizeAIBaseURL(raw)
+	parsed, err := url.Parse(u)
+	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return u, false
+	}
+	return u, true
 }
 
 func ListAIEndpoints(c *gin.Context) {
@@ -237,6 +278,12 @@ func CreateAIEndpoint(c *gin.Context) {
 		return
 	}
 
+	baseURL, ok := validateAIBaseURL(req.BaseURL)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "base_url must be an absolute http(s) URL, e.g. https://api.openai.com/v1"})
+		return
+	}
+
 	unique, err := db.CheckAIEndpointNameUnique(c.Request.Context(), req.Name, 0)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check name uniqueness"})
@@ -258,7 +305,7 @@ func CreateAIEndpoint(c *gin.Context) {
 	endpoint := &models.AIEndpoint{
 		Name:            req.Name,
 		Type:            req.Type,
-		BaseURL:         req.BaseURL,
+		BaseURL:         baseURL,
 		EncryptedAPIKey: encryptedKey,
 		Model:           req.Model,
 		Tags:            req.Tags,
@@ -311,6 +358,12 @@ func UpdateAIEndpoint(c *gin.Context) {
 		return
 	}
 
+	baseURL, ok := validateAIBaseURL(req.BaseURL)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "base_url must be an absolute http(s) URL, e.g. https://api.openai.com/v1"})
+		return
+	}
+
 	unique, err := db.CheckAIEndpointNameUnique(c.Request.Context(), req.Name, id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check name uniqueness"})
@@ -335,7 +388,7 @@ func UpdateAIEndpoint(c *gin.Context) {
 	endpoint := &models.AIEndpoint{
 		Name:            req.Name,
 		Type:            req.Type,
-		BaseURL:         req.BaseURL,
+		BaseURL:         baseURL,
 		EncryptedAPIKey: encryptedKey,
 		Model:           req.Model,
 		Tags:            req.Tags,
@@ -407,7 +460,7 @@ func TestAIEndpoint(c *gin.Context) {
 			"max_tokens": 10,
 		}
 		body, _ := json.Marshal(payload)
-		req, _ := http.NewRequest("POST", endpoint.BaseURL+"/chat/completions", bytes.NewReader(body))
+		req, _ := http.NewRequest("POST", aiRequestURL(endpoint.BaseURL, "/chat/completions"), bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 		setAIProviderHeaders(req, generateSessionID())
@@ -439,7 +492,7 @@ func TestAIEndpoint(c *gin.Context) {
 			payload["size"] = *endpoint.ImageSize
 		}
 		body, _ := json.Marshal(payload)
-		req, _ := http.NewRequest("POST", endpoint.BaseURL+"/images/generations", bytes.NewReader(body))
+		req, _ := http.NewRequest("POST", aiRequestURL(endpoint.BaseURL, "/images/generations"), bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 		setAIProviderHeaders(req, generateSessionID())
@@ -589,7 +642,7 @@ func HandleImageGeneration(c *gin.Context) {
 	sessionID := resolveSessionID(req.SessionID)
 
 	body, _ := json.Marshal(payload)
-	httpReq, err := http.NewRequest("POST", endpoint.BaseURL+"/images/generations", bytes.NewReader(body))
+	httpReq, err := http.NewRequest("POST", aiRequestURL(endpoint.BaseURL, "/images/generations"), bytes.NewReader(body))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to create request: %s", sanitizeError(err))})
 		return
