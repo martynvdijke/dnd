@@ -33,11 +33,29 @@ type aiGenError struct {
 func (e *aiGenError) Error() string { return e.Msg }
 
 func generateText(ctx context.Context, endpointID int64, prompt, system string, maxTokens *int, sessionID string) (string, string, error) {
+	if strings.TrimSpace(prompt) == "" {
+		return "", "", &aiGenError{Status: 400, Msg: "prompt is required"}
+	}
+	systemPrompt := system
+	if strings.TrimSpace(systemPrompt) == "" {
+		systemPrompt = DefaultSystemPrompt
+	}
+	messages := []map[string]string{
+		{"role": "system", "content": systemPrompt},
+		{"role": "user", "content": prompt},
+	}
+	return generateChat(ctx, endpointID, messages, maxTokens, sessionID)
+}
+
+// generateChat performs an OpenAI-compatible chat completion with a full
+// message history. Multi-turn callers (the AI drafting assistant) pass every
+// prior turn so the model has real conversational memory.
+func generateChat(ctx context.Context, endpointID int64, messages []map[string]string, maxTokens *int, sessionID string) (string, string, error) {
 	if endpointID == 0 {
 		return "", "", &aiGenError{Status: 400, Msg: "endpoint_id is required"}
 	}
-	if strings.TrimSpace(prompt) == "" {
-		return "", "", &aiGenError{Status: 400, Msg: "prompt is required"}
+	if len(messages) == 0 {
+		return "", "", &aiGenError{Status: 400, Msg: "messages are required"}
 	}
 	endpoints, err := db.GetEnabledAIEndpointsByType(ctx, "text")
 	if err != nil {
@@ -53,7 +71,7 @@ func generateText(ctx context.Context, endpointID int64, prompt, system string, 
 	if endpoint == nil {
 		return "", "", &aiGenError{Status: 404, Msg: "enabled text endpoint not found"}
 	}
-	middleware.LogDebug("ai", "text generation start", "endpoint_id", endpointID, "model", endpoint.Model, "prompt_length", len(prompt))
+	middleware.LogDebug("ai", "text generation start", "endpoint_id", endpointID, "model", endpoint.Model, "message_count", len(messages))
 	fullEndpoint, err := db.GetAIEndpoint(ctx, endpointID)
 	if err != nil {
 		return "", "", &aiGenError{Status: 404, Msg: "enabled text endpoint not found"}
@@ -62,14 +80,6 @@ func generateText(ctx context.Context, endpointID int64, prompt, system string, 
 	if err != nil {
 		middleware.LogError("ai", "failed to decrypt API key", "endpoint_id", endpointID, "error", err)
 		return "", "", &aiGenError{Status: 500, Msg: fmt.Sprintf("failed to authenticate with AI provider: %s", sanitizeError(err))}
-	}
-	systemPrompt := system
-	if strings.TrimSpace(systemPrompt) == "" {
-		systemPrompt = DefaultSystemPrompt
-	}
-	messages := []map[string]string{
-		{"role": "system", "content": systemPrompt},
-		{"role": "user", "content": prompt},
 	}
 	payload := map[string]any{
 		"model":    endpoint.Model,

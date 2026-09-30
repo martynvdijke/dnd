@@ -17,6 +17,7 @@ var rawOnlyTables = map[string]string{
 	"_migration_v5_check":            "migration bookkeeping table created by early migrations",
 	"api_tokens":                     "raw-managed via db/migrations — API token store",
 	"app_settings":                   "raw-managed via db/migrations — app-wide settings",
+	"ai_draft_sessions":              "raw-managed via db/migrations — conversational AI generation sessions",
 	"auth_sessions":                  "raw-managed via db/migrations — session store",
 	"campaign_event_settings":        "raw-managed via db/migrations — calendar event settings",
 	"campaign_invitations":           "raw-managed via db/migrations — campaign invite tokens",
