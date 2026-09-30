@@ -496,24 +496,32 @@ import './app/shops';
 // ─── Inventory / Spells → extracted to ts/app/inventory-spells.ts ───
 import './app/inventory-spells';
 
+// Fetch HTMX fragments explicitly rather than setting hx-get/hx-trigger="load"
+// and calling htmx.process(). htmx skips re-processing an element whose
+// attribute hash is unchanged, so the "load" trigger would only ever fire on
+// the first visit — subsequent visits left the loading ornament on screen
+// forever. htmx.ajax always issues the request.
+function loadViewFragment(el: HTMLElement, url: string, loadingHtml: string): void {
+  el.innerHTML = loadingHtml;
+  (window as any).htmx?.ajax('GET', url, { target: el, swap: 'innerHTML' });
+}
+
 expose('showOneShots', function () {
   showView('oneshot');
-  const el = document.getElementById('oneshotSection')!;
-  el.setAttribute('hx-get', '/htmx/oneshot-adventures');
-  el.setAttribute('hx-trigger', 'load');
-  el.setAttribute('hx-swap', 'innerHTML');
-  el.innerHTML = '<div class="ornament">✧ Loading one-shot adventures... ✧</div>';
-  htmx.process(el);
+  loadViewFragment(
+    document.getElementById('oneshotSection')!,
+    '/htmx/oneshot-adventures',
+    '<div class="ornament">✧ Loading one-shot adventures... ✧</div>'
+  );
 });
 
 expose('showCampaignOverview', function (campaignId: number) {
   showView('campaignOverview');
-  const el = document.getElementById('campaignOverviewSection')!;
-  el.setAttribute('hx-get', `/htmx/campaigns/${campaignId}/overview`);
-  el.setAttribute('hx-trigger', 'load');
-  el.setAttribute('hx-swap', 'innerHTML');
-  el.innerHTML = '<div class="ornament">✧ Loading campaign overview... ✧</div>';
-  htmx.process(el);
+  loadViewFragment(
+    document.getElementById('campaignOverviewSection')!,
+    `/htmx/campaigns/${campaignId}/overview`,
+    '<div class="ornament">✧ Loading campaign overview... ✧</div>'
+  );
 });
 
 expose('loadFactionReputations', async function () {
