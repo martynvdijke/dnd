@@ -1,17 +1,17 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { highlightMatch, getRecents, addRecent, clearRecents, showSearchOverlay } from './search';
 
 // happy-dom doesn't provide localStorage by default
 beforeEach(() => {
   const store: Record<string, string> = {};
-  (globalThis as any).localStorage = {
+  vi.stubGlobal('localStorage', {
     getItem: (key: string) => store[key] ?? null,
     setItem: (key: string, val: string) => { store[key] = val; },
     removeItem: (key: string) => { delete store[key]; },
     clear: () => { Object.keys(store).forEach(k => delete store[k]); },
     get length() { return Object.keys(store).length; },
     key: (i: number) => Object.keys(store)[i] ?? null,
-  };
+  });
 });
 
 describe('highlightMatch', () => {
