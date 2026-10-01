@@ -1,3 +1,10 @@
+## [2.91.3](https://github.com/martynvdijke/dnd/compare/v2.91.2...v2.91.3) (2026-10-01)
+
+
+### Bug Fixes
+
+* **web:** recover from stale API tokens instead of wedging on 401 ([#170](https://github.com/martynvdijke/dnd/issues/170)) ([0895c3b](https://github.com/martynvdijke/dnd/commit/0895c3be9da4dd7de44cac38d4f4464dff8e6498))
+
 ## [2.91.2](https://github.com/martynvdijke/dnd/compare/v2.91.1...v2.91.2) (2026-10-01)
 
 ## [2.91.1](https://github.com/martynvdijke/dnd/compare/v2.91.0...v2.91.1) (2026-10-01)
