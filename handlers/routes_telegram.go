@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"villum/db"
@@ -91,16 +92,12 @@ func GetCampaignTelegram(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
-	var chatID *int64
-	var chatType, titleCache string
-	var isEnabled, autoPost int
-	var boundAt *string
-	err := db.DB.QueryRow("SELECT chat_id, chat_type, title_cache, is_enabled, auto_post_enabled, bound_at FROM campaign_telegram_settings WHERE campaign_id=?", id).Scan(&chatID, &chatType, &titleCache, &isEnabled, &autoPost, &boundAt)
-	if err != nil {
+	s, found, err := telegram.GetCampaignTelegramSettings(id)
+	if err != nil || !found {
 		c.JSON(http.StatusOK, gin.H{"chat_id": nil, "is_enabled": false, "auto_post_enabled": false, "bound_at": nil})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"chat_id": chatID, "chat_type": chatType, "title_cache": titleCache, "is_enabled": isEnabled == 1, "auto_post_enabled": autoPost == 1, "bound_at": boundAt})
+	c.JSON(http.StatusOK, gin.H{"chat_id": s.ChatID, "chat_type": s.ChatType, "title_cache": s.TitleCache, "is_enabled": s.IsEnabled, "auto_post_enabled": s.AutoPostEnabled, "bound_at": s.BoundAt})
 }
 func SetCampaignTelegram(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
@@ -119,39 +116,29 @@ func SetCampaignTelegram(c *gin.Context) {
 	}
 	uid, _ := c.Get("user_id")
 	userID := uid.(int64)
-	var isEnabled, autoPost int
-	if req.IsEnabled != nil && *req.IsEnabled {
-		isEnabled = 1
+	s, found, _ := telegram.GetCampaignTelegramSettings(id)
+	if !found {
+		s = telegram.CampaignTelegramSettings{CampaignID: id}
 	}
-	if req.AutoPostEnabled != nil && *req.AutoPostEnabled {
-		autoPost = 1
+	if req.ChatID != nil {
+		s.ChatID = req.ChatID
 	}
-	var exChatID *int64
-	var exType, exTitle string
-	var exEn, exAuto int
-	_ = db.DB.QueryRow("SELECT chat_id, chat_type, title_cache, is_enabled, auto_post_enabled FROM campaign_telegram_settings WHERE campaign_id=?", id).Scan(&exChatID, &exType, &exTitle, &exEn, &exAuto)
-	if req.ChatID == nil {
-		req.ChatID = exChatID
+	if req.IsEnabled != nil {
+		s.IsEnabled = *req.IsEnabled
 	}
-	if req.IsEnabled == nil {
-		isEnabled = exEn
+	if req.AutoPostEnabled != nil {
+		s.AutoPostEnabled = *req.AutoPostEnabled
 	}
-	if req.AutoPostEnabled == nil {
-		autoPost = exAuto
-	}
-	chatType := exType
-	titleCache := exTitle
 	if req.ChatID != nil {
 		if ch, err := telegram.GetChat(*req.ChatID); err == nil {
-			chatType = ch.Type
-			titleCache = ch.Title
+			s.ChatType = string(ch.Type)
+			s.TitleCache = ch.Title
 		}
 	}
-	_, err := db.DB.Exec(`INSERT INTO campaign_telegram_settings(campaign_id,chat_id,chat_type,title_cache,is_enabled,auto_post_enabled,bound_at,bound_by_user_id)
-		VALUES(?,?,?,?,?,?,datetime('now'),?)
-		ON CONFLICT(campaign_id) DO UPDATE SET chat_id=excluded.chat_id, chat_type=excluded.chat_type, title_cache=excluded.title_cache, is_enabled=excluded.is_enabled, auto_post_enabled=excluded.auto_post_enabled, bound_at=excluded.bound_at, bound_by_user_id=excluded.bound_by_user_id`,
-		id, req.ChatID, chatType, titleCache, isEnabled, autoPost, userID)
-	if err != nil {
+	now := time.Now().UTC().Format("2006-01-02 15:04:05")
+	s.BoundAt = &now
+	s.BoundByUserID = &userID
+	if err := telegram.UpsertCampaignTelegramSettings(s); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed"})
 		return
 	}
@@ -205,40 +192,22 @@ func SaveTelegramSettings(c *gin.Context) {
 		return
 	}
 	if req.ClearToken != nil && *req.ClearToken {
-		_ = telegram.SetBotToken("")
 		_ = telegram.DeleteWebhook()
+		_ = telegram.SetBotToken("")
 	} else if req.Token != nil {
-		if *req.Token == "" {
-			_ = telegram.SetBotToken("")
-		} else {
-			_ = telegram.SetBotToken(*req.Token)
-		}
+		_ = telegram.SetBotToken(*req.Token)
 	}
 	if req.Mode != nil {
 		_ = telegram.SetMode(*req.Mode)
 	}
 	if req.WebhookSecret != nil {
-		if *req.WebhookSecret == "" {
-			_ = telegram.SetWebhookSecret("")
-		} else {
-			_ = telegram.SetWebhookSecret(*req.WebhookSecret)
-		}
+		_ = telegram.SetWebhookSecret(*req.WebhookSecret)
 	}
 	if req.GraceMinutes != nil {
 		_ = telegram.SetGraceMinutes(*req.GraceMinutes)
 	}
-	mode := telegram.EffectiveMode()
-	if req.ClearToken != nil && *req.ClearToken {
-		// already deleted webhook
-	} else if mode == "webhook" {
-		base := os.Getenv("BASE_URL")
-		secret := telegram.GetWebhookSecret()
-		if base != "" && secret != "" {
-			_ = telegram.SetWebhook(strings.TrimRight(base, "/")+"/api/telegram/webhook", secret)
-		}
-	} else if mode == "polling" {
-		_ = telegram.DeleteWebhook()
-	}
+	// The supervisor reconciles token, transport, and webhook state.
+	telegram.NotifySettingsChanged()
 	c.JSON(http.StatusOK, telegramSettingsPayload())
 }
 func TestTelegram(c *gin.Context) {

@@ -1,3 +1,24 @@
+# [2.91.0](https://github.com/martynvdijke/dnd/compare/v2.90.0...v2.91.0) (2026-10-01)
+
+
+### Features
+
+* **ai:** resumable structured drafting for adventures and entities ([#169](https://github.com/martynvdijke/dnd/issues/169)) ([2777b89](https://github.com/martynvdijke/dnd/commit/2777b89ebda42f01dc2c533fa89e55ee82fb036c))
+
+# [2.90.0](https://github.com/martynvdijke/dnd/compare/v2.89.0...v2.90.0) (2026-09-29)
+
+
+### Features
+
+* **telegram:** add group commands and friendlier onboarding ([#167](https://github.com/martynvdijke/dnd/issues/167)) ([4403bde](https://github.com/martynvdijke/dnd/commit/4403bde4601d5795afcaf515d20915d8442d3e1a))
+
+# [2.89.0](https://github.com/martynvdijke/dnd/compare/v2.88.0...v2.89.0) (2026-09-29)
+
+
+### Features
+
+* **telegram:** port bot runtime to go-telegram/bot with character commands ([#165](https://github.com/martynvdijke/dnd/issues/165)) ([7d83d07](https://github.com/martynvdijke/dnd/commit/7d83d07988debd5e4e59441f9841f55ce24412df))
+
 # [2.88.0](https://github.com/martynvdijke/dnd/compare/v2.87.0...v2.88.0) (2026-09-29)
 
 

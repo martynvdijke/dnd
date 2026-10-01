@@ -3,6 +3,7 @@
   <div>
     <button class="btn btn-outline-primary btn-sm me-1" hx-get="/htmx/oneshot-adventures/new{{if and .Adventure .Adventure.CampaignID}}?campaign_id={{.Adventure.CampaignID}}{{end}}" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='New One-Shot';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-plus me-1"></i>New</button>
     <button class="btn btn-primary btn-sm" hx-get="/htmx/oneshot-adventures/new?generate=true{{if and .Adventure .Adventure.CampaignID}}&campaign_id={{.Adventure.CampaignID}}{{end}}" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Generate One-Shot';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate</button>
+    <button class="btn btn-outline-primary btn-sm ms-1" onclick="openAIDraft('oneshot'{{if and .Adventure .Adventure.CampaignID}}, {campaignId: {{.Adventure.CampaignID}}}{{end}})"><i class="fa-solid fa-comments me-1"></i>Draft with AI</button>
   </div>
 </div>
 {{if .Adventures}}
