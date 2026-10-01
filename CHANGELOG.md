@@ -1,3 +1,11 @@
+## [2.91.1](https://github.com/martynvdijke/dnd/compare/v2.91.0...v2.91.1) (2026-10-01)
+
+
+### Bug Fixes
+
+* **deps:** update all non-major dependencies ([#86](https://github.com/martynvdijke/dnd/issues/86)) ([4624e58](https://github.com/martynvdijke/dnd/commit/4624e581d40931b85fae566b02a1fe499ce56f7e))
+* **deps:** update github.com/dop251/goja digest to 39ec265 ([#147](https://github.com/martynvdijke/dnd/issues/147)) ([893db18](https://github.com/martynvdijke/dnd/commit/893db187cd09c4185df4d4f89a4f3b1e6edf7a1c))
+
 # [2.91.0](https://github.com/martynvdijke/dnd/compare/v2.90.0...v2.91.0) (2026-10-01)
 
 
