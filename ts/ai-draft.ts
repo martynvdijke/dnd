@@ -205,12 +205,12 @@ export async function commitAIDraft(): Promise<void> {
     );
     localStorage.removeItem(STORAGE_KEY);
     draftModal().hide();
-    toast('Created successfully');
+    toast('Draft saved');
     if (result.entity_type === 'oneshot' && typeof (window as any).showOneShots === 'function') {
       (window as any).showOneShots();
     }
   } catch (e: any) {
-    toast(e?.message || 'Failed to create', true);
+    toast(e?.message || 'Could not save draft', true);
   } finally {
     setBusy(false);
   }
