@@ -6,7 +6,7 @@ require (
 	entgo.io/ent v0.14.6
 	github.com/SherClockHolmes/webpush-go v1.4.0
 	github.com/coreos/go-oidc/v3 v3.21.0
-	github.com/dop251/goja v0.0.0-20260901132549-43234fa61381
+	github.com/dop251/goja v0.0.0-20260926152631-39ec2650adc9
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-telegram/bot v1.27.0
 	github.com/gorilla/websocket v1.5.3
