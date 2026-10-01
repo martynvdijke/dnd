@@ -1,3 +1,10 @@
+# [2.91.0](https://github.com/martynvdijke/dnd/compare/v2.90.0...v2.91.0) (2026-10-01)
+
+
+### Features
+
+* **ai:** resumable structured drafting for adventures and entities ([#169](https://github.com/martynvdijke/dnd/issues/169)) ([2777b89](https://github.com/martynvdijke/dnd/commit/2777b89ebda42f01dc2c533fa89e55ee82fb036c))
+
 # [2.90.0](https://github.com/martynvdijke/dnd/compare/v2.89.0...v2.90.0) (2026-09-29)
 
 
