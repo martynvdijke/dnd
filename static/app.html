@@ -375,6 +375,39 @@
   </div>
 </div>
 
+<div class="modal fade" id="aiDraftModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="aiDraftModalTitle">Draft with AI</h5>
+        <div class="d-flex gap-1">
+          <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetAIDraft()" title="Start over"><i class="fa-solid fa-rotate-left"></i></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" data-testid="modal-close"></button>
+        </div>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="aiDraftEntityType" value="oneshot">
+        <div class="mb-3">
+          <label class="form-label">AI Endpoint</label>
+          <select class="form-select" id="aiDraftEndpoint">
+            <option value="">Loading endpoints...</option>
+          </select>
+        </div>
+        <div id="aiDraftMessages" class="mb-3" style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;"></div>
+        <div id="aiDraftDraftBox" style="display:none" class="mb-3">
+          <label class="form-label">Draft ready to use</label>
+          <pre id="aiDraftDraftJson" class="p-2 bg-light rounded" style="max-height:200px;overflow:auto;font-size:12px"></pre>
+        </div>
+        <div class="input-group">
+          <textarea class="form-control" id="aiDraftInput" rows="2" placeholder="Describe what you want, or type &quot;looks good, generate it&quot;..."></textarea>
+          <button class="btn btn-primary" id="aiDraftSendBtn" onclick="sendAIDraftMessage()" title="Send"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+        <button class="btn btn-success w-100 mt-3" id="aiDraftCommitBtn" style="display:none" onclick="commitAIDraft()"><i class="fa-solid fa-check me-1"></i>Approve &amp; fill</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="genericModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-scrollable">
     <div class="modal-content">
