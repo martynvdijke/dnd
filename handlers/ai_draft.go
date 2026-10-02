@@ -11,12 +11,35 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"villum/db"
+	"villum/ent/location"
+	"villum/ent/npc"
 	"villum/middleware"
 )
 
-// aiDraftMaxTokens bounds a single assistant reply. Drafts are large (an
-// adventure with acts, scenes and NPCs) so this is generous.
-const aiDraftMaxTokens = 4000
+// Draft replies are large (an adventure with acts, scenes and NPCs) and
+// reasoning models spend part of the budget on hidden reasoning, so the budget
+// comes from the endpoint when configured and falls back to a generous default.
+const (
+	defaultAIDraftMaxTokens = 16000
+	minAIDraftMaxTokens     = 4000
+	maxAIDraftMaxTokens     = 32000
+)
+
+// aiDraftTokenBudget resolves the max_tokens value for draft replies: the
+// endpoint's configured value clamped to a safe range, or the default.
+func aiDraftTokenBudget(ctx context.Context, endpointID int64) *int {
+	budget := defaultAIDraftMaxTokens
+	if ep, err := db.GetAIEndpoint(ctx, endpointID); err == nil && ep.MaxTokens != nil {
+		budget = *ep.MaxTokens
+		if budget < minAIDraftMaxTokens {
+			budget = minAIDraftMaxTokens
+		}
+		if budget > maxAIDraftMaxTokens {
+			budget = maxAIDraftMaxTokens
+		}
+	}
+	return &budget
+}
 
 // aiDraftMessage is one turn in a drafting conversation as persisted.
 type aiDraftMessage struct {
@@ -106,7 +129,7 @@ func aiDraftDefaultPrompt(entityType string) string {
 // aiDraftSystemPrompt builds the assistant instructions for an entity type.
 func aiDraftSystemPrompt(entityType string) string {
 	def := aiDraftEntities[entityType]
-	return "You are an expert D&D 5e game master assistant embedded in the villum campaign manager.\n" +
+	prompt := "You are an expert D&D 5e (2024 rules) game master assistant embedded in the villum campaign manager.\n" +
 		"You are helping the user design a new " + def.Label + ".\n\n" +
 		"Work conversationally. Ask up to three focused clarifying questions and offer concrete, " +
 		"opinionated suggestions. Do not produce the final object until the user approves it or clearly " +
@@ -117,8 +140,26 @@ func aiDraftSystemPrompt(entityType string) string {
 		"When the user approves or asks you to generate, use status \"ready\" and put the complete " +
 		"object in draft.\n" +
 		"The draft must match this JSON shape:\n" + def.Schema + "\n" +
-		"Do not include markdown fences or commentary outside the JSON object."
+		"Do not include markdown fences or commentary outside the JSON object. " +
+		"Keep descriptions short (one to three sentences) and never truncate the JSON: a reply cut off mid-object is unusable."
+	if entityType == "oneshot" {
+		prompt += "\n\n" + aiOneShotDraftSkill
+	}
+	return prompt
 }
+
+// aiOneShotDraftSkill is the detailed output contract for one-shot drafts. It
+// teaches the model how to map an idea (including a named published adventure)
+// onto the schema within a size budget that fits a single reply.
+const aiOneShotDraftSkill = `One-shot drafting contract:
+- Map the user's premise onto the schema faithfully. If they name a published adventure (for example "The Wolves of Welton"), adapt its plot, characters, locations and set pieces into this schema rather than inventing a different story.
+- Fields: "title" is the adventure name. "premise" is 2-4 sentences of situation and stakes. "hook" is how the party gets involved. "difficulty" is one of easy|medium|hard|deadly. "estimated_minutes" is the whole session length. "notes" holds concise DM guidance (at most about 1200 characters).
+- Acts: 3-5 entries, each with "title", "description" (1-3 sentences), "estimated_minutes" and 2-4 "scenes". Each scene has "title", "description", "scene_type" (one of roleplay|exploration|combat|puzzle) and "estimated_minutes".
+- "npcs": 4-8 entries with "name", "race", "description", "role".
+- "locations": 4-8 entries with "name", "type", "description".
+- "encounters": 3-6 entries with "name", "description", "difficulty".
+- "clues": 3-8 entries with "title", "description", "clue_type" (one of direct|witness|object|location).
+- Stay within these limits and write compactly so the entire JSON object fits the token budget. Every array and object must be closed, with no trailing commas and no comments.`
 
 // toProviderMessages converts persisted turns into the provider message format.
 func toProviderMessages(msgs []aiDraftMessage) []map[string]string {
@@ -271,6 +312,20 @@ func writeAIGenError(c *gin.Context, err error) {
 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 }
 
+// validateAIDraftReply turns an empty or token-truncated provider reply into an
+// actionable error instead of persisting a broken assistant turn. Reasoning
+// models can spend the whole max_tokens budget on hidden reasoning, which
+// surfaces as an empty content string with finish_reason "length".
+func validateAIDraftReply(reply, finishReason string) error {
+	if strings.TrimSpace(reply) == "" {
+		return &aiGenError{Status: http.StatusBadGateway, Msg: "the AI provider returned an empty reply (the model may have spent its whole token budget on reasoning); raise max_tokens for this endpoint or ask for a smaller draft"}
+	}
+	if finishReason == "length" {
+		return &aiGenError{Status: http.StatusBadGateway, Msg: "the AI reply was cut off because it hit the token limit; raise max_tokens for this endpoint or ask for a smaller draft"}
+	}
+	return nil
+}
+
 // ─── Handlers ───
 
 // StartAIDraft begins a drafting conversation: POST /api/ai/draft
@@ -321,8 +376,13 @@ func StartAIDraft(c *gin.Context) {
 			{Role: "user", Content: message},
 		},
 	}
-	reply, _, err := generateChat(c.Request.Context(), req.EndpointID, toProviderMessages(s.Messages), intPtr(aiDraftMaxTokens), "")
+	reply, finishReason, err := generateChat(c.Request.Context(), req.EndpointID, toProviderMessages(s.Messages),
+		aiDraftTokenBudget(c.Request.Context(), req.EndpointID), "", aiDraftTimeout)
 	if err != nil {
+		writeAIGenError(c, err)
+		return
+	}
+	if err := validateAIDraftReply(reply, finishReason); err != nil {
 		writeAIGenError(c, err)
 		return
 	}
@@ -360,9 +420,16 @@ func AIDraftTurn(c *gin.Context) {
 		return
 	}
 	s.Messages = append(s.Messages, aiDraftMessage{Role: "user", Content: message})
-	reply, _, err := generateChat(c.Request.Context(), req.EndpointID, toProviderMessages(s.Messages), intPtr(aiDraftMaxTokens), "")
+	reply, finishReason, err := generateChat(c.Request.Context(), req.EndpointID, toProviderMessages(s.Messages),
+		aiDraftTokenBudget(c.Request.Context(), req.EndpointID), "", aiDraftTimeout)
 	if err != nil {
 		// Roll back the user turn so a failed request can be retried cleanly.
+		s.Messages = s.Messages[:len(s.Messages)-1]
+		writeAIGenError(c, err)
+		return
+	}
+	if err := validateAIDraftReply(reply, finishReason); err != nil {
+		// A broken reply must not be persisted; keep the conversation retryable.
 		s.Messages = s.Messages[:len(s.Messages)-1]
 		writeAIGenError(c, err)
 		return
@@ -532,11 +599,47 @@ type aiOneShotDraft struct {
 var aiSceneTypes = map[string]bool{"roleplay": true, "exploration": true, "combat": true, "puzzle": true}
 var aiDifficulties = map[string]bool{"easy": true, "medium": true, "hard": true, "deadly": true}
 
-func commitAIOneShot(ctx context.Context, uid int64, s *aiDraftSession) (int64, string, error) {
+// oneShotDraftCounts reports how much linked content a draft created.
+type oneShotDraftCounts struct {
+	Acts       int `json:"acts"`
+	Scenes     int `json:"scenes"`
+	NPCs       int `json:"npcs"`
+	Locations  int `json:"locations"`
+	Encounters int `json:"encounters"`
+	Clues      int `json:"clues"`
+}
+
+// createOneShotFromDraft creates a one-shot adventure and all of its linked
+// content from a draft. The AI commit path and direct JSON import share it so
+// both produce identical structures.
+func createOneShotFromDraft(ctx context.Context, uid int64, campaignID *int64, raw json.RawMessage) (int64, oneShotDraftCounts, error) {
 	var d aiOneShotDraft
-	if err := json.Unmarshal(s.Draft, &d); err != nil {
-		return 0, "", fmt.Errorf("invalid draft: %w", err)
+	var counts oneShotDraftCounts
+	if err := json.Unmarshal(raw, &d); err != nil {
+		return 0, counts, fmt.Errorf("invalid draft: %w", err)
 	}
+	normalizeOneShotDraft(&d)
+	now := time.Now().Format("2006-01-02 15:04:05")
+	res, err := db.DB.Exec(`INSERT INTO oneshot_adventures
+		(user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes, created_at, updated_at)
+		VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
+		uid, campaignID, d.Title, d.Premise, d.Hook, "custom", d.EstimatedMinutes, d.Difficulty, d.Notes, now, now)
+	if err != nil {
+		return 0, counts, err
+	}
+	adventureID, err := res.LastInsertId()
+	if err != nil {
+		return 0, counts, err
+	}
+
+	counts, err = insertOneShotChildren(ctx, uid, adventureID, campaignID, d)
+	if err != nil {
+		return 0, counts, err
+	}
+	return adventureID, counts, nil
+}
+
+func normalizeOneShotDraft(d *aiOneShotDraft) {
 	if strings.TrimSpace(d.Title) == "" {
 		d.Title = "Untitled One-Shot"
 	}
@@ -546,19 +649,14 @@ func commitAIOneShot(ctx context.Context, uid int64, s *aiDraftSession) (int64, 
 	if d.EstimatedMinutes <= 0 {
 		d.EstimatedMinutes = 180
 	}
-	now := time.Now().Format("2006-01-02 15:04:05")
-	res, err := db.DB.Exec(`INSERT INTO oneshot_adventures
-		(user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes, created_at, updated_at)
-		VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
-		uid, s.CampaignID, d.Title, d.Premise, d.Hook, "custom", d.EstimatedMinutes, d.Difficulty, d.Notes, now, now)
-	if err != nil {
-		return 0, "", err
-	}
-	adventureID, err := res.LastInsertId()
-	if err != nil {
-		return 0, "", err
-	}
+}
 
+// insertOneShotChildren writes the draft's acts, scenes, NPCs, locations,
+// encounters and clues for an adventure. NPCs and locations are matched by
+// name within the owner's entities and reused, so re-importing a revised draft
+// does not duplicate shared entities.
+func insertOneShotChildren(ctx context.Context, uid, adventureID int64, campaignID *int64, d aiOneShotDraft) (oneShotDraftCounts, error) {
+	var counts oneShotDraftCounts
 	for i, act := range d.Acts {
 		mins := act.EstimatedMinutes
 		if mins <= 0 {
@@ -569,6 +667,7 @@ func commitAIOneShot(ctx context.Context, uid int64, s *aiDraftSession) (int64, 
 		if err != nil {
 			continue
 		}
+		counts.Acts++
 		actID, _ := actRes.LastInsertId()
 		for j, scene := range act.Scenes {
 			sceneType := scene.SceneType
@@ -579,8 +678,10 @@ func commitAIOneShot(ctx context.Context, uid int64, s *aiDraftSession) (int64, 
 			if sceneMins <= 0 {
 				sceneMins = 15
 			}
-			db.DB.Exec("INSERT INTO oneshot_scenes(act_id, number, title, description, scene_type, estimated_minutes, notes) VALUES(?,?,?,?,?,?,'')",
-				actID, j+1, scene.Title, scene.Description, sceneType, sceneMins)
+			if _, err := db.DB.Exec("INSERT INTO oneshot_scenes(act_id, number, title, description, scene_type, estimated_minutes, notes) VALUES(?,?,?,?,?,?,'')",
+				actID, j+1, scene.Title, scene.Description, sceneType, sceneMins); err == nil {
+				counts.Scenes++
+			}
 		}
 	}
 
@@ -588,12 +689,17 @@ func commitAIOneShot(ctx context.Context, uid int64, s *aiDraftSession) (int64, 
 		if strings.TrimSpace(n.Name) == "" {
 			continue
 		}
-		npc, err := db.Client.NPC.Create().SetUserID(uid).SetName(n.Name).SetRace(n.Race).SetDescription(n.Description).Save(ctx)
+		npcID, err := db.Client.NPC.Query().Where(npc.UserID(uid), npc.NameEQ(n.Name)).FirstID(ctx)
 		if err != nil {
-			continue
+			created, cerr := db.Client.NPC.Create().SetUserID(uid).SetName(n.Name).SetRace(n.Race).SetDescription(n.Description).Save(ctx)
+			if cerr != nil {
+				continue
+			}
+			npcID = created.ID
 		}
 		db.DB.Exec("INSERT OR REPLACE INTO oneshot_adventure_npcs(adventure_id, npc_id, role, story_hook, combat_ready) VALUES(?,?,?,'',0)",
-			adventureID, npc.ID, n.Role)
+			adventureID, npcID, n.Role)
+		counts.NPCs++
 	}
 
 	for _, loc := range d.Locations {
@@ -604,11 +710,16 @@ func commitAIOneShot(ctx context.Context, uid int64, s *aiDraftSession) (int64, 
 		if strings.TrimSpace(typ) == "" {
 			typ = "region"
 		}
-		location, err := db.Client.Location.Create().SetUserID(uid).SetName(loc.Name).SetType(typ).SetDescription(loc.Description).Save(ctx)
+		locationID, err := db.Client.Location.Query().Where(location.UserID(uid), location.NameEQ(loc.Name)).FirstID(ctx)
 		if err != nil {
-			continue
+			created, cerr := db.Client.Location.Create().SetUserID(uid).SetName(loc.Name).SetType(typ).SetDescription(loc.Description).Save(ctx)
+			if cerr != nil {
+				continue
+			}
+			locationID = created.ID
 		}
-		db.DB.Exec("INSERT OR IGNORE INTO oneshot_adventure_locations(adventure_id, location_id) VALUES(?,?)", adventureID, location.ID)
+		db.DB.Exec("INSERT OR IGNORE INTO oneshot_adventure_locations(adventure_id, location_id) VALUES(?,?)", adventureID, locationID)
+		counts.Locations++
 	}
 
 	for _, e := range d.Encounters {
@@ -620,12 +731,13 @@ func commitAIOneShot(ctx context.Context, uid int64, s *aiDraftSession) (int64, 
 			diff = "medium"
 		}
 		res, err := db.DB.Exec("INSERT INTO encounter_templates(campaign_id,user_id,name,description,environment,difficulty,xp_budget,total_xp,notes) VALUES(?,?,?,?,?,?,0,0,'')",
-			s.CampaignID, uid, e.Name, e.Description, "", diff)
+			campaignID, uid, e.Name, e.Description, "", diff)
 		if err != nil {
 			continue
 		}
 		if encID, err := res.LastInsertId(); err == nil {
 			db.DB.Exec("INSERT INTO oneshot_adventure_encounters(adventure_id, encounter_id) VALUES(?,?)", adventureID, encID)
+			counts.Encounters++
 		}
 	}
 
@@ -637,10 +749,21 @@ func commitAIOneShot(ctx context.Context, uid int64, s *aiDraftSession) (int64, 
 		if clueType != "direct" && clueType != "witness" && clueType != "object" && clueType != "location" {
 			clueType = "direct"
 		}
-		db.DB.Exec("INSERT INTO clues(adventure_id, title, description, clue_type, is_red_herring, sort_order, notes) VALUES(?,?,?,?,0,0,'')",
-			adventureID, cl.Title, cl.Description, clueType)
+		if _, err := db.DB.Exec("INSERT INTO clues(adventure_id, title, description, clue_type, is_red_herring, sort_order, notes) VALUES(?,?,?,?,0,0,'')",
+			adventureID, cl.Title, cl.Description, clueType); err == nil {
+			counts.Clues++
+		}
 	}
 
+	return counts, nil
+}
+
+// commitAIOneShot commits a ready session draft through the shared writer.
+func commitAIOneShot(ctx context.Context, uid int64, s *aiDraftSession) (int64, string, error) {
+	adventureID, _, err := createOneShotFromDraft(ctx, uid, s.CampaignID, s.Draft)
+	if err != nil {
+		return 0, "", err
+	}
 	return adventureID, entityURL("adventure", adventureID), nil
 }
 

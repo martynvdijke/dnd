@@ -44,13 +44,15 @@ func generateText(ctx context.Context, endpointID int64, prompt, system string, 
 		{"role": "system", "content": systemPrompt},
 		{"role": "user", "content": prompt},
 	}
-	return generateChat(ctx, endpointID, messages, maxTokens, sessionID)
+	return generateChat(ctx, endpointID, messages, maxTokens, sessionID, aiTextTimeout)
 }
 
 // generateChat performs an OpenAI-compatible chat completion with a full
 // message history. Multi-turn callers (the AI drafting assistant) pass every
-// prior turn so the model has real conversational memory.
-func generateChat(ctx context.Context, endpointID int64, messages []map[string]string, maxTokens *int, sessionID string) (string, string, error) {
+// prior turn so the model has real conversational memory. The timeout is
+// per-call: drafting needs a longer one than free-text generation because
+// reasoning models can spend a minute or more before writing the reply.
+func generateChat(ctx context.Context, endpointID int64, messages []map[string]string, maxTokens *int, sessionID string, timeout time.Duration) (string, string, error) {
 	if endpointID == 0 {
 		return "", "", &aiGenError{Status: 400, Msg: "endpoint_id is required"}
 	}
@@ -97,7 +99,7 @@ func generateChat(ctx context.Context, endpointID int64, messages []map[string]s
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 	setAIProviderHeaders(httpReq, sid)
-	client := newAIClient(aiTextTimeout)
+	client := newAIClient(timeout)
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		middleware.LogError("ai", "text generation request failed", "endpoint_id", endpoint.ID, "model", endpoint.Model, "error", err)
@@ -113,7 +115,8 @@ func generateChat(ctx context.Context, endpointID int64, messages []map[string]s
 	var result struct {
 		Choices []struct {
 			Message struct {
-				Content string `json:"content"`
+				Content          string `json:"content"`
+				ReasoningContent string `json:"reasoning_content"`
 			} `json:"message"`
 			FinishReason string `json:"finish_reason"`
 		} `json:"choices"`
@@ -125,7 +128,10 @@ func generateChat(ctx context.Context, endpointID int64, messages []map[string]s
 	if len(result.Choices) == 0 {
 		return "", "no_choices", nil
 	}
-	middleware.LogInfo("ai", "text generation succeeded", "endpoint_id", endpoint.ID, "model", endpoint.Model, "finish_reason", result.Choices[0].FinishReason)
+	middleware.LogInfo("ai", "text generation succeeded", "endpoint_id", endpoint.ID, "model", endpoint.Model,
+		"finish_reason", result.Choices[0].FinishReason,
+		"content_len", len(result.Choices[0].Message.Content),
+		"reasoning_len", len(result.Choices[0].Message.ReasoningContent))
 	return result.Choices[0].Message.Content, result.Choices[0].FinishReason, nil
 }
 
@@ -134,6 +140,7 @@ const DefaultSystemPrompt = "You are a helpful assistant for a D&D website calle
 const (
 	aiTestTimeout  = 30 * time.Second
 	aiTextTimeout  = 60 * time.Second
+	aiDraftTimeout = 180 * time.Second
 	aiImageTimeout = 120 * time.Second
 	aiFetchTimeout = 60 * time.Second
 )
