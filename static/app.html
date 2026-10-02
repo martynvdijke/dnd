@@ -376,10 +376,10 @@
 </div>
 
 <div class="modal fade" id="aiDraftModal" tabindex="-1">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="aiDraftModalTitle">Draft with AI</h5>
+        <h5 class="modal-title" id="aiDraftModalTitle">Draft Studio</h5>
         <div class="d-flex gap-1">
           <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetAIDraft()" title="Start over"><i class="fa-solid fa-rotate-left"></i></button>
           <button type="button" class="btn-close" data-bs-dismiss="modal" data-testid="modal-close"></button>
@@ -387,22 +387,40 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="aiDraftEntityType" value="oneshot">
-        <div class="mb-3">
-          <label class="form-label">AI Endpoint</label>
-          <select class="form-select" id="aiDraftEndpoint">
-            <option value="">Loading endpoints...</option>
-          </select>
+        <div class="row g-3">
+          <div class="col-lg-6 d-flex flex-column">
+            <div class="mb-2">
+              <label class="form-label small mb-1">AI Endpoint</label>
+              <select class="form-select form-select-sm" id="aiDraftEndpoint">
+                <option value="">Loading endpoints...</option>
+              </select>
+            </div>
+            <div id="aiDraftMessages" class="mb-2" style="min-height:240px;max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;"></div>
+            <div class="input-group mt-auto">
+              <textarea class="form-control" id="aiDraftInput" rows="2" placeholder="Describe what you want, or type &quot;looks good, generate it&quot;..."></textarea>
+              <button class="btn btn-primary" id="aiDraftSendBtn" onclick="sendAIDraftMessage()" title="Send"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+          </div>
+          <div class="col-lg-6 d-flex flex-column">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="form-label small mb-0">Draft</label>
+              <span id="aiDraftStatus" class="badge bg-secondary">empty</span>
+            </div>
+            <div id="aiDraftSections" class="d-flex flex-wrap gap-1 mb-2" style="max-height:84px;overflow-y:auto"></div>
+            <textarea id="aiDraftJson" class="form-control font-monospace" rows="10" style="font-size:12px" spellcheck="false" placeholder="The draft appears here as JSON. You can edit it directly."></textarea>
+            <div class="input-group input-group-sm mt-2">
+              <input type="text" class="form-control" id="aiDraftTweakInput" placeholder="Tweak the selected part, e.g. make it darker">
+              <button class="btn btn-outline-primary" id="aiDraftTweakBtn" onclick="tweakSelectedDraftSection()"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Tweak with AI</button>
+            </div>
+            <div id="aiDraftError" class="text-danger small mt-2 d-none"></div>
+            <div id="aiDraftNotice" class="text-success small mt-2 d-none"></div>
+            <div class="d-flex gap-2 mt-3">
+              <button class="btn btn-success flex-grow-1" id="aiDraftImportBtn" onclick="commitAIDraft()"><i class="fa-solid fa-file-import me-1"></i>Import into app</button>
+              <button class="btn btn-outline-secondary" id="aiDraftCopyBtn" onclick="copyAIDraftJson()" title="Copy JSON"><i class="fa-regular fa-copy"></i></button>
+              <button class="btn btn-outline-success" id="aiDraftDoneBtn" onclick="finishAIDraft()">Done</button>
+            </div>
+          </div>
         </div>
-        <div id="aiDraftMessages" class="mb-3" style="max-height:340px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;"></div>
-        <div id="aiDraftDraftBox" style="display:none" class="mb-3">
-          <label class="form-label">Draft ready to use</label>
-          <pre id="aiDraftDraftJson" class="p-2 bg-light rounded" style="max-height:200px;overflow:auto;font-size:12px"></pre>
-        </div>
-        <div class="input-group">
-          <textarea class="form-control" id="aiDraftInput" rows="2" placeholder="Describe what you want, or type &quot;looks good, generate it&quot;..."></textarea>
-          <button class="btn btn-primary" id="aiDraftSendBtn" onclick="sendAIDraftMessage()" title="Send"><i class="fa-solid fa-paper-plane"></i></button>
-        </div>
-        <button class="btn btn-success w-100 mt-3" id="aiDraftCommitBtn" style="display:none" onclick="commitAIDraft()"><i class="fa-solid fa-check me-1"></i>Approve &amp; fill</button>
       </div>
     </div>
   </div>
