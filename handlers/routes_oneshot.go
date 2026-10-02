@@ -11,6 +11,7 @@ func RegisterDMOneShotRoutes(r *gin.RouterGroup) {
 	r.PUT("/oneshot-adventures/:id", UpdateOneShotAdventure)
 	r.DELETE("/oneshot-adventures/:id", DeleteOneShotAdventure)
 	r.POST("/oneshot-adventures/generate", GenerateOneShotFromTemplate)
+	r.POST("/oneshot-adventures/import", HandleImportDraftJSON)
 	r.POST("/oneshot-adventures/:id/acts", CreateOneShotAct)
 	r.GET("/oneshot-adventures/:id/npcs", GetOneShotNPCs)
 	r.POST("/oneshot-adventures/:id/npcs", LinkOneShotNPC)
