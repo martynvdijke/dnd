@@ -840,11 +840,8 @@ import './app/encounter-treasure';
 // AI Generation → extracted to ts/ai.ts
 import { initAIClickHandler } from './ai';
 
-// Conversational AI drafting → ts/ai-draft.ts
-import './ai-draft';
-
-// Direct JSON draft import and AI revision → ts/draft-import.ts
-import './draft-import';
+// Integrated Draft Studio: chat, direct JSON import and AI revision → ts/draft-studio.ts
+import './draft-studio';
 
 // PDF Viewer → extracted to ts/pdf-viewer.ts
 import { initPdfViewerCleanup } from './pdf-viewer';

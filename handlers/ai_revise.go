@@ -29,6 +29,7 @@ func ReviseAIDraft(c *gin.Context) {
 		EntityType  string `json:"entity_type"`
 		JSON        string `json:"json"`
 		Instruction string `json:"instruction"`
+		Section     string `json:"section"`
 		EndpointID  int64  `json:"endpoint_id"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -62,6 +63,12 @@ func ReviseAIDraft(c *gin.Context) {
 
 	system := aiDraftSystemPrompt(req.EntityType) + "\n\n" + aiDraftReviseAddendum
 	user := "Current draft JSON:\n" + string(draft) + "\n\nRequested changes:\n" + strings.TrimSpace(req.Instruction)
+	if s := strings.TrimSpace(req.Section); s != "" && s != "Whole draft" {
+		system += "\n- The user selected one part of the draft to change: " + s + ". Revise only that part and leave the rest untouched."
+		user = "Current draft JSON:\n" + string(draft) +
+			"\n\nOnly revise this part: " + s +
+			"\n\nRequested changes:\n" + strings.TrimSpace(req.Instruction)
+	}
 	messages := []map[string]string{
 		{"role": "system", "content": system},
 		{"role": "user", "content": user},

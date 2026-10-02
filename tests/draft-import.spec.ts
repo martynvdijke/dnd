@@ -19,7 +19,7 @@ test.describe('One-shot JSON import', () => {
 
     await expect(page.locator('#oneshotSection button:has-text("Import JSON")')).toBeVisible({ timeout: NAV_TIMEOUT });
     await page.locator('#oneshotSection button:has-text("Import JSON")').click();
-    await expect(page.locator('#genericModal')).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(page.locator('#aiDraftModal')).toBeVisible({ timeout: NAV_TIMEOUT });
 
     const title = uniqueTitle();
     const draft = JSON.stringify({
@@ -35,14 +35,14 @@ test.describe('One-shot JSON import', () => {
       encounters: [],
       clues: [],
     });
-    await page.locator('#genericModalBody #draftImportJson').fill(draft);
-    await page.locator('#genericModalBody #draftImportApplyBtn').click();
+    await page.locator('#aiDraftJson').fill(draft);
+    await page.locator('#aiDraftImportBtn').click();
 
     // Success notice names the created adventure, then Done closes the modal.
-    await expect(page.locator('#genericModalBody #draftImportNotice')).toBeVisible({ timeout: NAV_TIMEOUT });
-    await expect(page.locator('#genericModalBody #draftImportNotice')).toContainText(title);
-    await page.locator('#genericModalBody #draftImportDoneBtn').click();
-    await expect(page.locator('#genericModal')).toBeHidden({ timeout: NAV_TIMEOUT });
+    await expect(page.locator('#aiDraftNotice')).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(page.locator('#aiDraftNotice')).toContainText(title);
+    await page.locator('#aiDraftDoneBtn').click();
+    await expect(page.locator('#aiDraftModal')).toBeHidden({ timeout: NAV_TIMEOUT });
     await expect(page.locator('#oneshotSection')).toContainText(title, { timeout: NAV_TIMEOUT });
   });
 
@@ -50,13 +50,13 @@ test.describe('One-shot JSON import', () => {
     await navigateToOneShots(page);
 
     await page.locator('#oneshotSection button:has-text("Import JSON")').click();
-    await expect(page.locator('#genericModal')).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(page.locator('#aiDraftModal')).toBeVisible({ timeout: NAV_TIMEOUT });
 
-    await page.locator('#genericModalBody #draftImportJson').fill('this is not json');
-    await page.locator('#genericModalBody #draftImportApplyBtn').click();
+    await page.locator('#aiDraftJson').fill('this is not json');
+    await page.locator('#aiDraftImportBtn').click();
 
-    await expect(page.locator('#genericModalBody #draftImportError')).toBeVisible({ timeout: NAV_TIMEOUT });
-    await expect(page.locator('#genericModalBody #draftImportError')).toContainText('not a valid JSON object');
-    await expect(page.locator('#genericModal')).toBeVisible();
+    await expect(page.locator('#aiDraftError')).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(page.locator('#aiDraftError')).toContainText('The draft JSON is not valid.');
+    await expect(page.locator('#aiDraftModal')).toBeVisible();
   });
 });
