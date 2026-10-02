@@ -1,3 +1,10 @@
+# [2.93.0](https://github.com/martynvdijke/dnd/compare/v2.92.0...v2.93.0) (2026-10-02)
+
+
+### Features
+
+* **ai:** integrated draft studio with section-level AI tweaks ([e1f76ba](https://github.com/martynvdijke/dnd/commit/e1f76ba732169a98e13a38c752c6754d1b8e06a7))
+
 # [2.92.0](https://github.com/martynvdijke/dnd/compare/v2.91.4...v2.92.0) (2026-10-02)
 
 
