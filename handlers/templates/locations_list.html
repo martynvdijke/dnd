@@ -2,6 +2,7 @@
   <h5 class="mb-0"><i class="fa-solid fa-map me-2"></i>Locations</h5>
   <div>
     <button class="btn btn-outline-primary btn-sm me-1" hx-get="/htmx/locations/new?character_id={{.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='New Location';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-plus me-1"></i>New</button>
+    <button class="btn btn-outline-secondary btn-sm" onclick="openDraftImport('location')"><i class="fa-solid fa-file-import me-1"></i>Import JSON</button>
     <button class="btn btn-primary btn-sm" hx-get="/htmx/locations/link?character_id={{.CharacterID}}" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='Link Location';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-link me-1"></i>Link</button>
   </div>
 </div>

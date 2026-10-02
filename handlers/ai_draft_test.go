@@ -34,6 +34,8 @@ func setupAIDraftRouter(t *testing.T) *gin.Engine {
 	g.POST("/draft/:id/turn", AIDraftTurn)
 	g.POST("/draft/:id/commit", CommitAIDraft)
 	g.DELETE("/draft/:id", DiscardAIDraft)
+	g.POST("/import", HandleImportDraftJSON)
+	g.POST("/revise", ReviseAIDraft)
 	return r
 }
 

@@ -16,6 +16,10 @@ func RegisterDMARoutes(r *gin.RouterGroup) {
 	r.POST("/ai/draft/:id/turn", AIDraftTurn)
 	r.POST("/ai/draft/:id/commit", CommitAIDraft)
 	r.DELETE("/ai/draft/:id", DiscardAIDraft)
+
+	// Direct JSON import (create or replace) and stateless AI revision.
+	r.POST("/ai/import", HandleImportDraftJSON)
+	r.POST("/ai/revise", ReviseAIDraft)
 }
 
 // RegisterAdminAIRoutes registers admin AI endpoint management routes.
