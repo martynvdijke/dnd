@@ -1,3 +1,10 @@
+## [2.93.1](https://github.com/martynvdijke/dnd/compare/v2.93.0...v2.93.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* **ai:** generate drafts on request and explain missing drafts on import ([9c9e0c1](https://github.com/martynvdijke/dnd/commit/9c9e0c1aeaf58079b5b2a27998592eae53231517))
+
 # [2.93.0](https://github.com/martynvdijke/dnd/compare/v2.92.0...v2.93.0) (2026-10-02)
 
 
