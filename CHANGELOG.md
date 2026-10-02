@@ -1,3 +1,10 @@
+# [2.92.0](https://github.com/martynvdijke/dnd/compare/v2.91.4...v2.92.0) (2026-10-02)
+
+
+### Features
+
+* **ai:** reliable drafting plus JSON import and revision ([2a66bd3](https://github.com/martynvdijke/dnd/commit/2a66bd3beb1450f84d80bf97ae6795b8b2674cbb))
+
 ## [2.91.4](https://github.com/martynvdijke/dnd/compare/v2.91.3...v2.91.4) (2026-10-01)
 
 ## [2.91.3](https://github.com/martynvdijke/dnd/compare/v2.91.2...v2.91.3) (2026-10-01)
