@@ -8,6 +8,7 @@ func RegisterDMOneShotRoutes(r *gin.RouterGroup) {
 	r.GET("/oneshot-adventures", ListOneShotAdventures)
 	r.POST("/oneshot-adventures", CreateOneShotAdventure)
 	r.GET("/oneshot-adventures/:id", GetOneShotAdventure)
+	r.GET("/oneshot-adventures/:id/draft", ExportOneShotDraft)
 	r.PUT("/oneshot-adventures/:id", UpdateOneShotAdventure)
 	r.DELETE("/oneshot-adventures/:id", DeleteOneShotAdventure)
 	r.POST("/oneshot-adventures/generate", GenerateOneShotFromTemplate)

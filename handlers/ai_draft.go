@@ -555,45 +555,57 @@ func commitAIDraft(c *gin.Context, s *aiDraftSession) (int64, string, error) {
 	return 0, "", fmt.Errorf("unsupported entity_type %q", s.EntityType)
 }
 
-type aiOneShotDraft struct {
+type aiOneShotScene struct {
 	Title            string `json:"title"`
-	Premise          string `json:"premise"`
-	Hook             string `json:"hook"`
-	Difficulty       string `json:"difficulty"`
+	Description      string `json:"description"`
+	SceneType        string `json:"scene_type"`
 	EstimatedMinutes int    `json:"estimated_minutes"`
-	Notes            string `json:"notes"`
-	Acts             []struct {
-		Title            string `json:"title"`
-		Description      string `json:"description"`
-		EstimatedMinutes int    `json:"estimated_minutes"`
-		Scenes           []struct {
-			Title            string `json:"title"`
-			Description      string `json:"description"`
-			SceneType        string `json:"scene_type"`
-			EstimatedMinutes int    `json:"estimated_minutes"`
-		} `json:"scenes"`
-	} `json:"acts"`
-	NPCs []struct {
-		Name        string `json:"name"`
-		Race        string `json:"race"`
-		Description string `json:"description"`
-		Role        string `json:"role"`
-	} `json:"npcs"`
-	Locations []struct {
-		Name        string `json:"name"`
-		Type        string `json:"type"`
-		Description string `json:"description"`
-	} `json:"locations"`
-	Encounters []struct {
-		Name        string `json:"name"`
-		Description string `json:"description"`
-		Difficulty  string `json:"difficulty"`
-	} `json:"encounters"`
-	Clues []struct {
-		Title       string `json:"title"`
-		Description string `json:"description"`
-		ClueType    string `json:"clue_type"`
-	} `json:"clues"`
+}
+
+type aiOneShotAct struct {
+	Title            string           `json:"title"`
+	Description      string           `json:"description"`
+	EstimatedMinutes int              `json:"estimated_minutes"`
+	Scenes           []aiOneShotScene `json:"scenes"`
+}
+
+type aiOneShotNPC struct {
+	Name        string `json:"name"`
+	Race        string `json:"race"`
+	Description string `json:"description"`
+	Role        string `json:"role"`
+}
+
+type aiOneShotLocation struct {
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	Description string `json:"description"`
+}
+
+type aiOneShotEncounter struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Difficulty  string `json:"difficulty"`
+}
+
+type aiOneShotClue struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	ClueType    string `json:"clue_type"`
+}
+
+type aiOneShotDraft struct {
+	Title            string               `json:"title"`
+	Premise          string               `json:"premise"`
+	Hook             string               `json:"hook"`
+	Difficulty       string               `json:"difficulty"`
+	EstimatedMinutes int                  `json:"estimated_minutes"`
+	Notes            string               `json:"notes"`
+	Acts             []aiOneShotAct       `json:"acts"`
+	NPCs             []aiOneShotNPC       `json:"npcs"`
+	Locations        []aiOneShotLocation  `json:"locations"`
+	Encounters       []aiOneShotEncounter `json:"encounters"`
+	Clues            []aiOneShotClue      `json:"clues"`
 }
 
 var aiSceneTypes = map[string]bool{"roleplay": true, "exploration": true, "combat": true, "puzzle": true}
