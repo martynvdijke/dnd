@@ -32,8 +32,8 @@
 
 ## 6. Verify and release
 
-- [ ] 6.1 `go test -tags sqlite_fts5 ./...`, `npx vitest run`, `npx tsc --noEmit`, `go vet ./...`
-- [ ] 6.2 Full CI parity via prek pre-push (or `task ci`)
-- [ ] 6.3 Commit with Conventional Commit messages on `feat/ai-draft-import`
-- [ ] 6.4 Push and open the PR; wait for checks; merge when green
-- [ ] 6.5 Archive `ai-adventure-generation` first, then this change, so `ai-structured-drafting` exists in `openspec/specs/`
+- [x] 6.1 `go test -tags sqlite_fts5 ./...`, `npx vitest run`, `npx tsc --noEmit`, `go vet ./...`
+- [x] 6.2 Full CI parity via prek pre-push (or `task ci`)
+- [x] 6.3 Commit with Conventional Commit messages on `feat/ai-draft-import`
+- [x] 6.4 Push and open the PR; wait for checks; merge when green
+- [x] 6.5 Archive `ai-adventure-generation` first, then this change, so `ai-structured-drafting` exists in `openspec/specs/`
