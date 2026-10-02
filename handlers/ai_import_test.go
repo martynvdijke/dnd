@@ -85,7 +85,7 @@ func TestValidateAIDraftReply(t *testing.T) {
 
 func TestAIDraftSystemPromptContract(t *testing.T) {
 	prompt := aiDraftSystemPrompt("oneshot")
-	for _, want := range []string{"2024", "One-shot drafting contract", "3-5", "scene_type", "clue_type", "never truncate"} {
+	for _, want := range []string{"2024", "One-shot drafting contract", "3-5", "scene_type", "clue_type", "never truncate", "produce the complete draft immediately"} {
 		if !strings.Contains(prompt, want) {
 			t.Fatalf("one-shot system prompt is missing %q", want)
 		}
@@ -201,19 +201,25 @@ func TestImportOneShotJSONRejects(t *testing.T) {
 	defer testutil.CloseDB(t)
 
 	cases := []struct {
-		name string
-		body map[string]any
-		want int
+		name    string
+		body    map[string]any
+		want    int
+		wantMsg string
 	}{
-		{"malformed json", map[string]any{"json": "not json at all"}, http.StatusBadRequest},
-		{"missing title", map[string]any{"json": `{"premise":"no title"}`}, http.StatusBadRequest},
-		{"unknown type", map[string]any{"entity_type": "dragon", "json": testOneShotDraft}, http.StatusBadRequest},
+		{"malformed json", map[string]any{"json": "not json at all"}, http.StatusBadRequest, ""},
+		{"missing title", map[string]any{"json": `{"premise":"no title"}`}, http.StatusBadRequest, ""},
+		{"unknown type", map[string]any{"entity_type": "dragon", "json": testOneShotDraft}, http.StatusBadRequest, ""},
+		{"chatting envelope", map[string]any{"json": `{"status":"chatting","message":"What tone?","draft":null}`}, http.StatusBadRequest, "no draft yet"},
+		{"envelope without draft", map[string]any{"json": `{"status":"chatting","message":"What tone?"}`}, http.StatusBadRequest, "no draft yet"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			w := testutil.PostJSON(t, r, "/api/ai/import", tc.body)
 			if w.Code != tc.want {
 				t.Fatalf("status = %d, want %d; body %s", w.Code, tc.want, w.Body.String())
+			}
+			if tc.wantMsg != "" && !strings.Contains(w.Body.String(), tc.wantMsg) {
+				t.Fatalf("body %s does not contain %q", w.Body.String(), tc.wantMsg)
 			}
 		})
 	}

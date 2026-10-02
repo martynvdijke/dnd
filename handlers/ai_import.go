@@ -495,11 +495,11 @@ func extractDraftJSON(text string) (json.RawMessage, error) {
 		return nil, fmt.Errorf("the pasted text is not a valid JSON object")
 	}
 	var envelope struct {
-		Draft json.RawMessage `json:"draft"`
+		Status string          `json:"status"`
+		Draft  json.RawMessage `json:"draft"`
 	}
-	if err := json.Unmarshal([]byte(cleaned), &envelope); err == nil && len(envelope.Draft) > 0 {
-		trimmed := strings.TrimSpace(string(envelope.Draft))
-		if trimmed != "" && trimmed != "null" {
+	if err := json.Unmarshal([]byte(cleaned), &envelope); err == nil {
+		if trimmed := strings.TrimSpace(string(envelope.Draft)); trimmed != "" && trimmed != "null" {
 			// A draft may arrive as a JSON string rather than an object.
 			if strings.HasPrefix(trimmed, `"`) {
 				var s string
@@ -508,6 +508,11 @@ func extractDraftJSON(text string) (json.RawMessage, error) {
 				}
 			}
 			return envelope.Draft, nil
+		}
+		// An assistant envelope whose draft is null/absent means the model is
+		// still asking questions; say so instead of failing on the title check.
+		if envelope.Status != "" {
+			return nil, fmt.Errorf("the pasted JSON has no draft yet — the AI is still asking questions or has not generated one; answer in the chat or ask it to generate the full draft")
 		}
 	}
 	return json.RawMessage(cleaned), nil
