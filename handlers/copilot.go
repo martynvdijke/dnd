@@ -22,6 +22,7 @@ type copilotSource struct {
 	Snippet    string `json:"snippet"`
 }
 
+// ponytail: TD-007 — duplicated by the search/ai packages; delegate when this handler is next touched
 func retrieveCampaignContext(campaignID, userID int64, isAdmin bool, query string, limit int) ([]copilotSource, string, error) {
 	if limit <= 0 {
 		limit = 8

@@ -54,7 +54,15 @@ func runStart(c *cmdContext) botReply {
 	if len(c.args) == 0 {
 		return botReply{Text: welcomeText(), Keyboard: navKeyboard()}
 	}
-	code := strings.ToUpper(strings.TrimSpace(c.args[0]))
+	arg := strings.TrimSpace(c.args[0])
+	if strings.HasPrefix(arg, "ask_") {
+		token := strings.TrimPrefix(arg, "ask_")
+		if q, ok := lookupInlineAskQuery(token); ok {
+			return runAskQuery(c, q)
+		}
+		return botReply{Text: "This link expired — run /search or /ask directly."}
+	}
+	code := strings.ToUpper(arg)
 	userID, ok := ConsumeLinkCode(hashCode(code))
 	if !ok {
 		return botReply{Text: "Invalid or expired code. Generate a new one in Villum settings."}

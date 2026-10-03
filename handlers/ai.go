@@ -32,6 +32,7 @@ type aiGenError struct {
 
 func (e *aiGenError) Error() string { return e.Msg }
 
+// ponytail: TD-007 — duplicated by the search/ai packages; delegate when this handler is next touched
 func generateText(ctx context.Context, endpointID int64, prompt, system string, maxTokens *int, sessionID string) (string, string, error) {
 	if strings.TrimSpace(prompt) == "" {
 		return "", "", &aiGenError{Status: 400, Msg: "prompt is required"}
@@ -47,6 +48,7 @@ func generateText(ctx context.Context, endpointID int64, prompt, system string, 
 	return generateChat(ctx, endpointID, messages, maxTokens, sessionID, aiTextTimeout)
 }
 
+// ponytail: TD-007 — duplicated by the search/ai packages; delegate when this handler is next touched
 // generateChat performs an OpenAI-compatible chat completion with a full
 // message history. Multi-turn callers (the AI drafting assistant) pass every
 // prior turn so the model has real conversational memory. The timeout is

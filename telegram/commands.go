@@ -17,15 +17,17 @@ type cmdCategory string
 const (
 	catCharacters    cmdCategory = "characters"
 	catCampaign      cmdCategory = "campaign"
+	catCompendium    cmdCategory = "compendium"
 	catNotifications cmdCategory = "notifications"
 	catBot           cmdCategory = "bot"
 )
 
-var categoryOrder = []cmdCategory{catCharacters, catCampaign, catNotifications, catBot}
+var categoryOrder = []cmdCategory{catCharacters, catCampaign, catCompendium, catNotifications, catBot}
 
 var categoryHeadings = map[cmdCategory]string{
 	catCharacters:    "🧙 Characters",
 	catCampaign:      "🏕 Campaigns",
+	catCompendium:    "📚 Compendium",
 	catNotifications: "🔔 Notifications",
 	catBot:           "🤖 Bot",
 }
@@ -66,6 +68,15 @@ func init() {
 		{name: "start", usage: "/start <code>", desc: "Link your Villum account", category: catBot, run: runStart},
 		{name: "unlink", usage: "/unlink", desc: "Unlink your account", category: catBot, run: runUnlink},
 		{name: "cancel", usage: "/cancel", desc: "Cancel the current step-by-step flow", category: catBot, run: runCancel},
+		{name: "search", usage: "/search <query>", desc: "Search the compendium", category: catCompendium, showNav: true, run: func(c *cmdContext) botReply { return runCompendiumSearch(c, "") }},
+		{name: "spell", usage: "/spell <query>", desc: "Search spells", category: catCompendium, run: func(c *cmdContext) botReply { return runCompendiumSearch(c, "spell") }},
+		{name: "item", usage: "/item <query>", desc: "Search equipment", category: catCompendium, run: func(c *cmdContext) botReply { return runCompendiumSearch(c, "equipment") }},
+		{name: "monster", usage: "/monster <query>", desc: "Search monsters", category: catCompendium, run: func(c *cmdContext) botReply { return runCompendiumSearch(c, "monster") }},
+		{name: "race", usage: "/race <query>", desc: "Search races", category: catCompendium, run: func(c *cmdContext) botReply { return runCompendiumSearch(c, "race") }},
+		{name: "class", usage: "/class <query>", desc: "Search classes", category: catCompendium, run: func(c *cmdContext) botReply { return runCompendiumSearch(c, "class") }},
+		{name: "feat", usage: "/feat <query>", desc: "Search feats", category: catCompendium, run: func(c *cmdContext) botReply { return runCompendiumSearch(c, "feat") }},
+		{name: "background", usage: "/background <query>", desc: "Search backgrounds", category: catCompendium, run: func(c *cmdContext) botReply { return runCompendiumSearch(c, "background") }},
+		{name: "ask", usage: "/ask <question>", desc: "Ask about the compendium", category: catCompendium, run: func(c *cmdContext) botReply { return runAskQuery(c, strings.Join(c.args, " ")) }},
 	}
 }
 

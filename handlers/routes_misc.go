@@ -81,6 +81,7 @@ func RegisterMiscAuthRoutes(r *gin.RouterGroup) {
 
 	// Search
 	r.GET("/search", HandleSearch)
+	r.POST("/search/ai", HandleAISearch)
 
 	// Import from API
 	r.POST("/import/api", ImportFromAPI)

@@ -58,6 +58,7 @@ func newBotClient(token, apiBase string, handler tgbot.HandlerFunc) (*tgbot.Bot,
 			tgmodels.AllowedUpdateMessage,
 			tgmodels.AllowedUpdateCallbackQuery,
 			tgmodels.AllowedUpdateMyChatMember,
+			tgmodels.AllowedUpdateInlineQuery,
 		}))
 	}
 	if apiBase != "" && apiBase != defaultAPIBase {
@@ -171,6 +172,13 @@ func GetMe() (*tgmodels.User, error) {
 func AnswerCallback(callbackID string) error {
 	return withBot(context.Background(), func(ctx context.Context, c *tgbot.Bot) error {
 		_, err := c.AnswerCallbackQuery(ctx, &tgbot.AnswerCallbackQueryParams{CallbackQueryID: callbackID})
+		return err
+	})
+}
+
+func AnswerInlineQuery(ctx context.Context, queryID string, results []tgmodels.InlineQueryResult, cacheTime int, isPersonal bool, button *tgmodels.InlineQueryResultsButton) error {
+	return withBot(ctx, func(ctx context.Context, c *tgbot.Bot) error {
+		_, err := c.AnswerInlineQuery(ctx, &tgbot.AnswerInlineQueryParams{InlineQueryID: queryID, Results: results, CacheTime: cacheTime, IsPersonal: isPersonal, Button: button})
 		return err
 	})
 }
