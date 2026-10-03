@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // SearchCompendium performs compendium recall.
@@ -14,6 +15,16 @@ func SearchCompendium(ctx context.Context, db *sql.DB, p CompendiumParams) ([]Co
 	if q == "" {
 		return nil, nil
 	}
+	legacyLimit := 10
+	if p.Limit > 0 {
+		legacyLimit = p.Limit
+	}
+	genericLimit := 25
+	if p.Limit > 0 {
+		genericLimit = p.Limit
+	}
+	legacyOffset := p.Offset
+	genericOffset := p.Offset
 	var results []CompendiumResult
 
 	if p.TypeFilter == "" || p.TypeFilter == "spell" {
@@ -31,7 +42,7 @@ func SearchCompendium(ctx context.Context, db *sql.DB, p CompendiumParams) ([]Co
 			extra += " AND school=?"
 			args = append(args, p.School)
 		}
-		rows, err := db.QueryContext(ctx, "SELECT id, name, level, school FROM compendium_spells WHERE name LIKE ?"+extra+" ORDER BY level, name LIMIT 10", append([]any{"%" + q + "%"}, args...)...)
+		rows, err := db.QueryContext(ctx, "SELECT id, name, level, school FROM compendium_spells WHERE name LIKE ?"+extra+" ORDER BY level, name LIMIT ? OFFSET ?", append(append([]any{"%" + q + "%"}, args...), legacyLimit, legacyOffset)...)
 		if err == nil {
 			for rows.Next() {
 				var r CompendiumResult
@@ -49,7 +60,7 @@ func SearchCompendium(ctx context.Context, db *sql.DB, p CompendiumParams) ([]Co
 			extra += " AND category=?"
 			args = append(args, p.Category)
 		}
-		rows, err := db.QueryContext(ctx, "SELECT id, name, category FROM compendium_equipment WHERE name LIKE ?"+extra+" ORDER BY name LIMIT 10", append([]any{"%" + q + "%"}, args...)...)
+		rows, err := db.QueryContext(ctx, "SELECT id, name, category FROM compendium_equipment WHERE name LIKE ?"+extra+" ORDER BY name LIMIT ? OFFSET ?", append(append([]any{"%" + q + "%"}, args...), legacyLimit, legacyOffset)...)
 		if err == nil {
 			for rows.Next() {
 				var r CompendiumResult
@@ -71,7 +82,7 @@ func SearchCompendium(ctx context.Context, db *sql.DB, p CompendiumParams) ([]Co
 			extra += " AND type LIKE ?"
 			args = append(args, "%"+p.MonsterType+"%")
 		}
-		rows, err := db.QueryContext(ctx, "SELECT id, name, cr, type FROM compendium_monsters WHERE name LIKE ?"+extra+" ORDER BY name LIMIT 10", append([]any{"%" + q + "%"}, args...)...)
+		rows, err := db.QueryContext(ctx, "SELECT id, name, cr, type FROM compendium_monsters WHERE name LIKE ?"+extra+" ORDER BY name LIMIT ? OFFSET ?", append(append([]any{"%" + q + "%"}, args...), legacyLimit, legacyOffset)...)
 		if err == nil {
 			for rows.Next() {
 				var r CompendiumResult
@@ -83,7 +94,7 @@ func SearchCompendium(ctx context.Context, db *sql.DB, p CompendiumParams) ([]Co
 		}
 	}
 	if p.TypeFilter == "" || p.TypeFilter == "race" {
-		rows, err := db.QueryContext(ctx, "SELECT id, name FROM compendium_races WHERE name LIKE ? ORDER BY name LIMIT 10", "%"+q+"%")
+		rows, err := db.QueryContext(ctx, "SELECT id, name FROM compendium_races WHERE name LIKE ? ORDER BY name LIMIT ? OFFSET ?", "%"+q+"%", legacyLimit, legacyOffset)
 		if err == nil {
 			for rows.Next() {
 				var r CompendiumResult
@@ -95,7 +106,7 @@ func SearchCompendium(ctx context.Context, db *sql.DB, p CompendiumParams) ([]Co
 		}
 	}
 	if p.TypeFilter == "" || p.TypeFilter == "feat" {
-		rows, err := db.QueryContext(ctx, "SELECT id, name FROM compendium_feats WHERE name LIKE ? ORDER BY name LIMIT 10", "%"+q+"%")
+		rows, err := db.QueryContext(ctx, "SELECT id, name FROM compendium_feats WHERE name LIKE ? ORDER BY name LIMIT ? OFFSET ?", "%"+q+"%", legacyLimit, legacyOffset)
 		if err == nil {
 			for rows.Next() {
 				var r CompendiumResult
@@ -107,7 +118,7 @@ func SearchCompendium(ctx context.Context, db *sql.DB, p CompendiumParams) ([]Co
 		}
 	}
 	if p.TypeFilter == "" || p.TypeFilter == "background" {
-		rows, err := db.QueryContext(ctx, "SELECT id, name FROM compendium_backgrounds WHERE name LIKE ? ORDER BY name LIMIT 10", "%"+q+"%")
+		rows, err := db.QueryContext(ctx, "SELECT id, name FROM compendium_backgrounds WHERE name LIKE ? ORDER BY name LIMIT ? OFFSET ?", "%"+q+"%", legacyLimit, legacyOffset)
 		if err == nil {
 			for rows.Next() {
 				var r CompendiumResult
@@ -119,7 +130,7 @@ func SearchCompendium(ctx context.Context, db *sql.DB, p CompendiumParams) ([]Co
 		}
 	}
 	if p.TypeFilter == "" || p.TypeFilter == "class" {
-		rows, err := db.QueryContext(ctx, "SELECT id, name, hit_die, primary_ability FROM compendium_classes WHERE name LIKE ? ORDER BY name LIMIT 10", "%"+q+"%")
+		rows, err := db.QueryContext(ctx, "SELECT id, name, hit_die, primary_ability FROM compendium_classes WHERE name LIKE ? ORDER BY name LIMIT ? OFFSET ?", "%"+q+"%", legacyLimit, legacyOffset)
 		if err == nil {
 			for rows.Next() {
 				var r CompendiumResult
@@ -130,7 +141,6 @@ func SearchCompendium(ctx context.Context, db *sql.DB, p CompendiumParams) ([]Co
 			rows.Close()
 		}
 	}
-	// TODO(compendium-and-ai-search 1.3): when primary recall is thin and len(q) >= 4, add bounded LIKE broadening then DefaultRerank. Ceiling: compendium scale (~thousands of rows). Upgrade path: trigram FTS index behind the reranker seam.
 	// FTS over generic entries
 	ftsWhere := "compendium_entries_fts MATCH ?"
 	ftsArgs := []any{BuildFTS5Query(q)}
@@ -138,7 +148,8 @@ func SearchCompendium(ctx context.Context, db *sql.DB, p CompendiumParams) ([]Co
 		ftsWhere += " AND cs.type_name = ?"
 		ftsArgs = append(ftsArgs, p.TypeFilter)
 	}
-	rows, err := db.QueryContext(ctx, "SELECT e.id, e.schema_id, e.data, cs.type_name FROM compendium_entries e JOIN compendium_entries_fts f ON e.id = f.rowid JOIN compendium_schemas cs ON e.schema_id = cs.id WHERE "+ftsWhere+" ORDER BY rank LIMIT 25", ftsArgs...)
+	ftsArgs = append(ftsArgs, genericLimit, genericOffset)
+	rows, err := db.QueryContext(ctx, "SELECT e.id, e.schema_id, e.data, cs.type_name FROM compendium_entries e JOIN compendium_entries_fts f ON e.id = f.rowid JOIN compendium_schemas cs ON e.schema_id = cs.id WHERE "+ftsWhere+" ORDER BY rank LIMIT ? OFFSET ?", ftsArgs...)
 	if err == nil {
 		defer rows.Close()
 		for rows.Next() {
@@ -157,10 +168,177 @@ func SearchCompendium(ctx context.Context, db *sql.DB, p CompendiumParams) ([]Co
 			results = append(results, r)
 		}
 	}
+	didFuzzy := false
+	if p.FuzzyFallback && utf8.RuneCountInString(q) >= 4 && len(results) < 3 {
+		fuzzy, err := fuzzyRecall(ctx, db, q, p.TypeFilter, 1500)
+		if err == nil && len(fuzzy) > 0 {
+			seen := map[string]bool{}
+			for _, r := range results {
+				seen[r.Type+"|"+strconv.FormatInt(r.ID, 10)] = true
+			}
+			for _, r := range fuzzy {
+				k := r.Type + "|" + strconv.FormatInt(r.ID, 10)
+				if !seen[k] {
+					results = append(results, r)
+					seen[k] = true
+				}
+			}
+			didFuzzy = true
+		}
+	}
 	if p.Reranker != nil {
 		results = p.Reranker(q, results)
 	}
+	if didFuzzy && len(results) > 25 {
+		results = results[:25]
+	}
 	return results, nil
+}
+
+func fuzzyRecall(ctx context.Context, db *sql.DB, q, typeFilter string, limit int) ([]CompendiumResult, error) {
+	// v1 fallback: LIKE broadening on a short prefix so minor misspellings still recall candidates.
+	// Trigram FTS remains the future upgrade path.
+	runes := []rune(q)
+	prefixLen := 3
+	if len(runes) < prefixLen {
+		prefixLen = len(runes)
+	}
+	prefix := string(runes[:prefixLen])
+	like := "%" + prefix + "%"
+	var parts []string
+	var args []any
+	add := func(typeName, table, col string) {
+		if typeFilter != "" && typeFilter != typeName {
+			return
+		}
+		parts = append(parts, "SELECT ? AS type, id, "+col+" AS name FROM "+table+" WHERE "+col+" LIKE ?")
+		args = append(args, typeName, like)
+	}
+	add("spell", "compendium_spells", "name")
+	add("equipment", "compendium_equipment", "name")
+	add("monster", "compendium_monsters", "name")
+	add("race", "compendium_races", "name")
+	add("feat", "compendium_feats", "name")
+	add("background", "compendium_backgrounds", "name")
+	add("class", "compendium_classes", "name")
+	// generic entries
+	if typeFilter == "" {
+		parts = append(parts, "SELECT cs.type_name AS type, e.id, json_extract(e.data,'$.name') AS name FROM compendium_entries e JOIN compendium_schemas cs ON cs.id=e.schema_id WHERE json_extract(e.data,'$.name') LIKE ?")
+		args = append(args, like)
+	} else {
+		parts = append(parts, "SELECT cs.type_name AS type, e.id, json_extract(e.data,'$.name') AS name FROM compendium_entries e JOIN compendium_schemas cs ON cs.id=e.schema_id WHERE cs.type_name = ? AND json_extract(e.data,'$.name') LIKE ?")
+		args = append(args, typeFilter, like)
+	}
+	if len(parts) == 0 {
+		return nil, nil
+	}
+	query := strings.Join(parts, " UNION ALL ") + " LIMIT ?"
+	args = append(args, limit)
+	rows, err := db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []CompendiumResult
+	for rows.Next() {
+		var r CompendiumResult
+		if err := rows.Scan(&r.Type, &r.ID, &r.Name); err != nil {
+			continue
+		}
+		out = append(out, r)
+	}
+	return out, rows.Err()
+}
+
+// LoadCompendiumDetail loads detailed data for a compendium entry.
+func LoadCompendiumDetail(ctx context.Context, db *sql.DB, typ string, id int64) (*CompendiumDetail, error) {
+	switch typ {
+	case "spell":
+		var d CompendiumDetail
+		d.Type = typ
+		err := db.QueryRowContext(ctx, `SELECT COALESCE(name,''), COALESCE(level,0), COALESCE(school,''), COALESCE(casting_time,''), COALESCE("range",''), COALESCE(components,''), COALESCE(duration,''), COALESCE(description,'') FROM compendium_spells WHERE id=?`, id).Scan(&d.Name, &d.Level, &d.School, &d.CastingTime, &d.Range, &d.Components, &d.Duration, &d.Description)
+		if err != nil {
+			return nil, err
+		}
+		return &d, nil
+	case "equipment":
+		var d CompendiumDetail
+		d.Type = typ
+		err := db.QueryRowContext(ctx, `SELECT COALESCE(name,''), COALESCE(category,''), COALESCE(cost,''), COALESCE(weight,0), COALESCE(description,'') FROM compendium_equipment WHERE id=?`, id).Scan(&d.Name, &d.Category, &d.Cost, &d.Weight, &d.Description)
+		if err != nil {
+			return nil, err
+		}
+		return &d, nil
+	case "monster":
+		var d CompendiumDetail
+		d.Type = typ
+		err := db.QueryRowContext(ctx, `SELECT COALESCE(name,''), COALESCE(type,''), COALESCE(size,''), COALESCE(ac,''), COALESCE(hp,''), COALESCE(cr,''), COALESCE(description,'') FROM compendium_monsters WHERE id=?`, id).Scan(&d.Name, &d.Subtype, &d.Size, &d.AC, &d.HP, &d.CR, &d.Description)
+		if err != nil {
+			return nil, err
+		}
+		return &d, nil
+	case "race":
+		var d CompendiumDetail
+		d.Type = typ
+		err := db.QueryRowContext(ctx, `SELECT COALESCE(name,''), COALESCE(description,'') FROM compendium_races WHERE id=?`, id).Scan(&d.Name, &d.Description)
+		if err != nil {
+			return nil, err
+		}
+		return &d, nil
+	case "class":
+		var d CompendiumDetail
+		d.Type = typ
+		var hitDie int
+		var primaryAbility string
+		err := db.QueryRowContext(ctx, `SELECT COALESCE(name,''), COALESCE(hit_die,0), COALESCE(primary_ability,''), COALESCE(description,'') FROM compendium_classes WHERE id=?`, id).Scan(&d.Name, &hitDie, &primaryAbility, &d.Description)
+		if err != nil {
+			return nil, err
+		}
+		// stash in appropriate fields for rendering
+		d.Category = primaryAbility
+		if hitDie != 0 {
+			d.Cost = strconv.Itoa(hitDie)
+		}
+		return &d, nil
+	case "feat":
+		var d CompendiumDetail
+		d.Type = typ
+		err := db.QueryRowContext(ctx, `SELECT COALESCE(name,''), COALESCE(description,'') FROM compendium_feats WHERE id=?`, id).Scan(&d.Name, &d.Description)
+		if err != nil {
+			return nil, err
+		}
+		return &d, nil
+	case "background":
+		var d CompendiumDetail
+		d.Type = typ
+		err := db.QueryRowContext(ctx, `SELECT COALESCE(name,''), COALESCE(description,'') FROM compendium_backgrounds WHERE id=?`, id).Scan(&d.Name, &d.Description)
+		if err != nil {
+			return nil, err
+		}
+		return &d, nil
+	default:
+		entry, err := LoadCompendiumEntry(ctx, db, id)
+		if err != nil {
+			return nil, err
+		}
+		d := &CompendiumDetail{
+			Type:        typ,
+			Name:        entry.Name,
+			Category:    entry.Category,
+			Cost:        entry.Cost,
+			Description: entry.Description,
+			Source:      entry.Source,
+			Weight:      entry.Weight,
+			Level:       entry.Level,
+			School:      entry.School,
+			CastingTime: entry.CastingTime,
+			Range:       entry.Range,
+			Components:  entry.Components,
+			Duration:    entry.Duration,
+			Classes:     entry.Classes,
+		}
+		return d, nil
+	}
 }
 
 // LoadCompendiumEntry reads a generic compendium entry.
@@ -234,20 +412,20 @@ func jsonEntryNumber(m map[string]any, key string) *float64 {
 
 // EquipmentPickerItem mirrors compendiumEquipmentPickerItem
 type EquipmentPickerItem struct {
-	ID         int64
-	Name       string
-	Category   string
-	Cost       string
-	Weight     float64
+	ID          int64
+	Name        string
+	Category    string
+	Cost        string
+	Weight      float64
 	Description string
-	SourcePage string
-	System     string
-	Source     string
-	ItemType   string
-	ItemRarity string
-	Publisher  string
-	SrcKind    string
-	SchemaName string
+	SourcePage  string
+	System      string
+	Source      string
+	ItemType    string
+	ItemRarity  string
+	Publisher   string
+	SrcKind     string
+	SchemaName  string
 }
 
 func QueryCompendiumEquipmentUnion(ctx context.Context, db *sql.DB, q string, limit, offset int) ([]EquipmentPickerItem, int) {
@@ -290,23 +468,23 @@ func QueryCompendiumEquipmentUnion(ctx context.Context, db *sql.DB, q string, li
 }
 
 type SpellPickerItem struct {
-	ID          int64
-	Name        string
-	Level       int
-	School      string
-	CastingTime string
-	Range       string
-	Components  string
-	Duration    string
-	Description string
+	ID           int64
+	Name         string
+	Level        int
+	School       string
+	CastingTime  string
+	Range        string
+	Components   string
+	Duration     string
+	Description  string
 	HigherLevels string
-	Classes     string
-	SourcePage  string
-	System      string
-	Source      string
-	Publisher   string
-	SrcKind     string
-	SchemaName  string
+	Classes      string
+	SourcePage   string
+	System       string
+	Source       string
+	Publisher    string
+	SrcKind      string
+	SchemaName   string
 }
 
 func QueryCompendiumSpellsUnion(ctx context.Context, db *sql.DB, q, class, level string, limit, offset int) ([]SpellPickerItem, int) {

@@ -20,6 +20,8 @@ const (
 	cbCreateLevelPrefix    = "create:level:"
 	cbCreateCampaignPrefix = "create:campaign:"
 	cbCreateCampaignNone   = "create:campaign:none"
+	cbSearchPrefix         = "srch:"
+	cbSearchDetailPrefix   = "sdet:"
 )
 
 type inlineButton = tgmodels.InlineKeyboardButton
@@ -121,6 +123,11 @@ func handleCallbackData(c *cmdContext, data string) (botReply, bool) {
 			return botReply{}, false
 		}
 		return createCampaignChoice(c, id), true
+
+	case strings.HasPrefix(data, cbSearchDetailPrefix):
+		return handleSearchDetailCallback(c, data)
+	case strings.HasPrefix(data, cbSearchPrefix):
+		return handleSearchPageCallback(c, data)
 	}
 	return botReply{}, false
 }

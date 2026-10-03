@@ -195,15 +195,41 @@ type CompendiumResult struct {
 
 // CompendiumParams are parameters for SearchCompendium.
 type CompendiumParams struct {
-	Query       string
-	TypeFilter  string
-	Class       string
-	Level       string
+	Query         string
+	TypeFilter    string
+	Class         string
+	Level         string
+	School        string
+	Category      string
+	CR            string
+	MonsterType   string
+	Reranker      func(query string, in []CompendiumResult) []CompendiumResult
+	Limit         int
+	Offset        int
+	FuzzyFallback bool
+}
+
+// CompendiumDetail holds detailed compendium data for rendering.
+type CompendiumDetail struct {
+	Type        string
+	Name        string
+	Subtype     string
+	Description string
+	Source      string
+	CastingTime string
+	Range       string
+	Components  string
+	Duration    string
 	School      string
-	Category    string
+	Classes     string
+	Level       int
 	CR          string
-	MonsterType string
-	Reranker    func(query string, in []CompendiumResult) []CompendiumResult
+	AC          string
+	HP          string
+	Size        string
+	Category    string
+	Cost        string
+	Weight      float64
 }
 
 // EntryData is a flattened generic compendium entry.
