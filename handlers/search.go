@@ -18,11 +18,13 @@ type UnifiedResult = search.UnifiedResult
 
 var entityTypeLegacyBucket = search.EntityTypeLegacyBucket
 
-func entityTypeName(et string) string { return search.EntityTypeName(et) }
+func entityTypeName(et string) string      { return search.EntityTypeName(et) }
 func entityURL(et string, id int64) string { return search.EntityURL(et, id) }
-func buildFTS5Query(q string) string { return search.BuildFTS5Query(q) }
-func emptyLegacy() SearchResults { return search.EmptyLegacy() }
-func legacyBucketPtr(legacy *SearchResults, et string) *[]SearchResultItem { return search.LegacyBucketPtr(legacy, et) }
+func buildFTS5Query(q string) string       { return search.BuildFTS5Query(q) }
+func emptyLegacy() SearchResults           { return search.EmptyLegacy() }
+func legacyBucketPtr(legacy *SearchResults, et string) *[]SearchResultItem {
+	return search.LegacyBucketPtr(legacy, et)
+}
 
 func HandleSearch(c *gin.Context) {
 	q := strings.TrimSpace(c.Query("q"))

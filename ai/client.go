@@ -112,14 +112,20 @@ func GenerateChat(ctx context.Context, passed *sql.DB, endpointID int64, message
 	}
 	sid := ResolveSessionID(sessionID)
 	body, _ := json.Marshal(payload)
-	httpReq, err := http.NewRequest("POST", AIRequestURL(endpoint.BaseURL, "/chat/completions"), bytes.NewReader(body))
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", AIRequestURL(endpoint.BaseURL, "/chat/completions"), bytes.NewReader(body))
 	if err != nil {
 		return "", "", &AIGenError{Status: 500, Msg: fmt.Sprintf("failed to create request: %s", SanitizeError(err))}
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 	SetAIProviderHeaders(httpReq, sid)
-	client := NewAIClient(timeout)
+	eff := timeout
+	if dl, ok := ctx.Deadline(); ok {
+		if remaining := time.Until(dl); remaining > 0 && remaining < eff {
+			eff = remaining
+		}
+	}
+	client := NewAIClient(eff)
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		middleware.LogError("ai", "text generation request failed", "endpoint_id", endpoint.ID, "model", endpoint.Model, "error", err)

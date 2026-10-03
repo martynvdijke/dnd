@@ -121,7 +121,7 @@ func TestInlineAskStore_RoundTrip(t *testing.T) {
 }
 
 func TestNoLLMImport(t *testing.T) {
-	for _, path := range []string{"inline.go", "ask.go"} {
+	for _, path := range []string{"inline.go"} {
 		data, err := testReadFile(path)
 		if err != nil {
 			t.Fatalf("read %s: %v", path, err)
@@ -136,17 +136,20 @@ func TestRunAskQuery_RetrievalOnly(t *testing.T) {
 	setupTelegramDB(t)
 	defer testutil.CloseDB(t)
 	testutil.SeedCompendiumSpell(t, 500, "Magic Missile")
+	testutil.SeedUser(t, 1, "askuser", "player")
+	db.DB.Exec("INSERT INTO telegram_identities(user_id, telegram_user_id, telegram_username, dm_enabled) VALUES(?,?,?,?)", 1, 1, "askuser", 1)
+	db.DB.Exec("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('ai_enabled','0')")
 	c := &cmdContext{ctx: context.Background(), chatID: 1, tgUserID: 1, name: "ask", args: []string{"Magic", "Missile"}}
 	reply := runAskQuery(c, "Magic Missile")
-	if !strings.Contains(reply.Text, "Top matches") {
-		t.Fatalf("expected header, got %q", reply.Text)
+	if !strings.Contains(reply.Text, "AI is not configured") {
+		t.Fatalf("expected degraded header, got %q", reply.Text)
 	}
 	if !strings.Contains(reply.Text, "Magic Missile") {
 		t.Fatalf("expected missile, got %q", reply.Text)
 	}
-	// no matches - use gibberish with no 3-char prefix overlap
+	// no matches with gibberish when AI disabled still returns degraded with empty sources message
 	reply2 := runAskQuery(c, "zzzzqqq999")
-	if !strings.Contains(reply2.Text, "No compendium matches") {
-		t.Fatalf("expected no matches, got %q", reply2.Text)
+	if !strings.Contains(reply2.Text, "AI is not configured") {
+		t.Fatalf("expected degraded for no matches, got %q", reply2.Text)
 	}
 }

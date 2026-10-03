@@ -385,6 +385,7 @@ function onSearchInput(value: string): void {
 }
 
 export async function doSearch(query?: string): Promise<void> {
+  if (aiMode) return;
   const input = document.getElementById('cpSearchInput') as HTMLInputElement | null;
   const q = query || input?.value?.trim() || '';
   if (!q) return;
@@ -446,6 +447,7 @@ export async function doSearch(query?: string): Promise<void> {
 }
 
 export async function doAISearch(query?: string): Promise<void> {
+  if (searchTimeout) { clearTimeout(searchTimeout); searchTimeout = null; }
   const input = document.getElementById('cpSearchInput') as HTMLInputElement | null;
   const q = (query || input?.value?.trim() || lastQuery || '').trim();
   if (!q) {
@@ -579,12 +581,6 @@ function onSearchKeydown(e: KeyboardEvent, input: HTMLInputElement): void {
     doAISearch(input.value);
     return;
   }
-  // When in AI answer state, Escape goes back to lexical results, not close
-  if (aiMode && e.key === 'Escape') {
-    e.preventDefault();
-    (window as any).__searchAIBack?.();
-    return;
-  }
   // In AI mode, plain Enter should not navigate a non-existent lexical list
   if (aiMode && e.key === 'Enter' && !e.metaKey && !e.ctrlKey) {
     // Allow Enter to re-trigger Ask AI if query present
@@ -616,9 +612,6 @@ function onSearchKeydown(e: KeyboardEvent, input: HTMLInputElement): void {
         const first = items[0] as HTMLElement | undefined;
         if (first) first.click();
       }
-      break;
-    case 'Escape':
-      hideSearchOverlay();
       break;
   }
 }
@@ -666,6 +659,16 @@ expose('__searchNavigate', function (type: string, id: number, name: string) {
 export function initSearch(): void {
   // Add Cmd+K / Ctrl+K shortcut for command palette
   document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const overlay = document.getElementById('searchOverlay');
+      const isOpen = !!overlay && overlay.style.display !== 'none';
+      if (isOpen) {
+        e.preventDefault();
+        if (aiMode) (window as any).__searchAIBack?.();
+        else hideSearchOverlay();
+        return;
+      }
+    }
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
       e.preventDefault();
       showSearchOverlay();
