@@ -1,3 +1,10 @@
+# [2.96.0](https://github.com/martynvdijke/dnd/compare/v2.95.0...v2.96.0) (2026-10-03)
+
+
+### Features
+
+* **ai:** ground AI draft sessions in campaign lore ([#183](https://github.com/martynvdijke/dnd/issues/183)) ([7f4d7d1](https://github.com/martynvdijke/dnd/commit/7f4d7d182afc5007432c7f5ba70d1232c89bbb6a))
+
 # [2.95.0](https://github.com/martynvdijke/dnd/compare/v2.94.0...v2.95.0) (2026-10-03)
 
 
