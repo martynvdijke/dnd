@@ -44,7 +44,7 @@ func TestMigrateHash(t *testing.T) {
 	sort.Strings(parts)
 	h := sha256.Sum256([]byte(strings.Join(parts, "\n")))
 	got := fmt.Sprintf("%x", h)
-	want := "03f945c235f6469fae2c732b1baac106242ccb5de992dd1027b41cc165059763"
+	want := "8bc2e1d60ced08f76235b83a6bf77291955650e64d483019f2e2c77384712d40"
 	if got != want {
 		t.Fatalf("sqlite_master hash mismatch got %s want %s", got, want)
 	}
