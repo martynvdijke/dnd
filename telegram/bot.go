@@ -254,6 +254,10 @@ func HandleUpdate(ctx context.Context, upd *tgmodels.Update) {
 	if upd == nil {
 		return
 	}
+	if upd.InlineQuery != nil {
+		handleInlineQuery(ctx, upd.InlineQuery)
+		return
+	}
 	if upd.CallbackQuery != nil {
 		handleCallback(ctx, upd.CallbackQuery)
 		return

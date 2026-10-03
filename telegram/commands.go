@@ -76,6 +76,7 @@ func init() {
 		{name: "class", usage: "/class <query>", desc: "Search classes", category: catCompendium, run: func(c *cmdContext) botReply { return runCompendiumSearch(c, "class") }},
 		{name: "feat", usage: "/feat <query>", desc: "Search feats", category: catCompendium, run: func(c *cmdContext) botReply { return runCompendiumSearch(c, "feat") }},
 		{name: "background", usage: "/background <query>", desc: "Search backgrounds", category: catCompendium, run: func(c *cmdContext) botReply { return runCompendiumSearch(c, "background") }},
+		{name: "ask", usage: "/ask <question>", desc: "Ask about the compendium", category: catCompendium, run: func(c *cmdContext) botReply { return runAskQuery(c, strings.Join(c.args, " ")) }},
 	}
 }
 
