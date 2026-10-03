@@ -1,3 +1,10 @@
+# [2.95.0](https://github.com/martynvdijke/dnd/compare/v2.94.0...v2.95.0) (2026-10-03)
+
+
+### Features
+
+* **search:** compendium search and AI search in Telegram and web palette ([#182](https://github.com/martynvdijke/dnd/issues/182)) ([098eb8f](https://github.com/martynvdijke/dnd/commit/098eb8f03834b71b0acc7e15b10f12c72f7d4012))
+
 # [2.94.0](https://github.com/martynvdijke/dnd/compare/v2.93.2...v2.94.0) (2026-10-03)
 
 
