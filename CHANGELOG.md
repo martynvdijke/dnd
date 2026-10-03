@@ -1,3 +1,10 @@
+# [2.97.0](https://github.com/martynvdijke/dnd/compare/v2.96.0...v2.97.0) (2026-10-03)
+
+
+### Features
+
+* **telegram:** add character actions for HP, rests, and casting ([#184](https://github.com/martynvdijke/dnd/issues/184)) ([7dd94fe](https://github.com/martynvdijke/dnd/commit/7dd94fe5eebc893f86fff1bea6446190ab96b60f))
+
 # [2.96.0](https://github.com/martynvdijke/dnd/compare/v2.95.0...v2.96.0) (2026-10-03)
 
 
