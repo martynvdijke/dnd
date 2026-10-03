@@ -27,3 +27,6 @@ dice/bundle.js
 
 # deepwork progress (git-local)
 .slim/deepwork/
+
+# Zensical build output
+site/
