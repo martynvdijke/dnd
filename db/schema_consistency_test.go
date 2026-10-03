@@ -19,6 +19,7 @@ var rawOnlyTables = map[string]string{
 	"app_settings":                   "raw-managed via db/migrations — app-wide settings",
 	"ai_draft_sessions":              "raw-managed via db/migrations — conversational AI generation sessions",
 	"auth_sessions":                  "raw-managed via db/migrations — session store",
+	"password_reset_tokens":          "raw-managed via db/migrations — self-service password reset tokens",
 	"campaign_event_settings":        "raw-managed via db/migrations — calendar event settings",
 	"campaign_invitations":           "raw-managed via db/migrations — campaign invite tokens",
 	"session_rsvps":                  "raw-managed via db/migrations — session RSVP + attendance",
