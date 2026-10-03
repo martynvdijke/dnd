@@ -24,3 +24,6 @@ static/js/**/*.js
 static/js/**/*.js.map
 coverage/
 dice/bundle.js
+
+# deepwork progress (git-local)
+.slim/deepwork/

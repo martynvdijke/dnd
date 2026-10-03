@@ -262,6 +262,7 @@ func GetCompendiumMonster(c *gin.Context) {
 	c.JSON(http.StatusOK, m)
 }
 
+// ponytail: TD-007 — duplicated by the search/ai packages; delegate when this handler is next touched
 func SearchCompendium(c *gin.Context) {
 	q := strings.TrimSpace(c.Query("q"))
 	if q == "" {
