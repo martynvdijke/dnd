@@ -149,6 +149,10 @@ func ApplySafeAlters(db *sql.DB) error {
 		"ALTER TABLE campaign_maps ADD COLUMN walls TEXT NOT NULL DEFAULT '[]'",
 		"ALTER TABLE battlemap_tokens ADD COLUMN aura_radius REAL NOT NULL DEFAULT 0",
 		"ALTER TABLE battlemap_tokens ADD COLUMN vision_radius REAL NOT NULL DEFAULT 0",
+		// Password reset tokens
+		"CREATE TABLE IF NOT EXISTS password_reset_tokens(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, token_hash TEXT UNIQUE NOT NULL, expires_at INTEGER NOT NULL, used_at INTEGER, created_at INTEGER NOT NULL DEFAULT 0)",
+		"CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id ON password_reset_tokens(user_id)",
+		"CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_hash ON password_reset_tokens(token_hash)",
 	}
 
 	for _, stmt := range alterStatements {

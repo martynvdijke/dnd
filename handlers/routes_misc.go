@@ -42,6 +42,10 @@ func RegisterPublicRoutes(r *gin.Engine) {
 	r.GET("/api/trmnl/campaign-stats", GetTRMNLCampaignStats)
 	r.GET("/api/trmnl/characters", GetTRMNLCharacterRoster)
 	r.GET("/api/trmnl/combat", GetTRMNLCombatStatus)
+
+	// Password reset (public, no CSRF)
+	r.POST("/api/forgot-password", RequestPasswordReset)
+	r.POST("/api/reset-password", ResetPassword)
 }
 
 // RegisterAuthBoilerplate registers auth helper routes (logout, csrf, me).
@@ -258,6 +262,7 @@ func RegisterStaticRoutes(r *gin.Engine, embedFS embed.FS, mediaPath string, Ver
 
 	serveHTML("/setup", "setup.html", "setup")
 	serveHTML("/admin", "admin.html", "admin")
+	serveHTML("/reset-password", "reset-password.html", "login")
 
 	// Redirect /app to /
 	r.GET("/app", func(c *gin.Context) {
