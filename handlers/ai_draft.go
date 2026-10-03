@@ -365,6 +365,16 @@ func StartAIDraft(c *gin.Context) {
 		message = aiDraftDefaultPrompt(entityType)
 	}
 
+	basePrompt := aiDraftSystemPrompt(entityType)
+	systemPrompt := basePrompt
+	if req.CampaignID != nil && *req.CampaignID > 0 {
+		role, _ := c.Get("role")
+		isAdmin := role == "admin"
+		lore := aiDraftLoreContext(c.Request.Context(), *req.CampaignID, uid, isAdmin, message)
+		if lore != "" {
+			systemPrompt = basePrompt + "\n\n" + aiDraftLoreAddendum(lore)
+		}
+	}
 	s := &aiDraftSession{
 		ID:         generateSessionID(),
 		UserID:     uid,
@@ -373,7 +383,7 @@ func StartAIDraft(c *gin.Context) {
 		ParentID:   req.ParentID,
 		Status:     "drafting",
 		Messages: []aiDraftMessage{
-			{Role: "system", Content: aiDraftSystemPrompt(entityType)},
+			{Role: "system", Content: systemPrompt},
 			{Role: "user", Content: message},
 		},
 	}
@@ -421,6 +431,18 @@ func AIDraftTurn(c *gin.Context) {
 		return
 	}
 	s.Messages = append(s.Messages, aiDraftMessage{Role: "user", Content: message})
+	// Refresh campaign context on every turn.
+	if s.CampaignID != nil && *s.CampaignID > 0 && len(s.Messages) > 0 && s.Messages[0].Role == "system" {
+		base := aiDraftSystemPrompt(s.EntityType)
+		role, _ := c.Get("role")
+		isAdmin := role == "admin"
+		lore := aiDraftLoreContext(c.Request.Context(), *s.CampaignID, s.UserID, isAdmin, message)
+		if lore != "" {
+			s.Messages[0].Content = base + "\n\n" + aiDraftLoreAddendum(lore)
+		} else {
+			s.Messages[0].Content = base
+		}
+	}
 	reply, finishReason, err := generateChat(c.Request.Context(), req.EndpointID, toProviderMessages(s.Messages),
 		aiDraftTokenBudget(c.Request.Context(), req.EndpointID), "", aiDraftTimeout)
 	if err != nil {
