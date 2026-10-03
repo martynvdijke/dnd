@@ -1,3 +1,16 @@
+# [2.94.0](https://github.com/martynvdijke/dnd/compare/v2.93.2...v2.94.0) (2026-10-03)
+
+
+### Bug Fixes
+
+* **db:** register password_reset_tokens and refresh schema hash ([#180](https://github.com/martynvdijke/dnd/issues/180)) ([fd76748](https://github.com/martynvdijke/dnd/commit/fd76748387b355d9b523ed6e7dde47e1671c7414))
+* **db:** remove duplicate password_reset_tokens allowlist entry ([#181](https://github.com/martynvdijke/dnd/issues/181)) ([076ec4c](https://github.com/martynvdijke/dnd/commit/076ec4c1e44c4272b68c317762339522987cf417)), closes [#180](https://github.com/martynvdijke/dnd/issues/180)
+
+
+### Features
+
+* **auth:** add self-service email password reset ([2d0541f](https://github.com/martynvdijke/dnd/commit/2d0541f80c26412a38c1dfeecd02f62c035767b5))
+
 ## [2.93.2](https://github.com/martynvdijke/dnd/compare/v2.93.1...v2.93.2) (2026-10-03)
 
 
