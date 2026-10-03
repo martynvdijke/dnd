@@ -159,14 +159,16 @@ func telegramSettingsPayload() gin.H {
 	if base != "" {
 		webhookURL = strings.TrimRight(base, "/") + "/api/telegram/webhook"
 	}
+	hasWebhookSecret := telegram.GetWebhookSecret() != ""
 	off := telegram.GetUpdateOffset()
 	grace := telegram.GetGraceMinutes()
 	payload := gin.H{
 		"has_token": hasToken, "token_masked": masked,
 		"mode": mode, "effective_mode": effective,
-		"webhook_url":   webhookURL,
-		"update_offset": off,
-		"grace_minutes": grace,
+		"webhook_url":        webhookURL,
+		"has_webhook_secret": hasWebhookSecret,
+		"update_offset":      off,
+		"grace_minutes":      grace,
 		"status": gin.H{
 			"mode":          effective,
 			"webhook_url":   webhookURL,

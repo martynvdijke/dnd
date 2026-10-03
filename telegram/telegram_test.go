@@ -793,6 +793,83 @@ func TestSupervisorReconcile(t *testing.T) {
 	}
 }
 
+func resetBotState(t *testing.T) {
+	t.Helper()
+	bot.mu.Lock()
+	bot.stopClientLocked()
+	bot.started = false
+	bot.mu.Unlock()
+	t.Cleanup(func() {
+		bot.mu.Lock()
+		bot.stopClientLocked()
+		bot.started = false
+		bot.mu.Unlock()
+	})
+}
+
+func TestSupervisorPollingClearsStaleWebhook(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	resetBotState(t)
+	var deletes int
+	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.Contains(r.URL.Path, "getMe"):
+			w.Write(jsonOK(map[string]any{"id": 123, "is_bot": true, "first_name": "T", "username": "tbot"}))
+		case strings.Contains(r.URL.Path, "deleteWebhook"):
+			deletes++
+			w.Write(jsonOK(true))
+		default:
+			w.Write(jsonOK(true))
+		}
+	})
+
+	_ = SetMode("polling")
+	bot.reconcile()
+	if deletes != 1 {
+		t.Fatalf("expected polling to clear a webhook left by a previous deployment, got %d deleteWebhook calls", deletes)
+	}
+	bot.mu.Lock()
+	cleared := bot.pollWebhookCleared
+	bot.mu.Unlock()
+	if !cleared {
+		t.Fatalf("expected the webhook-cleared flag to be set once polling starts")
+	}
+	// While the same client keeps polling, do not clear again.
+	bot.reconcile()
+	if deletes != 1 {
+		t.Fatalf("expected one deleteWebhook per client, got %d", deletes)
+	}
+}
+
+func TestSupervisorWebhookFallsBackToPolling(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	resetBotState(t)
+	os.Unsetenv("BASE_URL")
+	os.Unsetenv("TELEGRAM_WEBHOOK_SECRET")
+	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "getMe") {
+			w.Write(jsonOK(map[string]any{"id": 123, "is_bot": true, "first_name": "T", "username": "tbot"}))
+			return
+		}
+		w.Write(jsonOK(true))
+	})
+
+	_ = SetWebhookSecret("")
+	_ = SetMode("webhook")
+	bot.reconcile()
+	bot.mu.Lock()
+	polling := bot.pollCancel != nil
+	bot.mu.Unlock()
+	if !polling {
+		t.Fatalf("expected webhook mode without a secret or HTTPS BASE_URL to fall back to polling")
+	}
+	if runningClient() == nil {
+		t.Fatalf("expected a running client after fallback")
+	}
+}
+
 func TestGroupCommandsBoundChat(t *testing.T) {
 	setupTelegramDB(t)
 	defer testutil.CloseDB(t)

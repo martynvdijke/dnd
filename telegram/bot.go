@@ -18,15 +18,16 @@ import (
 var supervisorInterval = 15 * time.Second
 
 type botState struct {
-	mu            sync.Mutex
-	client        *tgbot.Bot
-	token         string
-	apiBase       string
-	pollCancel    context.CancelFunc
-	webhookURL    string
-	webhookSecret string
-	wake          chan struct{}
-	started       bool
+	mu                 sync.Mutex
+	client             *tgbot.Bot
+	token              string
+	apiBase            string
+	pollCancel         context.CancelFunc
+	pollWebhookCleared bool
+	webhookURL         string
+	webhookSecret      string
+	wake               chan struct{}
+	started            bool
 }
 
 var bot = &botState{wake: make(chan struct{}, 1)}
@@ -103,47 +104,68 @@ func (b *botState) reconcile() {
 		registerBotCommands(client)
 	}
 
-	if s.EffectiveMode == "polling" {
-		if b.pollCancel == nil {
-			ctx, cancel := context.WithCancel(context.Background())
-			b.pollCancel = cancel
-			client := b.client
-			go client.Start(ctx)
+	if s.EffectiveMode == "webhook" {
+		if url := WebhookURL(); url != "" && s.WebhookSecret != "" {
+			b.startWebhookLocked(s, url)
+			return
 		}
-		if b.webhookURL != "" {
-			client := b.client
-			b.webhookURL = ""
-			b.webhookSecret = ""
-			go func() {
-				if _, err := client.DeleteWebhook(context.Background(), &tgbot.DeleteWebhookParams{}); err != nil {
-					middleware.LogWarn("telegram", "failed to delete webhook for polling", "error", err)
-				}
-			}()
-		}
-		return
+		// Webhook transport needs both a public HTTPS BASE_URL and a secret.
+		// Without them the bot would go completely silent, so fall back to
+		// long polling and surface the misconfiguration for operators.
+		middleware.LogWarn("telegram",
+			"webhook mode is not fully configured; falling back to polling",
+			"base_url_https", WebhookURL() != "",
+			"webhook_secret_set", s.WebhookSecret != "")
 	}
 
-	// Webhook transport: keep the client for outbound calls, no polling.
+	b.startPollingLocked()
+}
+
+// startWebhookLocked switches the supervisor to webhook transport. The client
+// stays alive for outbound calls; polling is stopped.
+func (b *botState) startWebhookLocked(s Settings, url string) {
 	if b.pollCancel != nil {
 		b.pollCancel()
 		b.pollCancel = nil
 	}
-	url := WebhookURL()
-	if url != "" && s.WebhookSecret != "" {
-		if b.webhookURL != url || b.webhookSecret != s.WebhookSecret {
-			client := b.client
-			b.webhookURL = url
-			b.webhookSecret = s.WebhookSecret
-			go func() {
-				if _, err := client.SetWebhook(context.Background(), &tgbot.SetWebhookParams{
-					URL:         url,
-					SecretToken: s.WebhookSecret,
-				}); err != nil {
-					middleware.LogWarn("telegram", "failed to register webhook", "error", err)
-				}
-			}()
-		}
+	// A later switch back to polling must clear this webhook again.
+	b.pollWebhookCleared = false
+	if b.webhookURL != url || b.webhookSecret != s.WebhookSecret {
+		client := b.client
+		b.webhookURL = url
+		b.webhookSecret = s.WebhookSecret
+		go func() {
+			if _, err := client.SetWebhook(context.Background(), &tgbot.SetWebhookParams{
+				URL:         url,
+				SecretToken: s.WebhookSecret,
+			}); err != nil {
+				middleware.LogWarn("telegram", "failed to register webhook", "error", err)
+			}
+		}()
 	}
+}
+
+// startPollingLocked switches the supervisor to long polling. Before the first
+// getUpdates it always clears any webhook, including one left behind by a
+// previous deployment. Telegram rejects getUpdates with 409 Conflict while a
+// webhook is registered, which silently stalls the bot, so polling does not
+// start until the webhook is confirmed deleted.
+func (b *botState) startPollingLocked() {
+	if !b.pollWebhookCleared {
+		if _, err := b.client.DeleteWebhook(context.Background(), &tgbot.DeleteWebhookParams{}); err != nil {
+			middleware.LogWarn("telegram", "failed to clear webhook before polling; will retry", "error", err)
+			return
+		}
+		b.pollWebhookCleared = true
+	}
+	if b.pollCancel == nil {
+		ctx, cancel := context.WithCancel(context.Background())
+		b.pollCancel = cancel
+		client := b.client
+		go client.Start(ctx)
+	}
+	b.webhookURL = ""
+	b.webhookSecret = ""
 }
 
 func (b *botState) stopClientLocked() {
@@ -154,6 +176,7 @@ func (b *botState) stopClientLocked() {
 	b.client = nil
 	b.token = ""
 	b.apiBase = ""
+	b.pollWebhookCleared = false
 	b.webhookURL = ""
 	b.webhookSecret = ""
 }
