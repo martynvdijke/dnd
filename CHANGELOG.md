@@ -1,3 +1,10 @@
+## [2.93.2](https://github.com/martynvdijke/dnd/compare/v2.93.1...v2.93.2) (2026-10-03)
+
+
+### Bug Fixes
+
+* **telegram:** clear stale webhook before polling and fall back when webhook is unconfigured ([#179](https://github.com/martynvdijke/dnd/issues/179)) ([fc53697](https://github.com/martynvdijke/dnd/commit/fc536976358db296d2821d9904581e779f8263d6))
+
 ## [2.93.1](https://github.com/martynvdijke/dnd/compare/v2.93.0...v2.93.1) (2026-10-02)
 
 
