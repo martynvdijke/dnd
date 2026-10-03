@@ -67,7 +67,6 @@ var rawOnlyTables = map[string]string{
 	"oneshot_player_characters":      "raw-managed via db/migrations — oneshot player characters",
 	"oneshot_scene_dialogs":          "raw-managed via db/migrations — oneshot scene dialogs",
 	"parties":                        "raw-managed via db/migrations — parties",
-	"password_reset_tokens":          "raw-managed via db/migrations — email password reset tokens",
 	"pregen_characters":              "raw-managed via db/migrations — pre-generated characters",
 	"prep_checklist":                 "raw-managed via db/migrations — DM prep checklist",
 	"push_mutes":                     "raw-managed via db/migrations — push notification mutes",
