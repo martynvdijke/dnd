@@ -471,7 +471,8 @@ func fetchFromICalURL(ctx context.Context, settings db.EventSettings) ([]googlec
 		return nil, fmt.Errorf("read iCal response: %w", err)
 	}
 
-	events, err := googlecalendar.ParseICS(body)
+	// Parse up to 1000 then filter before truncating to 50 to avoid dropping matches.
+	events, err := googlecalendar.ParseICSWithLimit(body, 1000)
 	if err != nil {
 		return nil, fmt.Errorf("parse iCal feed: %w", err)
 	}
@@ -495,6 +496,11 @@ func fetchFromICalURL(ctx context.Context, settings db.EventSettings) ([]googlec
 			}
 		}
 		events = filtered
+	}
+
+	// Cap to 50 preserving order
+	if len(events) > 50 {
+		events = events[:50]
 	}
 
 	log.Printf("events: fetched %d events from iCal URL (tags=%v, url=%s)", len(events), tags, settings.ICalURL)

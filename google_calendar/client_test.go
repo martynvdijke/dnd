@@ -31,7 +31,7 @@ func TestMatchesAnyTag(t *testing.T) {
 			name:     "description matches tag",
 			event:    Event{Title: "Game Night", Description: "One-shot session for new players"},
 			tags:     []string{"one-shot"},
-			expected: true,
+			expected: false,
 		},
 		{
 			name:     "no match",
@@ -56,6 +56,24 @@ func TestMatchesAnyTag(t *testing.T) {
 			event:    Event{Title: "DnD Night", Description: ""},
 			tags:     []string{"", "dnd"},
 			expected: true,
+		},
+		{
+			name:     "title contains case-insensitive",
+			event:    Event{Title: "DND Night", Description: ""},
+			tags:     []string{"dnd"},
+			expected: true,
+		},
+		{
+			name:     "description only does not match",
+			event:    Event{Title: "Game Night", Description: "DND content inside"},
+			tags:     []string{"dnd"},
+			expected: false,
+		},
+		{
+			name:     "whitespace tag skipped",
+			event:    Event{Title: "Hello", Description: ""},
+			tags:     []string{"   "},
+			expected: false,
 		},
 	}
 	for _, tc := range tests {
@@ -323,6 +341,78 @@ func TestFetchUpcomingEvents(t *testing.T) {
 			t.Fatalf("expected 2 events, got %d", len(events))
 		}
 	})
+}
+
+func TestFetchUpcomingEventsPagination(t *testing.T) {
+	page := 0
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if page == 0 {
+			page++
+			json.NewEncoder(w).Encode(map[string]any{
+				"items": []map[string]any{
+					{"id": "evt1", "summary": "DnD Session", "start": map[string]any{"dateTime": "2026-07-15T19:00:00Z"}, "end": map[string]any{"dateTime": "2026-07-15T22:00:00Z"}},
+					{"id": "evt2", "summary": "Board Game", "start": map[string]any{"dateTime": "2026-07-16T19:00:00Z"}, "end": map[string]any{"dateTime": "2026-07-16T22:00:00Z"}},
+				},
+				"nextPageToken": "tok1",
+			})
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{
+			"items": []map[string]any{
+				{"id": "evt3", "summary": "DnD Finale", "start": map[string]any{"dateTime": "2026-07-17T19:00:00Z"}, "end": map[string]any{"dateTime": "2026-07-17T22:00:00Z"}},
+			},
+		})
+	}))
+	defer ts.Close()
+	ctx := context.Background()
+	svc, err := calendar.NewService(ctx, option.WithoutAuthentication(), option.WithEndpoint(ts.URL+"/"))
+	if err != nil {
+		t.Fatalf("create service: %v", err)
+	}
+	client := &Client{svc: svc}
+	// No filter: all 3 returned
+	events, err := client.FetchUpcomingEvents(ctx, "test@example.com", nil, nil, "text", 50)
+	if err != nil {
+		t.Fatalf("FetchUpcomingEvents: %v", err)
+	}
+	if len(events) != 3 {
+		t.Fatalf("expected 3 events across pages, got %d", len(events))
+	}
+	// With tag filter and cap after filtering
+	page = 0
+	ts2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query().Get("pageToken")
+		w.Header().Set("Content-Type", "application/json")
+		if q == "" {
+			json.NewEncoder(w).Encode(map[string]any{
+				"items": []map[string]any{
+					{"id": "a1", "summary": "DnD One", "start": map[string]any{"dateTime": "2026-07-15T19:00:00Z"}, "end": map[string]any{"dateTime": "2026-07-15T22:00:00Z"}},
+					{"id": "a2", "summary": "Other", "start": map[string]any{"dateTime": "2026-07-16T19:00:00Z"}, "end": map[string]any{"dateTime": "2026-07-16T22:00:00Z"}},
+				},
+				"nextPageToken": "tok",
+			})
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{
+			"items": []map[string]any{
+				{"id": "a3", "summary": "DnD Two", "start": map[string]any{"dateTime": "2026-07-17T19:00:00Z"}, "end": map[string]any{"dateTime": "2026-07-17T22:00:00Z"}},
+			},
+		})
+	}))
+	defer ts2.Close()
+	svc2, _ := calendar.NewService(ctx, option.WithoutAuthentication(), option.WithEndpoint(ts2.URL+"/"))
+	client2 := &Client{svc: svc2}
+	events, err = client2.FetchUpcomingEvents(ctx, "test@example.com", []string{"dnd"}, nil, "text", 1)
+	if err != nil {
+		t.Fatalf("FetchUpcomingEvents: %v", err)
+	}
+	if len(events) != 1 {
+		t.Fatalf("expected 1 event after filter cap, got %d", len(events))
+	}
+	if events[0].ID != "a1" {
+		t.Errorf("expected a1, got %s", events[0].ID)
+	}
 }
 
 func TestNewOAuthClient_EmptyCredentials(t *testing.T) {

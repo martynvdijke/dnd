@@ -184,36 +184,50 @@ func NewOAuthClient(ctx context.Context, clientID, clientSecret, refreshToken st
 }
 
 // FetchUpcomingEvents queries events from the given calendar starting from now.
-// Tags are used to filter events (case-insensitive OR match on title or description).
+// Tags are used to filter events (case-insensitive OR match on title).
 // If tags is nil or empty, all events are returned (when filterMode is "text" or "both").
 // colorLabels are comma-separated GCal color IDs or names. If empty, color filter is a pass-through.
 // filterMode controls how filters combine: "text" (tags only), "color" (colors only), "both" (AND).
-// maxResults caps the number of events returned by the API (before filtering).
+// maxResults caps the number of events returned after filtering.
 func (c *Client) FetchUpcomingEvents(ctx context.Context, calendarID string, tags []string, colorLabels []string, filterMode string, maxResults int64) ([]Event, error) {
 	if maxResults <= 0 {
 		maxResults = 50
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
-	items, err := c.svc.Events.List(calendarID).
-		TimeMin(now).
-		OrderBy("startTime").
-		SingleEvents(true).
-		MaxResults(maxResults).
-		Context(ctx).
-		Do()
-	if err != nil {
-		return nil, fmt.Errorf("google_calendar: list events: %w", err)
+	var all []Event
+	pageToken := ""
+	for {
+		call := c.svc.Events.List(calendarID).
+			TimeMin(now).
+			OrderBy("startTime").
+			SingleEvents(true).
+			MaxResults(250).
+			Context(ctx)
+		if pageToken != "" {
+			call.PageToken(pageToken)
+		}
+		resp, err := call.Do()
+		if err != nil {
+			return nil, fmt.Errorf("google_calendar: list events: %w", err)
+		}
+		for _, item := range resp.Items {
+			all = append(all, toEvent(item))
+			if len(all) >= 2500 {
+				break
+			}
+		}
+		if len(all) >= 2500 || resp.NextPageToken == "" {
+			break
+		}
+		pageToken = resp.NextPageToken
 	}
 
-	// Convert all items to our Event struct first
-	allEvents := make([]Event, len(items.Items))
-	for i, item := range items.Items {
-		allEvents[i] = toEvent(item)
+	filtered := filterEventsByMode(all, tags, colorLabels, filterMode, c, ctx)
+	if int64(len(filtered)) > maxResults {
+		filtered = filtered[:maxResults]
 	}
-
-	// Apply filters based on filterMode
-	return filterEventsByMode(allEvents, tags, colorLabels, filterMode, c, ctx), nil
+	return filtered, nil
 }
 
 // filterEventsByMode applies the configured filter mode and returns matching events.
@@ -257,17 +271,16 @@ func filterEventsByMode(events []Event, tags []string, colorLabels []string, fil
 	}
 }
 
-// MatchesAnyTag checks if the event title or description contains any of the given tags (case-insensitive).
+// MatchesAnyTag checks if the event title contains any of the given tags (case-insensitive).
 // Exported so it can be reused for iCal-sourced events.
 func MatchesAnyTag(e Event, tags []string) bool {
 	title := strings.ToLower(e.Title)
-	desc := strings.ToLower(e.Description)
 	for _, tag := range tags {
 		t := strings.ToLower(strings.TrimSpace(tag))
 		if t == "" {
 			continue
 		}
-		if strings.Contains(title, t) || strings.Contains(desc, t) {
+		if strings.Contains(title, t) {
 			return true
 		}
 	}
