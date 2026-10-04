@@ -67,7 +67,10 @@ export async function api<T = any>(method: string, path: string, body?: unknown)
     }
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: res.statusText }));
-      throw new Error(err.error || 'Request failed');
+      throw Object.assign(new Error(err.error || (err as any).message || 'Request failed'), {
+        status: res.status,
+        payload: err,
+      });
     }
     return res.json();
   } finally {

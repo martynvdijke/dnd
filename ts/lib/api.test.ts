@@ -113,6 +113,40 @@ describe('api client', () => {
     await expect(api('GET', '/api/bad')).rejects.toThrow('Server Error');
   });
 
+  it('attaches status and payload to thrown error and prefers error/message fields', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 422,
+      statusText: 'Unprocessable Entity',
+      json: () => Promise.resolve({ error: 'AI disabled', message: 'enable AI' }),
+    }) as any;
+    try {
+      await api('GET', '/api/bad');
+      throw new Error('should have thrown');
+    } catch (e: any) {
+      expect(e.message).toBe('AI disabled');
+      expect(e.status).toBe(422);
+      expect(e.payload).toEqual({ error: 'AI disabled', message: 'enable AI' });
+    }
+  });
+
+  it('uses message field when error field is absent', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 422,
+      statusText: 'Unprocessable Entity',
+      json: () => Promise.resolve({ message: 'only msg' }),
+    }) as any;
+    try {
+      await api('GET', '/api/bad');
+      throw new Error('should have thrown');
+    } catch (e: any) {
+      expect(e.message).toBe('only msg');
+      expect(e.status).toBe(422);
+      expect(e.payload).toEqual({ message: 'only msg' });
+    }
+  });
+
   it('calls hideLoading in finally even on success', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
