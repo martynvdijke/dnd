@@ -1,3 +1,10 @@
+# [2.98.0](https://github.com/martynvdijke/dnd/compare/v2.97.0...v2.98.0) (2026-10-04)
+
+
+### Features
+
+* **ai:** extract recaps and entity drafts from session transcripts ([#185](https://github.com/martynvdijke/dnd/issues/185)) ([8a5fa40](https://github.com/martynvdijke/dnd/commit/8a5fa4067be73eb533fc85ad45ed9d7f2a4b090d))
+
 # [2.97.0](https://github.com/martynvdijke/dnd/compare/v2.96.0...v2.97.0) (2026-10-03)
 
 
