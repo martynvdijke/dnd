@@ -127,6 +127,7 @@ func RegisterCampaignRoutes(r *gin.RouterGroup) {
 	r.POST("/campaigns/:id/copilot/prep", handleCopilotPrep)
 	r.POST("/campaigns/:id/copilot/transcript", handleCopilotTranscript)
 	r.POST("/campaigns/:id/copilot/transcript/summarize", handleCopilotTranscriptSummarize)
+	r.POST("/campaigns/:id/copilot/transcript/:tid/extract", handleCopilotTranscriptExtract)
 }
 
 // RegisterDM Campaign routes
