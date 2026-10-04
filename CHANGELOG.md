@@ -1,3 +1,5 @@
+## [2.98.1](https://github.com/martynvdijke/dnd/compare/v2.98.0...v2.98.1) (2026-10-04)
+
 # [2.98.0](https://github.com/martynvdijke/dnd/compare/v2.97.0...v2.98.0) (2026-10-04)
 
 
