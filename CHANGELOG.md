@@ -1,3 +1,12 @@
+## [2.98.2](https://github.com/martynvdijke/dnd/compare/v2.98.1...v2.98.2) (2026-10-06)
+
+
+### Bug Fixes
+
+* **deps:** update all non-major dependencies ([991043a](https://github.com/martynvdijke/dnd/commit/991043ae58d2aa7753bd372ab1042f074da5cfbe))
+* **deps:** update github.com/dop251/goja digest to 481fdb4 ([58900a5](https://github.com/martynvdijke/dnd/commit/58900a5e18a9a0fc10fd0206f4e4198127a6e2bf))
+* **telegram:** show all characters to admins in bot ([7066a07](https://github.com/martynvdijke/dnd/commit/7066a0730457bb0fb3a50a873f37c16f6d82c86b))
+
 ## [2.98.1](https://github.com/martynvdijke/dnd/compare/v2.98.0...v2.98.1) (2026-10-04)
 
 # [2.98.0](https://github.com/martynvdijke/dnd/compare/v2.97.0...v2.98.0) (2026-10-04)
