@@ -279,7 +279,7 @@ func TestHPRejectNonEditable(t *testing.T) {
 	setupTelegramDB(t)
 	defer testutil.CloseDB(t)
 	testutil.SeedUser(t, 1, "owner", "admin")
-	testutil.SeedUser(t, 2, "intruder", "admin")
+	testutil.SeedUser(t, 2, "intruder", "user")
 	testutil.SeedCharacter(t, 1, 1, "Aria", "Elf", "Ranger")
 	if _, err := db.DB.Exec(`UPDATE characters SET hp_max=24, hp_current=20 WHERE id=1`); err != nil {
 		t.Fatalf("update hp: %v", err)

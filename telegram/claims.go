@@ -26,10 +26,12 @@ type characterClaim struct {
 }
 
 // editableCharacterSQL mirrors handlers.canEditCharacter/isDMOfCharacter: a
-// character is editable by its owner, by the owner of a campaign it belongs
-// to, or by a campaign member with the dm role.
+// character is editable by an administrator, by its owner, by the owner of a
+// campaign it belongs to, or by a campaign member with the dm role. Each `?`
+// is the current user's id.
 const editableCharacterSQL = `
-	(c.user_id = ?
+	(EXISTS (SELECT 1 FROM users u WHERE u.id = ? AND u.role = 'admin')
+	 OR c.user_id = ?
 	 OR EXISTS (
 		SELECT 1 FROM campaign_characters cc
 		JOIN campaigns cap ON cap.id = cc.campaign_id
@@ -69,7 +71,7 @@ func characterName(id int64) (string, bool) {
 func characterEditable(id, uid int64) bool {
 	var found int64
 	err := db.DB.QueryRow(`SELECT c.id FROM characters c WHERE c.id = ? AND `+editableCharacterSQL,
-		id, uid, uid, uid).Scan(&found)
+		id, uid, uid, uid, uid).Scan(&found)
 	return err == nil
 }
 
@@ -86,7 +88,7 @@ func claimedCharacter(c *cmdContext, uid int64) (choice characterChoice, hasClai
 	}
 	err = db.DB.QueryRow(`SELECT c.id, c.name, c.race, c.class, c.level FROM characters c
 		WHERE c.id = ? AND `+editableCharacterSQL,
-		claim.CharacterID, uid, uid, uid).
+		claim.CharacterID, uid, uid, uid, uid).
 		Scan(&choice.ID, &choice.Name, &choice.Race, &choice.Class, &choice.Level)
 	if err != nil {
 		return characterChoice{ID: claim.CharacterID}, true, false
@@ -99,7 +101,7 @@ func claimCandidates(uid int64) ([]characterChoice, error) {
 		WHERE c.character_type != 'linked' AND `+editableCharacterSQL+`
 		  AND NOT EXISTS (SELECT 1 FROM telegram_character_claims tcc WHERE tcc.character_id = c.id)
 		ORDER BY c.name`,
-		uid, uid, uid)
+		uid, uid, uid, uid)
 	if err != nil {
 		return nil, err
 	}
