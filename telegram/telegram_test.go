@@ -992,3 +992,47 @@ func TestGroupWelcome(t *testing.T) {
 		t.Fatalf("expected connected campaign name, got %q", last)
 	}
 }
+
+// --- Administrator visibility ---
+
+func TestAdminSeesAllCharacters(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedUser(t, 2, "player", "user")
+	testutil.SeedUser(t, 3, "stranger", "user")
+	// Character owned by user 2, in no campaign.
+	testutil.SeedCharacter(t, 1, 2, "Boro", "Dwarf", "Cleric")
+	if err := UpsertIdentity(1, 100, 100, "admin"); err != nil {
+		t.Fatalf("upsert admin: %v", err)
+	}
+	if err := UpsertIdentity(2, 200, 200, "player"); err != nil {
+		t.Fatalf("upsert player: %v", err)
+	}
+	if err := UpsertIdentity(3, 300, 300, "stranger"); err != nil {
+		t.Fatalf("upsert stranger: %v", err)
+	}
+
+	admin := &cmdContext{ctx: context.Background(), chatID: 100, tgUserID: 100}
+	if reply := runCharacters(admin); !strings.Contains(reply.Text, "Boro") {
+		t.Fatalf("admin should list another user's character, got %q", reply.Text)
+	}
+	if reply := sheetByID(admin, 1); !strings.Contains(reply.Text, "Boro") {
+		t.Fatalf("admin should open another user's sheet, got %q", reply.Text)
+	}
+
+	// The owner still sees their own character.
+	owner := &cmdContext{ctx: context.Background(), chatID: 200, tgUserID: 200}
+	if reply := runCharacters(owner); !strings.Contains(reply.Text, "Boro") {
+		t.Fatalf("owner should list their character, got %q", reply.Text)
+	}
+
+	// A plain user with no ownership and no campaign role must not.
+	stranger := &cmdContext{ctx: context.Background(), chatID: 300, tgUserID: 300}
+	if reply := runCharacters(stranger); strings.Contains(reply.Text, "Boro") {
+		t.Fatalf("non-admin must not see another user's character, got %q", reply.Text)
+	}
+	if reply := sheetByID(stranger, 1); !strings.Contains(reply.Text, "not found") {
+		t.Fatalf("non-admin sheet must be denied, got %q", reply.Text)
+	}
+}

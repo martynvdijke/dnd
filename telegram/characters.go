@@ -72,7 +72,7 @@ func loadCharacterSummary(id, uid int64) (characterSummary, bool) {
 				JOIN campaigns camp ON camp.id = cc.campaign_id WHERE cc.character_id = c.id), '')
 		FROM characters c
 		WHERE c.id = ? AND `+editableCharacterSQL,
-		id, uid, uid, uid).
+		id, uid, uid, uid, uid).
 		Scan(&s.ID, &s.UserID, &s.Name, &s.Race, &s.Class, &s.Subclass, &s.Level,
 			&s.Ac, &s.Initiative, &s.Speed, &s.HpMax, &s.HpCurrent, &s.TempHp,
 			&s.Str, &s.Dex, &s.Con, &s.Int, &s.Wis, &s.Cha,
@@ -93,7 +93,7 @@ func listCharacters(uid int64) ([]characterListEntry, error) {
 		LEFT JOIN telegram_character_claims tcc ON tcc.character_id = c.id
 		WHERE `+editableCharacterSQL+`
 		ORDER BY c.name`,
-		uid, uid, uid)
+		uid, uid, uid, uid)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func resolveCharacterArg(uid int64, args []string) (int64, bool) {
 		}
 		return 0, false
 	}
-	rows, err := db.DB.Query(`SELECT c.id, c.name FROM characters c WHERE `+editableCharacterSQL, uid, uid, uid)
+	rows, err := db.DB.Query(`SELECT c.id, c.name FROM characters c WHERE `+editableCharacterSQL, uid, uid, uid, uid)
 	if err != nil {
 		return 0, false
 	}
