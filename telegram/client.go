@@ -41,6 +41,16 @@ func translateBotError(err error) error {
 
 func boolPtr(v bool) *bool { return &v }
 
+// botAllowedUpdates is the canonical set of update types the bot consumes.
+// Long polling and webhook registration both use it so the transports stay
+// aligned — notably so inline queries keep arriving after a mode switch.
+var botAllowedUpdates = tgbot.AllowedUpdates{
+	tgmodels.AllowedUpdateMessage,
+	tgmodels.AllowedUpdateCallbackQuery,
+	tgmodels.AllowedUpdateMyChatMember,
+	tgmodels.AllowedUpdateInlineQuery,
+}
+
 // newBotClient builds a library client pointed at the configured API base.
 // When handler is nil the client is only used for outbound calls.
 func newBotClient(token, apiBase string, handler tgbot.HandlerFunc) (*tgbot.Bot, error) {
@@ -54,12 +64,7 @@ func newBotClient(token, apiBase string, handler tgbot.HandlerFunc) (*tgbot.Bot,
 	if handler == nil {
 		opts = append(opts, tgbot.WithSkipGetMe())
 	} else {
-		opts = append(opts, tgbot.WithAllowedUpdates(tgbot.AllowedUpdates{
-			tgmodels.AllowedUpdateMessage,
-			tgmodels.AllowedUpdateCallbackQuery,
-			tgmodels.AllowedUpdateMyChatMember,
-			tgmodels.AllowedUpdateInlineQuery,
-		}))
+		opts = append(opts, tgbot.WithAllowedUpdates(botAllowedUpdates))
 	}
 	if apiBase != "" && apiBase != defaultAPIBase {
 		opts = append(opts, tgbot.WithServerURL(apiBase))
@@ -136,7 +141,7 @@ func SendDocument(chatID int64, filename, content string) (int64, error) {
 
 func SetWebhook(url, secret string) error {
 	return withBot(context.Background(), func(ctx context.Context, c *tgbot.Bot) error {
-		_, err := c.SetWebhook(ctx, &tgbot.SetWebhookParams{URL: url, SecretToken: secret})
+		_, err := c.SetWebhook(ctx, &tgbot.SetWebhookParams{URL: url, SecretToken: secret, AllowedUpdates: botAllowedUpdates})
 		return err
 	})
 }

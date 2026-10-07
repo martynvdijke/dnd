@@ -136,8 +136,9 @@ func (b *botState) startWebhookLocked(s Settings, url string) {
 		b.webhookSecret = s.WebhookSecret
 		go func() {
 			if _, err := client.SetWebhook(context.Background(), &tgbot.SetWebhookParams{
-				URL:         url,
-				SecretToken: s.WebhookSecret,
+				URL:            url,
+				SecretToken:    s.WebhookSecret,
+				AllowedUpdates: botAllowedUpdates,
 			}); err != nil {
 				middleware.LogWarn("telegram", "failed to register webhook", "error", err)
 			}
