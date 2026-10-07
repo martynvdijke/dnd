@@ -311,7 +311,8 @@ func renderSheet(s characterSummary) string {
 		countCharacterRows("character_features", s.ID),
 		countCharacterRows("spells", s.ID),
 		countCharacterRows("inventory", s.ID)))
-	b.WriteString("Currency: " + currencySummary(s.ID))
+	b.WriteString("Currency: " + currencySummary(s.ID) + "\n")
+	b.WriteString("Manage: /inventory · /spells · /conditions · /features · /money")
 	return b.String()
 }
 
