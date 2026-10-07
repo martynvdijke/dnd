@@ -1,3 +1,10 @@
+## [2.98.3](https://github.com/martynvdijke/dnd/compare/v2.98.2...v2.98.3) (2026-10-07)
+
+
+### Bug Fixes
+
+* **telegram:** include allowed updates on webhook registration ([#194](https://github.com/martynvdijke/dnd/issues/194)) ([68cfe9f](https://github.com/martynvdijke/dnd/commit/68cfe9f2cb356c6388ce54b82cc690a2ce2f43ce))
+
 ## [2.98.2](https://github.com/martynvdijke/dnd/compare/v2.98.1...v2.98.2) (2026-10-06)
 
 
