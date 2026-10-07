@@ -39,5 +39,5 @@
 ## 6. Verification and delivery
 
 - [x] 6.1 `openspec validate telegram-email-auth`
-- [ ] 6.2 `task ci` green (Go + vitest + e2e + coverage gates); PR opened and merged per the workflow contract
-- [ ] 6.3 Post-merge: archive the change in a follow-up PR (`openspec archive telegram-email-auth`, `git add -f`), matching the repo convention
+- [x] 6.2 `task ci` green (Go + vitest + e2e + coverage gates); PR opened and merged per the workflow contract
+- [x] 6.3 Post-merge: archive the change in a follow-up PR (`openspec archive telegram-email-auth`, `git add -f`), matching the repo convention
