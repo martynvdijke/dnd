@@ -283,6 +283,10 @@ func HandleUpdate(ctx context.Context, upd *tgmodels.Update) {
 		firstName: msg.From.FirstName,
 	}
 
+	if authFlowActive(c.chatID) && !strings.HasPrefix(text, "/") {
+		feedAuthFlow(c, text)
+		return
+	}
 	if flowActive(c.chatID) && !strings.HasPrefix(text, "/") {
 		feedCreateFlow(c, text)
 		return
@@ -294,6 +298,9 @@ func HandleUpdate(ctx context.Context, upd *tgmodels.Update) {
 	}
 	if name != "cancel" && flowActive(c.chatID) {
 		abortCreateFlow(c.chatID)
+	}
+	if name != "cancel" && authFlowActive(c.chatID) {
+		abortAuthFlow(c.chatID)
 	}
 
 	cmd, found := findCommand(name)

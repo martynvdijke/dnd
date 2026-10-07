@@ -69,6 +69,7 @@ func init() {
 		{name: "status", usage: "/status", desc: "Show your link and claim status", category: catBot, run: runStatus},
 		{name: "help", usage: "/help", desc: "Show this command list", category: catBot, showNav: true, run: runHelp},
 		{name: "start", usage: "/start <code>", desc: "Link your Villum account", category: catBot, run: runStart},
+		{name: "login", usage: "/login", desc: "Sign in and link by email", category: catBot, aliases: []string{"auth", "signin"}, run: runLogin},
 		{name: "unlink", usage: "/unlink", desc: "Unlink your account", category: catBot, run: runUnlink},
 		{name: "cancel", usage: "/cancel", desc: "Cancel the current step-by-step flow", category: catBot, run: runCancel},
 		{name: "search", usage: "/search <query>", desc: "Search the compendium", category: catCompendium, showNav: true, run: func(c *cmdContext) botReply { return runCompendiumSearch(c, "") }},
@@ -130,9 +131,8 @@ func helpText() string {
 
 func linkingHelpText() string {
 	return "🔗 <b>Link your Villum account first</b>\n\n" +
-		"1. Open Villum → <b>Settings → Telegram</b>.\n" +
-		"2. Generate a link code.\n" +
-		"3. Send <code>/start &lt;code&gt;</code> here.\n\n" +
+		"Easiest: send /login and enter your email.\n" +
+		"Or generate a code in Villum → <b>Settings → Telegram</b> and send <code>/start &lt;code&gt;</code> here.\n\n" +
 		"Linking unlocks /recap, /characters, /sheet, /stats, /claim and /create."
 }
 
