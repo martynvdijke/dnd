@@ -50,6 +50,7 @@ export class TelegramMock {
   botUsername: string;
   /** Longest delay applied to an empty getUpdates long poll. */
   pollDelayMs = 1250;
+  inlineAnswers: { query_id: string; results: any[]; button: any | null }[] = [];
 
   constructor(opts?: { token?: string; username?: string }) {
     this.botToken = opts?.token || 'test-bot-token';
@@ -58,6 +59,7 @@ export class TelegramMock {
 
   clear() {
     this.sentMessages = [];
+    this.inlineAnswers = [];
   }
 
   async start(): Promise<string> {
@@ -110,6 +112,26 @@ export class TelegramMock {
             return json({ ok: true, result: true });
           }
           if (method === 'answerCallbackQuery') {
+            return json({ ok: true, result: true });
+          }
+          if (method === 'answerInlineQuery') {
+            const qid = fields.inline_query_id || '';
+            let results: any[] = [];
+            try {
+              results = JSON.parse(fields.results || '[]');
+              if (!Array.isArray(results)) results = [];
+            } catch {
+              results = [];
+            }
+            let button: any | null = null;
+            if (fields.button) {
+              try {
+                button = JSON.parse(fields.button);
+              } catch {
+                button = null;
+              }
+            }
+            this.inlineAnswers.push({ query_id: qid, results, button });
             return json({ ok: true, result: true });
           }
           if (method === 'setWebhook') {

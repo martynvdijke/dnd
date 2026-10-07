@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -255,6 +256,50 @@ func TestWebhookSecret(t *testing.T) {
 	r.ServeHTTP(w3, req3)
 	if w3.Code != 200 {
 		t.Fatalf("expected 200 got %d %s", w3.Code, w3.Body.String())
+	}
+}
+
+// TestWebhookRegistrationIncludesInlineQueries guards against a webhook
+// registration that omits AllowedUpdates: a previously-restricted registration
+// would then never be widened to deliver inline_query updates, silently
+// breaking inline compendium search.
+func TestWebhookRegistrationIncludesInlineQueries(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+
+	bodyCh := make(chan string, 1)
+	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/setWebhook") {
+			body, _ := io.ReadAll(r.Body)
+			select {
+			case bodyCh <- string(body):
+			default:
+			}
+		}
+		w.Write(jsonOK(true))
+	})
+
+	client, err := newBotClient(GetBotToken(), GetAPIBase(), nil)
+	if err != nil {
+		t.Fatalf("newBotClient: %v", err)
+	}
+	b := &botState{client: client, wake: make(chan struct{}, 1)}
+	b.startWebhookLocked(Settings{WebhookSecret: "sekret"}, "https://example.test/hook")
+
+	select {
+	case body := <-bodyCh:
+		for _, want := range []string{
+			string(tgmodels.AllowedUpdateMessage),
+			string(tgmodels.AllowedUpdateCallbackQuery),
+			string(tgmodels.AllowedUpdateMyChatMember),
+			string(tgmodels.AllowedUpdateInlineQuery),
+		} {
+			if !strings.Contains(body, want) {
+				t.Fatalf("setWebhook body missing %q: %s", want, body)
+			}
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatalf("setWebhook was never called")
 	}
 }
 

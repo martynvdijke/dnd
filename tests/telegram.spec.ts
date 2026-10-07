@@ -491,4 +491,59 @@ test.describe('Telegram', () => {
     expect(stats).toContain('Statistics');
     expect(stats).toContain('Characters');
   });
+
+  test('compendium search: /spell and /search reply, and an inline query is answered', async ({ page, workerData }) => {
+    // slow: waits for the supervised client to start and for webhook-driven replies + inline answer
+    test.slow();
+    const secret = 'comp-secret-' + Date.now();
+    const save = await apiWithToken(page, 'POST', '/api/admin/telegram-settings', {
+      token: workerData.telegramMock.botToken,
+      mode: 'polling',
+      webhook_secret: secret,
+    });
+    expect(save.ok()).toBeTruthy();
+
+    const codeResp = await apiWithToken(page, 'POST', '/api/telegram/link-code');
+    expect(codeResp.ok()).toBeTruthy();
+    const code = (await codeResp.json()).code as string;
+    const tgUser = { id: 555000333, is_bot: false, first_name: 'Comp', username: 'e2e_comp' };
+    const chat = { id: 555000333, type: 'private' };
+    let updateID = 900000;
+
+    const send = async (text: string): Promise<string> => {
+      workerData.telegramMock.clear();
+      const resp = await page.request.post('/api/telegram/webhook', {
+        data: { update_id: ++updateID, message: { message_id: 1, from: tgUser, chat, text } },
+        headers: { 'X-Telegram-Bot-Api-Secret-Token': secret },
+      });
+      expect(resp.status()).toBe(200);
+      await expect.poll(() => workerData.telegramMock.sentMessages.length, { timeout: 15000 }).toBeGreaterThan(0);
+      return workerData.telegramMock.sentMessages.map((m) => m.text).join('\n---\n');
+    };
+
+    expect(await send(`/start ${code}`)).toContain('Linked');
+
+    const spellReply = await send('/spell fire bolt');
+    // Spell should be resolved or at least show compendium results
+    expect(spellReply.includes('Fire Bolt') || spellReply.includes('Compendium results')).toBeTruthy();
+
+    const searchReply = await send('/search fire');
+    expect(searchReply).toContain('Compendium results');
+
+    // Inline query
+    workerData.telegramMock.clear();
+    const inlineResp = await page.request.post('/api/telegram/webhook', {
+      data: { update_id: ++updateID, inline_query: { id: 'iq1', from: tgUser, query: 'fire', offset: '' } },
+      headers: { 'X-Telegram-Bot-Api-Secret-Token': secret },
+    });
+    expect(inlineResp.status()).toBe(200);
+    await expect.poll(() => workerData.telegramMock.inlineAnswers.length, { timeout: 15000 }).toBeGreaterThan(0);
+    const ans = workerData.telegramMock.inlineAnswers[0];
+    expect(ans.results.length).toBeGreaterThan(0);
+    const titles = ans.results.map((r: any) => String(r.title || ''));
+    expect(titles.some((t: string) => t.toLowerCase().includes('fire'))).toBeTruthy();
+    if (ans.button) {
+      expect(String(ans.button.start_parameter || '')).toMatch(/^ask_/);
+    }
+  });
 });
