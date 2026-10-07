@@ -68,7 +68,7 @@ The bot SHALL list the linked user's characters with their name, race, class, le
 
 ### Requirement: Character sheet command
 
-The bot SHALL render a character sheet summary for the claimed character, or for a character given by id or name, including identity (race, class, subclass, level), ability scores with modifiers, hit points, armor class, initiative, speed, proficiency bonus, passive perception, and counters for features, spells, and inventory. Rendered content SHALL escape user-supplied text.
+The bot SHALL render a character sheet summary for the claimed character, or for a character given by id or name, including identity (race, class, subclass, level), ability scores with modifiers, hit points, armor class, initiative, speed, proficiency bonus, passive perception, and counters for features, spells, and inventory. The sheet's other-content section SHALL point at the tracking commands for inventory, spells, conditions, features and currency. Rendered content SHALL escape user-supplied text.
 
 #### Scenario: Sheet defaults to the claim
 
@@ -94,6 +94,11 @@ The bot SHALL render a character sheet summary for the claimed character, or for
 
 - **WHEN** a character name or trait contains HTML-significant characters
 - **THEN** the message renders the text literally without enabling markup
+
+#### Scenario: Other section points at tracking
+
+- **WHEN** the sheet renders its other-content counters
+- **THEN** it names the tracking commands for inventory, spells, conditions, features and currency
 
 ### Requirement: Character stats command
 
