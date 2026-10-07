@@ -1,3 +1,10 @@
+# [2.99.0](https://github.com/martynvdijke/dnd/compare/v2.98.4...v2.99.0) (2026-10-07)
+
+
+### Features
+
+* **telegram:** email sign-in and passwordless account linking ([#196](https://github.com/martynvdijke/dnd/issues/196)) ([bf875c8](https://github.com/martynvdijke/dnd/commit/bf875c86086591e4c550f14e6c09e8599a2afd04))
+
 ## [2.98.4](https://github.com/martynvdijke/dnd/compare/v2.98.3...v2.98.4) (2026-10-07)
 
 
