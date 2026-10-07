@@ -1,3 +1,10 @@
+# [2.100.0](https://github.com/martynvdijke/dnd/compare/v2.99.0...v2.100.0) (2026-10-07)
+
+
+### Features
+
+* **telegram:** manage gear, spells, conditions and coin ([#198](https://github.com/martynvdijke/dnd/issues/198)) ([ad5c771](https://github.com/martynvdijke/dnd/commit/ad5c7719c56b421172ba1065ca2d21eb33fd5a4b))
+
 # [2.99.0](https://github.com/martynvdijke/dnd/compare/v2.98.4...v2.99.0) (2026-10-07)
 
 
