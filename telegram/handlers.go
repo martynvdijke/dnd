@@ -79,9 +79,8 @@ func welcomeText() string {
 	return "👋 <b>Welcome to the Villum bot!</b>\n\n" +
 		"I bring your table to Telegram: recaps, campaign overviews, party loot, open quests, location visits and character sheets.\n\n" +
 		"<b>Link your account</b>\n" +
-		"1. Open Villum → <b>Settings → Telegram</b>.\n" +
-		"2. Generate a link code.\n" +
-		"3. Send <code>/start &lt;code&gt;</code> here.\n\n" +
+		"Easiest: send /login and enter your email.\n" +
+		"Or with a code: open Villum → <b>Settings → Telegram</b>, generate a code, then send <code>/start &lt;code&gt;</code> here.\n\n" +
 		"Once linked, try /claim to pick your character or /create to make one. /help lists everything."
 }
 
@@ -100,7 +99,7 @@ func runUnlink(c *cmdContext) botReply {
 }
 
 func runCancel(c *cmdContext) botReply {
-	if abortCreateFlow(c.chatID) {
+	if abortCreateFlow(c.chatID) || abortAuthFlow(c.chatID) {
 		return botReply{Text: "Cancelled."}
 	}
 	return botReply{Text: "Nothing to cancel."}

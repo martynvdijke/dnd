@@ -28,6 +28,7 @@ func RegisterTelegramAdminRoutes(r *gin.RouterGroup) {
 }
 func RegisterTelegramPublicRoutes(r *gin.Engine) {
 	r.POST("/api/telegram/webhook", telegram.WebhookHandler)
+	r.GET("/telegram/auth", HandleTelegramAuthLink)
 }
 
 func CreateTelegramLinkCode(c *gin.Context) {

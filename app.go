@@ -39,6 +39,7 @@ func registerSchedulers() chan struct{} {
 	telegramStop := make(chan struct{})
 	telegram.StartBot(telegramStop)
 	telegram.SetCharacterCreator(handlers.BotCharacterCreator)
+	telegram.SetAuthLinkSender(handlers.SendTelegramAuthLinkEmail)
 	telegram.StartTelegramAutoPostScheduler(telegramStop)
 	_ = telegramStop
 	return pushStop
