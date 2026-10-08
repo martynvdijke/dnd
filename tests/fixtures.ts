@@ -4,6 +4,7 @@ import { spawn, spawnSync, type ChildProcess } from 'child_process';
 import http from 'http';
 import fs from 'fs';
 import { TelegramMock } from './telegram-mock.js';
+import { SmtpMock } from './smtp-mock.js';
 
 // Re-export runtime values and types that test files need from @playwright/test
 export { expect };
@@ -92,6 +93,7 @@ type WorkerData = {
   dbPath: string;
   telegramMock: TelegramMock;
   telegramMockUrl: string;
+  smtpMock: SmtpMock;
 };
 
 // Worker-scoped fixture: starts a Go server per worker with isolated DB.
@@ -108,12 +110,16 @@ export const test = base.extend<{}, { workerData: WorkerData }>({
       const telegramMock = new TelegramMock({ token: process.env.TELEGRAM_BOT_TOKEN || 'test-bot-token-123456:ABC', username: process.env.TELEGRAM_BOT_USERNAME || 'testvillumbot' });
       const telegramMockUrl = await telegramMock.start();
 
+      const smtpMock = new SmtpMock();
+      await smtpMock.start();
+
       const proc = spawn(SERVER_BIN, [], {
         env: {
           ...process.env,
           DB_PATH: dbPath,
           PORT: String(port),
           AUTO_SETUP: 'true',
+          BASE_URL: `http://localhost:${port}`,
           TELEGRAM_API_BASE: telegramMockUrl,
           TELEGRAM_BOT_TOKEN: telegramMock.botToken,
           TELEGRAM_BOT_USERNAME: telegramMock.botUsername,
@@ -144,10 +150,11 @@ export const test = base.extend<{}, { workerData: WorkerData }>({
         throw err;
       }
 
-      await use({ port, proc, dbPath, telegramMock, telegramMockUrl });
+      await use({ port, proc, dbPath, telegramMock, telegramMockUrl, smtpMock });
 
       cleanupServer(proc, dbPath);
       await telegramMock.stop();
+      await smtpMock.stop();
     },
     { scope: 'worker' },
   ],
