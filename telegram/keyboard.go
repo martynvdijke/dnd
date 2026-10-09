@@ -138,6 +138,17 @@ func handleCallbackData(c *cmdContext, data string) (botReply, bool) {
 		return handleSpellCallback(c, data), true
 	case strings.HasPrefix(data, cbCondPrefix):
 		return handleConditionCallback(c, data), true
+
+	case strings.HasPrefix(data, cbInitPrefix):
+		return handleInitiativeCallback(c, data), true
+	case strings.HasPrefix(data, cbQuestPrefix):
+		return handleQuestCallback(c, data), true
+	case strings.HasPrefix(data, cbSchedulePrefix):
+		return handleScheduleCallback(c, data), true
+	case strings.HasPrefix(data, cbLevelupPrefix):
+		return handleLevelupCallback(c, data), true
+	case strings.HasPrefix(data, cbCompendiumAddPrefix):
+		return handleCompendiumInventoryCallback(c, data), true
 	}
 	return botReply{}, false
 }

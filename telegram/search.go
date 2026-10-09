@@ -253,6 +253,14 @@ func handleSearchDetailCallback(c *cmdContext, data string) (botReply, bool) {
 	if runeCount(text) > 4000 {
 		text = truncateRunes(text, 3999) + "…"
 	}
-	kb := inlineKeyboard([]inlineButton{{Text: "◀ Back", CallbackData: cbSearchPrefix + token + ":" + strconv.Itoa(pageSnap)}})
+	var rows [][]inlineButton
+	if res.Type == "equipment" {
+		rows = append(rows, []inlineButton{{
+			Text:         "➕ Add to inventory",
+			CallbackData: cbCompendiumAddPrefix + token + ":" + strconv.Itoa(idx),
+		}})
+	}
+	rows = append(rows, []inlineButton{{Text: "◀ Back", CallbackData: cbSearchPrefix + token + ":" + strconv.Itoa(pageSnap)}})
+	kb := inlineKeyboard(rows...)
 	return botReply{Text: text, Keyboard: kb}, true
 }
