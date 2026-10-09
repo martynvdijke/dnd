@@ -10,6 +10,15 @@ import (
 	"villum/middleware"
 )
 
+// buildVersion is the running application build, injected by the host at
+// startup via SetBuildVersion. /status exposes it so operators can confirm
+// which version a bot is actually running (a stale deployment otherwise looks
+// identical to a broken one).
+var buildVersion string
+
+// SetBuildVersion records the application version reported by /status.
+func SetBuildVersion(v string) { buildVersion = v }
+
 // sendReply sends HTML text, splitting anything above Telegram's limit.
 func sendReply(chatID int64, text string) {
 	if strings.TrimSpace(text) == "" {
@@ -208,6 +217,9 @@ func runStatus(c *cmdContext) botReply {
 		b.WriteString(fmt.Sprintf("Linked: Villum user #%d\n", uid))
 	}
 	b.WriteString("Transport: " + escapeHTML(EffectiveMode()) + "\n")
+	if buildVersion != "" {
+		b.WriteString("Build: " + escapeHTML(buildVersion) + "\n")
+	}
 	if dmEnabled {
 		b.WriteString("Recap DMs: on\n")
 	} else {

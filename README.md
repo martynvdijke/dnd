@@ -151,6 +151,17 @@ docker compose up -d
 
 Open **[http://localhost:6280](http://localhost:6280)** in your browser.
 
+To update an existing deployment:
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+> `docker compose up -d` on its own does **not** fetch a newer release — without
+> an explicit `pull` it reuses the image already on the host. Verify the running
+> build at **[http://localhost:6280/healthz](http://localhost:6280/healthz)**
+> (the `version` field), or send `/status` to the Telegram bot.
+
 ### Manual Setup
 
 ```bash

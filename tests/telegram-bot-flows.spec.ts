@@ -29,8 +29,30 @@ async function apiWithToken(page: any, method: string, path: string, body?: any)
 }
 
 test.describe('Telegram bot flows', () => {
+  // Track side effects so this file leaves the worker-shared server as it found it.
+  let createdCharacterId: number | null = null;
+
   test.beforeEach(async ({ page }) => {
     await login(page);
+  });
+
+  // These tests link the worker-shared admin account to Telegram and create a
+  // character. Later specs in the same worker (tests/telegram.spec.ts) assume the
+  // admin starts unlinked with no characters, so restore that state after every
+  // test. Best-effort: cleanup must never fail a test.
+  test.afterEach(async ({ page }) => {
+    try {
+      if (createdCharacterId !== null) {
+        await apiWithToken(page, 'DELETE', `/api/characters/${createdCharacterId}`);
+        createdCharacterId = null;
+      }
+      const statusResp = await apiWithToken(page, 'GET', '/api/telegram/status');
+      if (statusResp.ok() && (await statusResp.json()).linked) {
+        await apiWithToken(page, 'DELETE', '/api/telegram/unlink');
+      }
+    } catch {
+      // ignore cleanup errors
+    }
   });
 
   test('login: email sign-in + magic link + status linked', async ({ page, workerData }) => {
@@ -135,6 +157,7 @@ test.describe('Telegram bot flows', () => {
     });
     expect(charResp.ok()).toBeTruthy();
     const charId = (await charResp.json()).id as number;
+    createdCharacterId = charId;
 
     const send = async (text: string): Promise<string> => {
       workerData.telegramMock.clear();

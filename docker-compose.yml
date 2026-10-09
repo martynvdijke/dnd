@@ -1,5 +1,9 @@
 services:
   villum:
+    # Published release image. `docker compose pull` fetches it so updating is
+    # just `docker compose pull && docker compose up -d`. `build: .` is kept
+    # for local development (`docker compose up -d --build`).
+    image: martynvandijke/dnd:latest
     build: .
     ports:
       - "6280:6280"
