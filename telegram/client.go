@@ -188,6 +188,88 @@ func AnswerInlineQuery(ctx context.Context, queryID string, results []tgmodels.I
 	})
 }
 
+// SendPoll posts a native Telegram poll and returns the message id.
+// When multiple is true the poll allows selecting several options; openPeriod
+// (seconds) auto-closes the poll and must be 0 or 5..600.
+func SendPoll(chatID int64, question string, options []string, multiple bool, openPeriod int) (int64, error) {
+	var msgID int64
+	err := withBot(context.Background(), func(ctx context.Context, c *tgbot.Bot) error {
+		opts := make([]tgmodels.InputPollOption, 0, len(options))
+		for _, o := range options {
+			opts = append(opts, tgmodels.InputPollOption{Text: o})
+		}
+		msg, err := c.SendPoll(ctx, &tgbot.SendPollParams{
+			ChatID:                chatID,
+			Question:              question,
+			Options:               opts,
+			AllowsMultipleAnswers: multiple,
+			AllowsRevoting:        true,
+			OpenPeriod:            openPeriod,
+		})
+		if err != nil {
+			return err
+		}
+		if msg != nil {
+			msgID = int64(msg.ID)
+		}
+		return nil
+	})
+	return msgID, err
+}
+
+// CreateForumTopic creates a topic in a supergroup where the bot is admin and
+// returns the created topic (including its message_thread_id).
+func CreateForumTopic(chatID int64, name string) (*tgmodels.ForumTopic, error) {
+	var topic *tgmodels.ForumTopic
+	err := withBot(context.Background(), func(ctx context.Context, c *tgbot.Bot) error {
+		var err error
+		topic, err = c.CreateForumTopic(ctx, &tgbot.CreateForumTopicParams{ChatID: chatID, Name: name})
+		return err
+	})
+	return topic, err
+}
+
+// EditMessageText rewrites an existing message in place, optionally swapping
+// its inline keyboard. Used by interactive trackers (initiative, quests).
+func EditMessageText(chatID int64, messageID int, text string, kb *tgmodels.InlineKeyboardMarkup) error {
+	return withBot(context.Background(), func(ctx context.Context, c *tgbot.Bot) error {
+		_, err := c.EditMessageText(ctx, &tgbot.EditMessageTextParams{
+			ChatID:             chatID,
+			MessageID:          messageID,
+			Text:               text,
+			ParseMode:          tgmodels.ParseModeHTML,
+			LinkPreviewOptions: &tgmodels.LinkPreviewOptions{IsDisabled: boolPtr(true)},
+			ReplyMarkup:        kb,
+		})
+		return err
+	})
+}
+
+// SendEphemeralMessage sends a message visible only to receiverUserID and the
+// bot (Bot API 10.3 ephemeral messages, groups/supergroups only). Returns the
+// ephemeral message id, or 0 when Telegram does not surface one.
+func SendEphemeralMessage(chatID int64, receiverUserID int64, text string) (int64, error) {
+	var msgID int64
+	err := withBot(context.Background(), func(ctx context.Context, c *tgbot.Bot) error {
+		msg, err := c.SendMessage(ctx, &tgbot.SendMessageParams{
+			ChatID:    chatID,
+			Text:      text,
+			ParseMode: tgmodels.ParseModeHTML,
+			EphemeralMessageParameters: &tgmodels.EphemeralMessageParameters{
+				ReceiverUserID: receiverUserID,
+			},
+		})
+		if err != nil {
+			return err
+		}
+		if msg != nil {
+			msgID = int64(msg.EphemeralMessageID)
+		}
+		return nil
+	})
+	return msgID, err
+}
+
 var (
 	botUsernameCache string
 	botUsernameOnce  sync.Once

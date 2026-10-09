@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	tgmodels "github.com/go-telegram/bot/models"
+
 	"villum/db"
 )
 
@@ -244,7 +246,44 @@ func runQuests(c *cmdContext) botReply {
 	if hidden > 0 {
 		fmt.Fprintf(&b, "\n…and %d more.", hidden)
 	}
-	return botReply{Text: strings.TrimRight(b.String(), "\n")}
+	reply = botReply{Text: strings.TrimRight(b.String(), "\n")}
+	reply.Keyboard = questKeyboardForCampaign(cc.ID)
+	return reply
+}
+
+// questKeyboardForCampaign builds checkbox buttons for open quests.
+func questKeyboardForCampaign(campaignID int64) *tgmodels.InlineKeyboardMarkup {
+	// Use raw SQL to get ids and names for keyboard
+	rows, err := db.DB.Query(`
+		SELECT q.id, q.name, q.status
+		FROM campaign_characters cc
+		JOIN quests q ON q.character_id = cc.character_id
+		WHERE cc.campaign_id = ? AND q.status IN ('available', 'active')
+		ORDER BY q.name LIMIT 20`, campaignID)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	var kbRows [][]inlineButton
+	for rows.Next() {
+		var id int64
+		var name, status string
+		if err := rows.Scan(&id, &name, &status); err != nil {
+			continue
+		}
+		label := "☐ " + truncateRunes(name, 30)
+		cb := fmt.Sprintf("quest:done:%d", id)
+		if len(cb) > 64 {
+			continue
+		}
+		kbRows = append(kbRows, []inlineButton{
+			{Text: label, CallbackData: cb},
+		})
+	}
+	if len(kbRows) == 0 {
+		return nil
+	}
+	return inlineKeyboard(kbRows...)
 }
 
 type visitItem struct {
