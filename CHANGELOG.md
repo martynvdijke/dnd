@@ -1,3 +1,10 @@
+## [2.100.2](https://github.com/martynvdijke/dnd/compare/v2.100.1...v2.100.2) (2026-10-09)
+
+
+### Bug Fixes
+
+* **deploy:** make bot deployments updatable and version-visible ([#204](https://github.com/martynvdijke/dnd/issues/204)) ([c7c28aa](https://github.com/martynvdijke/dnd/commit/c7c28aa3f50666ad82230ee93b605802ac4e344d))
+
 ## [2.100.1](https://github.com/martynvdijke/dnd/compare/v2.100.0...v2.100.1) (2026-10-08)
 
 # [2.100.0](https://github.com/martynvdijke/dnd/compare/v2.99.0...v2.100.0) (2026-10-07)
