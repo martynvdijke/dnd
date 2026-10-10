@@ -1,3 +1,10 @@
+# [2.101.0](https://github.com/martynvdijke/dnd/compare/v2.100.2...v2.101.0) (2026-10-10)
+
+
+### Features
+
+* **telegram:** add dice, whispers, initiative, quests, scheduling, topics and level-up ([#206](https://github.com/martynvdijke/dnd/issues/206)) ([062ce6c](https://github.com/martynvdijke/dnd/commit/062ce6cbeb1ea5d1bc76c68ef2331ec1103d7ac8))
+
 ## [2.100.2](https://github.com/martynvdijke/dnd/compare/v2.100.1...v2.100.2) (2026-10-09)
 
 
