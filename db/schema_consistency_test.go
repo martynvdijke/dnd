@@ -84,6 +84,9 @@ var rawOnlyTables = map[string]string{
 	"telegram_deliveries":            "raw-managed via db/migrations — telegram deliveries",
 	"telegram_identities":            "raw-managed via db/migrations — telegram identities",
 	"telegram_link_codes":            "raw-managed via db/migrations — telegram link codes",
+	"telegram_forum_topics":          "raw-managed via db/migrations — telegram forum topics",
+	"telegram_initiative":            "raw-managed via db/migrations — telegram initiative tracker",
+	"telegram_session_polls":         "raw-managed via db/migrations — telegram session polls",
 	"umami_settings":                 "raw-managed via db/migrations — analytics settings",
 }
 

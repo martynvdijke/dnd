@@ -146,10 +146,18 @@ test.describe('Telegram', () => {
   });
 
   test('account link: generate code, deep link elements, simulate /start, linked badge, unlink', async ({ page, workerData }) => {
-    // Ensure a webhook secret so the link-via-webhook path is testable
+    // Configure the bot (token + polling) so this test is self-sufficient: a
+    // retry may land on a fresh worker where no earlier test has started the
+    // supervised bot client yet. Also set a fresh webhook secret for delivery.
     const secret = 'test-webhook-secret-' + Date.now();
-    const secResp = await apiWithToken(page, 'POST', '/api/admin/telegram-settings', { webhook_secret: secret });
+    const secResp = await apiWithToken(page, 'POST', '/api/admin/telegram-settings', {
+      token: workerData.telegramMock.botToken,
+      mode: 'polling',
+      webhook_secret: secret,
+    });
     expect(secResp.ok()).toBeTruthy();
+    // The supervised client registers its command menu once it is running.
+    await expect.poll(() => workerData.telegramMock.commands.length, { timeout: 20000 }).toBeGreaterThan(0);
 
     // Open the Link Telegram modal — the navbar button is the entry point
     await expect(page.getByTestId('telegram-account-link')).toBeVisible({ timeout: NAV_TIMEOUT });
@@ -192,9 +200,11 @@ test.describe('Telegram', () => {
     expect(href).toBeTruthy();
     if (deepLinkVal) expect(href).toBe(deepLinkVal);
 
-    // Simulate /start <code> via the public webhook with correct secret
-    const update = {
-      update_id: Math.floor(Math.random() * 100000) + 1000,
+    // Simulate /start <code> via the public webhook with correct secret.
+    // The supervised bot client may still be starting up, and a dropped update
+    // is never retried by the server, so deliver until it is processed.
+    let updateID = Math.floor(Math.random() * 100000) + 1000;
+    const tgUpdate = {
       message: {
         message_id: 1,
         from: { id: 987654321, is_bot: false, first_name: 'E2E', username: 'e2e_tester' },
@@ -202,11 +212,15 @@ test.describe('Telegram', () => {
         text: `/start ${body.code}`,
       },
     };
-    const whResp = await page.request.post('/api/telegram/webhook', {
-      data: update,
-      headers: { 'X-Telegram-Bot-Api-Secret-Token': secret },
-    });
-    expect(whResp.status()).toBe(200);
+    workerData.telegramMock.clear();
+    await expect.poll(async () => {
+      const whResp = await page.request.post('/api/telegram/webhook', {
+        data: { ...tgUpdate, update_id: ++updateID },
+        headers: { 'X-Telegram-Bot-Api-Secret-Token': secret },
+      });
+      if (whResp.status() !== 200) return 0;
+      return workerData.telegramMock.sentMessages.length;
+    }, { timeout: 20000 }).toBeGreaterThan(0);
 
     // Re-open modal (or query status) and assert linked state
     // Close and reopen to force a fresh status fetch
