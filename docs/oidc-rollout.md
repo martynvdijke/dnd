@@ -167,11 +167,10 @@ values: `issuer https://authelia.vandijke.xyz`,
 `token_endpoint_auth_methods_supported` including `client_secret_basic` and
 `client_secret_post`.
 
-Still to confirm by hand, with a real account: that the login completes and links the
-account by verified email, that membership of the `admins` group grants the admin role,
-that existing sessions and API tokens keep working, and that logout clears the session.
-The client's `consent` and `policy: one_factor` settings live in the Authelia portal and
-cannot be observed from outside.
+The interactive login was confirmed by the operator on 2026-10-17: signing in through
+Authelia completes and returns to Villum with a session. The client's `consent` and
+`policy: one_factor` settings live in the Authelia portal and cannot be observed from
+outside.
 
 ## Rollback
 

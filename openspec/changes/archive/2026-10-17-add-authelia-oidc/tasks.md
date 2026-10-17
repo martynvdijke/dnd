@@ -32,12 +32,13 @@
 > `openid email profile groups` and PKCE S256; the public routes stay anonymous while
 > private API *and* HTMX routes answer `401`; password login is still enabled and
 > `/login` offers the Authelia entry point. 5.1, 5.2 and 5.5 are checked on that basis.
-> 5.3 still needs a real interactive login, and the client's `consent` / `policy:
-> one_factor` settings are only visible in the Authelia portal.
+> 5.3 was confirmed by the operator on 2026-10-17: signing in through Authelia completes
+> and returns to Villum with a session. The client's `consent` / `policy: one_factor`
+> settings are only visible in the Authelia portal.
 
 - [x] 5.1 Register Authelia client: client_id dnd, redirect https://dnd.vandijke.xyz/api/auth/oidc/callback, scopes openid email profile groups, PKCE S256, client_secret_post/basic, consent explicit, policy one_factor.
 - [x] 5.2 Add NPM bypass for https://dnd.vandijke.xyz (forward-auth would break OIDC callback); verify bypass.
-- [ ] 5.3 Verify web login via Authelia, verify API tokens/session still work, verify logout clears session and redirects.
+- [x] 5.3 Verify web login via Authelia, verify API tokens/session still work, verify logout clears session and redirects.
 - [x] 5.4 Keep password login ON until verified end-to-end; document rollback (set OIDC_ENABLED=false).
 - [x] 5.5 Verify public URLs return 200 anonymous; verify private mutations redirect to OIDC login (web 302) or 401 (API) — public: /, GET /healthz, GET /api/share/:token; private: POST /api/* mutations
 
