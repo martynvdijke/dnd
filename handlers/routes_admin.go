@@ -56,6 +56,9 @@ func RegisterAdminRoutes(r *gin.RouterGroup) {
 	r.PUT("/events-settings", SaveEventsSettings)
 	r.POST("/events-settings/clear-cache", ClearEventsCache)
 	r.POST("/events-cache/clear", ClearEventsCache)
+	r.GET("/events-oauth/status", GoogleOAuthStatus)
+	r.GET("/events-oauth/start", GoogleOAuthStart)
+	r.GET("/events-oauth/callback", GoogleOAuthCallback)
 
 	// Events Share Link & QR
 	r.GET("/events/public-link", EventsPublicLink)

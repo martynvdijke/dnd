@@ -16,7 +16,7 @@
       <div class="meta"></div>
       <div class="content">
         <span class="label">{{ ch.race }} {{ ch.class }}{% if ch.subclass %} · {{ ch.subclass }}{% endif %}</span>
-        <span class="value value--medium">{{ ch.name }}</span>
+        <span class="value">{{ ch.name }}</span>
         <span class="label">Level {{ ch.level }} · HP {{ ch.hp_current }}/{{ ch.hp_max }}</span>
       </div>
     </div>
@@ -61,7 +61,7 @@
       <div class="meta"></div>
       <div class="content">
         <span class="label">Hit Points</span>
-        <span class="value value--medium">{{ IDX_1.hp_current }}/{{ IDX_1.hp_max }}</span>
+        <span class="value">{{ IDX_1.hp_current }}/{{ IDX_1.hp_max }}</span>
       </div>
     </div>
   </div>
@@ -70,7 +70,7 @@
       <div class="meta"></div>
       <div class="content">
         <span class="label">Quests</span>
-        <span class="value value--medium">{{ IDX_1.quests.active }} active</span>
+        <span class="value">{{ IDX_1.quests.active }} active</span>
         <span class="label">{{ IDX_1.quests.complete }} complete / {{ IDX_1.quests.failed }} failed</span>
       </div>
     </div>
@@ -78,7 +78,7 @@
       <div class="meta"></div>
       <div class="content">
         <span class="label">Rests</span>
-        <span class="value value--medium">{{ IDX_1.rests.short }} short / {{ IDX_1.rests.long }} long</span>
+        <span class="value">{{ IDX_1.rests.short }} short / {{ IDX_1.rests.long }} long</span>
         <span class="label">{{ IDX_1.rests.total_healed }} HP healed</span>
       </div>
     </div>
@@ -86,14 +86,14 @@
       <div class="meta"></div>
       <div class="content">
         <span class="label">Top NPCs</span>
-        <span class="value value--medium">{% for npc in IDX_1.top_npcs limit:3 %}{{ npc }}{% unless forloop.last %}, {% endunless %}{% endfor %}</span>
+        <span class="value">{% for npc in IDX_1.top_npcs limit:3 %}{{ npc }}{% unless forloop.last %}, {% endunless %}{% endfor %}</span>
       </div>
     </div>
     <div class="item">
       <div class="meta"></div>
       <div class="content">
         <span class="label">Dice</span>
-        <span class="value value--medium">{{ IDX_1.dice_rolls.total_rolls }} rolls</span>
+        <span class="value">{{ IDX_1.dice_rolls.total_rolls }} rolls</span>
         <span class="label">{{ IDX_1.dice_rolls.natural_20s }} nat 20s / {{ IDX_1.dice_rolls.natural_1s }} nat 1s</span>
       </div>
     </div>
@@ -105,7 +105,7 @@
       <div class="meta"></div>
       <div class="content text--center">
         <span class="label">Combat Tracker</span>
-        <span class="value value--medium">No active combat</span>
+        <span class="value">No active combat</span>
         <span class="label">the party is between fights</span>
       </div>
     </div>
@@ -117,7 +117,7 @@
       <div class="meta"></div>
       <div class="content">
         <span class="label">Initiative {{ e.initiative_total }} · {{ e.type }}</span>
-        <span class="value value--medium">{{ e.name }}</span>
+        <span class="value">{{ e.name }}</span>
         <span class="label">HP {{ e.hp_current }}/{{ e.hp_max }} · AC {{ e.ac }}{% if e.conditions.size > 0 %} · {% for c in e.conditions %}{{ c }}{% unless forloop.last %}, {% endunless %}{% endfor %}{% endif %}</span>
       </div>
     </div>
@@ -164,7 +164,7 @@
       <div class="meta"></div>
       <div class="content">
         <span class="label">STR</span>
-        <span class="value value--medium">{{ IDX_0.str }}</span>
+        <span class="value">{{ IDX_0.str }}</span>
         <span class="label">{% if IDX_0.str_mod > 0 %}+{% endif %}{{ IDX_0.str_mod }}</span>
       </div>
     </div>
@@ -172,7 +172,7 @@
       <div class="meta"></div>
       <div class="content">
         <span class="label">DEX</span>
-        <span class="value value--medium">{{ IDX_0.dex }}</span>
+        <span class="value">{{ IDX_0.dex }}</span>
         <span class="label">{% if IDX_0.dex_mod > 0 %}+{% endif %}{{ IDX_0.dex_mod }}</span>
       </div>
     </div>
@@ -180,7 +180,7 @@
       <div class="meta"></div>
       <div class="content">
         <span class="label">CON</span>
-        <span class="value value--medium">{{ IDX_0.con }}</span>
+        <span class="value">{{ IDX_0.con }}</span>
         <span class="label">{% if IDX_0.con_mod > 0 %}+{% endif %}{{ IDX_0.con_mod }}</span>
       </div>
     </div>
@@ -188,7 +188,7 @@
       <div class="meta"></div>
       <div class="content">
         <span class="label">INT</span>
-        <span class="value value--medium">{{ IDX_0.int }}</span>
+        <span class="value">{{ IDX_0.int }}</span>
         <span class="label">{% if IDX_0.int_mod > 0 %}+{% endif %}{{ IDX_0.int_mod }}</span>
       </div>
     </div>
@@ -196,7 +196,7 @@
       <div class="meta"></div>
       <div class="content">
         <span class="label">WIS</span>
-        <span class="value value--medium">{{ IDX_0.wis }}</span>
+        <span class="value">{{ IDX_0.wis }}</span>
         <span class="label">{% if IDX_0.wis_mod > 0 %}+{% endif %}{{ IDX_0.wis_mod }}</span>
       </div>
     </div>
@@ -204,14 +204,14 @@
       <div class="meta"></div>
       <div class="content">
         <span class="label">CHA</span>
-        <span class="value value--medium">{{ IDX_0.cha }}</span>
+        <span class="value">{{ IDX_0.cha }}</span>
         <span class="label">{% if IDX_0.cha_mod > 0 %}+{% endif %}{{ IDX_0.cha_mod }}</span>
       </div>
     </div>
   </div>
   {% endif %}
-  <div class="title_bar">
-    <img width="60" src="{{ trmnl.plugin_settings.custom_fields_values.url | default: 'https://dnd.example.com' }}/static/icon-192.png">
-    <span class="title">Villum · D&D Stats</span>
-  </div>
+</div>
+<div class="title_bar">
+  <img width="60" src="{{ trmnl.plugin_settings.custom_fields_values.url | default: 'https://dnd.example.com' }}/static/icon-192.png">
+  <span class="title">Villum · D&D Stats</span>
 </div>

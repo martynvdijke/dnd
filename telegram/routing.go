@@ -25,14 +25,12 @@ func DeliverRecap(recapID int64, kind string) {
 			chatID int64
 			typ    string
 		}
-		var chatID *int64
-		var isEnabled int
-		_ = db.DB.QueryRow("SELECT chat_id, is_enabled FROM campaign_telegram_settings WHERE campaign_id=?", campaignID).Scan(&chatID, &isEnabled)
-		if chatID != nil && isEnabled == 1 {
+		chat, found, err := GetCampaignTelegramSettings(campaignID)
+		if err == nil && found && chat.ChatID != nil && chat.IsEnabled {
 			targets = append(targets, struct {
 				chatID int64
 				typ    string
-			}{*chatID, "chat"})
+			}{*chat.ChatID, "chat"})
 		}
 		rows, _ := db.DB.Query(`SELECT telegram_chat_id FROM telegram_identities ti
 			JOIN campaign_members cm ON cm.user_id=ti.user_id
@@ -63,7 +61,7 @@ func DeliverRecap(recapID int64, kind string) {
 			return
 		}
 		text := title + "\n\n" + content
-		chunks := chunkMessage(text, 4096)
+		chunks := chunkMessage(text, 4000)
 		useDoc := len(chunks) > 3
 		for _, tgt := range targets {
 			res, err := db.DB.Exec(`INSERT OR IGNORE INTO telegram_deliveries(recap_id,campaign_id,target_type,target_chat_id,kind,status) VALUES(?,?,?,?,?,?)`,
@@ -88,7 +86,7 @@ func DeliverRecap(recapID int64, kind string) {
 				}
 			} else {
 				for _, ch := range chunks {
-					ch = strings.TrimSpace(ch)
+					ch = escapeHTML(strings.TrimSpace(ch))
 					if ch == "" {
 						continue
 					}
@@ -139,10 +137,14 @@ func retryFailed() {
 			continue
 		}
 		text := title + "\n\n" + content
-		chunks := chunkMessage(text, 4096)
+		chunks := chunkMessage(text, 4000)
 		var lastErr string
 		var success bool
 		for _, ch := range chunks {
+			ch = escapeHTML(strings.TrimSpace(ch))
+			if ch == "" {
+				continue
+			}
 			_, err := SendMessage(it.chat, ch)
 			if err != nil {
 				lastErr = err.Error()

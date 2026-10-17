@@ -7,16 +7,47 @@ export function setCurrentUser(v: any) { currentUser = v; }
 export function getCsrfToken() { return csrfToken; }
 export function getApiToken() { return apiToken; }
 export function getCurrentUser() { return currentUser; }
+export function clearApiToken() { apiToken = ''; }
 
-export async function api(method: string, path: string, body?: any): Promise<any> {
+type UnauthorizedHandler = () => Promise<void> | void;
+
+let onUnauthorized: UnauthorizedHandler | null = null;
+
+// setUnauthorizedHandler registers a callback that re-provisions the API token.
+// The admin shell wires this to its bootstrap so a stale token self-heals on a
+// 401 instead of wedging every mutation.
+export function setUnauthorizedHandler(handler: UnauthorizedHandler | null): void {
+  onUnauthorized = handler;
+}
+
+function isMutation(method: string): boolean {
+  const m = method.toUpperCase();
+  return m !== 'GET' && m !== 'HEAD' && m !== 'OPTIONS';
+}
+
+function sendRequest(method: string, path: string, body?: any): Promise<Response> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
-  if (apiToken && method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+  if (apiToken && isMutation(method)) {
     headers['Authorization'] = `Bearer ${apiToken}`;
   }
   const opts: RequestInit = { method, headers, credentials: 'include' };
   if (body !== undefined) opts.body = JSON.stringify(body);
-  const res = await fetch(path, opts);
+  return fetch(path, opts);
+}
+
+export async function api(method: string, path: string, body?: any): Promise<any> {
+  let res = await sendRequest(method, path, body);
+  // GETs bypass the API-token check, so a stale token only shows up as a 401 on
+  // a mutation. Re-provision once and retry rather than forcing a reload.
+  if (res.status === 401 && isMutation(method) && apiToken && onUnauthorized) {
+    try {
+      await onUnauthorized();
+    } catch {
+      // Keep the original 401 if re-provisioning fails.
+    }
+    res = await sendRequest(method, path, body);
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || 'Request failed');

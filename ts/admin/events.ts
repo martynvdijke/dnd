@@ -301,3 +301,92 @@ expose('deleteCampaignEventSetting', async function (id: number) {
 expose('clearCampaignCache', async function (id: number) {
   try { await api('POST', '/api/admin/events-campaigns/' + id + '/clear-cache'); toast('Campaign cache cleared'); loadCampaignEventSettings(); } catch (e: any) { renderError(e); }
 });
+
+expose('connectGoogleCalendar', function () {
+  window.location.href = '/api/admin/events-oauth/start';
+});
+
+expose('copyEventsOAuthRedirectUri', async function () {
+  const input = document.getElementById('eventsOAuthRedirectUri') as HTMLInputElement | null;
+  if (!input || !input.value) return;
+  try {
+    await navigator.clipboard.writeText(input.value);
+    toast('Redirect URI copied');
+  } catch {
+    input.select();
+    try { document.execCommand('copy'); } catch { /* ignore */ }
+    toast('Redirect URI copied');
+  }
+});
+
+async function loadEventsOAuthStatus() {
+  const statusEl = document.getElementById('eventsOAuthStatus') as HTMLElement | null;
+  const hintEl = document.getElementById('eventsOAuthNotConnectedHint') as HTMLElement | null;
+  const uriInput = document.getElementById('eventsOAuthRedirectUri') as HTMLInputElement | null;
+  try {
+    const res = await api('GET', '/api/admin/events-oauth/status');
+    const connected = !!res.connected;
+    const redirectUri: string = res.redirect_uri || '';
+    if (uriInput) uriInput.value = redirectUri;
+    if (statusEl) {
+      if (connected) {
+        statusEl.className = 'badge bg-success';
+        statusEl.innerHTML = '<i class="fa-solid fa-check me-1"></i>Connected';
+      } else {
+        statusEl.className = 'badge bg-secondary';
+        statusEl.innerHTML = '<i class="fa-solid fa-circle-xmark me-1"></i>Not connected';
+      }
+    }
+    if (hintEl) hintEl.style.display = connected ? 'none' : '';
+  } catch {
+    if (statusEl) {
+      statusEl.className = 'badge bg-warning text-dark';
+      statusEl.textContent = 'Unable to load status';
+    }
+    if (hintEl) hintEl.style.display = 'none';
+  }
+}
+expose('loadEventsOAuthStatus', loadEventsOAuthStatus);
+
+function handleEventsOAuthQuery() {
+  const params = new URLSearchParams(window.location.search);
+  const v = params.get('events_oauth');
+  if (!v) return;
+  const reason = params.get('reason');
+  if (v === 'connected') {
+    toast('Google Account connected');
+  } else if (v === 'missing_credentials') {
+    toast('Save your Client ID and Client Secret first, then connect again.', true);
+  } else if (v === 'error') {
+    const detail = reason ? String(reason).replace(/_/g, ' ') : '';
+    const msg = detail ? `Google connection failed: ${detail}` : 'Google connection failed. Please try again.';
+    toast(msg, true);
+  }
+  params.delete('events_oauth');
+  params.delete('reason');
+  const qs = params.toString();
+  const newUrl = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
+  history.replaceState(null, '', newUrl);
+}
+
+function initEventsOAuth() {
+  handleEventsOAuthQuery();
+  void loadEventsOAuthStatus();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initEventsOAuth);
+} else {
+  initEventsOAuth();
+}
+
+// Keep OAuth status in sync when the Events settings are (re)loaded —
+// showAdminTab('events') in ts/admin.ts calls loadEventsSettings(), so
+// piggyback there rather than patching the tab router (which lives outside
+// ts/admin/* and must not be edited per task constraints).
+const _origLoadEventsSettings = loadEventsSettings;
+async function wrappedLoadEventsSettings() {
+  await _origLoadEventsSettings();
+  await loadEventsOAuthStatus();
+}
+expose('loadEventsSettings', wrappedLoadEventsSettings);

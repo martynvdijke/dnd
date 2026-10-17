@@ -15,7 +15,7 @@
       <div class="meta"></div>
       <div class="content">
         <span class="label">{{ ch.race }} {{ ch.class }}</span>
-        <span class="value value--medium">{{ ch.name }}</span>
+        <span class="value">{{ ch.name }}</span>
         <span class="label">L{{ ch.level }} · HP {{ ch.hp_current }}/{{ ch.hp_max }}</span>
       </div>
     </div>
@@ -71,7 +71,7 @@
       <div class="meta"></div>
       <div class="content text--center">
         <span class="label">Combat Tracker</span>
-        <span class="value value--medium">No active combat</span>
+        <span class="value">No active combat</span>
       </div>
     </div>
   </div>
@@ -82,7 +82,7 @@
       <div class="meta"></div>
       <div class="content">
         <span class="label">Init {{ e.initiative_total }} · HP {{ e.hp_current }}/{{ e.hp_max }} · AC {{ e.ac }}</span>
-        <span class="value value--medium">{{ e.name }}</span>
+        <span class="value">{{ e.name }}</span>
         <span class="label">{% if e.conditions.size > 0 %}{% for c in e.conditions %}{{ c }}{% unless forloop.last %}, {% endunless %}{% endfor %}{% endif %}</span>
       </div>
     </div>
@@ -140,8 +140,8 @@
     </div>
   </div>
   {% endif %}
-  <div class="title_bar">
-    <img width="60" src="{{ trmnl.plugin_settings.custom_fields_values.url | default: 'https://dnd.example.com' }}/static/icon-192.png">
-    <span class="title">Villum · D&D Stats</span>
-  </div>
+</div>
+<div class="title_bar">
+  <img width="60" src="{{ trmnl.plugin_settings.custom_fields_values.url | default: 'https://dnd.example.com' }}/static/icon-192.png">
+  <span class="title">Villum · D&D Stats</span>
 </div>

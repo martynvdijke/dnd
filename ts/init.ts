@@ -13,7 +13,7 @@ import { initRouter, navigateToInitialHash } from './router';
 import { initBridge } from './lib/bridge';
 import { initTheme } from './lib/theme';
 import { initShortcuts } from './lib/shortcuts';
-import { api, setCsrfToken, getCsrfToken, setApiToken, getApiToken } from './lib/api';
+import { api, setCsrfToken, getCsrfToken, setApiToken, getApiToken, clearApiToken, setUnauthorizedHandler } from './lib/api';
 import { showLoading, hideLoading } from './lib/dom';
 import { initSearch } from './search';
 import { initAIClickHandler, setAIEnabled } from './ai';
@@ -84,29 +84,14 @@ const API_TOKEN_KEY = 'villum-api-token';
 // non-fatal: mutations will surface a 401 that the user can recover from.
 // The token is scoped to the current user, so it is stored under a
 // user-specific key and never reused across a user switch.
-async function ensureApiToken(username: string): Promise<void> {
-  const key = `${API_TOKEN_KEY}-${username}`;
-  const stored = localStorage.getItem(key);
-  if (stored) {
-    setApiToken(stored);
-    return;
-  }
+async function provisionApiToken(key: string): Promise<void> {
   // The bootstrap can transiently fail under load. Retry briefly: a missing
   // token would otherwise surface as a 401 on the user's first mutation.
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const tokens = await api('GET', '/api/tokens');
-      const active = Array.isArray(tokens)
-        ? tokens.find((t: any) => !t.revoked_at && (!t.expires_at || new Date(t.expires_at) > new Date()))
-        : null;
-      if (active) {
-        // An active token exists but its secret was never stored locally
-        // (e.g. created from another device) — rotate to obtain a fresh secret.
-        const rotated = await api('POST', `/api/tokens/${active.id}/rotate`);
-        localStorage.setItem(key, rotated.token);
-        setApiToken(rotated.token);
-        return;
-      }
+      // Always mint a fresh, per-device token. Rotating an existing token here
+      // would invalidate the secret another device already stored, wedging that
+      // device on every mutation until it reloads.
       const created = await api('POST', '/api/tokens', { name: 'web-app' });
       localStorage.setItem(key, created.token);
       setApiToken(created.token);
@@ -116,6 +101,16 @@ async function ensureApiToken(username: string): Promise<void> {
     }
     await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
   }
+}
+
+async function ensureApiToken(username: string): Promise<void> {
+  const key = `${API_TOKEN_KEY}-${username}`;
+  const stored = localStorage.getItem(key);
+  if (stored) {
+    setApiToken(stored);
+    return;
+  }
+  await provisionApiToken(key);
 }
 
 // ─── Init — called from app.ts after imports ───
@@ -179,6 +174,15 @@ export async function init() {
     setCurrentUser(user);
     const tokenRes = await api('GET', '/api/csrf-token');
     setCsrfToken(tokenRes.token);
+    // Self-heal a stale API token: GETs bypass the API-token check, so a rotated
+    // or revoked token only surfaces as a 401 on a mutation. Drop the stored
+    // secret, provision a fresh one, and api() retries the request once.
+    setUnauthorizedHandler(async () => {
+      const key = `${API_TOKEN_KEY}-${user.username}`;
+      localStorage.removeItem(key);
+      clearApiToken();
+      await provisionApiToken(key);
+    });
     document.querySelector('meta[name="csrf-token"]')?.setAttribute('content', getCsrfToken());
     document.body.addEventListener('htmx:configRequest', (e: any) => {
       e.detail.headers['X-CSRF-Token'] = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || getCsrfToken();

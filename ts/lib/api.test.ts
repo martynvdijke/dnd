@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { api, setCsrfToken, getCsrfToken, setApiToken, getApiToken } from './api';
+import { api, setCsrfToken, getCsrfToken, setApiToken, getApiToken, setUnauthorizedHandler } from './api';
 
 describe('api client', () => {
   const originalFetch = globalThis.fetch;
@@ -9,6 +9,7 @@ describe('api client', () => {
     vi.resetAllMocks();
     setCsrfToken('');
     setApiToken('');
+    setUnauthorizedHandler(null);
   });
 
   afterEach(() => {
@@ -112,6 +113,40 @@ describe('api client', () => {
     await expect(api('GET', '/api/bad')).rejects.toThrow('Server Error');
   });
 
+  it('attaches status and payload to thrown error and prefers error/message fields', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 422,
+      statusText: 'Unprocessable Entity',
+      json: () => Promise.resolve({ error: 'AI disabled', message: 'enable AI' }),
+    }) as any;
+    try {
+      await api('GET', '/api/bad');
+      throw new Error('should have thrown');
+    } catch (e: any) {
+      expect(e.message).toBe('AI disabled');
+      expect(e.status).toBe(422);
+      expect(e.payload).toEqual({ error: 'AI disabled', message: 'enable AI' });
+    }
+  });
+
+  it('uses message field when error field is absent', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 422,
+      statusText: 'Unprocessable Entity',
+      json: () => Promise.resolve({ message: 'only msg' }),
+    }) as any;
+    try {
+      await api('GET', '/api/bad');
+      throw new Error('should have thrown');
+    } catch (e: any) {
+      expect(e.message).toBe('only msg');
+      expect(e.status).toBe(422);
+      expect(e.payload).toEqual({ message: 'only msg' });
+    }
+  });
+
   it('calls hideLoading in finally even on success', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -119,5 +154,71 @@ describe('api client', () => {
     }) as any;
     await api('GET', '/api/ok');
     expect(true).toBe(true);
+  });
+
+  it('re-provisions and retries once when a mutation 401s with a token', async () => {
+    setApiToken('vlt_stale');
+    globalThis.fetch = vi.fn().mockImplementation((_url: string, opts: any) => {
+      if (opts.headers.Authorization === 'Bearer vlt_stale') {
+        return Promise.resolve({ ok: false, status: 401, statusText: 'Unauthorized', json: () => Promise.resolve({ error: 'invalid API token' }) });
+      }
+      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ rolled: true }) });
+    }) as any;
+    const refresh = vi.fn().mockImplementation(async () => { setApiToken('vlt_fresh'); });
+    setUnauthorizedHandler(refresh);
+
+    const data = await api('POST', '/api/roll', { expression: '1d20' });
+
+    expect(data).toEqual({ rolled: true });
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect((globalThis.fetch as any).mock.calls.length).toBe(2);
+    expect((globalThis.fetch as any).mock.calls[1][1].headers.Authorization).toBe('Bearer vlt_fresh');
+  });
+
+  it('does not retry GETs on 401', async () => {
+    setApiToken('vlt_stale');
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      json: () => Promise.resolve({ error: 'invalid API token' }),
+    }) as any;
+    const refresh = vi.fn();
+    setUnauthorizedHandler(refresh);
+
+    await expect(api('GET', '/api/search')).rejects.toThrow('invalid API token');
+    expect(refresh).not.toHaveBeenCalled();
+    expect((globalThis.fetch as any).mock.calls.length).toBe(1);
+  });
+
+  it('does not retry when the mutation carried no token', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      json: () => Promise.resolve({ error: 'API token required' }),
+    }) as any;
+    const refresh = vi.fn();
+    setUnauthorizedHandler(refresh);
+
+    await expect(api('POST', '/api/roll', {})).rejects.toThrow('API token required');
+    expect(refresh).not.toHaveBeenCalled();
+    expect((globalThis.fetch as any).mock.calls.length).toBe(1);
+  });
+
+  it('surfaces the 401 when re-provisioning does not fix the token', async () => {
+    setApiToken('vlt_stale');
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      json: () => Promise.resolve({ error: 'invalid API token' }),
+    }) as any;
+    const refresh = vi.fn().mockResolvedValue(undefined);
+    setUnauthorizedHandler(refresh);
+
+    await expect(api('POST', '/api/roll', {})).rejects.toThrow('invalid API token');
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect((globalThis.fetch as any).mock.calls.length).toBe(2);
   });
 });

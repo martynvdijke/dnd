@@ -1,98 +1,25 @@
 package telegram
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
+	"errors"
 	"fmt"
-	"io"
-	"mime/multipart"
 	"net/http"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	tgbot "github.com/go-telegram/bot"
+	tgmodels "github.com/go-telegram/bot/models"
 )
 
-var httpClient = &http.Client{Timeout: 30 * time.Second}
 var Version = "0.0.0-dev"
 
-type tgResponse struct {
-	OK          bool            `json:"ok"`
-	Result      json.RawMessage `json:"result"`
-	ErrorCode   int             `json:"error_code"`
-	Description string          `json:"description"`
-	Parameters  *struct {
-		RetryAfter int `json:"retry_after"`
-	} `json:"parameters"`
-}
+const telegramHTTPTimeout = 30 * time.Second
 
-type Update struct {
-	UpdateID int64    `json:"update_id"`
-	Message  *Message `json:"message"`
-}
-type Message struct {
-	MessageID int64  `json:"message_id"`
-	From      *User  `json:"from"`
-	Chat      *Chat  `json:"chat"`
-	Text      string `json:"text"`
-}
-type User struct {
-	ID        int64  `json:"id"`
-	IsBot     bool   `json:"is_bot"`
-	FirstName string `json:"first_name"`
-	Username  string `json:"username"`
-}
-type Chat struct {
-	ID    int64  `json:"id"`
-	Type  string `json:"type"`
-	Title string `json:"title"`
-}
-
-func apiURL(method string) string {
-	token := GetBotToken()
-	base := GetAPIBase()
-	return fmt.Sprintf("%s/bot%s/%s", base, token, method)
-}
-
-func doPost(method string, payload any, result any) error {
-	token := GetBotToken()
-	if token == "" {
-		return fmt.Errorf("telegram not configured")
-	}
-	body, _ := json.Marshal(payload)
-	req, err := http.NewRequest("POST", apiURL(method), bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "villum/"+Version)
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	data, _ := io.ReadAll(resp.Body)
-	var r tgResponse
-	if err := json.Unmarshal(data, &r); err != nil {
-		return fmt.Errorf("telegram decode: %w", err)
-	}
-	if !r.OK {
-		if r.Parameters != nil && r.Parameters.RetryAfter > 0 {
-			return &RetryAfterError{After: time.Duration(r.Parameters.RetryAfter) * time.Second, Desc: r.Description}
-		}
-		if resp.StatusCode == 429 && r.Parameters != nil {
-			return &RetryAfterError{After: time.Duration(r.Parameters.RetryAfter) * time.Second, Desc: r.Description}
-		}
-		return fmt.Errorf("telegram %s: %s (code %d)", method, r.Description, r.ErrorCode)
-	}
-	if result != nil && len(r.Result) > 0 {
-		if err := json.Unmarshal(r.Result, result); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
+// RetryAfterError mirrors Telegram's rate-limit response for callers that
+// schedule retries (recap delivery).
 type RetryAfterError struct {
 	After time.Duration
 	Desc  string
@@ -100,75 +27,247 @@ type RetryAfterError struct {
 
 func (e *RetryAfterError) Error() string { return fmt.Sprintf("retry after %s: %s", e.After, e.Desc) }
 
-func GetUpdates(offset int64, timeout int) ([]Update, error) {
-	var result []Update
-	err := doPost("getUpdates", map[string]any{"offset": offset, "timeout": timeout}, &result)
-	return result, err
-}
-func SendMessage(chatID int64, text string) (int64, error) {
-	var res struct {
-		MessageID int64 `json:"message_id"`
+// translateBotError maps library errors onto the package's retry type.
+func translateBotError(err error) error {
+	if err == nil {
+		return nil
 	}
-	err := doPost("sendMessage", map[string]any{"chat_id": chatID, "text": text, "disable_web_page_preview": true}, &res)
-	if err != nil {
-		return 0, err
+	var rate *tgbot.TooManyRequestsError
+	if errors.As(err, &rate) {
+		return &RetryAfterError{After: time.Duration(rate.RetryAfter) * time.Second, Desc: rate.Message}
 	}
-	return res.MessageID, nil
-}
-func SendDocument(chatID int64, filename, content string) (int64, error) {
-	token := GetBotToken()
-	if token == "" {
-		return 0, fmt.Errorf("telegram not configured")
-	}
-	var b bytes.Buffer
-	w := multipart.NewWriter(&b)
-	_ = w.WriteField("chat_id", fmt.Sprintf("%d", chatID))
-	fw, _ := w.CreateFormFile("document", filename)
-	_, _ = io.WriteString(fw, content)
-	w.Close()
-	req, err := http.NewRequest("POST", apiURL("sendDocument"), &b)
-	if err != nil {
-		return 0, err
-	}
-	req.Header.Set("Content-Type", w.FormDataContentType())
-	req.Header.Set("User-Agent", "villum/"+Version)
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return 0, err
-	}
-	defer resp.Body.Close()
-	data, _ := io.ReadAll(resp.Body)
-	var r tgResponse
-	if err := json.Unmarshal(data, &r); err != nil {
-		return 0, err
-	}
-	if !r.OK {
-		return 0, fmt.Errorf("sendDocument: %s", r.Description)
-	}
-	var res struct {
-		MessageID int64 `json:"message_id"`
-	}
-	_ = json.Unmarshal(r.Result, &res)
-	return res.MessageID, nil
-}
-func SetWebhook(url, secret string) error {
-	return doPost("setWebhook", map[string]any{"url": url, "secret_token": secret}, nil)
-}
-func DeleteWebhook() error { return doPost("deleteWebhook", map[string]any{}, nil) }
-func GetChat(chatID int64) (*Chat, error) {
-	var ch Chat
-	if err := doPost("getChat", map[string]any{"chat_id": chatID}, &ch); err != nil {
-		return nil, err
-	}
-	return &ch, nil
+	return err
 }
 
-func GetMe() (*User, error) {
-	var u User
-	if err := doPost("getMe", map[string]any{}, &u); err != nil {
-		return nil, err
+func boolPtr(v bool) *bool { return &v }
+
+// botAllowedUpdates is the canonical set of update types the bot consumes.
+// Long polling and webhook registration both use it so the transports stay
+// aligned — notably so inline queries keep arriving after a mode switch.
+var botAllowedUpdates = tgbot.AllowedUpdates{
+	tgmodels.AllowedUpdateMessage,
+	tgmodels.AllowedUpdateCallbackQuery,
+	tgmodels.AllowedUpdateMyChatMember,
+	tgmodels.AllowedUpdateInlineQuery,
+}
+
+// newBotClient builds a library client pointed at the configured API base.
+// When handler is nil the client is only used for outbound calls.
+func newBotClient(token, apiBase string, handler tgbot.HandlerFunc) (*tgbot.Bot, error) {
+	if token == "" {
+		return nil, errors.New("telegram not configured")
 	}
-	return &u, nil
+	opts := []tgbot.Option{
+		tgbot.WithDefaultHandler(handler),
+		tgbot.WithHTTPClient(telegramHTTPTimeout, &http.Client{Timeout: telegramHTTPTimeout}),
+	}
+	if handler == nil {
+		opts = append(opts, tgbot.WithSkipGetMe())
+	} else {
+		opts = append(opts, tgbot.WithAllowedUpdates(botAllowedUpdates))
+	}
+	if apiBase != "" && apiBase != defaultAPIBase {
+		opts = append(opts, tgbot.WithServerURL(apiBase))
+	}
+	return tgbot.New(token, opts...)
+}
+
+func newTransientClient() (*tgbot.Bot, error) {
+	return newBotClient(GetBotToken(), GetAPIBase(), nil)
+}
+
+// withBot runs fn against the running client, or a short-lived client built
+// from stored settings when the supervisor is stopped.
+func withBot(ctx context.Context, fn func(ctx context.Context, c *tgbot.Bot) error) error {
+	if c := runningClient(); c != nil {
+		return translateBotError(fn(ctx, c))
+	}
+	c, err := newTransientClient()
+	if err != nil {
+		return err
+	}
+	return translateBotError(fn(ctx, c))
+}
+
+func SendMessage(chatID int64, text string) (int64, error) {
+	return sendMessage(chatID, text, nil)
+}
+
+func sendMessageWithKeyboard(chatID int64, text string, kb *tgmodels.InlineKeyboardMarkup) (int64, error) {
+	return sendMessage(chatID, text, kb)
+}
+
+func sendMessage(chatID int64, text string, kb *tgmodels.InlineKeyboardMarkup) (int64, error) {
+	var msgID int64
+	err := withBot(context.Background(), func(ctx context.Context, c *tgbot.Bot) error {
+		msg, err := c.SendMessage(ctx, &tgbot.SendMessageParams{
+			ChatID:             chatID,
+			Text:               text,
+			ParseMode:          tgmodels.ParseModeHTML,
+			LinkPreviewOptions: &tgmodels.LinkPreviewOptions{IsDisabled: boolPtr(true)},
+			ReplyMarkup:        kb,
+		})
+		if err != nil {
+			return err
+		}
+		if msg != nil {
+			msgID = int64(msg.ID)
+		}
+		return nil
+	})
+	return msgID, err
+}
+
+func SendDocument(chatID int64, filename, content string) (int64, error) {
+	var msgID int64
+	err := withBot(context.Background(), func(ctx context.Context, c *tgbot.Bot) error {
+		msg, err := c.SendDocument(ctx, &tgbot.SendDocumentParams{
+			ChatID: chatID,
+			Document: &tgmodels.InputFileUpload{
+				Filename: filename,
+				Data:     strings.NewReader(content),
+			},
+		})
+		if err != nil {
+			return err
+		}
+		if msg != nil {
+			msgID = int64(msg.ID)
+		}
+		return nil
+	})
+	return msgID, err
+}
+
+func SetWebhook(url, secret string) error {
+	return withBot(context.Background(), func(ctx context.Context, c *tgbot.Bot) error {
+		_, err := c.SetWebhook(ctx, &tgbot.SetWebhookParams{URL: url, SecretToken: secret, AllowedUpdates: botAllowedUpdates})
+		return err
+	})
+}
+
+func DeleteWebhook() error {
+	return withBot(context.Background(), func(ctx context.Context, c *tgbot.Bot) error {
+		_, err := c.DeleteWebhook(ctx, &tgbot.DeleteWebhookParams{})
+		return err
+	})
+}
+
+func GetChat(chatID int64) (*tgmodels.ChatFullInfo, error) {
+	var chat *tgmodels.ChatFullInfo
+	err := withBot(context.Background(), func(ctx context.Context, c *tgbot.Bot) error {
+		var err error
+		chat, err = c.GetChat(ctx, &tgbot.GetChatParams{ChatID: chatID})
+		return err
+	})
+	return chat, err
+}
+
+func GetMe() (*tgmodels.User, error) {
+	var user *tgmodels.User
+	err := withBot(context.Background(), func(ctx context.Context, c *tgbot.Bot) error {
+		var err error
+		user, err = c.GetMe(ctx)
+		return err
+	})
+	return user, err
+}
+
+// AnswerCallback acknowledges a callback tap so clients stop the spinner.
+func AnswerCallback(callbackID string) error {
+	return withBot(context.Background(), func(ctx context.Context, c *tgbot.Bot) error {
+		_, err := c.AnswerCallbackQuery(ctx, &tgbot.AnswerCallbackQueryParams{CallbackQueryID: callbackID})
+		return err
+	})
+}
+
+func AnswerInlineQuery(ctx context.Context, queryID string, results []tgmodels.InlineQueryResult, cacheTime int, isPersonal bool, button *tgmodels.InlineQueryResultsButton) error {
+	return withBot(ctx, func(ctx context.Context, c *tgbot.Bot) error {
+		_, err := c.AnswerInlineQuery(ctx, &tgbot.AnswerInlineQueryParams{InlineQueryID: queryID, Results: results, CacheTime: cacheTime, IsPersonal: isPersonal, Button: button})
+		return err
+	})
+}
+
+// SendPoll posts a native Telegram poll and returns the message id.
+// When multiple is true the poll allows selecting several options; openPeriod
+// (seconds) auto-closes the poll and must be 0 or 5..600.
+func SendPoll(chatID int64, question string, options []string, multiple bool, openPeriod int) (int64, error) {
+	var msgID int64
+	err := withBot(context.Background(), func(ctx context.Context, c *tgbot.Bot) error {
+		opts := make([]tgmodels.InputPollOption, 0, len(options))
+		for _, o := range options {
+			opts = append(opts, tgmodels.InputPollOption{Text: o})
+		}
+		msg, err := c.SendPoll(ctx, &tgbot.SendPollParams{
+			ChatID:                chatID,
+			Question:              question,
+			Options:               opts,
+			AllowsMultipleAnswers: multiple,
+			AllowsRevoting:        true,
+			OpenPeriod:            openPeriod,
+		})
+		if err != nil {
+			return err
+		}
+		if msg != nil {
+			msgID = int64(msg.ID)
+		}
+		return nil
+	})
+	return msgID, err
+}
+
+// CreateForumTopic creates a topic in a supergroup where the bot is admin and
+// returns the created topic (including its message_thread_id).
+func CreateForumTopic(chatID int64, name string) (*tgmodels.ForumTopic, error) {
+	var topic *tgmodels.ForumTopic
+	err := withBot(context.Background(), func(ctx context.Context, c *tgbot.Bot) error {
+		var err error
+		topic, err = c.CreateForumTopic(ctx, &tgbot.CreateForumTopicParams{ChatID: chatID, Name: name})
+		return err
+	})
+	return topic, err
+}
+
+// EditMessageText rewrites an existing message in place, optionally swapping
+// its inline keyboard. Used by interactive trackers (initiative, quests).
+func EditMessageText(chatID int64, messageID int, text string, kb *tgmodels.InlineKeyboardMarkup) error {
+	return withBot(context.Background(), func(ctx context.Context, c *tgbot.Bot) error {
+		_, err := c.EditMessageText(ctx, &tgbot.EditMessageTextParams{
+			ChatID:             chatID,
+			MessageID:          messageID,
+			Text:               text,
+			ParseMode:          tgmodels.ParseModeHTML,
+			LinkPreviewOptions: &tgmodels.LinkPreviewOptions{IsDisabled: boolPtr(true)},
+			ReplyMarkup:        kb,
+		})
+		return err
+	})
+}
+
+// SendEphemeralMessage sends a message visible only to receiverUserID and the
+// bot (Bot API 10.3 ephemeral messages, groups/supergroups only). Returns the
+// ephemeral message id, or 0 when Telegram does not surface one.
+func SendEphemeralMessage(chatID int64, receiverUserID int64, text string) (int64, error) {
+	var msgID int64
+	err := withBot(context.Background(), func(ctx context.Context, c *tgbot.Bot) error {
+		msg, err := c.SendMessage(ctx, &tgbot.SendMessageParams{
+			ChatID:    chatID,
+			Text:      text,
+			ParseMode: tgmodels.ParseModeHTML,
+			EphemeralMessageParameters: &tgmodels.EphemeralMessageParameters{
+				ReceiverUserID: receiverUserID,
+			},
+		})
+		if err != nil {
+			return err
+		}
+		if msg != nil {
+			msgID = int64(msg.EphemeralMessageID)
+		}
+		return nil
+	})
+	return msgID, err
 }
 
 var (
@@ -176,12 +275,14 @@ var (
 	botUsernameOnce  sync.Once
 )
 
+// GetBotUsername resolves the bot username once, honoring the
+// TELEGRAM_BOT_USERNAME override.
 func GetBotUsername() string {
 	if v := os.Getenv("TELEGRAM_BOT_USERNAME"); v != "" {
 		return v
 	}
 	botUsernameOnce.Do(func() {
-		if u, err := GetMe(); err == nil && u.Username != "" {
+		if u, err := GetMe(); err == nil && u != nil && u.Username != "" {
 			botUsernameCache = u.Username
 		}
 	})
@@ -192,97 +293,4 @@ func GetBotUsername() string {
 func ResetBotUsernameCache() {
 	botUsernameOnce = sync.Once{}
 	botUsernameCache = ""
-}
-
-func runeCount(s string) int { return len([]rune(s)) }
-
-func runeSlice(s string, start, end int) string {
-	r := []rune(s)
-	if start >= len(r) {
-		return ""
-	}
-	if end > len(r) {
-		end = len(r)
-	}
-	return string(r[start:end])
-}
-
-func chunkMessage(text string, limit int) []string {
-	if runeCount(text) <= limit {
-		return []string{text}
-	}
-	paras := strings.Split(text, "\n\n")
-	var chunks []string
-	var cur string
-	curLen := 0
-	flushCur := func() {
-		if cur != "" {
-			chunks = append(chunks, cur)
-			cur = ""
-			curLen = 0
-		}
-	}
-	for _, ps := range paras {
-		psLen := runeCount(ps)
-		sepLen := 0
-		if curLen > 0 {
-			sepLen = 2
-		}
-		if curLen+sepLen+psLen <= limit {
-			if cur != "" {
-				cur += "\n\n" + ps
-			} else {
-				cur = ps
-			}
-			curLen += sepLen + psLen
-		} else {
-			if cur != "" {
-				flushCur()
-			}
-			if psLen <= limit {
-				cur = ps
-				curLen = psLen
-			} else {
-				lines := strings.Split(ps, "\n")
-				var lcur string
-				lcurLen := 0
-				for _, ls := range lines {
-					lsLen := runeCount(ls)
-					sep := 0
-					if lcurLen > 0 {
-						sep = 1
-					}
-					if lcurLen+sep+lsLen <= limit {
-						if lcur != "" {
-							lcur += "\n" + ls
-						} else {
-							lcur = ls
-						}
-						lcurLen += sep + lsLen
-					} else {
-						if lcur != "" {
-							chunks = append(chunks, lcur)
-							lcur = ""
-							lcurLen = 0
-						}
-						// hard cut on rune boundaries
-						for runeCount(ls) > limit {
-							chunks = append(chunks, runeSlice(ls, 0, limit))
-							ls = runeSlice(ls, limit, runeCount(ls))
-						}
-						lcur = ls
-						lcurLen = runeCount(ls)
-					}
-				}
-				if lcur != "" {
-					cur = lcur
-					curLen = lcurLen
-				}
-			}
-		}
-	}
-	if cur != "" {
-		chunks = append(chunks, cur)
-	}
-	return chunks
 }

@@ -14,6 +14,7 @@ export default defineConfig({
         pwa: resolve(dir, 'ts/pwa.ts'),
         setup: resolve(dir, 'ts/setup.ts'),
         login: resolve(dir, 'ts/login.ts'),
+        reset: resolve(dir, 'ts/reset.ts'),
       },
       output: {
         entryFileNames: '[name].js',

@@ -41,6 +41,7 @@ func main() {
 	db.SeedDefaultEventsSettings()
 	handlers.SetAppVersion(Version)
 	handlers.SetBaseURL(os.Getenv("BASE_URL"))
+	handlers.SetGoogleOAuthRedirectURL(os.Getenv("GOOGLE_OAUTH_REDIRECT_URL"))
 
 	// AUTO_SETUP=true creates the admin user automatically (used for per-worker Playwright isolation).
 	if os.Getenv("AUTO_SETUP") == "true" {

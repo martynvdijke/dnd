@@ -146,10 +146,18 @@ test.describe('Telegram', () => {
   });
 
   test('account link: generate code, deep link elements, simulate /start, linked badge, unlink', async ({ page, workerData }) => {
-    // Ensure a webhook secret so the link-via-webhook path is testable
+    // Configure the bot (token + polling) so this test is self-sufficient: a
+    // retry may land on a fresh worker where no earlier test has started the
+    // supervised bot client yet. Also set a fresh webhook secret for delivery.
     const secret = 'test-webhook-secret-' + Date.now();
-    const secResp = await apiWithToken(page, 'POST', '/api/admin/telegram-settings', { webhook_secret: secret });
+    const secResp = await apiWithToken(page, 'POST', '/api/admin/telegram-settings', {
+      token: workerData.telegramMock.botToken,
+      mode: 'polling',
+      webhook_secret: secret,
+    });
     expect(secResp.ok()).toBeTruthy();
+    // The supervised client registers its command menu once it is running.
+    await expect.poll(() => workerData.telegramMock.commands.length, { timeout: 20000 }).toBeGreaterThan(0);
 
     // Open the Link Telegram modal — the navbar button is the entry point
     await expect(page.getByTestId('telegram-account-link')).toBeVisible({ timeout: NAV_TIMEOUT });
@@ -192,9 +200,11 @@ test.describe('Telegram', () => {
     expect(href).toBeTruthy();
     if (deepLinkVal) expect(href).toBe(deepLinkVal);
 
-    // Simulate /start <code> via the public webhook with correct secret
-    const update = {
-      update_id: Math.floor(Math.random() * 100000) + 1000,
+    // Simulate /start <code> via the public webhook with correct secret.
+    // The supervised bot client may still be starting up, and a dropped update
+    // is never retried by the server, so deliver until it is processed.
+    let updateID = Math.floor(Math.random() * 100000) + 1000;
+    const tgUpdate = {
       message: {
         message_id: 1,
         from: { id: 987654321, is_bot: false, first_name: 'E2E', username: 'e2e_tester' },
@@ -202,11 +212,15 @@ test.describe('Telegram', () => {
         text: `/start ${body.code}`,
       },
     };
-    const whResp = await page.request.post('/api/telegram/webhook', {
-      data: update,
-      headers: { 'X-Telegram-Bot-Api-Secret-Token': secret },
-    });
-    expect(whResp.status()).toBe(200);
+    workerData.telegramMock.clear();
+    await expect.poll(async () => {
+      const whResp = await page.request.post('/api/telegram/webhook', {
+        data: { ...tgUpdate, update_id: ++updateID },
+        headers: { 'X-Telegram-Bot-Api-Secret-Token': secret },
+      });
+      if (whResp.status() !== 200) return 0;
+      return workerData.telegramMock.sentMessages.length;
+    }, { timeout: 20000 }).toBeGreaterThan(0);
 
     // Re-open modal (or query status) and assert linked state
     // Close and reopen to force a fresh status fetch
@@ -325,5 +339,225 @@ test.describe('Telegram', () => {
     expect(r1.status()).toBe(403);
     const r2 = await page.request.post('/api/telegram/webhook', { data: fakeUpdate });
     expect(r2.status()).toBe(403);
+  });
+
+  test('bot commands: help, characters, claim, sheet and create via the bot', async ({ page, workerData }) => {
+    // slow: waits for the supervised client to start and for webhook-driven replies
+    test.slow();
+    const secret = 'cmd-secret-' + Date.now();
+    const save = await apiWithToken(page, 'POST', '/api/admin/telegram-settings', {
+      token: workerData.telegramMock.botToken,
+      mode: 'polling',
+      webhook_secret: secret,
+    });
+    expect(save.ok()).toBeTruthy();
+
+    // The native command menu is registered when the supervised client starts.
+    await expect.poll(() => workerData.telegramMock.commands.length, { timeout: 20000 }).toBeGreaterThan(0);
+    const menu = workerData.telegramMock.commands.map((c) => c.command);
+    expect(menu).toContain('help');
+    expect(menu).toContain('characters');
+    expect(menu).toContain('create');
+
+    // Link a fresh Telegram user through a real generated code.
+    const codeResp = await apiWithToken(page, 'POST', '/api/telegram/link-code');
+    expect(codeResp.ok()).toBeTruthy();
+    const code = (await codeResp.json()).code as string;
+    const tgUser = { id: 555000111, is_bot: false, first_name: 'Cmd', username: 'e2e_cmd' };
+    const chat = { id: 555000111, type: 'private' };
+    let updateID = 700000;
+
+    const send = async (text: string): Promise<string> => {
+      workerData.telegramMock.clear();
+      const resp = await page.request.post('/api/telegram/webhook', {
+        data: { update_id: ++updateID, message: { message_id: 1, from: tgUser, chat, text } },
+        headers: { 'X-Telegram-Bot-Api-Secret-Token': secret },
+      });
+      expect(resp.status()).toBe(200);
+      await expect.poll(() => workerData.telegramMock.sentMessages.length, { timeout: 15000 }).toBeGreaterThan(0);
+      return workerData.telegramMock.sentMessages.map((m) => m.text).join('\n---\n');
+    };
+
+    expect(await send(`/start ${code}`)).toContain('Linked');
+
+    const help = await send('/help');
+    expect(help).toContain('/create');
+    expect(help).toContain('/sheet');
+
+    const empty = await send('/characters');
+    expect(empty).toContain('Use /create');
+
+    expect(await send('/create')).toContain("character's name");
+    expect(await send('E2E Hero')).toContain('race');
+    expect(await send('Elf')).toContain('class');
+    const levelStep = await send('Ranger');
+    expect(levelStep).toMatch(/level/i);
+    const campaignStep = await send('3');
+    expect(campaignStep).toMatch(/campaign|Created/i);
+    const created = campaignStep.includes('Created') ? campaignStep : await send('none');
+    expect(created).toContain('Created');
+    expect(created).toContain('E2E Hero');
+
+    const sheet = await send('/sheet');
+    expect(sheet).toContain('E2E Hero');
+    expect(sheet).toContain('Ranger');
+
+    const claim = await send('/claim');
+    expect(claim).toContain('Currently claimed');
+
+    const list = await send('/characters');
+    expect(list).toContain('E2E Hero');
+  });
+
+  test('group commands: party items, open quests, visits and campaign stats', async ({ page, workerData }) => {
+    // slow: waits for the supervised client and for webhook-driven replies
+    test.slow();
+    const secret = 'grp-secret-' + Date.now();
+    const save = await apiWithToken(page, 'POST', '/api/admin/telegram-settings', {
+      token: workerData.telegramMock.botToken,
+      mode: 'polling',
+      webhook_secret: secret,
+    });
+    expect(save.ok()).toBeTruthy();
+    await expect.poll(() => workerData.telegramMock.commands.length, { timeout: 20000 }).toBeGreaterThan(0);
+
+    // Seed a campaign with a character, a party item, an open quest and a location visit.
+    const campResp = await apiWithToken(page, 'POST', '/api/campaigns', {
+      name: `grp-camp-${Date.now()}`,
+      description: 'group commands e2e',
+    });
+    expect(campResp.ok()).toBeTruthy();
+    const cid = (await campResp.json()).id as number;
+
+    const charResp = await apiWithToken(page, 'POST', '/api/characters', {
+      name: 'Grp Hero',
+      race: 'Human',
+      class: 'Fighter',
+      level: 4,
+      campaign_ids: [cid],
+    });
+    expect(charResp.ok()).toBeTruthy();
+    const charID = (await charResp.json()).id as number;
+
+    const itemResp = await apiWithToken(page, 'POST', `/api/campaigns/${cid}/party-items`, {
+      name: 'Bag of Holding',
+      quantity: 2,
+      notes: 'shared loot',
+    });
+    expect(itemResp.ok()).toBeTruthy();
+
+    const questResp = await apiWithToken(page, 'POST', `/api/characters/${charID}/quests`, {
+      name: 'Recover the Lost Amulet',
+      status: 'active',
+      objectives: 'Search the ruins',
+    });
+    expect(questResp.ok()).toBeTruthy();
+
+    const locResp = await apiWithToken(page, 'POST', '/api/locations', {
+      name: 'Silvermoon',
+      type: 'city',
+      description: 'elven city',
+    });
+    expect(locResp.ok()).toBeTruthy();
+    const locID = (await locResp.json()).id as number;
+    const linkResp = await apiWithToken(page, 'POST', `/api/characters/${charID}/locations`, {
+      location_id: locID,
+      relationship: 'visited',
+      notes: 'traded supplies',
+    });
+    expect(linkResp.ok()).toBeTruthy();
+
+    // Connect the group chat to the campaign (the DM sharing act).
+    const bind = await apiWithToken(page, 'PUT', `/api/campaigns/${cid}/telegram`, {
+      chat_id: -100555000999,
+      is_enabled: true,
+      auto_post_enabled: false,
+    });
+    expect(bind.ok()).toBeTruthy();
+
+    const tgUser = { id: 555000222, is_bot: false, first_name: 'Grp', username: 'e2e_grp' };
+    const chat = { id: -100555000999, type: 'supergroup', title: 'E2E Group' };
+    let updateID = 800000;
+
+    const send = async (text: string): Promise<string> => {
+      workerData.telegramMock.clear();
+      const resp = await page.request.post('/api/telegram/webhook', {
+        data: { update_id: ++updateID, message: { message_id: 1, from: tgUser, chat, text } },
+        headers: { 'X-Telegram-Bot-Api-Secret-Token': secret },
+      });
+      expect(resp.status()).toBe(200);
+      await expect.poll(() => workerData.telegramMock.sentMessages.length, { timeout: 15000 }).toBeGreaterThan(0);
+      return workerData.telegramMock.sentMessages.map((m) => m.text).join('\n---\n');
+    };
+
+    const items = await send('/items');
+    expect(items).toContain('Bag of Holding');
+    expect(items).toContain('×2');
+
+    const quests = await send('/quests');
+    expect(quests).toContain('Recover the Lost Amulet');
+    expect(quests).toContain('Grp Hero');
+
+    const visits = await send('/visits');
+    expect(visits).toContain('Silvermoon');
+
+    const stats = await send('/stats');
+    expect(stats).toContain('Statistics');
+    expect(stats).toContain('Characters');
+  });
+
+  test('compendium search: /spell and /search reply, and an inline query is answered', async ({ page, workerData }) => {
+    // slow: waits for the supervised client to start and for webhook-driven replies + inline answer
+    test.slow();
+    const secret = 'comp-secret-' + Date.now();
+    const save = await apiWithToken(page, 'POST', '/api/admin/telegram-settings', {
+      token: workerData.telegramMock.botToken,
+      mode: 'polling',
+      webhook_secret: secret,
+    });
+    expect(save.ok()).toBeTruthy();
+
+    const codeResp = await apiWithToken(page, 'POST', '/api/telegram/link-code');
+    expect(codeResp.ok()).toBeTruthy();
+    const code = (await codeResp.json()).code as string;
+    const tgUser = { id: 555000333, is_bot: false, first_name: 'Comp', username: 'e2e_comp' };
+    const chat = { id: 555000333, type: 'private' };
+    let updateID = 900000;
+
+    const send = async (text: string): Promise<string> => {
+      workerData.telegramMock.clear();
+      const resp = await page.request.post('/api/telegram/webhook', {
+        data: { update_id: ++updateID, message: { message_id: 1, from: tgUser, chat, text } },
+        headers: { 'X-Telegram-Bot-Api-Secret-Token': secret },
+      });
+      expect(resp.status()).toBe(200);
+      await expect.poll(() => workerData.telegramMock.sentMessages.length, { timeout: 15000 }).toBeGreaterThan(0);
+      return workerData.telegramMock.sentMessages.map((m) => m.text).join('\n---\n');
+    };
+
+    expect(await send(`/start ${code}`)).toContain('Linked');
+
+    const spellReply = await send('/spell fire bolt');
+    // Spell should be resolved or at least show compendium results
+    expect(spellReply.includes('Fire Bolt') || spellReply.includes('Compendium results')).toBeTruthy();
+
+    const searchReply = await send('/search fire');
+    expect(searchReply).toContain('Compendium results');
+
+    // Inline query
+    workerData.telegramMock.clear();
+    const inlineResp = await page.request.post('/api/telegram/webhook', {
+      data: { update_id: ++updateID, inline_query: { id: 'iq1', from: tgUser, query: 'fire', offset: '' } },
+      headers: { 'X-Telegram-Bot-Api-Secret-Token': secret },
+    });
+    expect(inlineResp.status()).toBe(200);
+    await expect.poll(() => workerData.telegramMock.inlineAnswers.length, { timeout: 15000 }).toBeGreaterThan(0);
+    const ans = workerData.telegramMock.inlineAnswers[0];
+    expect(ans.results.length).toBeGreaterThan(0);
+    const titles = ans.results.map((r: any) => String(r.title || ''));
+    expect(titles.some((t: string) => t.toLowerCase().includes('fire'))).toBeTruthy();
+    if (ans.button) {
+      expect(String(ans.button.start_parameter || '')).toMatch(/^ask_/);
+    }
   });
 });

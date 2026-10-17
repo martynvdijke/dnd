@@ -22,6 +22,7 @@
   <button class="btn btn-sm btn-outline-primary" hx-get="/htmx/pregens" hx-target="#oneshotSection" hx-swap="innerHTML" data-testid="oneshot-pregens"><i class="fa-solid fa-users me-1"></i>Pregens</button>
   <button class="btn btn-sm btn-outline-secondary" hx-get="/htmx/oneshot-adventures/{{.Adventure.ID}}/session-flow" hx-target="#oneshotSection" hx-swap="innerHTML" data-testid="oneshot-session-flow"><i class="fa-solid fa-list-ol me-1"></i>Session Flow</button>
   <button class="btn btn-sm btn-success" onclick="runOneShot({{.Adventure.ID}})" data-testid="oneshot-run"><i class="fa-solid fa-play me-1"></i>Run</button>
+  <button class="btn btn-sm btn-outline-info" onclick="tweakOneShotWithAI({{.Adventure.ID}})"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Tweak with AI</button>
 </div>
 
 {{if .Adventure.Premise}}

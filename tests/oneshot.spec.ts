@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { waitLoadingDone, waitModalClosed, clickSecondaryNavItem, login, NAV_TIMEOUT } from './helpers.js';
+import { waitLoadingDone, waitModalClosed, clickSecondaryNavItem, clickNavItem, login, NAV_TIMEOUT } from './helpers.js';
 
 const uniqueName = () => `OS-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -90,6 +90,25 @@ test.describe('One-Shot Adventure Features', () => {
     await navigateToOneShots(page);
     const body = await page.locator('#oneshotSection').innerText();
     expect(body.length).toBeGreaterThan(0);
+  });
+
+  test('One-Shots list reloads after navigating away and back', async ({ page }) => {
+    // Regression: the view used to set hx-trigger="load" and call htmx.process,
+    // which htmx 2.x skips when the element's attribute hash is unchanged, so
+    // the second visit left the loading ornament on screen forever.
+    await navigateToOneShots(page);
+
+    const section = page.locator('#oneshotSection');
+    await expect(section.locator('.ornament')).toHaveCount(0, { timeout: NAV_TIMEOUT });
+    await expect(section.locator('.empty-state, .list-group.first, #oneshotList')).toBeVisible({ timeout: NAV_TIMEOUT });
+
+    // Leave the view and return.
+    await clickNavItem(page, 'dice');
+    await navigateToOneShots(page);
+
+    await expect(section.locator('.ornament')).toHaveCount(0, { timeout: NAV_TIMEOUT });
+    await expect(section).not.toContainText('Loading one-shot adventures');
+    await expect(section.locator('.empty-state, #oneshotList')).toBeVisible({ timeout: NAV_TIMEOUT });
   });
 
   test('Create a one-shot adventure via UI form', async ({ page }) => {

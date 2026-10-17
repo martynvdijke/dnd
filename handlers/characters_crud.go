@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/gin-gonic/gin"
 	"io"
 	"math"
@@ -321,138 +322,24 @@ func GetCharacter(c *gin.Context) {
 
 func CreateCharacter(c *gin.Context) {
 	userID, _ := c.Get("user_id")
+	uid, _ := userID.(int64)
 
 	var ch models.Character
 	if !BindOr400(c, &ch) {
 		return
 	}
 
-	if strings.TrimSpace(ch.Name) == "" {
-		WriteError(c, http.StatusBadRequest, strErr("name is required"))
-		return
-	}
-	if ch.CharacterType == "" {
-		ch.CharacterType = "player"
-	}
-	if ch.CharacterType != "player" && ch.CharacterType != "linked" {
-		WriteError(c, http.StatusBadRequest, strErr("character_type must be 'player' or 'linked'"))
-		return
-	}
-	for _, score := range []int{ch.Str, ch.Dex, ch.Con, ch.Int, ch.Wis, ch.Cha} {
-		if score < 0 || score > 30 {
-			WriteError(c, http.StatusBadRequest, strErr("ability scores must be between 0 and 30"))
-			return
-		}
-	}
-
-	// Set defaults
-	if ch.Level < 1 {
-		ch.Level = 1
-	}
-	if ch.AC < 1 {
-		ch.AC = 10
-	}
-	if ch.Speed < 1 {
-		ch.Speed = 30
-	}
-	if ch.ProficiencyBonus < 1 {
-		if ch.Level >= 17 {
-			ch.ProficiencyBonus = 6
-		} else if ch.Level >= 13 {
-			ch.ProficiencyBonus = 5
-		} else if ch.Level >= 9 {
-			ch.ProficiencyBonus = 4
-		} else if ch.Level >= 5 {
-			ch.ProficiencyBonus = 3
-		} else {
-			ch.ProficiencyBonus = 2
-		}
-	}
-	if ch.HPMax < 1 {
-		ch.HPMax = 10
-		ch.HPCurrent = 10
-	}
-	if ch.HitDice == "" {
-		ch.HitDice = "1d10"
-		ch.HitDiceCurrent = 1
-	}
-
-	uid, _ := userID.(int64)
-	now := time.Now().Format("2006-01-02 15:04:05")
-
-	charCreate := db.Client.Character.Create().
-		SetUserID(uid).
-		SetName(ch.Name).
-		SetRace(ch.Race).
-		SetClass(ch.Class).
-		SetSubclass(ch.Subclass).
-		SetLevel(ch.Level).
-		SetXp(ch.XP).
-		SetBackground(ch.Background).
-		SetAlignment(ch.Alignment).
-		SetStr(ch.Str).
-		SetDex(ch.Dex).
-		SetCon(ch.Con).
-		SetInt(ch.Int).
-		SetWis(ch.Wis).
-		SetCha(ch.Cha).
-		SetAc(ch.AC).
-		SetInitiative(ch.Initiative).
-		SetSpeed(ch.Speed).
-		SetHpMax(ch.HPMax).
-		SetHpCurrent(ch.HPCurrent).
-		SetTempHp(ch.TempHP).
-		SetHitDice(ch.HitDice).
-		SetHitDiceCurrent(ch.HitDiceCurrent).
-		SetProficiencyBonus(ch.ProficiencyBonus).
-		SetInspiration(ch.Inspiration).
-		SetPassivePerception(ch.PassivePerception).
-		SetDeathSavesSuccesses(ch.DeathSavesSuccesses).
-		SetDeathSavesFailures(ch.DeathSavesFailures).
-		SetConcentratingOn(ch.ConcentratingOn).
-		SetPersonalityTraits(ch.PersonalityTraits).
-		SetIdeals(ch.Ideals).
-		SetBonds(ch.Bonds).
-		SetFlaws(ch.Flaws).
-		SetAppearance(ch.Appearance).
-		SetBackstory(ch.Backstory).
-		SetPortraitURL(ch.PortraitURL).
-		SetCreatedAt(now).
-		SetUpdatedAt(now).
-		SetCharacterType(ch.CharacterType)
-
-	desiredCampaigns := make([]int64, 0, len(ch.CampaignIDs))
-	for _, cid := range ch.CampaignIDs {
-		if cid == 0 {
-			continue
-		}
-		if !isCampaignMember(c, cid) {
-			WriteError(c, http.StatusForbidden, strErr("cannot add character to a campaign you are not a member of"))
-			return
-		}
-		desiredCampaigns = append(desiredCampaigns, cid)
-	}
-
-	char, err := charCreate.Save(c.Request.Context())
+	created, err := createCharacterCore(c.Request.Context(), uid, ch)
 	if err != nil {
+		var se *statusError
+		if errors.As(err, &se) {
+			WriteError(c, se.Status, se)
+			return
+		}
 		WriteError(c, http.StatusInternalServerError, err)
 		return
 	}
-
-	id := char.ID
-
-	// Create default currency entry
-	db.Client.CharacterCurrency.Create().SetCharacterID(id).Save(c.Request.Context())
-
-	ch.ID = id
-	ch.UserID = uid
-	if err := replaceCharacterCampaigns(c.Request.Context(), id, desiredCampaigns); err != nil {
-		WriteError(c, http.StatusInternalServerError, err)
-		return
-	}
-	ch.Campaigns = characterCampaigns(c.Request.Context(), id)
-	db.DB.Exec("PRAGMA wal_checkpoint(PASSIVE)")
-	c.JSON(http.StatusCreated, ch)
+	c.JSON(http.StatusCreated, created)
 }
 
 func UpdateCharacter(c *gin.Context) {

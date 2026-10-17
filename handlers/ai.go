@@ -32,12 +32,34 @@ type aiGenError struct {
 
 func (e *aiGenError) Error() string { return e.Msg }
 
+// ponytail: TD-007 — duplicated by the search/ai packages; delegate when this handler is next touched
 func generateText(ctx context.Context, endpointID int64, prompt, system string, maxTokens *int, sessionID string) (string, string, error) {
+	if strings.TrimSpace(prompt) == "" {
+		return "", "", &aiGenError{Status: 400, Msg: "prompt is required"}
+	}
+	systemPrompt := system
+	if strings.TrimSpace(systemPrompt) == "" {
+		systemPrompt = DefaultSystemPrompt
+	}
+	messages := []map[string]string{
+		{"role": "system", "content": systemPrompt},
+		{"role": "user", "content": prompt},
+	}
+	return generateChat(ctx, endpointID, messages, maxTokens, sessionID, aiTextTimeout)
+}
+
+// ponytail: TD-007 — duplicated by the search/ai packages; delegate when this handler is next touched
+// generateChat performs an OpenAI-compatible chat completion with a full
+// message history. Multi-turn callers (the AI drafting assistant) pass every
+// prior turn so the model has real conversational memory. The timeout is
+// per-call: drafting needs a longer one than free-text generation because
+// reasoning models can spend a minute or more before writing the reply.
+func generateChat(ctx context.Context, endpointID int64, messages []map[string]string, maxTokens *int, sessionID string, timeout time.Duration) (string, string, error) {
 	if endpointID == 0 {
 		return "", "", &aiGenError{Status: 400, Msg: "endpoint_id is required"}
 	}
-	if strings.TrimSpace(prompt) == "" {
-		return "", "", &aiGenError{Status: 400, Msg: "prompt is required"}
+	if len(messages) == 0 {
+		return "", "", &aiGenError{Status: 400, Msg: "messages are required"}
 	}
 	endpoints, err := db.GetEnabledAIEndpointsByType(ctx, "text")
 	if err != nil {
@@ -53,7 +75,7 @@ func generateText(ctx context.Context, endpointID int64, prompt, system string, 
 	if endpoint == nil {
 		return "", "", &aiGenError{Status: 404, Msg: "enabled text endpoint not found"}
 	}
-	middleware.LogDebug("ai", "text generation start", "endpoint_id", endpointID, "model", endpoint.Model, "prompt_length", len(prompt))
+	middleware.LogDebug("ai", "text generation start", "endpoint_id", endpointID, "model", endpoint.Model, "message_count", len(messages))
 	fullEndpoint, err := db.GetAIEndpoint(ctx, endpointID)
 	if err != nil {
 		return "", "", &aiGenError{Status: 404, Msg: "enabled text endpoint not found"}
@@ -62,14 +84,6 @@ func generateText(ctx context.Context, endpointID int64, prompt, system string, 
 	if err != nil {
 		middleware.LogError("ai", "failed to decrypt API key", "endpoint_id", endpointID, "error", err)
 		return "", "", &aiGenError{Status: 500, Msg: fmt.Sprintf("failed to authenticate with AI provider: %s", sanitizeError(err))}
-	}
-	systemPrompt := system
-	if strings.TrimSpace(systemPrompt) == "" {
-		systemPrompt = DefaultSystemPrompt
-	}
-	messages := []map[string]string{
-		{"role": "system", "content": systemPrompt},
-		{"role": "user", "content": prompt},
 	}
 	payload := map[string]any{
 		"model":    endpoint.Model,
@@ -80,14 +94,14 @@ func generateText(ctx context.Context, endpointID int64, prompt, system string, 
 	}
 	sid := resolveSessionID(sessionID)
 	body, _ := json.Marshal(payload)
-	httpReq, err := http.NewRequest("POST", endpoint.BaseURL+"/chat/completions", bytes.NewReader(body))
+	httpReq, err := http.NewRequest("POST", aiRequestURL(endpoint.BaseURL, "/chat/completions"), bytes.NewReader(body))
 	if err != nil {
 		return "", "", &aiGenError{Status: 500, Msg: fmt.Sprintf("failed to create request: %s", sanitizeError(err))}
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
 	setAIProviderHeaders(httpReq, sid)
-	client := newAIClient(aiTextTimeout)
+	client := newAIClient(timeout)
 	resp, err := client.Do(httpReq)
 	if err != nil {
 		middleware.LogError("ai", "text generation request failed", "endpoint_id", endpoint.ID, "model", endpoint.Model, "error", err)
@@ -103,7 +117,8 @@ func generateText(ctx context.Context, endpointID int64, prompt, system string, 
 	var result struct {
 		Choices []struct {
 			Message struct {
-				Content string `json:"content"`
+				Content          string `json:"content"`
+				ReasoningContent string `json:"reasoning_content"`
 			} `json:"message"`
 			FinishReason string `json:"finish_reason"`
 		} `json:"choices"`
@@ -115,7 +130,10 @@ func generateText(ctx context.Context, endpointID int64, prompt, system string, 
 	if len(result.Choices) == 0 {
 		return "", "no_choices", nil
 	}
-	middleware.LogInfo("ai", "text generation succeeded", "endpoint_id", endpoint.ID, "model", endpoint.Model, "finish_reason", result.Choices[0].FinishReason)
+	middleware.LogInfo("ai", "text generation succeeded", "endpoint_id", endpoint.ID, "model", endpoint.Model,
+		"finish_reason", result.Choices[0].FinishReason,
+		"content_len", len(result.Choices[0].Message.Content),
+		"reasoning_len", len(result.Choices[0].Message.ReasoningContent))
 	return result.Choices[0].Message.Content, result.Choices[0].FinishReason, nil
 }
 
@@ -124,6 +142,7 @@ const DefaultSystemPrompt = "You are a helpful assistant for a D&D website calle
 const (
 	aiTestTimeout  = 30 * time.Second
 	aiTextTimeout  = 60 * time.Second
+	aiDraftTimeout = 180 * time.Second
 	aiImageTimeout = 120 * time.Second
 	aiFetchTimeout = 60 * time.Second
 )
@@ -155,6 +174,47 @@ func resolveSessionID(inbound string) string {
 		return strings.TrimSpace(inbound)
 	}
 	return generateSessionID()
+}
+
+// aiEndpointOperationPaths are operation suffixes that users sometimes paste
+// into the configured base URL even though villum appends them itself. Keeping
+// the base URL free of them avoids building URLs like
+// "https://host/v1/chat/completions/chat/completions".
+var aiEndpointOperationPaths = []string{
+	"/chat/completions",
+	"/images/generations",
+	"/completions",
+}
+
+// normalizeAIBaseURL trims surrounding whitespace and trailing slashes and
+// strips a trailing operation path so the stored/displayed URL is the base.
+func normalizeAIBaseURL(raw string) string {
+	u := strings.TrimSpace(raw)
+	u = strings.TrimRight(u, "/")
+	for _, suffix := range aiEndpointOperationPaths {
+		if strings.HasSuffix(u, suffix) {
+			u = strings.TrimRight(strings.TrimSuffix(u, suffix), "/")
+			break
+		}
+	}
+	return u
+}
+
+// aiRequestURL builds the final request URL for an operation from a base URL
+// that may still contain an operation suffix.
+func aiRequestURL(baseURL, operationPath string) string {
+	return normalizeAIBaseURL(baseURL) + operationPath
+}
+
+// validateAIBaseURL normalizes a configured base URL and checks it is an
+// absolute http(s) URL.
+func validateAIBaseURL(raw string) (string, bool) {
+	u := normalizeAIBaseURL(raw)
+	parsed, err := url.Parse(u)
+	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return u, false
+	}
+	return u, true
 }
 
 func ListAIEndpoints(c *gin.Context) {
@@ -237,6 +297,12 @@ func CreateAIEndpoint(c *gin.Context) {
 		return
 	}
 
+	baseURL, ok := validateAIBaseURL(req.BaseURL)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "base_url must be an absolute http(s) URL, e.g. https://api.openai.com/v1"})
+		return
+	}
+
 	unique, err := db.CheckAIEndpointNameUnique(c.Request.Context(), req.Name, 0)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check name uniqueness"})
@@ -258,7 +324,7 @@ func CreateAIEndpoint(c *gin.Context) {
 	endpoint := &models.AIEndpoint{
 		Name:            req.Name,
 		Type:            req.Type,
-		BaseURL:         req.BaseURL,
+		BaseURL:         baseURL,
 		EncryptedAPIKey: encryptedKey,
 		Model:           req.Model,
 		Tags:            req.Tags,
@@ -311,6 +377,12 @@ func UpdateAIEndpoint(c *gin.Context) {
 		return
 	}
 
+	baseURL, ok := validateAIBaseURL(req.BaseURL)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "base_url must be an absolute http(s) URL, e.g. https://api.openai.com/v1"})
+		return
+	}
+
 	unique, err := db.CheckAIEndpointNameUnique(c.Request.Context(), req.Name, id)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check name uniqueness"})
@@ -335,7 +407,7 @@ func UpdateAIEndpoint(c *gin.Context) {
 	endpoint := &models.AIEndpoint{
 		Name:            req.Name,
 		Type:            req.Type,
-		BaseURL:         req.BaseURL,
+		BaseURL:         baseURL,
 		EncryptedAPIKey: encryptedKey,
 		Model:           req.Model,
 		Tags:            req.Tags,
@@ -407,7 +479,7 @@ func TestAIEndpoint(c *gin.Context) {
 			"max_tokens": 10,
 		}
 		body, _ := json.Marshal(payload)
-		req, _ := http.NewRequest("POST", endpoint.BaseURL+"/chat/completions", bytes.NewReader(body))
+		req, _ := http.NewRequest("POST", aiRequestURL(endpoint.BaseURL, "/chat/completions"), bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 		setAIProviderHeaders(req, generateSessionID())
@@ -439,7 +511,7 @@ func TestAIEndpoint(c *gin.Context) {
 			payload["size"] = *endpoint.ImageSize
 		}
 		body, _ := json.Marshal(payload)
-		req, _ := http.NewRequest("POST", endpoint.BaseURL+"/images/generations", bytes.NewReader(body))
+		req, _ := http.NewRequest("POST", aiRequestURL(endpoint.BaseURL, "/images/generations"), bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("Authorization", "Bearer "+apiKey)
 		setAIProviderHeaders(req, generateSessionID())
@@ -589,7 +661,7 @@ func HandleImageGeneration(c *gin.Context) {
 	sessionID := resolveSessionID(req.SessionID)
 
 	body, _ := json.Marshal(payload)
-	httpReq, err := http.NewRequest("POST", endpoint.BaseURL+"/images/generations", bytes.NewReader(body))
+	httpReq, err := http.NewRequest("POST", aiRequestURL(endpoint.BaseURL, "/images/generations"), bytes.NewReader(body))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to create request: %s", sanitizeError(err))})
 		return

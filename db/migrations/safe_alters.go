@@ -149,11 +149,18 @@ func ApplySafeAlters(db *sql.DB) error {
 		"ALTER TABLE campaign_maps ADD COLUMN walls TEXT NOT NULL DEFAULT '[]'",
 		"ALTER TABLE battlemap_tokens ADD COLUMN aura_radius REAL NOT NULL DEFAULT 0",
 		"ALTER TABLE battlemap_tokens ADD COLUMN vision_radius REAL NOT NULL DEFAULT 0",
-		// Media kinds on uploads (ent-owned; ent adds the columns to existing
-		// DBs, this backfill and the indexes are raw-only concerns).
+		// Media kinds on uploads (ent-owned table: these ALTERs must live here,
+		// after ent.Schema.Create, or ent's table rebuild drops them).
+		"ALTER TABLE uploads ADD COLUMN kind TEXT NOT NULL DEFAULT 'image'",
+		"ALTER TABLE uploads ADD COLUMN source TEXT NOT NULL DEFAULT 'upload'",
+		"ALTER TABLE uploads ADD COLUMN telegram_file_unique_id TEXT NOT NULL DEFAULT ''",
 		"UPDATE uploads SET kind='pdf' WHERE lower(ext)='.pdf' AND kind != 'pdf'",
 		"CREATE INDEX IF NOT EXISTS idx_uploads_kind ON uploads(kind)",
 		"CREATE INDEX IF NOT EXISTS idx_uploads_telegram_unique ON uploads(telegram_file_unique_id)",
+		// Password reset tokens
+		"CREATE TABLE IF NOT EXISTS password_reset_tokens(id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, token_hash TEXT UNIQUE NOT NULL, expires_at INTEGER NOT NULL, used_at INTEGER, created_at INTEGER NOT NULL DEFAULT 0)",
+		"CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id ON password_reset_tokens(user_id)",
+		"CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_hash ON password_reset_tokens(token_hash)",
 	}
 
 	for _, stmt := range alterStatements {

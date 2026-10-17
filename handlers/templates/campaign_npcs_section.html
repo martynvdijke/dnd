@@ -4,6 +4,7 @@
   <div class="d-flex gap-1">
     <button class="btn btn-sm btn-outline-primary" onclick="showCampaignNPCLinkForm({{.CampaignID}})"><i class="fa-solid fa-link me-1"></i>Link NPC</button>
     <button class="btn btn-sm btn-outline-success" onclick="showCampaignNPCCreateForm({{.CampaignID}})"><i class="fa-solid fa-plus me-1"></i>New NPC</button>
+    <button class="btn btn-sm btn-outline-secondary ms-1" onclick="openDraftImport('npc', {campaignId: {{.CampaignID}}})"><i class="fa-solid fa-file-import me-1"></i>Import JSON</button>
   </div>
 </div>
 {{if .NPCs}}

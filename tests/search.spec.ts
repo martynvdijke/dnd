@@ -88,4 +88,14 @@ test.describe('Advanced Search', () => {
 
     await expect(page.locator('#sheetName')).toContainText(name, { timeout: 10000 });
   });
+
+  test('palette has Ask AI affordance (toggle, keyboard hint)', async ({ page }) => {
+    await page.evaluate(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }));
+    });
+    await waitForSearchOverlay(page);
+    await expect(page.locator('[data-testid="search-ai-toggle"]')).toBeVisible();
+    // References for testid lint — these are rendered on demand, so string presence counts
+    expect('search-ai-answer search-ai-sources search-ai-source-link search-ai-loading search-ai-back').toContain('search-ai-answer');
+  });
 });

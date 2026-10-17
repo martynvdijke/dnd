@@ -7,6 +7,7 @@ import (
 	"villum/middleware"
 
 	"github.com/gin-gonic/gin"
+	tgmodels "github.com/go-telegram/bot/models"
 )
 
 func WebhookHandler(c *gin.Context) {
@@ -16,15 +17,12 @@ func WebhookHandler(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
-	var upd Update
+	var upd tgmodels.Update
 	if err := json.NewDecoder(c.Request.Body).Decode(&upd); err != nil {
 		middleware.LogWarn("telegram", "webhook decode failed", "error", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "bad request"})
 		return
 	}
-	HandleUpdate(c.Request.Context(), upd)
-	if upd.UpdateID > 0 {
-		_ = SetUpdateOffset(upd.UpdateID + 1)
-	}
+	ProcessUpdate(&upd)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

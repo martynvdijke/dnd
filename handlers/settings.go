@@ -154,6 +154,7 @@ func SetAISetting(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"enabled": req.Enabled})
 }
 
+// ponytail: TD-007 — duplicated by the search/ai packages; delegate when this handler is next touched
 // aiEnabled reports whether the LLM-backed AI features are enabled site-wide.
 func aiEnabled(ctx context.Context) bool {
 	var value string

@@ -47,8 +47,11 @@ func registerSchedulers() chan struct{} {
 		return upload, err
 	})
 	telegram.EnsureWebhookState()
+	telegram.SetBuildVersion(handlers.AppVersion)
 	telegramStop := make(chan struct{})
-	telegram.StartTelegramPoller(telegramStop)
+	telegram.StartBot(telegramStop)
+	telegram.SetCharacterCreator(handlers.BotCharacterCreator)
+	telegram.SetAuthLinkSender(handlers.SendTelegramAuthLinkEmail)
 	telegram.StartTelegramAutoPostScheduler(telegramStop)
 	_ = telegramStop
 	return pushStop

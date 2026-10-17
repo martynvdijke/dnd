@@ -1,7 +1,10 @@
 package telegram
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -9,10 +12,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gin-gonic/gin"
+	tgbot "github.com/go-telegram/bot"
+	tgmodels "github.com/go-telegram/bot/models"
+
 	"villum/db"
 	"villum/handlers/testutil"
-
-	"github.com/gin-gonic/gin"
 )
 
 func setupTelegramDB(t *testing.T) {
@@ -44,6 +49,50 @@ func jsonOK(v any) []byte {
 func jsonErr(code int, desc string) []byte {
 	b, _ := json.Marshal(map[string]any{"ok": false, "error_code": code, "description": desc})
 	return b
+}
+
+// messageUpdate builds a private-chat text update for dispatcher tests.
+func messageUpdate(updateID, chatID, userID int64, text string) *tgmodels.Update {
+	return &tgmodels.Update{
+		ID: updateID,
+		Message: &tgmodels.Message{
+			ID:   int(updateID),
+			Chat: tgmodels.Chat{ID: chatID, Type: "private"},
+			From: &tgmodels.User{ID: userID, FirstName: "Tester", Username: "tester"},
+			Text: text,
+		},
+	}
+}
+
+// recordingMock records sent message texts and answers every Bot API call.
+func recordingMock(t *testing.T, sent *[]string) *httptest.Server {
+	t.Helper()
+	return mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if txt := requestFormValue(r, "text"); txt != "" {
+			*sent = append(*sent, txt)
+		}
+		w.Write(jsonOK(map[string]any{"message_id": 1}))
+	})
+}
+
+// requestFormValue reads one parameter from a Bot API request. The library
+// always sends multipart/form-data, but JSON is supported for hand-built
+// requests.
+func requestFormValue(r *http.Request, key string) string {
+	if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+		if err := r.ParseMultipartForm(1 << 20); err != nil {
+			return ""
+		}
+		return r.FormValue(key)
+	}
+	var body map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		return ""
+	}
+	if v, ok := body[key].(string); ok {
+		return v
+	}
+	return ""
 }
 
 // --- chunkMessage tests ---
@@ -96,9 +145,6 @@ func TestChunkMessageUTF8NotSplit(t *testing.T) {
 	token := strings.Repeat("😀", 5000)
 	chunks := chunkMessage(token, 4096)
 	for _, c := range chunks {
-		if !strings.Contains(c, "😀") && c != "" {
-			// ok
-		}
 		// verify valid UTF-8 by checking rune count matches len after range
 		for _, r := range c {
 			if r == 0xFFFD {
@@ -109,10 +155,8 @@ func TestChunkMessageUTF8NotSplit(t *testing.T) {
 			t.Fatalf("chunk exceeds limit")
 		}
 	}
-	// reconstruct equals original
+	// hard-cut a single long line without separators, so chunks concatenated == original
 	joined := strings.Join(chunks, "")
-	// for hard-cut case join should reconstruct? For line-split case, newlines preserved? For pure hard-cut, join == original
-	// Here we hard-cut a single long line without separators, so chunks concatenated == original
 	if joined != token {
 		t.Fatalf("reconstructed mismatch: got %d runes want %d", len([]rune(joined)), len([]rune(token)))
 	}
@@ -123,6 +167,14 @@ func TestChunkMessageDocThreshold(t *testing.T) {
 	chunks := chunkMessage(txt, 4096)
 	if len(chunks) <= 3 {
 		t.Fatalf("expected >3 chunks, got %d", len(chunks))
+	}
+}
+
+func TestEscapeHTML(t *testing.T) {
+	got := escapeHTML(`<b>A & B</b>`)
+	want := "&lt;b&gt;A &amp; B&lt;/b&gt;"
+	if got != want {
+		t.Fatalf("escapeHTML = %q, want %q", got, want)
 	}
 }
 
@@ -196,10 +248,7 @@ func TestWebhookSecret(t *testing.T) {
 	if w2.Code != 403 {
 		t.Fatalf("expected 403 wrong secret got %d", w2.Code)
 	}
-	// correct secret -> 200 (need to mock send? no message -> just returns ok)
-	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
-		w.Write(jsonOK(map[string]any{"message_id": 1}))
-	})
+	// correct secret -> 200; with no running client the update is dropped
 	w3 := httptest.NewRecorder()
 	req3 := httptest.NewRequest("POST", "/api/telegram/webhook", strings.NewReader(`{"update_id":3}`))
 	req3.Header.Set("Content-Type", "application/json")
@@ -210,23 +259,60 @@ func TestWebhookSecret(t *testing.T) {
 	}
 }
 
+// TestWebhookRegistrationIncludesInlineQueries guards against a webhook
+// registration that omits AllowedUpdates: a previously-restricted registration
+// would then never be widened to deliver inline_query updates, silently
+// breaking inline compendium search.
+func TestWebhookRegistrationIncludesInlineQueries(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+
+	bodyCh := make(chan string, 1)
+	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/setWebhook") {
+			body, _ := io.ReadAll(r.Body)
+			select {
+			case bodyCh <- string(body):
+			default:
+			}
+		}
+		w.Write(jsonOK(true))
+	})
+
+	client, err := newBotClient(GetBotToken(), GetAPIBase(), nil)
+	if err != nil {
+		t.Fatalf("newBotClient: %v", err)
+	}
+	b := &botState{client: client, wake: make(chan struct{}, 1)}
+	b.startWebhookLocked(Settings{WebhookSecret: "sekret"}, "https://example.test/hook")
+
+	select {
+	case body := <-bodyCh:
+		for _, want := range []string{
+			string(tgmodels.AllowedUpdateMessage),
+			string(tgmodels.AllowedUpdateCallbackQuery),
+			string(tgmodels.AllowedUpdateMyChatMember),
+			string(tgmodels.AllowedUpdateInlineQuery),
+		} {
+			if !strings.Contains(body, want) {
+				t.Fatalf("setWebhook body missing %q: %s", want, body)
+			}
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatalf("setWebhook was never called")
+	}
+}
+
 // --- Dispatcher ---
 
 func TestDispatcherUnlinkedHelps(t *testing.T) {
 	setupTelegramDB(t)
 	defer testutil.CloseDB(t)
 	var sent []string
-	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
-		var body map[string]any
-		_ = json.NewDecoder(r.Body).Decode(&body)
-		if txt, ok := body["text"].(string); ok {
-			sent = append(sent, txt)
-		}
-		w.Write(jsonOK(map[string]any{"message_id": 1}))
-	})
-	HandleUpdate(nil, Update{Message: &Message{Chat: &Chat{ID: 100}, From: &User{ID: 999}, Text: "/recap"}})
-	if len(sent) == 0 || !strings.Contains(sent[0], "/help") && !strings.Contains(sent[0], "Villum bot") {
-		t.Fatalf("expected help text, got %v", sent)
+	recordingMock(t, &sent)
+	HandleUpdate(context.Background(), messageUpdate(1, 100, 999, "/recap"))
+	if len(sent) == 0 || !strings.Contains(sent[0], "/start") {
+		t.Fatalf("expected linking instructions, got %v", sent)
 	}
 }
 
@@ -246,16 +332,9 @@ func TestDispatcherRecapNotFoundNoLeak(t *testing.T) {
 		t.Fatalf("upsert: %v", err)
 	}
 	var sent []string
-	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
-		var body map[string]any
-		_ = json.NewDecoder(r.Body).Decode(&body)
-		if txt, ok := body["text"].(string); ok {
-			sent = append(sent, txt)
-		}
-		w.Write(jsonOK(map[string]any{"message_id": 1}))
-	})
+	recordingMock(t, &sent)
 	// user 1 is NOT member of campaign 10, tries /recap 10
-	HandleUpdate(nil, Update{Message: &Message{Chat: &Chat{ID: 111}, From: &User{ID: 111}, Text: "/recap 10"}})
+	HandleUpdate(context.Background(), messageUpdate(2, 111, 111, "/recap 10"))
 	if len(sent) == 0 {
 		t.Fatalf("no reply")
 	}
@@ -267,7 +346,7 @@ func TestDispatcherRecapNotFoundNoLeak(t *testing.T) {
 	if err := UpsertIdentity(2, 222, 222, "other"); err != nil {
 		t.Fatalf("upsert2: %v", err)
 	}
-	HandleUpdate(nil, Update{Message: &Message{Chat: &Chat{ID: 222}, From: &User{ID: 222}, Text: "/recap 10"}})
+	HandleUpdate(context.Background(), messageUpdate(3, 222, 222, "/recap 10"))
 	if len(sent) == 0 || !strings.Contains(sent[0], "Secret Recap") {
 		t.Fatalf("member should get recap, got %v", sent)
 	}
@@ -320,11 +399,8 @@ func TestAutoPostSelection(t *testing.T) {
 	if _, err := db.DB.Exec("INSERT INTO campaign_telegram_settings(campaign_id,chat_id,is_enabled,auto_post_enabled) VALUES(10,777,1,1)"); err != nil {
 		t.Fatalf("settings: %v", err)
 	}
-	if _, err := db.DB.Exec("INSERT INTO campaign_telegram_settings(campaign_id,chat_id,is_enabled,auto_post_enabled) VALUES(20,888,0,1)"); err != nil {
-		// 20 not exist campaign but setting still; we'll test differently: create campaign 20 disabled
-		testutil.SeedCampaign(t, 20, "C2", "P2", 1)
-		db.DB.Exec("UPDATE campaign_telegram_settings SET is_enabled=0 WHERE campaign_id=20")
-	}
+	testutil.SeedCampaign(t, 20, "C2", "P2", 1)
+	db.DB.Exec("INSERT OR REPLACE INTO campaign_telegram_settings(campaign_id,chat_id,is_enabled,auto_post_enabled) VALUES(20,888,0,1)")
 	// also test auto_post disabled case: campaign 30
 	testutil.SeedCampaign(t, 30, "C3", "P3", 1)
 	db.DB.Exec("INSERT OR REPLACE INTO campaign_telegram_settings(campaign_id,chat_id,is_enabled,auto_post_enabled) VALUES(30,999,1,0)")
@@ -387,16 +463,10 @@ func TestAutoPostSelection(t *testing.T) {
 	}
 }
 
-// --- 429 RetryAfter ---
+// --- 429 RetryAfter translation ---
 
-func TestRetryAfterError(t *testing.T) {
-	setupTelegramDB(t)
-	defer testutil.CloseDB(t)
-	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(429)
-		w.Write([]byte(`{"ok":false,"error_code":429,"description":"Too Many Requests","parameters":{"retry_after":5}}`))
-	})
-	err := doPost("sendMessage", map[string]any{"chat_id": 1, "text": "hi"}, nil)
+func TestTranslateBotError(t *testing.T) {
+	err := translateBotError(&tgbot.TooManyRequestsError{RetryAfter: 5})
 	if err == nil {
 		t.Fatalf("expected error")
 	}
@@ -406,6 +476,13 @@ func TestRetryAfterError(t *testing.T) {
 	}
 	if ra.After != 5*time.Second {
 		t.Fatalf("expected 5s got %v", ra.After)
+	}
+	sentinel := errors.New("boom")
+	if got := translateBotError(sentinel); got != sentinel {
+		t.Fatalf("expected passthrough, got %v", got)
+	}
+	if translateBotError(nil) != nil {
+		t.Fatalf("nil should stay nil")
 	}
 }
 
@@ -445,5 +522,562 @@ func TestMaskToken(t *testing.T) {
 	}
 	if MaskToken("short") != "***" {
 		t.Fatalf("short should be ***")
+	}
+}
+
+// --- Registry, help and native menu ---
+
+func TestHelpTextFromRegistry(t *testing.T) {
+	help := helpText()
+	for _, want := range []string{"/characters", "/sheet", "/stats", "/overview", "/recap", "/status", "Characters", "Campaigns", "Notifications"} {
+		if !strings.Contains(help, want) {
+			t.Fatalf("help missing %q:\n%s", want, help)
+		}
+	}
+	// every non-hidden registry command appears in help
+	for _, cmd := range commandRegistry {
+		if cmd.hidden {
+			continue
+		}
+		if !strings.Contains(help, "/"+cmd.name) {
+			t.Fatalf("help missing command %q", cmd.name)
+		}
+	}
+}
+
+func TestFindCommand(t *testing.T) {
+	if _, ok := findCommand("HELP"); !ok {
+		t.Fatalf("findCommand should be case-insensitive")
+	}
+	if _, ok := findCommand("nope"); ok {
+		t.Fatalf("unknown command should not resolve")
+	}
+}
+
+func TestBotCommandList(t *testing.T) {
+	list := botCommandList()
+	visible := 0
+	for _, cmd := range commandRegistry {
+		if !cmd.hidden {
+			visible++
+		}
+	}
+	if len(list) != visible {
+		t.Fatalf("expected %d commands, got %d", visible, len(list))
+	}
+	for _, c := range list {
+		if strings.HasPrefix(c.Command, "/") {
+			t.Fatalf("command must not have a leading slash: %q", c.Command)
+		}
+		if len([]rune(c.Description)) > 256 {
+			t.Fatalf("description too long for %q", c.Command)
+		}
+	}
+}
+
+// --- Callback routing ---
+
+func TestHandleCallbackDataNavigation(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	if err := UpsertIdentity(1, 999, 999, "admin"); err != nil {
+		t.Fatalf("upsert: %v", err)
+	}
+	var sent []string
+	recordingMock(t, &sent)
+	c := &cmdContext{ctx: context.Background(), chatID: 999, tgUserID: 999}
+	reply, ok := handleCallbackData(c, cbNavPrefix+"characters")
+	if !ok {
+		t.Fatalf("nav callback not handled")
+	}
+	if reply.Keyboard == nil {
+		t.Fatalf("navigation keyboard missing")
+	}
+	if !strings.Contains(reply.Text, "no characters") {
+		t.Fatalf("unexpected reply: %q", reply.Text)
+	}
+	if _, ok := handleCallbackData(c, "bogus:1"); ok {
+		t.Fatalf("unknown callback should not be handled")
+	}
+}
+
+// --- Claims ---
+
+func TestClaimLifecycle(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedUser(t, 2, "dm", "user")
+	testutil.SeedCharacter(t, 1, 1, "Aria", "Elf", "Ranger")
+	// campaign owned by user 2 contains character 1, so user 2 may edit it too
+	testutil.SeedCampaign(t, 10, "Table", "Party", 2)
+	if _, err := db.DB.Exec("INSERT OR IGNORE INTO campaign_characters(campaign_id,character_id) VALUES(10,1)"); err != nil {
+		t.Fatalf("attach: %v", err)
+	}
+	if err := UpsertIdentity(1, 100, 100, "admin"); err != nil {
+		t.Fatalf("upsert: %v", err)
+	}
+	if err := UpsertIdentity(2, 200, 200, "dm"); err != nil {
+		t.Fatalf("upsert2: %v", err)
+	}
+	owner := &cmdContext{ctx: context.Background(), chatID: 100, tgUserID: 100}
+	reply := claimByID(owner, 1)
+	if !strings.Contains(reply.Text, "now playing") {
+		t.Fatalf("claim failed: %q", reply.Text)
+	}
+	claim, found, err := getClaim(100)
+	if err != nil || !found || claim.CharacterID != 1 {
+		t.Fatalf("claim not stored: found=%v err=%v", found, err)
+	}
+	// another user who can edit the character still cannot take the claim
+	other := &cmdContext{ctx: context.Background(), chatID: 200, tgUserID: 200}
+	if reply := claimByID(other, 1); !strings.Contains(reply.Text, "already claimed") {
+		t.Fatalf("expected refusal, got %q", reply.Text)
+	}
+	// candidates exclude already claimed characters
+	candidates, err := claimCandidates(1)
+	if err != nil {
+		t.Fatalf("candidates: %v", err)
+	}
+	for _, ch := range candidates {
+		if ch.ID == 1 {
+			t.Fatalf("claimed character must not be a candidate")
+		}
+	}
+	// unclaim releases it
+	if reply := runUnclaim(owner); !strings.Contains(reply.Text, "Released") {
+		t.Fatalf("unclaim failed: %q", reply.Text)
+	}
+	if _, found, _ := getClaim(100); found {
+		t.Fatalf("claim should be gone")
+	}
+	// claiming a foreign character is refused
+	if reply := claimByID(owner, 999); !strings.Contains(reply.Text, "not found") {
+		t.Fatalf("expected not found, got %q", reply.Text)
+	}
+}
+
+// --- Create flow ---
+
+func TestCreateFlow(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCharacter(t, 42, 1, "Aria", "Elf", "Ranger")
+	if err := UpsertIdentity(1, 100, 100, "admin"); err != nil {
+		t.Fatalf("upsert: %v", err)
+	}
+	var sent []string
+	recordingMock(t, &sent)
+
+	var gotInput CreateCharacterInput
+	var gotUser int64
+	SetCharacterCreator(func(ctx context.Context, userID int64, in CreateCharacterInput) (CreatedCharacter, error) {
+		gotInput = in
+		gotUser = userID
+		return CreatedCharacter{ID: 42, Name: in.Name, Race: in.Race, Class: in.Class, Level: in.Level, HpMax: 10, HpCurrent: 10, Ac: 10}, nil
+	})
+	t.Cleanup(func() { SetCharacterCreator(nil) })
+
+	c := &cmdContext{ctx: context.Background(), chatID: 100, tgUserID: 100}
+	if reply := runCreate(c); !strings.Contains(reply.Text, "name") {
+		t.Fatalf("expected name prompt, got %q", reply.Text)
+	}
+	if !flowActive(100) {
+		t.Fatalf("flow should be active")
+	}
+	feedCreateFlow(c, "Aria")
+	feedCreateFlow(c, "Elf")
+	feedCreateFlow(c, "Ranger")
+	feedCreateFlow(c, "3")
+	feedCreateFlow(c, "none")
+
+	if gotUser != 1 {
+		t.Fatalf("creator got user %d", gotUser)
+	}
+	if gotInput.Name != "Aria" || gotInput.Race != "Elf" || gotInput.Class != "Ranger" || gotInput.Level != 3 || gotInput.CampaignID != 0 {
+		t.Fatalf("unexpected input: %+v", gotInput)
+	}
+	if !strings.Contains(strings.Join(sent, "\n"), "Created") {
+		t.Fatalf("expected creation confirmation, got %v", sent)
+	}
+	if claim, found, _ := getClaim(100); !found || claim.CharacterID != 42 {
+		t.Fatalf("created character should be claimed")
+	}
+	if flowActive(100) {
+		t.Fatalf("flow should be finished")
+	}
+}
+
+func TestCreateFlowValidationAndAbort(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	_ = UpsertIdentity(1, 100, 100, "admin")
+	var sent []string
+	recordingMock(t, &sent)
+	SetCharacterCreator(func(ctx context.Context, userID int64, in CreateCharacterInput) (CreatedCharacter, error) {
+		t.Fatalf("creator must not be called for invalid input")
+		return CreatedCharacter{}, nil
+	})
+	t.Cleanup(func() { SetCharacterCreator(nil) })
+
+	c := &cmdContext{ctx: context.Background(), chatID: 100, tgUserID: 100}
+	start := runCreate(c)
+	if !strings.Contains(start.Text, "name") {
+		t.Fatalf("expected name prompt, got %q", start.Text)
+	}
+	feedCreateFlow(c, "Aria")
+	feedCreateFlow(c, "Elf")
+	feedCreateFlow(c, "Ranger")
+	feedCreateFlow(c, "99")
+	if !strings.Contains(strings.Join(sent, "\n"), "between 1 and 20") {
+		t.Fatalf("expected level validation reply, got %v", sent)
+	}
+	if !flowActive(100) {
+		t.Fatalf("flow should still be active after invalid level")
+	}
+	abortCreateFlow(100)
+	if flowActive(100) {
+		t.Fatalf("flow should be aborted")
+	}
+	if reply := runCancel(c); !strings.Contains(reply.Text, "Nothing to cancel") {
+		t.Fatalf("unexpected cancel reply: %q", reply.Text)
+	}
+}
+
+// --- Settings ---
+
+func TestCampaignTelegramSettingsAccessors(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCampaign(t, 7, "Table", "Party", 1)
+	chatID := int64(555)
+	s := CampaignTelegramSettings{
+		CampaignID:      7,
+		ChatID:          &chatID,
+		ChatType:        "supergroup",
+		TitleCache:      "Table",
+		IsEnabled:       true,
+		AutoPostEnabled: true,
+	}
+	if err := UpsertCampaignTelegramSettings(s); err != nil {
+		t.Fatalf("upsert: %v", err)
+	}
+	got, found, err := GetCampaignTelegramSettings(7)
+	if err != nil || !found {
+		t.Fatalf("get: found=%v err=%v", found, err)
+	}
+	if got.ChatID == nil || *got.ChatID != 555 || got.TitleCache != "Table" || !got.IsEnabled || !got.AutoPostEnabled {
+		t.Fatalf("unexpected settings: %+v", got)
+	}
+	got.IsEnabled = false
+	if err := UpsertCampaignTelegramSettings(got); err != nil {
+		t.Fatalf("upsert update: %v", err)
+	}
+	again, _, _ := GetCampaignTelegramSettings(7)
+	if again.IsEnabled {
+		t.Fatalf("is_enabled update lost")
+	}
+	if _, found, err := GetCampaignTelegramSettings(99); err != nil || found {
+		t.Fatalf("missing row should return found=false, got found=%v err=%v", found, err)
+	}
+}
+
+func TestLoadSettingsEnvOverride(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	_ = SetBotToken("stored-token")
+	os.Setenv("TELEGRAM_BOT_TOKEN", "env-token")
+	if got := LoadSettings(); got.Token != "env-token" {
+		t.Fatalf("env token should win, got %q", got.Token)
+	}
+	os.Unsetenv("TELEGRAM_BOT_TOKEN")
+	if got := LoadSettings(); got.Token != "stored-token" {
+		t.Fatalf("stored token should be used, got %q", got.Token)
+	}
+}
+
+// --- Supervisor ---
+
+func TestSupervisorReconcile(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "getMe") {
+			w.Write(jsonOK(map[string]any{"id": 123, "is_bot": true, "first_name": "T", "username": "tbot"}))
+			return
+		}
+		w.Write(jsonOK(true))
+	})
+	bot.mu.Lock()
+	bot.stopClientLocked()
+	bot.started = false
+	bot.mu.Unlock()
+	t.Cleanup(func() {
+		bot.mu.Lock()
+		bot.stopClientLocked()
+		bot.started = false
+		bot.mu.Unlock()
+	})
+
+	_ = SetMode("webhook")
+	bot.reconcile()
+	if runningClient() == nil {
+		t.Fatalf("expected a running client after reconcile with a token")
+	}
+
+	os.Unsetenv("TELEGRAM_BOT_TOKEN")
+	_ = SetBotToken("")
+	_ = SetMode("off")
+	bot.reconcile()
+	if runningClient() != nil {
+		t.Fatalf("expected client to stop when settings are cleared")
+	}
+}
+
+func resetBotState(t *testing.T) {
+	t.Helper()
+	bot.mu.Lock()
+	bot.stopClientLocked()
+	bot.started = false
+	bot.mu.Unlock()
+	t.Cleanup(func() {
+		bot.mu.Lock()
+		bot.stopClientLocked()
+		bot.started = false
+		bot.mu.Unlock()
+	})
+}
+
+func TestSupervisorPollingClearsStaleWebhook(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	resetBotState(t)
+	var deletes int
+	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.Contains(r.URL.Path, "getMe"):
+			w.Write(jsonOK(map[string]any{"id": 123, "is_bot": true, "first_name": "T", "username": "tbot"}))
+		case strings.Contains(r.URL.Path, "deleteWebhook"):
+			deletes++
+			w.Write(jsonOK(true))
+		default:
+			w.Write(jsonOK(true))
+		}
+	})
+
+	_ = SetMode("polling")
+	bot.reconcile()
+	if deletes != 1 {
+		t.Fatalf("expected polling to clear a webhook left by a previous deployment, got %d deleteWebhook calls", deletes)
+	}
+	bot.mu.Lock()
+	cleared := bot.pollWebhookCleared
+	bot.mu.Unlock()
+	if !cleared {
+		t.Fatalf("expected the webhook-cleared flag to be set once polling starts")
+	}
+	// While the same client keeps polling, do not clear again.
+	bot.reconcile()
+	if deletes != 1 {
+		t.Fatalf("expected one deleteWebhook per client, got %d", deletes)
+	}
+}
+
+func TestSupervisorWebhookFallsBackToPolling(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	resetBotState(t)
+	os.Unsetenv("BASE_URL")
+	os.Unsetenv("TELEGRAM_WEBHOOK_SECRET")
+	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "getMe") {
+			w.Write(jsonOK(map[string]any{"id": 123, "is_bot": true, "first_name": "T", "username": "tbot"}))
+			return
+		}
+		w.Write(jsonOK(true))
+	})
+
+	_ = SetWebhookSecret("")
+	_ = SetMode("webhook")
+	bot.reconcile()
+	bot.mu.Lock()
+	polling := bot.pollCancel != nil
+	bot.mu.Unlock()
+	if !polling {
+		t.Fatalf("expected webhook mode without a secret or HTTPS BASE_URL to fall back to polling")
+	}
+	if runningClient() == nil {
+		t.Fatalf("expected a running client after fallback")
+	}
+}
+
+func TestGroupCommandsBoundChat(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "dm", "user")
+	testutil.SeedCampaign(t, 7, "Sunken Crown", "The Party", 1)
+	testutil.SeedCharacterInCampaign(t, 11, 1, 7, "Aria", "Elf", "Ranger")
+	if _, err := db.DB.Exec(`INSERT INTO party_items (campaign_id, name, quantity, notes) VALUES (7, 'Rope', 3, ''), (7, '<b>Bomb</b>', 1, '')`); err != nil {
+		t.Fatalf("seed party items: %v", err)
+	}
+	if _, err := db.DB.Exec(`INSERT INTO quests (character_id, name, status, objectives) VALUES (11, 'Find the Sunken Crown', 'active', 'Search the harbor')`); err != nil {
+		t.Fatalf("seed quest: %v", err)
+	}
+	res, err := db.DB.Exec(`INSERT INTO locations (user_id, name, type) VALUES (1, 'Waterdeep', 'city')`)
+	if err != nil {
+		t.Fatalf("seed location: %v", err)
+	}
+	locID, err := res.LastInsertId()
+	if err != nil {
+		t.Fatalf("location id: %v", err)
+	}
+	if _, err := db.DB.Exec(`INSERT INTO character_locations (character_id, location_id, relationship) VALUES (11, ?, 'visited')`, locID); err != nil {
+		t.Fatalf("seed character location: %v", err)
+	}
+	groupChat := int64(-100123)
+	if err := UpsertCampaignTelegramSettings(CampaignTelegramSettings{CampaignID: 7, ChatID: &groupChat, IsEnabled: true}); err != nil {
+		t.Fatalf("bind chat: %v", err)
+	}
+	var sent []string
+	recordingMock(t, &sent)
+
+	cases := []struct{ text, want string }{
+		{"/items", "Rope"},
+		{"/quests", "Find the Sunken Crown"},
+		{"/visits", "Waterdeep"},
+		{"/stats", "Statistics"},
+	}
+	for i, tc := range cases {
+		HandleUpdate(context.Background(), messageUpdate(int64(900+i), groupChat, 999999, tc.text))
+		if len(sent) == 0 || !strings.Contains(sent[len(sent)-1], tc.want) {
+			t.Fatalf("%s reply does not contain %q: %v", tc.text, tc.want, sent)
+		}
+	}
+	joined := strings.Join(sent, "\n")
+	if strings.Contains(joined, "<b>Bomb</b>") || !strings.Contains(joined, "&lt;b&gt;Bomb&lt;/b&gt;") {
+		t.Fatalf("hostile item text was not escaped: %q", joined)
+	}
+}
+
+func TestGroupCommandsUnboundChat(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	var sent []string
+	recordingMock(t, &sent)
+	groupChat := int64(-100777)
+	HandleUpdate(context.Background(), messageUpdate(910, groupChat, 999999, "/items"))
+	if len(sent) == 0 || !strings.Contains(sent[len(sent)-1], "not connected to a campaign") {
+		t.Fatalf("expected binding instructions, got %v", sent)
+	}
+}
+
+func TestStartWelcomeAndLink(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 5, "player", "user")
+	var sent []string
+	recordingMock(t, &sent)
+
+	HandleUpdate(context.Background(), messageUpdate(920, 555, 555, "/start"))
+	if len(sent) == 0 || !strings.Contains(sent[len(sent)-1], "Welcome") {
+		t.Fatalf("expected welcome, got %v", sent)
+	}
+
+	code, _, err := CreateLinkCode(5)
+	if err != nil {
+		t.Fatalf("create link code: %v", err)
+	}
+	HandleUpdate(context.Background(), messageUpdate(921, 555, 555, "/start "+code))
+	last := sent[len(sent)-1]
+	if !strings.Contains(last, "Linked") || !strings.Contains(last, "/claim") {
+		t.Fatalf("expected post-link guidance, got %q", last)
+	}
+}
+
+func TestGroupWelcome(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	var sent []string
+	recordingMock(t, &sent)
+
+	chat := tgmodels.Chat{ID: -100999, Type: tgmodels.ChatTypeSupergroup}
+	added := &tgmodels.ChatMemberUpdated{
+		Chat:          chat,
+		From:          tgmodels.User{ID: 1},
+		NewChatMember: tgmodels.ChatMember{Type: tgmodels.ChatMemberTypeMember},
+		OldChatMember: tgmodels.ChatMember{Type: tgmodels.ChatMemberTypeLeft},
+	}
+	HandleUpdate(context.Background(), &tgmodels.Update{ID: 930, MyChatMember: added})
+	if len(sent) == 0 || !strings.Contains(sent[len(sent)-1], "Thanks for adding me") {
+		t.Fatalf("expected group welcome, got %v", sent)
+	}
+
+	before := len(sent)
+	HandleUpdate(context.Background(), &tgmodels.Update{ID: 931, MyChatMember: &tgmodels.ChatMemberUpdated{
+		Chat:          chat,
+		NewChatMember: tgmodels.ChatMember{Type: tgmodels.ChatMemberTypeMember},
+		OldChatMember: tgmodels.ChatMember{Type: tgmodels.ChatMemberTypeMember},
+	}})
+	if len(sent) != before {
+		t.Fatalf("expected no reply for an ordinary member update, got %v", sent[before:])
+	}
+
+	testutil.SeedUser(t, 1, "dm", "user")
+	testutil.SeedCampaign(t, 7, "Sunken Crown", "The Party", 1)
+	groupChat := chat.ID
+	if err := UpsertCampaignTelegramSettings(CampaignTelegramSettings{CampaignID: 7, ChatID: &groupChat, IsEnabled: true}); err != nil {
+		t.Fatalf("bind chat: %v", err)
+	}
+	HandleUpdate(context.Background(), &tgmodels.Update{ID: 932, MyChatMember: added})
+	if last := sent[len(sent)-1]; !strings.Contains(last, "Sunken Crown") {
+		t.Fatalf("expected connected campaign name, got %q", last)
+	}
+}
+
+// --- Administrator visibility ---
+
+func TestAdminSeesAllCharacters(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedUser(t, 2, "player", "user")
+	testutil.SeedUser(t, 3, "stranger", "user")
+	// Character owned by user 2, in no campaign.
+	testutil.SeedCharacter(t, 1, 2, "Boro", "Dwarf", "Cleric")
+	if err := UpsertIdentity(1, 100, 100, "admin"); err != nil {
+		t.Fatalf("upsert admin: %v", err)
+	}
+	if err := UpsertIdentity(2, 200, 200, "player"); err != nil {
+		t.Fatalf("upsert player: %v", err)
+	}
+	if err := UpsertIdentity(3, 300, 300, "stranger"); err != nil {
+		t.Fatalf("upsert stranger: %v", err)
+	}
+
+	admin := &cmdContext{ctx: context.Background(), chatID: 100, tgUserID: 100}
+	if reply := runCharacters(admin); !strings.Contains(reply.Text, "Boro") {
+		t.Fatalf("admin should list another user's character, got %q", reply.Text)
+	}
+	if reply := sheetByID(admin, 1); !strings.Contains(reply.Text, "Boro") {
+		t.Fatalf("admin should open another user's sheet, got %q", reply.Text)
+	}
+
+	// The owner still sees their own character.
+	owner := &cmdContext{ctx: context.Background(), chatID: 200, tgUserID: 200}
+	if reply := runCharacters(owner); !strings.Contains(reply.Text, "Boro") {
+		t.Fatalf("owner should list their character, got %q", reply.Text)
+	}
+
+	// A plain user with no ownership and no campaign role must not.
+	stranger := &cmdContext{ctx: context.Background(), chatID: 300, tgUserID: 300}
+	if reply := runCharacters(stranger); strings.Contains(reply.Text, "Boro") {
+		t.Fatalf("non-admin must not see another user's character, got %q", reply.Text)
+	}
+	if reply := sheetByID(stranger, 1); !strings.Contains(reply.Text, "not found") {
+		t.Fatalf("non-admin sheet must be denied, got %q", reply.Text)
 	}
 }

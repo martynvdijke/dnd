@@ -8,6 +8,18 @@ func RegisterDMARoutes(r *gin.RouterGroup) {
 	r.POST("/ai/generate/text", HandleTextGeneration)
 	r.POST("/ai/generate/image", HandleImageGeneration)
 	r.POST("/ai/save-image", SaveGeneratedImage)
+
+	// Conversational, steerable structured generation.
+	r.POST("/ai/draft", StartAIDraft)
+	r.GET("/ai/draft", ListAIDrafts)
+	r.GET("/ai/draft/:id", GetAIDraft)
+	r.POST("/ai/draft/:id/turn", AIDraftTurn)
+	r.POST("/ai/draft/:id/commit", CommitAIDraft)
+	r.DELETE("/ai/draft/:id", DiscardAIDraft)
+
+	// Direct JSON import (create or replace) and stateless AI revision.
+	r.POST("/ai/import", HandleImportDraftJSON)
+	r.POST("/ai/revise", ReviseAIDraft)
 }
 
 // RegisterAdminAIRoutes registers admin AI endpoint management routes.

@@ -1,6 +1,7 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h5>Factions & Reputation</h5>
   <button class="btn btn-gold btn-sm" hx-get="/htmx/factions/new" hx-target="#genericModalBody" hx-trigger="click" onclick="document.getElementById('genericModalTitle').textContent='New Faction';bootstrap.Modal.getOrCreateInstance(document.getElementById('genericModal')).show()"><i class="fa-solid fa-plus me-1"></i>New Faction</button>
+  <button class="btn btn-outline-secondary btn-sm ms-1" onclick="openDraftImport('faction')"><i class="fa-solid fa-file-import me-1"></i>Import JSON</button>
 </div>
 {{if .Factions}}
 <div class="row g-3">

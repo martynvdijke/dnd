@@ -11,7 +11,7 @@ custom_fields:
   - keyname: url
     field_type: url
     name: Instance URL
-    description: Base URL of your Villum instance (e.g. https://dnd.example.com)
+    description: Base URL of your Villum instance (e.g. dnd.example.com)
     placeholder: https://dnd.example.com
     help_text: Used for asset references when polling from this instance.
   - keyname: character_id

@@ -1,3 +1,172 @@
+## [2.101.2](https://github.com/martynvdijke/dnd/compare/v2.101.1...v2.101.2) (2026-10-12)
+
+## [2.101.1](https://github.com/martynvdijke/dnd/compare/v2.101.0...v2.101.1) (2026-10-10)
+
+# [2.101.0](https://github.com/martynvdijke/dnd/compare/v2.100.2...v2.101.0) (2026-10-10)
+
+
+### Features
+
+* **telegram:** add dice, whispers, initiative, quests, scheduling, topics and level-up ([#206](https://github.com/martynvdijke/dnd/issues/206)) ([062ce6c](https://github.com/martynvdijke/dnd/commit/062ce6cbeb1ea5d1bc76c68ef2331ec1103d7ac8))
+
+## [2.100.2](https://github.com/martynvdijke/dnd/compare/v2.100.1...v2.100.2) (2026-10-09)
+
+
+### Bug Fixes
+
+* **deploy:** make bot deployments updatable and version-visible ([#204](https://github.com/martynvdijke/dnd/issues/204)) ([c7c28aa](https://github.com/martynvdijke/dnd/commit/c7c28aa3f50666ad82230ee93b605802ac4e344d))
+
+## [2.100.1](https://github.com/martynvdijke/dnd/compare/v2.100.0...v2.100.1) (2026-10-08)
+
+# [2.100.0](https://github.com/martynvdijke/dnd/compare/v2.99.0...v2.100.0) (2026-10-07)
+
+
+### Features
+
+* **telegram:** manage gear, spells, conditions and coin ([#198](https://github.com/martynvdijke/dnd/issues/198)) ([ad5c771](https://github.com/martynvdijke/dnd/commit/ad5c7719c56b421172ba1065ca2d21eb33fd5a4b))
+
+# [2.99.0](https://github.com/martynvdijke/dnd/compare/v2.98.4...v2.99.0) (2026-10-07)
+
+
+### Features
+
+* **telegram:** email sign-in and passwordless account linking ([#196](https://github.com/martynvdijke/dnd/issues/196)) ([bf875c8](https://github.com/martynvdijke/dnd/commit/bf875c86086591e4c550f14e6c09e8599a2afd04))
+
+## [2.98.4](https://github.com/martynvdijke/dnd/compare/v2.98.3...v2.98.4) (2026-10-07)
+
+
+### Bug Fixes
+
+* **deps:** update all non-major dependencies ([f2b4ee5](https://github.com/martynvdijke/dnd/commit/f2b4ee5965b1585dcfb47248f9de0ef62ab5728d))
+* **deps:** update github.com/dop251/goja digest to 02d12d4 ([6ed483c](https://github.com/martynvdijke/dnd/commit/6ed483c2e6fed78108e7635692cfa579d9c6ab31))
+
+## [2.98.3](https://github.com/martynvdijke/dnd/compare/v2.98.2...v2.98.3) (2026-10-07)
+
+
+### Bug Fixes
+
+* **telegram:** include allowed updates on webhook registration ([#194](https://github.com/martynvdijke/dnd/issues/194)) ([68cfe9f](https://github.com/martynvdijke/dnd/commit/68cfe9f2cb356c6388ce54b82cc690a2ce2f43ce))
+
+## [2.98.2](https://github.com/martynvdijke/dnd/compare/v2.98.1...v2.98.2) (2026-10-06)
+
+
+### Bug Fixes
+
+* **deps:** update all non-major dependencies ([991043a](https://github.com/martynvdijke/dnd/commit/991043ae58d2aa7753bd372ab1042f074da5cfbe))
+* **deps:** update github.com/dop251/goja digest to 481fdb4 ([58900a5](https://github.com/martynvdijke/dnd/commit/58900a5e18a9a0fc10fd0206f4e4198127a6e2bf))
+* **telegram:** show all characters to admins in bot ([7066a07](https://github.com/martynvdijke/dnd/commit/7066a0730457bb0fb3a50a873f37c16f6d82c86b))
+
+## [2.98.1](https://github.com/martynvdijke/dnd/compare/v2.98.0...v2.98.1) (2026-10-04)
+
+# [2.98.0](https://github.com/martynvdijke/dnd/compare/v2.97.0...v2.98.0) (2026-10-04)
+
+
+### Features
+
+* **ai:** extract recaps and entity drafts from session transcripts ([#185](https://github.com/martynvdijke/dnd/issues/185)) ([8a5fa40](https://github.com/martynvdijke/dnd/commit/8a5fa4067be73eb533fc85ad45ed9d7f2a4b090d))
+
+# [2.97.0](https://github.com/martynvdijke/dnd/compare/v2.96.0...v2.97.0) (2026-10-03)
+
+
+### Features
+
+* **telegram:** add character actions for HP, rests, and casting ([#184](https://github.com/martynvdijke/dnd/issues/184)) ([7dd94fe](https://github.com/martynvdijke/dnd/commit/7dd94fe5eebc893f86fff1bea6446190ab96b60f))
+
+# [2.96.0](https://github.com/martynvdijke/dnd/compare/v2.95.0...v2.96.0) (2026-10-03)
+
+
+### Features
+
+* **ai:** ground AI draft sessions in campaign lore ([#183](https://github.com/martynvdijke/dnd/issues/183)) ([7f4d7d1](https://github.com/martynvdijke/dnd/commit/7f4d7d182afc5007432c7f5ba70d1232c89bbb6a))
+
+# [2.95.0](https://github.com/martynvdijke/dnd/compare/v2.94.0...v2.95.0) (2026-10-03)
+
+
+### Features
+
+* **search:** compendium search and AI search in Telegram and web palette ([#182](https://github.com/martynvdijke/dnd/issues/182)) ([098eb8f](https://github.com/martynvdijke/dnd/commit/098eb8f03834b71b0acc7e15b10f12c72f7d4012))
+
+# [2.94.0](https://github.com/martynvdijke/dnd/compare/v2.93.2...v2.94.0) (2026-10-03)
+
+
+### Bug Fixes
+
+* **db:** register password_reset_tokens and refresh schema hash ([#180](https://github.com/martynvdijke/dnd/issues/180)) ([fd76748](https://github.com/martynvdijke/dnd/commit/fd76748387b355d9b523ed6e7dde47e1671c7414))
+* **db:** remove duplicate password_reset_tokens allowlist entry ([#181](https://github.com/martynvdijke/dnd/issues/181)) ([076ec4c](https://github.com/martynvdijke/dnd/commit/076ec4c1e44c4272b68c317762339522987cf417)), closes [#180](https://github.com/martynvdijke/dnd/issues/180)
+
+
+### Features
+
+* **auth:** add self-service email password reset ([2d0541f](https://github.com/martynvdijke/dnd/commit/2d0541f80c26412a38c1dfeecd02f62c035767b5))
+
+## [2.93.2](https://github.com/martynvdijke/dnd/compare/v2.93.1...v2.93.2) (2026-10-03)
+
+
+### Bug Fixes
+
+* **telegram:** clear stale webhook before polling and fall back when webhook is unconfigured ([#179](https://github.com/martynvdijke/dnd/issues/179)) ([fc53697](https://github.com/martynvdijke/dnd/commit/fc536976358db296d2821d9904581e779f8263d6))
+
+## [2.93.1](https://github.com/martynvdijke/dnd/compare/v2.93.0...v2.93.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* **ai:** generate drafts on request and explain missing drafts on import ([9c9e0c1](https://github.com/martynvdijke/dnd/commit/9c9e0c1aeaf58079b5b2a27998592eae53231517))
+
+# [2.93.0](https://github.com/martynvdijke/dnd/compare/v2.92.0...v2.93.0) (2026-10-02)
+
+
+### Features
+
+* **ai:** integrated draft studio with section-level AI tweaks ([e1f76ba](https://github.com/martynvdijke/dnd/commit/e1f76ba732169a98e13a38c752c6754d1b8e06a7))
+
+# [2.92.0](https://github.com/martynvdijke/dnd/compare/v2.91.4...v2.92.0) (2026-10-02)
+
+
+### Features
+
+* **ai:** reliable drafting plus JSON import and revision ([2a66bd3](https://github.com/martynvdijke/dnd/commit/2a66bd3beb1450f84d80bf97ae6795b8b2674cbb))
+
+## [2.91.4](https://github.com/martynvdijke/dnd/compare/v2.91.3...v2.91.4) (2026-10-01)
+
+## [2.91.3](https://github.com/martynvdijke/dnd/compare/v2.91.2...v2.91.3) (2026-10-01)
+
+
+### Bug Fixes
+
+* **web:** recover from stale API tokens instead of wedging on 401 ([#170](https://github.com/martynvdijke/dnd/issues/170)) ([0895c3b](https://github.com/martynvdijke/dnd/commit/0895c3be9da4dd7de44cac38d4f4464dff8e6498))
+
+## [2.91.2](https://github.com/martynvdijke/dnd/compare/v2.91.1...v2.91.2) (2026-10-01)
+
+## [2.91.1](https://github.com/martynvdijke/dnd/compare/v2.91.0...v2.91.1) (2026-10-01)
+
+
+### Bug Fixes
+
+* **deps:** update all non-major dependencies ([#86](https://github.com/martynvdijke/dnd/issues/86)) ([4624e58](https://github.com/martynvdijke/dnd/commit/4624e581d40931b85fae566b02a1fe499ce56f7e))
+* **deps:** update github.com/dop251/goja digest to 39ec265 ([#147](https://github.com/martynvdijke/dnd/issues/147)) ([893db18](https://github.com/martynvdijke/dnd/commit/893db187cd09c4185df4d4f89a4f3b1e6edf7a1c))
+
+# [2.91.0](https://github.com/martynvdijke/dnd/compare/v2.90.0...v2.91.0) (2026-10-01)
+
+
+### Features
+
+* **ai:** resumable structured drafting for adventures and entities ([#169](https://github.com/martynvdijke/dnd/issues/169)) ([2777b89](https://github.com/martynvdijke/dnd/commit/2777b89ebda42f01dc2c533fa89e55ee82fb036c))
+
+# [2.90.0](https://github.com/martynvdijke/dnd/compare/v2.89.0...v2.90.0) (2026-09-29)
+
+
+### Features
+
+* **telegram:** add group commands and friendlier onboarding ([#167](https://github.com/martynvdijke/dnd/issues/167)) ([4403bde](https://github.com/martynvdijke/dnd/commit/4403bde4601d5795afcaf515d20915d8442d3e1a))
+
+# [2.89.0](https://github.com/martynvdijke/dnd/compare/v2.88.0...v2.89.0) (2026-09-29)
+
+
+### Features
+
+* **telegram:** port bot runtime to go-telegram/bot with character commands ([#165](https://github.com/martynvdijke/dnd/issues/165)) ([7d83d07](https://github.com/martynvdijke/dnd/commit/7d83d07988debd5e4e59441f9841f55ce24412df))
+
 # [2.88.0](https://github.com/martynvdijke/dnd/compare/v2.87.0...v2.88.0) (2026-09-29)
 
 
