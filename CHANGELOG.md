@@ -1,3 +1,10 @@
+# [2.102.0](https://github.com/martynvdijke/dnd/compare/v2.101.2...v2.102.0) (2026-10-17)
+
+
+### Features
+
+* add Flutter Android companion app and non-blocking APK release ([#210](https://github.com/martynvdijke/dnd/issues/210)) ([b07b9c9](https://github.com/martynvdijke/dnd/commit/b07b9c903427a4de194d35b81ec76e30efb35699))
+
 ## [2.101.2](https://github.com/martynvdijke/dnd/compare/v2.101.1...v2.101.2) (2026-10-12)
 
 ## [2.101.1](https://github.com/martynvdijke/dnd/compare/v2.101.0...v2.101.1) (2026-10-10)
