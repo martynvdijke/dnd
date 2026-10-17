@@ -43,7 +43,7 @@ dnd already uses Google OAuth2 (google_calendar) for calendar sync — Authelia 
 
 ## Migration Plan
 
-1. Add deps, config, DB columns (`oidc_sub`, `auth_method`), and OIDC handlers behind `OIDC_ENABLED=false` default.
+1. Add deps, config, DB columns (`oidc_sub`, `auth_method`), and OIDC handlers that are enabled by default once configured; `OIDC_ENABLED=false` opts out.
 2. Register Authelia client (`client_id` = app, redirect `https://<host>/api/auth/oidc/callback`, consent explicit, policy `one_factor`).
 3. Add NPM bypass for the host, enable OIDC in compose, verify login/logout end-to-end.
 4. Keep password fallback on; remove only after successful verification period.
