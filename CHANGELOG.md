@@ -1,3 +1,10 @@
+# [2.103.0](https://github.com/martynvdijke/dnd/compare/v2.102.0...v2.103.0) (2026-10-17)
+
+
+### Features
+
+* add rich media support to Telegram, galleries and uploads ([dc16f79](https://github.com/martynvdijke/dnd/commit/dc16f7926722a9dc3f72fa3c7b4b777cc21f353c))
+
 # [2.102.0](https://github.com/martynvdijke/dnd/compare/v2.101.2...v2.102.0) (2026-10-17)
 
 
