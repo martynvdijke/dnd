@@ -12,8 +12,10 @@ Flutter 3.47.2 / Dart 3.13.2. `flutter_riverpod ^3.4.3` (Riverpod **3** — no c
 `flutter_secure_storage ^11.2.0`, `crypto ^3.0.7`, `google_fonts ^9.0.0`.
 
 Android: `applicationId = xyz.vandijke.dnd`, **`minSdk` must be 24** (`flutter_secure_storage` 11
-requirement). JDK 17 + Android SDK are required for `flutter build apk` — not available in the
-local dev container, so the APK is only ever built in CI.
+requirement). `flutter build apk` needs JDK 17 and an Android SDK carrying the NDK pinned by
+`flutter.ndkVersion` (`28.2.13676358`). Both are present in this container — JDK 17 at
+`/usr/lib/jvm/java-17-openjdk` (the default JDK 11 is too old for Gradle 9.3.1 / AGP 9.1.0) and the
+SDK at `/opt/android-sdk`. CI builds the same APK from a pristine checkout.
 
 ## Directory ownership
 
@@ -210,8 +212,37 @@ read-only/only-for-DM affordance otherwise.
 cd mobile
 flutter analyze          # must be clean
 flutter test             # unit + widget tests
-flutter build apk --release   # CI only — needs Android SDK + JDK 17
+
+# Release APK: needs JDK 17 + Android SDK (both present in this container)
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk
+export ANDROID_HOME=/opt/android-sdk ANDROID_SDK_ROOT=/opt/android-sdk
+export PATH="$JAVA_HOME/bin:$PATH"
+flutter build apk --release
 ```
 
-There is no Android SDK in the local container, so `flutter build apk` fails locally by design; the
-CI workflow runs it (`continue-on-error: true`).
+A clean build produces `build/app/outputs/flutter-apk/app-release.apk` at **56,306,799 bytes**
+containing exactly three ABIs — `arm64-v8a`, `armeabi-v7a`, `x86_64`. CI publishes that same APK as
+`dnd-<version>-android.apk`, so the size and ABI list are a cheap parity check. The workflow runs
+`flutter analyze`, `flutter test` and this build with `continue-on-error: true`.
+
+### Troubleshooting: `armeabi is no longer supported`
+
+Gradle resolves its native ABI set from a cache inside the **shared** pub cache
+(`~/.pub-cache/hosted/pub.dev/jni-1.1.0/android/.cxx`; `jni` arrives via `flutter_secure_storage`).
+If another checkout sharing that pub cache leaves a stale model behind, AGP configures the `:jni`
+library for the legacy `armeabi` ABI and the build dies in CMake:
+
+```
+CMake Error at .../ndk/28.2.13676358/build/cmake/android-legacy.toolchain.cmake:165 (message):
+  armeabi is no longer supported.  Use armeabi-v7a.
+```
+
+Nothing in this repo asks for `armeabi` (the Flutter Gradle plugin only ever sets the three modern
+ABIs, and the app module declares no `abiFilters`), and CI is unaffected because every CI build
+starts pristine. Clear the stale state and rebuild:
+
+```bash
+flutter clean
+rm -rf build .dart_tool /root/.pub-cache/hosted/pub.dev/jni-1.1.0/android/.cxx
+flutter pub get && flutter build apk --release
+```
