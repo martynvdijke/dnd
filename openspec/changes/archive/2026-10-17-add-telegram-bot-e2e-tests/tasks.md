@@ -15,5 +15,5 @@
 - [x] 3.3 `openspec validate add-telegram-bot-e2e-tests --strict` passes
 
 ## 4. Release
-- [ ] 4.1 Push branch, open PR, watch checks
-- [ ] 4.2 Merge (squash) and confirm release workflow
+- [x] 4.1 Push branch, open PR, watch checks
+- [x] 4.2 Merge (squash) and confirm release workflow

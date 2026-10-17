@@ -11,9 +11,9 @@
 
 ## 3. Verify
 - [x] 3.1 `go test ./telegram/...` passes
-- [ ] 3.2 `task ci` / prek pre-push parity suite
+- [x] 3.2 `task ci` / prek pre-push parity suite
 - [x] 3.3 `openspec validate add-telegram-deploy-updates --strict` passes
 
 ## 4. Release
-- [ ] 4.1 Push branch, open PR, watch checks
-- [ ] 4.2 Merge (squash) and confirm release workflow
+- [x] 4.1 Push branch, open PR, watch checks
+- [x] 4.2 Merge (squash) and confirm release workflow

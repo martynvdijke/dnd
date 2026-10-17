@@ -12,8 +12,8 @@
 ## 3. Verify
 - [x] 3.1 `go build ./...`
 - [x] 3.2 `go test ./telegram/...`
-- [ ] 3.3 `task ci` / prek pre-push parity suite
+- [x] 3.3 `task ci` / prek pre-push parity suite
 
 ## 4. Release
-- [ ] 4.1 Push branch, open PR, watch checks
-- [ ] 4.2 Merge (squash) and confirm the release workflow
+- [x] 4.1 Push branch, open PR, watch checks
+- [x] 4.2 Merge (squash) and confirm the release workflow
