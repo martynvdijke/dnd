@@ -1,3 +1,10 @@
+## [2.103.1](https://github.com/martynvdijke/dnd/compare/v2.103.0...v2.103.1) (2026-10-17)
+
+
+### Bug Fixes
+
+* **deps:** update dependency cupertino_icons to v2 ([#214](https://github.com/martynvdijke/dnd/issues/214)) ([3c78d71](https://github.com/martynvdijke/dnd/commit/3c78d71121093f0ea4aa7d2494e5ac839e9b1ba8))
+
 # [2.103.0](https://github.com/martynvdijke/dnd/compare/v2.102.0...v2.103.0) (2026-10-17)
 
 
