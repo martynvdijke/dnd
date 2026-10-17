@@ -115,6 +115,29 @@ func canShareEntity(c *gin.Context, entityType string, entityID int64) bool {
 	return false
 }
 
+// canAccessUploadIDs reports whether the requester may reference every given
+// upload id. Admins bypass ownership; everyone else must own the upload or
+// belong to the campaign or party that owns it. Denials are written here so
+// every caller applies exactly the same rule.
+func canAccessUploadIDs(c *gin.Context, ids []int64) bool {
+	uidVal, _ := c.Get("user_id")
+	uid, _ := uidVal.(int64)
+	role, _ := c.Get("role")
+	isAdmin := role == "admin"
+	for _, id := range ids {
+		var cnt int
+		if err := db.DB.QueryRow("SELECT COUNT(*) FROM uploads WHERE id=?", id).Scan(&cnt); err != nil || cnt == 0 {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "upload not found"})
+			return false
+		}
+		if !isAdmin && !canShareUpload(uid, id) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+			return false
+		}
+	}
+	return true
+}
+
 // canShareUpload resolves upload ownership through owner_type/owner_id.
 // Legacy uploads with empty owner_type are admin-only (no ownership chain).
 func canShareUpload(uid int64, uploadID int64) bool {

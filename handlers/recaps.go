@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -78,9 +80,14 @@ func CreateCampaignRecap(c *gin.Context) {
 		Content          string  `json:"content"`
 		SessionStartDate *string `json:"session_start_date"`
 		SessionEndDate   *string `json:"session_end_date"`
+		MediaUploadIDs   []int64 `json:"media_upload_ids"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	// Validate media upload access before creating recap.
+	if len(req.MediaUploadIDs) > 0 && !canAccessUploadIDs(c, req.MediaUploadIDs) {
 		return
 	}
 	wordCount := len(strings.Fields(req.Content))
@@ -95,7 +102,11 @@ func CreateCampaignRecap(c *gin.Context) {
 	}
 	id, _ := result.LastInsertId()
 	NotifyCampaignRecapPublished(campaignID, id, req.Title)
-	telegram.DeliverRecap(id, "manual")
+	if len(req.MediaUploadIDs) > 0 {
+		telegram.DeliverRecapWithMedia(id, "manual", req.MediaUploadIDs)
+	} else {
+		telegram.DeliverRecap(id, "manual")
+	}
 	c.JSON(http.StatusCreated, gin.H{"id": id})
 }
 
@@ -433,8 +444,22 @@ func MarkRecapAsSent(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
+	var req struct {
+		MediaUploadIDs []int64 `json:"media_upload_ids"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil && !errors.Is(err, io.EOF) {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid"})
+		return
+	}
+	if len(req.MediaUploadIDs) > 0 && !canAccessUploadIDs(c, req.MediaUploadIDs) {
+		return
+	}
 	NotifyCampaignRecapPublished(campaignID, id, title)
-	telegram.DeliverRecap(id, "manual")
+	if len(req.MediaUploadIDs) > 0 {
+		telegram.DeliverRecapWithMedia(id, "manual", req.MediaUploadIDs)
+	} else {
+		telegram.DeliverRecap(id, "manual")
+	}
 	db.DB.Exec("UPDATE campaign_recaps SET is_sent=1 WHERE id=?", id)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }

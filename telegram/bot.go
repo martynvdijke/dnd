@@ -271,6 +271,11 @@ func HandleUpdate(ctx context.Context, upd *tgmodels.Update) {
 	if msg == nil || msg.From == nil {
 		return
 	}
+	// Inbound media path: handle before the text guard so caption-only messages are not dropped.
+	if ExtractInboundMedia(msg) != nil {
+		handleInboundMedia(ctx, msg)
+		return
+	}
 	text := strings.TrimSpace(msg.Text)
 	if text == "" {
 		return
@@ -295,6 +300,14 @@ func HandleUpdate(ctx context.Context, upd *tgmodels.Update) {
 	name, args, ok := splitCommand(text)
 	if !ok {
 		return
+	}
+	// Inbound pending-save picker
+	if name == "save" {
+		c.name = name
+		c.args = args
+		if handleSaveCommand(c) {
+			return
+		}
 	}
 	if name != "cancel" && flowActive(c.chatID) {
 		abortCreateFlow(c.chatID)

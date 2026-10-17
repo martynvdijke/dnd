@@ -853,6 +853,7 @@ import { init } from './init';
 // Telegram integrations
 import './campaign/telegram';
 import './account/telegram';
+import './telegram-media';
 
 // PWA → register service worker for offline support
 import { registerSW } from './pwa';

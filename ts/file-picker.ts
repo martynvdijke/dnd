@@ -67,7 +67,7 @@ export class FilePicker {
         <div class="fp-body">
           <div class="fp-drop-zone" id="fpDropZone">
             <p class="fp-drop-text"><i class="fa-solid fa-cloud-arrow-up fa-2x mb-2"></i><br>Drop an image here to upload</p>
-            <input type="file" id="fpFileInput" accept="image/*" class="d-none">
+            <input type="file" id="fpFileInput" accept="image/*,audio/*,video/*,.pdf" class="d-none" data-testid="file-picker-input">
           </div>
           <div class="fp-grid" id="fpGrid">
             <div class="text-muted p-4 text-center">Loading...</div>
@@ -152,10 +152,15 @@ export class FilePicker {
     });
   }
 
+  static isAllowedFile(file: Pick<File, 'type' | 'name'>): boolean {
+    if (file.type.startsWith('image/') || file.type.startsWith('audio/') || file.type.startsWith('video/') || file.type === 'application/pdf') return true;
+    const ext = file.name.split('.').pop()?.toLowerCase() || '';
+    const allowedExts = ['jpg','jpeg','png','gif','webp','avif','svg','bmp','tif','tiff','pdf','mp3','ogg','oga','wav','m4a','aac','flac','opus','mp4','webm','mov','m4v'];
+    return allowedExts.includes(ext);
+  }
+
   private static async uploadFile(file: File) {
-    if (!file.type.startsWith('image/')) {
-      return;
-    }
+    if (!FilePicker.isAllowedFile(file)) return;
 
     const dropZone = document.getElementById('fpDropZone')!;
     dropZone.classList.add('fp-uploading');
