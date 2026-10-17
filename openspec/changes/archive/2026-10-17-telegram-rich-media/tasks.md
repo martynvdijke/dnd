@@ -44,5 +44,5 @@
 
 - [x] 7.1 Extend `tests/telegram-mock.ts`: multipart parsing for photo/audio/video/document, `sendMediaGroup`, `getFile`, and `GET /file/bot<token>/<path>` serving fixture bytes
 - [x] 7.2 Playwright: post a gallery image to a bound campaign chat and assert the mock received it; album posting; inbound `/save` via webhook saves to the gallery; auto-save toggle; DM picker flow; upload an audio file end-to-end
-- [ ] 7.3 `openspec validate telegram-rich-media`; `task ci` green (Go + vitest + e2e + coverage gates); PR opened and merged per the workflow contract
-- [ ] 7.4 Post-merge: archive the change in a follow-up PR (`openspec archive telegram-rich-media`, `git add -f`), matching the repo convention
+- [x] 7.3 `openspec validate telegram-rich-media`; `task ci` green (Go + vitest + e2e + coverage gates); PR opened and merged per the workflow contract
+- [x] 7.4 Post-merge: archive the change in a follow-up PR (`openspec archive telegram-rich-media`, `git add -f`), matching the repo convention
