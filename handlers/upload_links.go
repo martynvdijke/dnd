@@ -42,6 +42,21 @@ func CreateUploadLink(c *gin.Context) {
 	})
 }
 
+// LinkUploadToEntity attaches an existing upload to an entity's gallery.
+// Galleries list their media through upload_links, so anything that stores an
+// upload without going through CreateUploadLink (for example inbound Telegram
+// media) must call this or it will never appear in the gallery.
+// Idempotent: upload_links has UNIQUE(upload_id, entity_type, entity_id).
+func LinkUploadToEntity(uploadID int64, entityType string, entityID int64) error {
+	if uploadID == 0 || entityType == "" || entityID == 0 {
+		return nil
+	}
+	_, err := db.DB.Exec(
+		"INSERT OR IGNORE INTO upload_links (upload_id, entity_type, entity_id, field_name) VALUES (?, ?, ?, '')",
+		uploadID, entityType, entityID)
+	return err
+}
+
 func DeleteUploadLink(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseInt(idStr, 10, 64)
@@ -69,7 +84,7 @@ func GetUploadsForEntity(c *gin.Context) {
 
 	rows, err := db.DB.Query(`
 		SELECT u.id, u.hash, u.ext, u.url, COALESCE(u.resized_url,''), COALESCE(u.thumbnail_url,''),
-			u.owner_type, u.owner_id, COALESCE(u.created_at,''), ul.id as link_id
+			u.owner_type, u.owner_id, COALESCE(u.created_at,''), ul.id as link_id, COALESCE(u.kind,'')
 		FROM uploads u
 		JOIN upload_links ul ON u.id = ul.upload_id
 		WHERE ul.entity_type = ? AND ul.entity_id = ?
@@ -85,7 +100,7 @@ func GetUploadsForEntity(c *gin.Context) {
 		var item mediaUploadItem
 		var ownerTypeStr, ownerIDStr string
 		rows.Scan(&item.ID, &item.Hash, &item.Ext, &item.URL, &item.ResizedURL,
-			&item.ThumbnailURL, &ownerTypeStr, &ownerIDStr, &item.CreatedAt, &item.LinkID)
+			&item.ThumbnailURL, &ownerTypeStr, &ownerIDStr, &item.CreatedAt, &item.LinkID, &item.Kind)
 		item.OwnerType = ownerTypeStr
 		if parsed, err := strconv.ParseInt(ownerIDStr, 10, 64); err == nil {
 			item.OwnerID = parsed

@@ -1,19 +1,35 @@
 {{define "media_gallery_item"}}
 <div class="col-6 col-md-4 col-lg-3">
-  <div class="card media-item h-100">
-    {{if .IsPDF}}
-    <div class="card-img-top d-flex align-items-center justify-content-center bg-light" style="height:120px;cursor:pointer" onclick="openPdfViewer('{{.URL}}')" title="Open PDF">
+  <div class="card media-item h-100 position-relative" data-upload-id="{{.ID}}" data-kind="{{.Kind}}" data-url="{{.URL}}">
+    {{if eq .Kind "audio"}}
+    <div class="card-img-top p-2 bg-light d-flex flex-column align-items-center justify-content-center" style="height:120px">
+      <i class="fa-solid fa-file-audio fa-2x text-muted mb-1"></i>
+      <audio controls preload="metadata" style="width:100%;height:36px" data-testid="media-audio-{{.ID}}" onerror="this.insertAdjacentHTML('afterend','<div class=\'small text-muted mt-1\'>Audio unavailable</div>')">
+        <source src="{{.URL}}" />
+        Your browser does not support audio.
+      </audio>
+      <div class="small text-muted text-truncate w-100 text-center" title="{{.URL}}">{{.Ext}}</div>
+    </div>
+    {{else if eq .Kind "video"}}
+    <video controls preload="metadata" class="card-img-top" style="height:120px;object-fit:cover;background:#111" data-testid="media-video-{{.ID}}" onerror="this.insertAdjacentHTML('afterend','<div class=\'small text-muted p-1 text-center\'>Video unavailable</div>')">
+      <source src="{{if .ResizedURL}}{{.ResizedURL}}{{else}}{{.URL}}{{end}}" />
+      Your browser does not support video.
+    </video>
+    {{else if or (eq .Kind "pdf") .IsPDF}}
+    <div class="card-img-top d-flex align-items-center justify-content-center bg-light" style="height:120px;cursor:pointer" onclick="openPdfViewer('{{.URL}}')" title="Open PDF" data-testid="media-pdf-{{.ID}}">
       <i class="fa-solid fa-file-pdf fa-3x text-danger"></i>
     </div>
     {{else if .ThumbnailURL}}
-    <img src="{{.ThumbnailURL}}" class="card-img-top" style="height:120px;object-fit:cover" alt="media">
+    <img src="{{.ThumbnailURL}}" class="card-img-top" style="height:120px;object-fit:cover" alt="media" data-testid="media-image-{{.ID}}">
     {{else}}
-    <img src="{{.URL}}" class="card-img-top" style="height:120px;object-fit:cover" alt="media">
+    <img src="{{.URL}}" class="card-img-top" style="height:120px;object-fit:cover" alt="media" data-testid="media-image-{{.ID}}">
     {{end}}
-    <div class="card-body p-1 d-flex flex-wrap gap-1">
-      <button class="btn btn-sm btn-outline-secondary" onclick="copyMediaUrl('{{.URL}}')" title="Copy URL"><i class="fa-solid fa-link"></i></button>
-      {{if not .IsPDF}}<button class="btn btn-sm btn-outline-info" onclick="cropMedia({{.ID}},'{{.OwnerType}}','{{.OwnerID}}')" title="Crop"><i class="fa-solid fa-crop"></i></button>{{end}}
-      <button class="btn btn-sm btn-outline-danger" onclick="deleteMedia({{.LinkID}},'{{.OwnerType}}','{{.OwnerID}}')" title="Remove"><i class="fa-solid fa-trash"></i></button>
+    <div class="card-body p-1 d-flex flex-wrap gap-1 align-items-center">
+      <input class="form-check-input m-0" type="checkbox" value="{{.ID}}" data-testid="media-select-{{.ID}}" data-kind="{{.Kind}}" data-ext="{{.Ext}}" title="Select for Telegram" onchange="onMediaSelectChange('{{.OwnerType}}','{{.OwnerID}}')">
+      <button class="btn btn-sm btn-outline-secondary" onclick="copyMediaUrl('{{.URL}}')" title="Copy URL" data-testid="media-copy-{{.ID}}"><i class="fa-solid fa-link"></i></button>
+      {{if not .IsPDF}}<button class="btn btn-sm btn-outline-info" onclick="cropMedia({{.ID}},'{{.OwnerType}}','{{.OwnerID}}')" title="Crop" data-testid="media-crop-{{.ID}}"><i class="fa-solid fa-crop"></i></button>{{end}}
+      <button class="btn btn-sm btn-outline-danger" onclick="deleteMedia({{.LinkID}},'{{.OwnerType}}','{{.OwnerID}}')" title="Remove" data-testid="media-delete-{{.ID}}"><i class="fa-solid fa-trash"></i></button>
+      <button class="btn btn-sm btn-outline-primary ms-auto" onclick="postSingleToTelegram({{.ID}},'{{.OwnerType}}','{{.OwnerID}}')" title="Post to Telegram" data-testid="media-post-{{.ID}}"><i class="fa-brands fa-telegram"></i></button>
     </div>
   </div>
 </div>

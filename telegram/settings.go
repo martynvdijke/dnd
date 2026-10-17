@@ -79,6 +79,7 @@ type CampaignTelegramSettings struct {
 	TitleCache      string
 	IsEnabled       bool
 	AutoPostEnabled bool
+	AutoSaveMedia   bool
 	BoundAt         *string
 	BoundByUserID   *int64
 }
@@ -89,11 +90,11 @@ func GetCampaignTelegramSettings(campaignID int64) (CampaignTelegramSettings, bo
 	s := CampaignTelegramSettings{CampaignID: campaignID}
 	var chatID, boundBy sql.NullInt64
 	var chatType, titleCache, boundAt sql.NullString
-	var isEnabled, autoPost int
+	var isEnabled, autoPost, autoSave int
 	err := db.DB.QueryRow(`
-		SELECT chat_id, chat_type, title_cache, is_enabled, auto_post_enabled, bound_at, bound_by_user_id
+		SELECT chat_id, chat_type, title_cache, is_enabled, auto_post_enabled, auto_save_media, bound_at, bound_by_user_id
 		FROM campaign_telegram_settings WHERE campaign_id = ?`, campaignID).
-		Scan(&chatID, &chatType, &titleCache, &isEnabled, &autoPost, &boundAt, &boundBy)
+		Scan(&chatID, &chatType, &titleCache, &isEnabled, &autoPost, &autoSave, &boundAt, &boundBy)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return s, false, nil
@@ -113,6 +114,7 @@ func GetCampaignTelegramSettings(campaignID int64) (CampaignTelegramSettings, bo
 	s.TitleCache = titleCache.String
 	s.IsEnabled = isEnabled != 0
 	s.AutoPostEnabled = autoPost != 0
+	s.AutoSaveMedia = autoSave != 0
 	return s, true, nil
 }
 
@@ -133,23 +135,28 @@ func UpsertCampaignTelegramSettings(s CampaignTelegramSettings) error {
 	if s.AutoPostEnabled {
 		autoPost = 1
 	}
+	autoSave := 0
+	if s.AutoSaveMedia {
+		autoSave = 1
+	}
 	var boundAt any
 	if s.BoundAt != nil {
 		boundAt = *s.BoundAt
 	}
 	_, err := db.DB.Exec(`
 		INSERT INTO campaign_telegram_settings
-			(campaign_id, chat_id, chat_type, title_cache, is_enabled, auto_post_enabled, bound_at, bound_by_user_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+			(campaign_id, chat_id, chat_type, title_cache, is_enabled, auto_post_enabled, auto_save_media, bound_at, bound_by_user_id)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(campaign_id) DO UPDATE SET
 			chat_id = excluded.chat_id,
 			chat_type = excluded.chat_type,
 			title_cache = excluded.title_cache,
 			is_enabled = excluded.is_enabled,
 			auto_post_enabled = excluded.auto_post_enabled,
+			auto_save_media = excluded.auto_save_media,
 			bound_at = excluded.bound_at,
 			bound_by_user_id = excluded.bound_by_user_id`,
-		s.CampaignID, chatID, s.ChatType, s.TitleCache, enabled, autoPost, boundAt, boundBy)
+		s.CampaignID, chatID, s.ChatType, s.TitleCache, enabled, autoPost, autoSave, boundAt, boundBy)
 	return err
 }
 

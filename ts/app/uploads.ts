@@ -2,6 +2,8 @@ import { expose } from '../lib/expose';
 import { showModal, hideModal, toast } from '../lib/dom';
 import { getCsrfToken, getApiToken } from '../lib/api';
 
+export const UPLOAD_FIELD = 'image';
+
 // ─── Polymorphic File Uploads ───
 
 expose('showUploadModal', function (ownerType: string, ownerId: number) {
@@ -18,7 +20,7 @@ expose('doUpload', async function (ownerType: string, ownerId: number) {
   const input = document.getElementById('uploadFileInput') as HTMLInputElement;
   if (!input?.files?.length) { toast('Select a file', true); return; }
   const form = new FormData();
-  form.append('file', input.files[0]);
+  form.append('image', input.files[0]);
   form.append('owner_type', ownerType);
   form.append('owner_id', String(ownerId));
   try {

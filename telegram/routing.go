@@ -8,6 +8,10 @@ import (
 )
 
 func DeliverRecap(recapID int64, kind string) {
+	DeliverRecapWithMedia(recapID, kind, nil)
+}
+
+func DeliverRecapWithMedia(recapID int64, kind string, mediaUploadIDs []int64) {
 	if kind != "manual" && kind != "auto" {
 		kind = "manual"
 	}
@@ -112,6 +116,11 @@ func DeliverRecap(recapID int64, kind string) {
 			} else {
 				_, _ = db.DB.Exec(`UPDATE telegram_deliveries SET status='failed', last_error=?, attempt_count=attempt_count+1 WHERE recap_id=? AND target_chat_id=?`, lastErr, recapID, tgt.chatID)
 				middleware.LogWarn("telegram", "delivery failed", "recap", recapID, "chat", tgt.chatID, "error", lastErr)
+			}
+		}
+		if len(mediaUploadIDs) > 0 {
+			for _, tgt := range targets {
+				_, _ = PostMedia(tgt.chatID, tgt.typ, &campaignID, mediaUploadIDs, &recapID, title)
 			}
 		}
 		retryFailed()

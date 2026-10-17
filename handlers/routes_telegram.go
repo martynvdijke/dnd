@@ -18,6 +18,8 @@ func RegisterTelegramRoutes(r *gin.RouterGroup) {
 	r.GET("/telegram/status", GetTelegramStatus)
 	r.DELETE("/telegram/unlink", UnlinkTelegram)
 	r.PUT("/telegram/prefs", SetTelegramPrefs)
+	r.GET("/telegram/targets", GetTelegramTargets)
+	r.POST("/telegram/media", PostTelegramMedia)
 	r.GET("/campaigns/:id/telegram", GetCampaignTelegram)
 	r.PUT("/campaigns/:id/telegram", SetCampaignTelegram)
 }
@@ -95,10 +97,10 @@ func GetCampaignTelegram(c *gin.Context) {
 	}
 	s, found, err := telegram.GetCampaignTelegramSettings(id)
 	if err != nil || !found {
-		c.JSON(http.StatusOK, gin.H{"chat_id": nil, "is_enabled": false, "auto_post_enabled": false, "bound_at": nil})
+		c.JSON(http.StatusOK, gin.H{"chat_id": nil, "is_enabled": false, "auto_post_enabled": false, "auto_save_media": false, "bound_at": nil})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"chat_id": s.ChatID, "chat_type": s.ChatType, "title_cache": s.TitleCache, "is_enabled": s.IsEnabled, "auto_post_enabled": s.AutoPostEnabled, "bound_at": s.BoundAt})
+	c.JSON(http.StatusOK, gin.H{"chat_id": s.ChatID, "chat_type": s.ChatType, "title_cache": s.TitleCache, "is_enabled": s.IsEnabled, "auto_post_enabled": s.AutoPostEnabled, "auto_save_media": s.AutoSaveMedia, "bound_at": s.BoundAt})
 }
 func SetCampaignTelegram(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
@@ -110,6 +112,7 @@ func SetCampaignTelegram(c *gin.Context) {
 		ChatID          *int64 `json:"chat_id"`
 		IsEnabled       *bool  `json:"is_enabled"`
 		AutoPostEnabled *bool  `json:"auto_post_enabled"`
+		AutoSaveMedia   *bool  `json:"auto_save_media"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid"})
@@ -129,6 +132,9 @@ func SetCampaignTelegram(c *gin.Context) {
 	}
 	if req.AutoPostEnabled != nil {
 		s.AutoPostEnabled = *req.AutoPostEnabled
+	}
+	if req.AutoSaveMedia != nil {
+		s.AutoSaveMedia = *req.AutoSaveMedia
 	}
 	if req.ChatID != nil {
 		if ch, err := telegram.GetChat(*req.ChatID); err == nil {

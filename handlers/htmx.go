@@ -162,7 +162,7 @@ func HtmxMediaGallery(c *gin.Context) {
 
 	rows, err := db.DB.Query(`
 		SELECT u.id, u.hash, u.ext, u.url, COALESCE(u.resized_url,''), COALESCE(u.thumbnail_url,''),
-			u.owner_type, u.owner_id, COALESCE(u.created_at,''), ul.id as link_id
+			u.owner_type, u.owner_id, COALESCE(u.created_at,''), ul.id as link_id, COALESCE(u.kind,'')
 		FROM uploads u
 		JOIN upload_links ul ON u.id = ul.upload_id
 		WHERE ul.entity_type = ? AND ul.entity_id = ?
@@ -171,7 +171,7 @@ func HtmxMediaGallery(c *gin.Context) {
 		// Fallback: query by owner_type/owner_id directly
 		rows, err = db.DB.Query(`
 			SELECT u.id, u.hash, u.ext, u.url, COALESCE(u.resized_url,''), COALESCE(u.thumbnail_url,''),
-				u.owner_type, u.owner_id, COALESCE(u.created_at,''), 0 as link_id
+				u.owner_type, u.owner_id, COALESCE(u.created_at,''), 0 as link_id, COALESCE(u.kind,'')
 			FROM uploads u
 			WHERE u.owner_type = ? AND u.owner_id = ?
 			ORDER BY u.created_at DESC`, ownerType, ownerID)
@@ -187,7 +187,7 @@ func HtmxMediaGallery(c *gin.Context) {
 		var item mediaUploadItem
 		var ownerTypeStr, ownerIDStr string
 		rows.Scan(&item.ID, &item.Hash, &item.Ext, &item.URL, &item.ResizedURL,
-			&item.ThumbnailURL, &ownerTypeStr, &ownerIDStr, &item.CreatedAt, &item.LinkID)
+			&item.ThumbnailURL, &ownerTypeStr, &ownerIDStr, &item.CreatedAt, &item.LinkID, &item.Kind)
 		item.OwnerType = ownerTypeStr
 		if parsed, err := strconv.ParseInt(ownerIDStr, 10, 64); err == nil {
 			item.OwnerID = parsed

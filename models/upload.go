@@ -14,3 +14,10 @@ type Upload struct {
 	TelegramFileUniqueID string `json:"telegram_file_unique_id,omitempty"`
 	CreatedAt            string `json:"created_at"`
 }
+
+type MediaFile struct {
+	Data     []byte
+	Filename string
+	Kind     string
+	Ext      string
+}

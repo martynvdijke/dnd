@@ -44,8 +44,22 @@ func registerSchedulers() chan struct{} {
 			source = "telegram"
 		}
 		upload, _, err := handlers.SaveMediaBytes(req.Name, req.Data, req.OwnerType, req.OwnerID, source, req.TelegramFileUniqueID)
-		return upload, err
+		if err != nil {
+			return nil, err
+		}
+		// Galleries list media through upload_links, which the web upload path
+		// creates as a separate call. Inbound media has no such call, so attach
+		// it here or the saved file never shows up in the campaign gallery.
+		if upload != nil {
+			if err := handlers.LinkUploadToEntity(int64(upload.ID), req.OwnerType, req.OwnerID); err != nil {
+				return upload, err
+			}
+		}
+		return upload, nil
 	})
+	// Outbound media reads the stored upload's bytes back off disk through the
+	// same package boundary seam.
+	telegram.SetMediaLoader(handlers.LoadMediaBytes)
 	telegram.EnsureWebhookState()
 	telegram.SetBuildVersion(handlers.AppVersion)
 	telegramStop := make(chan struct{})

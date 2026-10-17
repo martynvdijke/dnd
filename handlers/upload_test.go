@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"villum/db"
 	"villum/handlers/testutil"
 )
 
@@ -335,5 +336,176 @@ func TestLargeUpload(t *testing.T) {
 	t.Run("small image uploads successfully", func(t *testing.T) {
 		w := uploadTestImage(t, r, "/api/upload", "", "", uniqueTestPNG(t))
 		testutil.AssertStatus(t, w, 200)
+	})
+}
+
+// --- telegram-rich-media additions ---
+
+func uploadBytes(t *testing.T, r *gin.Engine, filename string, data []byte) *httptest.ResponseRecorder {
+	t.Helper()
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+	fw, err := w.CreateFormFile("image", filename)
+	if err != nil {
+		t.Fatalf("create form file: %v", err)
+	}
+	if _, err := fw.Write(data); err != nil {
+		t.Fatalf("write bytes: %v", err)
+	}
+	w.Close()
+	req := httptest.NewRequest("POST", "/api/upload", &b)
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, req)
+	return rec
+}
+
+func TestAudioVideoUpload(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	mediaDir := t.TempDir()
+	SetMediaPath(mediaDir)
+	defer SetMediaPath("/app/media")
+	r := testRouter()
+
+	// Minimal valid headers that http.DetectContentType recognises correctly
+	mp3Data := append([]byte{0x49, 0x44, 0x33, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, bytes.Repeat([]byte{0x00}, 1024)...)
+	mp4Data := append([]byte{0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x6d, 0x70, 0x34, 0x32, 0x00, 0x00, 0x00, 0x00}, bytes.Repeat([]byte{0x00}, 1024)...)
+
+	t.Run("MP3 upload 200 kind audio with URL", func(t *testing.T) {
+		w := uploadBytes(t, r, "song.mp3", mp3Data)
+		testutil.AssertStatus(t, w, 200)
+		var data map[string]any
+		testutil.ParseJSON(t, w, &data)
+		if data["kind"] != "audio" {
+			t.Fatalf("expected kind audio got %v", data["kind"])
+		}
+		if _, ok := data["url"].(string); !ok {
+			t.Fatalf("missing url")
+		}
+		if !strings.HasPrefix(data["url"].(string), "/media/") {
+			t.Fatalf("url should start with /media/")
+		}
+		// source defaults to upload, telegram id empty - verify via DB
+		var source, tfuid string
+		id := int64(data["id"].(float64))
+		err := db.DB.QueryRow("SELECT COALESCE(source,''), COALESCE(telegram_file_unique_id,'') FROM uploads WHERE id=?", id).Scan(&source, &tfuid)
+		if err != nil {
+			t.Fatalf("db query: %v", err)
+		}
+		if source != "upload" {
+			t.Fatalf("expected source upload got %q", source)
+		}
+		if tfuid != "" {
+			t.Fatalf("expected empty telegram_file_unique_id got %q", tfuid)
+		}
+	})
+
+	t.Run("MP4 upload 200 kind video", func(t *testing.T) {
+		// use unique data to avoid dedupe with previous? mp4 already distinct, but ensure unique by appending byte
+		uniq := append(mp4Data, byte(0x01))
+		w := uploadBytes(t, r, "clip.mp4", uniq)
+		testutil.AssertStatus(t, w, 200)
+		var data map[string]any
+		testutil.ParseJSON(t, w, &data)
+		if data["kind"] != "video" {
+			t.Fatalf("expected kind video got %v", data["kind"])
+		}
+	})
+
+	t.Run("audio over 25MB returns 413", func(t *testing.T) {
+		over := 25*1024*1024 + 1
+		big := make([]byte, over)
+		copy(big, mp3Data)
+		w := uploadBytes(t, r, "big.mp3", big)
+		testutil.AssertStatus(t, w, 413)
+	})
+
+	t.Run("video over 50MB returns 413", func(t *testing.T) {
+		over := 50*1024*1024 + 1
+		big := make([]byte, over)
+		copy(big, mp4Data)
+		w := uploadBytes(t, r, "big.mp4", big)
+		testutil.AssertStatus(t, w, 413)
+	})
+
+	t.Run("content-type mismatch mp4 with text bytes returns 400", func(t *testing.T) {
+		txt := []byte("hello world this is plain text not video")
+		w := uploadBytes(t, r, "fake.mp4", txt)
+		testutil.AssertStatus(t, w, 400)
+	})
+
+	t.Run("image upload still resizes and thumbnails", func(t *testing.T) {
+		pngData := uniqueTestPNG(t)
+		w := uploadTestImage(t, r, "/api/upload", "", "", pngData)
+		testutil.AssertStatus(t, w, 200)
+		var data map[string]any
+		testutil.ParseJSON(t, w, &data)
+		if data["kind"] != "image" {
+			t.Fatalf("expected kind image got %v", data["kind"])
+		}
+		if thumb, _ := data["thumbnail_url"].(string); thumb == "" {
+			t.Fatalf("expected thumbnail_url for image")
+		}
+	})
+
+	t.Run("source defaults and telegram id empty for web upload", func(t *testing.T) {
+		pngData := uniqueTestPNG(t)
+		w := uploadTestImage(t, r, "/api/upload", "", "", pngData)
+		testutil.AssertStatus(t, w, 200)
+		var data map[string]any
+		testutil.ParseJSON(t, w, &data)
+		id := int64(data["id"].(float64))
+		var source, tfuid string
+		err := db.DB.QueryRow("SELECT COALESCE(source,''), COALESCE(telegram_file_unique_id,'') FROM uploads WHERE id=?", id).Scan(&source, &tfuid)
+		if err != nil {
+			t.Fatalf("db query: %v", err)
+		}
+		if source != "upload" {
+			t.Fatalf("expected source upload got %q", source)
+		}
+		if tfuid != "" {
+			t.Fatalf("expected empty telegram_file_unique_id")
+		}
+	})
+}
+
+func TestLoadMediaBytes(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	mediaDir := t.TempDir()
+	SetMediaPath(mediaDir)
+	defer SetMediaPath("/app/media")
+	r := testRouter()
+
+	t.Run("load existing upload", func(t *testing.T) {
+		mp3Data := append([]byte{0x49, 0x44, 0x33, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}, bytes.Repeat([]byte{0x01}, 512)...)
+		w := uploadBytes(t, r, "load.mp3", mp3Data)
+		testutil.AssertStatus(t, w, 200)
+		var data map[string]any
+		testutil.ParseJSON(t, w, &data)
+		id := int64(data["id"].(float64))
+		mf, err := LoadMediaBytes(id)
+		if err != nil {
+			t.Fatalf("LoadMediaBytes: %v", err)
+		}
+		if mf.Kind != "audio" {
+			t.Fatalf("expected kind audio got %q", mf.Kind)
+		}
+		if len(mf.Data) == 0 {
+			t.Fatalf("expected non-empty data")
+		}
+		if mf.Ext != ".mp3" {
+			t.Fatalf("expected ext .mp3 got %q", mf.Ext)
+		}
+	})
+
+	t.Run("missing upload returns error", func(t *testing.T) {
+		_, err := LoadMediaBytes(999999)
+		if err == nil {
+			t.Fatalf("expected error for missing upload")
+		}
 	})
 }

@@ -39,6 +39,7 @@ export interface CampaignTelegramSettings {
   title_cache: string;
   is_enabled: boolean;
   auto_post_enabled: boolean;
+  auto_save_media?: boolean;
   bound_at: string | null;
 }
 
@@ -96,8 +97,9 @@ export function campaignTelegramStatusText(s: CampaignTelegramSettings | null): 
   if (!s.chat_id) return 'No chat linked';
   const enabled = s.is_enabled ? 'Enabled' : 'Disabled';
   const auto = s.auto_post_enabled ? 'auto-post on' : 'auto-post off';
+  const save = (s as any).auto_save_media ? 'auto-save on' : 'auto-save off';
   const title = s.title_cache ? ` — ${s.title_cache}` : '';
-  return `${enabled}, ${auto}${title}`;
+  return `${enabled}, ${auto}, ${save}${title}`;
 }
 
 export function adminTelegramStatusText(s: AdminTelegramSettings | null): string {

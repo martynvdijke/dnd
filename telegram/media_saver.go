@@ -32,3 +32,17 @@ func SaveMedia(req MediaSaveRequest) (*models.Upload, error) {
 	}
 	return mediaSaver(req)
 }
+
+// MediaLoader reads a stored upload's bytes for outbound sending.
+type MediaLoader func(uploadID int64) (*models.MediaFile, error)
+
+var mediaLoader MediaLoader
+
+func SetMediaLoader(l MediaLoader) { mediaLoader = l }
+
+func LoadMedia(uploadID int64) (*models.MediaFile, error) {
+	if mediaLoader == nil {
+		return nil, errors.New("media loader not configured")
+	}
+	return mediaLoader(uploadID)
+}

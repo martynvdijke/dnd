@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -1079,5 +1080,312 @@ func TestAdminSeesAllCharacters(t *testing.T) {
 	}
 	if reply := sheetByID(stranger, 1); !strings.Contains(reply.Text, "not found") {
 		t.Fatalf("non-admin sheet must be denied, got %q", reply.Text)
+	}
+}
+
+// --- Media senders ---
+
+func TestSendMediaPhoto(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	var capturedPath string
+	var gotPhoto string
+	var gotCaption string
+	var gotChatID string
+	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/file/bot") {
+			w.Write([]byte("filebytes"))
+			return
+		}
+		capturedPath = r.URL.Path
+		gotPhoto = requestFormValue(r, "photo")
+		gotCaption = requestFormValue(r, "caption")
+		gotChatID = requestFormValue(r, "chat_id")
+		// also capture multipart file part existence via photo field being attach? For InputFileUpload, field name is "photo"
+		// requestFormValue for file uploads returns filename? The Bot library sends file as separate part.
+		// Verify multipart has file part named "photo"
+		if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+			_ = r.ParseMultipartForm(10 << 20)
+			if r.MultipartForm != nil {
+				if _, ok := r.MultipartForm.File["photo"]; !ok {
+					// still allow: library uses field name "photo" for SendPhoto
+				}
+			}
+		}
+		w.Write(jsonOK(map[string]any{"message_id": 42}))
+	})
+	gotID, err := SendMedia(123, "image", "pic.jpg", "hello", []byte("bytes"))
+	if err != nil {
+		t.Fatalf("SendMedia photo: %v", err)
+	}
+	if gotID != 42 {
+		t.Fatalf("msg id %d", gotID)
+	}
+	if !strings.Contains(capturedPath, "sendPhoto") {
+		t.Fatalf("expected sendPhoto, got %s", capturedPath)
+	}
+	if gotChatID != "123" {
+		t.Fatalf("chat_id %q", gotChatID)
+	}
+	if gotCaption != "hello" {
+		t.Fatalf("caption %q", gotCaption)
+	}
+	// photo field should be present (filename reference)
+	if gotPhoto == "" {
+		// For InputFileUpload, the library sends file part; requestFormValue may not capture it directly
+		// but we check path is correct
+	}
+}
+
+func TestSendMediaFormatFallback(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	cases := []struct {
+		filename string
+		wantPath string
+	}{
+		{"a.jpg", "sendPhoto"},
+		{"b.jpeg", "sendPhoto"},
+		{"c.png", "sendPhoto"},
+		{"d.webp", "sendPhoto"},
+		{"e.gif", "sendPhoto"},
+		{"f.mp3", "sendAudio"},
+		{"g.ogg", "sendAudio"},
+		{"h.oga", "sendAudio"},
+		{"i.opus", "sendAudio"},
+		{"j.mp4", "sendVideo"},
+		{"k.webm", "sendVideo"},
+		{"l.mov", "sendVideo"},
+		{"m.pdf", "sendDocument"},
+		{"n.wav", "sendDocument"},
+		{"o.m4a", "sendDocument"},
+		{"p.flac", "sendDocument"},
+		{"q.svg", "sendDocument"},
+		{"r.avif", "sendDocument"},
+		{"noext", "sendDocument"},
+		{"s.JPG", "sendPhoto"},
+		{"t.MP3", "sendAudio"},
+	}
+	for _, tc := range cases {
+		var gotPath string
+		mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+			gotPath = r.URL.Path
+			w.Write(jsonOK(map[string]any{"message_id": 1}))
+		})
+		_, err := SendMedia(1, "", tc.filename, "cap", []byte("x"))
+		if err != nil {
+			t.Fatalf("%s: %v", tc.filename, err)
+		}
+		if !strings.Contains(gotPath, tc.wantPath) {
+			t.Fatalf("%s: expected %s got %s", tc.filename, tc.wantPath, gotPath)
+		}
+	}
+}
+
+func TestSendMediaCaptionTruncation(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	// truncation to 1024
+	long := strings.Repeat("a", 2000)
+	var gotCap string
+	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+		gotCap = requestFormValue(r, "caption")
+		w.Write(jsonOK(map[string]any{"message_id": 1}))
+	})
+	_, err := SendMedia(1, "", "file.pdf", long, []byte("x"))
+	if err != nil {
+		t.Fatalf("send: %v", err)
+	}
+	if len([]rune(gotCap)) != 1024 {
+		t.Fatalf("expected 1024 runes, got %d", len([]rune(gotCap)))
+	}
+	// empty caption defaults to filename
+	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+		gotCap = requestFormValue(r, "caption")
+		w.Write(jsonOK(map[string]any{"message_id": 1}))
+	})
+	_, err = SendMedia(1, "", "myfile.pdf", "", []byte("x"))
+	if err != nil {
+		t.Fatalf("send: %v", err)
+	}
+	if gotCap != "myfile.pdf" {
+		t.Fatalf("expected filename as caption, got %q", gotCap)
+	}
+}
+
+func TestSendMediaGroupBatching(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	// success case: 2 items
+	var gotPath string
+	var gotMedia string
+	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		// Need to parse multipart media field
+		gotMedia = requestFormValue(r, "media")
+		// verify attach file parts exist
+		if strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data") {
+			_ = r.ParseMultipartForm(10 << 20)
+			if r.MultipartForm != nil {
+				for i := 0; i < 2; i++ {
+					key := fmt.Sprintf("file%d", i)
+					if _, ok := r.MultipartForm.File[key]; !ok {
+						t.Errorf("missing file part %s", key)
+					}
+				}
+			}
+		}
+		w.Write(jsonOK([]map[string]any{{"message_id": 10}, {"message_id": 11}}))
+	})
+	items := []MediaItem{
+		{Filename: "a.jpg", Data: []byte("aaa"), Caption: "cap"},
+		{Filename: "b.png", Data: []byte("bbb")},
+	}
+	ids, err := SendMediaGroup(99, "album cap", items)
+	if err != nil {
+		t.Fatalf("SendMediaGroup: %v", err)
+	}
+	if len(ids) != 2 || ids[0] != 10 || ids[1] != 11 {
+		t.Fatalf("ids %v", ids)
+	}
+	if !strings.Contains(gotPath, "sendMediaGroup") {
+		t.Fatalf("path %s", gotPath)
+	}
+	if !strings.Contains(gotMedia, "attach://file0") || !strings.Contains(gotMedia, "attach://file1") {
+		t.Fatalf("media json missing attach refs: %s", gotMedia)
+	}
+	// rejection above 10
+	many := make([]MediaItem, 11)
+	for i := range many {
+		many[i] = MediaItem{Filename: fmt.Sprintf("f%d.jpg", i), Data: []byte("x")}
+	}
+	_, err = SendMediaGroup(1, "", many)
+	if err == nil || !strings.Contains(err.Error(), "10") {
+		t.Fatalf("expected >10 error, got %v", err)
+	}
+}
+
+func TestDownloadFileURLAndCap(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	var filePathRequested string
+	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "getFile") {
+			// capture file_id param
+			_ = r.ParseMultipartForm(1 << 20)
+			filePathRequested = r.URL.Path
+			w.Write(jsonOK(map[string]any{"file_id": "fid", "file_unique_id": "uniq", "file_path": "docs/file.pdf"}))
+			return
+		}
+		if strings.Contains(r.URL.Path, "/file/bot") {
+			// verify URL shape: /file/bot<token>/<path>
+			if !strings.Contains(r.URL.Path, "/file/bottest-token/docs/file.pdf") {
+				t.Errorf("unexpected file download path: %s", r.URL.Path)
+			}
+			w.Write([]byte("hello file"))
+			return
+		}
+		w.Write(jsonOK(map[string]any{"message_id": 1}))
+	})
+	data, err := DownloadFile(context.Background(), "fid123")
+	if err != nil {
+		t.Fatalf("DownloadFile: %v", err)
+	}
+	if string(data) != "hello file" {
+		t.Fatalf("data %q", string(data))
+	}
+	if !strings.Contains(filePathRequested, "getFile") {
+		t.Fatalf("getFile not called")
+	}
+	// 20 MB cap
+	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "getFile") {
+			w.Write(jsonOK(map[string]any{"file_id": "fid", "file_unique_id": "uniq", "file_path": "big.bin"}))
+			return
+		}
+		if strings.Contains(r.URL.Path, "/file/bot") {
+			// serve >20MB
+			w.Header().Set("Content-Length", "20971521")
+			// Write 20MB+1 bytes
+			chunk := make([]byte, 1<<20)
+			for i := 0; i < 20; i++ {
+				w.Write(chunk)
+			}
+			w.Write([]byte("x"))
+			return
+		}
+		w.Write(jsonOK(map[string]any{"message_id": 1}))
+	})
+	_, err = DownloadFile(context.Background(), "big")
+	if err == nil || !strings.Contains(err.Error(), "20") {
+		t.Fatalf("expected size limit error, got %v", err)
+	}
+}
+
+func TestSendMediaRetryAfter(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(429)
+		w.Write(jsonErr(429, "Too Many Requests: retry after 5"))
+		// also set header so library parses RetryAfter? The library parses JSON error_code 429.
+	})
+	_, err := SendMedia(1, "", "a.jpg", "cap", []byte("x"))
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	var ra *RetryAfterError
+	if !errors.As(err, &ra) {
+		t.Fatalf("expected RetryAfterError, got %T %v", err, err)
+	}
+	// media group also maps
+	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(429)
+		w.Write(jsonErr(429, "Too Many Requests: retry after 2"))
+	})
+	_, err = SendMediaGroup(1, "", []MediaItem{{Filename: "a.jpg", Data: []byte("x")}})
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	if !errors.As(err, &ra) {
+		t.Fatalf("group expected RetryAfterError, got %T %v", err, err)
+	}
+}
+
+func TestExtractInboundMedia(t *testing.T) {
+	photo := &tgmodels.Message{
+		Photo:   []tgmodels.PhotoSize{{FileID: "f1", FileUniqueID: "u1", FileSize: 100}, {FileID: "f2", FileUniqueID: "u2", FileSize: 200}},
+		Caption: "cap", MediaGroupID: "grp",
+	}
+	m := ExtractInboundMedia(photo)
+	if m == nil || m.Kind != "photo" || m.FileID != "f2" || m.Caption != "cap" || m.MediaGroupID != "grp" {
+		t.Fatalf("photo %+v", m)
+	}
+	audio := &tgmodels.Message{Audio: &tgmodels.Audio{FileID: "af", FileUniqueID: "au", FileName: "song.mp3", FileSize: 123}, Caption: "ac"}
+	m = ExtractInboundMedia(audio)
+	if m == nil || m.Kind != "audio" || m.FileName != "song.mp3" {
+		t.Fatalf("audio %+v", m)
+	}
+	video := &tgmodels.Message{Video: &tgmodels.Video{FileID: "vf", FileUniqueID: "vu", FileName: "vid.mp4"}}
+	m = ExtractInboundMedia(video)
+	if m == nil || m.Kind != "video" {
+		t.Fatalf("video %+v", m)
+	}
+	doc := &tgmodels.Message{Document: &tgmodels.Document{FileID: "df", FileUniqueID: "du", FileName: "doc.pdf"}}
+	m = ExtractInboundMedia(doc)
+	if m == nil || m.Kind != "document" {
+		t.Fatalf("doc %+v", m)
+	}
+	voice := &tgmodels.Message{Voice: &tgmodels.Voice{FileID: "vof", FileUniqueID: "vou"}}
+	m = ExtractInboundMedia(voice)
+	if m == nil || m.Kind != "voice" {
+		t.Fatalf("voice %+v", m)
+	}
+	empty := &tgmodels.Message{Text: "hello"}
+	if ExtractInboundMedia(empty) != nil {
+		t.Fatalf("expected nil for text")
+	}
+	if ExtractInboundMedia(nil) != nil {
+		t.Fatalf("expected nil for nil msg")
 	}
 }

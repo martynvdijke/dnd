@@ -12,7 +12,7 @@ export async function getCampaignTelegram(campaignId: number): Promise<CampaignT
 
 export async function saveCampaignTelegram(
   campaignId: number,
-  payload: { chat_id: number | null; is_enabled: boolean; auto_post_enabled: boolean },
+  payload: { chat_id: number | null; is_enabled: boolean; auto_post_enabled: boolean; auto_save_media?: boolean },
 ): Promise<{ ok: true }> {
   return api('PUT', `/api/campaigns/${campaignId}/telegram`, payload);
 }
@@ -54,6 +54,7 @@ export async function showCampaignTelegram(campaignId: number): Promise<void> {
   const chatVal = settings?.chat_id != null ? String(settings.chat_id) : '';
   const enabled = !!settings?.is_enabled;
   const autoPost = !!settings?.auto_post_enabled;
+  const autoSave = !!(settings as any)?.auto_save_media;
   const status = campaignTelegramStatusText(settings);
 
   showModal('Telegram — Campaign', `
@@ -70,7 +71,12 @@ export async function showCampaignTelegram(campaignId: number): Promise<void> {
       <input class="form-check-input" type="checkbox" id="telegramCampaignAutoPost" ${autoPost ? 'checked' : ''} data-testid="telegram-auto-post-toggle">
       <label class="form-check-label" for="telegramCampaignAutoPost">Auto-post recap after session</label>
     </div>
-    <div class="form-text mb-3">Auto-post fires after the recap's session end date once the grace window passes.</div>
+    <div class="form-text mb-2">Auto-post fires after the recap's session end date once the grace window passes.</div>
+    <div class="form-check form-switch mb-2">
+      <input class="form-check-input" type="checkbox" id="telegramCampaignAutoSaveMedia" ${autoSave ? 'checked' : ''} data-testid="telegram-auto-save-media-toggle">
+      <label class="form-check-label" for="telegramCampaignAutoSaveMedia">Auto-save media from Telegram</label>
+    </div>
+    <div class="form-text mb-3">When enabled, every photo, audio, video or document posted in the bound chat is saved to the campaign gallery without needing /save.</div>
     <div class="small text-muted mb-3" id="telegramCampaignStatus" data-testid="telegram-campaign-status">${esc(status)}</div>
     <button class="btn btn-primary w-100" onclick="saveCampaignTelegramForm(${cid})" data-testid="telegram-save-campaign"><i class="fa-solid fa-floppy-disk me-1"></i>Save Telegram settings</button>
   `);
@@ -89,8 +95,9 @@ export async function saveCampaignTelegramForm(campaignId: number): Promise<void
   }
   const isEnabled = !!(document.getElementById('telegramCampaignEnabled') as HTMLInputElement | null)?.checked;
   const autoPost = !!(document.getElementById('telegramCampaignAutoPost') as HTMLInputElement | null)?.checked;
+  const autoSave = !!(document.getElementById('telegramCampaignAutoSaveMedia') as HTMLInputElement | null)?.checked;
   try {
-    await saveCampaignTelegram(campaignId, { chat_id: chatId, is_enabled: isEnabled, auto_post_enabled: autoPost });
+    await saveCampaignTelegram(campaignId, { chat_id: chatId, is_enabled: isEnabled, auto_post_enabled: autoPost, auto_save_media: autoSave });
     toast('Telegram settings saved');
     hideModal();
   } catch (e: unknown) {
