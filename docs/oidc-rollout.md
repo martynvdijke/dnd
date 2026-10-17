@@ -112,9 +112,10 @@ for path in / /healthz /api/share/<token>; do
 done
 ```
 
-Private mutations must not be reachable anonymously: a browser `POST /api/*` with no
-session redirects (`302`) to the OIDC login, while an API call without a token returns
-`401`.
+Private routes must not be reachable anonymously. The deployment answers `401` for API
+reads, API mutations *and* the HTMX web endpoints, so there is no transparent `302` to
+the OIDC login - the client-side code reacts to the `401` by sending the browser to
+`GET /api/auth/oidc/login`.
 
 Then verify the interactive flows in a browser:
 
@@ -123,6 +124,54 @@ Then verify the interactive flows in a browser:
    membership of the `admins` group grants the admin role.
 2. Existing API tokens and sessions keep working - the rollout does not invalidate them.
 3. `POST /api/logout` clears the session cookie and redirects to the Authelia logout URL.
+
+## Verification recorded against the live deployment
+
+Probed 2026-10-17 against `https://dnd.vandijke.xyz`, then running **v2.103.0**, with
+`GET /api/auth/oidc/status` reporting `{"enabled":true}`. All probes below are
+anonymous - no credentials were used - so the interactive login still has to be
+finished by hand (task 5.3).
+
+| Probe | Result | Meaning |
+| --- | --- | --- |
+| `GET /` | `200` | public read stays anonymous |
+| `GET /healthz` | `200` (`version: 2.103.0`) | public read stays anonymous |
+| `GET /api/share/<invalid-token>` | `404` | the share route is reachable anonymously (bad token, not `401`) |
+| `GET /api/user/me`, `/api/characters`, `/api/campaigns`, `/api/tokens` | `401` | private reads need a session |
+| `GET /htmx/media-gallery?...` | `401` | private web endpoints answer `401`, not a transparent `302` |
+| `POST /api/characters`, `/api/telegram/media`, `/api/tokens` | `401` | private mutations are refused anonymously |
+| `POST /api/login` with bad credentials | `401 {"error":"invalid credentials"}` | **password login is still enabled** |
+| `GET /login` | `200`, contains "Login with Authelia" | the SSO entry point is rendered |
+
+The handshake is correct as far as Authelia. `GET /api/auth/oidc/login` returns `302`
+to
+
+```
+https://authelia.vandijke.xyz/api/oidc/authorization?client_id=dnd
+  &code_challenge=...&code_challenge_method=S256&nonce=...
+  &redirect_uri=https%3A%2F%2Fdnd.vandijke.xyz%2Fapi%2Fauth%2Foidc%2Fcallback
+  &response_type=code&scope=openid+email+profile+groups&state=...
+```
+
+and sets short-lived `oidc_state`, `oidc_nonce` and `oidc_verifier` cookies
+(`Max-Age=300`, `SameSite=Lax`). Requesting that authorize URL answers `303` to
+`https://authelia.vandijke.xyz/?flow=openid_connect&flow_id=...`, so **Authelia
+accepts the registered client**. `GET /api/auth/oidc/callback` without a code
+redirects to `/login?error=oidc_expired`, and `GET /api/auth/oidc/logout` redirects to
+`https://authelia.vandijke.xyz/logout`.
+
+Authelia's discovery document at
+`https://authelia.vandijke.xyz/.well-known/openid-configuration` matches the registered
+values: `issuer https://authelia.vandijke.xyz`,
+`code_challenge_methods_supported: ["S256"]`, and
+`token_endpoint_auth_methods_supported` including `client_secret_basic` and
+`client_secret_post`.
+
+Still to confirm by hand, with a real account: that the login completes and links the
+account by verified email, that membership of the `admins` group grants the admin role,
+that existing sessions and API tokens keep working, and that logout clears the session.
+The client's `consent` and `policy: one_factor` settings live in the Authelia portal and
+cannot be observed from outside.
 
 ## Rollback
 
