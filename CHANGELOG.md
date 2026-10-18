@@ -1,3 +1,10 @@
+# [2.104.0](https://github.com/martynvdijke/dnd/compare/v2.103.1...v2.104.0) (2026-10-18)
+
+
+### Features
+
+* **telegram:** add digests, announcements, and auto-post scheduling ([934eaab](https://github.com/martynvdijke/dnd/commit/934eaabd4a6d57191063c0e8e0315964186ff908))
+
 ## [2.103.1](https://github.com/martynvdijke/dnd/compare/v2.103.0...v2.103.1) (2026-10-17)
 
 
