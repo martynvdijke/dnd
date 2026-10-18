@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"encoding/json"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -97,10 +99,27 @@ func GetCampaignTelegram(c *gin.Context) {
 	}
 	s, found, err := telegram.GetCampaignTelegramSettings(id)
 	if err != nil || !found {
-		c.JSON(http.StatusOK, gin.H{"chat_id": nil, "is_enabled": false, "auto_post_enabled": false, "auto_save_media": false, "bound_at": nil})
+		c.JSON(http.StatusOK, gin.H{
+			"chat_id": nil, "is_enabled": false, "auto_post_enabled": false,
+			"auto_save_media": false, "bound_at": nil,
+			"auto_post_cadence_minutes": 0, "quiet_start_hour": nil,
+			"quiet_end_hour": nil, "auto_post_last_at": nil,
+		})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"chat_id": s.ChatID, "chat_type": s.ChatType, "title_cache": s.TitleCache, "is_enabled": s.IsEnabled, "auto_post_enabled": s.AutoPostEnabled, "auto_save_media": s.AutoSaveMedia, "bound_at": s.BoundAt})
+	var lastAt any
+	if s.AutoPostLastAt != "" {
+		lastAt = s.AutoPostLastAt
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"chat_id": s.ChatID, "chat_type": s.ChatType, "title_cache": s.TitleCache,
+		"is_enabled": s.IsEnabled, "auto_post_enabled": s.AutoPostEnabled,
+		"auto_save_media": s.AutoSaveMedia, "bound_at": s.BoundAt,
+		"auto_post_cadence_minutes": s.AutoPostCadenceMinutes,
+		"quiet_start_hour":          s.QuietStartHour,
+		"quiet_end_hour":            s.QuietEndHour,
+		"auto_post_last_at":         lastAt,
+	})
 }
 func SetCampaignTelegram(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
@@ -108,15 +127,54 @@ func SetCampaignTelegram(c *gin.Context) {
 		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
 		return
 	}
-	var req struct {
-		ChatID          *int64 `json:"chat_id"`
-		IsEnabled       *bool  `json:"is_enabled"`
-		AutoPostEnabled *bool  `json:"auto_post_enabled"`
-		AutoSaveMedia   *bool  `json:"auto_save_media"`
+	// Read raw so an absent key can be told apart from an explicit JSON null
+	// (ShouldBindJSON cannot express that difference).
+	body, _ := io.ReadAll(c.Request.Body)
+	raw := map[string]json.RawMessage{}
+	if len(body) > 0 {
+		if err := json.Unmarshal(body, &raw); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid"})
+			return
+		}
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid"})
+	var req struct {
+		ChatID                 *int64 `json:"chat_id"`
+		IsEnabled              *bool  `json:"is_enabled"`
+		AutoPostEnabled        *bool  `json:"auto_post_enabled"`
+		AutoSaveMedia          *bool  `json:"auto_save_media"`
+		AutoPostCadenceMinutes *int   `json:"auto_post_cadence_minutes"`
+		QuietStartHour         *int   `json:"quiet_start_hour"`
+		QuietEndHour           *int   `json:"quiet_end_hour"`
+	}
+	if len(body) > 0 {
+		if err := json.Unmarshal(body, &req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid"})
+			return
+		}
+	}
+	if req.AutoPostCadenceMinutes != nil && (*req.AutoPostCadenceMinutes < 0 || *req.AutoPostCadenceMinutes > 1440) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "auto_post_cadence_minutes out of range"})
 		return
+	}
+	_, hasStart := raw["quiet_start_hour"]
+	_, hasEnd := raw["quiet_end_hour"]
+	if hasStart != hasEnd {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "quiet hours must be both set or both null"})
+		return
+	}
+	if hasStart {
+		if (req.QuietStartHour == nil) != (req.QuietEndHour == nil) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "quiet hours must be both set or both null"})
+			return
+		}
+		if req.QuietStartHour != nil && (*req.QuietStartHour < 0 || *req.QuietStartHour > 23) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "quiet hour out of range"})
+			return
+		}
+		if req.QuietEndHour != nil && (*req.QuietEndHour < 0 || *req.QuietEndHour > 23) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "quiet hour out of range"})
+			return
+		}
 	}
 	uid, _ := c.Get("user_id")
 	userID := uid.(int64)
@@ -135,6 +193,13 @@ func SetCampaignTelegram(c *gin.Context) {
 	}
 	if req.AutoSaveMedia != nil {
 		s.AutoSaveMedia = *req.AutoSaveMedia
+	}
+	if req.AutoPostCadenceMinutes != nil {
+		s.AutoPostCadenceMinutes = *req.AutoPostCadenceMinutes
+	}
+	if hasStart {
+		s.QuietStartHour = req.QuietStartHour
+		s.QuietEndHour = req.QuietEndHour
 	}
 	if req.ChatID != nil {
 		if ch, err := telegram.GetChat(*req.ChatID); err == nil {

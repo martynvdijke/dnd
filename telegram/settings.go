@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"villum/crypto"
 	"villum/db"
@@ -82,19 +83,29 @@ type CampaignTelegramSettings struct {
 	AutoSaveMedia   bool
 	BoundAt         *string
 	BoundByUserID   *int64
+
+	// Auto-post scheduling. AutoPostCadenceMinutes of 0 means unpaced; the
+	// quiet hours are optional and must be both set or both nil.
+	AutoPostCadenceMinutes int
+	QuietStartHour         *int
+	QuietEndHour           *int
+	AutoPostLastAt         string
 }
 
 // GetCampaignTelegramSettings reads a campaign's Telegram settings. The bool
 // reports whether a row exists; a missing row is not an error.
 func GetCampaignTelegramSettings(campaignID int64) (CampaignTelegramSettings, bool, error) {
 	s := CampaignTelegramSettings{CampaignID: campaignID}
-	var chatID, boundBy sql.NullInt64
-	var chatType, titleCache, boundAt sql.NullString
+	var chatID, boundBy, quietStart, quietEnd sql.NullInt64
+	var chatType, titleCache, boundAt, autoPostLastAt sql.NullString
 	var isEnabled, autoPost, autoSave int
+	var cadence sql.NullInt64
 	err := db.DB.QueryRow(`
-		SELECT chat_id, chat_type, title_cache, is_enabled, auto_post_enabled, auto_save_media, bound_at, bound_by_user_id
+		SELECT chat_id, chat_type, title_cache, is_enabled, auto_post_enabled, auto_save_media, bound_at, bound_by_user_id,
+		       auto_post_cadence_minutes, quiet_start_hour, quiet_end_hour, auto_post_last_at
 		FROM campaign_telegram_settings WHERE campaign_id = ?`, campaignID).
-		Scan(&chatID, &chatType, &titleCache, &isEnabled, &autoPost, &autoSave, &boundAt, &boundBy)
+		Scan(&chatID, &chatType, &titleCache, &isEnabled, &autoPost, &autoSave, &boundAt, &boundBy,
+			&cadence, &quietStart, &quietEnd, &autoPostLastAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return s, false, nil
@@ -109,6 +120,20 @@ func GetCampaignTelegramSettings(campaignID int64) (CampaignTelegramSettings, bo
 	}
 	if boundAt.Valid {
 		s.BoundAt = &boundAt.String
+	}
+	if cadence.Valid {
+		s.AutoPostCadenceMinutes = int(cadence.Int64)
+	}
+	if quietStart.Valid {
+		v := int(quietStart.Int64)
+		s.QuietStartHour = &v
+	}
+	if quietEnd.Valid {
+		v := int(quietEnd.Int64)
+		s.QuietEndHour = &v
+	}
+	if autoPostLastAt.Valid {
+		s.AutoPostLastAt = autoPostLastAt.String
 	}
 	s.ChatType = chatType.String
 	s.TitleCache = titleCache.String
@@ -143,10 +168,18 @@ func UpsertCampaignTelegramSettings(s CampaignTelegramSettings) error {
 	if s.BoundAt != nil {
 		boundAt = *s.BoundAt
 	}
+	var quietStart, quietEnd any
+	if s.QuietStartHour != nil {
+		quietStart = *s.QuietStartHour
+	}
+	if s.QuietEndHour != nil {
+		quietEnd = *s.QuietEndHour
+	}
 	_, err := db.DB.Exec(`
 		INSERT INTO campaign_telegram_settings
-			(campaign_id, chat_id, chat_type, title_cache, is_enabled, auto_post_enabled, auto_save_media, bound_at, bound_by_user_id)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+			(campaign_id, chat_id, chat_type, title_cache, is_enabled, auto_post_enabled, auto_save_media, bound_at, bound_by_user_id,
+			 auto_post_cadence_minutes, quiet_start_hour, quiet_end_hour)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(campaign_id) DO UPDATE SET
 			chat_id = excluded.chat_id,
 			chat_type = excluded.chat_type,
@@ -155,9 +188,38 @@ func UpsertCampaignTelegramSettings(s CampaignTelegramSettings) error {
 			auto_post_enabled = excluded.auto_post_enabled,
 			auto_save_media = excluded.auto_save_media,
 			bound_at = excluded.bound_at,
-			bound_by_user_id = excluded.bound_by_user_id`,
-		s.CampaignID, chatID, s.ChatType, s.TitleCache, enabled, autoPost, autoSave, boundAt, boundBy)
+			bound_by_user_id = excluded.bound_by_user_id,
+			auto_post_cadence_minutes = excluded.auto_post_cadence_minutes,
+			quiet_start_hour = excluded.quiet_start_hour,
+			quiet_end_hour = excluded.quiet_end_hour`,
+		s.CampaignID, chatID, s.ChatType, s.TitleCache, enabled, autoPost, autoSave, boundAt, boundBy,
+		s.AutoPostCadenceMinutes, quietStart, quietEnd)
 	return err
+}
+
+// SetAutoPostLastAt records the last automatic post time (UTC) for a campaign.
+func SetAutoPostLastAt(campaignID int64, at string) error {
+	_, err := db.DB.Exec(`UPDATE campaign_telegram_settings SET auto_post_last_at=? WHERE campaign_id=?`, at, campaignID)
+	return err
+}
+
+// inQuietHours reports whether now (evaluated in UTC) falls inside the campaign's
+// quiet window. Unset hours suppress nothing. The window may wrap midnight
+// (start > end), in which case hours >= start or < end are quiet. The start
+// hour is inside the window and the end hour is outside it.
+func inQuietHours(now time.Time, start, end *int) bool {
+	if start == nil || end == nil {
+		return false
+	}
+	s, e := *start, *end
+	if s < 0 || s > 23 || e < 0 || e > 23 || s == e {
+		return false
+	}
+	h := now.UTC().Hour()
+	if s < e {
+		return h >= s && h < e
+	}
+	return h >= s || h < e
 }
 
 func GetBotToken() string {

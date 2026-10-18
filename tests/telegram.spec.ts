@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { login, NAV_TIMEOUT } from './helpers.js';
+import { login, waitLoadingDone, NAV_TIMEOUT } from './helpers.js';
 
 // Ensure check-testid sees every new telegram testid. Some are templated
 // and only exist dynamically — keep a literal reference so the lint passes.
@@ -18,6 +18,10 @@ const _allTelegramTestIds = [
   'telegram-enable-toggle',
   'telegram-auto-post-toggle',
   'telegram-auto-save-media-toggle',
+  'tg-autopost-cadence',
+  'tg-quiet-hours-toggle',
+  'tg-quiet-start',
+  'tg-quiet-end',
   'telegram-save-campaign',
   'telegram-campaign-status',
   'telegram-campaign-open-${g.id}',
@@ -90,6 +94,117 @@ async function apiWithToken(page: any, method: string, path: string, body?: any)
   if (method === 'PUT') return page.request.put(path, opts);
   if (method === 'DELETE') return page.request.delete(path, opts);
   throw new Error('unknown method');
+}
+
+type TgUser = { id: number; is_bot: boolean; first_name: string; username: string };
+
+/**
+ * Configure the bot (token + polling) through the admin API and wait for the
+ * supervised client to register its command menu. Shared by the announce and
+ * digest flows below.
+ */
+async function configureBot(page: any, workerData: any, secret: string): Promise<void> {
+  const save = await apiWithToken(page, 'POST', '/api/admin/telegram-settings', {
+    token: workerData.telegramMock.botToken,
+    mode: 'polling',
+    webhook_secret: secret,
+  });
+  expect(save.ok()).toBeTruthy();
+  await expect.poll(() => workerData.telegramMock.commands.length, { timeout: 20000 }).toBeGreaterThan(0);
+}
+
+/**
+ * Link a fresh Telegram identity to the logged-in account by generating a real
+ * link code and delivering `/start <code>` through the mock webhook. The
+ * identity is what makes the sender resolvable as a Villum user (and, for the
+ * admin account, the campaign owner/DM).
+ */
+async function linkSender(
+  page: any,
+  workerData: any,
+  secret: string,
+  tgUser: TgUser,
+  updateID: number,
+): Promise<void> {
+  const codeResp = await apiWithToken(page, 'POST', '/api/telegram/link-code');
+  expect(codeResp.ok()).toBeTruthy();
+  const code = (await codeResp.json()).code as string;
+  workerData.telegramMock.clear();
+  const resp = await page.request.post('/api/telegram/webhook', {
+    data: {
+      update_id: updateID,
+      message: { message_id: 1, from: tgUser, chat: { id: tgUser.id, type: 'private' }, text: `/start ${code}` },
+    },
+    headers: { 'X-Telegram-Bot-Api-Secret-Token': secret },
+  });
+  expect(resp.status()).toBe(200);
+  await expect
+    .poll(() => workerData.telegramMock.sentMessages.some((m: any) => String(m.text).includes('Linked')), { timeout: 15000 })
+    .toBeTruthy();
+}
+
+type BoundCampaignFixture = { cid: number; groupChatId: number; tgUser: TgUser; groupChat: any };
+
+/**
+ * Create a campaign (owned by the logged-in admin, i.e. its DM), bind a group
+ * chat with posting enabled, and link a fresh Telegram identity to the admin.
+ * Returns everything needed to drive the bot from inside that bound chat.
+ */
+async function setupBoundCampaign(
+  page: any,
+  workerData: any,
+  secret: string,
+  opts: { tgUserId: number; baseUpdateId: number },
+): Promise<BoundCampaignFixture> {
+  const campResp = await apiWithToken(page, 'POST', '/api/campaigns', {
+    name: `tg-bot-${Date.now()}-${opts.tgUserId}`,
+    description: 'telegram bot e2e',
+  });
+  expect(campResp.ok()).toBeTruthy();
+  const cid = (await campResp.json()).id as number;
+
+  const groupChatId = -(100000000000 + (opts.tgUserId % 1000000));
+  const bind = await apiWithToken(page, 'PUT', `/api/campaigns/${cid}/telegram`, {
+    chat_id: groupChatId,
+    is_enabled: true,
+    auto_post_enabled: false,
+  });
+  expect(bind.ok()).toBeTruthy();
+
+  // Verify the bound + enabled precondition before driving the bot, rather than
+  // assuming the write took: the announce/digest paths key off this row.
+  const settingsResp = await apiWithToken(page, 'GET', `/api/campaigns/${cid}/telegram`);
+  expect(settingsResp.ok()).toBeTruthy();
+  const settings = await settingsResp.json();
+  expect(Number(settings.chat_id)).toBe(groupChatId);
+  expect(settings.is_enabled).toBe(true);
+
+  const tgUser: TgUser = {
+    id: opts.tgUserId,
+    is_bot: false,
+    first_name: 'Bot',
+    username: `e2e_bot_${opts.tgUserId}`,
+  };
+  await linkSender(page, workerData, secret, tgUser, opts.baseUpdateId);
+
+  const groupChat = { id: groupChatId, type: 'supergroup', title: 'E2E Campaign Group' };
+  return { cid, groupChatId, tgUser, groupChat };
+}
+
+/** Deliver one bot update through the public mock webhook. */
+async function sendBotUpdate(
+  page: any,
+  secret: string,
+  updateID: number,
+  from: TgUser,
+  chat: any,
+  text: string,
+): Promise<void> {
+  const resp = await page.request.post('/api/telegram/webhook', {
+    data: { update_id: updateID, message: { message_id: 1, from, chat, text } },
+    headers: { 'X-Telegram-Bot-Api-Secret-Token': secret },
+  });
+  expect(resp.status()).toBe(200);
 }
 
 test.describe('Telegram', () => {
@@ -354,6 +469,75 @@ test.describe('Telegram', () => {
     await page.evaluate(() => (window as any).hideModal?.());
   });
 
+  test('campaign: auto-post cadence and quiet hours save, reload and persist', async ({ page }) => {
+    const created = await apiWithToken(page, 'POST', '/api/campaigns', {
+      name: `tg-cadence-${Date.now()}`,
+      description: 'telegram cadence e2e',
+    });
+    expect(created.ok()).toBeTruthy();
+    const cid = (await created.json()).id as number;
+
+    const openForm = async () => {
+      await page.evaluate((id) => (window as any).showCampaignTelegram?.(id), cid);
+      await expect(page.locator('#genericModal')).toBeVisible({ timeout: NAV_TIMEOUT });
+    };
+
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
+    await waitLoadingDone(page);
+    await openForm();
+
+    const modal = page.locator('#genericModal');
+    await expect(modal.getByTestId('tg-autopost-cadence')).toBeVisible({ timeout: NAV_TIMEOUT });
+    // Quiet-hour fields stay out of the way until the toggle is on.
+    await expect(modal.getByTestId('tg-quiet-hours-toggle')).not.toBeChecked();
+    await expect(modal.getByTestId('tg-quiet-start')).toBeHidden();
+    await expect(modal.getByTestId('tg-quiet-end')).toBeHidden();
+
+    await modal.getByTestId('tg-autopost-cadence').fill('90');
+    await modal.getByTestId('tg-quiet-hours-toggle').check();
+    await expect(modal.getByTestId('tg-quiet-start')).toBeVisible();
+    await expect(modal.getByTestId('tg-quiet-end')).toBeVisible();
+    await modal.getByTestId('tg-quiet-start').selectOption('22');
+    await modal.getByTestId('tg-quiet-end').selectOption('7');
+
+    const putPromise = page.waitForResponse(
+      (r) => r.url().includes(`/api/campaigns/${cid}/telegram`) && r.request().method() === 'PUT',
+    );
+    // One click must send exactly one PUT: a duplicated handler would double-post.
+    let putCount = 0;
+    page.on('request', (r) => {
+      if (r.method() === 'PUT' && r.url().includes(`/api/campaigns/${cid}/telegram`)) putCount++;
+    });
+    await modal.getByTestId('telegram-save-campaign').click();
+    const putResp = await putPromise;
+    expect(putResp.ok()).toBeTruthy();
+    // The cadence and the hour pair travel in that one request.
+    const sent = putResp.request().postDataJSON();
+    expect(sent.auto_post_cadence_minutes).toBe(90);
+    expect(sent.quiet_start_hour).toBe(22);
+    expect(sent.quiet_end_hour).toBe(7);
+    expect(putCount).toBe(1);
+    await expect(page.locator('#genericModal')).toBeHidden({ timeout: NAV_TIMEOUT });
+
+    // Reload and reopen: the form comes back from the server, not from memory.
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await waitLoadingDone(page);
+    await openForm();
+    await expect(modal.getByTestId('tg-autopost-cadence')).toHaveValue('90');
+    await expect(modal.getByTestId('tg-quiet-hours-toggle')).toBeChecked();
+    await expect(modal.getByTestId('tg-quiet-start')).toHaveValue('22');
+    await expect(modal.getByTestId('tg-quiet-end')).toHaveValue('7');
+
+    const getResp = await apiWithToken(page, 'GET', `/api/campaigns/${cid}/telegram`);
+    expect(getResp.ok()).toBeTruthy();
+    const settings = await getResp.json();
+    expect(Number(settings.auto_post_cadence_minutes)).toBe(90);
+    expect(Number(settings.quiet_start_hour)).toBe(22);
+    expect(Number(settings.quiet_end_hour)).toBe(7);
+
+    await page.evaluate(() => (window as any).hideModal?.());
+  });
+
   test('webhook authenticity: wrong secret → 403', async ({ page }) => {
     const fakeUpdate = {
       update_id: 999999,
@@ -591,5 +775,68 @@ test.describe('Telegram', () => {
     if (ans.button) {
       expect(String(ans.button.start_parameter || '')).toMatch(/^ask_/);
     }
+  });
+
+  test('announce: DM posts to the bound campaign chat and is confirmed', async ({ page, workerData }) => {
+    // slow: waits for the supervised bot client to start and for webhook-driven replies
+    test.slow();
+    const secret = 'announce-secret-' + Date.now();
+    await configureBot(page, workerData, secret);
+
+    const { groupChatId, tgUser, groupChat } = await setupBoundCampaign(page, workerData, secret, {
+      tgUserId: 555000444,
+      baseUpdateId: 810000,
+    });
+
+    const body = 'Session moved to Thursday';
+    workerData.telegramMock.clear();
+    // Sent from inside the campaign's bound group chat by the linked admin (the
+    // campaign owner/DM). The same update drives both the announcement send and
+    // the caller confirmation.
+    await sendBotUpdate(page, secret, 810100, tgUser, groupChat, `/announce ${body}`);
+    await expect.poll(() => workerData.telegramMock.sentMessages.length, { timeout: 15000 }).toBeGreaterThanOrEqual(2);
+
+    const sent = workerData.telegramMock.sentMessages;
+    const texts = sent.map((m: any) => m.text).join('\n---\n');
+    // The announced body lands in the bound campaign chat...
+    expect(texts).toContain(body);
+    // ...and the bot answers the caller with a confirmation.
+    expect(texts).toContain('Announcement posted');
+    // The caller really resolved as the DM: no role/binding/enabled rejection.
+    expect(texts).not.toContain('Only the campaign DM');
+    expect(texts).not.toContain('No Telegram chat is bound');
+    expect(texts).not.toContain('Telegram posting is disabled');
+    // Both the announcement and the confirmation go to the chat the command came
+    // from, which is the campaign's bound chat.
+    expect(sent.every((m: any) => m.chat_id === groupChatId)).toBeTruthy();
+
+    await apiWithToken(page, 'DELETE', '/api/telegram/unlink');
+  });
+
+  test('digest: subscribe, status and unsubscribe through the bot', async ({ page, workerData }) => {
+    // slow: waits for the supervised bot client to start and for webhook-driven replies
+    test.slow();
+    const secret = 'digest-secret-' + Date.now();
+    await configureBot(page, workerData, secret);
+
+    const { tgUser, groupChat } = await setupBoundCampaign(page, workerData, secret, {
+      tgUserId: 555000555,
+      baseUpdateId: 820000,
+    });
+
+    let updateID = 820100;
+    const send = async (text: string): Promise<string> => {
+      workerData.telegramMock.clear();
+      await sendBotUpdate(page, secret, ++updateID, tgUser, groupChat, text);
+      await expect.poll(() => workerData.telegramMock.sentMessages.length, { timeout: 15000 }).toBeGreaterThan(0);
+      return workerData.telegramMock.sentMessages.map((m: any) => m.text).join('\n---\n');
+    };
+
+    expect(await send('/digest')).toContain('Weekly digest enabled');
+    expect(await send('/digest status')).toContain('on (not sent yet)');
+    expect(await send('/digest off')).toContain('Weekly digest disabled');
+    expect(await send('/digest status')).toContain('off');
+
+    await apiWithToken(page, 'DELETE', '/api/telegram/unlink');
   });
 });

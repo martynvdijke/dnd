@@ -19,6 +19,7 @@ func StartTelegramAutoPostScheduler(stop <-chan struct{}) {
 					continue
 				}
 				scanAutoPost(now)
+				scanDigests(now)
 				retryFailed()
 			}
 		}
@@ -57,6 +58,21 @@ func scanAutoPost(now time.Time) {
 		if err != nil || !found || !settings.IsEnabled || !settings.AutoPostEnabled {
 			continue
 		}
+		if inQuietHours(now, settings.QuietStartHour, settings.QuietEndHour) {
+			continue
+		}
+		if settings.AutoPostCadenceMinutes > 0 && settings.AutoPostLastAt != "" {
+			if lastAt, err := time.Parse("2006-01-02 15:04:05", settings.AutoPostLastAt); err == nil {
+				if now.UTC().Before(lastAt.Add(time.Duration(settings.AutoPostCadenceMinutes) * time.Minute)) {
+					continue
+				}
+			}
+		}
 		DeliverRecap(p.id, "auto")
+		// Record only on the automatic path; manual deliveries and retries are
+		// not paced and must not advance the window.
+		if err := SetAutoPostLastAt(p.campaignID, now.UTC().Format("2006-01-02 15:04:05")); err != nil {
+			middleware.LogWarn("telegram", "failed to update auto_post_last_at", "campaign", p.campaignID, "error", err)
+		}
 	}
 }

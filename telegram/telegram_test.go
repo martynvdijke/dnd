@@ -1389,3 +1389,190 @@ func TestExtractInboundMedia(t *testing.T) {
 		t.Fatalf("expected nil for nil msg")
 	}
 }
+
+// --- Auto-post cadence and quiet hours ---
+
+func TestAutoPostCadence(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCampaign(t, 10, "C1", "P1", 1)
+	if _, err := db.DB.Exec("INSERT INTO campaign_telegram_settings(campaign_id,chat_id,is_enabled,auto_post_enabled,auto_post_cadence_minutes,auto_post_last_at) VALUES(10,777,1,1,60,?)", "2026-01-01 10:00:00"); err != nil {
+		t.Fatalf("settings: %v", err)
+	}
+	now := time.Date(2026, 1, 1, 10, 30, 0, 0, time.UTC)
+	past := "2025-12-31 10:00:00"
+	db.DB.Exec("INSERT INTO campaign_recaps(id,campaign_id,title,content,session_end_date) VALUES(500,10,'R','c',?)", past)
+	_ = SetGraceMinutes(30)
+	var sends int
+	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "sendMessage") {
+			sends++
+		}
+		w.Write(jsonOK(map[string]any{"message_id": 1}))
+	})
+	scanAutoPost(now)
+	time.Sleep(300 * time.Millisecond)
+	if sends != 0 {
+		t.Fatalf("cadence should defer too-soon post, got %d sends", sends)
+	}
+	var n int
+	db.DB.QueryRow("SELECT COUNT(*) FROM telegram_deliveries WHERE recap_id=500").Scan(&n)
+	if n != 0 {
+		t.Fatalf("should not have delivery when deferred, got %d", n)
+	}
+	// after the interval elapses the recap is posted and the time recorded
+	later := time.Date(2026, 1, 1, 11, 1, 0, 0, time.UTC)
+	sends = 0
+	scanAutoPost(later)
+	time.Sleep(300 * time.Millisecond)
+	if sends == 0 {
+		t.Fatalf("should send after cadence elapsed")
+	}
+	got, _, _ := GetCampaignTelegramSettings(10)
+	if got.AutoPostLastAt != "2026-01-01 11:01:00" {
+		t.Fatalf("auto_post_last_at not recorded, got %q", got.AutoPostLastAt)
+	}
+}
+
+func TestAutoPostZeroCadenceUnpaced(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCampaign(t, 10, "C1", "P1", 1)
+	// cadence 0 with a recent last_at must not pace anything
+	if _, err := db.DB.Exec("INSERT INTO campaign_telegram_settings(campaign_id,chat_id,is_enabled,auto_post_enabled,auto_post_cadence_minutes,auto_post_last_at) VALUES(10,777,1,1,0,datetime('now'))"); err != nil {
+		t.Fatalf("settings: %v", err)
+	}
+	db.DB.Exec("INSERT INTO campaign_recaps(id,campaign_id,title,content,session_end_date) VALUES(510,10,'R','c',?)", "2025-12-31 10:00:00")
+	_ = SetGraceMinutes(30)
+	var sends int
+	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "sendMessage") {
+			sends++
+		}
+		w.Write(jsonOK(map[string]any{"message_id": 1}))
+	})
+	scanAutoPost(time.Date(2026, 1, 1, 10, 30, 0, 0, time.UTC))
+	time.Sleep(300 * time.Millisecond)
+	if sends == 0 {
+		t.Fatalf("zero cadence must stay unpaced")
+	}
+}
+
+func TestAutoPostQuietHours(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCampaign(t, 10, "C1", "P1", 1)
+	qs, qe := 22, 6
+	chat := int64(777)
+	s := CampaignTelegramSettings{CampaignID: 10, ChatID: &chat, IsEnabled: true, AutoPostEnabled: true, QuietStartHour: &qs, QuietEndHour: &qe}
+	if err := UpsertCampaignTelegramSettings(s); err != nil {
+		t.Fatalf("upsert: %v", err)
+	}
+	past := "2025-12-31 10:00:00"
+	db.DB.Exec("INSERT INTO campaign_recaps(id,campaign_id,title,content,session_end_date) VALUES(501,10,'R','c',?)", past)
+	_ = SetGraceMinutes(30)
+	var sends int
+	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "sendMessage") {
+			sends++
+		}
+		w.Write(jsonOK(map[string]any{"message_id": 1}))
+	})
+	// inside wrap-around window (23h, window 22..6)
+	inside := time.Date(2026, 1, 1, 23, 0, 0, 0, time.UTC)
+	scanAutoPost(inside)
+	time.Sleep(300 * time.Millisecond)
+	if sends != 0 {
+		t.Fatalf("quiet hours should defer inside window (23h), got %d", sends)
+	}
+	// inside early morning (02h)
+	inside2 := time.Date(2026, 1, 2, 2, 0, 0, 0, time.UTC)
+	sends = 0
+	scanAutoPost(inside2)
+	time.Sleep(300 * time.Millisecond)
+	if sends != 0 {
+		t.Fatalf("quiet hours should defer inside window (02h), got %d", sends)
+	}
+	// outside window (10h)
+	outside := time.Date(2026, 1, 1, 10, 0, 0, 0, time.UTC)
+	sends = 0
+	scanAutoPost(outside)
+	time.Sleep(300 * time.Millisecond)
+	if sends == 0 {
+		t.Fatalf("should send outside quiet window")
+	}
+	// non-wrap-around window 9-17
+	db.DB.Exec("DELETE FROM telegram_deliveries")
+	db.DB.Exec("DELETE FROM campaign_recaps WHERE id=501")
+	db.DB.Exec("INSERT INTO campaign_recaps(id,campaign_id,title,content,session_end_date) VALUES(502,10,'R2','c',?)", past)
+	qs2, qe2 := 9, 17
+	s2, _, _ := GetCampaignTelegramSettings(10)
+	s2.QuietStartHour = &qs2
+	s2.QuietEndHour = &qe2
+	UpsertCampaignTelegramSettings(s2)
+	sends = 0
+	scanAutoPost(time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC))
+	time.Sleep(300 * time.Millisecond)
+	if sends != 0 {
+		t.Fatalf("non-wrap quiet should defer inside, got %d", sends)
+	}
+	sends = 0
+	scanAutoPost(time.Date(2026, 1, 1, 18, 0, 0, 0, time.UTC))
+	time.Sleep(300 * time.Millisecond)
+	if sends == 0 {
+		t.Fatalf("non-wrap quiet should allow outside")
+	}
+}
+
+func TestInQuietHoursBoundaries(t *testing.T) {
+	start, end := 22, 7
+	// start hour is inside the window
+	if !inQuietHours(time.Date(2026, 1, 1, 22, 0, 0, 0, time.UTC), &start, &end) {
+		t.Fatalf("start hour must be quiet")
+	}
+	// end hour is outside the window
+	if inQuietHours(time.Date(2026, 1, 1, 7, 0, 0, 0, time.UTC), &start, &end) {
+		t.Fatalf("end hour must not be quiet")
+	}
+	// unset hours suppress nothing
+	if inQuietHours(time.Date(2026, 1, 1, 23, 0, 0, 0, time.UTC), nil, nil) {
+		t.Fatalf("unset quiet hours must suppress nothing")
+	}
+}
+
+func TestManualDeliveryBypassesPacing(t *testing.T) {
+	setupTelegramDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCampaign(t, 10, "C1", "P1", 1)
+	chat := int64(777)
+	qs, qe := 0, 23
+	s := CampaignTelegramSettings{CampaignID: 10, ChatID: &chat, IsEnabled: true, AutoPostEnabled: true, AutoPostCadenceMinutes: 60, QuietStartHour: &qs, QuietEndHour: &qe}
+	last := "2026-01-01 10:00:00"
+	if err := UpsertCampaignTelegramSettings(s); err != nil {
+		t.Fatalf("upsert: %v", err)
+	}
+	if err := SetAutoPostLastAt(10, last); err != nil {
+		t.Fatalf("set last_at: %v", err)
+	}
+	if _, err := db.DB.Exec("INSERT INTO campaign_recaps(id,campaign_id,title,content,session_end_date) VALUES(600,10,'T','hello',?)", "2025-12-31 10:00:00"); err != nil {
+		t.Fatalf("recap: %v", err)
+	}
+	mockTelegramServer(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Write(jsonOK(map[string]any{"message_id": 1}))
+	})
+	DeliverRecap(600, "manual")
+	time.Sleep(400 * time.Millisecond)
+	var n int
+	db.DB.QueryRow("SELECT COUNT(*) FROM telegram_deliveries WHERE recap_id=600").Scan(&n)
+	if n != 1 {
+		t.Fatalf("manual delivery should succeed despite pacing, got %d", n)
+	}
+	got, _, _ := GetCampaignTelegramSettings(10)
+	if got.AutoPostLastAt != last {
+		t.Fatalf("manual delivery should not change auto_post_last_at, got %q want %s", got.AutoPostLastAt, last)
+	}
+}
