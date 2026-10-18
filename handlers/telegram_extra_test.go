@@ -182,3 +182,100 @@ func TestSetPrefsIncludesOK(t *testing.T) {
 		t.Fatalf("expected ok true, got %v", resp)
 	}
 }
+
+func TestCampaignTelegramSchedulingDefaults(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCampaign(t, 10, "C1", "P1", 1)
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.GET("/campaigns/:id/telegram", GetCampaignTelegram)
+	})
+	w := testutil.Get(t, r, "/api/campaigns/10/telegram")
+	if w.Code != 200 {
+		t.Fatalf("code %d %s", w.Code, w.Body.String())
+	}
+	var resp map[string]any
+	testutil.ParseJSON(t, w, &resp)
+	if v, _ := resp["auto_post_cadence_minutes"].(float64); int(v) != 0 {
+		t.Fatalf("default cadence got %v", resp["auto_post_cadence_minutes"])
+	}
+	if resp["quiet_start_hour"] != nil || resp["quiet_end_hour"] != nil {
+		t.Fatalf("default quiet hours should be null, got %v %v", resp["quiet_start_hour"], resp["quiet_end_hour"])
+	}
+	if _, ok := resp["auto_post_last_at"]; !ok {
+		t.Fatalf("missing auto_post_last_at, got %v", resp)
+	}
+	if _, ok := resp["auto_save_media"]; !ok {
+		t.Fatalf("missing auto_save_media, got %v", resp)
+	}
+}
+
+func TestCampaignTelegramSettingsRoundTrip(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	testutil.SeedCampaign(t, 10, "C1", "P1", 1)
+	r := testutil.NewRouter(func(auth *gin.RouterGroup) {
+		auth.GET("/campaigns/:id/telegram", GetCampaignTelegram)
+		auth.PUT("/campaigns/:id/telegram", SetCampaignTelegram)
+	})
+	w := testutil.PutJSON(t, r, "/api/campaigns/10/telegram", map[string]any{
+		"auto_post_cadence_minutes": 60,
+		"quiet_start_hour":          22,
+		"quiet_end_hour":            6,
+		"auto_save_media":           true,
+	})
+	if w.Code != 200 {
+		t.Fatalf("put %d %s", w.Code, w.Body.String())
+	}
+	w2 := testutil.Get(t, r, "/api/campaigns/10/telegram")
+	if w2.Code != 200 {
+		t.Fatalf("get %d %s", w2.Code, w2.Body.String())
+	}
+	var resp map[string]any
+	testutil.ParseJSON(t, w2, &resp)
+	if v, _ := resp["auto_post_cadence_minutes"].(float64); int(v) != 60 {
+		t.Fatalf("cadence got %v", resp["auto_post_cadence_minutes"])
+	}
+	if v, _ := resp["quiet_start_hour"].(float64); int(v) != 22 {
+		t.Fatalf("quiet_start got %v", resp["quiet_start_hour"])
+	}
+	if v, _ := resp["quiet_end_hour"].(float64); int(v) != 6 {
+		t.Fatalf("quiet_end got %v", resp["quiet_end_hour"])
+	}
+	if resp["auto_save_media"] != true {
+		t.Fatalf("auto_save_media round-trip lost, got %v", resp["auto_save_media"])
+	}
+	// validation: out of range cadence
+	w3 := testutil.PutJSON(t, r, "/api/campaigns/10/telegram", map[string]any{"auto_post_cadence_minutes": 9999})
+	if w3.Code != 400 {
+		t.Fatalf("expected 400 for bad cadence, got %d %s", w3.Code, w3.Body.String())
+	}
+	// validation: non-integer cadence
+	w3b := testutil.PutJSON(t, r, "/api/campaigns/10/telegram", map[string]any{"auto_post_cadence_minutes": 12.5})
+	if w3b.Code != 400 {
+		t.Fatalf("expected 400 for non-integer cadence, got %d %s", w3b.Code, w3b.Body.String())
+	}
+	// validation: quiet hours must be both set or both absent
+	w4 := testutil.PutJSON(t, r, "/api/campaigns/10/telegram", map[string]any{"quiet_start_hour": 5})
+	if w4.Code != 400 {
+		t.Fatalf("expected 400 for partial quiet, got %d", w4.Code)
+	}
+	// validation: out-of-range quiet hour
+	w4b := testutil.PutJSON(t, r, "/api/campaigns/10/telegram", map[string]any{"quiet_start_hour": 24, "quiet_end_hour": 6})
+	if w4b.Code != 400 {
+		t.Fatalf("expected 400 for out-of-range quiet hour, got %d", w4b.Code)
+	}
+	// clear quiet hours via explicit nulls
+	w5 := testutil.PutJSON(t, r, "/api/campaigns/10/telegram", map[string]any{"quiet_start_hour": nil, "quiet_end_hour": nil})
+	if w5.Code != 200 {
+		t.Fatalf("clear %d %s", w5.Code, w5.Body.String())
+	}
+	w6 := testutil.Get(t, r, "/api/campaigns/10/telegram")
+	var resp2 map[string]any
+	testutil.ParseJSON(t, w6, &resp2)
+	if resp2["quiet_start_hour"] != nil || resp2["quiet_end_hour"] != nil {
+		t.Fatalf("quiet should be cleared, got %v %v", resp2["quiet_start_hour"], resp2["quiet_end_hour"])
+	}
+}

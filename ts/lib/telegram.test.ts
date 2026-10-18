@@ -10,6 +10,16 @@ import {
   adminTelegramStatusText,
   maskedTokenDisplay,
   telegramPrefsPayload,
+  campaignTelegramSaveErrorText,
+  formatAutoPostLastAt,
+  formatHourLabel,
+  isValidCadence,
+  isValidQuietHour,
+  isValidQuietPair,
+  parseCadenceMinutes,
+  parseQuietHour,
+  MAX_CADENCE_MINUTES,
+  MAX_QUIET_HOUR,
 } from './telegram';
 
 describe('isValidTelegramMode', () => {
@@ -98,6 +108,11 @@ describe('campaignTelegramStatusText', () => {
     const s = { chat_id: -100123, chat_type: 'group', title_cache: '', is_enabled: false, auto_post_enabled: false, bound_at: null };
     expect(campaignTelegramStatusText(s)).toContain('Disabled');
   });
+  it('keeps reporting auto-save media', () => {
+    const base = { chat_id: -100123, chat_type: 'group', title_cache: '', is_enabled: true, auto_post_enabled: true, bound_at: null };
+    expect(campaignTelegramStatusText({ ...base, auto_save_media: true })).toContain('auto-save on');
+    expect(campaignTelegramStatusText({ ...base, auto_save_media: false })).toContain('auto-save off');
+  });
 });
 
 describe('adminTelegramStatusText', () => {
@@ -130,5 +145,131 @@ describe('telegramPrefsPayload', () => {
   it('maps boolean', () => {
     expect(telegramPrefsPayload(true)).toEqual({ dm_enabled: true });
     expect(telegramPrefsPayload(false)).toEqual({ dm_enabled: false });
+  });
+});
+
+describe('parseCadenceMinutes', () => {
+  it('parses whole minutes', () => {
+    expect(parseCadenceMinutes('60')).toBe(60);
+    expect(parseCadenceMinutes(' 0 ')).toBe(0);
+    expect(parseCadenceMinutes('1440')).toBe(1440);
+    expect(parseCadenceMinutes(30)).toBe(30);
+  });
+  it('returns null for blank, junk and fractional values', () => {
+    expect(parseCadenceMinutes('')).toBeNull();
+    expect(parseCadenceMinutes('   ')).toBeNull();
+    expect(parseCadenceMinutes(null)).toBeNull();
+    expect(parseCadenceMinutes(undefined)).toBeNull();
+    expect(parseCadenceMinutes('abc')).toBeNull();
+    // Rounding 60.5 to 60 would pace differently from what was typed.
+    expect(parseCadenceMinutes('60.5')).toBeNull();
+  });
+});
+
+describe('isValidCadence', () => {
+  it('accepts the whole 0 to 1440 range', () => {
+    expect(isValidCadence(0)).toBe(true);
+    expect(isValidCadence(1)).toBe(true);
+    expect(isValidCadence(MAX_CADENCE_MINUTES)).toBe(true);
+  });
+  it('rejects out of range and non-integer values', () => {
+    expect(isValidCadence(-1)).toBe(false);
+    expect(isValidCadence(1441)).toBe(false);
+    expect(isValidCadence(60.5)).toBe(false);
+    expect(isValidCadence(NaN)).toBe(false);
+  });
+});
+
+describe('parseQuietHour', () => {
+  it('parses whole hours and leaves range checking to isValidQuietHour', () => {
+    expect(parseQuietHour('0')).toBe(0);
+    expect(parseQuietHour('7')).toBe(7);
+    expect(parseQuietHour(23)).toBe(23);
+    expect(parseQuietHour('24')).toBe(24);
+  });
+  it('returns null for blank and non-hour values', () => {
+    expect(parseQuietHour('')).toBeNull();
+    expect(parseQuietHour(null)).toBeNull();
+    expect(parseQuietHour('22:00')).toBeNull();
+    expect(parseQuietHour('evening')).toBeNull();
+  });
+});
+
+describe('isValidQuietHour', () => {
+  it('accepts 0 to 23 and treats unset as valid', () => {
+    expect(isValidQuietHour(0)).toBe(true);
+    expect(isValidQuietHour(7)).toBe(true);
+    expect(isValidQuietHour(MAX_QUIET_HOUR)).toBe(true);
+    expect(isValidQuietHour(null)).toBe(true);
+    expect(isValidQuietHour(undefined)).toBe(true);
+  });
+  it('rejects out of range and fractional hours', () => {
+    expect(isValidQuietHour(-1)).toBe(false);
+    expect(isValidQuietHour(24)).toBe(false);
+    expect(isValidQuietHour(7.5)).toBe(false);
+  });
+});
+
+describe('isValidQuietPair', () => {
+  it('accepts both set or both cleared', () => {
+    expect(isValidQuietPair(null, null)).toBe(true);
+    expect(isValidQuietPair(undefined, undefined)).toBe(true);
+    expect(isValidQuietPair(22, 7)).toBe(true);
+    expect(isValidQuietPair(0, 0)).toBe(true);
+  });
+  it('rejects a half-set pair', () => {
+    expect(isValidQuietPair(22, null)).toBe(false);
+    expect(isValidQuietPair(null, 7)).toBe(false);
+    expect(isValidQuietPair(22, undefined)).toBe(false);
+  });
+  it('rejects an out of range hour on either side', () => {
+    expect(isValidQuietPair(24, 7)).toBe(false);
+    expect(isValidQuietPair(22, 24)).toBe(false);
+  });
+});
+
+describe('formatHourLabel', () => {
+  it('pads to a two digit hour with :00', () => {
+    expect(formatHourLabel(0)).toBe('00:00');
+    expect(formatHourLabel(7)).toBe('07:00');
+    expect(formatHourLabel(22)).toBe('22:00');
+    expect(formatHourLabel(23)).toBe('23:00');
+  });
+});
+
+describe('formatAutoPostLastAt', () => {
+  it('renders a stored UTC time', () => {
+    expect(formatAutoPostLastAt('2026-10-17T21:04:00Z')).toBe('2026-10-17 21:04 UTC');
+  });
+  it('converts an offset timestamp to UTC', () => {
+    expect(formatAutoPostLastAt('2026-10-17T23:04:00+02:00')).toBe('2026-10-17 21:04 UTC');
+  });
+  it('reads an unzoned value as UTC rather than local time', () => {
+    expect(formatAutoPostLastAt('2026-10-17 21:04:00')).toBe('2026-10-17 21:04 UTC');
+  });
+  it('returns empty when there is no usable time', () => {
+    expect(formatAutoPostLastAt(null)).toBe('');
+    expect(formatAutoPostLastAt('')).toBe('');
+    expect(formatAutoPostLastAt('   ')).toBe('');
+    expect(formatAutoPostLastAt('not a date')).toBe('');
+  });
+});
+
+describe('campaignTelegramSaveErrorText', () => {
+  it('explains a rejected cadence instead of naming the field', () => {
+    const msg = campaignTelegramSaveErrorText('auto_post_cadence_minutes must be between 0 and 1440');
+    expect(msg).toContain(`0 to ${MAX_CADENCE_MINUTES}`);
+    expect(msg).not.toContain('auto_post_cadence_minutes');
+  });
+  it('explains a rejected quiet-hour pair', () => {
+    const msg = campaignTelegramSaveErrorText('quiet_start_hour and quiet_end_hour must both be set');
+    expect(msg).toContain(`0 to ${MAX_QUIET_HOUR}`);
+    expect(msg).toContain('both turned off');
+  });
+  it('keeps the server text for anything else', () => {
+    expect(campaignTelegramSaveErrorText('unauthorized')).toBe('Telegram settings were not saved: unauthorized');
+  });
+  it('has a fallback when the server sends nothing', () => {
+    expect(campaignTelegramSaveErrorText('')).toBe('Telegram settings were not saved');
   });
 });
