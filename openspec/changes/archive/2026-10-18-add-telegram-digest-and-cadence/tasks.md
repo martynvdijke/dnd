@@ -34,6 +34,6 @@
 
 ## 6. Verification and delivery
 
-- [ ] 6.1 `openspec validate add-telegram-digest-and-cadence`; `task ci` green (Go + vitest + e2e + coverage gates)
-- [ ] 6.2 Per the workflow contract: branch, Conventional Commits, local gates, push, open the PR, wait for `gh pr checks --watch`, squash-merge green
-- [ ] 6.3 Post-merge follow-up PR: archive the change (`openspec archive add-telegram-digest-and-cadence`, `git add -f`) matching the repo convention
+- [x] 6.1 `openspec validate add-telegram-digest-and-cadence`; `task ci` green (Go + vitest + e2e + coverage gates)
+- [x] 6.2 Per the workflow contract: branch, Conventional Commits, local gates, push, open the PR, wait for `gh pr checks --watch`, squash-merge green
+- [x] 6.3 Post-merge follow-up PR: archive the change (`openspec archive add-telegram-digest-and-cadence`, `git add -f`) matching the repo convention
