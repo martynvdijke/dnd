@@ -13,4 +13,4 @@
 
 - [x] 3.1 Add Vitest unit tests covering `isSaveProficient()`, `setRollMode()`, equipped weapon quick-attack rendering, and Short Rest Hit Dice count submission.
 - [x] 3.2 Add Playwright E2E tests in `tests/` covering all new `data-testid` selectors (`roll-mode-advantage`, `roll-mode-disadvantage`, `short-rest-hit-dice-input`, `combat-quick-attacks`, `data-filter` tab filter pills).
-- [ ] 3.3 Run `openspec validate character-sheet-playability-fixes --strict` and `task ci`.
+- [x] 3.3 Run `openspec validate character-sheet-playability-fixes --strict` and `task ci`.

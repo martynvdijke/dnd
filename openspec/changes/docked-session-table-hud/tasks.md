@@ -8,4 +8,4 @@
 
 - [x] 2.1 Add Vitest unit tests for `toggleTableViewDock()` and Session Mode + Character Sheet quick actions coexistence.
 - [x] 2.2 Add/update Playwright E2E assertions in `tests/` exercising `data-testid="table-view-dock-toggle"` and clicking `#sheetQuickActions` while Session Mode is enabled.
-- [ ] 2.3 Run `openspec validate docked-session-table-hud --strict` and `task ci`.
+- [x] 2.3 Run `openspec validate docked-session-table-hud --strict` and `task ci`.

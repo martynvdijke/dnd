@@ -14,4 +14,4 @@
 
 - [x] 3.1 Add Go handler tests in `handlers/combat_automation_test.go` for monster attacker resolution and encounter clearing.
 - [x] 3.2 Add Vitest unit tests and Playwright E2E tests in `tests/` covering `combat-statblock-toggle` and `combat-end-encounter-btn`.
-- [ ] 3.3 Run `openspec validate combat-statblocks-and-encounter-rewards --strict` and `task ci`.
+- [x] 3.3 Run `openspec validate combat-statblocks-and-encounter-rewards --strict` and `task ci`.

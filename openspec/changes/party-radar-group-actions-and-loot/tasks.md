@@ -13,4 +13,4 @@
 
 - [x] 3.1 Add Vitest unit tests for party passive calculations, group roll execution, party item claim UI, and DM Tools save actions.
 - [x] 3.2 Add Playwright E2E tests in `tests/` covering all new `data-testid` selectors (`party-group-roll-select`, `party-group-roll-btn`, `party-short-rest-btn`, `party-long-rest-btn`, `party-item-claim-btn`, `dm-tools-save-btn`).
-- [ ] 3.3 Run `openspec validate party-radar-group-actions-and-loot --strict` and `task ci`.
+- [x] 3.3 Run `openspec validate party-radar-group-actions-and-loot --strict` and `task ci`.
