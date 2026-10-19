@@ -596,6 +596,37 @@ func DeleteCharacter(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
+// AwardCharacterXP adds XP to a character atomically and returns the new total.
+func AwardCharacterXP(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || id <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid character id"})
+		return
+	}
+	var req struct {
+		Amount int `json:"amount"`
+	}
+	if !BindOr400(c, &req) {
+		return
+	}
+	if req.Amount < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "amount must not be negative"})
+		return
+	}
+	res, err := db.DB.Exec("UPDATE characters SET xp = COALESCE(xp,0) + ? WHERE id=?", req.Amount, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if n, _ := res.RowsAffected(); n == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "character not found"})
+		return
+	}
+	var xp int
+	_ = db.DB.QueryRow("SELECT COALESCE(xp,0) FROM characters WHERE id=?", id).Scan(&xp)
+	c.JSON(http.StatusOK, gin.H{"ok": true, "xp": xp})
+}
+
 func ExportCharacter(c *gin.Context) {
 	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 

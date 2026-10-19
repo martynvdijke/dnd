@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -170,6 +171,79 @@ func RollInitiative(c *gin.Context) {
 		"modifier":     initMod,
 		"total":        roll,
 	})
+}
+
+// RollCombatInitiative rolls 1d20 + initiative_mod for every active combat
+// entry (optionally scoped to a campaign), then reorders the tracker in one
+// server-side pass instead of N client round-trips.
+func RollCombatInitiative(c *gin.Context) {
+	var req struct {
+		CampaignID *int64 `json:"campaign_id"`
+	}
+	_ = c.ShouldBindJSON(&req)
+	query := "SELECT id, COALESCE(initiative_mod,0) FROM combat_entries WHERE is_active=1"
+	args := []any{}
+	if req.CampaignID != nil && *req.CampaignID > 0 {
+		query += " AND campaign_id=?"
+		args = append(args, *req.CampaignID)
+	}
+	rows, err := db.DB.Query(query, args...)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	type initiativeRoll struct {
+		id    int64
+		total int
+	}
+	rolls := []initiativeRoll{}
+	pool := getDicePool()
+	for rows.Next() {
+		var id int64
+		var mod int
+		if err := rows.Scan(&id, &mod); err != nil {
+			continue
+		}
+		d20 := 0
+		if result, err := pool.Roll("1d20"); err == nil {
+			d20, _ = strconv.Atoi(string(result.Total))
+		}
+		rolls = append(rolls, initiativeRoll{id: id, total: d20 + mod})
+	}
+	rows.Close()
+	sort.SliceStable(rolls, func(i, j int) bool { return rolls[i].total > rolls[j].total })
+	for i, r := range rolls {
+		db.DB.Exec("UPDATE combat_entries SET initiative_roll=?, turn_order=? WHERE id=?", r.total, i+1, r.id)
+	}
+	if req.CampaignID != nil && *req.CampaignID > 0 {
+		SendCombatUpdate(*req.CampaignID)
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "entries": rolls})
+}
+
+// ClearCombat removes every combat entry for a campaign (or all entries when no
+// campaign is supplied) once an encounter is finished.
+func ClearCombat(c *gin.Context) {
+	var req struct {
+		CampaignID *int64 `json:"campaign_id"`
+	}
+	_ = c.ShouldBindJSON(&req)
+	var res sql.Result
+	var err error
+	if req.CampaignID != nil && *req.CampaignID > 0 {
+		res, err = db.DB.Exec("DELETE FROM combat_entries WHERE campaign_id=?", *req.CampaignID)
+	} else {
+		res, err = db.DB.Exec("DELETE FROM combat_entries")
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	deleted, _ := res.RowsAffected()
+	if req.CampaignID != nil && *req.CampaignID > 0 {
+		SendCombatUpdate(*req.CampaignID)
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "deleted": deleted})
 }
 
 func NextTurn(c *gin.Context) {

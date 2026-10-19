@@ -15,6 +15,7 @@ func RegisterCharacterRoutes(r *gin.RouterGroup) {
 	r.DELETE("/characters/:id", DeleteCharacter)
 	r.GET("/characters/:id/export", ExportCharacter)
 	r.GET("/characters/:id/print", PrintCharacter)
+	r.POST("/characters/:id/xp", AwardCharacterXP)
 	r.POST("/characters/import", ImportJSON)
 	r.GET("/characters/compare", CompareCharacters)
 
