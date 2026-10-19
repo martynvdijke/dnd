@@ -16,12 +16,35 @@ import { renderDowntime } from './downtime';
 
 declare const htmx: { process: (el: Element) => void };
 
-import { sections, sectionIcons } from '../lib/tabs';
+import { sections, sectionIcons, TAB_FILTERS, sectionsForFilter } from '../lib/tabs';
 export { sections };
 
 const htmxTabs = ['spells', 'features', 'feats', 'companions', 'notes'];
 
 type CharRecord = Character & Record<string, unknown>;
+
+let tabFilter = 'all';
+
+export function setSheetTabFilter(id: string): void {
+  tabFilter = id;
+  const allowed = sectionsForFilter(id).filter((s) => sections.includes(s));
+  if (allowed.length && !allowed.includes(currentTab)) setCurrentTab(allowed[0] as string);
+  renderSheet();
+}
+
+function renderTabFilterBar(): void {
+  const bar = document.getElementById('sheetTabFilters');
+  if (bar) {
+    bar.innerHTML = TAB_FILTERS.map((f) =>
+      `<button type="button" class="btn btn-sm ${tabFilter === f.id ? 'btn-primary' : 'btn-outline-secondary'}" data-filter="${f.id}" aria-pressed="${tabFilter === f.id}" onclick="setSheetTabFilter('${f.id}')">${f.label}</button>`
+    ).join('');
+  }
+  const allowed = new Set(sectionsForFilter(tabFilter));
+  sections.forEach((s) => {
+    const li = document.getElementById('tab-' + s)?.closest('li') as HTMLElement | null;
+    if (li) li.style.display = allowed.has(s) ? '' : 'none';
+  });
+}
 
 export function renderSheet(): void {
   if (!currentChar) return;
@@ -47,6 +70,7 @@ export function renderSheet(): void {
     `).join('');
     tabBar.onkeydown = handleTabKeydown;
   }
+  renderTabFilterBar();
 
   sections.forEach(s => {
     const el = document.getElementById(s + 'Section');
@@ -286,6 +310,7 @@ export async function unlinkCharIdentity(which: string): Promise<void> {
 // Window registrations (centralized)
 expose('renderSheet', renderSheet);
 expose('switchTab', switchTab);
+expose('setSheetTabFilter', setSheetTabFilter);
 expose('renderStepper', renderStepper);
 expose('autoSaveField', autoSaveField);
 expose('stepperField', stepperField);

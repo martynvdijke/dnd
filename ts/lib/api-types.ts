@@ -62,6 +62,7 @@ export interface InventoryItem {
   quantity?: number;
   weight?: number;
   equipped?: boolean;
+  is_equipped?: boolean;
   [key: string]: unknown;
 }
 

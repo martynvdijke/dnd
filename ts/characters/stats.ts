@@ -4,7 +4,8 @@
  * partial port; app.ts versions are authoritative.
  */
 import { expose } from '../lib/expose';
-import { currentChar, currentUser } from '../lib/state';
+import { currentChar, currentUser, rollMode, setRollMode } from '../lib/state';
+import type { RollMode } from '../lib/state';
 import { api } from '../lib/api';
 import { esc } from '../lib/dom';
 import { rulesHelpButton } from '../lib/rules-help';
@@ -50,9 +51,10 @@ export function renderStats(): void {
         </div>`;
       }).join('')}
     </div>
-    <div class="d-flex gap-2 mt-3">
-      <button class="btn btn-sm btn-outline-primary" onclick="rollCheck('check','str','advantage')"><i class="fa-solid fa-chevron-up me-1"></i>Advantage</button>
-      <button class="btn btn-sm btn-outline-primary" onclick="rollCheck('check','str','disadvantage')"><i class="fa-solid fa-chevron-down me-1"></i>Disadvantage</button>
+    <div class="d-flex gap-2 mt-3 flex-wrap" role="group" aria-label="Roll mode">
+      <button class="btn btn-sm ${rollMode === 'normal' ? 'btn-primary' : 'btn-outline-primary'}" data-testid="roll-mode-normal" aria-pressed="${rollMode === 'normal'}" onclick="setSheetRollMode('normal')">Normal</button>
+      <button class="btn btn-sm ${rollMode === 'advantage' ? 'btn-success' : 'btn-outline-success'}" data-testid="roll-mode-advantage" aria-pressed="${rollMode === 'advantage'}" onclick="setSheetRollMode('advantage')"><i class="fa-solid fa-chevron-up me-1" aria-hidden="true"></i>Advantage</button>
+      <button class="btn btn-sm ${rollMode === 'disadvantage' ? 'btn-danger' : 'btn-outline-danger'}" data-testid="roll-mode-disadvantage" aria-pressed="${rollMode === 'disadvantage'}" onclick="setSheetRollMode('disadvantage')"><i class="fa-solid fa-chevron-down me-1" aria-hidden="true"></i>Disadvantage</button>
     </div>
     <div class="ornament my-2">✧</div>
     <div class="row g-3 mt-2">
@@ -222,8 +224,15 @@ export function renderXPBar(c: CharStats | Record<string, unknown>): string {
     </div>`;
 }
 
+/** Set the roll mode for subsequent sheet rolls; clicking the active mode resets to normal. */
+export function setSheetRollMode(mode: RollMode): void {
+  setRollMode(rollMode === mode && mode !== 'normal' ? 'normal' : mode);
+  renderStats();
+}
+
 // Window registrations (centralized)
 expose('renderStats', renderStats);
 expose('renderSkills', renderSkills);
 expose('renderXPBar', renderXPBar);
 expose('toggleCharacterMembership', toggleCharacterMembership);
+expose('setSheetRollMode', setSheetRollMode);

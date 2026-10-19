@@ -13,6 +13,12 @@ export let currentTab = 'stats';
 export let allLocations: any[] = [];
 export let allNPCs: any[] = [];
 
+/** Roll mode applied to sheet checks/saves/attacks when no explicit advantage is passed. */
+export type RollMode = 'normal' | 'advantage' | 'disadvantage';
+export let rollMode: RollMode = 'normal';
+
+export function setRollMode(mode: RollMode): void { rollMode = mode; }
+
 export function setCurrentUser(u: typeof currentUser) { currentUser = u; }
 export function setCurrentChar(c: any) { currentChar = c; }
 export function setCurrentCampaign(c: any) { currentCampaign = c; }

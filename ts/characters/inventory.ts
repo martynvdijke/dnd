@@ -4,6 +4,8 @@ import { esc, attrEscape, capitalize, toast, openCompendiumPicker } from '../lib
 import { api, getCsrfToken, getApiToken } from '../lib/api';
 import type { Character, InventoryItem } from '../lib/api-types';
 
+const isEquipped = (i: InvItem): boolean => i.is_equipped === true || i.equipped === true;
+
 type InvItem = InventoryItem & {
   ac_bonus?: number;
   damage_dice?: string;
@@ -44,13 +46,13 @@ export function renderInventory(): void {
   else if (total > encumberedMax) { encState = 'heavy'; encLabel = 'Heavily Encumbered'; }
   else if (total > lightMax) { encState = 'encumbered'; encLabel = 'Encumbered'; }
 
-  const attuneItems = inv.filter((i) => i.equipped && i.attunement);
+  const attuneItems = inv.filter((i) => isEquipped(i) && i.attunement);
   const attuneCount = attuneItems.length;
   let attuneState = 'attune-ok';
   if (attuneCount >= 3) attuneState = 'attune-full';
   else if (attuneCount >= 2) attuneState = 'attune-warn';
 
-  const equipped = inv.filter((i) => i.equipped);
+  const equipped = inv.filter(isEquipped);
   const loadoutGroups: Record<string, InvItem[]> = { weapon: [], armor: [], shield: [], ring: [], wondrous: [], other: [] };
   equipped.forEach((i) => {
     if (i.category === 'weapon') loadoutGroups['weapon']!.push(i);
@@ -102,11 +104,11 @@ export function renderInventory(): void {
       ${Object.entries(categories).filter(([,items]) => items.length).map(([cat, items]) => `
         <h6 class="mt-3 text-muted">${capitalize(cat)}</h6>
         ${(items as InvItem[]).map((i) => `
-          <div class="inv-item${i.equipped ? ' equipped' : ''}${i.is_identified === false ? ' unidentified' : ''}">
+          <div class="inv-item${isEquipped(i) ? ' equipped' : ''}${i.is_identified === false ? ' unidentified' : ''}">
             <div>
               <span class="fw-bold">${esc(i.name)}</span>
               ${(i.quantity||0) > 1 ? `<span class="badge badge-muted">x${i.quantity}</span>` : ''}
-              ${i.equipped ? '<span class="badge badge-gold">Equipped</span>' : ''}
+              ${isEquipped(i) ? '<span class="badge badge-gold">Equipped</span>' : ''}
               ${i.attunement ? '<span class="badge-attunement" title="Requires Attunement">Attune</span>' : ''}
               ${i.is_identified === false ? '<span class="badge-unidentified">Unidentified</span>' : ''}
               ${i.damage_dice && (i.is_identified !== false) ? `<span class="badge badge-blood ms-1">${esc(i.damage_dice)} ${esc(i.damage_type)}</span>` : ''}
@@ -117,9 +119,9 @@ export function renderInventory(): void {
             <div class="d-flex gap-1">
               ${i.is_identified === false ? `<button class="btn-identify" onclick="toggleIdentify(${i.id})" title="Identify item">🔍 ID</button>` : ''}
               ${i.magic && i.is_identified !== false ? `<button class="btn-identify" onclick="toggleIdentify(${i.id})" title="Mark unidentified">🔮</button>` : ''}
-              <button class="btn btn-sm btn-outline-primary" onclick="editInventory(${i.id},'${attrEscape(i.name)}',${i.quantity},'${attrEscape(i.category||'')}',${i.weight},${i.equipped})" title="Edit"><i class="fa-solid fa-pen"></i></button>
+              <button class="btn btn-sm btn-outline-primary" onclick="editInventory(${i.id},'${attrEscape(i.name)}',${i.quantity},'${attrEscape(i.category||'')}',${i.weight},${isEquipped(i)})" title="Edit"><i class="fa-solid fa-pen"></i></button>
               ${(i.compendium_equipment_id || i.compendium_entry_id) ? `<button class="btn btn-sm btn-outline-secondary" onclick="unlinkCompendiumItem(${i.id})" title="Unlink from compendium"><i class="fa-solid fa-link-slash"></i></button>` : ''}
-              <button class="btn btn-sm btn-outline-secondary" onclick="toggleEquip(${i.id})" title="${i.equipped ? 'Unequip' : 'Equip'}"><i class="fa-solid fa-shield-halved"></i></button>
+              <button class="btn btn-sm btn-outline-secondary" onclick="toggleEquip(${i.id})" title="${isEquipped(i) ? 'Unequip' : 'Equip'}"><i class="fa-solid fa-shield-halved"></i></button>
               <button class="btn btn-sm btn-outline-danger" onclick="deleteInventory(${i.id})" title="Remove"><i class="fa-solid fa-trash"></i></button>
             </div>
           </div>`).join('')}
