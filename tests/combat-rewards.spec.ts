@@ -53,19 +53,25 @@ test.describe('Combat statblocks and encounter rewards', () => {
     const seed = await page.evaluate(async () => {
       const suffix = Date.now();
       const camp = await window.api('POST', '/api/campaigns', { name: `EE-${suffix}`, description: 'rewards' });
+      const charName = `Reward-${suffix}`;
       const char = await window.api('POST', '/api/characters', {
-        name: `Reward-${suffix}`, campaign_ids: [camp.id], level: 1, hp_max: 10, hp_current: 10, ac: 12, xp: 0,
+        name: charName, campaign_ids: [camp.id], level: 1, hp_max: 10, hp_current: 10, ac: 12, xp: 0,
       });
       await window.api('POST', '/api/combat', {
         name: 'Goblin', type: 'monster', ac: 15, hp_max: 7, hp_current: 0, initiative_mod: 2, campaign_id: camp.id,
       });
-      return { camp, char };
+      return { camp, char, charName };
     });
 
     await page.evaluate(() => (window as any).showCombatTracker());
     await page.locator('[data-testid="combat-end-encounter-btn"]').click();
     await expect(page.locator('[data-testid="combat-end-xp-party"]')).toBeVisible({ timeout: NAV_TIMEOUT });
-    await expect(page.locator('[data-testid="combat-end-xp-character"]')).toHaveCount(1);
+    // The shared test database may hold characters from other tests; award XP only to ours.
+    await page.evaluate((name) => {
+      document.querySelectorAll<HTMLInputElement>('[data-testid="combat-end-xp-character"]').forEach((cb) => {
+        cb.checked = (cb.parentElement?.querySelector('label')?.textContent || '').includes(name);
+      });
+    }, seed.charName);
     await expect(page.locator('[data-testid="combat-end-treasure"]')).toBeAttached();
     const xpOverride = page.locator('[data-testid="combat-end-xp-override"]');
     await expect(xpOverride).toBeVisible();
