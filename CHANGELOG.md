@@ -1,3 +1,10 @@
+# [2.105.0](https://github.com/martynvdijke/dnd/compare/v2.104.0...v2.105.0) (2026-10-19)
+
+
+### Features
+
+* improve live table, character sheet, combat and party UX ([#223](https://github.com/martynvdijke/dnd/issues/223)) ([54b546a](https://github.com/martynvdijke/dnd/commit/54b546a7a50992b183ab6fef494c54d5e456bf2d))
+
 # [2.104.0](https://github.com/martynvdijke/dnd/compare/v2.103.1...v2.104.0) (2026-10-18)
 
 
