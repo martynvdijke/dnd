@@ -1,5 +1,5 @@
 import { test, expect } from './fixtures.js';
-import { login, NAV_TIMEOUT } from './helpers.js';
+import { login, NAV_TIMEOUT, clickNavItem, waitLoadingDone } from './helpers.js';
 
 const uniqueName = () => `LiveTable-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -62,6 +62,58 @@ test.describe('Live Table', () => {
     await page.evaluate(() => window.refreshTableHandouts());
     await expect(page.locator('[data-testid="table-handouts"]')).toContainText(sharedTitle, { timeout: NAV_TIMEOUT });
     await expect(page.locator('[data-testid="table-handouts"]')).not.toContainText(hiddenTitle);
+  });
+
+  test('docked HUD keeps the character sheet usable in session mode', async ({ page }) => {
+    const campName = uniqueName();
+    const charName = uniqueName();
+    await page.evaluate(async (opts) => {
+      const c = await window.api('POST', '/api/campaigns', { name: opts.campName, description: 'lt', dm_notes: '' });
+      await window.api('POST', '/api/characters', { name: opts.charName, race: 'Human', class: 'Fighter', level: 1, campaign_ids: [c.id], hp_max: 10, hp_current: 10, ac: 15 });
+    }, { campName, charName });
+
+    await clickNavItem(page, 'characters', 'characters');
+    await waitLoadingDone(page);
+    await page.locator('.character-card, .char-card, [onclick*="showSheet"]', { hasText: charName }).first().click();
+    await waitLoadingDone(page);
+
+    await page.evaluate(() => (window as unknown as { activateSessionMode: () => void }).activateSessionMode());
+
+    const table = page.locator('[data-testid="table-view"]');
+    await expect(table).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(table).toHaveClass(/table-view-docked/);
+
+    // The sheet's session quick-action bar is no longer covered by the table view.
+    await expect(page.locator('#sheetQuickActions')).toBeVisible({ timeout: NAV_TIMEOUT });
+    await expect(page.locator('#sheetQuickActions').getByText('Damage')).toBeVisible();
+
+    // The sheet stays interactive while the HUD is docked.
+    await page.locator('#tab-combat').click();
+    await expect(page.locator('#combatSection')).toBeVisible({ timeout: NAV_TIMEOUT });
+
+    // Docked <-> expanded focus toggle.
+    await page.locator('[data-testid="table-view-dock-toggle"]').click();
+    await expect(table).toHaveClass(/table-view-expanded/);
+    await page.locator('[data-testid="table-view-dock-toggle"]').click();
+    await expect(table).not.toHaveClass(/table-view-expanded/);
+
+    await page.evaluate(() => (window as unknown as { deactivateSessionMode: () => void }).deactivateSessionMode());
+    await expect(table).toBeHidden();
+  });
+
+  test('dice preset buttons roll from the table HUD', async ({ page }) => {
+    const campName = uniqueName();
+    const charName = uniqueName();
+    const campId = await page.evaluate(async (opts) => {
+      const c = await window.api('POST', '/api/campaigns', { name: opts.campName, description: 'lt', dm_notes: '' });
+      await window.api('POST', '/api/characters', { name: opts.charName, race: 'Human', class: 'Fighter', level: 1, campaign_ids: [c.id], hp_max: 10, hp_current: 10, ac: 15 });
+      return c.id;
+    }, { campName, charName });
+
+    await page.evaluate((cid) => window.showTable(cid), campId);
+    await expect(page.locator('[data-testid="table-view"]')).toBeVisible({ timeout: NAV_TIMEOUT });
+    await page.locator('[data-testid="table-dice-presets"] button', { hasText: 'd20' }).click();
+    await expect(page.locator('[data-testid="table-roll-feed"]')).toContainText('1d20', { timeout: NAV_TIMEOUT });
   });
 
   test('DM reveal reaches a member table live', async ({ browser }) => {

@@ -31,6 +31,7 @@ func RegisterCampaignRoutes(r *gin.RouterGroup) {
 	// Party Inventory
 	r.GET("/campaigns/:id/party-items", ListCampaignPartyItems)
 	r.POST("/campaigns/:id/party-items", CreateCampaignPartyItem)
+	r.POST("/campaigns/:id/party-items/:itemId/claim", ClaimCampaignPartyItem)
 	r.PUT("/party-items/:id", UpdateCampaignPartyItem)
 	r.DELETE("/party-items/:id", DeleteCampaignPartyItem)
 

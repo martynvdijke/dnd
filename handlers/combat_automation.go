@@ -157,6 +157,7 @@ func HandleCombatAttack(c *gin.Context) {
 	var req struct {
 		AttackerType      string `json:"attacker_type"`
 		AttackerID        int64  `json:"attacker_id"`
+		AttackerName      string `json:"attacker_name"`
 		TargetType        string `json:"target_type"`
 		TargetID          int64  `json:"target_id"`
 		ItemID            *int64 `json:"item_id"`
@@ -240,9 +241,12 @@ func HandleCombatAttack(c *gin.Context) {
 		}
 		damageDice = req.DamageDice
 		damageType = req.DamageType
-		attackerName = "Attacker"
-		if req.AttackerID != 0 {
-			db.DB.QueryRow("SELECT name FROM combat_entries WHERE id=?", req.AttackerID).Scan(&attackerName)
+		attackerName = req.AttackerName
+		if attackerName == "" {
+			attackerName = "Attacker"
+			if req.AttackerID != 0 {
+				db.DB.QueryRow("SELECT name FROM combat_entries WHERE id=?", req.AttackerID).Scan(&attackerName)
+			}
 		}
 	}
 	// resolve target AC and name

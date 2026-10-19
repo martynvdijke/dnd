@@ -17,15 +17,52 @@ interface CampaignInfo { id: number; name: string; party_name?: string; descript
 const dmNotesCache: Record<number, string> = {};
 const dmNotesNames: Record<number, string> = {};
 
+const PARTY_SKILLS = ['Athletics', 'Acrobatics', 'Sleight of Hand', 'Stealth', 'Arcana', 'History', 'Investigation', 'Nature', 'Religion', 'Animal Handling', 'Insight', 'Medicine', 'Perception', 'Survival', 'Deception', 'Intimidation', 'Performance', 'Persuasion'];
+const PARTY_SAVES = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+
+/** Passive score: 10 + ability modifier + proficiency bonus when proficient. */
+export function partyPassive(ch: any, skill: string, ability: string): number {
+  if (!ch) return 10;
+  const mod = Number(ch[ability + '_mod']) || 0;
+  const profs: any[] = Array.isArray(ch.proficiencies) ? ch.proficiencies : [];
+  const proficient = profs.some((p: any) => String(p.name || '').toLowerCase() === skill.toLowerCase() && (p.type === 'skill' || !p.type));
+  return 10 + mod + (proficient ? (Number(ch.proficiency_bonus) || 0) : 0);
+}
+
+function partyPassivesHtml(m: PartyMember, ch: any): string {
+  const pp = partyPassive(ch, 'Perception', 'wis');
+  const pi = partyPassive(ch, 'Insight', 'wis');
+  const inv = partyPassive(ch, 'Investigation', 'int');
+  return `<div class="d-flex gap-2 mt-1 small" data-testid="party-member-passives" title="Passive Perception · Passive Insight · Passive Investigation">
+    <span><i class="fa-solid fa-eye" aria-hidden="true"></i> ${pp}</span>
+    <span><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> ${pi}</span>
+    <span><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> ${inv}</span>
+  </div>`;
+}
+
+function partyGroupRollControls(campaignId: number): string {
+  const skillOpts = PARTY_SKILLS.map((n) => `<option value="skill:${n}">${n}</option>`).join('');
+  const saveOpts = PARTY_SAVES.map((a) => `<option value="save:${a}">${a.toUpperCase()} save</option>`).join('');
+  return `<select class="form-select form-select-sm" id="partyGroupRoll-${campaignId}" data-testid="party-group-roll-select" style="max-width:190px" aria-label="Group roll">
+      ${skillOpts}${saveOpts}
+    </select>
+    <button class="btn btn-sm btn-outline-primary" data-testid="party-group-roll-btn" onclick="partyGroupRoll(${campaignId})"><i class="fa-solid fa-dice-d20 me-1"></i>Group Roll</button>
+    <button class="btn btn-sm btn-outline-secondary" data-testid="party-short-rest-btn" onclick="partyRest(${campaignId},'short')"><i class="fa-solid fa-campground me-1"></i>Short Rest</button>
+    <button class="btn btn-sm btn-outline-secondary" data-testid="party-long-rest-btn" onclick="partyRest(${campaignId},'long')"><i class="fa-solid fa-moon me-1"></i>Long Rest</button>`;
+}
+
 expose('showParty', async function () {
   showView('party');
   const el = document.getElementById('partyContent')!;
   el.innerHTML = '<div class="ornament mb-3">✧ Assembling the party... ✧</div>';
   try {
-    const [groups, campaigns] = await Promise.all([
+    const [groups, campaigns, allChars] = await Promise.all([
       api('GET', '/api/party'),
       api('GET', '/api/campaigns'),
+      api<any[]>('GET', '/api/characters').catch(() => []),
     ]);
+    const charDetail: Record<number, any> = {};
+    (Array.isArray(allChars) ? allChars : []).forEach((c: any) => { charDetail[c.id] = c; });
 
     const getCampaign = (campaignId: number) => campaigns.find((c: CampaignInfo) => c.id === campaignId);
     const isOwner = (campaignId: number) => { const c = getCampaign(campaignId); return c && c.user_id === currentUser?.id; };
@@ -143,6 +180,7 @@ expose('showParty', async function () {
                   <div class="d-flex gap-3 mt-1 small text-muted">
                     <span>AC: ${m.ac}</span><span style="color:${sc}">${esc(m.status)}</span>
                   </div>
+                  ${partyPassivesHtml(m, charDetail[m.id])}
                   <div class="hp-bar position-relative mt-2" style="height:12px">
                     <div class="hp-bar-fill" style="width:${pct}%;height:100%"></div>
                     <div class="position-absolute top-0 start-0 end-0 bottom-0 d-flex align-items-center justify-content-center text-white" style="font-size:0.65rem">${m.hp_current}/${m.hp_max}</div>
@@ -159,6 +197,7 @@ expose('showParty', async function () {
         ${g.id && (own || dm) ? `
         <div class="card-footer py-2">
           <div class="d-flex gap-2 flex-wrap">
+            ${g.id ? partyGroupRollControls(g.id) : ''}
             <button class="btn btn-sm btn-outline-gold" onclick="showPartyInventory(${g.id})"><i class="fa-solid fa-box me-1"></i>Party Inventory</button>
             <button class="btn btn-sm btn-outline-primary" onclick="showSessionPlanner(${g.id})"><i class="fa-solid fa-calendar me-1"></i>Session Planner</button>
             <button class="btn btn-sm btn-outline-gold" onclick="showEncounterDifficulty()"><i class="fa-solid fa-crosshairs me-1"></i>Difficulty</button>
@@ -184,6 +223,41 @@ expose('showParty', async function () {
   } catch (e: unknown) {
     el.innerHTML = `<div class="empty-state"><i class="fa-solid fa-circle-exclamation fa-2x mb-2 d-block text-muted"></i><p class="small text-muted">Failed: ${esc(e instanceof Error ? e.message : String(e))}</p></div>`;
   }
+});
+
+expose('partyGroupRoll', async function (campaignId: number): Promise<void> {
+  const sel = document.getElementById('partyGroupRoll-' + campaignId) as HTMLSelectElement | null;
+  const [type, name] = (sel?.value || 'skill:Perception').split(':');
+  const groups: PartyGroup[] = await api('GET', '/api/party');
+  const group = groups.find((g) => g.id === campaignId);
+  const members = (group?.members || []).filter((m) => m.character_type !== 'linked');
+  if (!members.length) { toast('No party members to roll for', true); return; }
+  const rows: string[] = [];
+  for (const m of members) {
+    try {
+      const r = await api<{ text: string; total?: number }>('POST', '/api/roll/check', { character_id: m.id, type, name, advantage: 'normal' });
+      rows.push(`<li class="d-flex justify-content-between"><span>${esc(m.name)}</span><strong>${esc(r.text || String(r.total ?? ''))}</strong></li>`);
+    } catch (e) {
+      rows.push(`<li class="d-flex justify-content-between"><span>${esc(m.name)}</span><span class="text-danger">${esc(e instanceof Error ? e.message : String(e))}</span></li>`);
+    }
+  }
+  showModal(`Group ${name} ${type === 'save' ? 'save' : 'check'}`, `<ul class="list-unstyled mb-0">${rows.join('')}</ul>`);
+});
+
+expose('partyRest', async function (campaignId: number, type: string): Promise<void> {
+  const groups: PartyGroup[] = await api('GET', '/api/party');
+  const group = groups.find((g) => g.id === campaignId);
+  const members = (group?.members || []).filter((m) => m.character_type !== 'linked');
+  if (!members.length) { toast('No party members to rest', true); return; }
+  let healed = 0;
+  for (const m of members) {
+    try {
+      const r = await api<{ hp_healed?: number }>('POST', `/api/characters/${m.id}/rest`, { rest_type: type, hit_dice_count: type === 'short' ? 1 : 0 });
+      healed += r.hp_healed || 0;
+    } catch { /* keep resting the others */ }
+  }
+  toast(`Party ${type} rest complete (+${healed} HP)`);
+  (window as any).showParty();
 });
 
 // ─── Roster picker (campaign characters) ───

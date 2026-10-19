@@ -7,9 +7,25 @@ import { currentChar, currentCampaign, currentUser } from './lib/state';
 let resolvedChar: any = null;
 let activeCid = 0;
 
+const EXPANDED_CLASS = 'table-view-expanded';
+
 function isTableVisible(): boolean {
   const el = document.getElementById('tableView');
   return !!el && el.style.display !== 'none';
+}
+
+export function toggleTableViewDock(): void {
+  const view = document.getElementById('tableView');
+  if (!view) return;
+  const expanded = view.classList.toggle(EXPANDED_CLASS);
+  const btn = view.querySelector('[data-testid="table-view-dock-toggle"]') as HTMLElement | null;
+  if (btn) {
+    btn.title = expanded ? 'Dock table view' : 'Expand table view';
+    btn.setAttribute('aria-label', btn.title);
+    btn.innerHTML = expanded
+      ? '<i class="fa-solid fa-down-left-and-up-right-to-center" aria-hidden="true"></i>'
+      : '<i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i>';
+  }
 }
 
 function inCampaign(ch: any, campaignId: number): boolean {
@@ -86,6 +102,7 @@ export async function showTable(campaignId?: number): Promise<void> {
   const body = document.getElementById('tableBody');
   if (!view || !body) return;
   view.style.display = '';
+  document.body.classList.add('table-hud-open');
   const initiativeHtml = await renderInitiative(cid);
   const handoutsHtml = await renderHandouts(cid);
   body.innerHTML = `
@@ -94,6 +111,9 @@ export async function showTable(campaignId?: number): Promise<void> {
       <input class="form-control form-control-sm" data-testid="table-dice-input" placeholder="e.g. 1d20+5" value="1d20">
       <button class="btn btn-primary btn-sm" data-testid="table-roll-btn" onclick="rollFromTable()">Roll</button>
       <button class="btn btn-outline-secondary btn-sm" onclick="deactivateSessionMode()">Exit</button>
+    </div>
+    <div class="d-flex gap-1 mb-2" data-testid="table-dice-presets">
+      ${[20, 12, 10, 8, 6, 4].map((d) => `<button class="btn btn-outline-secondary btn-sm flex-fill" onclick="rollTablePreset(${d})">d${d}</button>`).join('')}
     </div>
     <div data-testid="table-roll-feed" class="mb-2" style="min-height:1.5rem;border:1px solid var(--border, #ddd);border-radius:4px;padding:0.5rem;max-height:120px;overflow:auto"></div>
     <div class="mb-2"><strong>Initiative</strong><div data-testid="table-initiative">${initiativeHtml}</div></div>
@@ -104,6 +124,13 @@ export async function showTable(campaignId?: number): Promise<void> {
 export function hideTable(): void {
   const el = document.getElementById('tableView');
   if (el) el.style.display = 'none';
+  document.body.classList.remove('table-hud-open');
+}
+
+export function rollTablePreset(sides: number): void {
+  const input = document.querySelector('[data-testid="table-dice-input"]') as HTMLInputElement | null;
+  if (input) input.value = `1d${sides}`;
+  void rollFromTable();
 }
 
 export async function rollFromTable(): Promise<void> {
@@ -173,6 +200,8 @@ export async function refreshTableHandouts(): Promise<void> {
 
 expose('showTable', showTable);
 expose('hideTable', hideTable);
+expose('toggleTableViewDock', toggleTableViewDock);
+expose('rollTablePreset', rollTablePreset);
 expose('rollFromTable', rollFromTable);
 expose('handleLiveRoll', handleLiveRoll);
 expose('handleSpellCast', handleSpellCast);

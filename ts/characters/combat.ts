@@ -4,7 +4,7 @@
  * partial port; app.ts versions are authoritative.
  */
 import { expose } from '../lib/expose';
-import { currentChar, setCurrentChar } from '../lib/state';
+import { currentChar, setCurrentChar, rollMode } from '../lib/state';
 import { esc, toast } from '../lib/dom';
 import { rulesHelpButton } from '../lib/rules-help';
 import { api } from '../lib/api';
@@ -13,11 +13,13 @@ import { animateHpChange } from '../lib/animations';
 
 // ─── Roll / Combat Actions ───
 
-export async function rollCheck(type: string, name: string, adv: string): Promise<void> {
+export async function rollCheck(type: string, name: string, adv?: string): Promise<void> {
   if (!currentChar) return;
+  // Explicit advantage/disadvantage wins; otherwise honour the sheet roll mode.
+  const mode = adv === 'advantage' || adv === 'disadvantage' ? adv : rollMode;
   try {
     const result = await api<{ text: string }>('POST', '/api/roll/check', {
-      character_id: (currentChar as Character).id, type, name, advantage: adv,
+      character_id: (currentChar as Character).id, type, name, advantage: mode,
     });
     toast(result.text);
   } catch (e) {
@@ -58,7 +60,8 @@ export async function doRest(type: string): Promise<void> {
   try {
     const c = currentChar as Character & { hp_current: number; hp_max: number };
     const oldHp = c.hp_current;
-    const result = await api<{ hp_healed: number }>('POST', `/api/characters/${c.id}/rest`, { rest_type: type, hit_dice_count: type === 'short' ? 1 : 0 });
+    const hitDice = type === 'short' ? shortRestHitDiceCount(c) : 0;
+    const result = await api<{ hp_healed: number }>('POST', `/api/characters/${c.id}/rest`, { rest_type: type, hit_dice_count: hitDice });
     toast(`${type} rest: healed ${result.hp_healed} HP`);
     setCurrentChar(await api<Character>('GET', `/api/characters/${c.id}`));
     (window.renderSheet as (() => void) | undefined)?.();
@@ -101,6 +104,112 @@ export async function rollDeathSave(): Promise<void> {
   }
 }
 
+// ─── Saving throws, equipment shortcuts and rest helpers ───
+
+/** Standard 5e class saving throw proficiencies (lowercase keys). */
+const CLASS_SAVE_PROFICIENCIES: Record<string, string[]> = {
+  barbarian: ['str', 'con'], bard: ['dex', 'cha'], cleric: ['wis', 'cha'],
+  druid: ['int', 'wis'], fighter: ['str', 'con'], monk: ['str', 'dex'],
+  paladin: ['wis', 'cha'], ranger: ['str', 'dex'], rogue: ['dex', 'int'],
+  sorcerer: ['con', 'cha'], warlock: ['wis', 'cha'], wizard: ['int', 'wis'],
+  artificer: ['con', 'int'], bloodhunter: ['dex', 'int'],
+};
+
+/** True when the character is proficient in the given saving throw. */
+export function isSaveProficient(c: Record<string, unknown>, ability: string): boolean {
+  const explicit = c['saving_throw_proficiencies'];
+  if (Array.isArray(explicit) && explicit.length) {
+    return explicit.map((x) => String(x).toLowerCase()).includes(ability);
+  }
+  const classes = new Set<string>();
+  const primary = (c['class'] as string | undefined) || '';
+  primary.split(/[\/,]/).forEach((part) => {
+    const name = part.trim().split('(')[0]?.trim().toLowerCase();
+    if (name) classes.add(name);
+  });
+  const multi = c['classes'] as Array<{ class?: string }> | undefined;
+  if (Array.isArray(multi)) multi.forEach((m) => { if (m?.class) classes.add(String(m.class).toLowerCase()); });
+  for (const name of classes) {
+    const profs = CLASS_SAVE_PROFICIENCIES[name];
+    if (profs && profs.includes(ability)) return true;
+  }
+  const profList = c['proficiencies'] as Array<{ name: string; type: string }> | undefined;
+  return Array.isArray(profList) && profList.some((p) => p.type === 'save' && p.name.toLowerCase() === ability);
+}
+
+export function hitDiceRemaining(c: Record<string, unknown>): number {
+  const current = c['hit_dice_current'];
+  if (typeof current === 'number' && current >= 0) return current;
+  const total = (c['hit_dice_total'] as number) || 0;
+  const used = (c['hit_dice_used'] as number) || 0;
+  return Math.max(0, total - used);
+}
+
+/** Read the Short Rest hit dice input, clamped to the dice the character still has. */
+function shortRestHitDiceCount(c: Record<string, unknown>): number {
+  const remaining = Math.max(1, hitDiceRemaining(c));
+  const input = document.getElementById('shortRestHitDice') as HTMLInputElement | null;
+  const requested = parseInt(input?.value || '1', 10);
+  const count = Number.isFinite(requested) ? requested : 1;
+  return Math.min(remaining, Math.max(1, count));
+}
+
+interface WeaponItem {
+  id?: number;
+  name: string;
+  category?: string;
+  equipped?: boolean;
+  is_equipped?: boolean;
+  damage_dice?: string;
+  damage_type?: string;
+  attack_bonus?: number;
+  is_identified?: boolean;
+}
+
+export function equippedWeapons(c: Record<string, unknown>): WeaponItem[] {
+  const inv = (c['inventory'] as WeaponItem[] | undefined) || [];
+  return inv.filter((i) => (i.is_equipped === true || i.equipped === true) && (i.category === 'weapon' || !!i.damage_dice));
+}
+
+function weaponAbilityMod(c: Record<string, unknown>): number {
+  return Math.max((c['str_mod'] as number) || 0, (c['dex_mod'] as number) || 0);
+}
+
+export function weaponAttackBonus(c: Record<string, unknown>, w: WeaponItem): number {
+  if (typeof w.attack_bonus === 'number') return w.attack_bonus;
+  return weaponAbilityMod(c) + ((c['proficiency_bonus'] as number) || 0);
+}
+
+async function rollExpression(expression: string, label: string): Promise<void> {
+  if (!currentChar) return;
+  try {
+    const res = await api<{ total?: number; text?: string }>('POST', '/api/roll', {
+      expression, character_id: (currentChar as Character).id,
+    });
+    toast(`${label}: ${res.text || `${expression} = ${res.total ?? ''}`}`);
+  } catch (e) {
+    toast((e as Error).message, true);
+  }
+}
+
+export async function rollWeaponAttack(index: number): Promise<void> {
+  if (!currentChar) return;
+  const c = currentChar as Record<string, unknown>;
+  const w = equippedWeapons(c)[index];
+  if (!w) return;
+  const bonus = weaponAttackBonus(c, w);
+  await rollExpression(`1d20${bonus >= 0 ? '+' : ''}${bonus}`, `${w.name} attack`);
+}
+
+export async function rollWeaponDamage(index: number): Promise<void> {
+  if (!currentChar) return;
+  const c = currentChar as Record<string, unknown>;
+  const w = equippedWeapons(c)[index];
+  if (!w || !w.damage_dice) return;
+  const mod = weaponAbilityMod(c);
+  await rollExpression(`${w.damage_dice}${mod >= 0 ? '+' : ''}${mod}`, `${w.name} damage`);
+}
+
 // ─── Combat Section Update for conditions and concentration ───
 
 export function renderCombat(): void {
@@ -138,8 +247,12 @@ export function renderCombat(): void {
         <div class="input-group input-group-sm"><input type="number" class="form-control" id="healInput" value="0"><button class="btn btn-success" onclick="applyHeal()">Apply</button></div>
       </div>
     </div>
-    <div class="d-flex gap-2 mt-3 flex-wrap">
+    <div class="d-flex gap-2 mt-3 flex-wrap align-items-end">
       <button class="btn btn-sm btn-outline-primary" onclick="doRest('short')"><i class="fa-solid fa-campground me-1"></i>Short Rest</button>
+      <div style="max-width:96px">
+        <label class="form-label small mb-0" for="shortRestHitDice">Hit Dice</label>
+        <input type="number" class="form-control form-control-sm" id="shortRestHitDice" data-testid="short-rest-hit-dice-input" min="1" max="${Math.max(1, hitDiceRemaining(c))}" value="1" title="Hit Dice to spend on a short rest">
+      </div>
       <button class="btn btn-sm btn-outline-primary" onclick="doRest('long')"><i class="fa-solid fa-moon me-1"></i>Long Rest</button>
       <button class="btn btn-sm btn-gold" onclick="doLevelUp()"><i class="fa-solid fa-arrow-up me-1"></i>Level Up</button>
     </div>
@@ -153,13 +266,34 @@ export function renderCombat(): void {
       </div>
       <div id="conditionBadges"></div>
     </div>
+    <h5 class="mt-3">Equipped Weapons <small class="text-muted fw-normal">(1-click attack)</small></h5>
+    <div data-testid="combat-quick-attacks" class="d-flex flex-column gap-2 mb-3">
+      ${(() => {
+        const weapons = equippedWeapons(c);
+        if (!weapons.length) return '<div class="small text-muted fst-italic">Equip a weapon in Inventory to roll attacks here.</div>';
+        return weapons.map((w, i) => {
+          const bonus = weaponAttackBonus(c, w);
+          return `<div class="d-flex align-items-center justify-content-between gap-2 border rounded p-2">
+            <div>
+              <div class="fw-semibold">${esc(w.name)}</div>
+              <div class="small text-muted">${esc(w.damage_dice || '')} ${esc(w.damage_type || '')}</div>
+            </div>
+            <div class="d-flex gap-1">
+              <button class="btn btn-sm btn-outline-primary" data-testid="weapon-attack-btn" onclick="rollWeaponAttack(${i})"><i class="fa-solid fa-dice-d20 me-1" aria-hidden="true"></i>${bonus >= 0 ? '+' : ''}${bonus}</button>
+              <button class="btn btn-sm btn-outline-danger" data-testid="weapon-damage-btn" onclick="rollWeaponDamage(${i})" ${w.damage_dice ? '' : 'disabled'}>Damage</button>
+            </div>
+          </div>`;
+        }).join('');
+      })()}
+    </div>
     <h5 class="mt-3">Saving Throws <small class="text-muted fw-normal">(click to roll)</small></h5>
-    <div class="d-flex flex-wrap gap-1 mb-3">
+    <div class="d-flex flex-wrap gap-1 mb-3" data-testid="saving-throws">
       ${['str','dex','con','int','wis','cha'].map(a => {
         const mod = (c[`${a}_mod`] as number | undefined) ?? 0;
-        const total = ((c['proficiency_bonus'] as number) || 0) + mod;
+        const prof = isSaveProficient(c, a);
+        const total = mod + (prof ? ((c['proficiency_bonus'] as number) || 0) : 0);
         const sign = total >= 0 ? '+' : '';
-        return `<span class="badge badge-gold" style="cursor:pointer;font-size:0.85rem;padding:0.4rem 0.6rem" onclick="rollCheck('save','${a}','normal')">${a.toUpperCase()} ${sign}${total}</span>`;
+        return `<span class="badge ${prof ? 'badge-gold' : 'badge-blood'}" style="cursor:pointer;font-size:0.85rem;padding:0.4rem 0.6rem" data-save="${a}" title="${a.toUpperCase()} save${prof ? ' (proficient)' : ''}" onclick="rollCheck('save','${a}','normal')">${a.toUpperCase()} ${sign}${total}${prof ? ' ★' : ''}</span>`;
       }).join('')}
     </div>
     <h5 class="mt-3">Death Saves ${rulesHelpButton('death-saves')}</h5>
@@ -175,9 +309,9 @@ export function renderCombat(): void {
       <input class="form-control form-control-sm" value="${esc(c['concentrating_on'] as string | null)}" oninput="autoSaveField('concentrating_on',this)" placeholder="e.g. Hunter's Mark" style="min-height:44px;font-size:1rem">
     </div>
     <h5 class="mt-3">Hit Dice</h5>
-    <div class="row g-2">
-      <div class="col-6"><label class="form-label small">Total</label>${window.renderStepper('hit_dice_total', c['hit_dice_total'] as number, 1, 0, undefined, 'Hit Dice Total')}</div>
-      <div class="col-6"><label class="form-label small">Used</label>${window.renderStepper('hit_dice_used', c['hit_dice_used'] as number, 1, 0, undefined, 'Hit Dice Used')}</div>
+    <div class="row g-2 align-items-end">
+      <div class="col-6"><label class="form-label small">Remaining</label>${window.renderStepper('hit_dice_current', c['hit_dice_current'] as number, 1, 0, undefined, 'Hit Dice Remaining')}</div>
+      <div class="col-6"><div class="small text-muted">Die size: <span class="fw-bold">${esc((c['hit_dice'] as string) || '—')}</span></div></div>
     </div>`;
   void loadConditionBadges();
 }
@@ -222,6 +356,8 @@ export async function loadConditionBadges(): Promise<void> {
 
 // Window registrations (centralized)
 expose('rollCheck', rollCheck);
+expose('rollWeaponAttack', rollWeaponAttack);
+expose('rollWeaponDamage', rollWeaponDamage);
 expose('rollDeathSave', rollDeathSave);
 expose('applyHeal', applyHeal);
 expose('doRest', doRest);

@@ -10,6 +10,8 @@ func RegisterCombatRoutes(r *gin.RouterGroup) {
 	r.PUT("/combat/:id", UpdateCombatEntry)
 	r.DELETE("/combat/:id", DeleteCombatEntry)
 	r.POST("/combat/initiative", RollInitiative)
+	r.POST("/combat/roll-initiative", RollCombatInitiative)
+	r.POST("/combat/clear", ClearCombat)
 	r.POST("/combat/next-turn", NextTurn)
 	r.GET("/combat/current-turn", GetCurrentTurn)
 

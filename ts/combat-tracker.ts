@@ -48,6 +48,7 @@ expose('showCombatTracker', async function (): Promise<void> {
         <button class="btn btn-outline-primary btn-sm" onclick="rollAllInitiative()"><i class="fa-solid fa-dice me-1"></i>Roll Init</button>
         <button class="btn btn-outline-secondary btn-sm" onclick="advanceCombatTurn()"><i class="fa-solid fa-forward me-1"></i>Next Turn</button>
         <button class="btn btn-outline-warning btn-sm" onclick="showCastSpellModal()"><i class="fa-solid fa-wand-sparkles me-1"></i>Cast</button>
+        <button class="btn btn-outline-success btn-sm" data-testid="combat-end-encounter-btn" onclick="showEndEncounterModal()"><i class="fa-solid fa-flag-checkered me-1"></i>End Encounter</button>
       </div>
     </div>
     <div class="table-responsive">
@@ -100,6 +101,7 @@ expose('showCombatTracker', async function (): Promise<void> {
         </td>
         <td>
           <div class="d-flex gap-1">
+            ${entry.type !== 'character' ? `<button class="btn btn-sm btn-outline-secondary py-0 px-1" data-testid="combat-statblock-toggle" style="font-size:0.65rem" title="Show statblock" onclick="toggleCombatStatblock(${entry.id})"><i class="fa-solid fa-book"></i></button>` : ''}
             <button class="btn btn-sm btn-outline-primary py-0 px-1" data-testid="combat-attack-btn" style="font-size:0.65rem" onclick="showAttackModal(${entry.id})"><i class="fa-solid fa-crosshairs me-1"></i>Attack</button>
             <button class="btn btn-sm btn-outline-danger py-0 px-1" style="font-size:0.65rem" onclick="deleteCombatEntry(${entry.id})"><i class="fa-solid fa-trash"></i></button>
           </div>
@@ -197,14 +199,9 @@ expose('deleteCombatEntry', async function (id: number): Promise<void> {
 
 expose('rollAllInitiative', async function (): Promise<void> {
   try {
-    const entries = await api<CombatEntry[]>('GET', '/api/combat');
-    for (const e of entries) {
-      const result = await api<{ total: number }>('POST', '/api/roll', { expression: '1d20' });
-      const roll = (result.total || 0) + (e.initiative_mod || 0);
-      e.initiative_roll = roll;
-      try { await api('PUT', '/api/combat/' + e.id, e); } catch { /* ignore per-entry */ }
-    }
-    window.showCombatTracker();
+    const cid = (currentCampaign as any)?.id;
+    await api('POST', '/api/combat/roll-initiative', cid ? { campaign_id: cid } : {});
+    await window.showCombatTracker();
     toast('Initiative rolled for all combatants');
   } catch (e: unknown) { toast(e instanceof Error ? e.message : String(e), true); }
 });
@@ -289,6 +286,135 @@ expose('dropCombatEntry', async function (ev: DragEvent, targetId: number): Prom
   } catch (e: unknown) { toast(e instanceof Error ? e.message : String(e), true); }
 });
 
+// ─── Compendium statblock preview ───
+
+const monsterCache: Record<string, any | null> = {};
+
+function baseMonsterName(name: string): string {
+  return name.replace(/\s*#?\d+$/, '').trim();
+}
+
+function monsterStatblockHtml(m: any): string {
+  const abil = ['str', 'dex', 'con', 'int', 'wis', 'cha']
+    .map((k) => `${k.toUpperCase()} ${m[k] ?? '—'}`).join(' · ');
+  const actions = Array.isArray(m.actions) ? m.actions : [];
+  const traits = Array.isArray(m.special_abilities) ? m.special_abilities : [];
+  return `<div class="border rounded p-2 bg-body-tertiary">
+    <div class="fw-bold">${esc(m.name || 'Monster')} <span class="text-muted small">CR ${esc(String(m.cr ?? '—'))} · AC ${esc(String(m.ac ?? '—'))} · HP ${esc(String(m.hp ?? '—'))}</span></div>
+    <div class="small text-muted mb-1">${abil}</div>
+    ${traits.length ? `<div class="small mb-1">${traits.map((t: any) => `<div><strong>${esc(t.name || '')}.</strong> ${esc(t.desc || '')}</div>`).join('')}</div>` : ''}
+    ${actions.length ? `<div class="small">${actions.map((a: any) => `<div class="mb-1"><strong>${esc(a.name || 'Action')}.</strong> ${esc(a.desc || '')}</div>`).join('')}</div>` : '<div class="small text-muted">No actions listed.</div>'}
+  </div>`;
+}
+
+expose('toggleCombatStatblock', async function (id: number): Promise<void> {
+  const existing = document.getElementById('statblock-' + id);
+  if (existing) { existing.remove(); return; }
+  const row = document.getElementById('ce-' + id);
+  if (!row) return;
+  const tr = document.createElement('tr');
+  tr.id = 'statblock-' + id;
+  tr.innerHTML = '<td></td><td colspan="7" class="small text-muted">Loading statblock...</td>';
+  row.after(tr);
+  try {
+    const entries = await api<CombatEntry[]>('GET', '/api/combat');
+    const entry = entries.find((e) => e.id === id);
+    const base = baseMonsterName(entry?.name || '');
+    if (!(base in monsterCache)) {
+      try {
+        const list = await api<any[]>('GET', `/api/compendium/monsters?q=${encodeURIComponent(base)}`);
+        monsterCache[base] = (list || []).find((m) => String(m.name).toLowerCase() === base.toLowerCase()) || (list || [])[0] || null;
+      } catch { monsterCache[base] = null; }
+    }
+    const monster = monsterCache[base];
+    tr.innerHTML = `<td></td><td colspan="7" class="small">${monster
+      ? monsterStatblockHtml(monster)
+      : `<span class="text-muted">No compendium statblock matched "${esc(base)}". Use the Attack modal with a custom bonus and damage dice.</span>`}</td>`;
+  } catch (e: unknown) {
+    tr.innerHTML = `<td></td><td colspan="7" class="small text-danger">${esc(e instanceof Error ? e.message : String(e))}</td>`;
+  }
+});
+
+// ─── End encounter & rewards ───
+
+let endEncounterData: { campaignId: number | null; defeated: any[]; xpTotal: number; share: number; party: any[] } | null = null;
+
+let monsterXPMap: Record<string, number> | null = null;
+
+async function monsterXPFor(name: string): Promise<number> {
+  const base = baseMonsterName(name);
+  try {
+    const list = await api<any[]>('GET', `/api/compendium/monsters?q=${encodeURIComponent(base)}`);
+    const m = (list || []).find((x) => String(x.name).toLowerCase() === base.toLowerCase()) || (list || [])[0];
+    if (!m) return 0;
+    if (!monsterXPMap) monsterXPMap = await api<Record<string, number>>('GET', '/api/monster-xp');
+    return Number((monsterXPMap || {})[String(m.cr)]) || 0;
+  } catch { return 0; }
+}
+
+expose('showEndEncounterModal', async function (): Promise<void> {
+  const cid = (currentCampaign as any)?.id || null;
+  let entries: CombatEntry[] = [];
+  let party: any[] = [];
+  try {
+    entries = await api<CombatEntry[]>('GET', '/api/combat');
+    const chars: any[] = await api<any[]>('GET', '/api/characters');
+    party = (Array.isArray(chars) ? chars : []).filter((c: any) => !cid || !c.campaigns?.length || c.campaigns.some((ca: any) => ca.id === cid));
+  } catch { /* handled below */ }
+  const defeated = entries.filter((e) => e.type !== 'character' && e.hp_current <= 0);
+  let xpTotal = 0;
+  for (const d of defeated) xpTotal += await monsterXPFor(d.name);
+  const share = party.length ? Math.floor(xpTotal / party.length) : 0;
+  endEncounterData = { campaignId: cid, defeated, xpTotal, share, party };
+
+  showModal('End Encounter', `
+    <div class="mb-2"><strong>Defeated:</strong> ${defeated.length
+      ? defeated.map((d) => `<span class="badge badge-blood me-1">${esc(d.name)}</span>`).join('')
+      : '<span class="text-muted">None (no monster at 0 HP)</span>'}</div>
+    <div class="mb-3 row g-2 align-items-end">
+      <div class="col-6"><label class="form-label small mb-0" for="endEncounterXp">Encounter XP</label><input class="form-control form-control-sm" type="number" min="0" id="endEncounterXp" data-testid="combat-end-xp-override" value="${xpTotal}"></div>
+      <div class="col-6 small text-muted">Per character: <span id="endEncounterShare">${share}</span></div>
+    </div>
+    <div class="mb-2 fw-semibold small">Award XP to</div>
+    <div class="mb-3" data-testid="combat-end-xp-party">
+      ${party.length ? party.map((c: any) => `<div class="form-check"><input class="form-check-input" type="checkbox" id="endXpChar-${c.id}" data-testid="combat-end-xp-character" checked><label class="form-check-label" for="endXpChar-${c.id}">${esc(c.name)} (${c.xp || 0} XP)</label></div>`).join('') : '<div class="small text-muted">No party characters in this campaign.</div>'}
+    </div>
+    <div class="form-check mb-3"><input class="form-check-input" type="checkbox" id="endEncounterTreasure" data-testid="combat-end-treasure"><label class="form-check-label" for="endEncounterTreasure">Roll a treasure hoard into Party Inventory</label></div>
+    <button class="btn btn-success w-100" data-testid="combat-end-confirm" onclick="completeEncounter()"><i class="fa-solid fa-flag-checkered me-1"></i>Complete &amp; Clear Encounter</button>
+  `);
+});
+
+expose('completeEncounter', async function (): Promise<void> {
+  if (!endEncounterData) return;
+  const { campaignId, party } = endEncounterData;
+  const totalXp = Math.max(0, Math.floor(Number((document.getElementById('endEncounterXp') as HTMLInputElement | null)?.value) || endEncounterData.xpTotal));
+  const selected = party.filter((c: any) => (document.getElementById('endXpChar-' + c.id) as HTMLInputElement | null)?.checked);
+  const share = selected.length ? Math.floor(totalXp / selected.length) : 0;
+  try {
+    if (share > 0) {
+      for (const c of selected) {
+        try { await api('POST', `/api/characters/${c.id}/xp`, { amount: share }); } catch { /* keep going */ }
+      }
+    }
+    const treasure = (document.getElementById('endEncounterTreasure') as HTMLInputElement | null)?.checked;
+    if (treasure && campaignId) {
+      try {
+        const hoard = await api<any>('GET', '/api/generate/treasure?tier=1');
+        const gp = Math.round(((hoard?.coins?.gp || 0) + (hoard?.coins?.pp || 0) * 10 + (hoard?.coins?.ep || 0) / 2 + (hoard?.coins?.sp || 0) / 10 + (hoard?.coins?.cp || 0) / 100) * 100) / 100;
+        if (gp > 0) await api('POST', `/api/campaigns/${campaignId}/party-items`, { name: `${gp} gp in coins`, quantity: 1, notes: 'Encounter treasure hoard' });
+        for (const g of hoard?.gems || []) await api('POST', `/api/campaigns/${campaignId}/party-items`, { name: String(g), quantity: 1, notes: 'Gem' });
+        for (const a of hoard?.art_objects || []) await api('POST', `/api/campaigns/${campaignId}/party-items`, { name: String(a), quantity: 1, notes: 'Art object' });
+        for (const m of hoard?.magic_items || []) await api('POST', `/api/campaigns/${campaignId}/party-items`, { name: String(m), quantity: 1, notes: 'Magic item' });
+      } catch { /* treasure is best-effort */ }
+    }
+    await api('POST', '/api/combat/clear', campaignId ? { campaign_id: campaignId } : {});
+    hideModal();
+    endEncounterData = null;
+    await window.showCombatTracker();
+    toast('Encounter complete');
+  } catch (e: unknown) { toast(e instanceof Error ? e.message : String(e), true); }
+});
+
 // ─── Attack modal ───
 
 let pendingAttackTargetId: number | null = null;
@@ -305,8 +431,15 @@ expose('showAttackModal', async function (entryId: number): Promise<void> {
     const filtered = chars.filter((c: any) => !c.campaigns || !c.campaigns.length || c.campaigns.some((ca: any) => ca.id === cid));
     if (filtered.length) chars = filtered;
   }
+  let entries: CombatEntry[] = [];
+  try { entries = await api<CombatEntry[]>('GET', '/api/combat'); } catch { entries = []; }
+  const monsterAttackers = entries.filter((e) => e.type !== 'character' && e.id !== entryId);
+  const attackerOptions = [
+    ...chars.map((c: any) => `<option value="${c.id}">${esc(c.name)}</option>`),
+    ...monsterAttackers.map((e) => `<option value="entry:${e.id}">${esc(e.name)} (monster)</option>`),
+  ].join('');
   showModal('Attack', `
-    <div class="mb-3"><label class="form-label">Attacker</label><select class="form-select" id="atkAttacker" data-testid="combat-attack-attacker">${chars.map((c: any) => `<option value="${c.id}">${esc(c.name)}</option>`).join('') || '<option value="">No characters</option>'}</select></div>
+    <div class="mb-3"><label class="form-label">Attacker</label><select class="form-select" id="atkAttacker" data-testid="combat-attack-attacker">${attackerOptions || '<option value="">No attackers</option>'}</select></div>
     <div class="mb-3"><label class="form-label">Weapon</label><select class="form-select" id="atkWeapon" data-testid="combat-attack-weapon"><option value="">Loading...</option></select></div>
     <div class="row g-2 mb-3">
       <div class="col-4"><label class="form-label small">Attack Bonus</label><input class="form-control" id="atkBonus" type="number" value="5" data-testid="combat-attack-bonus"></div>
@@ -338,6 +471,13 @@ expose('showAttackModal', async function (entryId: number): Promise<void> {
     const aid = (document.getElementById('atkAttacker') as HTMLSelectElement)?.value;
     const wsel = document.getElementById('atkWeapon') as HTMLSelectElement | null;
     if (!wsel || !aid) return;
+    if (aid.startsWith('entry:')) {
+      // Monsters attack with a custom bonus and damage dice.
+      wsel.innerHTML = '<option value="">Monster action / manual</option>';
+      (document.getElementById('atkBonus') as HTMLInputElement).value = '4';
+      (document.getElementById('atkDice') as HTMLInputElement).value = '1d6+2';
+      return;
+    }
     try {
       const char = await api<any>('GET', `/api/characters/${aid}`);
       const inv: any[] = char.inventory || [];
@@ -364,7 +504,9 @@ expose('showAttackModal', async function (entryId: number): Promise<void> {
 });
 
 function buildAttackBody(apply: boolean): Record<string, unknown> {
-  const attackerId = +(document.getElementById('atkAttacker') as HTMLSelectElement)?.value || 0;
+  const attackerValue = (document.getElementById('atkAttacker') as HTMLSelectElement)?.value || '';
+  const attackerIsMonster = attackerValue.startsWith('entry:');
+  const attackerId = attackerIsMonster ? +attackerValue.slice('entry:'.length) : (+attackerValue || 0);
   const weaponId = (document.getElementById('atkWeapon') as HTMLSelectElement)?.value || '';
   const adv = (document.getElementById('atkAdv') as HTMLSelectElement)?.value || '';
   const bonusVal = (document.getElementById('atkBonus') as HTMLInputElement)?.value;
@@ -372,12 +514,16 @@ function buildAttackBody(apply: boolean): Record<string, unknown> {
   const dmgType = (document.getElementById('atkDmgType') as HTMLInputElement)?.value;
   const cond = (document.getElementById('atkCondition') as HTMLInputElement)?.value || undefined;
   const body: Record<string, unknown> = {
-    attacker_type: 'character',
+    attacker_type: attackerIsMonster ? 'combat' : 'character',
     attacker_id: attackerId,
     target_type: 'combat',
     target_id: pendingAttackTargetId,
     apply,
   };
+  if (attackerIsMonster) {
+    const opt = (document.getElementById('atkAttacker') as HTMLSelectElement)?.selectedOptions[0];
+    body.attacker_name = (opt?.textContent || 'Monster').replace(/\s*\(monster\)\s*$/, '');
+  }
   if (weaponId) body.item_id = +weaponId;
   else {
     if (bonusVal !== '' && bonusVal !== undefined) body.attack_bonus = +bonusVal;

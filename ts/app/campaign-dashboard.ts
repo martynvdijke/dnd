@@ -121,8 +121,18 @@ expose('showPartyInventory', async function (campaignId: number) {
   showModal('Party Inventory', `<div id="partyInvContent"><div class="ornament">✧ Loading... ✧</div></div>`);
   try {
     const items = await api('GET', `/api/campaigns/${campaignId}/party-items`);
+    let roster: any[] = [];
+    try { roster = await api('GET', `/api/campaigns/${campaignId}/characters`); } catch { roster = []; }
     const content = `
-      <button class="btn btn-gold btn-sm mb-2" onclick="addPartyItem(${campaignId})"><i class="fa-solid fa-plus me-1"></i>Add Item</button>
+      <div class="d-flex gap-2 align-items-end flex-wrap mb-2">
+        <button class="btn btn-gold btn-sm" onclick="addPartyItem(${campaignId})"><i class="fa-solid fa-plus me-1"></i>Add Item</button>
+        <div>
+          <label class="form-label small mb-0" for="partyClaimCharacter">Claim to</label>
+          <select class="form-select form-select-sm" id="partyClaimCharacter" data-testid="party-claim-character">
+            ${roster.length ? roster.map((c: any) => `<option value="${c.id}">${esc(c.name)}</option>`).join('') : '<option value="">No characters</option>'}
+          </select>
+        </div>
+      </div>
       ${items.length ? items.map((i: any) => `
         <div class="inv-item">
           <div>
@@ -130,6 +140,7 @@ expose('showPartyInventory', async function (campaignId: number) {
             <span class="badge badge-muted ms-1">×${i.quantity}</span>
             ${i.notes ? `<div class="small text-muted">${esc(i.notes)}</div>` : ''}
           </div>
+          <button class="btn btn-sm btn-outline-primary" data-testid="party-item-claim-btn" onclick="claimPartyItem(${campaignId}, ${i.id})" title="Move into the selected character's inventory"><i class="fa-solid fa-hand me-1"></i>Claim</button>
           <button class="btn btn-sm btn-outline-secondary" onclick="editPartyItem(${campaignId}, ${i.id})"><i class="fa-solid fa-pen"></i></button>
           <button class="btn btn-sm btn-outline-danger" onclick="deletePartyItem(${campaignId}, ${i.id})"><i class="fa-solid fa-trash"></i></button>
         </div>
@@ -180,6 +191,19 @@ expose('savePartyItem', async function (campaignId: number, itemId?: number) {
   hideModal();
   toast(itemId ? 'Item updated' : 'Item added to party inventory');
   (window as any).showPartyInventory(campaignId);
+});
+
+expose('claimPartyItem', async function (campaignId: number, itemId: number) {
+  const sel = document.getElementById('partyClaimCharacter') as HTMLSelectElement | null;
+  const characterId = Number(sel?.value || 0);
+  if (!characterId) { toast('Select a character first', true); return; }
+  try {
+    const res = await api<{ claimed: number }>('POST', `/api/campaigns/${campaignId}/party-items/${itemId}/claim`, { character_id: characterId });
+    toast(`Claimed ${res.claimed || 1} item(s)`);
+    (window as any).showPartyInventory(campaignId);
+  } catch (e) {
+    toast(e instanceof Error ? e.message : String(e), true);
+  }
 });
 
 expose('deletePartyItem', async function (campaignId: number, itemId: number) {
