@@ -85,6 +85,8 @@ declare global {
     updateXPBar: () => void;
     showTable: () => Promise<void>;
     hideTable: () => void;
+    toggleTableViewDock: () => void;
+    rollTablePreset: (sides: number) => void;
     rollFromTable: () => Promise<void>;
     handleLiveRoll: (payload: unknown) => void;
     handleSpellCast: (payload: unknown) => void;

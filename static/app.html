@@ -72,7 +72,13 @@
   <button class="session-mode-toggle-btn" id="sessionModeExitBtn" onclick="deactivateSessionMode()"><i class="fa-solid fa-xmark me-1" aria-hidden="true"></i>Exit</button>
 </div>
 
-<div id="tableView" style="display:none;position:fixed;inset:0;overflow:auto;z-index:1080;padding:1rem;background:var(--parchment, #fff)" data-testid="table-view"><div id="tableBody"></div></div>
+<div id="tableView" class="table-view-docked" style="display:none" data-testid="table-view">
+  <div class="table-view-head">
+    <strong class="small"><i class="fa-solid fa-users-rectangle me-1" aria-hidden="true"></i>Live Table</strong>
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-testid="table-view-dock-toggle" onclick="toggleTableViewDock()" title="Expand table view" aria-label="Expand table view"><i class="fa-solid fa-up-right-and-down-left-from-center" aria-hidden="true"></i></button>
+  </div>
+  <div id="tableBody"></div>
+</div>
 <div class="app-sidebar" id="appSidebar">
   <div class="sidebar-header">
     <span class="sidebar-brand brand-lockup"><img src="/static/brand/logo-mark.svg" alt="" class="brand-mark"> <span>villum</span></span>

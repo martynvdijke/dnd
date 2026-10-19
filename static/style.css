@@ -4160,7 +4160,48 @@ body.sidebar-collapsed .container {
 }
 [data-theme="dark"] .sheet-quick-actions { background: rgba(20, 20, 20, 0.92); }
 /* Session mode: only the combat section stays visible on the sheet */
-body.session-mode .sheet-section-acc:not(#sheet-acc-combat) { display: none; }
+/* Session mode: the full sheet stays available now that the Live Table HUD is
+   docked instead of covering it (docked-session-table-hud). */
+
+/* Live Table HUD (docked-session-table-hud): the table view docks instead of
+   covering the screen, so the character sheet and its quick-action bar stay
+   usable during Session Mode. Expanded mode keeps the old full-screen layout. */
+#tableView.table-view-docked {
+  position: fixed;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  width: min(380px, calc(100vw - 1.5rem));
+  max-height: 55vh;
+  overflow: auto;
+  z-index: 1035;
+  padding: 0.75rem;
+  border: 1px solid var(--border-light, #ddd);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  background: var(--parchment, #fff);
+}
+#tableView.table-view-docked.table-view-expanded {
+  inset: 0;
+  right: auto;
+  bottom: auto;
+  width: auto;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  z-index: 1080;
+  padding: 1rem;
+}
+.table-view-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+/* Keep the expanded view's controls clear of the fixed session-mode topbar. */
+body.session-mode #tableView.table-view-docked.table-view-expanded { padding-top: 3.5rem; }
+body.session-mode.table-hud-open .container { padding-bottom: 47vh; }
+[data-theme="dark"] #tableView.table-view-docked { background: var(--card-bg, #1e1e1e); }
 
 /* revamp-character-sheets-mobile: keep sheet header buttons wrapping on tablets,
    but on phones keep them on a single row and scroll horizontally so the header
