@@ -1,6 +1,56 @@
 import { expose } from '../lib/expose';
-import { esc, showModal } from '../lib/dom';
+import { esc, showModal, toast } from '../lib/dom';
 import { api } from '../lib/api';
+import { currentChar, currentCampaign } from '../lib/state';
+
+// Last generator output, so a single "Save to Campaign" action can persist it.
+let dmLastGenerated: { kind: 'treasure' | 'hook' | 'tavern' | 'name'; payload: any } | null = null;
+
+function dmSaveButton(label: string): string {
+  return `<button class="btn btn-sm btn-outline-primary mt-2" data-testid="dm-tools-save-btn" onclick="dmSaveGenerated()"><i class="fa-solid fa-floppy-disk me-1"></i>Save ${label} to Campaign</button>`;
+}
+
+expose('dmSaveGenerated', async function (): Promise<void> {
+  const generated = dmLastGenerated;
+  if (!generated) { toast('Generate something first', true); return; }
+  try {
+    if (generated.kind === 'tavern') {
+      const t = generated.payload;
+      await api('POST', '/api/locations', {
+        name: t.name || 'Tavern',
+        type: 'tavern',
+        description: `Proprietor: ${t.proprietor || '—'} (${t.proprietor_trait || ''}). Atmosphere: ${t.atmosphere || '—'}. Drinks: ${t.specialty_drink || '—'}. Rumors: ${(t.rumors || []).join(' · ')}`,
+      });
+      toast('Tavern saved as a location');
+    } else if (generated.kind === 'hook') {
+      const ch = currentChar as any;
+      if (!ch?.id) { toast('Select a character to attach the quest', true); return; }
+      const h = generated.payload;
+      await api('POST', `/api/characters/${ch.id}/quests`, {
+        name: h.hook_name || 'Adventure Hook',
+        description: `Villain: ${h.villain || '—'}. MacGuffin: ${h.macguffin || '—'}. Stakes: ${h.stakes || '—'}. Location: ${h.location_hint || '—'}. Twist: ${h.twist || '—'}.`,
+        status: 'active',
+      });
+      toast('Adventure hook saved as a quest');
+    } else if (generated.kind === 'name') {
+      await api('POST', '/api/npcs', { name: generated.payload.name });
+      toast('Name saved as an NPC');
+    } else if (generated.kind === 'treasure') {
+      const campaign = currentCampaign as any;
+      if (!campaign?.id) { toast('Select a campaign first', true); return; }
+      const t = generated.payload;
+      const c = t.coins || {};
+      const gp = Math.round(((c.gp || 0) + (c.pp || 0) * 10 + (c.ep || 0) / 2 + (c.sp || 0) / 10 + (c.cp || 0) / 100) * 100) / 100;
+      if (gp > 0) await api('POST', `/api/campaigns/${campaign.id}/party-items`, { name: `${gp} gp in coins`, quantity: 1, notes: 'Generated treasure hoard' });
+      for (const g of t.gems || []) await api('POST', `/api/campaigns/${campaign.id}/party-items`, { name: String(g), quantity: 1, notes: 'Gem' });
+      for (const a of t.art_objects || []) await api('POST', `/api/campaigns/${campaign.id}/party-items`, { name: String(a), quantity: 1, notes: 'Art object' });
+      for (const m of t.magic_items || []) await api('POST', `/api/campaigns/${campaign.id}/party-items`, { name: String(m), quantity: 1, notes: 'Magic item' });
+      toast('Treasure added to party inventory');
+    }
+  } catch (e) {
+    toast(e instanceof Error ? e.message : String(e), true);
+  }
+});
 
 // ─── DM Tools: generators ───
 
@@ -85,6 +135,7 @@ expose('dmGenerateTreasure', async function () {
   try {
     const t = await api<any>('GET', `/api/generate/treasure?tier=${tier}`);
     const c = t.coins || {};
+    dmLastGenerated = { kind: 'treasure', payload: t };
     el.innerHTML = `
       <div class="dash-card">
         <h6>Treasure Hoard — Tier ${t.tier}</h6>
@@ -93,6 +144,7 @@ expose('dmGenerateTreasure', async function () {
         <div>Art: ${(t.art_objects || []).map((a: string) => esc(a)).join(', ') || '—'}</div>
         <div>Magic: ${(t.magic_items || []).map((m: string) => esc(m)).join(', ') || '—'}</div>
         <div class="fw-bold mt-1">Total value ≈ ${t.total_gp_value} gp</div>
+        ${dmSaveButton('Treasure')}
       </div>`;
   } catch (e: any) {
     el.innerHTML = `<p class="text-danger">${esc(e.message)}</p>`;
@@ -121,7 +173,8 @@ expose('dmGenerateName', async function () {
   const el = document.getElementById('dmToolsResult')!;
   try {
     const n = await api<any>('GET', `/api/generate/name?race=${race}`);
-    el.innerHTML = `<div class="dash-card"><h6>Name</h6><div class="fs-5">${esc(n.name)}</div></div>`;
+    dmLastGenerated = { kind: 'name', payload: n };
+    el.innerHTML = `<div class="dash-card"><h6>Name</h6><div class="fs-5">${esc(n.name)}</div>${dmSaveButton('NPC')}</div>`;
   } catch (e: any) {
     el.innerHTML = `<p class="text-danger">${esc(e.message)}</p>`;
   }
@@ -157,6 +210,7 @@ function dmOneShotError(targetId: string, message: string): void {
 expose('dmGenerateHook', async function (targetId = 'dmToolsResult') {
   try {
     const h = await api<any>('GET', '/api/generate/adventure-hook');
+    dmLastGenerated = { kind: 'hook', payload: h };
     dmOneShotResult(targetId, `
       <div class="dash-card">
         <h6>${esc(h.hook_name || 'Adventure Hook')} <span class="badge bg-secondary">${esc(h.hook_type || '')}</span></h6>
@@ -165,6 +219,7 @@ expose('dmGenerateHook', async function (targetId = 'dmToolsResult') {
         <div><strong>Stakes:</strong> ${esc(h.stakes || '—')}</div>
         <div><strong>Location:</strong> ${esc(h.location_hint || '—')}</div>
         <div><strong>Twist:</strong> ${esc(h.twist || '—')}</div>
+        ${dmSaveButton('Hook')}
       </div>`);
   } catch (e: any) { dmOneShotError(targetId, e.message); }
 });
@@ -187,6 +242,7 @@ expose('dmGenerateDungeonDressing', async function (targetId = 'dmToolsResult') 
 expose('dmGenerateTavern', async function (targetId = 'dmToolsResult') {
   try {
     const t = await api<any>('GET', '/api/generate/tavern');
+    dmLastGenerated = { kind: 'tavern', payload: t };
     const clientele = (t.clientele || []).map((c: string) => esc(c)).join(', ') || '—';
     const rumors = (t.rumors || []).map((r: string) => esc(r)).join(' · ') || '—';
     dmOneShotResult(targetId, `
@@ -198,6 +254,7 @@ expose('dmGenerateTavern', async function (targetId = 'dmToolsResult') {
         <div><strong>Atmosphere:</strong> ${esc(t.atmosphere || '—')}</div>
         <div><strong>Prices:</strong> ${esc(t.prices || '—')}</div>
         <div><strong>Rumors:</strong> ${rumors}</div>
+        ${dmSaveButton('Tavern')}
       </div>`);
   } catch (e: any) { dmOneShotError(targetId, e.message); }
 });

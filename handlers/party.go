@@ -194,6 +194,77 @@ func DeleteCampaignPartyItem(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 
+// ClaimCampaignPartyItem moves a quantity of a party item into a character's
+// inventory atomically, so loot never disappears or duplicates on a failed
+// two-step client flow.
+func ClaimCampaignPartyItem(c *gin.Context) {
+	campaignID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || campaignID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid campaign id"})
+		return
+	}
+	if !isCampaignMember(c, campaignID) {
+		WriteError(c, http.StatusForbidden, errAccessDenied)
+		return
+	}
+	itemID, err := strconv.ParseInt(c.Param("itemId"), 10, 64)
+	if err != nil || itemID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid item id"})
+		return
+	}
+	var req struct {
+		CharacterID int64 `json:"character_id"`
+		Quantity    int   `json:"quantity"`
+	}
+	if !BindOr400(c, &req) {
+		return
+	}
+	if req.CharacterID <= 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "character_id is required"})
+		return
+	}
+	// The receiving character must belong to this campaign.
+	var inCampaign int
+	if err := db.DB.QueryRow("SELECT COUNT(*) FROM campaign_characters WHERE campaign_id=? AND character_id=?", campaignID, req.CharacterID).Scan(&inCampaign); err != nil || inCampaign == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "character is not in this campaign"})
+		return
+	}
+	var name, notes string
+	var quantity int
+	if err := db.DB.QueryRow("SELECT name, quantity, COALESCE(notes,'') FROM party_items WHERE id=? AND campaign_id=?", itemID, campaignID).Scan(&name, &quantity, &notes); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "party item not found"})
+		return
+	}
+	if req.Quantity <= 0 || req.Quantity > quantity {
+		req.Quantity = quantity
+	}
+	tx, err := db.DB.Begin()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.Exec("INSERT INTO inventory(character_id, name, quantity, weight, category, description) VALUES(?,?,?,?,?,?)",
+		req.CharacterID, name, req.Quantity, 0, "gear", notes); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if req.Quantity == quantity {
+		_, err = tx.Exec("DELETE FROM party_items WHERE id=?", itemID)
+	} else {
+		_, err = tx.Exec("UPDATE party_items SET quantity=quantity-? WHERE id=?", req.Quantity, itemID)
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true, "claimed": req.Quantity, "character_id": req.CharacterID})
+}
+
 // ─── Session Plans ───
 
 func ListSessionPlans(c *gin.Context) {
