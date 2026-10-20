@@ -191,17 +191,26 @@ CGO_ENABLED=1 go build -tags fts5 -o villum-server .
 | `OIDC_REDIRECT_URL` | — | Must match Authelia registration, e.g. `https://dnd.vandijke.xyz/api/auth/oidc/callback` |
 | `OIDC_SCOPES` | `openid email profile groups` | Requested scopes |
 | `OIDC_LOGOUT_URL` | `{issuer}/logout` | IdP logout override |
+| `ALLOW_PASSWORD_FALLBACK` | `false` | Break-glass: re-enable password login for recovery (`true`/`1` only) |
 
 ### OIDC SSO (Authelia)
 
 Enabled by default once the `OIDC_*` vars above are set — the login page shows
-"Login with Authelia" only when the config is complete. Password login stays
-enabled as fallback. Register the client in Authelia (`client_id` dnd, redirect
-`https://dnd.vandijke.xyz/api/auth/oidc/callback`, scopes `openid email profile
-groups`, PKCE S256, explicit consent, `one_factor`), bypass NPM forward-auth for
-the host (it breaks the OIDC callback), then set the vars above. Users link by
-verified email on first SSO login; the `admins` group grants admin. Rollback:
-`OIDC_ENABLED=false`.
+"Login with Authelia" only when the config is complete, and it is the only option:
+password login is retired, so `POST /api/login` answers `403` and password sessions
+created before the cutover stop authenticating. Register the client in Authelia
+(`client_id` dnd, redirect `https://dnd.vandijke.xyz/api/auth/oidc/callback`, scopes
+`openid email profile groups`, PKCE S256, explicit consent, `one_factor`), bypass
+NPM forward-auth for the host (it breaks the OIDC callback), then set the vars
+above. Users link by verified email on first SSO login; the `admins` group grants
+admin.
+
+Recovery: set `ALLOW_PASSWORD_FALLBACK=true` and restart — password login and the
+password form return without a code change, which is the way back in if Authelia or
+its configuration breaks. A deployment with no admin yet must bootstrap with that
+flag set, because the first-run admin has no email for OIDC to link. To drop SSO
+entirely as well, add `OIDC_ENABLED=false`. Full procedure:
+[docs/oidc-rollout.md](docs/oidc-rollout.md).
 
 ## Project Structure
 

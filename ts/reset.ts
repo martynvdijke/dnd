@@ -1,3 +1,5 @@
+import { fetchAuthStatus, passwordLoginOffered } from './lib/auth-status';
+
 const form = document.getElementById("resetForm") as HTMLFormElement | null;
 const msg = document.getElementById("msg") as HTMLDivElement | null;
 
@@ -8,7 +10,12 @@ function showMsg(text: string, cls: string) {
   msg.classList.remove("d-none");
 }
 
-form?.addEventListener("submit", async (e) => {
+/** Show or hide an element by id using the page's `d-none` idiom. */
+function setVisible(id: string, visible: boolean) {
+  document.getElementById(id)?.classList.toggle("d-none", !visible);
+}
+
+async function submitReset(e: Event) {
   e.preventDefault();
   const token = new URLSearchParams(window.location.search).get("token") || "";
   if (!token) {
@@ -41,4 +48,22 @@ form?.addEventListener("submit", async (e) => {
   } catch {
     showMsg("Network error.", "alert-danger");
   }
-});
+}
+
+async function init() {
+  // Resetting a password is part of password login, which is retired unless the
+  // break-glass flag is set: the server refuses both reset endpoints in that
+  // state, so the page explains the way back instead of offering a form whose
+  // submit can only be refused. Token errors are still reported by submitReset
+  // when the form is shown.
+  if (!passwordLoginOffered(await fetchAuthStatus())) {
+    setVisible("resetForm", false);
+    setVisible("resetUnavailable", true);
+    return;
+  }
+
+  form?.addEventListener("submit", submitReset);
+}
+
+/** Resolves once the page has applied the login policy (awaited by tests). */
+export const resetReady: Promise<void> = init();

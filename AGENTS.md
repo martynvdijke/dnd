@@ -40,6 +40,10 @@ Fresh clone setup: `prek install && prek install --hook-type pre-push`.
 
 See [`docs/adr-data-access.md`](docs/adr-data-access.md): ent is the canonical schema and entity-CRUD path; raw parameterized SQL is allowed for projections/FTS/bulk; never interpolate client input (use `handlers/sqlident.go` for identifiers/JSON paths/`ASC`/`DESC`).
 
+## Authentication
+
+OIDC via Authelia ([`handlers/oidc.go`](handlers/oidc.go), capability `oidc-authentication`) is the default login: `OIDC_ENABLED` is treated as on when unset, and the flow activates once the `OIDC_*` variables are configured. Password login is retired — `POST /api/login` answers `403`, and password sessions issued before the cutover stop authenticating — and comes back only as documented break-glass recovery, by setting `ALLOW_PASSWORD_FALLBACK=true` and restarting (`middleware.PasswordFallbackEnabled()`). Read [`docs/oidc-rollout.md`](docs/oidc-rollout.md) before touching this path; it carries the rollout, verification and rollback procedure. API/TRMNL bearer-token auth is unaffected. The e2e suite runs with break-glass on, because `tests/helpers.ts` `login()` signs in with a password.
+
 ## Tech Debt Registry
 
 Known structural debt is tracked in [`docs/tech-debt.md`](docs/tech-debt.md) — one table row per item (ID, area, symptom, evidence, impact, owner, status, linked OpenSpec change/PR). Add an entry there instead of scattering notes, and update its status when the linked change is archived.

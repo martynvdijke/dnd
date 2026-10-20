@@ -12,7 +12,8 @@ test.describe('OIDC login (disabled)', () => {
   test('OIDC status reports disabled and login redirects are absent', async ({ page }) => {
     const status = await page.request.get('/api/auth/oidc/status');
     expect(status.ok()).toBe(true);
-    expect(await status.json()).toEqual({ enabled: false });
+    // The break-glass flag is on in the test env, so password login is reported too.
+    expect(await status.json()).toMatchObject({ enabled: false, password_enabled: true });
 
     const login = await page.request.get('/api/auth/oidc/login');
     expect(login.status()).toBe(404);

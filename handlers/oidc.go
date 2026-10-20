@@ -24,7 +24,8 @@ import (
 // OIDC login via Authelia (Authorization Code + PKCE S256). Sessions reuse the
 // same `session` cookie/store as password auth; only auth_method differs.
 // Enabled by default once fully configured; set OIDC_ENABLED=false to opt out.
-// Password login stays as fallback.
+// Password login is retired by default and only returns with the break-glass
+// flag ALLOW_PASSWORD_FALLBACK=true.
 
 // OIDCConfig is the OIDC relying-party config, read from env. The client
 // secret comes from OIDC_CLIENT_SECRET_FILE (preferred) or OIDC_CLIENT_SECRET
@@ -128,9 +129,15 @@ func setOIDCCookie(c *gin.Context, name, value string, maxAge int) {
 
 // OIDCStatus reports whether OIDC login is usable — enabled and fully
 // configured (drives the login page button). Misconfigured deployments report
-// disabled so the button never dangles; password login remains the fallback.
+// disabled so the button never dangles. Side by side it reports the password
+// policy (`password_enabled`) so the login page knows whether to offer the
+// break-glass password form: OIDC is the default, password only returns when
+// ALLOW_PASSWORD_FALLBACK is set.
 func OIDCStatus(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"enabled": loadOIDCConfig().valid()})
+	c.JSON(http.StatusOK, gin.H{
+		"enabled":          loadOIDCConfig().valid(),
+		"password_enabled": middleware.PasswordFallbackEnabled(),
+	})
 }
 
 // OIDCLogin starts the Authorization Code + PKCE flow (state/nonce/verifier cookies).

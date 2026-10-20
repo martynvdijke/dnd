@@ -39,6 +39,16 @@ func AuthRequired() gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "session expired"})
 			return
 		}
+		// Session cutover (retire-password-fallback): password-issued sessions no
+		// longer authenticate while the break-glass flag (ALLOW_PASSWORD_FALLBACK)
+		// is off. The row is deleted so it cannot be retried, and the response is
+		// identical to the expired-session path (same status, same body) so the
+		// client sees one "re-authenticate" outcome. OIDC sessions are left alone.
+		if sess.AuthMethod == "password" && !PasswordFallbackEnabled() {
+			Store.Delete(sessionID)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "session expired"})
+			return
+		}
 		c.Set("user_id", sess.UserID)
 		c.Set("username", sess.Username)
 		c.Set("role", sess.Role)

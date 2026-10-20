@@ -30,15 +30,25 @@
         <button type="submit" class="btn btn-primary w-100 py-2" data-testid="login-submit"><i class="fa-solid fa-key me-2" aria-hidden="true"></i>Enter the Archives</button>
       </form>
       <div id="oidcLogin" class="d-none">
-        <div class="d-flex align-items-center my-3"><hr class="flex-grow-1"><span class="px-2 text-muted small">or</span><hr class="flex-grow-1"></div>
+        <p id="oidcOnlyNote" class="text-center text-muted small mb-0 d-none">Password login is disabled on this deployment.</p>
+        <div id="oidcDivider" class="d-flex align-items-center my-3"><hr class="flex-grow-1"><span class="px-2 text-muted small">or</span><hr class="flex-grow-1"></div>
         <a class="btn btn-outline-primary w-100 py-2" href="/api/auth/oidc/login" data-testid="oidc-login"><i class="fa-solid fa-shield-halved me-2" aria-hidden="true"></i>Login with Authelia</a>
       </div>
-      <div class="text-center mt-3"><a href="#" id="forgotLink" class="small">Forgot password?</a></div>
-      <div id="forgotForm" class="d-none mt-3">
-        <div id="forgotMsg" class="alert d-none"></div>
-        <div class="input-group">
-          <input type="text" id="forgotInput" class="form-control" placeholder="Email or username">
-          <button class="btn btn-outline-secondary" id="forgotBtn" type="button">Send link</button>
+      <div id="loginUnavailable" class="d-none">
+        <div class="alert alert-warning mb-0" role="alert">
+          <p class="fw-semibold mb-1">Login is disabled on this deployment.</p>
+          <p class="mb-2">Password login is turned off and Authelia is not configured, so there is no way to sign in right now.</p>
+          <p class="mb-0 small">To restore access, set <code>ALLOW_PASSWORD_FALLBACK=true</code> in the server environment and restart, or configure OIDC.</p>
+        </div>
+      </div>
+      <div id="forgotBlock">
+        <div class="text-center mt-3"><a href="#" id="forgotLink" class="small">Forgot password?</a></div>
+        <div id="forgotForm" class="d-none mt-3">
+          <div id="forgotMsg" class="alert d-none"></div>
+          <div class="input-group">
+            <input type="text" id="forgotInput" class="form-control" placeholder="Email or username">
+            <button class="btn btn-outline-secondary" id="forgotBtn" type="button">Send link</button>
+          </div>
         </div>
       </div>
       <div class="ornament mt-3">✧ ✦ ✧</div>

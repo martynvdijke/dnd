@@ -34,6 +34,13 @@
         </div>
         <button type="submit" class="btn btn-gold w-100 py-2"><i class="fa-solid fa-wand-sparkles me-2" aria-hidden="true"></i>Forge the Sigil</button>
       </form>
+      <div id="setupUnavailable" class="d-none">
+        <div class="alert alert-warning mb-0" role="alert">
+          <p class="fw-semibold mb-1">The first admin cannot be created here.</p>
+          <p class="mb-2">Password login is turned off on this deployment, and this form creates the first admin by setting a password.</p>
+          <p class="mb-0 small">Create the first admin by signing in through Authelia, or set <code>ALLOW_PASSWORD_FALLBACK=true</code> in the server environment and restart to use this form.</p>
+        </div>
+      </div>
       <div class="ornament mt-3">✧ ✦ ✧</div>
       <div class="text-center mt-3"><a href="#" onclick="toggleTheme();return false" class="text-muted small"><i class="fa-solid fa-moon" aria-hidden="true" id="themeIcon"></i> <span id="themeLabel">Dark Mode</span></a></div>
     </div>
