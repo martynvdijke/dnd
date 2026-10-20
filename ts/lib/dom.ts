@@ -55,30 +55,51 @@ export function showModal(title: string, bodyHtml: string): void {
   modal.show();
 }
 
+let pendingHide: HTMLElement | null = null;
+
+// The backdrop and the body scroll lock are shared by every Bootstrap modal on
+// the page, so they may only be cleared once no dialog is still visible.
+// Otherwise hiding one dialog leaves another one open without a backdrop and
+// with the page scrolled behind it.
+export function shouldClearModalChrome(el: HTMLElement | null): boolean {
+  if (el && el.classList.contains('show')) return false;
+  return !document.querySelector('.modal.show');
+}
+
+function clearModalChrome(el: HTMLElement | null): void {
+  if (!shouldClearModalChrome(el)) return;
+  document.querySelectorAll('.modal-backdrop').forEach(x => x.remove());
+  document.body.classList.remove('modal-open');
+  document.body.style.removeProperty('padding-right');
+}
+
 export function hideModal(): void {
   const modal = getModal();
   const el = document.getElementById('genericModal');
-  const cleanup = (): void => {
-    document.querySelectorAll('.modal-backdrop').forEach(x => x.remove());
-    document.body.classList.remove('modal-open');
-    document.body.style.removeProperty('padding-right');
-  };
   modal.hide();
-  cleanup();
-  if (!el || !el.classList.contains('show')) return;
+  clearModalChrome(el);
+  if (!el || !el.classList.contains('show')) {
+    pendingHide = null;
+    return;
+  }
+  if (pendingHide === el) return;
   // Bootstrap ignores hide() while the opening fade is still running, so a
   // close issued right after open (scripted or a quick click) is a no-op.
   // Retry once the modal has finished appearing; the hidden listener cancels
   // the retry when hide() did take effect.
+  pendingHide = el;
+  const detach = (): void => {
+    el.removeEventListener('shown.bs.modal', onShown);
+    el.removeEventListener('hidden.bs.modal', onHidden);
+    if (pendingHide === el) pendingHide = null;
+  };
   const onShown = (): void => {
     el.removeEventListener('shown.bs.modal', onShown);
-    el.removeEventListener('hidden.bs.modal', onHidden);
     modal.hide();
-    cleanup();
   };
   const onHidden = (): void => {
-    el.removeEventListener('shown.bs.modal', onShown);
-    el.removeEventListener('hidden.bs.modal', onHidden);
+    detach();
+    clearModalChrome(el);
   };
   el.addEventListener('shown.bs.modal', onShown);
   el.addEventListener('hidden.bs.modal', onHidden);
