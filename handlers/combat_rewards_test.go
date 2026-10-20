@@ -97,22 +97,29 @@ func TestMonsterAttackerUsesProvidedName(t *testing.T) {
 	testutil.AssertStatus(t, w, 201)
 	testutil.ParseJSON(t, w, &target)
 
-	w = testutil.PostJSON(t, r, "/api/combat/attack", map[string]any{
-		"attacker_type": "combat",
-		"attacker_name": "Goblin Boss",
-		"target_type":   "combat",
-		"target_id":     target.ID,
-		"attack_bonus":  100,
-		"damage_dice":   "1d6",
-		"apply":         true,
-	})
-	testutil.AssertStatus(t, w, 200)
 	var res struct {
 		Hit      bool `json:"hit"`
 		LogID    int  `json:"log_id"`
 		TargetHP *int `json:"target_hp"`
 	}
-	testutil.ParseJSON(t, w, &res)
+	// A natural 1 always misses, so a single roll would flake at 5%. Retry until
+	// the attack lands; 20 consecutive misses is a ~1e-26 event.
+	for attempt := 0; attempt < 20; attempt++ {
+		w = testutil.PostJSON(t, r, "/api/combat/attack", map[string]any{
+			"attacker_type": "combat",
+			"attacker_name": "Goblin Boss",
+			"target_type":   "combat",
+			"target_id":     target.ID,
+			"attack_bonus":  100,
+			"damage_dice":   "1d6",
+			"apply":         true,
+		})
+		testutil.AssertStatus(t, w, 200)
+		testutil.ParseJSON(t, w, &res)
+		if res.Hit {
+			break
+		}
+	}
 	if !res.Hit {
 		t.Fatal("expected the monster attack to hit a low-AC target")
 	}
