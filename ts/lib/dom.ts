@@ -56,10 +56,32 @@ export function showModal(title: string, bodyHtml: string): void {
 }
 
 export function hideModal(): void {
-  getModal().hide();
-  document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
-  document.body.classList.remove('modal-open');
-  document.body.style.removeProperty('padding-right');
+  const modal = getModal();
+  const el = document.getElementById('genericModal');
+  const cleanup = (): void => {
+    document.querySelectorAll('.modal-backdrop').forEach(x => x.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('padding-right');
+  };
+  modal.hide();
+  cleanup();
+  if (!el || !el.classList.contains('show')) return;
+  // Bootstrap ignores hide() while the opening fade is still running, so a
+  // close issued right after open (scripted or a quick click) is a no-op.
+  // Retry once the modal has finished appearing; the hidden listener cancels
+  // the retry when hide() did take effect.
+  const onShown = (): void => {
+    el.removeEventListener('shown.bs.modal', onShown);
+    el.removeEventListener('hidden.bs.modal', onHidden);
+    modal.hide();
+    cleanup();
+  };
+  const onHidden = (): void => {
+    el.removeEventListener('shown.bs.modal', onShown);
+    el.removeEventListener('hidden.bs.modal', onHidden);
+  };
+  el.addEventListener('shown.bs.modal', onShown);
+  el.addEventListener('hidden.bs.modal', onHidden);
 }
 
 export type ToastOpts = { html?: boolean; isError?: boolean; duration?: number };
