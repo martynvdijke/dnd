@@ -1,3 +1,16 @@
+# [3.0.0](https://github.com/martynvdijke/dnd/compare/v2.105.1...v3.0.0) (2026-10-20)
+
+
+* feat(auth)!: retire password login in favour of OIDC ([#228](https://github.com/martynvdijke/dnd/issues/228)) ([0080de4](https://github.com/martynvdijke/dnd/commit/0080de48859eb50392af0bf3213c8ba768974b01))
+
+
+### BREAKING CHANGES
+
+* deployments without a configured OIDC provider must set
+ALLOW_PASSWORD_FALLBACK=true until they migrate to Authelia.
+
+Co-authored-by: martynvdijke <martynvdijke@users.noreply.github.com>
+
 ## [2.105.1](https://github.com/martynvdijke/dnd/compare/v2.105.0...v2.105.1) (2026-10-20)
 
 
