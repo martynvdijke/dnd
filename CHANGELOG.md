@@ -1,3 +1,10 @@
+## [2.105.1](https://github.com/martynvdijke/dnd/compare/v2.105.0...v2.105.1) (2026-10-20)
+
+
+### Bug Fixes
+
+* keep other open modals intact when hiding the generic modal ([#227](https://github.com/martynvdijke/dnd/issues/227)) ([097778f](https://github.com/martynvdijke/dnd/commit/097778fb3a27ffd1ebf4bb90c489d9e694adc068))
+
 # [2.105.0](https://github.com/martynvdijke/dnd/compare/v2.104.0...v2.105.0) (2026-10-19)
 
 
