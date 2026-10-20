@@ -1,6 +1,6 @@
 ## Context
 
-`add-authelia-oidc` introduced OIDC login against Authelia at `https://authelia.vandijke.xyz` as an additive capability, keeping password/session login ON until OIDC is verified end-to-end. That change shipped code (handlers, middleware, session columns `oidc_sub`/`auth_method`, `OIDC_ENABLED=false` default, `OIDC_CLIENT_SECRET_FILE`, groups→admin sync) but its operator verification tasks 5.1–5.5 remain unchecked — OIDC is not yet proven in production. The intended end state — OIDC as the primary and only default login with password retired — has no change capturing defaults, session cutover, UI, or rollback.
+`add-authelia-oidc` introduced OIDC login against Authelia at `https://authelia.vandijke.xyz` as an additive capability, keeping password/session login ON until OIDC is verified end-to-end. That change shipped code (handlers, middleware, session columns `oidc_sub`/`auth_method`, `OIDC_CLIENT_SECRET_FILE`, groups→admin sync) and already defaults OIDC on — `handlers/oidc.go` treats `OIDC_ENABLED` as enabled when unset and `docker-compose.yml` passes `${OIDC_ENABLED:-true}`, so task 2.1 is verification-only. Its operator verification tasks 5.1–5.5 were then verified against the live deployment on 2026-10-17 (recorded in `docs/oidc-rollout.md`) and the change is archived, so OIDC is proven in production. The intended end state — OIDC as the primary and only default login with password retired — has no change capturing defaults, session cutover, UI, or rollback.
 
 Stakeholders: DND (Villum) operators (homelab), end users who currently use password login. Constraint: TRMNL/API token auth is out of scope and unaffected.
 
@@ -31,6 +31,16 @@ Stakeholders: DND (Villum) operators (homelab), end users who currently use pass
 
 - **Login UI conditional on break-glass**: Single code path — Authelia-only by default, password fields only when break-glass is set. Avoids a separate "password disabled" page.
 
+- **Break-glass flag name finalized as `ALLOW_PASSWORD_FALLBACK`**: read per request through `middleware.PasswordFallbackEnabled()`, which treats only `true`/`1` (trimmed, case-insensitive) as enabled. This matches the example name in the spec delta, so the spec, `docker-compose.yml` and the code agree on one spelling.
+
+- **One gate covers both login branches**: `HandleLogin` refuses with `403 {"error": "password login is disabled"}` after binding and *before* the setup/first-admin branch and the normal branch. Gating setup too is deliberate — it would otherwise mint a password session that middleware rejects on the very next request. A distinct `403` rather than an indistinguishable `401` leaks nothing (the login page already discloses the retirement) and lets an operator diagnose a misconfigured deployment.
+
+- **Session cutover is lazy rejection in `AuthRequired`**: a bearer of a session whose `auth_method == "password"` is deleted and answered with `401 {"error": "session expired"}` while break-glass is off; OIDC sessions pass through untouched. Rejected alternative: a blanket `DELETE FROM auth_sessions WHERE auth_method='password'` at startup — it cannot be undone by flipping the flag back and would destroy break-glass sessions created after the cutover.
+
+- **The e2e suite runs with break-glass on**: `tests/fixtures.ts` spawns the server with `ALLOW_PASSWORD_FALLBACK=true` because `tests/helpers.ts` `login()` signs in with a password. This keeps CI green without weakening the shipped default, and exercises the recovery path on every run.
+
+- **A fresh deployment with no admin bootstraps through break-glass**: first-run setup creates an email-less admin that OIDC email linking can never claim, so the setup path is gated alongside normal login and the bootstrap procedure is documented as a break-glass case.
+
 ## Risks / Trade-offs
 
 - **Lockout before OIDC is proven** → Mitigation: sequencing dependency — this change MUST NOT ship before `add-authelia-oidc` tasks 5.1–5.5 are verified and the change is archived. Pre-cutover checklist includes live login/logout, NPM bypass, and public/private route checks.
@@ -40,7 +50,7 @@ Stakeholders: DND (Villum) operators (homelab), end users who currently use pass
 
 ## Migration Plan
 
-1. Verify `add-authelia-oidc` operator tasks 5.1–5.5 (Authelia client registration, NPM bypass, login/logout, public/private route checks) and archive that change.
+1. Verify `add-authelia-oidc` operator tasks 5.1–5.5 (Authelia client registration, NPM bypass, login/logout, public/private route checks) and archive that change. **Done 2026-10-17**: the tasks were confirmed against the live deployment and the change is archived (`openspec/changes/archive/2026-10-17-add-authelia-oidc`, capability `oidc-authentication`).
 2. Flip defaults (`OIDC_ENABLED=true` by default, password disabled unless `ALLOW_PASSWORD_FALLBACK=true`).
 3. Invalidate/migrate existing password-issued sessions.
 4. Update login UI to be Authelia-only unless break-glass is set.
@@ -49,7 +59,7 @@ Stakeholders: DND (Villum) operators (homelab), end users who currently use pass
 
 Rollback: set break-glass flag (and if needed `OIDC_ENABLED=false`) and restart; password login resumes with same session cookie shape. No data migration to undo beyond session re-auth.
 
-## Open Questions
+## Resolved Questions
 
-- Exact break-glass flag name (`ALLOW_PASSWORD_FALLBACK` vs `PASSWORD_FALLBACK_ENABLED`) — to be finalized in implementation; spec uses example name.
-- Session invalidation strategy: bulk expiry of `auth_method=password` rows vs lazy rejection on next request — implementation may choose either as long as password sessions no longer authenticate when break-glass is off.
+- Break-glass flag name: `ALLOW_PASSWORD_FALLBACK` (see Decisions).
+- Session invalidation strategy: lazy rejection in `AuthRequired` (see Decisions), chosen over a bulk startup `DELETE` because flipping the flag back must be able to restore password login.

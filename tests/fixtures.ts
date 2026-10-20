@@ -119,6 +119,11 @@ export const test = base.extend<{}, { workerData: WorkerData }>({
           DB_PATH: dbPath,
           PORT: String(port),
           AUTO_SETUP: 'true',
+          // OIDC is the only default login, so password login is retired unless
+          // the break-glass flag is set. The suite signs in with a password, so
+          // it runs with the flag on — which also keeps the recovery path
+          // continuously exercised instead of only tested in isolation.
+          ALLOW_PASSWORD_FALLBACK: 'true',
           BASE_URL: `http://localhost:${port}`,
           TELEGRAM_API_BASE: telegramMockUrl,
           TELEGRAM_BOT_TOKEN: telegramMock.botToken,

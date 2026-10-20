@@ -21,6 +21,7 @@ OIDC login via Authelia was added additively in `add-authelia-oidc` but password
 ### Modified Capabilities
 
 - `api-authentication`: Retire password login as the default; define OIDC-default, break-glass override, session cutover, login UI, and rollback/sequencing requirements.
+- `oidc-authentication`: Rename and rewrite the now-superseded "Password fallback until verified + no secret in git" requirement so the archived spec stops asserting a policy this change retires; it becomes OIDC secret handling plus break-glass-only password recovery.
 
 ## Impact
 

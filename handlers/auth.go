@@ -34,6 +34,18 @@ func HandleLogin(c *gin.Context) {
 		return
 	}
 
+	// Password login is retired by default (OIDC is primary). The gate runs
+	// before BOTH branches below: the normal lookup and the first-admin
+	// bootstrap, so /setup cannot mint a password session cookie that the
+	// middleware would immediately reject while password auth is off.
+	// 403 (not 401): the login page already discloses that password login is
+	// retired, so a distinct message leaks nothing and lets an operator
+	// diagnose a deployment instead of hunting a phantom credential problem.
+	if !middleware.PasswordFallbackEnabled() {
+		c.JSON(http.StatusForbidden, gin.H{"error": "password login is disabled"})
+		return
+	}
+
 	if req.Setup {
 		count, err := db.Client.User.Query().Where(user.Role("admin")).Count(c.Request.Context())
 		if err != nil {

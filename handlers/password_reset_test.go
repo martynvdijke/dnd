@@ -14,6 +14,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 
 	"villum/db"
+	"villum/middleware"
 	"villum/models"
 
 	_ "modernc.org/sqlite"
@@ -162,6 +163,102 @@ func TestPasswordResetFlow(t *testing.T) {
 		r.ServeHTTP(w, req)
 		if w.Code == 200 {
 			t.Fatalf("expired token should fail")
+		}
+	})
+}
+
+// TestPasswordResetRetiredByDefault proves that when the password break-glass
+// flag is off, the reset surface is refused exactly like POST /api/login: no
+// token is minted, no token is consumed, and no password is written. It must
+// not call t.Parallel because it uses t.Setenv (which requires a clean
+// environment and is illegal in parallel tests).
+func TestPasswordResetRetiredByDefault(t *testing.T) {
+	r := setupResetTestDB(t)
+	// The handlers package runs with break-glass on (see main_test.go TestMain);
+	// this test owns the retired behaviour explicitly.
+	t.Setenv(middleware.PasswordFallbackEnvVar, "false")
+
+	var capturedLink string
+	orig := SendEmailFunc
+	SendEmailFunc = func(s *models.EmailSettings, to, subject, body string) error {
+		capturedLink = body
+		return nil
+	}
+	defer func() { SendEmailFunc = orig }()
+
+	username := "reset_retired"
+	email := "retired@example.com"
+	createResetUser(t, username, email, "oldpassword123")
+
+	t.Run("forgot-password refused and mints no token", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest("POST", "/api/forgot-password", bytes.NewReader([]byte(`{"email":"`+email+`"}`)))
+		req.Header.Set("Content-Type", "application/json")
+		r.ServeHTTP(w, req)
+		if w.Code != 403 {
+			t.Fatalf("expected 403 got %d %s", w.Code, w.Body.String())
+		}
+		var resp map[string]any
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		if resp["error"] != "password login is disabled" {
+			t.Fatalf("expected retired message, got %v", resp["error"])
+		}
+		var count int
+		db.DB.QueryRow(`SELECT COUNT(*) FROM password_reset_tokens WHERE user_id=(SELECT id FROM users WHERE username=?)`, username).Scan(&count)
+		if count != 0 {
+			t.Fatalf("expected no token minted, got %d", count)
+		}
+		if capturedLink != "" {
+			t.Fatalf("expected no email sent, got %q", capturedLink)
+		}
+	})
+
+	knownToken := "retiredtoken1234567890retiredtoken1234567890retired1234567890abcd"
+	knownHash := func(s string) string { h := sha256.Sum256([]byte(s)); return hex.EncodeToString(h[:]) }(knownToken)
+	db.DB.Exec(`INSERT INTO password_reset_tokens (user_id, token_hash, expires_at, created_at) VALUES ((SELECT id FROM users WHERE username=?), ?, ?, ?)`, username, knownHash, time.Now().Add(1*time.Hour).Unix(), time.Now().Unix())
+	var hashBefore string
+	db.DB.QueryRow(`SELECT password FROM users WHERE username=?`, username).Scan(&hashBefore)
+
+	t.Run("reset-password refused and leaves password and token untouched", func(t *testing.T) {
+		w := httptest.NewRecorder()
+		body, _ := json.Marshal(map[string]string{"token": knownToken, "new_password": "newpassword123"})
+		req := httptest.NewRequest("POST", "/api/reset-password", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		r.ServeHTTP(w, req)
+		if w.Code != 403 {
+			t.Fatalf("expected 403 got %d %s", w.Code, w.Body.String())
+		}
+		var resp map[string]any
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		if resp["error"] != "password login is disabled" {
+			t.Fatalf("expected retired message, got %v", resp["error"])
+		}
+		var hashAfter string
+		db.DB.QueryRow(`SELECT password FROM users WHERE username=?`, username).Scan(&hashAfter)
+		if hashAfter != hashBefore {
+			t.Fatalf("password hash changed while password login is retired")
+		}
+		var usedAt sql.NullInt64
+		db.DB.QueryRow(`SELECT used_at FROM password_reset_tokens WHERE token_hash=?`, knownHash).Scan(&usedAt)
+		if usedAt.Valid {
+			t.Fatalf("token was consumed while password login is retired")
+		}
+	})
+
+	t.Run("token works once break-glass is set", func(t *testing.T) {
+		t.Setenv(middleware.PasswordFallbackEnvVar, "true")
+		w := httptest.NewRecorder()
+		body, _ := json.Marshal(map[string]string{"token": knownToken, "new_password": "newpassword123"})
+		req := httptest.NewRequest("POST", "/api/reset-password", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		r.ServeHTTP(w, req)
+		if w.Code != 200 {
+			t.Fatalf("expected 200 once fallback enabled, got %d %s", w.Code, w.Body.String())
+		}
+		var pw string
+		db.DB.QueryRow(`SELECT password FROM users WHERE username=?`, username).Scan(&pw)
+		if err := bcrypt.CompareHashAndPassword([]byte(pw), []byte("newpassword123")); err != nil {
+			t.Fatalf("new password hash mismatch: %v", err)
 		}
 	})
 }

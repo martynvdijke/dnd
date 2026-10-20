@@ -16,9 +16,12 @@ Proxy Manager forward-auth bypass must be in place *before* users start logging 
 forward-auth intercepts `/api/auth/oidc/callback` and turns the authorization-code
 exchange into a redirect loop.
 
-Do not remove password login as part of this rollout. Password login stays enabled as the
-fallback until OIDC has been verified end to end; removing it is a follow-up change
-(`retire-password-fallback`).
+Password login was retired by the follow-up change `retire-password-fallback`: OIDC is the
+only default login, `POST /api/login` answers `403`, and password sessions created before
+the cutover no longer authenticate. Password login comes back only through the break-glass
+flag `ALLOW_PASSWORD_FALLBACK=true` (see Rollback below) — which is also how a deployment
+that has no admin yet must bootstrap, because the first-run admin has no email for OIDC to
+link.
 
 ## 1. Register the Authelia client (task 5.1)
 
@@ -174,14 +177,29 @@ outside.
 
 ## Rollback
 
-Set `OIDC_ENABLED=false` and restart the stack:
+Password login is retired by default. The recovery path is the break-glass flag, which
+takes effect on restart and needs no code change:
 
 ```bash
 # in .env
+ALLOW_PASSWORD_FALLBACK=true
+docker compose up -d
+```
+
+Password login and the password form return. Sessions created while break-glass is on
+authenticate normally; sessions that carry `auth_method=password` from before the cutover
+were rejected by the cutover, so those users sign in again.
+
+If the issuer itself is the problem, drop OIDC as well and restart:
+
+```bash
+# in .env
+ALLOW_PASSWORD_FALLBACK=true
 OIDC_ENABLED=false
 docker compose up -d
 ```
 
-Password login returns immediately, and the Authelia button disappears because the
-configuration is no longer complete. Existing sessions are unaffected: rolling the toggle
-does not invalidate any session, so nobody is logged out by the rollback.
+The Authelia button disappears because the configuration is no longer complete.
+
+Unset `ALLOW_PASSWORD_FALLBACK` once Authelia is healthy again: that re-retires password
+login, and break-glass password sessions stop authenticating from then on.

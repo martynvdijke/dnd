@@ -23,6 +23,10 @@ services:
       - OIDC_CLIENT_SECRET_FILE=${OIDC_CLIENT_SECRET_FILE:-}
       - OIDC_REDIRECT_URL=${OIDC_REDIRECT_URL:-}
       - OIDC_SCOPES=${OIDC_SCOPES:-}
+      # Password login is retired: OIDC is the only default. Set this to true
+      # only as break-glass when Authelia is unreachable or misconfigured.
+      # Rollback: ALLOW_PASSWORD_FALLBACK=true and restart.
+      - ALLOW_PASSWORD_FALLBACK=${ALLOW_PASSWORD_FALLBACK:-false}
     volumes:
       - villum-data:/db
       - villum-media:/app/media

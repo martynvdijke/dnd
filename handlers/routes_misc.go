@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"villum/db"
 	"villum/ent/user"
+	"villum/middleware"
 )
 
 // RegisterPublicRoutes registers non-authenticated routes.
@@ -17,7 +18,8 @@ func RegisterPublicRoutes(r *gin.Engine) {
 	r.GET("/metrics", HandleMetrics)
 	r.GET("/api/check-setup", CheckSetup)
 	r.POST("/api/login", HandleLogin)
-	// OIDC SSO (enabled by default when configured; password login stays as fallback)
+	// OIDC SSO (enabled by default when configured; password login retired
+	// unless the ALLOW_PASSWORD_FALLBACK break-glass flag is set)
 	r.GET("/api/auth/oidc/status", OIDCStatus)
 	r.GET("/api/auth/oidc/login", OIDCLogin)
 	r.GET("/api/auth/oidc/callback", OIDCCallback)
@@ -200,6 +202,14 @@ func RegisterStaticRoutes(r *gin.Engine, embedFS embed.FS, mediaPath string, Ver
 	// Serve HTML pages with version substitution and optional analytics injection
 	serveHTML := func(path, fileName string, pageType string) {
 		r.GET(path, func(c *gin.Context) {
+			// The reset page exists only to enable password login, which is
+			// retired by default (OIDC is primary). Send visitors to /login
+			// rather than serve a form whose submission the API now refuses;
+			// break-glass (ALLOW_PASSWORD_FALLBACK) re-enables it.
+			if path == "/reset-password" && !middleware.PasswordFallbackEnabled() {
+				c.Redirect(http.StatusTemporaryRedirect, "/login")
+				return
+			}
 			data, err := fs.ReadFile(staticFS, fileName)
 			if err != nil {
 				c.String(http.StatusNotFound, "not found")

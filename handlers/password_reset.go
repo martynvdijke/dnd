@@ -65,6 +65,16 @@ func rateLimited(ip string) bool {
 
 // RequestPasswordReset PUBLIC POST /api/forgot-password
 func RequestPasswordReset(c *gin.Context) {
+	// The reset flow exists only to enable password login, which is retired by
+	// default (OIDC is primary). Refuse before any work: with password login
+	// off, a minted reset token could only set a credential that POST
+	// /api/login would immediately reject. Message matches the login gate so
+	// operators see one story. Break-glass (ALLOW_PASSWORD_FALLBACK) re-enables
+	// it alongside password login.
+	if !middleware.PasswordFallbackEnabled() {
+		c.JSON(http.StatusForbidden, gin.H{"error": "password login is disabled"})
+		return
+	}
 	if rateLimited(c.ClientIP()) {
 		c.JSON(http.StatusTooManyRequests, gin.H{"error": "too many requests"})
 		return
@@ -144,6 +154,15 @@ func RequestPasswordReset(c *gin.Context) {
 
 // ResetPassword PUBLIC POST /api/reset-password
 func ResetPassword(c *gin.Context) {
+	// Same policy as RequestPasswordReset: the flow exists only to enable
+	// password login, which is retired by default. Refuse before binding or
+	// touching the token, so no token is consumed, no password is written and
+	// no session is cleared for login that could never authenticate. Message
+	// matches the login gate so operators see one story.
+	if !middleware.PasswordFallbackEnabled() {
+		c.JSON(http.StatusForbidden, gin.H{"error": "password login is disabled"})
+		return
+	}
 	var req struct {
 		Token       string `json:"token"`
 		NewPassword string `json:"new_password"`

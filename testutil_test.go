@@ -24,6 +24,13 @@ func TestMain(m *testing.M) {
 	os.Remove(testDB + "-wal")
 	os.Remove(testDB + "-shm")
 
+	// The end-to-end router tests sign in through /api/login and carry password
+	// sessions through middleware.AuthRequired. Both are refused once OIDC is the
+	// default login unless the break-glass flag is set, so the suite runs with it
+	// on — which also keeps the recovery path exercised. Tests asserting the
+	// retired behaviour flip it off themselves with t.Setenv.
+	os.Setenv(middleware.PasswordFallbackEnvVar, "true")
+
 	if err := db.Init(testDB); err != nil {
 		fmt.Printf("Failed to init test db: %v\n", err)
 		os.Exit(1)
