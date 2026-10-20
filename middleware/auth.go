@@ -4,6 +4,9 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"net/http"
+	"net/url"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -72,10 +75,54 @@ func DMRequired() gin.HandlerFunc {
 	}
 }
 
+// requestOriginAllowed validates the Origin (or Referer fallback) of a
+// state-changing cookie-authenticated request. Browsers always send one of
+// these headers on cross-site requests, so a present-but-foreign origin is
+// rejected even when an attacker somehow obtained a CSRF token. Requests with
+// neither header (CLI/mobile clients using an API token) are left to the
+// token check.
+func requestOriginAllowed(c *gin.Context) bool {
+	origin := c.GetHeader("Origin")
+	if origin == "" {
+		origin = c.GetHeader("Referer")
+	}
+	if origin == "" {
+		return true
+	}
+	if origin == "null" {
+		return false
+	}
+	u, err := url.Parse(origin)
+	if err != nil || u.Host == "" {
+		return false
+	}
+	if c.Request.Host == "" || strings.EqualFold(u.Host, c.Request.Host) {
+		return true
+	}
+	// Optional explicit allowlist for reverse proxies / split frontends.
+	for _, allowed := range strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",") {
+		allowed = strings.TrimSpace(allowed)
+		if allowed == "" {
+			continue
+		}
+		if strings.EqualFold(allowed, origin) {
+			return true
+		}
+		if au, err := url.Parse(allowed); err == nil && strings.EqualFold(au.Host, u.Host) {
+			return true
+		}
+	}
+	return false
+}
+
 func CSRFRequired() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if c.Request.Method == "GET" || c.Request.Method == "HEAD" || c.Request.Method == "OPTIONS" {
 			c.Next()
+			return
+		}
+		if !requestOriginAllowed(c) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "cross-origin request rejected"})
 			return
 		}
 		token := c.GetHeader("X-CSRF-Token")
@@ -121,11 +168,16 @@ func SecurityHeaders() gin.HandlerFunc {
 	}
 }
 
+// ErrorHandler converts unhandled handler errors into a generic 500 response.
+// Details stay in the server log; clients never see internal error text.
 func ErrorHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Next()
 		if len(c.Errors) > 0 {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": c.Errors.Last().Error()})
+			LogError("http", "unhandled handler error",
+				"method", c.Request.Method, "path", c.Request.URL.Path,
+				"error", c.Errors.Last().Error())
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 		}
 	}
 }

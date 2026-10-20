@@ -74,7 +74,7 @@ func ListCompendiumEntries(c *gin.Context) {
 			WHERE e.schema_id=? AND compendium_entries_fts MATCH ?
 			ORDER BY `+orderBy+` LIMIT ? OFFSET ?`, args...)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			InternalError(c, err)
 			return
 		}
 		defer rows.Close()
@@ -88,7 +88,7 @@ func ListCompendiumEntries(c *gin.Context) {
 			FROM compendium_entries e WHERE e.schema_id=? ORDER BY `+orderBy+` LIMIT ? OFFSET ?`,
 			args...)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			InternalError(c, err)
 			return
 		}
 		defer rows.Close()
@@ -214,7 +214,7 @@ func CreateCompendiumEntry(c *gin.Context) {
 
 	result, err := db.DB.Exec(`INSERT INTO compendium_entries(schema_id, data) VALUES(?,?)`, schemaID, string(dataJSON))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -248,7 +248,7 @@ func UpdateCompendiumEntry(c *gin.Context) {
 
 	result, err := db.DB.Exec(`UPDATE compendium_entries SET data=?, updated_at=datetime('now') WHERE id=?`, string(dataJSON), id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	affected, _ := result.RowsAffected()
@@ -267,7 +267,7 @@ func DeleteCompendiumEntry(c *gin.Context) {
 	}
 	result, err := db.DB.Exec("DELETE FROM compendium_entries WHERE id=?", id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	affected, _ := result.RowsAffected()
@@ -301,7 +301,7 @@ func BatchDeleteCompendiumEntries(c *gin.Context) {
 
 	result, err := db.DB.Exec("DELETE FROM compendium_entries WHERE id IN ("+strings.Join(placeholders, ",")+")", args...)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	deleted, _ := result.RowsAffected()
@@ -386,7 +386,7 @@ func SearchCompendiumEntries(c *gin.Context) {
 
 	rows, err := db.DB.Query(query, args...)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -465,7 +465,7 @@ func ExportCompendiumEntries(c *gin.Context) {
 		r, err := db.DB.Query(`SELECT id, data, created_at FROM compendium_entries
 			WHERE schema_id=? AND id IN (`+placeholders+`) ORDER BY id`, args...)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			InternalError(c, err)
 			return
 		}
 		rows = r
@@ -476,14 +476,14 @@ func ExportCompendiumEntries(c *gin.Context) {
 			WHERE e.schema_id=? AND compendium_entries_fts MATCH ?
 			ORDER BY e.created_at DESC`, schemaID, filter)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			InternalError(c, err)
 			return
 		}
 		rows = r
 	} else {
 		r, err := db.DB.Query(`SELECT id, data, created_at FROM compendium_entries WHERE schema_id=? ORDER BY created_at DESC`, schemaID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			InternalError(c, err)
 			return
 		}
 		rows = r
@@ -536,7 +536,7 @@ func ListCompendiumImportLogs(c *gin.Context) {
 	rows, err := db.DB.Query(`SELECT id, user_id, status, files, mapping, summary, created_at, rolled_back_at
 		FROM compendium_import_logs ORDER BY created_at DESC LIMIT 50`)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -612,7 +612,7 @@ func RollbackCompendiumImport(c *gin.Context) {
 	}
 	_, err = db.DB.Exec(`UPDATE compendium_import_logs SET status='rolled_back', rolled_back_at=datetime('now') WHERE id=?`, logID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})

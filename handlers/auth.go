@@ -68,8 +68,8 @@ func HandleLogin(c *gin.Context) {
 			return
 		}
 		sessionID := middleware.Store.Create(u.ID, req.Username, "admin", c.ClientIP())
-		c.SetCookie("session", sessionID, 86400, "/", "", false, true)
-		c.JSON(http.StatusOK, gin.H{"session": sessionID, "user": gin.H{"id": u.ID, "username": req.Username, "role": "admin"}})
+		middleware.SetSessionCookie(c, sessionID, 86400)
+		c.JSON(http.StatusOK, gin.H{"user": gin.H{"id": u.ID, "username": req.Username, "role": "admin"}})
 		return
 	}
 
@@ -89,8 +89,8 @@ func HandleLogin(c *gin.Context) {
 	}
 
 	sessionID := middleware.Store.Create(u.ID, u.Username, u.Role, c.ClientIP())
-	c.SetCookie("session", sessionID, 86400, "/", "", false, true)
-	c.JSON(http.StatusOK, gin.H{"session": sessionID, "user": gin.H{"id": u.ID, "username": u.Username, "role": u.Role}})
+	middleware.SetSessionCookie(c, sessionID, 86400)
+	c.JSON(http.StatusOK, gin.H{"user": gin.H{"id": u.ID, "username": u.Username, "role": u.Role}})
 }
 
 func HandleLogout(c *gin.Context) {
@@ -98,7 +98,7 @@ func HandleLogout(c *gin.Context) {
 	if sessionID != "" {
 		middleware.Store.Delete(sessionID)
 	}
-	c.SetCookie("session", "", -1, "/", "", false, true)
+	middleware.ClearSessionCookie(c)
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
 

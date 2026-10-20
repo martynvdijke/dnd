@@ -69,7 +69,7 @@ func SaveLevelUpPlan(c *gin.Context) {
 		result, err2 := db.DB.Exec("INSERT INTO level_up_plans(character_id,target_level,plan_data,notes) VALUES(?,?,?,?)",
 			charID, plan.TargetLevel, string(planDataJSON), plan.Notes)
 		if err2 != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err2.Error()})
+			InternalError(c, err2)
 			return
 		}
 		id, _ := result.LastInsertId()

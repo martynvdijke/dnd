@@ -29,7 +29,7 @@ func CreateNPCItemLink(c *gin.Context) {
 		result, err := db.DB.Exec("INSERT INTO npc_item_links(npc_id, adventure_id, compendium_equipment_id, relationship_type, notes) VALUES(?,?,?,?,?)",
 			l.NPCID, adventureID, *l.CompendiumEquipmentID, l.RelationshipType, l.Notes)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			InternalError(c, err)
 			return
 		}
 		id, _ := result.LastInsertId()
@@ -39,7 +39,7 @@ func CreateNPCItemLink(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO npc_item_links(npc_id, adventure_id, item_id, relationship_type, notes) VALUES(?,?,?,?,?)",
 		l.NPCID, adventureID, l.ItemID, l.RelationshipType, l.Notes)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -58,7 +58,7 @@ func ListItemsForNPC(c *gin.Context) {
 		LEFT JOIN compendium_equipment ce ON ce.id = l.compendium_equipment_id
 		WHERE l.npc_id=? AND l.adventure_id=? ORDER BY item_name`, npcID, adventureID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()

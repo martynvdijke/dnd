@@ -316,7 +316,7 @@ func HandleCombatAttack(c *gin.Context) {
 	advState := CombineAdvantage(CombineAdvantage(req.Advantage, attackerAdv, attackerDis), sitAdv, sitDis)
 	raw, rolls, err := rollD20Advantage(advState)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	critical := raw == 20

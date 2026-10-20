@@ -15,7 +15,7 @@ func ListOneShotItems(c *gin.Context) {
 	adventureID := c.Param("id")
 	rows, err := db.DB.Query("SELECT id, adventure_id, name, description, category, quantity, weight, price_gp, is_magical, attunement, notes, created_at FROM oneshot_items WHERE adventure_id=? ORDER BY name", adventureID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -49,7 +49,7 @@ func CreateOneShotItem(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO oneshot_items(adventure_id, act_id, name, description, category, quantity, weight, price_gp, is_magical, attunement, notes) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
 		adventureID, it.ActID, it.Name, it.Description, it.Category, it.Quantity, it.Weight, it.PriceGP, isMag, att, it.Notes)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -82,7 +82,7 @@ func UpdateOneShotItem(c *gin.Context) {
 	_, err := db.DB.Exec("UPDATE oneshot_items SET name=?, description=?, category=?, quantity=?, weight=?, price_gp=?, is_magical=?, attunement=?, notes=? WHERE id=?",
 		it.Name, it.Description, it.Category, it.Quantity, it.Weight, it.PriceGP, isMag, att, it.Notes, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -98,7 +98,7 @@ func ListItemUploads(c *gin.Context) {
 	itemID := c.Param("id")
 	rows, err := db.DB.Query("SELECT id, hash, ext, url, COALESCE(resized_url,''), COALESCE(thumbnail_url,''), owner_type, owner_id, COALESCE(created_at,'') FROM uploads WHERE owner_type='item' AND owner_id=? ORDER BY created_at DESC", itemID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -118,7 +118,7 @@ func ListNPCsForItem(c *gin.Context) {
 		FROM npc_item_links l JOIN npcs n ON n.id = l.npc_id
 		WHERE l.item_id=? ORDER BY n.name`, itemID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()

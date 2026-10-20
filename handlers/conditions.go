@@ -19,7 +19,7 @@ func ListConditions(c *gin.Context) {
 	}
 	rows, err := db.DB.Query("SELECT id, character_id, name, type, source, duration, duration_type, saving_throw, save_dc, description, started_at FROM character_conditions WHERE character_id=? ORDER BY started_at DESC", charID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -52,7 +52,7 @@ func CreateCondition(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO character_conditions(character_id,name,type,source,duration,duration_type,saving_throw,save_dc,description) VALUES(?,?,?,?,?,?,?,?,?)",
 		cond.CharacterID, cond.Name, cond.Type, cond.Source, cond.Duration, cond.DurationType, cond.SavingThrow, cond.SaveDC, cond.Description)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -143,7 +143,7 @@ func GetActiveConditionSummary(c *gin.Context) {
 	}
 	rows, err := db.DB.Query("SELECT id, name, type, duration, duration_type FROM character_conditions WHERE character_id=? ORDER BY started_at DESC", charID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()

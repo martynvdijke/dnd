@@ -16,7 +16,7 @@ func HtmxListMonsterLibrary(c *gin.Context) {
 		senses, languages, special_abilities, actions, legendary_actions, description, created_at
 		FROM monster_library WHERE user_id=? ORDER BY name`, userID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	defer rows.Close()
@@ -107,7 +107,7 @@ func HtmxCreateMonsterLibrary(c *gin.Context) {
 		c.PostForm("special_abilities"), c.PostForm("actions"), c.PostForm("legendary_actions"),
 		c.PostForm("description"))
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	// Refresh library list
@@ -139,7 +139,7 @@ func HtmxUpdateMonsterLibrary(c *gin.Context) {
 		c.PostForm("special_abilities"), c.PostForm("actions"), c.PostForm("legendary_actions"),
 		c.PostForm("description"), id, userID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	HtmxListMonsterLibrary(c)
@@ -165,7 +165,7 @@ func HtmxMonsterLibrarySection(c *gin.Context) {
 		senses, languages, special_abilities, actions, legendary_actions, description, created_at
 		FROM monster_library WHERE user_id=? ORDER BY name`, userID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	defer rows.Close()

@@ -51,7 +51,7 @@ func ImportCompendiumMonsterToOneShot(c *gin.Context) {
 		cm.Saves, cm.Skills, cm.DamageVulnerabilities, cm.DamageResistances, cm.DamageImmunities, cm.ConditionImmunities,
 		cm.Senses, cm.Languages, cm.SpecialAbilities, cm.Actions, cm.LegendaryActions, req.CompendiumMonsterID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -84,7 +84,7 @@ func ImportCompendiumMonsterToEncounter(c *gin.Context) {
 	result, err := db.DB.Exec(`INSERT INTO encounter_monsters(encounter_id, name, count, cr, ac, hp, source, notes, compendium_monster_id) VALUES(?,?,?,?,?,?,?,?,?)`,
 		encounterID, cm.Name, req.Count, cm.CR, cm.AC, cm.HP, cm.Source, "", req.CompendiumMonsterID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -158,7 +158,7 @@ func ImportCompendiumEntryToEncounter(c *gin.Context) {
 	result, err := db.DB.Exec(`INSERT INTO encounter_monsters(encounter_id, name, count, cr, ac, hp, source, notes, compendium_entry_id) VALUES(?,?,?,?,?,?,?,?,?)`,
 		encounterID, name, req.Count, "0", 10, 1, "compendium", "", req.CompendiumEntryID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -193,7 +193,7 @@ func ImportCompendiumEntryToOneShot(c *gin.Context) {
 	result, err := db.DB.Exec(`INSERT INTO oneshot_monsters(adventure_id, act_id, scene_id, name, ac, hp, cr, source, compendium_entry_id) VALUES(?,?,?,?,?,?,?,?,?)`,
 		req.AdventureID, req.ActID, req.SceneID, name, 10, 1, "0", "compendium", req.CompendiumEntryID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -227,7 +227,7 @@ func ImportCompendiumEquipmentToOneShot(c *gin.Context) {
 		result, err := db.DB.Exec(`INSERT INTO oneshot_items(adventure_id, act_id, name, description, category, quantity, weight, price_gp, is_magical, compendium_entry_id) VALUES(?,?,?,?,?,?,?,?,?,?)`,
 			req.AdventureID, req.ActID, snap.Name, snap.Description, snap.Category, req.Quantity, snap.Weight, parsePriceGP(snap.Cost), false, req.CompendiumEntryID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			InternalError(c, err)
 			return
 		}
 		id, _ := result.LastInsertId()
@@ -253,7 +253,7 @@ func ImportCompendiumEquipmentToOneShot(c *gin.Context) {
 	result, err := db.DB.Exec(`INSERT INTO oneshot_items(adventure_id, act_id, name, description, category, quantity, weight, price_gp, is_magical, compendium_equipment_id) VALUES(?,?,?,?,?,?,?,?,?,?)`,
 		req.AdventureID, req.ActID, e.Name, e.Description, e.Category, req.Quantity, e.Weight, priceGP, isMagical, req.CompendiumEquipmentID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()

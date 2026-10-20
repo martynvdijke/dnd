@@ -35,7 +35,7 @@ func GetRaceColorMap() map[string]string {
 func ListRaceColors(c *gin.Context) {
 	rows, err := db.DB.Query("SELECT race_name, color FROM race_colors ORDER BY race_name")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -59,21 +59,21 @@ func UpdateRaceColors(c *gin.Context) {
 
 	tx, err := db.DB.Begin()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 
 	// Clear existing and re-insert
 	if _, err := tx.Exec("DELETE FROM race_colors"); err != nil {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 
 	stmt, err := tx.Prepare("INSERT INTO race_colors(race_name, color) VALUES(?, ?)")
 	if err != nil {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer stmt.Close()
@@ -88,13 +88,13 @@ func UpdateRaceColors(c *gin.Context) {
 		}
 		if _, err := stmt.Exec(rc.RaceName, color); err != nil {
 			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			InternalError(c, err)
 			return
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 

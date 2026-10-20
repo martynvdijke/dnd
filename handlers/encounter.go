@@ -24,7 +24,7 @@ func ListEncounters(c *gin.Context) {
 		rows, err = db.DB.Query("SELECT id, campaign_id, user_id, name, description, environment, difficulty, xp_budget, total_xp, notes, created_at FROM encounter_templates WHERE user_id=? ORDER BY created_at DESC", userID)
 	}
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -48,7 +48,7 @@ func CreateEncounter(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO encounter_templates(campaign_id,user_id,name,description,environment,difficulty,xp_budget,total_xp,notes) VALUES(?,?,?,?,?,?,?,?,?)",
 		e.CampaignID, userID, e.Name, e.Description, e.Environment, e.Difficulty, e.XPBudget, e.TotalXP, e.Notes)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -107,7 +107,7 @@ func ListCampaignEncounterMonsters(c *gin.Context) {
 	encounterID := c.Param("id")
 	rows, err := db.DB.Query("SELECT id, encounter_id, name, count, cr, xp, ac, hp, initiative_mod, source, notes, compendium_monster_id FROM encounter_monsters WHERE encounter_id=? ORDER BY id", encounterID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -173,7 +173,7 @@ func CreateCampaignEncounterMonster(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO encounter_monsters(encounter_id,name,count,cr,xp,ac,hp,initiative_mod,source,notes,compendium_monster_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
 		eid, req.Name, req.Count, req.CR, req.XP, req.AC, req.HP, req.InitiativeMod, req.Source, req.Notes, req.CompendiumMonsterID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -233,7 +233,7 @@ func AddEncounterMonster(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO encounter_monsters(encounter_id,name,count,cr,xp,ac,hp,initiative_mod,source,notes,compendium_monster_id) VALUES(?,?,?,?,?,?,?,?,?,?,?)",
 		eid, req.Name, req.Count, req.CR, req.XP, req.AC, req.HP, req.InitiativeMod, req.Source, req.Notes, req.CompendiumMonsterID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()

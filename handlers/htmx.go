@@ -107,7 +107,7 @@ func truncate(s string, n int) string {
 func renderTemplate(c *gin.Context, name string, data any) {
 	c.Header("Content-Type", "text/html; charset=utf-8")
 	if err := htmxTemplates.ExecuteTemplate(c.Writer, name, data); err != nil {
-		c.String(http.StatusInternalServerError, "template error: %v", err)
+		InternalErrorText(c, err)
 	}
 }
 
@@ -176,7 +176,7 @@ func HtmxMediaGallery(c *gin.Context) {
 			WHERE u.owner_type = ? AND u.owner_id = ?
 			ORDER BY u.created_at DESC`, ownerType, ownerID)
 		if err != nil {
-			c.String(http.StatusInternalServerError, err.Error())
+			InternalErrorText(c, err)
 			return
 		}
 	}

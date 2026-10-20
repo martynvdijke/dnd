@@ -174,7 +174,7 @@ func SaveEventsSettings(c *gin.Context) {
 		return
 	}
 	if err := db.SaveEventSettings(s); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	// Clear global cache since settings changed
@@ -184,7 +184,7 @@ func SaveEventsSettings(c *gin.Context) {
 
 func ClearEventsCache(c *gin.Context) {
 	if err := db.ClearCache(""); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -228,7 +228,7 @@ func SaveCampaignEventSetting(c *gin.Context) {
 	}
 	id, err := db.SaveCampaignEventSettings(s)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	// Clear per-campaign cache
@@ -249,7 +249,7 @@ func ClearCampaignCache(c *gin.Context) {
 		return
 	}
 	if err := db.ClearCache(s.Slug); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -266,7 +266,7 @@ func DeleteCampaignEventSetting(c *gin.Context) {
 		db.ClearCache(s.Slug)
 	}
 	if err := db.DeleteCampaignEventSettings(id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})

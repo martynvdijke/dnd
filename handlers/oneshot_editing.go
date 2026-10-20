@@ -22,7 +22,7 @@ func UpdateActDuration(c *gin.Context) {
 	}
 	_, err := db.DB.Exec("UPDATE oneshot_acts SET estimated_minutes=? WHERE id=?", req.EstimatedMinutes, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "estimated_minutes": req.EstimatedMinutes})
@@ -39,7 +39,7 @@ func UpdateSceneDuration(c *gin.Context) {
 	}
 	_, err := db.DB.Exec("UPDATE oneshot_scenes SET estimated_minutes=? WHERE id=?", req.EstimatedMinutes, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "estimated_minutes": req.EstimatedMinutes})
@@ -60,14 +60,14 @@ func ReorderActs(c *gin.Context) {
 	}
 	tx, err := db.DB.Begin()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	for i, actID := range req.Order {
 		_, err := tx.Exec("UPDATE oneshot_acts SET sort_order=? WHERE id=? AND adventure_id=?", i+1, actID, adventureID)
 		if err != nil {
 			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			InternalError(c, err)
 			return
 		}
 	}
@@ -84,14 +84,14 @@ func ReorderScenes(c *gin.Context) {
 	}
 	tx, err := db.DB.Begin()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	for i, sceneID := range req.Order {
 		_, err := tx.Exec("UPDATE oneshot_scenes SET sort_order=? WHERE id=? AND act_id=?", i+1, sceneID, actID)
 		if err != nil {
 			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			InternalError(c, err)
 			return
 		}
 	}

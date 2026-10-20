@@ -23,7 +23,7 @@ func ListCompendiumSchemas(c *gin.Context) {
 		(SELECT COUNT(*) FROM compendium_entries ce WHERE ce.schema_id = cs.id) AS entry_count
 		FROM compendium_schemas cs ORDER BY cs.display_name`)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -92,7 +92,7 @@ func CreateCompendiumSchema(c *gin.Context) {
 			c.JSON(http.StatusConflict, gin.H{"error": "schema type_name already exists"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -142,7 +142,7 @@ func UpdateCompendiumSchema(c *gin.Context) {
 
 	_, err = db.DB.Exec("UPDATE compendium_schemas SET "+strings.Join(setClauses, ", ")+" WHERE id=?", args...)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -157,7 +157,7 @@ func DeleteCompendiumSchema(c *gin.Context) {
 	// CASCADE will delete entries
 	_, err = db.DB.Exec("DELETE FROM compendium_schemas WHERE id=?", id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -663,7 +663,7 @@ func DetectImportSchema(c *gin.Context) {
 
 	rows, err := db.DB.Query("SELECT id, type_name, display_name, fields FROM compendium_schemas")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()

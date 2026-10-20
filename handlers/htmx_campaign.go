@@ -21,7 +21,7 @@ func HtmxListNPCs(c *gin.Context) {
 		FROM character_npcs cn JOIN npcs n ON cn.npc_id = n.id
 		WHERE cn.character_id=? ORDER BY cn.interaction_count DESC`, charID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	defer rows.Close()
@@ -49,7 +49,7 @@ func HtmxLinkNPCForm(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	rows, err := db.DB.Query("SELECT id, name, race, class, description, notes, str, dex, con, int, wis, cha, hp_max, hp_current, is_alive, created_at, COALESCE(portrait_url,'') FROM npcs WHERE user_id=? ORDER BY name", userID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	defer rows.Close()
@@ -79,7 +79,7 @@ func HtmxCreateNPC(c *gin.Context) {
 	portraitURL := c.PostForm("portrait_url")
 	result, err := db.DB.Exec("INSERT INTO npcs(user_id,name,race,class,description,notes,portrait_url) VALUES(?,?,?,?,?,?,?)", userID, name, c.PostForm("race"), c.PostForm("class"), c.PostForm("description"), c.PostForm("notes"), portraitURL)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	npcID, _ := result.LastInsertId()
@@ -165,7 +165,7 @@ func HtmxUpdateNPC(c *gin.Context) {
 			name, c.PostForm("race"), c.PostForm("class"), c.PostForm("description"), c.PostForm("notes"), c.PostForm("portrait_url"), isFull, npcID)
 	}
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	if rel := c.PostForm("type"); rel != "" && charID != "" {
@@ -225,7 +225,7 @@ func HtmxListLocations(c *gin.Context) {
 		FROM character_locations cl JOIN locations l ON cl.location_id = l.id
 		WHERE cl.character_id=? ORDER BY cl.relationship`, charID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	defer rows.Close()
@@ -252,7 +252,7 @@ func HtmxLinkLocationForm(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	rows, err := db.DB.Query("SELECT id, user_id, name, type, description, parent_id, latitude, longitude, created_at FROM locations WHERE user_id=? ORDER BY name", userID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	defer rows.Close()
@@ -278,7 +278,7 @@ func HtmxCreateLocation(c *gin.Context) {
 	}
 	result, err := db.DB.Exec("INSERT INTO locations(user_id,name,type,description) VALUES(?,?,?,?)", userID, name, c.PostForm("type"), c.PostForm("description"))
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	locID, _ := result.LastInsertId()
@@ -326,7 +326,7 @@ func HtmxListSessions(c *gin.Context) {
 	}
 	rows, err := db.DB.Query("SELECT id, character_id, session_date, title, notes, xp_earned, gold_earned, important_events, created_at FROM sessions WHERE character_id=? ORDER BY session_date DESC", charID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	defer rows.Close()
@@ -408,7 +408,7 @@ func HtmxListQuests(c *gin.Context) {
 	}
 	rows, err := db.DB.Query("SELECT id, character_id, name, description, status, objectives, rewards, notes, created_at, updated_at FROM quests WHERE character_id=? ORDER BY status, name", charID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	defer rows.Close()
@@ -498,7 +498,7 @@ func HtmxListJournal(c *gin.Context) {
 	}
 	rows, err := db.DB.Query("SELECT id, character_id, title, entry, entry_date, created_at FROM journal WHERE character_id=? ORDER BY entry_date DESC", charID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	defer rows.Close()
@@ -582,7 +582,7 @@ func HtmxListTimeline(c *gin.Context) {
 	query += " ORDER BY event_date DESC"
 	rows, err := db.DB.Query(query, args...)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	defer rows.Close()
@@ -671,7 +671,7 @@ func HtmxListFactions(c *gin.Context) {
 	query += " ORDER BY name"
 	rows, err := db.DB.Query(query, args...)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	defer rows.Close()

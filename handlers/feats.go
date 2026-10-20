@@ -18,7 +18,7 @@ func ListFeats(c *gin.Context) {
 	}
 	rows, err := db.DB.Query("SELECT id, character_id, name, description, prerequisites, source, level_gained FROM character_feats WHERE character_id=? ORDER BY level_gained, name", charID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -44,7 +44,7 @@ func CreateFeat(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO character_feats(character_id,name,description,prerequisites,source,level_gained) VALUES(?,?,?,?,?,?)",
 		f.CharacterID, f.Name, f.Description, f.Prerequisites, f.Source, f.LevelGained)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()

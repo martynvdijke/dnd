@@ -183,7 +183,7 @@ func HtmxCreateEncounter(c *gin.Context) {
 	_, err := db.DB.Exec("INSERT INTO encounter_templates(campaign_id,user_id,name,description,environment,difficulty,xp_budget,total_xp,notes) VALUES(?,?,?,?,?,?,?,?,?)",
 		campaignID, userID, name, c.PostForm("description"), c.PostForm("environment"), c.PostForm("difficulty"), 0, 0, c.PostForm("notes"))
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	// Re-render the encounters section
@@ -234,7 +234,7 @@ func HtmxCreateEncounterMonster(c *gin.Context) {
 	_, err := db.DB.Exec("INSERT INTO encounter_monsters(encounter_id,name,count,cr,xp,ac,hp,initiative_mod,source,notes) VALUES(?,?,?,?,?,?,?,?,?,?)",
 		encounterID, name, getIntParam(c, "count", 1), cr, getIntParam(c, "xp", 0), getIntParam(c, "ac", 10), getIntParam(c, "hp", 10), getIntParam(c, "initiative_mod", 0), source, c.PostForm("notes"))
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	c.Request.URL.RawQuery = "campaign_id=" + strconv.FormatInt(campaignID, 10)
@@ -354,7 +354,7 @@ func HtmxCampaignCreateAndLinkNPC(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO npcs(user_id,name,race,class,description,notes) VALUES(?,?,?,?,?,?)",
 		userID, name, c.PostForm("race"), c.PostForm("class"), c.PostForm("description"), "")
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	npcID, _ := result.LastInsertId()
@@ -384,7 +384,7 @@ func HtmxImportCompendiumMonsterToEncounter(c *gin.Context) {
 	_, err = db.DB.Exec("INSERT INTO encounter_monsters(encounter_id, name, count, cr, ac, hp, source, notes, compendium_monster_id) VALUES(?,?,?,?,?,?,?,?,?)",
 		encounterID, name, count, cr, ac, hp, source, "", compendiumID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 
@@ -424,7 +424,7 @@ func HtmxImportCompendiumMonsterToOneShot(c *gin.Context) {
 		cm.Saves, cm.Skills, cm.DamageVulnerabilities, cm.DamageResistances, cm.DamageImmunities, cm.ConditionImmunities,
 		cm.Senses, cm.Languages, cm.SpecialAbilities, cm.Actions, cm.LegendaryActions, compendiumID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 
@@ -553,7 +553,7 @@ func HtmxAddCampaignMonster(c *gin.Context) {
 		saves, skills, dv, dr, di, ci,
 		senses, lang, sa, actions, la, desc, source)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 
@@ -567,7 +567,7 @@ func HtmxRemoveCampaignMonster(c *gin.Context) {
 
 	_, err := db.DB.Exec("DELETE FROM campaign_monster_roster WHERE id=? AND campaign_id=?", rosterID, campaignID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 

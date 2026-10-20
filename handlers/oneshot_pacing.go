@@ -146,7 +146,7 @@ func StartPacingSession(c *gin.Context) {
 		adventureID, firstActID, firstSceneID,
 	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -166,7 +166,7 @@ func GetPacingSession(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "session not found"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 
@@ -195,7 +195,7 @@ func GetAdventurePacing(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "no pacing session for adventure"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 
@@ -223,7 +223,7 @@ func pausePacingSession(sessionID string) error {
 
 func PausePacingSession(c *gin.Context) {
 	if err := pausePacingSession(c.Param("id")); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "paused"})
@@ -261,7 +261,7 @@ func completePacingSession(sessionID string) error {
 
 func CompletePacingSession(c *gin.Context) {
 	if err := completePacingSession(c.Param("id")); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "completed"})
@@ -361,7 +361,7 @@ func AdvanceToNextScene(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	if status == "completed" {

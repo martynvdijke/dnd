@@ -348,7 +348,8 @@ func GetUploads(c *gin.Context) {
 
 	rows, err := db.DB.Query(query, args...)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
+		c.Abort()
 		return
 	}
 	defer rows.Close()

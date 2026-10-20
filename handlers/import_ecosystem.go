@@ -727,7 +727,7 @@ func HandleExternalImport(c *gin.Context) {
 		}
 		result, err := importCompendiumEntries(c.Request.Context(), db.DB, opts)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			InternalError(c, err)
 			return
 		}
 		// build rows per input index
@@ -805,7 +805,7 @@ func HandleExternalImportLogs(c *gin.Context) {
 	}
 	sqlRows, err := db.DB.Query(q, args...)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer sqlRows.Close()

@@ -15,7 +15,7 @@ func ListClues(c *gin.Context) {
 	adventureID := c.Param("id")
 	rows, err := db.DB.Query("SELECT id, adventure_id, title, description, clue_type, is_red_herring, is_revealed, sort_order, notes, created_at, updated_at FROM clues WHERE adventure_id=? ORDER BY sort_order, id", adventureID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -62,7 +62,7 @@ func CreateClue(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO clues(adventure_id, title, description, clue_type, is_red_herring, sort_order, notes) VALUES(?,?,?,?,?,?,?)",
 		adventureID, input.Title, input.Description, input.ClueType, boolToInt(input.IsRedHerring), input.SortOrder, input.Notes)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -99,7 +99,7 @@ func UpdateClue(c *gin.Context) {
 	_, err := db.DB.Exec("UPDATE clues SET title=?, description=?, clue_type=?, is_red_herring=?, sort_order=?, notes=?, updated_at=datetime('now') WHERE id=?",
 		input.Title, input.Description, input.ClueType, boolToInt(input.IsRedHerring), input.SortOrder, input.Notes, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "updated"})
@@ -134,7 +134,7 @@ func AddClueDependency(c *gin.Context) {
 	}
 	_, err := db.DB.Exec("INSERT OR IGNORE INTO clue_dependencies(clue_id, depends_on_id) VALUES(?,?)", id, input.DependsOnID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"status": "linked"})
@@ -158,7 +158,7 @@ func LinkClueNPC(c *gin.Context) {
 	}
 	_, err := db.DB.Exec("INSERT OR IGNORE INTO clue_npcs(clue_id, npc_id) VALUES(?,?)", id, input.NPCID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "linked"})
@@ -182,7 +182,7 @@ func LinkClueLocation(c *gin.Context) {
 	}
 	_, err := db.DB.Exec("INSERT OR IGNORE INTO clue_locations(clue_id, location_id) VALUES(?,?)", id, input.LocationID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "linked"})

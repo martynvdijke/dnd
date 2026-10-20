@@ -93,7 +93,8 @@ func SaveEmailSettings(c *gin.Context) {
 	_, err := db.DB.Exec(`INSERT OR REPLACE INTO email_settings (id, smtp_host, smtp_port, username, password, from_addr, enabled) VALUES (1, ?, ?, ?, ?, ?, ?)`,
 		s.SMTPHost, s.SMTPPort, s.Username, s.Password, s.FromAddr, enabled)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
+		c.Abort()
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})

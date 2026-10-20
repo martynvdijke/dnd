@@ -22,7 +22,7 @@ func HtmxNewActForm(c *gin.Context) {
 		Order(oneshotact.BySortOrder(), oneshotact.ByID()).
 		All(ctx)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "query error: %v", err)
+		InternalErrorText(c, err)
 		return
 	}
 
@@ -68,7 +68,7 @@ func HtmxEditActForm(c *gin.Context) {
 		Order(oneshotact.BySortOrder(), oneshotact.ByID()).
 		All(ctx)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "query error: %v", err)
+		InternalErrorText(c, err)
 		return
 	}
 
@@ -179,7 +179,7 @@ func HtmxCreateAct(c *gin.Context) {
 		}
 	}
 	if _, err := q.Save(ctx); err != nil {
-		c.String(http.StatusInternalServerError, "insert error: %v", err)
+		InternalErrorText(c, err)
 		return
 	}
 
@@ -216,7 +216,7 @@ func HtmxUpdateAct(c *gin.Context) {
 		}
 	}
 	if _, err := q.Save(ctx); err != nil {
-		c.String(http.StatusInternalServerError, "update error: %v", err)
+		InternalErrorText(c, err)
 		return
 	}
 
@@ -233,7 +233,7 @@ func HtmxUpdateActNotes(c *gin.Context) {
 	notes := c.PostForm("notes")
 
 	if _, err := db.DB.Exec("UPDATE oneshot_acts SET notes=? WHERE id=?", notes, id); err != nil {
-		c.String(http.StatusInternalServerError, "update error: %v", err)
+		InternalErrorText(c, err)
 		return
 	}
 
@@ -286,7 +286,7 @@ func HtmxCreateScene(c *gin.Context) {
 	}
 	res, err := q.Save(ctx)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "insert error: %v", err)
+		InternalErrorText(c, err)
 		return
 	}
 	db.DB.Exec("UPDATE oneshot_scenes SET special_effects=? WHERE id=?", c.PostForm("special_effects"), res.ID)
@@ -327,7 +327,7 @@ func HtmxUpdateScene(c *gin.Context) {
 		q.SetSortOrder(sortOrder)
 	}
 	if _, err := q.Save(ctx); err != nil {
-		c.String(http.StatusInternalServerError, "update error: %v", err)
+		InternalErrorText(c, err)
 		return
 	}
 	db.DB.Exec("UPDATE oneshot_scenes SET special_effects=? WHERE id=?", c.PostForm("special_effects"), id)
@@ -416,7 +416,7 @@ func renderDialogList(c *gin.Context, sceneID int64) {
 		sceneID,
 	)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "query error: %v", err)
+		InternalErrorText(c, err)
 		return
 	}
 	defer rows.Close()
@@ -456,7 +456,7 @@ func HtmxCreateDialog(c *gin.Context) {
 		sceneID, sortOrder, speaker, dialogText, dmNotes, playerHandout, condition,
 	)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "insert error: %v", err)
+		InternalErrorText(c, err)
 		return
 	}
 
@@ -479,7 +479,7 @@ func HtmxUpdateDialog(c *gin.Context) {
 		speaker, dialogText, dmNotes, playerHandout, condition, id,
 	)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "update error: %v", err)
+		InternalErrorText(c, err)
 		return
 	}
 

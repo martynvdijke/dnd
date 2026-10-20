@@ -41,7 +41,7 @@ func ListHomebrewContent(c *gin.Context) {
 	table := homebrewTable(contentType)
 	rows, err := db.DB.Query("SELECT * FROM " + table + " WHERE source='homebrew' ORDER BY name")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -115,7 +115,7 @@ func CreateHomebrewContent(c *gin.Context) {
 
 	result, err := db.DB.Exec(query.String(), vals...)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -158,7 +158,7 @@ func UpdateHomebrewContent(c *gin.Context) {
 
 	_, err := db.DB.Exec(query.String(), vals...)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -175,7 +175,7 @@ func DeleteHomebrewContent(c *gin.Context) {
 	table := homebrewTable(contentType)
 	_, err := db.DB.Exec("DELETE FROM "+table+" WHERE id=? AND source='homebrew'", id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})

@@ -23,7 +23,7 @@ func ListOneShotAdventures(c *gin.Context) {
 		rows, err = db.DB.Query("SELECT id, user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes, created_at, updated_at, COALESCE(is_mini_campaign,0), COALESCE(sort_order,0) FROM oneshot_adventures WHERE user_id=? ORDER BY updated_at DESC", userID)
 	}
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -50,7 +50,7 @@ func CreateOneShotAdventure(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO oneshot_adventures(user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes) VALUES(?,?,?,?,?,?,?,?,?)",
 		userID, a.CampaignID, a.Title, a.Premise, a.Hook, a.Template, a.EstimatedMinutes, a.Difficulty, a.Notes)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -123,7 +123,7 @@ func ListCampaignOneShots(c *gin.Context) {
 	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	rows, err := db.DB.Query("SELECT id, user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes, created_at, updated_at, COALESCE(is_mini_campaign,0), COALESCE(sort_order,0) FROM oneshot_adventures WHERE campaign_id=? ORDER BY sort_order ASC, updated_at DESC", campaignID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()

@@ -41,7 +41,7 @@ func HtmxListOneShots(c *gin.Context) {
 		rows, err = db.DB.Query("SELECT id, user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes, created_at, updated_at FROM oneshot_adventures WHERE user_id=? ORDER BY updated_at DESC", userID)
 	}
 	if err != nil {
-		c.String(http.StatusInternalServerError, "query error: %v", err)
+		InternalErrorText(c, err)
 		return
 	}
 	defer rows.Close()
@@ -138,7 +138,7 @@ func HtmxCreateOneShot(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO oneshot_adventures(user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes, is_mini_campaign) VALUES(?,?,?,?,?,?,?,?,?,?)",
 		userID, campaignID, title, premise, hook, template, minutes, difficulty, notes, isMiniCampaign)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "insert error: %v", err)
+		InternalErrorText(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -233,7 +233,7 @@ func HtmxGenerateOneShot(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO oneshot_adventures(user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes) VALUES(?,?,?,?,?,?,?,?,'')",
 		userID, campaignID, title, premise, hook, template, minutes, difficulty)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "insert error: %v", err)
+		InternalErrorText(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()

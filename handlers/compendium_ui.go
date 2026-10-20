@@ -261,7 +261,7 @@ func HtmxCompendiumDuplicateEntry(c *gin.Context) {
 	newJSON, _ := json.Marshal(data)
 	_, err = db.DB.Exec("INSERT INTO compendium_entries(schema_id, data) VALUES(?,?)", schemaID, string(newJSON))
 	if err != nil {
-		c.String(http.StatusInternalServerError, "failed to duplicate: "+err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 

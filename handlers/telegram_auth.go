@@ -84,7 +84,7 @@ func HandleTelegramAuthLink(c *gin.Context) {
 	}
 
 	sessionID := middleware.Store.Create(u.ID, u.Username, u.Role, c.ClientIP())
-	c.SetCookie("session", sessionID, 86400, "/", "", false, true)
+	middleware.SetSessionCookie(c, sessionID, 86400)
 
 	display := u.Username
 	if display == "" {

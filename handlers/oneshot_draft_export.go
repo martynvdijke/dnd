@@ -37,13 +37,13 @@ func ExportOneShotDraft(c *gin.Context) {
 		return
 	}
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 
 	actRows, err := db.DB.QueryContext(ctx, "SELECT id, title, description, estimated_minutes FROM oneshot_acts WHERE adventure_id=? ORDER BY number, id", id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	type actRow struct {
@@ -55,7 +55,7 @@ func ExportOneShotDraft(c *gin.Context) {
 		var ar actRow
 		if err := actRows.Scan(&ar.id, &ar.act.Title, &ar.act.Description, &ar.act.EstimatedMinutes); err != nil {
 			actRows.Close()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			InternalError(c, err)
 			return
 		}
 		acts = append(acts, ar)
@@ -64,14 +64,14 @@ func ExportOneShotDraft(c *gin.Context) {
 	for _, ar := range acts {
 		sceneRows, err := db.DB.QueryContext(ctx, "SELECT title, description, scene_type, estimated_minutes FROM oneshot_scenes WHERE act_id=? ORDER BY number, id", ar.id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			InternalError(c, err)
 			return
 		}
 		for sceneRows.Next() {
 			var s aiOneShotScene
 			if err := sceneRows.Scan(&s.Title, &s.Description, &s.SceneType, &s.EstimatedMinutes); err != nil {
 				sceneRows.Close()
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				InternalError(c, err)
 				return
 			}
 			ar.act.Scenes = append(ar.act.Scenes, s)
@@ -81,19 +81,19 @@ func ExportOneShotDraft(c *gin.Context) {
 	}
 
 	if draft.NPCs, err = queryOneShotNPCs(ctx, id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	if draft.Locations, err = queryOneShotLocations(ctx, id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	if draft.Encounters, err = queryOneShotEncounters(ctx, id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	if draft.Clues, err = queryOneShotClues(ctx, id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 

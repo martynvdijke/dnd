@@ -19,7 +19,7 @@ func ListCalendarEvents(c *gin.Context) {
 
 	rows, err := db.DB.Query("SELECT id, campaign_id, title, description, event_date, event_type, color, created_at FROM campaign_calendar_events WHERE campaign_id=? ORDER BY event_date", campaignID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -45,7 +45,7 @@ func CreateCalendarEvent(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO campaign_calendar_events(campaign_id,title,description,event_date,event_type,color) VALUES(?,?,?,?,?,?)",
 		e.CampaignID, e.Title, e.Description, e.EventDate, e.EventType, e.Color)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()

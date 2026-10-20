@@ -118,7 +118,7 @@ func HtmxCompendiumSpellBrowse(c *gin.Context) {
 
 	rows, err := db.DB.Query(baseQuery, pageArgs...)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "query error: %v", err)
+		InternalErrorText(c, err)
 		return
 	}
 	defer rows.Close()

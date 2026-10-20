@@ -99,7 +99,7 @@ func ListKnowledge(c *gin.Context) {
 	query += ` ORDER BY created_at DESC`
 	rows, err := db.DB.Query(query, args...)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -157,7 +157,7 @@ func CreateKnowledge(c *gin.Context) {
 	hist, _ := json.Marshal([]map[string]string{{"status": status, "at": now}})
 	res, err := db.DB.Exec(`INSERT INTO campaign_knowledge(campaign_id,title,content,source,status,shared,status_history,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)`, campaignID, body.Title, body.Content, body.Source, status, shared, string(hist), now, now)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := res.LastInsertId()
@@ -177,7 +177,7 @@ func GetKnowledge(c *gin.Context) {
 		return
 	}
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	owner := isOwner(k.CampaignID, uid, r)
@@ -251,7 +251,7 @@ func UpdateKnowledge(c *gin.Context) {
 	now := time.Now().UTC().Format(time.RFC3339)
 	_, err = db.DB.Exec(`UPDATE campaign_knowledge SET title=?,content=?,source=?,status=?,shared=?,status_history=?,updated_at=? WHERE id=?`, k.Title, k.Content, k.Source, k.Status, sharedInt, newHist, now, kid)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	k2, _ := knowledgeRowToStruct(kid)
@@ -305,7 +305,7 @@ func AddKnowledgeKnownBy(c *gin.Context) {
 	now := time.Now().UTC().Format(time.RFC3339)
 	_, err = db.DB.Exec(`INSERT OR IGNORE INTO campaign_knowledge_known_by(knowledge_id,character_id,created_at) VALUES(?,?,?)`, kid, body.CharacterID, now)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})

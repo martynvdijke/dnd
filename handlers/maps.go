@@ -45,7 +45,7 @@ func ListCampaignMaps(c *gin.Context) {
 	campaignID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	rows, err := db.DB.Query("SELECT id,campaign_id,name,image_url,width,height,grid_size,COALESCE(grid_units,'ft'),is_active,fog_of_war FROM campaign_maps WHERE campaign_id=? ORDER BY name", campaignID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -71,7 +71,7 @@ func CreateCampaignMap(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO campaign_maps(campaign_id,name,image_url,width,height,grid_size,grid_units,fog_of_war) VALUES(?,?,?,?,?,?,?,'[]')",
 		campaignID, m.Name, m.ImageURL, m.Width, m.Height, m.GridSize, m.GridUnits)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -190,7 +190,7 @@ func ListMapPins(c *gin.Context) {
 	mapID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	rows, err := db.DB.Query("SELECT id,map_id,name,type,x,y,icon,color,description,linked_entity_type,linked_entity_id,is_hidden,sort_order,COALESCE(snap_to_grid,0) FROM campaign_map_pins WHERE map_id=? ORDER BY sort_order,name", mapID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -213,7 +213,7 @@ func CreateMapPin(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO campaign_map_pins(map_id,name,type,x,y,icon,color,description,linked_entity_type,linked_entity_id,is_hidden,sort_order,snap_to_grid) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
 		mapID, p.Name, p.Type, p.X, p.Y, p.Icon, p.Color, p.Description, p.LinkedEntityType, p.LinkedEntityID, p.IsHidden, p.SortOrder, p.SnapToGrid)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()

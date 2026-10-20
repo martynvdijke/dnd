@@ -310,7 +310,7 @@ func writeAIGenError(c *gin.Context, err error) {
 		c.JSON(ae.Status, gin.H{"error": ae.Msg})
 		return
 	}
-	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	InternalError(c, err)
 }
 
 // validateAIDraftReply turns an empty or token-truncated provider reply into an
@@ -536,7 +536,7 @@ func CommitAIDraft(c *gin.Context) {
 	entityID, url, err := commitAIDraft(c, s)
 	if err != nil {
 		middleware.LogError("ai", "failed to commit draft", "entity_type", s.EntityType, "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("failed to create %s: %s", s.EntityType, err.Error())})
+		InternalError(c, err)
 		return
 	}
 	s.Status = "committed"

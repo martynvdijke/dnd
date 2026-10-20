@@ -52,7 +52,7 @@ func GenerateOneShotFromTemplate(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO oneshot_adventures(user_id, campaign_id, title, premise, hook, template, estimated_minutes, difficulty, notes, created_at, updated_at) VALUES(?,?,?,?,?,?,?,?,'',?,?)",
 		userID, req.CampaignID, req.Title, premise, hook, req.Template, req.Minutes, req.Difficulty, now, now)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	adventureID, _ := result.LastInsertId()
@@ -251,7 +251,7 @@ func CheckPartyBalance(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	rows, err := db.DB.Query("SELECT id, user_id, name, race, class, subclass, level, background, alignment, str, dex, con, int, wis, cha, hp, ac, speed, skills, equipment, spells, features, personality, backstory, portrait_url, notes, created_at, updated_at FROM pregen_characters WHERE user_id=? ORDER BY updated_at DESC", userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -373,7 +373,7 @@ func GeneratePregen(c *gin.Context) {
 		VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,30)`,
 		userID, name, genRace, genClass, genLevel, str, dex, con, intel, wis, cha, hp, ac)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()

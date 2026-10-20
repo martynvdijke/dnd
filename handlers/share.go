@@ -207,7 +207,8 @@ func CreateShareLink(c *gin.Context) {
 		"INSERT INTO share_links (token, entity_type, entity_id, created_by, expires_at) VALUES (?, ?, ?, ?, ?)",
 		token, req.EntityType, req.EntityID, userID, expiresAt)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
+		c.Abort()
 		return
 	}
 
@@ -386,7 +387,8 @@ func GetSharedEntity(c *gin.Context) {
 			LEFT JOIN users u ON u.id = c.user_id
 			WHERE cc.campaign_id=? ORDER BY c.name`, campaignID)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			InternalError(c, err)
+			c.Abort()
 			return
 		}
 		defer rows.Close()
@@ -488,7 +490,8 @@ func GetSharedEntity(c *gin.Context) {
 			SELECT id, map_id, name, type, x, y, COALESCE(icon,''), COALESCE(color,''), COALESCE(description,'')
 			FROM campaign_map_pins WHERE map_id=? AND is_hidden=0 ORDER BY sort_order, name`, entityID)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			InternalError(c, err)
+			c.Abort()
 			return
 		}
 		defer rows.Close()
@@ -567,7 +570,8 @@ func ListShareLinks(c *gin.Context) {
 		rows, err = db.DB.Query(query+" WHERE created_by=? ORDER BY created_at DESC", userID)
 	}
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
+		c.Abort()
 		return
 	}
 	defer rows.Close()
@@ -730,6 +734,6 @@ func GetSharedPage(c *gin.Context) {
 func renderSharePage(c *gin.Context, name string, data any) {
 	c.Header("Content-Type", "text/html; charset=utf-8")
 	if err := htmxTemplates.ExecuteTemplate(c.Writer, name, data); err != nil {
-		c.String(http.StatusInternalServerError, "template error: %v", err)
+		InternalErrorText(c, err)
 	}
 }

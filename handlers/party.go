@@ -15,7 +15,7 @@ import (
 func ListParties(c *gin.Context) {
 	rows, err := db.DB.Query("SELECT id, user_id, name, description, created_at FROM parties ORDER BY created_at DESC")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -38,7 +38,7 @@ func CreateParty(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO parties(user_id, name, description) VALUES(?,?,?)",
 		userID, p.Name, p.Description)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -66,7 +66,7 @@ func UpdateParty(c *gin.Context) {
 	}
 	_, err := db.DB.Exec("UPDATE parties SET name=?, description=? WHERE id=?", p.Name, p.Description, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -82,7 +82,7 @@ func ListPartyFactions(c *gin.Context) {
 	partyID := c.Param("id")
 	rows, err := db.DB.Query("SELECT id, campaign_id, party_id, name, description, type, headquarters FROM factions WHERE party_id=? ORDER BY name", partyID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -112,7 +112,7 @@ func CreatePartyFaction(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO factions(party_id, name, description, type, headquarters) VALUES(?,?,?,?,?)",
 		partyID, f.Name, f.Description, f.Type, f.Headquarters)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -123,7 +123,7 @@ func ListPartyUploads(c *gin.Context) {
 	partyID := c.Param("id")
 	rows, err := db.DB.Query("SELECT id, hash, ext, url, COALESCE(resized_url,''), COALESCE(thumbnail_url,''), owner_type, owner_id, COALESCE(created_at,'') FROM uploads WHERE owner_type='party' AND owner_id=? ORDER BY created_at DESC", partyID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -142,7 +142,7 @@ func ListCampaignPartyItems(c *gin.Context) {
 	campaignID := c.Param("id")
 	rows, err := db.DB.Query("SELECT id, campaign_id, name, quantity, COALESCE(notes,''), COALESCE(created_at,'') FROM party_items WHERE campaign_id=? ORDER BY name", campaignID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -169,7 +169,7 @@ func CreateCampaignPartyItem(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO party_items(campaign_id, name, quantity, notes) VALUES(?,?,?,?)",
 		campaignID, p.Name, p.Quantity, p.Notes)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -276,7 +276,7 @@ func ListSessionPlans(c *gin.Context) {
 	}
 	rows, err := db.DB.Query("SELECT id, campaign_id, title, COALESCE(session_date,''), status, COALESCE(dm_notes,''), COALESCE(planned_encounters,'[]'), COALESCE(npc_ids,'[]'), COALESCE(player_goals,'[]'), expected_duration, COALESCE(created_at,''), COALESCE(updated_at,'') FROM session_plans WHERE campaign_id=? ORDER BY session_date DESC", campaignID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -312,7 +312,7 @@ func CreateSessionPlan(c *gin.Context) {
 		sp.PlannedEncounters, sp.NpcIDs, sp.PlayerGoals, sp.ExpectedDuration,
 		now, now)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -336,7 +336,7 @@ func UpdateSessionPlan(c *gin.Context) {
 		sp.PlannedEncounters, sp.NpcIDs, sp.PlayerGoals, sp.ExpectedDuration,
 		now, sid)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})

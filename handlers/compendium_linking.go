@@ -25,7 +25,7 @@ func spellLinkInsert(charID, compendiumSpellID int64) (int, string) {
 		VALUES(?,?,?,?,?,?,?,?,?,?,'',?)`,
 		charID, name, level, school, castingTime, range_, components, duration, description, sourcePage, compendiumSpellID)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error()
+		return http.StatusInternalServerError, "internal server error"
 	}
 	return 0, ""
 }
@@ -42,7 +42,7 @@ func unlinkSpellRef(spellID int64) (int, string) {
 	}
 	_, err = db.DB.Exec("UPDATE spells SET compendium_spell_id = NULL, compendium_entry_id = NULL WHERE id=?", spellID)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error()
+		return http.StatusInternalServerError, "internal server error"
 	}
 	return 0, ""
 }
@@ -183,7 +183,7 @@ func itemLinkInsert(charID, compendiumEquipmentID int64, quantity int) (int, str
 		VALUES(?,?,?,?,?,?,'',?)`,
 		charID, name, quantity, weight, category, description, compendiumEquipmentID)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error()
+		return http.StatusInternalServerError, "internal server error"
 	}
 	return 0, ""
 }
@@ -200,7 +200,7 @@ func unlinkItemRef(itemID int64) (int, string) {
 	}
 	_, err = db.DB.Exec("UPDATE inventory SET compendium_equipment_id = NULL, compendium_entry_id = NULL WHERE id=?", itemID)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error()
+		return http.StatusInternalServerError, "internal server error"
 	}
 	return 0, ""
 }
@@ -384,7 +384,7 @@ func LinkCompendiumMonsterToAct(c *gin.Context) {
 		saves, skills, vulns, resists, immunes, condImmunes, senses, languages,
 		abilities, actions, legendActions, compendiumMonsterID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 
@@ -440,7 +440,7 @@ func LinkCompendiumMonsterToScene(c *gin.Context) {
 		saves, skills, vulns, resists, immunes, condImmunes, senses, languages,
 		abilities, actions, legendActions, compendiumMonsterID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 
@@ -469,7 +469,7 @@ func UnlinkCompendiumMonster(c *gin.Context) {
 
 	_, err = db.DB.Exec("DELETE FROM oneshot_monsters WHERE id=?", monsterID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 

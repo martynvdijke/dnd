@@ -29,7 +29,8 @@ func CreateUploadLink(c *gin.Context) {
 		"INSERT INTO upload_links (upload_id, entity_type, entity_id, field_name) VALUES (?, ?, ?, ?)",
 		req.UploadID, req.EntityType, req.EntityID, req.FieldName)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
+		c.Abort()
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -66,7 +67,8 @@ func DeleteUploadLink(c *gin.Context) {
 	}
 	_, err = db.DB.Exec("DELETE FROM upload_links WHERE id = ?", id)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
+		c.Abort()
 		return
 	}
 	c.Status(http.StatusNoContent)
@@ -90,7 +92,8 @@ func GetUploadsForEntity(c *gin.Context) {
 		WHERE ul.entity_type = ? AND ul.entity_id = ?
 		ORDER BY u.created_at DESC`, entityType, entityID)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
+		c.Abort()
 		return
 	}
 	defer rows.Close()

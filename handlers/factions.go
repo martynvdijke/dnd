@@ -21,7 +21,7 @@ func ListFactions(c *gin.Context) {
 	query += " ORDER BY name"
 	rows, err := db.DB.Query(query, args...)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -43,7 +43,7 @@ func CreateFaction(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO factions(campaign_id,name,description,type,headquarters) VALUES(?,?,?,?,?)",
 		f.CampaignID, f.Name, f.Description, f.Type, f.Headquarters)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -80,7 +80,7 @@ func GetFactionReputations(c *gin.Context) {
 		FROM faction_reputation fr JOIN factions f ON f.id = fr.faction_id
 		WHERE fr.character_id=? ORDER BY fr.standing DESC`, charID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -126,7 +126,7 @@ func SetFactionReputation(c *gin.Context) {
 		_, err = db.DB.Exec("INSERT INTO faction_reputation(character_id,faction_id,standing,rank,notes) VALUES(?,?,?,?,?)", req.CharacterID, req.FactionID, req.Standing, req.Rank, req.Notes)
 	}
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})

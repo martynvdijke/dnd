@@ -71,7 +71,7 @@ func CreateCombatEntry(c *gin.Context) {
 		e.CharacterID, e.CampaignID, e.Name, e.Type, e.InitiativeRoll, e.InitiativeMod, e.HPMax, e.HPCurrent, e.AC, e.TurnOrder, e.ConditionIDs, e.Notes,
 		boolToInt(e.ActionUsed), boolToInt(e.BonusActionUsed), boolToInt(e.ReactionUsed), e.MovementUsed, e.MovementMax)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -92,7 +92,7 @@ func ListCombatEntries(c *gin.Context) {
 		rows, err = db.DB.Query("SELECT " + combatEntryCols + " FROM combat_entries ORDER BY initiative_roll DESC, turn_order")
 	}
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -101,7 +101,7 @@ func ListCombatEntries(c *gin.Context) {
 	for rows.Next() {
 		e, err := scanCombatEntry(rows)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			InternalError(c, err)
 			return
 		}
 		entries = append(entries, e)

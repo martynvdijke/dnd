@@ -19,7 +19,7 @@ func ListTimelineEvents(c *gin.Context) {
 
 	rows, err := db.DB.Query("SELECT id, campaign_id, title, description, event_date, event_type, importance, icon, linked_entity_type, linked_entity_id, created_at FROM campaign_timeline_events WHERE campaign_id=? ORDER BY event_date DESC, created_at DESC", campaignID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -51,7 +51,7 @@ func CreateTimelineEvent(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO campaign_timeline_events(campaign_id,title,description,event_date,event_type,importance,icon,linked_entity_type,linked_entity_id) VALUES(?,?,?,?,?,?,?,?,?)",
 		e.CampaignID, e.Title, e.Description, e.EventDate, e.EventType, e.Importance, e.Icon, e.LinkedEntityType, e.LinkedEntityID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()

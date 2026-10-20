@@ -101,7 +101,7 @@ func TestEmail(c *gin.Context) {
 
 	if err := sendEmail(settings, to, subject, body); err != nil {
 		middleware.LogError("email", "test email send failed", "error", err)
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("email send failed: %v", err)})
+		InternalError(c, err)
 		return
 	}
 

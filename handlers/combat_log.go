@@ -43,7 +43,7 @@ func ListCombatLogEntries(c *gin.Context) {
 		return db.DB.Query("SELECT id,campaign_id,combat_entry_id,actor_name,action,target_name,damage,damage_type,healing,condition_applied,roll_expression,roll_total,is_critical,description,created_at FROM combat_log_entries ORDER BY created_at DESC LIMIT ?", limit)
 	}()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -65,7 +65,7 @@ func CreateCombatLogEntry(c *gin.Context) {
 	result, err := db.DB.Exec(`INSERT INTO combat_log_entries(campaign_id,combat_entry_id,actor_name,action,target_name,damage,damage_type,healing,condition_applied,roll_expression,roll_total,is_critical,description) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`,
 		e.CampaignID, e.CombatEntryID, e.ActorName, e.Action, e.TargetName, e.Damage, e.DamageType, e.Healing, e.ConditionApplied, e.RollExpression, e.RollTotal, e.IsCritical, e.Description)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()

@@ -24,7 +24,7 @@ func characterIdentityLinkInsert(charID, compendiumID int64, table, textCol, lin
 	}
 	_, err = db.DB.Exec("UPDATE characters SET "+textCol+"=?, "+linkCol+"=? WHERE id=?", name, compendiumID, charID)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error()
+		return http.StatusInternalServerError, "internal server error"
 	}
 	return 0, ""
 }
@@ -32,7 +32,7 @@ func characterIdentityLinkInsert(charID, compendiumID int64, table, textCol, lin
 func characterIdentityLinkUnlink(charID int64, linkCol string) (int, string) {
 	_, err := db.DB.Exec("UPDATE characters SET "+linkCol+" = NULL WHERE id=?", charID)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error()
+		return http.StatusInternalServerError, "internal server error"
 	}
 	return 0, ""
 }

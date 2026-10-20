@@ -20,7 +20,7 @@ func ListCampaignNPCs(c *gin.Context) {
 		JOIN npcs n ON n.id = cn.npc_id
 		WHERE cn.campaign_id=? ORDER BY n.name`, campaignID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -54,7 +54,7 @@ func LinkNPCCampaign(c *gin.Context) {
 			c.JSON(http.StatusConflict, gin.H{"error": "NPC is already linked to this campaign"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -73,7 +73,7 @@ func UpdateCampaignNPC(c *gin.Context) {
 	}
 	_, err := db.DB.Exec("UPDATE campaign_npcs SET role=?, notes=? WHERE id=?", req.Role, req.Notes, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -108,7 +108,7 @@ func CreateAndLinkCampaignNPC(c *gin.Context) {
 	result, err := db.DB.Exec(`INSERT INTO npcs(user_id, name, race, class, description, notes) VALUES(?,?,?,?,?,?)`,
 		uid, req.Name, req.Race, req.Class, req.Description, "")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	npcID, _ := result.LastInsertId()
@@ -117,7 +117,7 @@ func CreateAndLinkCampaignNPC(c *gin.Context) {
 	linkResult, err := db.DB.Exec("INSERT INTO campaign_npcs(campaign_id, npc_id, role, notes) VALUES(?,?,?,?)",
 		campaignID, npcID, req.Role, req.Notes)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	linkID, _ := linkResult.LastInsertId()

@@ -26,7 +26,7 @@ func ListOneShotShops(c *gin.Context) {
 	adventureID := c.Param("id")
 	rows, err := db.DB.Query("SELECT id, user_id, campaign_id, oneshot_adventure_id, name, description, markup_percent, markup_buy_percent, created_at FROM shops WHERE oneshot_adventure_id=? ORDER BY name", adventureID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -50,7 +50,7 @@ func CreateOneShotShop(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO shops(user_id, oneshot_adventure_id, act_id, name, description, markup_percent, markup_buy_percent) VALUES(?,?,?,?,?,?,?)",
 		userID, adventureID, s.ActID, s.Name, s.Description, s.MarkupPercent, s.MarkupBuyPercent)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -86,7 +86,7 @@ func CreateOneShotShopItem(c *gin.Context) {
 	_, err := db.DB.Exec("INSERT INTO shop_items(shop_id,item_name,category,price_gp,quantity_available,description,is_magical,attunement_required,notes) VALUES(?,?,?,?,?,?,?,?,?)",
 		shopID, it.ItemName, it.Category, it.PriceGP, it.QuantityAvailable, it.Description, isMag, att, it.Notes)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"ok": true})

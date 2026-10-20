@@ -83,7 +83,7 @@ func ListCraftingRecipes(c *gin.Context) {
 	rows, err := db.DB.Query("SELECT id,user_id,name,description,category,difficulty_dc,crafting_time_hours,required_tools,required_materials,result_item_name,result_item_category,result_quantity,result_description,notes,created_at FROM crafting_recipes WHERE user_id IS NULL OR user_id=? ORDER BY name", userID)
 	recipes, err := scanRecipes(rows, err)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, recipes)
@@ -101,7 +101,7 @@ func CreateCraftingRecipe(c *gin.Context) {
 		r.RequiredTools, r.RequiredMaterials, r.ResultItemName, r.ResultItemCategory,
 		r.ResultQuantity, r.ResultDescription, r.Notes)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"ok": true})
@@ -138,7 +138,7 @@ func UpdateCraftingRecipe(c *gin.Context) {
 		r.RequiredTools, r.RequiredMaterials, r.ResultItemName, r.ResultItemCategory,
 		r.ResultQuantity, r.ResultDescription, r.Notes, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -159,7 +159,7 @@ func ListCharacterCrafting(c *gin.Context) {
 	rows, err := db.DB.Query("SELECT id,character_id,recipe_id,name,progress_hours,total_hours_required,dc,status,materials_allocated,notes,started_at FROM character_crafting WHERE character_id=? ORDER BY started_at DESC", charID)
 	projects, err := scanCharCrafting(rows, err)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, projects)
@@ -182,7 +182,7 @@ func CreateCharacterCrafting(c *gin.Context) {
 	_, err := db.DB.Exec(`INSERT INTO character_crafting(character_id,recipe_id,name,progress_hours,total_hours_required,dc,status,materials_allocated,notes) VALUES(?,?,?,0,?,?,'in-progress',?,?)`,
 		charID, req.RecipeID, req.Name, req.TotalHoursRequired, req.DC, req.MaterialsAllocated, req.Notes)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"ok": true})

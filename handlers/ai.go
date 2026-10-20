@@ -570,7 +570,7 @@ func HandleTextGeneration(c *gin.Context) {
 			c.JSON(ae.Status, gin.H{"error": ae.Msg})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, textGenResponse{Text: text, Finish: finish, SessionID: sid})

@@ -13,7 +13,7 @@ func ListPregens(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	rows, err := db.DB.Query("SELECT id, user_id, name, race, class, subclass, level, background, alignment, str, dex, con, int, wis, cha, hp, ac, speed, skills, equipment, spells, features, personality, backstory, portrait_url, notes, created_at, updated_at FROM pregen_characters WHERE user_id=? ORDER BY updated_at DESC", userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -77,7 +77,7 @@ func CreatePregen(c *gin.Context) {
 		input.Str, input.Dex, input.Con, input.Int, input.Wis, input.Cha, input.HP, input.AC, input.Speed,
 		input.Skills, input.Equipment, input.Spells, input.Features, input.Personality, input.Backstory, input.PortraitURL, input.Notes)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -139,7 +139,7 @@ func UpdatePregen(c *gin.Context) {
 		input.Str, input.Dex, input.Con, input.Int, input.Wis, input.Cha, input.HP, input.AC, input.Speed,
 		input.Skills, input.Equipment, input.Spells, input.Features, input.Personality, input.Backstory, input.PortraitURL, input.Notes, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "updated"})

@@ -54,8 +54,11 @@ func TestWriteError(t *testing.T) {
 	if w.Code != 500 {
 		t.Fatalf("expected 500 got %d", w.Code)
 	}
-	if !strings.Contains(w.Body.String(), "access denied") {
-		t.Fatalf("body missing error: %s", w.Body.String())
+	if strings.Contains(w.Body.String(), "access denied") {
+		t.Fatalf("internal error detail leaked to client: %s", w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "internal server error") {
+		t.Fatalf("body missing generic error: %s", w.Body.String())
 	}
 }
 

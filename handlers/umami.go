@@ -49,7 +49,8 @@ func SaveUmamiSettings(c *gin.Context) {
 	_, err := db.DB.Exec(`INSERT OR REPLACE INTO umami_settings (id, enabled, tracker_hostname, website_id, share_data, enable_admin_tracking) VALUES (1, ?, ?, ?, ?, ?)`,
 		enabled, s.TrackerHostname, s.WebsiteID, shareData, enableAdminTracking)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
+		c.Abort()
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})

@@ -18,7 +18,7 @@ func ListCompanions(c *gin.Context) {
 	}
 	rows, err := db.DB.Query("SELECT id, character_id, name, type, race, hp_max, hp_current, ac, str, dex, con, int, wis, cha, speed, abilities, notes, portrait_url, is_alive FROM companions WHERE character_id=? ORDER BY name", charID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -60,7 +60,7 @@ func CreateCompanion(c *gin.Context) {
 		comp.Str, comp.Dex, comp.Con, comp.Int, comp.Wis, comp.Cha, comp.Speed,
 		comp.Abilities, comp.Notes, comp.PortraitURL, isAlive)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()

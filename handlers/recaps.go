@@ -41,7 +41,7 @@ func ListCampaignRecaps(c *gin.Context) {
 	}
 	rows, err := db.DB.Query("SELECT id,campaign_id,title,content,session_start_date,session_end_date,word_count,is_edited,is_sent FROM campaign_recaps WHERE campaign_id=? ORDER BY created_at DESC", campaignID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -97,7 +97,7 @@ func CreateCampaignRecap(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO campaign_recaps(campaign_id,title,content,session_start_date,session_end_date,word_count) VALUES(?,?,?,?,?,?)",
 		campaignID, req.Title, req.Content, req.SessionStartDate, req.SessionEndDate, wordCount)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()

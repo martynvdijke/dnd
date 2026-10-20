@@ -374,7 +374,7 @@ func ImportCompendiumEntries(c *gin.Context) {
 	result, err := importCompendiumEntries(c.Request.Context(), db.DB, opts)
 	if err != nil {
 		if strings.Contains(err.Error(), "insert failed") || strings.Contains(err.Error(), "commit failed") || strings.Contains(err.Error(), "failed to begin") {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			InternalError(c, err)
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
@@ -480,7 +480,7 @@ func ImportCompendiumEntriesWithMapping(c *gin.Context) {
 	}
 	result, err := importCompendiumEntries(c.Request.Context(), db.DB, opts)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	if len(result.FieldErrors) > 0 && c.Query("validate_only") == "" {
@@ -565,7 +565,7 @@ func ImportCompendiumBatchJSON(c *gin.Context) {
 	result, err := importCompendiumEntries(c.Request.Context(), db.DB, opts)
 	if err != nil {
 		if strings.Contains(err.Error(), "insert failed") || strings.Contains(err.Error(), "commit failed") || strings.Contains(err.Error(), "update failed") || strings.Contains(err.Error(), "failed to begin") {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			InternalError(c, err)
 			return
 		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

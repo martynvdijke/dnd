@@ -27,7 +27,7 @@ func ListWikiPages(c *gin.Context) {
 	campaignID := c.Param("id")
 	rows, err := db.DB.Query("SELECT id,campaign_id,user_id,parent_id,title,content,visibility,tags,sort_order,created_at,updated_at FROM campaign_wiki_pages WHERE campaign_id=? ORDER BY sort_order, title", campaignID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -50,7 +50,7 @@ func CreateWikiPage(c *gin.Context) {
 	res, err := db.DB.Exec("INSERT INTO campaign_wiki_pages(campaign_id,user_id,parent_id,title,content,visibility,tags,sort_order) VALUES(?,?,?,?,?,?,?,?)",
 		p.CampaignID, userID, p.ParentID, p.Title, p.Content, p.Visibility, p.Tags, p.SortOrder)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := res.LastInsertId()

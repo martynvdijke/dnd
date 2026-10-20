@@ -22,7 +22,7 @@ func ListCharacterNotes(c *gin.Context) {
 
 	rows, err := db.DB.Query("SELECT id, character_id, title, content, visibility, category FROM character_notes WHERE character_id=? ORDER BY created_at DESC", charID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -63,7 +63,7 @@ func CreateCharacterNote(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO character_notes(character_id,title,content,visibility,category) VALUES(?,?,?,?,?)",
 		n.CharacterID, n.Title, n.Content, n.Visibility, n.Category)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()

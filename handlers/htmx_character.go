@@ -18,7 +18,7 @@ func HtmxListNotes(c *gin.Context) {
 	}
 	rows, err := db.DB.Query("SELECT id, character_id, title, content, visibility, category FROM character_notes WHERE character_id=? ORDER BY created_at DESC", charID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	defer rows.Close()
@@ -140,7 +140,7 @@ func HtmxListFeats(c *gin.Context) {
 	}
 	rows, err := db.DB.Query("SELECT id, character_id, name, description, prerequisites, source, level_gained FROM character_feats WHERE character_id=? ORDER BY level_gained, name", charID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	defer rows.Close()
@@ -225,7 +225,7 @@ func HtmxListConditions(c *gin.Context) {
 	}
 	rows, err := db.DB.Query("SELECT id, character_id, name, type, source, duration, duration_type, saving_throw, save_dc, description, started_at FROM character_conditions WHERE character_id=? ORDER BY started_at DESC", charID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	defer rows.Close()
@@ -312,7 +312,7 @@ func HtmxListCompanions(c *gin.Context) {
 	}
 	rows, err := db.DB.Query("SELECT id, character_id, name, type, race, hp_max, hp_current, ac, str, dex, con, int, wis, cha, speed, abilities, notes, portrait_url, is_alive FROM companions WHERE character_id=? ORDER BY name", charID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	defer rows.Close()
@@ -430,7 +430,7 @@ func HtmxListFeatures(c *gin.Context) {
 func renderHtmxFeaturesList(c *gin.Context, charID string) {
 	frows, err := db.DB.Query("SELECT id, character_id, name, description, source, level_gained, COALESCE(compendium_entry_id,0) FROM character_features WHERE character_id=? ORDER BY level_gained, name", charID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	defer frows.Close()
@@ -446,7 +446,7 @@ func renderHtmxFeaturesList(c *gin.Context, charID string) {
 	}
 	prows, err := db.DB.Query("SELECT id, character_id, type, name FROM character_proficiencies WHERE character_id=? ORDER BY type, name", charID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	defer prows.Close()
@@ -596,7 +596,7 @@ func HtmxListInventory(c *gin.Context) {
 func renderHtmxInventoryList(c *gin.Context, charID string) {
 	rows, err := db.DB.Query("SELECT id, character_id, name, quantity, weight, category, description, is_equipped, is_magical, attunement, COALESCE(compendium_equipment_id,0), COALESCE(compendium_entry_id,0) FROM inventory WHERE character_id=? ORDER BY category, name", charID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	defer rows.Close()
@@ -691,7 +691,7 @@ func HtmxListSpells(c *gin.Context) {
 func renderHtmxSpellsList(c *gin.Context, charID string) {
 	rows, err := db.DB.Query("SELECT id, character_id, name, level, school, casting_time, range, components, duration, description, prepared, always_prepared, source, notes, COALESCE(compendium_spell_id,0), COALESCE(compendium_entry_id,0) FROM spells WHERE character_id=? ORDER BY level, name", charID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	defer rows.Close()

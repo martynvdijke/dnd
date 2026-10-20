@@ -33,7 +33,7 @@ func ListDowntimeActivities(c *gin.Context) {
 	charID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	rows, err := db.DB.Query("SELECT id,character_id,activity_type,name,description,dc,days_required,days_completed,cost_per_day,total_cost,reward,status,notes FROM downtime_activities WHERE character_id=? ORDER BY status,created_at DESC", charID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -75,7 +75,7 @@ func CreateDowntimeActivity(c *gin.Context) {
 	result, err := db.DB.Exec("INSERT INTO downtime_activities(character_id,activity_type,name,description,dc,days_required,days_completed,cost_per_day,total_cost,reward,status,notes) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
 		charID, a.ActivityType, a.Name, a.Description, a.DC, a.DaysRequired, a.DaysCompleted, a.CostPerDay, a.TotalCost, a.Reward, a.Status, a.Notes)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()

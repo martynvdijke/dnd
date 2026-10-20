@@ -88,7 +88,7 @@ func ListShops(c *gin.Context) {
 		rows, err = db.DB.Query("SELECT " + shopColumns + " " + shopFrom + " ORDER BY s.name")
 	}
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -113,7 +113,7 @@ func CreateShop(c *gin.Context) {
 	_, err := db.DB.Exec("INSERT INTO shops(user_id,campaign_id,name,description,markup_percent,markup_buy_percent,location_id) VALUES(?,?,?,?,?,?,?)",
 		userID, s.CampaignID, s.Name, s.Description, s.MarkupPercent, s.MarkupBuyPercent, s.LocationID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"ok": true})
@@ -160,7 +160,7 @@ func ListShopItems(c *gin.Context) {
 	shopID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	rows, err := db.DB.Query("SELECT id,shop_id,item_name,category,price_gp,quantity_available,description,is_magical,attunement_required,notes,COALESCE(weight,0),COALESCE(item_rarity,''),compendium_equipment_id FROM shop_items WHERE shop_id=? ORDER BY item_name", shopID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -237,7 +237,7 @@ func CreateShopItem(c *gin.Context) {
 	_, err := db.DB.Exec("INSERT INTO shop_items(shop_id,item_name,category,price_gp,quantity_available,description,is_magical,attunement_required,notes,weight,item_rarity,compendium_equipment_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",
 		shopID, it.ItemName, it.Category, it.PriceGP, it.QuantityAvailable, it.Description, isMag, att, it.Notes, it.Weight, it.ItemRarity, compID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"ok": true})
@@ -277,7 +277,7 @@ func UpdateShopItem(c *gin.Context) {
 	_, err := db.DB.Exec("UPDATE shop_items SET item_name=?,category=?,price_gp=?,quantity_available=?,description=?,is_magical=?,attunement_required=?,notes=?,weight=?,item_rarity=?,compendium_equipment_id=? WHERE id=?",
 		it.ItemName, it.Category, it.PriceGP, it.QuantityAvailable, it.Description, isMag, att, it.Notes, it.Weight, it.ItemRarity, compID, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -297,7 +297,7 @@ func UnlinkShopItem(c *gin.Context) {
 		return
 	}
 	if _, err := db.DB.Exec("UPDATE shop_items SET compendium_equipment_id = NULL WHERE id=?", id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -418,7 +418,7 @@ func ListShopTransactions(c *gin.Context) {
 		rows, err = db.DB.Query("SELECT id,shop_id,character_id,item_name,quantity,price_gp,transaction_type,timestamp FROM shop_transactions ORDER BY timestamp DESC LIMIT 20")
 	}
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()

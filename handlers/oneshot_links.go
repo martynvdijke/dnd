@@ -16,7 +16,7 @@ func GetOneShotNPCs(c *gin.Context) {
 	adventureID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	rows, err := db.DB.Query("SELECT oan.id, oan.adventure_id, oan.npc_id, oan.role, oan.story_hook, oan.combat_ready, COALESCE(n.name,'') FROM oneshot_adventure_npcs oan LEFT JOIN npcs n ON oan.npc_id=n.id WHERE oan.adventure_id=?", adventureID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -50,7 +50,7 @@ func LinkOneShotNPC(c *gin.Context) {
 	_, err := db.DB.Exec("INSERT OR REPLACE INTO oneshot_adventure_npcs(adventure_id, npc_id, role, story_hook, combat_ready) VALUES(?,?,?,?,?)",
 		adventureID, link.NPCID, link.Role, link.StoryHook, combatReady)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -69,7 +69,7 @@ func GetOneShotLocations(c *gin.Context) {
 	adventureID, _ := strconv.ParseInt(c.Param("id"), 10, 64)
 	rows, err := db.DB.Query("SELECT oal.id, oal.adventure_id, oal.location_id, COALESCE(l.name,'') FROM oneshot_adventure_locations oal LEFT JOIN locations l ON oal.location_id=l.id WHERE oal.adventure_id=?", adventureID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -93,7 +93,7 @@ func LinkOneShotLocation(c *gin.Context) {
 	}
 	_, err := db.DB.Exec("INSERT OR IGNORE INTO oneshot_adventure_locations(adventure_id, location_id) VALUES(?,?)", adventureID, link.LocationID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -138,7 +138,7 @@ func LinkOneShotEncounter(c *gin.Context) {
 		return
 	}
 	if err := linkOneShotEncounterRow(adventureID, link.EncounterID, link.ActID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -173,7 +173,7 @@ func LinkActEncounter(c *gin.Context) {
 		return
 	}
 	if err := linkOneShotEncounterRow(adventureID, link.EncounterID, &actID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})

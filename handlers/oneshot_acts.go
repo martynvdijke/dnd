@@ -39,7 +39,7 @@ func CreateOneShotAct(c *gin.Context) {
 	}
 	result, err := q.Save(ctx)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"id": result.ID})
@@ -66,7 +66,7 @@ func UpdateOneShotAct(c *gin.Context) {
 		q.ClearParentActID()
 	}
 	if _, err := q.Save(ctx); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -87,7 +87,7 @@ func ListActNPCs(c *gin.Context) {
 	}
 	npcs, err := db.Client.OneShotActNPC.Query().Where(oneshotactnpc.ActIDEQ(actID)).Order(ent.Asc(oneshotactnpc.FieldName)).All(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	out := make([]models.OneShotActNPC, len(npcs))
@@ -152,7 +152,7 @@ func CreateActNPC(c *gin.Context) {
 	}
 	n, err := q.Save(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	out := models.OneShotActNPC{
@@ -199,7 +199,7 @@ func UpdateActNPC(c *gin.Context) {
 	res, err := db.DB.Exec("UPDATE oneshot_act_npcs SET name=?,role=?,notes=?,npc_id=?,is_inline=? WHERE id=? AND act_id=?",
 		input.Name, input.Role, input.Notes, input.NpcID, input.NpcID == nil, npcID, actID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	if affected, _ := res.RowsAffected(); affected == 0 {
@@ -226,7 +226,7 @@ func DeleteActNPC(c *gin.Context) {
 	}
 	err = db.Client.OneShotActNPC.DeleteOneID(npcID).Exec(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true, "act_id": actID})
@@ -242,7 +242,7 @@ func ListActNotes(c *gin.Context) {
 	}
 	rows, err := db.DB.Query("SELECT id, adventure_id, user_id, title, content, created_at, updated_at FROM dm_notes WHERE act_id=? ORDER BY updated_at DESC", actID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -279,7 +279,7 @@ func CreateActNote(c *gin.Context) {
 	}
 	result, err := db.DB.Exec("INSERT INTO dm_notes(adventure_id, user_id, title, content, act_id) VALUES(?,?,?,?,?)", adventureID, userID, input.Title, input.Content, actID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()

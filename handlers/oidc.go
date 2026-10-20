@@ -122,8 +122,7 @@ func oidcRandHex(n int) (string, error) {
 }
 
 func setOIDCCookie(c *gin.Context, name, value string, maxAge int) {
-	c.SetSameSite(http.SameSiteLaxMode)
-	c.SetCookie(name, value, maxAge, "/", "", false, true)
+	middleware.SetOIDCCookie(c, name, value, maxAge)
 }
 
 // OIDCStatus reports whether OIDC login is usable — enabled and fully
@@ -180,7 +179,7 @@ type oidcClaims struct {
 
 func clearOIDCCookies(c *gin.Context) {
 	for _, n := range []string{"oidc_state", "oidc_nonce", "oidc_verifier"} {
-		c.SetCookie(n, "", -1, "/", "", false, true)
+		middleware.SetOIDCCookie(c, n, "", -1)
 	}
 }
 
@@ -269,7 +268,7 @@ func OIDCCallback(c *gin.Context) {
 	}
 	clearOIDCCookies(c)
 	sessionID := middleware.Store.CreateWithAuth(u.id, u.username, u.role, c.ClientIP(), "oidc", sub)
-	c.SetCookie("session", sessionID, 86400, "/", "", false, true)
+	middleware.SetSessionCookie(c, sessionID, 86400)
 	c.Redirect(http.StatusFound, "/")
 }
 
@@ -279,7 +278,7 @@ func OIDCLogout(c *gin.Context) {
 	if sessionID, _ := c.Cookie("session"); sessionID != "" {
 		middleware.Store.Delete(sessionID)
 	}
-	c.SetCookie("session", "", -1, "/", "", false, true)
+	middleware.ClearSessionCookie(c)
 	if cfg := loadOIDCConfig(); cfg.Enabled && cfg.Issuer != "" {
 		c.Redirect(http.StatusFound, cfg.LogoutURL)
 		return

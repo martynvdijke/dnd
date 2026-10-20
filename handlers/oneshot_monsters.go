@@ -17,7 +17,7 @@ func ListMonsterLibrary(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	rows, err := db.DB.Query("SELECT id, user_id, name, ac, hp, str, dex, con, int_, wis, cha, cr, source, is_full, saves, skills, damage_vulnerabilities, damage_resistances, damage_immunities, condition_immunities, senses, languages, special_abilities, actions, legendary_actions, description, created_at FROM monster_library WHERE user_id=? ORDER BY name", userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -55,7 +55,7 @@ func CreateMonsterLibraryEntry(c *gin.Context) {
 		m.Saves, m.Skills, m.DamageVulnerabilities, m.DamageResistances, m.DamageImmunities, m.ConditionImmunities,
 		m.Senses, m.Languages, m.SpecialAbilities, m.Actions, m.LegendaryActions, m.Description)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -85,7 +85,7 @@ func UpdateMonsterLibraryEntry(c *gin.Context) {
 		m.Saves, m.Skills, m.DamageVulnerabilities, m.DamageResistances, m.DamageImmunities, m.ConditionImmunities,
 		m.Senses, m.Languages, m.SpecialAbilities, m.Actions, m.LegendaryActions, m.Description, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -119,7 +119,7 @@ func ListActMonsters(c *gin.Context) {
 	actID := c.Param("id")
 	rows, err := db.DB.Query("SELECT "+monsterColumns+" FROM oneshot_monsters WHERE act_id=? ORDER BY name", actID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -183,7 +183,7 @@ func CreateActMonster(c *gin.Context) {
 		req.Saves, req.Skills, req.DamageVulnerabilities, req.DamageResistances, req.DamageImmunities, req.ConditionImmunities,
 		req.Senses, req.Languages, req.SpecialAbilities, req.Actions, req.LegendaryActions, req.LibraryID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -191,7 +191,7 @@ func CreateActMonster(c *gin.Context) {
 	rows := db.DB.QueryRow("SELECT "+monsterColumns+" FROM oneshot_monsters WHERE id=?", id)
 	m, err = scanMonster(rows)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusCreated, m)
@@ -239,7 +239,7 @@ func UpdateOneShotMonster(c *gin.Context) {
 		req.Saves, req.Skills, req.DamageVulnerabilities, req.DamageResistances, req.DamageImmunities, req.ConditionImmunities,
 		req.Senses, req.Languages, req.SpecialAbilities, req.Actions, req.LegendaryActions, id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
@@ -255,7 +255,7 @@ func ListSceneMonsters(c *gin.Context) {
 	sceneID := c.Param("id")
 	rows, err := db.DB.Query("SELECT "+monsterColumns+" FROM oneshot_monsters WHERE scene_id=? ORDER BY name", sceneID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -315,7 +315,7 @@ func CreateSceneMonster(c *gin.Context) {
 		req.Saves, req.Skills, req.DamageVulnerabilities, req.DamageResistances, req.DamageImmunities, req.ConditionImmunities,
 		req.Senses, req.Languages, req.SpecialAbilities, req.Actions, req.LegendaryActions, req.LibraryID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()

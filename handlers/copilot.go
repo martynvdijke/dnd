@@ -378,7 +378,7 @@ func handleCopilotPrep(c *gin.Context) {
 			c.JSON(ae.Status, gin.H{"error": ae.Msg})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"answer": text, "sources": sources})

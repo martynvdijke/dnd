@@ -44,7 +44,7 @@ func CalculateHP(c *gin.Context) {
 	// Load character classes
 	classRows, err := db.DB.Query("SELECT class, level, hit_dice FROM character_classes WHERE character_id=? ORDER BY created_at", charID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer classRows.Close()

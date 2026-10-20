@@ -306,7 +306,7 @@ func entryItemLinkInsert(charID, entryID int64, quantity int) (int, string) {
 		VALUES(?,?,?,?,?,?,'',?)`,
 		charID, snap.Name, quantity, snap.Weight, snap.Category, snap.Description, entryID)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error()
+		return http.StatusInternalServerError, "internal server error"
 	}
 	return 0, ""
 }
@@ -333,7 +333,7 @@ func entrySpellLinkInsert(charID, entryID int64) (int, string) {
 		VALUES(?,?,?,?,?,?,?,?,?,?,'',?)`,
 		charID, snap.Name, snap.Level, snap.School, snap.CastingTime, snap.Range, snap.Components, snap.Duration, snap.Description, snap.Source, entryID)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error()
+		return http.StatusInternalServerError, "internal server error"
 	}
 	return 0, ""
 }
@@ -348,7 +348,7 @@ func featureLinkInsert(charID, entryID int64, levelGained int) (int, string) {
 		VALUES(?,?,?,?,?,?)`,
 		charID, snap.Name, snap.Description, snap.Source, levelGained, entryID)
 	if err != nil {
-		return http.StatusInternalServerError, err.Error()
+		return http.StatusInternalServerError, "internal server error"
 	}
 	return 0, ""
 }
@@ -426,7 +426,7 @@ func HtmxUnlinkCompendiumFeature(c *gin.Context) {
 	}
 	_, err = db.DB.Exec("UPDATE character_features SET compendium_entry_id = NULL WHERE id=?", id)
 	if err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 	renderHtmxFeaturesList(c, charID)

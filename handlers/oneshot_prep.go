@@ -13,7 +13,7 @@ func ListPrepChecklist(c *gin.Context) {
 	adventureID := c.Param("id")
 	rows, err := db.DB.Query("SELECT id, adventure_id, item, category, is_checked, sort_order FROM prep_checklist WHERE adventure_id=? ORDER BY sort_order, id", adventureID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -47,7 +47,7 @@ func CreatePrepChecklistItem(c *gin.Context) {
 
 	result, err := db.DB.Exec("INSERT INTO prep_checklist(adventure_id, item, category, sort_order) VALUES(?,?,?,?)", adventureID, req.Item, req.Category, req.SortOrder)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -91,7 +91,7 @@ func DeletePrepChecklistItem(c *gin.Context) {
 	id := c.Param("cid")
 	_, err := db.DB.Exec("DELETE FROM prep_checklist WHERE id=?", id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
@@ -104,7 +104,7 @@ func ListDmNotes(c *gin.Context) {
 
 	rows, err := db.DB.Query("SELECT id, adventure_id, user_id, title, content, created_at, updated_at FROM dm_notes WHERE adventure_id=? AND user_id=? ORDER BY updated_at DESC", adventureID, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -138,7 +138,7 @@ func CreateDmNote(c *gin.Context) {
 
 	result, err := db.DB.Exec("INSERT INTO dm_notes(adventure_id, user_id, title, content, act_id) VALUES(?,?,?,?,?)", adventureID, userID, input.Title, input.Content, input.ActID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -160,7 +160,7 @@ func UpdateDmNote(c *gin.Context) {
 
 	_, err := db.DB.Exec("UPDATE dm_notes SET title=?, content=?, updated_at=datetime('now') WHERE id=? AND user_id=?", input.Title, input.Content, noteID, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "updated"})
@@ -172,7 +172,7 @@ func DeleteDmNote(c *gin.Context) {
 
 	_, err := db.DB.Exec("DELETE FROM dm_notes WHERE id=? AND user_id=?", noteID, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "deleted"})

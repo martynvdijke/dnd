@@ -94,7 +94,7 @@ func HtmxCreatePregen(c *gin.Context) {
 		ch.Str, ch.Dex, ch.Con, ch.Int, ch.Wis, ch.Cha, ch.HP, ch.AC, ch.Speed,
 		ch.Skills, ch.Equipment, ch.Spells, ch.Features, ch.Personality, ch.Backstory, ch.PortraitURL, ch.Notes)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "insert error: %v", err)
+		InternalErrorText(c, err)
 		return
 	}
 
@@ -114,7 +114,7 @@ func HtmxUpdatePregen(c *gin.Context) {
 		ch.Skills, ch.Equipment, ch.Spells, ch.Features, ch.Personality, ch.Backstory, ch.PortraitURL, ch.Notes,
 		c.Param("id"), userID)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "update error: %v", err)
+		InternalErrorText(c, err)
 		return
 	}
 
@@ -125,7 +125,7 @@ func HtmxDeletePregen(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	_, err := db.DB.Exec("DELETE FROM pregen_characters WHERE id=? AND user_id=?", c.Param("id"), userID)
 	if err != nil && err != sql.ErrNoRows {
-		c.String(http.StatusInternalServerError, "delete error: %v", err)
+		InternalErrorText(c, err)
 		return
 	}
 	HtmxListPregens(c)

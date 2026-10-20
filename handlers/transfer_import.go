@@ -62,7 +62,7 @@ func HandleImportTransfer(c *gin.Context) {
 
 	tx, err := db.DB.Begin()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer tx.Rollback()
@@ -177,7 +177,7 @@ func HandleImportTransfer(c *gin.Context) {
 	logResult, err := tx.Exec(`INSERT INTO transfer_import_logs(user_id, file_name, doc_type, counts, status)
 		VALUES(?, ?, 'villum-transfer', ?, ?)`, userID, "imported", string(logCountsJSON), logStatus)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "log: " + err.Error()})
+		InternalError(c, err)
 		return
 	}
 	logID, _ := logResult.LastInsertId()
@@ -193,7 +193,7 @@ func HandleImportTransfer(c *gin.Context) {
 	}
 
 	if err := tx.Commit(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "commit: " + err.Error()})
+		InternalError(c, err)
 		return
 	}
 
@@ -222,7 +222,7 @@ func HandleListTransferLogs(c *gin.Context) {
 			FROM transfer_import_logs WHERE user_id=? ORDER BY created_at DESC LIMIT 50`, userID)
 	}
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()

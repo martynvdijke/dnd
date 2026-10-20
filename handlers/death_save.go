@@ -30,7 +30,7 @@ func HandleDeathSave(c *gin.Context) {
 
 	roll, _, err := rollD20Advantage("")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 
@@ -66,7 +66,7 @@ func HandleDeathSave(c *gin.Context) {
 		db.DB.Exec("DELETE FROM character_conditions WHERE character_id=? AND type='concentration'", charID)
 	}
 	if _, err = db.DB.Exec("UPDATE characters SET hp_current=?, death_saves_successes=?, death_saves_failures=? WHERE id=?", hpCurrent, dsSucc, dsFail, charID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 

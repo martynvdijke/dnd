@@ -272,7 +272,7 @@ func doExport(c *gin.Context, req exportRequest) {
 
 	tx, err := db.DB.Begin()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer tx.Rollback()

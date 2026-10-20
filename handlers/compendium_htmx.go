@@ -295,7 +295,7 @@ func HtmxImportAPIMonster(c *gin.Context) {
 
 	var data map[string]any
 	if err := json.NewDecoder(detailResp.Body).Decode(&data); err != nil {
-		c.String(http.StatusInternalServerError, "Failed to parse monster detail: "+err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 
@@ -462,7 +462,7 @@ func HtmxImportAPIMonster(c *gin.Context) {
 		saves.String(), strings.Join(skillItems, ", "), dvStr, drStr, diStr, ciStr,
 		senses, languages, specialAbilities, actions, legendaryActions, description)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Failed to import monster: "+err.Error())
+		InternalErrorText(c, err)
 		return
 	}
 

@@ -18,7 +18,7 @@ import (
 func AdminListUsers(c *gin.Context) {
 	users, err := db.Client.User.Query().Order(ent.Asc(user.FieldID)).All(c.Request.Context())
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	result := make([]models.User, len(users))
@@ -181,7 +181,7 @@ func TriggerBackup(c *gin.Context) {
 	backupPath, err := CreateBackup()
 	if err != nil {
 		middleware.LogError("backup", "manual backup failed", "error", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	middleware.LogInfo("backup", "manual backup created", "path", backupPath)
@@ -191,7 +191,7 @@ func TriggerBackup(c *gin.Context) {
 
 func HandleAdminResyncSearchIndex(c *gin.Context) {
 	if err := db.ResyncSearchIndex(); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "search index resynced"})

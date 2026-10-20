@@ -18,7 +18,7 @@ import (
 func ListCompendiumRaces(c *gin.Context) {
 	rows, err := db.DB.Query("SELECT id,name,description,speed,size,ability_bonuses,traits,languages,source_page,system,source,category,expansion,publisher FROM compendium_races ORDER BY name")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -37,7 +37,7 @@ func ListCompendiumRaces(c *gin.Context) {
 func ListCompendiumClasses(c *gin.Context) {
 	rows, err := db.DB.Query("SELECT id,name,description,hit_die,primary_ability,saving_throws,proficiencies,spellcasting_ability,source_page,system,source,category,expansion,publisher FROM compendium_classes ORDER BY name")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -77,7 +77,7 @@ func ListCompendiumSpells(c *gin.Context) {
 
 	rows, err := db.DB.Query(query, args...)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -96,7 +96,7 @@ func ListCompendiumSpells(c *gin.Context) {
 func ListCompendiumFeats(c *gin.Context) {
 	rows, err := db.DB.Query("SELECT id,name,description,prerequisites,source_page,system,source FROM compendium_feats ORDER BY name")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -115,7 +115,7 @@ func ListCompendiumFeats(c *gin.Context) {
 func ListCompendiumBackgrounds(c *gin.Context) {
 	rows, err := db.DB.Query("SELECT id,name,description,feature_name,feature_description,proficiencies,source_page,system,source,category,data_list,data_bonds,data_flaws,data_ideals,data_equipment,data_starting_gold,data_personality_traits,publisher FROM compendium_backgrounds ORDER BY name")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -147,7 +147,7 @@ func ListCompendiumEquipment(c *gin.Context) {
 
 	rows, err := db.DB.Query(query, args...)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -218,7 +218,7 @@ func ListCompendiumMonsters(c *gin.Context) {
 
 	rows, err := db.DB.Query(query, args...)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -535,7 +535,7 @@ type userCompendiumEntry struct {
 func ListUserCompendiumEntriesBySchema(c *gin.Context) {
 	rows, err := db.DB.Query("SELECT id, type_name, display_name FROM compendium_schemas ORDER BY display_name")
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()
@@ -632,7 +632,7 @@ func FetchFromDnDApi(c *gin.Context) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read API response: " + err.Error()})
+		InternalError(c, err)
 		return
 	}
 
@@ -642,7 +642,7 @@ func FetchFromDnDApi(c *gin.Context) {
 		Results []map[string]string `json:"results"`
 	}
 	if err := json.Unmarshal(body, &searchResult); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to parse API response: " + err.Error()})
+		InternalError(c, err)
 		return
 	}
 
@@ -717,7 +717,7 @@ func ImportFromAPI(c *gin.Context) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read response: " + err.Error()})
+		InternalError(c, err)
 		return
 	}
 

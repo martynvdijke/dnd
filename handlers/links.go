@@ -97,7 +97,7 @@ func HandleCreateLink(c *gin.Context) {
 	result, err := db.DB.Exec(`INSERT INTO entity_links(source_type, source_id, target_type, target_id, context) VALUES(?,?,?,?,?)`,
 		req.SourceType, req.SourceID, req.TargetType, req.TargetID, req.Context)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	id, _ := result.LastInsertId()
@@ -134,7 +134,7 @@ func HandleDeleteLink(c *gin.Context) {
 		return
 	}
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 
@@ -144,7 +144,7 @@ func HandleDeleteLink(c *gin.Context) {
 	}
 
 	if _, err := db.DB.Exec(`DELETE FROM entity_links WHERE id=?`, id); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "deleted"})
@@ -173,7 +173,7 @@ func HandleGetLinks(c *gin.Context) {
 		WHERE (source_type=? AND source_id=?) OR (target_type=? AND target_id=?)
 		ORDER BY created_at DESC`, entityType, entityID, entityType, entityID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	defer rows.Close()

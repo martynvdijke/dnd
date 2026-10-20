@@ -39,7 +39,7 @@ func CreateOneShotScene(c *gin.Context) {
 		SetNotes(sc.Notes).
 		Save(ctx)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	if sc.SpecialEffects != "" {
@@ -68,7 +68,7 @@ func UpdateOneShotScene(c *gin.Context) {
 		SetNotes(sc.Notes).
 		Save(ctx)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		InternalError(c, err)
 		return
 	}
 	db.DB.Exec("UPDATE oneshot_scenes SET special_effects=? WHERE id=?", sc.SpecialEffects, id)
