@@ -46,25 +46,6 @@ The service SHALL auto-provision or link users by verified email on OIDC login a
 - WHEN a returning OIDC user logs in and the `groups` claim now includes (or no longer includes) `admins`
 - THEN the service updates the user's admin flag to match
 
-### Requirement: Password fallback until verified + no secret in git
-
-The service SHALL keep existing password/session login enabled until OIDC is verified end-to-end, and SHALL never commit OIDC client secrets to git (configured via OIDC_CLIENT_SECRET_FILE / env, wired through docker-compose.yml).
-
-#### Scenario: Fallback login still works
-
-- WHEN OIDC is enabled but the user chooses password login
-- THEN the existing password/session flow succeeds and issues the same session cookie shape
-
-#### Scenario: OIDC disabled toggle
-
-- WHEN OIDC_ENABLED=false
-- THEN OIDC routes return disabled/not-found and password login remains fully functional (rollback path)
-
-#### Scenario: Secret not in repo
-
-- WHEN inspecting git history and compose files
-- THEN no client secret value appears; only OIDC_CLIENT_SECRET_FILE / env references are present
-
 ### Requirement: Logout + session handling
 
 The service SHALL extend AuthMiddleware to accept OIDC sessions (same `session` cookie with `auth_method=oidc|password` + `oidc_sub`) and SHALL implement logout that clears the local session then redirects to Authelia logout.
@@ -97,3 +78,22 @@ Public GET routes SHALL remain accessible without authentication; OIDC is for SS
 
 - WHEN an anonymous user hits a private mutation (e.g. POST /api/*, admin pages) without a session
 - THEN the service redirects to OIDC login (web 302 to /api/auth/oidc/login) or returns 401 for API clients
+
+### Requirement: OIDC secret handling and break-glass recovery
+
+The service SHALL never commit OIDC client secrets to git; the client secret SHALL be supplied through `OIDC_CLIENT_SECRET_FILE` or an environment variable wired through `docker-compose.yml`. Password login SHALL require the explicit break-glass flag `ALLOW_PASSWORD_FALLBACK`, because `retire-password-fallback` retires password login as the default and keeps it only as a documented recovery path.
+
+#### Scenario: Secret not in repo
+
+- **WHEN** inspecting git history and compose files
+- **THEN** no client secret value appears; only OIDC_CLIENT_SECRET_FILE / env references are present
+
+#### Scenario: Password fallback requires break-glass
+
+- **WHEN** an operator needs password login after the cutover
+- **THEN** setting `ALLOW_PASSWORD_FALLBACK=true` and restarting the deployment restores password login without a code change
+
+#### Scenario: OIDC disabled toggle
+
+- **WHEN** `OIDC_ENABLED=false`
+- **THEN** the OIDC routes report the flow as disabled and password login is available only while the break-glass flag is set
