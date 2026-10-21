@@ -1,3 +1,15 @@
+# [3.1.0](https://github.com/martynvdijke/dnd/compare/v3.0.0...v3.1.0) (2026-10-21)
+
+
+### Bug Fixes
+
+* **android:** add internet permission, cleartext support and OIDC login ([7be2007](https://github.com/martynvdijke/dnd/commit/7be2007f026c8597abc53bbf10e6b61bed605ddb))
+
+
+### Features
+
+* **mobile:** sign in with Authelia, require a server address and brand the app icon ([#230](https://github.com/martynvdijke/dnd/issues/230)) ([fa2e2b7](https://github.com/martynvdijke/dnd/commit/fa2e2b7432b61218f0447f18181eaf39251a3ab1))
+
 # [3.0.0](https://github.com/martynvdijke/dnd/compare/v2.105.1...v3.0.0) (2026-10-20)
 
 
