@@ -101,10 +101,7 @@ void main() {
       fake: fake,
       store: store,
     );
-    await tester.enterText(
-      find.byType(TextField).first,
-      'http://villum.test',
-    );
+    await tester.enterText(find.byType(TextField).first, 'http://villum.test');
     await tester.enterText(find.byType(TextField).at(1), 'admin');
     await tester.enterText(find.byType(TextField).at(2), 'longpassword');
     await tester.tap(find.byType(FilledButton));
@@ -141,6 +138,36 @@ void main() {
     expect(urlField.controller?.text ?? '', isEmpty);
     expect(find.textContaining('10.0.2.2'), findsNothing);
     expect(find.textContaining('localhost'), findsNothing);
+  });
+
+  testWidgets('auto-detects Authelia sign-in from the server URL', (
+    tester,
+  ) async {
+    final fake = FakeApi();
+    final store = InMemoryAuthStore();
+    fake.onGet('/api/check-setup', (o) async => jsonBody({'setup': true}, 200));
+    fake.onGet(
+      '/api/auth/oidc/status',
+      (o) async => jsonBody({'enabled': true}, 200),
+    );
+    await pumpScreen(
+      tester,
+      const OnboardingScreen(),
+      fake: fake,
+      store: store,
+    );
+
+    // No "Test connection" tap: entering a valid address is enough.
+    await tester.enterText(find.byType(TextField).first, 'http://villum.test');
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pump();
+
+    expect(
+      fake.requests.where((r) => r.path == '/api/auth/oidc/status'),
+      hasLength(1),
+    );
+    expect(find.byKey(const Key('sso-sign-in')), findsOneWidget);
+    expect(find.text('Password sign-in (break-glass)'), findsOneWidget);
   });
 
   testWidgets('offers Authelia sign-in when the server enables OIDC', (

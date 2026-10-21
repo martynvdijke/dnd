@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -46,10 +48,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _oidcEnabled = false;
   String? _error;
 
+  // Detect Authelia support as soon as a valid server address is typed, so the
+  // SSO button does not depend on the user pressing "Test connection".
+  Timer? _probeTimer;
+  String? _probedUrl;
+  int _probeEpoch = 0;
+
   @override
   void initState() {
     super.initState();
     if (widget.forceSetup) _needsSetup = true;
+    _urlCtrl.addListener(_scheduleProbe);
     // Try to preload last URL from store if available
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
@@ -65,13 +74,54 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   void dispose() {
+    _probeTimer?.cancel();
+    _urlCtrl.removeListener(_scheduleProbe);
     _urlCtrl.dispose();
     _userCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
   }
 
+  void _scheduleProbe() {
+    _probeTimer?.cancel();
+    if (serverUrlError(_urlCtrl.text) != null) {
+      _probedUrl = null;
+      if (_oidcEnabled) setState(() => _oidcEnabled = false);
+      return;
+    }
+    if (_checking || _loggingIn || _ssoBusy) return;
+    final url = normalizeServerUrl(_urlCtrl.text);
+    if (url == _probedUrl) return;
+    _probeTimer = Timer(const Duration(milliseconds: 600), () => _probe(url));
+  }
+
+  Future<void> _probe(String url) async {
+    if (url == _probedUrl) return;
+    final epoch = ++_probeEpoch;
+    final repo = ref.read(authRepositoryProvider);
+    final enabledFuture = repo.oidcEnabled(url);
+    final setupFuture = _tryCheckSetup(repo, url);
+    final enabled = await enabledFuture;
+    final setup = await setupFuture;
+    if (!mounted || epoch != _probeEpoch) return;
+    if (normalizeServerUrl(_urlCtrl.text) != url) return;
+    setState(() {
+      _probedUrl = url;
+      _oidcEnabled = enabled;
+      if (setup != null) _needsSetup = !setup;
+    });
+  }
+
+  Future<bool?> _tryCheckSetup(AuthRepository repo, String url) async {
+    try {
+      return await repo.checkSetup(url);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _testConnection() async {
+    _probeTimer?.cancel();
     final invalid = serverUrlError(_urlCtrl.text);
     if (invalid != null) {
       setState(() => _error = invalid);
@@ -79,6 +129,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
     final url = normalizeServerUrl(_urlCtrl.text);
     if (url != _urlCtrl.text) setState(() => _urlCtrl.text = url);
+    _probeTimer?.cancel();
     setState(() {
       _checking = true;
       _error = null;
@@ -113,15 +164,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _checkOidc(String url) async {
+    final normalized = normalizeServerUrl(url);
     try {
       final enabled = await ref.read(authRepositoryProvider).oidcEnabled(url);
-      if (mounted) setState(() => _oidcEnabled = enabled);
+      if (!mounted || normalizeServerUrl(_urlCtrl.text) != normalized) return;
+      setState(() {
+        _oidcEnabled = enabled;
+        _probedUrl = normalized;
+      });
     } catch (_) {
       if (mounted) setState(() => _oidcEnabled = false);
     }
   }
 
   Future<void> _oidcLogin() async {
+    _probeTimer?.cancel();
     final invalid = serverUrlError(_urlCtrl.text);
     if (invalid != null) {
       setState(() => _error = invalid);
@@ -151,6 +208,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _login() async {
+    _probeTimer?.cancel();
     final invalid = serverUrlError(_urlCtrl.text);
     if (invalid != null) {
       setState(() => _error = invalid);
@@ -158,6 +216,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
     final url = normalizeServerUrl(_urlCtrl.text);
     if (url != _urlCtrl.text) setState(() => _urlCtrl.text = url);
+    _probeTimer?.cancel();
     final user = _userCtrl.text.trim();
     final pass = _passCtrl.text;
     if (user.isEmpty) {
