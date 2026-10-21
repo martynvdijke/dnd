@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,24 +41,30 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _userCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscure = true;
-  bool _checking = false;
   bool _loggingIn = false;
   bool _ssoBusy = false;
   bool? _needsSetup; // null = unknown, false = login, true = first admin
   bool _oidcEnabled = false;
   String? _error;
 
+  // Detect Authelia support as soon as a valid server address is typed, so the
+  // SSO button appears without a separate connection test.
+  Timer? _probeTimer;
+  String? _probedUrl;
+  int _probeEpoch = 0;
+
   @override
   void initState() {
     super.initState();
     if (widget.forceSetup) _needsSetup = true;
+    _urlCtrl.addListener(_scheduleProbe);
     // Try to preload last URL from store if available
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
         final stored = await ref.read(authStoreProvider).read();
         if (stored != null && stored.serverUrl.isNotEmpty && mounted) {
           setState(() => _urlCtrl.text = stored.serverUrl);
-          // A known-good server: show SSO without waiting for "Test connection".
+          // A known-good server: show SSO immediately.
           _checkOidc(stored.serverUrl);
         }
       } catch (_) {}
@@ -65,63 +73,68 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   void dispose() {
+    _probeTimer?.cancel();
+    _urlCtrl.removeListener(_scheduleProbe);
     _urlCtrl.dispose();
     _userCtrl.dispose();
     _passCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _testConnection() async {
-    final invalid = serverUrlError(_urlCtrl.text);
-    if (invalid != null) {
-      setState(() => _error = invalid);
+  void _scheduleProbe() {
+    _probeTimer?.cancel();
+    if (serverUrlError(_urlCtrl.text) != null) {
+      _probedUrl = null;
+      if (_oidcEnabled) setState(() => _oidcEnabled = false);
       return;
     }
+    if (_loggingIn || _ssoBusy) return;
     final url = normalizeServerUrl(_urlCtrl.text);
-    if (url != _urlCtrl.text) setState(() => _urlCtrl.text = url);
+    if (url == _probedUrl) return;
+    _probeTimer = Timer(const Duration(milliseconds: 600), () => _probe(url));
+  }
+
+  Future<void> _probe(String url) async {
+    if (url == _probedUrl) return;
+    final epoch = ++_probeEpoch;
+    final repo = ref.read(authRepositoryProvider);
+    final enabledFuture = repo.oidcEnabled(url);
+    final setupFuture = _tryCheckSetup(repo, url);
+    final enabled = await enabledFuture;
+    final setup = await setupFuture;
+    if (!mounted || epoch != _probeEpoch) return;
+    if (normalizeServerUrl(_urlCtrl.text) != url) return;
     setState(() {
-      _checking = true;
-      _error = null;
+      _probedUrl = url;
+      _oidcEnabled = enabled;
+      if (setup != null) _needsSetup = !setup;
     });
+  }
+
+  Future<bool?> _tryCheckSetup(AuthRepository repo, String url) async {
     try {
-      final repo = ref.read(authRepositoryProvider);
-      final setup = await repo.checkSetup(url);
-      if (!mounted) return;
-      // setup==true => already set up => login mode
-      // setup==false => needs first admin
-      setState(() {
-        _needsSetup = !setup;
-      });
-      _checkOidc(url);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _needsSetup!
-                  ? 'No admin found — create the first account.'
-                  : 'Server reachable — please log in.',
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = _friendlyError(e));
-    } finally {
-      if (mounted) setState(() => _checking = false);
+      return await repo.checkSetup(url);
+    } catch (_) {
+      return null;
     }
   }
 
   Future<void> _checkOidc(String url) async {
+    final normalized = normalizeServerUrl(url);
     try {
       final enabled = await ref.read(authRepositoryProvider).oidcEnabled(url);
-      if (mounted) setState(() => _oidcEnabled = enabled);
+      if (!mounted || normalizeServerUrl(_urlCtrl.text) != normalized) return;
+      setState(() {
+        _oidcEnabled = enabled;
+        _probedUrl = normalized;
+      });
     } catch (_) {
       if (mounted) setState(() => _oidcEnabled = false);
     }
   }
 
   Future<void> _oidcLogin() async {
+    _probeTimer?.cancel();
     final invalid = serverUrlError(_urlCtrl.text);
     if (invalid != null) {
       setState(() => _error = invalid);
@@ -151,6 +164,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _login() async {
+    _probeTimer?.cancel();
     final invalid = serverUrlError(_urlCtrl.text);
     if (invalid != null) {
       setState(() => _error = invalid);
@@ -158,6 +172,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
     final url = normalizeServerUrl(_urlCtrl.text);
     if (url != _urlCtrl.text) setState(() => _urlCtrl.text = url);
+    _probeTimer?.cancel();
     final user = _userCtrl.text.trim();
     final pass = _passCtrl.text;
     if (user.isEmpty) {
@@ -354,29 +369,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 controller: _urlCtrl,
                 keyboardType: TextInputType.url,
                 autocorrect: false,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: 'http://192.168.1.10:6270',
-                  prefixIcon: const Icon(Icons.link),
-                  suffixIcon: _checking
-                      ? const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        )
-                      : null,
-                ),
-                onSubmitted: (_) => _testConnection(),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                height: 48,
-                child: OutlinedButton.icon(
-                  onPressed: _checking ? null : _testConnection,
-                  icon: const Icon(Icons.wifi_tethering, size: 18),
-                  label: Text(_checking ? 'Testing…' : 'Test connection'),
+                  prefixIcon: Icon(Icons.link),
                 ),
               ),
               if (_needsSetup != null) ...[

@@ -18,7 +18,7 @@ void main() {
     );
     final urlField = find.byType(TextField).first;
     await tester.enterText(urlField, 'ftp://example.com');
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Test connection'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Log in'));
     await tester.pump();
     expect(find.textContaining('valid URL'), findsOneWidget);
     expect(fake.requests, isEmpty);
@@ -67,9 +67,8 @@ void main() {
         find.byType(TextField).first,
         'http://villum.test',
       );
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Test connection'));
+      await tester.pump(const Duration(milliseconds: 700));
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
       expect(find.textContaining('first admin'), findsWidgets);
       // try login with short password
       await tester.enterText(find.byType(TextField).at(1), 'admin');
@@ -101,10 +100,7 @@ void main() {
       fake: fake,
       store: store,
     );
-    await tester.enterText(
-      find.byType(TextField).first,
-      'http://villum.test',
-    );
+    await tester.enterText(find.byType(TextField).first, 'http://villum.test');
     await tester.enterText(find.byType(TextField).at(1), 'admin');
     await tester.enterText(find.byType(TextField).at(2), 'longpassword');
     await tester.tap(find.byType(FilledButton));
@@ -143,6 +139,36 @@ void main() {
     expect(find.textContaining('localhost'), findsNothing);
   });
 
+  testWidgets('auto-detects Authelia sign-in from the server URL', (
+    tester,
+  ) async {
+    final fake = FakeApi();
+    final store = InMemoryAuthStore();
+    fake.onGet('/api/check-setup', (o) async => jsonBody({'setup': true}, 200));
+    fake.onGet(
+      '/api/auth/oidc/status',
+      (o) async => jsonBody({'enabled': true}, 200),
+    );
+    await pumpScreen(
+      tester,
+      const OnboardingScreen(),
+      fake: fake,
+      store: store,
+    );
+
+    // Entering a valid address is enough to reveal the SSO action.
+    await tester.enterText(find.byType(TextField).first, 'http://villum.test');
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pump();
+
+    expect(
+      fake.requests.where((r) => r.path == '/api/auth/oidc/status'),
+      hasLength(1),
+    );
+    expect(find.byKey(const Key('sso-sign-in')), findsOneWidget);
+    expect(find.text('Password sign-in (break-glass)'), findsOneWidget);
+  });
+
   testWidgets('offers Authelia sign-in when the server enables OIDC', (
     tester,
   ) async {
@@ -160,9 +186,8 @@ void main() {
       store: store,
     );
     await tester.enterText(find.byType(TextField).first, 'http://villum.test');
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Test connection'));
+    await tester.pump(const Duration(milliseconds: 700));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 50));
 
     expect(find.byKey(const Key('sso-sign-in')), findsOneWidget);
     expect(find.text('Sign in with Authelia'), findsWidgets);
@@ -187,9 +212,8 @@ void main() {
       store: store,
     );
     await tester.enterText(find.byType(TextField).first, 'http://villum.test');
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Test connection'));
+    await tester.pump(const Duration(milliseconds: 700));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 50));
 
     expect(find.byKey(const Key('sso-sign-in')), findsNothing);
     expect(find.widgetWithText(FilledButton, 'Log in'), findsOneWidget);
@@ -223,9 +247,8 @@ void main() {
       store: store,
     );
     await tester.enterText(find.byType(TextField).first, 'http://villum.test/');
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Test connection'));
+    await tester.pump(const Duration(milliseconds: 700));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 50));
 
     final sso = find.byKey(const Key('sso-sign-in'));
     await tester.ensureVisible(sso);
