@@ -30,3 +30,8 @@ dice/bundle.js
 
 # Zensical build output
 site/
+
+# Android release signing
+mobile/android/key.properties
+mobile/android/*.jks
+mobile/android/*.keystore

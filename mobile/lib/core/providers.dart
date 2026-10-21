@@ -74,6 +74,19 @@ class AuthController extends Notifier<AuthState> {
     state = s;
   }
 
+  Future<void> loginWithSession({
+    required String serverUrl,
+    required String sessionId,
+  }) async {
+    final repo = ref.read(authRepositoryProvider);
+    final user = await repo.loginWithSession(
+      serverUrl: serverUrl,
+      sessionId: sessionId,
+    );
+    if (!ref.mounted) return;
+    state = AuthAuthenticated(user, serverUrl);
+  }
+
   Future<void> logout() async {
     await ref.read(authRepositoryProvider).logout();
     if (!ref.mounted) return;

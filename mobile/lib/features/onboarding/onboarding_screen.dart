@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../app/theme.dart';
 import '../../core/auth_repository.dart';
 import '../../core/providers.dart';
+import 'oidc_webview_screen.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   final bool forceSetup;
@@ -23,6 +24,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _checking = false;
   bool _loggingIn = false;
   bool? _needsSetup; // null = unknown, false = login, true = first admin
+  bool _oidcEnabled = false;
   String? _error;
 
   @override
@@ -70,6 +72,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       setState(() {
         _needsSetup = !setup;
       });
+      _checkOidc(url);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -86,6 +89,40 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       setState(() => _error = _friendlyError(e));
     } finally {
       if (mounted) setState(() => _checking = false);
+    }
+  }
+
+  Future<void> _checkOidc(String url) async {
+    try {
+      final enabled = await ref.read(authRepositoryProvider).oidcEnabled(url);
+      if (mounted) setState(() => _oidcEnabled = enabled);
+    } catch (_) {
+      if (mounted) setState(() => _oidcEnabled = false);
+    }
+  }
+
+  Future<void> _oidcLogin() async {
+    final url = _urlCtrl.text.trim();
+    setState(() {
+      _loggingIn = true;
+      _error = null;
+    });
+    try {
+      final session = await Navigator.of(context).push<String>(
+        MaterialPageRoute(builder: (_) => OidcWebViewScreen(serverUrl: url)),
+      );
+      if (session == null || session.isEmpty) return;
+      await ref.read(authControllerProvider.notifier).loginWithSession(
+            serverUrl: url,
+            sessionId: session,
+          );
+      if (!mounted) return;
+      HapticFeedback.mediumImpact();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = _friendlyError(e));
+    } finally {
+      if (mounted) setState(() => _loggingIn = false);
     }
   }
 
@@ -433,6 +470,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       : Text(isSetup ? 'Create admin & enter' : 'Log in'),
                 ),
               ),
+              if (_oidcEnabled) ...[
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: _loggingIn ? null : _oidcLogin,
+                    icon: const Icon(Icons.shield_outlined, size: 18),
+                    label: const Text('Sign in with SSO'),
+                  ),
+                ),
+              ],
               const SizedBox(height: 10),
               Text(
                 'Tip: on Android emulator use 10.0.2.2; on a real device use your PC\'s LAN IP. Default port is 6270 (Docker: 6280).',

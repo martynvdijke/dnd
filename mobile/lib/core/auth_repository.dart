@@ -57,6 +57,75 @@ class AuthRepository {
     throw ApiException(resp.statusCode ?? 0, 'checkSetup failed');
   }
 
+  /// Whether the server offers OIDC login. A failure means "unknown", which is
+  /// treated as disabled so the button never dangles.
+  Future<bool> oidcEnabled(String serverUrl) async {
+    try {
+      final client = clientFactory(serverUrl);
+      final resp = await client.dio.get('/api/auth/oidc/status');
+      if (resp.statusCode == 200 && resp.data is Map) {
+        return resp.data['enabled'] == true;
+      }
+    } catch (_) {
+      // Ignore and report disabled.
+    }
+    return false;
+  }
+
+  /// Completes an OIDC login that was performed in an in-app WebView.
+  ///
+  /// [sessionId] is the value of the `HttpOnly` `session` cookie captured from
+  /// the native cookie store. The server-side session already exists, so this
+  /// only persists it and resolves the authenticated user from `/api/user/me`.
+  Future<UserSession> loginWithSession({
+    required String serverUrl,
+    required String sessionId,
+  }) async {
+    await store.write(
+      StoredAuth(
+        serverUrl: serverUrl,
+        sessionId: sessionId,
+        apiToken: null,
+        userId: 0,
+        username: '',
+        role: '',
+      ),
+    );
+    final client = clientFactory(serverUrl);
+    final resp = await client.dio.get('/api/user/me');
+    if (resp.statusCode == null ||
+        resp.statusCode! < 200 ||
+        resp.statusCode! >= 300) {
+      await store.clear();
+      String msg = 'OIDC login failed';
+      final data = resp.data;
+      if (data is Map && data['error'] != null) msg = data['error'].toString();
+      throw ApiException(resp.statusCode ?? 0, msg);
+    }
+    final data = resp.data as Map;
+    final userMap = data['user'] is Map ? data['user'] as Map : data;
+    final user = UserSession(
+      id: (userMap['id'] as num).toInt(),
+      username: userMap['username'] as String,
+      role: userMap['role'] as String,
+    );
+    await store.write(
+      StoredAuth(
+        serverUrl: serverUrl,
+        sessionId: sessionId,
+        apiToken: null,
+        userId: user.id,
+        username: user.username,
+        role: user.role,
+      ),
+    );
+    // Ensure the bearer token the rest of the app uses.
+    final authedClient = clientFactory(serverUrl);
+    await authedClient.ensureApiToken();
+    return user;
+  }
+
+
   Future<UserSession> login({
     required String serverUrl,
     required String username,
