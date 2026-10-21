@@ -93,6 +93,17 @@ class ApiClient {
     }
   }
 
+  /// Fails fast when the user has not chosen a server yet instead of sending
+  /// requests to some guessed address.
+  void _ensureConfigured() {
+    if (baseUrl.isEmpty) {
+      throw ApiException(
+        0,
+        'No Villum server configured yet. Enter your server address.',
+      );
+    }
+  }
+
   Never _throwIfError(Response r) {
     final code = r.statusCode ?? 0;
     if (code >= 200 && code < 300) throw StateError('not error');
@@ -115,6 +126,7 @@ class ApiClient {
     String path, {
     Map<String, dynamic>? queryParameters,
   }) async {
+    _ensureConfigured();
     final r = await dio.get(path, queryParameters: queryParameters);
     if (r.statusCode != null && r.statusCode! >= 200 && r.statusCode! < 300) {
       return r;
@@ -127,6 +139,7 @@ class ApiClient {
     dynamic data,
     Map<String, dynamic>? queryParameters,
   }) async {
+    _ensureConfigured();
     final r = await dio.post(
       path,
       data: data,
@@ -139,6 +152,7 @@ class ApiClient {
   }
 
   Future<Response> put(String path, {dynamic data}) async {
+    _ensureConfigured();
     final r = await dio.put(path, data: data);
     if (r.statusCode != null && r.statusCode! >= 200 && r.statusCode! < 300) {
       return r;
@@ -147,6 +161,7 @@ class ApiClient {
   }
 
   Future<Response> patch(String path, {dynamic data}) async {
+    _ensureConfigured();
     final r = await dio.patch(path, data: data);
     if (r.statusCode != null && r.statusCode! >= 200 && r.statusCode! < 300) {
       return r;
@@ -155,6 +170,7 @@ class ApiClient {
   }
 
   Future<Response> delete(String path, {dynamic data}) async {
+    _ensureConfigured();
     final r = await dio.delete(path, data: data);
     if (r.statusCode != null && r.statusCode! >= 200 && r.statusCode! < 300) {
       return r;

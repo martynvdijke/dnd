@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../../app/theme.dart';
 import '../../core/api_client.dart';
 
 /// Hosts the server's OIDC authorization flow in an in-app WebView.
@@ -33,6 +34,7 @@ class _OidcWebViewScreenState extends State<OidcWebViewScreen> {
     super.initState();
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(VillumTheme.ink)
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageStarted: (_) {
@@ -43,8 +45,22 @@ class _OidcWebViewScreenState extends State<OidcWebViewScreen> {
             _maybeCaptureSession();
           },
         ),
-      )
-      ..loadRequest(Uri.parse('${widget.serverUrl}/api/auth/oidc/login'));
+      );
+    _start();
+  }
+
+  Future<void> _start() async {
+    // Drop cookies from a previous sign-in, otherwise a stale `session` cookie
+    // would be captured before the identity provider has issued a new one.
+    try {
+      await OidcWebViewScreen.cookieChannel.invokeMethod<void>('clearCookies');
+    } catch (_) {
+      // Channel unavailable (tests / unsupported platform): carry on.
+    }
+    if (!mounted) return;
+    await _controller.loadRequest(
+      Uri.parse('${widget.serverUrl}/api/auth/oidc/login'),
+    );
   }
 
   Future<void> _maybeCaptureSession() async {
@@ -71,7 +87,7 @@ class _OidcWebViewScreenState extends State<OidcWebViewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Sign in with SSO'),
+        title: const Text('Sign in with Authelia'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           tooltip: 'Cancel',
