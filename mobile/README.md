@@ -33,11 +33,28 @@ SDK at `/opt/android-sdk`. CI builds the same APK from a pristine checkout.
 Auth is **three-layer**. There is **no `/api/register`** — accounts are created by an admin, or by
 the first-run setup path (`POST /api/login` with `setup: true`).
 
+**Sign-in is OIDC-first.** The server retires password login by default
+(`ALLOW_PASSWORD_FALLBACK=true` is break-glass recovery only), so the app's primary action is
+"Sign in with Authelia", which runs the server's OIDC flow in an in-app WebView:
+
+1. `GET /api/auth/oidc/status` (public) → `{"enabled": bool, "password_enabled"?: bool}`. Treat any
+   failure as `enabled: false`. This decides whether SSO is offered (only once a server is set up;
+   the first admin must still be created with the password setup path).
+2. `GET /api/auth/oidc/login` inside a WebView; Authelia authenticates, the server's callback sets
+   `Set-Cookie: session=…` (`HttpOnly`, so JavaScript cannot read it) and redirects to `/`.
+3. Read the cookie from the **native** cookie store over the `xyz.vandijke.dnd/cookies` method
+   channel (`MainActivity.kt`), then persist it with `AuthRepository.loginWithSession`
+   (`GET /api/user/me` + `POST /api/tokens`). Cookies are cleared before starting so a stale
+   session is never captured.
+
+Password login (`POST /api/login`) still exists for break-glass and first-admin creation:
+
 1. `GET /api/check-setup` (public) → `{"setup": bool}`. `false` means no admin exists yet → offer
    first-admin creation.
 2. `POST /api/login` (public) `{"username","password","setup"?:bool}` → `200 {"session": string,
    "user": {"id": int64, "username": string, "role": string}}` and `Set-Cookie: session=…`.
-   Store `session`, `user`, and the server URL in secure storage.
+   Store `session`, `user`, and the server URL in secure storage. A `403` means password auth is
+   retired — point the user at SSO instead of reporting bad credentials.
 3. `POST /api/tokens` (needs `Cookie: session` + `X-CSRF-Token`) `{"name","expires_in_days":0}` →
    `201 {…, "token": "vlt_…"}` (secret shown once). Store it; it is the bearer token.
 4. Every **mutating** request (`POST/PUT/PATCH/DELETE`) must send **all three**:
@@ -50,6 +67,11 @@ the first-run setup path (`POST /api/login` with `setup: true`).
 
 Auth state machine: `AuthState` = `AuthUnauthenticated` | `AuthNeedsSetup(serverUrl)` |
 `AuthAuthenticated(user, serverUrl)`.
+
+**There is no default server address.** The app talks only to a server the user names: the URL field
+starts empty (prefilled from secure storage when a previous value exists), input is validated as an
+absolute `http`/`https` URL, and `ApiClient`/`WsClient` refuse to fire while `serverUrlProvider` is
+empty.
 
 ## Frozen Dart interface (Core lane implements; UI lane consumes)
 
@@ -81,11 +103,20 @@ class AuthAuthenticated extends AuthState { final UserSession user; final String
 
 class AuthRepository {
   Future<bool> checkSetup(String serverUrl);
+  Future<bool> oidcEnabled(String serverUrl);              // GET /api/auth/oidc/status, failures => false
   Future<UserSession> login({required String serverUrl, required String username,
                              required String password, bool setup = false});
+  Future<UserSession> loginWithSession({required String serverUrl, required String sessionId});
   Future<AuthState> restore();
   Future<void> logout();
 }
+
+// lib/core/server_url.dart
+String normalizeServerUrl(String raw);                    // trim + strip trailing slashes
+String? serverUrlError(String raw);                       // null when valid, else a user-facing message
+
+// lib/core/api_client.dart (also)
+String? parseCookieHeader(String? header, String name);   // reads `session` out of a Set-Cookie dump
 
 // lib/core/ws_client.dart
 class WsEvent { final String type; final Map<String, dynamic> payload; }
@@ -159,12 +190,15 @@ and DB shapes come from `handlers/`; snake_case in JSON, camelCase in Dart.
 
 ## Real endpoint paths (artifacts sometimes name these loosely)
 
-Server default port `6270`; Docker `6280`. WebSocket is **`/api/ws`** (not `/ws`).
+Server default port `6270`; Docker `6280` — but the app has **no default host**: the user supplies
+the address. WebSocket is **`/api/ws`** (not `/ws`).
 
 | Purpose | Method + path |
 |---|---|
 | Setup probe | `GET /api/check-setup` |
-| Login / first-admin | `POST /api/login` |
+| OIDC status | `GET /api/auth/oidc/status` |
+| OIDC flow (WebView) | `GET /api/auth/oidc/login` → `/api/auth/oidc/callback` |
+| Login / first-admin (break-glass) | `POST /api/login` |
 | Logout | `POST /api/logout` |
 | CSRF token | `GET /api/csrf-token` |
 | Provision bearer token | `POST /api/tokens` |

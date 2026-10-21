@@ -4,25 +4,44 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../app/theme.dart';
+import '../../core/api_client.dart';
 import '../../core/auth_repository.dart';
 import '../../core/providers.dart';
+import '../../core/server_url.dart';
 import 'oidc_webview_screen.dart';
+
+/// Opens the identity provider and resolves to the `session` cookie value, or
+/// `null` when the user backed out. Overridable so widget tests can exercise
+/// the flow without a platform WebView.
+typedef SsoSessionLauncher =
+    Future<String?> Function(BuildContext context, String serverUrl);
+
+Future<String?> _pushOidcWebView(BuildContext context, String serverUrl) =>
+    Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => OidcWebViewScreen(serverUrl: serverUrl)),
+    );
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   final bool forceSetup;
-  const OnboardingScreen({super.key, this.forceSetup = false});
+  final SsoSessionLauncher? ssoLauncher;
+  const OnboardingScreen({
+    super.key,
+    this.forceSetup = false,
+    this.ssoLauncher,
+  });
 
   @override
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
-  final _urlCtrl = TextEditingController(text: 'http://10.0.2.2:6270');
+  final _urlCtrl = TextEditingController();
   final _userCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscure = true;
   bool _checking = false;
   bool _loggingIn = false;
+  bool _ssoBusy = false;
   bool? _needsSetup; // null = unknown, false = login, true = first admin
   bool _oidcEnabled = false;
   String? _error;
@@ -37,6 +56,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         final stored = await ref.read(authStoreProvider).read();
         if (stored != null && stored.serverUrl.isNotEmpty && mounted) {
           setState(() => _urlCtrl.text = stored.serverUrl);
+          // A known-good server: show SSO without waiting for "Test connection".
+          _checkOidc(stored.serverUrl);
         }
       } catch (_) {}
     });
@@ -51,14 +72,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _testConnection() async {
-    final url = _urlCtrl.text.trim();
-    if (url.isEmpty ||
-        !(url.startsWith('http://') || url.startsWith('https://'))) {
-      setState(
-        () => _error = 'Enter a valid URL starting with http:// or https://',
-      );
+    final invalid = serverUrlError(_urlCtrl.text);
+    if (invalid != null) {
+      setState(() => _error = invalid);
       return;
     }
+    final url = normalizeServerUrl(_urlCtrl.text);
+    if (url != _urlCtrl.text) setState(() => _urlCtrl.text = url);
     setState(() {
       _checking = true;
       _error = null;
@@ -102,15 +122,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _oidcLogin() async {
-    final url = _urlCtrl.text.trim();
+    final invalid = serverUrlError(_urlCtrl.text);
+    if (invalid != null) {
+      setState(() => _error = invalid);
+      return;
+    }
+    final url = normalizeServerUrl(_urlCtrl.text);
     setState(() {
-      _loggingIn = true;
+      _ssoBusy = true;
       _error = null;
     });
     try {
-      final session = await Navigator.of(context).push<String>(
-        MaterialPageRoute(builder: (_) => OidcWebViewScreen(serverUrl: url)),
-      );
+      final launcher = widget.ssoLauncher ?? _pushOidcWebView;
+      final session = await launcher(context, url);
       if (session == null || session.isEmpty) return;
       await ref.read(authControllerProvider.notifier).loginWithSession(
             serverUrl: url,
@@ -122,12 +146,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       if (!mounted) return;
       setState(() => _error = _friendlyError(e));
     } finally {
-      if (mounted) setState(() => _loggingIn = false);
+      if (mounted) setState(() => _ssoBusy = false);
     }
   }
 
   Future<void> _login() async {
-    final url = _urlCtrl.text.trim();
+    final invalid = serverUrlError(_urlCtrl.text);
+    if (invalid != null) {
+      setState(() => _error = invalid);
+      return;
+    }
+    final url = normalizeServerUrl(_urlCtrl.text);
+    if (url != _urlCtrl.text) setState(() => _urlCtrl.text = url);
     final user = _userCtrl.text.trim();
     final pass = _passCtrl.text;
     if (user.isEmpty) {
@@ -179,33 +209,52 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _error = _friendlyError(e));
+      // Password auth is retired by default: point the user at SSO instead of
+      // leaving them stuck on a bare 403.
+      if (e is ApiException && e.statusCode == 403) {
+        await _checkOidc(url);
+      }
     } finally {
       if (mounted) setState(() => _loggingIn = false);
     }
   }
 
   String _friendlyError(Object e) {
-    final s = e.toString();
-    if (s.contains('401') ||
-        s.toLowerCase().contains('unauthorized') ||
-        s.toLowerCase().contains('invalid')) {
-      return 'Wrong username or password. Try again.';
+    if (e is ApiException) {
+      switch (e.statusCode) {
+        case 0:
+          return 'No Villum server configured yet. Enter your server address.';
+        case 401:
+          return 'Wrong username or password. Try again.';
+        case 403:
+          return 'Password sign-in is turned off on this server. Use Sign in with Authelia.';
+        case 404:
+          return 'That address does not look like a Villum server.';
+      }
     }
+    final s = e.toString();
     if (s.contains('SocketException') ||
         s.contains('Failed host lookup') ||
         s.contains('Connection refused')) {
       return 'Cannot reach that server. Check the URL and that the Villum server is running.';
     }
-    // Strip ApiException prefix
+    if (s.contains('HandshakeException') ||
+        s.contains('CERTIFICATE_VERIFY_FAILED')) {
+      return 'The server certificate could not be verified.';
+    }
+    // Strip the ApiException / DioException decoration for anything else.
     return s
-        .replaceFirst('ApiException', '')
-        .replaceFirst(RegExp(r'\(\d+\):'), '')
+        .replaceFirst(RegExp(r'^ApiException\(\d+\):\s*'), '')
+        .replaceFirst(RegExp(r'^DioException \[[^\]]*\]:\s*'), '')
         .trim();
   }
 
   @override
   Widget build(BuildContext context) {
     final isSetup = _needsSetup == true;
+    final busy = _loggingIn || _ssoBusy;
+    // OIDC cannot create the first admin, so only offer SSO once setup is done.
+    final ssoAvailable = _oidcEnabled && !isSetup;
     final authState = ref.watch(authControllerProvider);
     // Show already-authenticated notice
     final alreadyIn = authState is AuthAuthenticated;
@@ -374,8 +423,44 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               const SizedBox(height: 18),
               const Divider(),
               const SizedBox(height: 14),
+              if (ssoAvailable) ...[
+                SizedBox(
+                  height: 52,
+                  child: FilledButton.icon(
+                    key: const Key('sso-sign-in'),
+                    onPressed: _ssoBusy ? null : _oidcLogin,
+                    icon: _ssoBusy
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: VillumTheme.ink,
+                            ),
+                          )
+                        : const Icon(Icons.shield_outlined, size: 20),
+                    label: Text(
+                      _ssoBusy
+                          ? 'Waiting for Authelia…'
+                          : 'Sign in with Authelia',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Opens your identity provider in a secure sign-in window.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.lora(
+                    fontSize: 11,
+                    color: VillumTheme.parchmentMuted,
+                  ),
+                ),
+                const SizedBox(height: 18),
+              ],
               Text(
-                isSetup ? 'Create admin account' : 'Log in',
+                ssoAvailable
+                    ? 'Password sign-in (break-glass)'
+                    : (isSetup ? 'Create admin account' : 'Log in'),
                 style: GoogleFonts.cinzel(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
@@ -386,6 +471,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               if (isSetup)
                 Text(
                   'There is no self-service registration. This creates the server\'s first admin.',
+                  style: GoogleFonts.lora(
+                    fontSize: 12,
+                    color: VillumTheme.parchmentMuted,
+                  ),
+                )
+              else if (ssoAvailable)
+                Text(
+                  'Recovery only — most servers have password login turned off.',
                   style: GoogleFonts.lora(
                     fontSize: 12,
                     color: VillumTheme.parchmentMuted,
@@ -455,35 +548,50 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ],
               const SizedBox(height: 18),
               SizedBox(
-                height: 52,
-                child: FilledButton(
-                  onPressed: _loggingIn ? null : _login,
-                  child: _loggingIn
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: VillumTheme.ink,
-                          ),
-                        )
-                      : Text(isSetup ? 'Create admin & enter' : 'Log in'),
-                ),
+                height: ssoAvailable ? 48 : 52,
+                child: ssoAvailable
+                    ? OutlinedButton(
+                        onPressed: busy ? null : _login,
+                        child: _loggingIn
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: VillumTheme.gold,
+                                ),
+                              )
+                            : const Text('Log in with password'),
+                      )
+                    : FilledButton(
+                        onPressed: busy ? null : _login,
+                        child: _loggingIn
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: VillumTheme.ink,
+                                ),
+                              )
+                            : Text(isSetup ? 'Create admin & enter' : 'Log in'),
+                      ),
               ),
-              if (_oidcEnabled) ...[
+              if (!ssoAvailable && _oidcEnabled) ...[
                 const SizedBox(height: 10),
                 SizedBox(
                   height: 48,
                   child: OutlinedButton.icon(
-                    onPressed: _loggingIn ? null : _oidcLogin,
+                    onPressed: busy ? null : _oidcLogin,
                     icon: const Icon(Icons.shield_outlined, size: 18),
-                    label: const Text('Sign in with SSO'),
+                    label: const Text('Sign in with Authelia'),
                   ),
                 ),
               ],
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Text(
-                'Tip: on Android emulator use 10.0.2.2; on a real device use your PC\'s LAN IP. Default port is 6270 (Docker: 6280).',
+                'Use the same address you open Villum with in your browser, '
+                'for example https://villum.example.com.',
                 style: GoogleFonts.lora(
                   fontSize: 11,
                   color: VillumTheme.parchmentMuted.withValues(alpha: 0.8),

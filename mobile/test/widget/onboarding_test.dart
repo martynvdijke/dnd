@@ -63,6 +63,10 @@ void main() {
         fake: fake,
         store: store,
       );
+      await tester.enterText(
+        find.byType(TextField).first,
+        'http://villum.test',
+      );
       await tester.tap(find.widgetWithText(OutlinedButton, 'Test connection'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
@@ -97,6 +101,10 @@ void main() {
       fake: fake,
       store: store,
     );
+    await tester.enterText(
+      find.byType(TextField).first,
+      'http://villum.test',
+    );
     await tester.enterText(find.byType(TextField).at(1), 'admin');
     await tester.enterText(find.byType(TextField).at(2), 'longpassword');
     await tester.tap(find.byType(FilledButton));
@@ -118,5 +126,149 @@ void main() {
       store: store,
     );
     expect(find.textContaining('Create admin'), findsWidgets);
+  });
+
+  testWidgets('starts with no guessed server address', (tester) async {
+    final fake = FakeApi();
+    final store = InMemoryAuthStore();
+    await pumpScreen(
+      tester,
+      const OnboardingScreen(),
+      fake: fake,
+      store: store,
+    );
+    final urlField = tester.widget<TextField>(find.byType(TextField).first);
+    expect(urlField.controller?.text ?? '', isEmpty);
+    expect(find.textContaining('10.0.2.2'), findsNothing);
+    expect(find.textContaining('localhost'), findsNothing);
+  });
+
+  testWidgets('offers Authelia sign-in when the server enables OIDC', (
+    tester,
+  ) async {
+    final fake = FakeApi();
+    final store = InMemoryAuthStore();
+    fake.onGet('/api/check-setup', (o) async => jsonBody({'setup': true}, 200));
+    fake.onGet(
+      '/api/auth/oidc/status',
+      (o) async => jsonBody({'enabled': true}, 200),
+    );
+    await pumpScreen(
+      tester,
+      const OnboardingScreen(),
+      fake: fake,
+      store: store,
+    );
+    await tester.enterText(find.byType(TextField).first, 'http://villum.test');
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Test connection'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(find.byKey(const Key('sso-sign-in')), findsOneWidget);
+    expect(find.text('Sign in with Authelia'), findsWidgets);
+    // The password path stays available but is demoted to break-glass.
+    expect(find.text('Password sign-in (break-glass)'), findsOneWidget);
+  });
+
+  testWidgets('hides Authelia sign-in when the server disables OIDC', (
+    tester,
+  ) async {
+    final fake = FakeApi();
+    final store = InMemoryAuthStore();
+    fake.onGet('/api/check-setup', (o) async => jsonBody({'setup': true}, 200));
+    fake.onGet(
+      '/api/auth/oidc/status',
+      (o) async => jsonBody({'enabled': false}, 200),
+    );
+    await pumpScreen(
+      tester,
+      const OnboardingScreen(),
+      fake: fake,
+      store: store,
+    );
+    await tester.enterText(find.byType(TextField).first, 'http://villum.test');
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Test connection'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(find.byKey(const Key('sso-sign-in')), findsNothing);
+    expect(find.widgetWithText(FilledButton, 'Log in'), findsOneWidget);
+  });
+
+  testWidgets('SSO sign-in persists the captured session', (tester) async {
+    final fake = FakeApi();
+    final store = InMemoryAuthStore();
+    String? launchedWith;
+    fake.onGet('/api/check-setup', (o) async => jsonBody({'setup': true}, 200));
+    fake.onGet(
+      '/api/auth/oidc/status',
+      (o) async => jsonBody({'enabled': true}, 200),
+    );
+    fake.onGet(
+      '/api/user/me',
+      (o) async =>
+          jsonBody({'id': 4, 'username': 'martyn', 'role': 'dm'}, 200),
+    );
+    fake.onPost('/api/tokens', (o) async => jsonBody({'token': 'vlt_sso'}, 201));
+
+    await pumpScreen(
+      tester,
+      OnboardingScreen(
+        ssoLauncher: (context, serverUrl) async {
+          launchedWith = serverUrl;
+          return 'oidc-session';
+        },
+      ),
+      fake: fake,
+      store: store,
+    );
+    await tester.enterText(find.byType(TextField).first, 'http://villum.test/');
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Test connection'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    final sso = find.byKey(const Key('sso-sign-in'));
+    await tester.ensureVisible(sso);
+    await tester.pumpAndSettle();
+    await tester.tap(sso);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(launchedWith, 'http://villum.test');
+    final stored = await store.read();
+    expect(stored, isNotNull);
+    expect(stored!.sessionId, 'oidc-session');
+    expect(stored.serverUrl, 'http://villum.test');
+  });
+
+  testWidgets('password 403 explains that Authelia sign-in is required', (
+    tester,
+  ) async {
+    final fake = FakeApi();
+    final store = InMemoryAuthStore();
+    fake.onPost(
+      '/api/login',
+      (o) async => jsonBody({'error': 'password login disabled'}, 403),
+    );
+    fake.onGet('/api/check-setup', (o) async => jsonBody({'setup': true}, 200));
+    fake.onGet(
+      '/api/auth/oidc/status',
+      (o) async => jsonBody({'enabled': true}, 200),
+    );
+    await pumpScreen(
+      tester,
+      const OnboardingScreen(),
+      fake: fake,
+      store: store,
+    );
+    await tester.enterText(find.byType(TextField).first, 'http://villum.test');
+    await tester.enterText(find.byType(TextField).at(1), 'admin');
+    await tester.enterText(find.byType(TextField).at(2), 'longpassword');
+    await tester.tap(find.byType(FilledButton));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.textContaining('Sign in with Authelia'), findsWidgets);
+    expect(find.textContaining('Wrong username or password'), findsNothing);
   });
 }

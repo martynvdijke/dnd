@@ -48,6 +48,8 @@ class WsClient {
 
   Future<void> _connectOnce() async {
     if (_disposed) return;
+    // No server configured yet (first run): nothing to connect to.
+    if (baseUrl.isEmpty) return;
     final auth = await store.read();
     if (auth == null) {
       _scheduleReconnect();

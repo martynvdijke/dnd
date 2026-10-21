@@ -19,14 +19,22 @@ export '../data/models/dm_screen.dart' show DmScreen;
 export '../data/models/draft.dart' show DraftSession;
 
 final authStoreProvider = Provider<AuthStore>((ref) => SecureAuthStore());
-final serverUrlProvider = Provider<String>((ref) => '');
+
+/// The server the app is signed in to, or `''` before one is chosen.
+///
+/// Villum has no hosted service and no default address, so this is only ever
+/// learned from the user.
+final serverUrlProvider = Provider<String>((ref) {
+  return switch (ref.watch(authControllerProvider)) {
+    AuthAuthenticated(:final serverUrl) => serverUrl,
+    AuthNeedsSetup(:final serverUrl) => serverUrl,
+    AuthUnauthenticated() => '',
+  };
+});
 final apiClientProvider = Provider<ApiClient>((ref) {
   final store = ref.watch(authStoreProvider);
   final url = ref.watch(serverUrlProvider);
-  return ApiClient(
-    baseUrl: url.isEmpty ? 'http://localhost:6270' : url,
-    store: store,
-  );
+  return ApiClient(baseUrl: url, store: store);
 });
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final store = ref.watch(authStoreProvider);
@@ -101,10 +109,7 @@ final authControllerProvider = NotifierProvider<AuthController, AuthState>(
 final wsClientProvider = Provider<WsClient>((ref) {
   final store = ref.watch(authStoreProvider);
   final url = ref.watch(serverUrlProvider);
-  final c = WsClient(
-    baseUrl: url.isEmpty ? 'http://localhost:6270' : url,
-    store: store,
-  );
+  final c = WsClient(baseUrl: url, store: store);
   ref.onDispose(() => c.dispose());
   return c;
 });
