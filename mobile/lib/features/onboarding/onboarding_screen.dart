@@ -41,7 +41,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _userCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscure = true;
-  bool _checking = false;
   bool _loggingIn = false;
   bool _ssoBusy = false;
   bool? _needsSetup; // null = unknown, false = login, true = first admin
@@ -49,7 +48,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   String? _error;
 
   // Detect Authelia support as soon as a valid server address is typed, so the
-  // SSO button does not depend on the user pressing "Test connection".
+  // SSO button appears without a separate connection test.
   Timer? _probeTimer;
   String? _probedUrl;
   int _probeEpoch = 0;
@@ -65,7 +64,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         final stored = await ref.read(authStoreProvider).read();
         if (stored != null && stored.serverUrl.isNotEmpty && mounted) {
           setState(() => _urlCtrl.text = stored.serverUrl);
-          // A known-good server: show SSO without waiting for "Test connection".
+          // A known-good server: show SSO immediately.
           _checkOidc(stored.serverUrl);
         }
       } catch (_) {}
@@ -89,7 +88,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       if (_oidcEnabled) setState(() => _oidcEnabled = false);
       return;
     }
-    if (_checking || _loggingIn || _ssoBusy) return;
+    if (_loggingIn || _ssoBusy) return;
     final url = normalizeServerUrl(_urlCtrl.text);
     if (url == _probedUrl) return;
     _probeTimer = Timer(const Duration(milliseconds: 600), () => _probe(url));
@@ -117,49 +116,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       return await repo.checkSetup(url);
     } catch (_) {
       return null;
-    }
-  }
-
-  Future<void> _testConnection() async {
-    _probeTimer?.cancel();
-    final invalid = serverUrlError(_urlCtrl.text);
-    if (invalid != null) {
-      setState(() => _error = invalid);
-      return;
-    }
-    final url = normalizeServerUrl(_urlCtrl.text);
-    if (url != _urlCtrl.text) setState(() => _urlCtrl.text = url);
-    _probeTimer?.cancel();
-    setState(() {
-      _checking = true;
-      _error = null;
-    });
-    try {
-      final repo = ref.read(authRepositoryProvider);
-      final setup = await repo.checkSetup(url);
-      if (!mounted) return;
-      // setup==true => already set up => login mode
-      // setup==false => needs first admin
-      setState(() {
-        _needsSetup = !setup;
-      });
-      _checkOidc(url);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _needsSetup!
-                  ? 'No admin found — create the first account.'
-                  : 'Server reachable — please log in.',
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => _error = _friendlyError(e));
-    } finally {
-      if (mounted) setState(() => _checking = false);
     }
   }
 
@@ -413,29 +369,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 controller: _urlCtrl,
                 keyboardType: TextInputType.url,
                 autocorrect: false,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   hintText: 'http://192.168.1.10:6270',
-                  prefixIcon: const Icon(Icons.link),
-                  suffixIcon: _checking
-                      ? const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        )
-                      : null,
-                ),
-                onSubmitted: (_) => _testConnection(),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                height: 48,
-                child: OutlinedButton.icon(
-                  onPressed: _checking ? null : _testConnection,
-                  icon: const Icon(Icons.wifi_tethering, size: 18),
-                  label: Text(_checking ? 'Testing…' : 'Test connection'),
+                  prefixIcon: Icon(Icons.link),
                 ),
               ),
               if (_needsSetup != null) ...[

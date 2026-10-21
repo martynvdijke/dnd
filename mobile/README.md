@@ -40,8 +40,7 @@ the first-run setup path (`POST /api/login` with `setup: true`).
 1. `GET /api/auth/oidc/status` (public) → `{"enabled": bool, "password_enabled"?: bool}`. Treat any
    failure as `enabled: false`. This decides whether SSO is offered (only once a server is set up;
    the first admin must still be created with the password setup path). The app probes it
-   automatically once a valid server address is entered (debounced), so no "Test connection" tap is
-   needed to reveal the Authelia action.
+   automatically once a valid server address is entered (debounced).
 2. `GET /api/auth/oidc/login` inside a WebView; Authelia authenticates, the server's callback sets
    `Set-Cookie: session=…` (`HttpOnly`, so JavaScript cannot read it) and redirects to `/`.
 3. Read the cookie from the **native** cookie store over the `xyz.vandijke.dnd/cookies` method

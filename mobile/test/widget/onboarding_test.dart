@@ -18,7 +18,7 @@ void main() {
     );
     final urlField = find.byType(TextField).first;
     await tester.enterText(urlField, 'ftp://example.com');
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Test connection'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Log in'));
     await tester.pump();
     expect(find.textContaining('valid URL'), findsOneWidget);
     expect(fake.requests, isEmpty);
@@ -67,9 +67,8 @@ void main() {
         find.byType(TextField).first,
         'http://villum.test',
       );
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Test connection'));
+      await tester.pump(const Duration(milliseconds: 700));
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
       expect(find.textContaining('first admin'), findsWidgets);
       // try login with short password
       await tester.enterText(find.byType(TextField).at(1), 'admin');
@@ -157,7 +156,7 @@ void main() {
       store: store,
     );
 
-    // No "Test connection" tap: entering a valid address is enough.
+    // Entering a valid address is enough to reveal the SSO action.
     await tester.enterText(find.byType(TextField).first, 'http://villum.test');
     await tester.pump(const Duration(milliseconds: 700));
     await tester.pump();
@@ -187,9 +186,8 @@ void main() {
       store: store,
     );
     await tester.enterText(find.byType(TextField).first, 'http://villum.test');
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Test connection'));
+    await tester.pump(const Duration(milliseconds: 700));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 50));
 
     expect(find.byKey(const Key('sso-sign-in')), findsOneWidget);
     expect(find.text('Sign in with Authelia'), findsWidgets);
@@ -214,9 +212,8 @@ void main() {
       store: store,
     );
     await tester.enterText(find.byType(TextField).first, 'http://villum.test');
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Test connection'));
+    await tester.pump(const Duration(milliseconds: 700));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 50));
 
     expect(find.byKey(const Key('sso-sign-in')), findsNothing);
     expect(find.widgetWithText(FilledButton, 'Log in'), findsOneWidget);
@@ -250,9 +247,8 @@ void main() {
       store: store,
     );
     await tester.enterText(find.byType(TextField).first, 'http://villum.test/');
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Test connection'));
+    await tester.pump(const Duration(milliseconds: 700));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 50));
 
     final sso = find.byKey(const Key('sso-sign-in'));
     await tester.ensureVisible(sso);
