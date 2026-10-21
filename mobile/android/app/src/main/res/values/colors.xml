@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Villum brand palette (see BRANDKIT.md): Ink is the dark surface. -->
+    <color name="villum_ink">#1A0F0A</color>
+    <color name="villum_oxblood">#8B0000</color>
+</resources>
