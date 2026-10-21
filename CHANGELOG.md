@@ -1,3 +1,11 @@
+## [3.1.1](https://github.com/martynvdijke/dnd/compare/v3.1.0...v3.1.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* **deps:** update github.com/dop251/goja digest to 73dc7ed ([#202](https://github.com/martynvdijke/dnd/issues/202)) ([0f550da](https://github.com/martynvdijke/dnd/commit/0f550da37b36bbccfe7936361f42a89bbc6a27f1))
+* **mobile:** reveal Authelia sign-in automatically on onboarding ([#231](https://github.com/martynvdijke/dnd/issues/231)) ([a6b486e](https://github.com/martynvdijke/dnd/commit/a6b486e4a2c3790bed33d0e4eaa4368ea101ee20))
+
 # [3.1.0](https://github.com/martynvdijke/dnd/compare/v3.0.0...v3.1.0) (2026-10-21)
 
 
