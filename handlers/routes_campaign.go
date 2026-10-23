@@ -28,6 +28,15 @@ func RegisterCampaignRoutes(r *gin.RouterGroup) {
 	r.GET("/party", GetPartyView)
 	r.GET("/users/search", SearchUsers)
 
+	// Ink capture inbox (handwritten pages → recap or journal)
+	r.GET("/ink/captures", ListInkCaptures)
+	r.POST("/ink/captures", CreateInkCapture)
+	r.GET("/ink/captures/:id", GetInkCapture)
+	r.PATCH("/ink/captures/:id", UpdateInkCapture)
+	r.DELETE("/ink/captures/:id", DeleteInkCapture)
+	r.POST("/ink/captures/:id/ocr", HandleInkOCR)
+	r.POST("/ink/captures/:id/promote", PromoteInkCapture)
+
 	// Party Inventory
 	r.GET("/campaigns/:id/party-items", ListCampaignPartyItems)
 	r.POST("/campaigns/:id/party-items", CreateCampaignPartyItem)

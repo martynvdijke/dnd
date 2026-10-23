@@ -13,7 +13,7 @@ func (AIEndpoint) Fields() []ent.Field {
 	return []ent.Field{
 		field.Int64("id").Unique(),
 		field.String("name").Unique(),
-		field.Enum("type").Values("text", "image"),
+		field.Enum("type").Values("text", "image", "vision"),
 		field.String("base_url"),
 		field.String("encrypted_api_key"),
 		field.String("model"),

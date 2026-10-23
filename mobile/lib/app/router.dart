@@ -9,6 +9,7 @@ import '../features/character_sheet/character_sheet_screen.dart';
 import '../features/combat/combat_screen.dart';
 import '../features/compendium/compendium_screen.dart';
 import '../features/dm_tools/dm_tools_screen.dart';
+import '../features/ink/ink_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 
 // Refresh listenable that rebuilds GoRouter when auth state changes.
@@ -48,6 +49,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/ink',
+        builder: (c, s) {
+          final cid = int.tryParse(s.uri.queryParameters['campaign'] ?? '');
+          return InkScreen(initialCampaignId: cid);
+        },
+      ),
       GoRoute(
         path: '/onboarding',
         builder: (ctx, state) {

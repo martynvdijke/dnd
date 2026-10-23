@@ -236,8 +236,8 @@ func HandleListEnabledAIEndpoints(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "type query parameter is required (text or image)"})
 		return
 	}
-	if endpointType != "text" && endpointType != "image" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "type must be 'text' or 'image'"})
+	if endpointType != "text" && endpointType != "image" && endpointType != "vision" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "type must be 'text', 'image', or 'vision'"})
 		return
 	}
 	if !aiEnabled(c.Request.Context()) {
@@ -292,8 +292,8 @@ func CreateAIEndpoint(c *gin.Context) {
 		return
 	}
 
-	if req.Type != "text" && req.Type != "image" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "type must be 'text' or 'image'"})
+	if req.Type != "text" && req.Type != "image" && req.Type != "vision" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "type must be 'text', 'image', or 'vision'"})
 		return
 	}
 
@@ -470,13 +470,20 @@ func TestAIEndpoint(c *gin.Context) {
 
 	client := newAIClient(aiTestTimeout)
 
-	if endpoint.Type == "text" {
+	if endpoint.Type == "text" || endpoint.Type == "vision" {
+		var content any = "Say hello in one word."
+		if endpoint.Type == "vision" {
+			content = []map[string]any{
+				{"type": "text", "text": "Describe this image in one word."},
+				{"type": "image_url", "image_url": map[string]any{"url": visionTestImageDataURL}},
+			}
+		}
 		payload := map[string]any{
 			"model": endpoint.Model,
-			"messages": []map[string]string{
-				{"role": "user", "content": "Say hello in one word."},
+			"messages": []map[string]any{
+				{"role": "user", "content": content},
 			},
-			"max_tokens": 10,
+			"max_tokens": 16,
 		}
 		body, _ := json.Marshal(payload)
 		req, _ := http.NewRequest("POST", aiRequestURL(endpoint.BaseURL, "/chat/completions"), bytes.NewReader(body))
@@ -486,7 +493,7 @@ func TestAIEndpoint(c *gin.Context) {
 
 		resp, err := client.Do(req)
 		if err != nil {
-			middleware.LogWarn("ai", "ai endpoint test connection failed", "endpoint_id", id, "type", "text", "error", sanitizeError(err))
+			middleware.LogWarn("ai", "ai endpoint test connection failed", "endpoint_id", id, "type", endpoint.Type, "error", sanitizeError(err))
 			c.JSON(http.StatusOK, gin.H{"success": false, "message": fmt.Sprintf("Connection failed: %s", sanitizeError(err))})
 			return
 		}
@@ -494,10 +501,10 @@ func TestAIEndpoint(c *gin.Context) {
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
 
 		if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-			middleware.LogInfo("ai", "ai endpoint test succeeded", "endpoint_id", id, "type", "text")
+			middleware.LogInfo("ai", "ai endpoint test succeeded", "endpoint_id", id, "type", endpoint.Type)
 			c.JSON(http.StatusOK, gin.H{"success": true, "message": "Endpoint responded successfully"})
 		} else {
-			middleware.LogWarn("ai", "ai endpoint test returned non-2xx", "endpoint_id", id, "type", "text", "status", resp.StatusCode)
+			middleware.LogWarn("ai", "ai endpoint test returned non-2xx", "endpoint_id", id, "type", endpoint.Type, "status", resp.StatusCode)
 			c.JSON(http.StatusOK, gin.H{"success": false, "message": fmt.Sprintf("HTTP %d: %s", resp.StatusCode, truncateResponse(string(respBody)))})
 		}
 	} else {

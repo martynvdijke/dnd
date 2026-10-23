@@ -11,6 +11,12 @@ void main() {
     expect(manifest, contains('android.permission.INTERNET'));
   });
 
+  test('manifest accepts shared page images from the Boox notes app', () {
+    expect(manifest, contains('android.intent.action.SEND'));
+    expect(manifest, contains('android.intent.action.SEND_MULTIPLE'));
+    expect(manifest, contains('android:mimeType="image/*"'));
+  });
+
   test('manifest permits self-hosted cleartext HTTP', () {
     expect(manifest, contains('android:usesCleartextTraffic="true"'));
   });
