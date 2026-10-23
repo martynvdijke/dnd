@@ -27,6 +27,8 @@ var rawOnlyTables = map[string]string{
 	"campaign_knowledge_known_by":    "raw-managed via db/migrations — many-to-many for knowledge visibility",
 	"campaign_monster_roster":        "raw-managed via db/migrations — monster roster for campaigns",
 	"campaign_npcs":                  "raw-managed via db/migrations — campaign-NPC join",
+	"ink_captures":                   "raw-managed via db/migrations — handwriting capture provenance",
+	"ink_pages":                      "raw-managed via db/migrations — handwriting pages and OCR text",
 	"characters_fts":                 "FTS5 virtual table for characters (ent has no FTS support)",
 	"characters_fts_config":          "FTS5 shadow table for characters_fts",
 	"characters_fts_data":            "FTS5 shadow table for characters_fts",

@@ -281,3 +281,16 @@ flutter clean
 rm -rf build .dart_tool /root/.pub-cache/hosted/pub.dev/jni-1.1.0/android/.cxx
 flutter pub get && flutter build apk --release
 ```
+
+## Ink capture (e-ink tablets)
+
+The app is a share target for images, so a Boox notes export can be sent straight
+to Villum from the system share sheet. Shared pages are copied into app storage,
+queued in `ink_pending.json`, and uploaded when a campaign is chosen. The same
+screen (ink button in the Sheet and DM app bars, or `/ink`) has a stylus canvas
+with palm rejection and PNG export.
+
+Pages are transcribed from a Boox text sidecar when one is supplied, otherwise
+from an enabled `vision` AI endpoint; typing the text is always available. Nothing
+is published automatically: a DM promotes a capture into an unpublished recap,
+and a player promotes it into a character journal entry.

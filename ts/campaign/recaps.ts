@@ -6,6 +6,7 @@ import { esc, showModal, hideModal, toast } from '../lib/dom';
 import { expose } from '../lib/expose';
 import { showView } from '../navigation';
 import { currentCampaign } from '../lib/state';
+import { renderInkInbox } from './ink';
 
 let recapEditor: Editor | null = null;
 let editingId: number | null = null;
@@ -148,12 +149,15 @@ export async function renderRecaps(campaignId?: number): Promise<void> {
   try {
     const recaps = await api('GET', `/api/campaigns/${cid}/recaps`);
     const headerBtns = `<div class="d-flex gap-2"><button class="btn btn-outline-secondary btn-sm" onclick="generateAIRecap()"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>Generate AI Recap</button><button class="btn btn-primary btn-sm" onclick="showRecapForm()"><i class="fa-solid fa-plus me-1"></i>New Recap</button></div>`;
+    const inkHost = '<div id="inkInbox" data-testid="ink-inbox" class="mt-4"></div>';
     if (!recaps.length) {
-      el.innerHTML = `<div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0">Session Recaps</h5>${headerBtns}</div><div class="empty-state"><p class="text-muted">No session recaps yet.</p></div>`;
+      el.innerHTML = `<div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0">Session Recaps</h5>${headerBtns}</div><div class="empty-state"><p class="text-muted">No session recaps yet.</p></div>` + inkHost;
+      void renderInkInbox(cid);
       return;
     }
     el.innerHTML = `<div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0">Session Recaps (${recaps.length})</h5>${headerBtns}</div>` +
-      recaps.map((r: any) => `<div class="card mb-2"><div class="card-body py-2 px-3"><div class="d-flex justify-content-between align-items-start"><div><span class="fw-bold">${esc(r.title)}</span>${r.is_sent ? ' <span class="badge bg-success">Sent</span>' : ''}${r.is_edited ? ' <span class="badge bg-secondary">Edited</span>' : ''}${r.ai_used ? ' <span class="badge bg-info text-dark">AI</span>' : ''}${dateRangeHtml(r)}<br><small class="text-muted">${r.word_count || 0} words</small><div class="small mt-1">${r.content}</div></div><div class="d-flex gap-1 flex-shrink-0"><button class="btn btn-sm btn-outline-info" onclick="shareRecap(${r.id})" title="Share recap"><i class="fa-solid fa-share-nodes"></i></button><button class="btn btn-sm btn-outline-primary" onclick="showRecapForm(${r.id})"><i class="fa-solid fa-pen"></i></button><button class="btn btn-sm btn-outline-success" onclick="markRecapSent(${r.id})" ${r.is_sent ? 'disabled' : ''}><i class="fa-solid fa-paper-plane"></i></button><button class="btn btn-sm btn-outline-danger" onclick="deleteRecap(${r.id})"><i class="fa-solid fa-trash"></i></button></div></div></div></div>`).join('');
+      recaps.map((r: any) => `<div class="card mb-2"><div class="card-body py-2 px-3"><div class="d-flex justify-content-between align-items-start"><div><span class="fw-bold">${esc(r.title)}</span>${r.is_sent ? ' <span class="badge bg-success">Sent</span>' : ''}${r.is_edited ? ' <span class="badge bg-secondary">Edited</span>' : ''}${r.ai_used ? ' <span class="badge bg-info text-dark">AI</span>' : ''}${dateRangeHtml(r)}<br><small class="text-muted">${r.word_count || 0} words</small><div class="small mt-1">${r.content}</div></div><div class="d-flex gap-1 flex-shrink-0"><button class="btn btn-sm btn-outline-info" onclick="shareRecap(${r.id})" title="Share recap"><i class="fa-solid fa-share-nodes"></i></button><button class="btn btn-sm btn-outline-primary" onclick="showRecapForm(${r.id})"><i class="fa-solid fa-pen"></i></button><button class="btn btn-sm btn-outline-success" onclick="markRecapSent(${r.id})" ${r.is_sent ? 'disabled' : ''}><i class="fa-solid fa-paper-plane"></i></button><button class="btn btn-sm btn-outline-danger" onclick="deleteRecap(${r.id})"><i class="fa-solid fa-trash"></i></button></div></div></div></div>`).join('') + inkHost;
+    void renderInkInbox(cid);
   } catch (e: any) { el.innerHTML = `<div class="alert alert-danger">${esc(e.message)}</div>`; }
 }
 

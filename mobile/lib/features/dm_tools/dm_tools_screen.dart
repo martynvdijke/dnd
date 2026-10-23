@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../app/theme.dart';
 import '../../core/auth_repository.dart';
 import '../../core/providers.dart';
+import '../ink/ink_screen.dart';
 import '../shared/states.dart';
 import '../shared/section_header.dart';
 
@@ -75,12 +76,23 @@ class _DmToolsScreenState extends ConsumerState<DmToolsScreen>
             fontWeight: FontWeight.w800,
             letterSpacing: 0.6,
           ),
-          tabs: const [
+        tabs: const [
             Tab(text: 'SCREEN'),
             Tab(text: 'GENERATORS'),
             Tab(text: 'AI DRAFT'),
           ],
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.gesture),
+            tooltip: 'Ink notes',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => InkScreen(initialCampaignId: widget.campaignId),
+              ),
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [

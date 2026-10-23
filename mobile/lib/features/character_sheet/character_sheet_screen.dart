@@ -10,6 +10,7 @@ import '../../data/models/currency.dart';
 import '../shared/hp_bar.dart';
 import '../shared/section_header.dart';
 import '../shared/stat_block.dart';
+import '../ink/ink_screen.dart';
 import '../shared/states.dart';
 
 class CharacterSheetScreen extends ConsumerStatefulWidget {
@@ -68,6 +69,13 @@ class _CharacterSheetScreenState extends ConsumerState<CharacterSheetScreen>
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.gesture),
+            tooltip: 'Ink notes',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const InkScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',
