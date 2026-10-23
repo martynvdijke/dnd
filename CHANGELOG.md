@@ -1,3 +1,10 @@
+# [3.2.0](https://github.com/martynvdijke/dnd/compare/v3.1.1...v3.2.0) (2026-10-23)
+
+
+### Features
+
+* add ink capture inbox with vision transcription ([#233](https://github.com/martynvdijke/dnd/issues/233)) ([956a862](https://github.com/martynvdijke/dnd/commit/956a862d0357fde1a771a9973a9d98680e3cbeb6))
+
 ## [3.1.1](https://github.com/martynvdijke/dnd/compare/v3.1.0...v3.1.1) (2026-10-21)
 
 
