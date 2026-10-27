@@ -1,3 +1,10 @@
+# [3.3.0](https://github.com/martynvdijke/dnd/compare/v3.2.0...v3.3.0) (2026-10-27)
+
+
+### Features
+
+* **release:** publish android bundles to google play and add emulator e2e ([f20603a](https://github.com/martynvdijke/dnd/commit/f20603a30d903ac0e61469aa905e2369aaf037bb))
+
 # [3.2.0](https://github.com/martynvdijke/dnd/compare/v3.1.1...v3.2.0) (2026-10-23)
 
 
