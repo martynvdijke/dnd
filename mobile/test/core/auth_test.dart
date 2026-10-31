@@ -72,7 +72,7 @@ void main() {
       'hit_dice': '5d6',
       'hit_dice_current': 5,
       'proficiency_bonus': 3,
-      'inspiration': false,
+      'inspiration': 2,
       'passive_perception': 12,
       'death_saves_successes': 0,
       'death_saves_failures': 0,
@@ -82,6 +82,7 @@ void main() {
       'can_edit': true,
     };
     final c = Character.fromJson(m);
+    expect(c.inspiration, 2);
     final j = c.toJson();
     final c2 = Character.fromJson(j);
     expect(c, c2);

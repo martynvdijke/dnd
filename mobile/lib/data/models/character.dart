@@ -33,7 +33,7 @@ class Character {
   final String hitDice;
   final int hitDiceCurrent;
   final int proficiencyBonus;
-  final bool inspiration;
+  final int inspiration;
   final int passivePerception;
   final int deathSavesSuccesses;
   final int deathSavesFailures;
@@ -124,7 +124,7 @@ class Character {
     hitDice: j['hit_dice'] as String? ?? '',
     hitDiceCurrent: (j['hit_dice_current'] as num?)?.toInt() ?? 0,
     proficiencyBonus: (j['proficiency_bonus'] as num?)?.toInt() ?? 2,
-    inspiration: j['inspiration'] as bool? ?? false,
+    inspiration: (j['inspiration'] as num?)?.toInt() ?? 0,
     passivePerception: (j['passive_perception'] as num?)?.toInt() ?? 10,
     deathSavesSuccesses: (j['death_saves_successes'] as num?)?.toInt() ?? 0,
     deathSavesFailures: (j['death_saves_failures'] as num?)?.toInt() ?? 0,

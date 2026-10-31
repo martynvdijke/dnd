@@ -153,7 +153,7 @@ and DB shapes come from `handlers/`; snake_case in JSON, camelCase in Dart.
 
 - `Character` — `id, userId, name, race, class_, subclass, level, xp, background, alignment, str,
   dex, con, int_, wis, cha, ac, initiative, speed, hpMax, hpCurrent, tempHp, hitDice,
-  hitDiceCurrent, proficiencyBonus, inspiration, passivePerception, deathSavesSuccesses,
+  hitDiceCurrent, proficiencyBonus, inspiration (integer count), passivePerception, deathSavesSuccesses,
   deathSavesFailures, concentratingOn, portraitUrl, characterType, canEdit` + computed
   `strMod..chaMod, spellSaveDc, spellAttackBonus`; sub-lists `features, spellcasting, spells,
   inventory, currency, classes, campaigns`.
