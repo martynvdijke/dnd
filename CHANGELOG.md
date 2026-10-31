@@ -1,3 +1,15 @@
+# [3.4.0](https://github.com/martynvdijke/dnd/compare/v3.3.0...v3.4.0) (2026-10-31)
+
+
+### Bug Fixes
+
+* **mobile:** parse character inspiration as count ([#236](https://github.com/martynvdijke/dnd/issues/236)) ([d36536f](https://github.com/martynvdijke/dnd/commit/d36536fb41b1820e89c36f25da9a7631a61de61c))
+
+
+### Features
+
+* **mobile:** default to dnd.vandijke.xyz and offer self-hosted option ([7fec929](https://github.com/martynvdijke/dnd/commit/7fec9299d47008a70d20127c581e194cf4d01c31))
+
 # [3.3.0](https://github.com/martynvdijke/dnd/compare/v3.2.0...v3.3.0) (2026-10-27)
 
 
