@@ -1,3 +1,11 @@
+## [3.4.1](https://github.com/martynvdijke/dnd/compare/v3.4.0...v3.4.1) (2026-10-31)
+
+
+### Bug Fixes
+
+* **deps:** update all non-major dependencies ([3fa6828](https://github.com/martynvdijke/dnd/commit/3fa68286d121d7bce6ca359f1d8059fec476cea3))
+* **deps:** update github.com/dop251/goja digest to 2a9269b ([6d2aa78](https://github.com/martynvdijke/dnd/commit/6d2aa788ce76fb9addeae6802dcf7af7e4be7ff8))
+
 # [3.4.0](https://github.com/martynvdijke/dnd/compare/v3.3.0...v3.4.0) (2026-10-31)
 
 
