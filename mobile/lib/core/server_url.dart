@@ -1,7 +1,7 @@
 /// Server-address helpers.
 ///
-/// Villum has no hosted service and no default address: the user always types
-/// the server they want to talk to, so the app never guesses one.
+/// Villum defaults to a hosted instance but can talk to any self-hosted
+/// server, so the address stays user-editable.
 library;
 
 /// Strips surrounding whitespace and any trailing slashes.

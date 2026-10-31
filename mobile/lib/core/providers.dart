@@ -22,8 +22,8 @@ final authStoreProvider = Provider<AuthStore>((ref) => SecureAuthStore());
 
 /// The server the app is signed in to, or `''` before one is chosen.
 ///
-/// Villum has no hosted service and no default address, so this is only ever
-/// learned from the user.
+/// The onboarding screen offers a hosted default, but the value here is only
+/// ever the server the user has chosen and signed in to.
 final serverUrlProvider = Provider<String>((ref) {
   return switch (ref.watch(authControllerProvider)) {
     AuthAuthenticated(:final serverUrl) => serverUrl,

@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../app/theme.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_repository.dart';
+import '../../core/config.dart';
 import '../../core/providers.dart';
 import '../../core/server_url.dart';
 import 'oidc_webview_screen.dart';
@@ -37,7 +38,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 }
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
-  final _urlCtrl = TextEditingController();
+  final _urlCtrl = TextEditingController(text: defaultServerUrl);
   final _userCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   bool _obscure = true;
@@ -58,16 +59,27 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     super.initState();
     if (widget.forceSetup) _needsSetup = true;
     _urlCtrl.addListener(_scheduleProbe);
-    // Try to preload last URL from store if available
+    // First run starts on the hosted instance. A saved server address always
+    // wins and is never overwritten by the default.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      String? saved;
       try {
-        final stored = await ref.read(authStoreProvider).read();
-        if (stored != null && stored.serverUrl.isNotEmpty && mounted) {
-          setState(() => _urlCtrl.text = stored.serverUrl);
-          // A known-good server: show SSO immediately.
-          _checkOidc(stored.serverUrl);
-        }
+        saved = (await ref.read(authStoreProvider).read())?.serverUrl;
       } catch (_) {}
+      if (!mounted) return;
+      final savedUrl = saved == null ? '' : normalizeServerUrl(saved);
+      if (savedUrl.isNotEmpty) {
+        if (_urlCtrl.text.trim().isEmpty || _urlCtrl.text == defaultServerUrl) {
+          setState(() => _urlCtrl.text = savedUrl);
+        }
+        // A known-good server: show SSO immediately.
+        _checkOidc(normalizeServerUrl(_urlCtrl.text));
+        return;
+      }
+      if (normalizeServerUrl(_urlCtrl.text) == defaultServerUrl) {
+        // Probe the hosted instance unless the user starts editing first.
+        _scheduleProbe();
+      }
     });
   }
 
@@ -362,6 +374,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
                   color: VillumTheme.gold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Use the default instance below, or enter another '
+                'self-hosted DnD server.',
+                style: GoogleFonts.lora(
+                  fontSize: 12,
+                  color: VillumTheme.parchmentMuted,
                 ),
               ),
               const SizedBox(height: 8),

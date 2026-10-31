@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:dnd/core/auth_store.dart';
+import 'package:dnd/core/config.dart';
 import 'package:dnd/features/onboarding/onboarding_screen.dart';
 
 import '../helpers/fake_api.dart';
@@ -110,6 +111,7 @@ void main() {
     final stored = await store.read();
     expect(stored, isNotNull);
     expect(stored!.sessionId, 's1');
+    expect(stored.serverUrl, 'http://villum.test');
   });
 
   testWidgets('forceSetup true shows create admin UI', (tester) async {
@@ -124,7 +126,9 @@ void main() {
     expect(find.textContaining('Create admin'), findsWidgets);
   });
 
-  testWidgets('starts with no guessed server address', (tester) async {
+  testWidgets('prefills the hosted server address when none is saved', (
+    tester,
+  ) async {
     final fake = FakeApi();
     final store = InMemoryAuthStore();
     await pumpScreen(
@@ -134,9 +138,34 @@ void main() {
       store: store,
     );
     final urlField = tester.widget<TextField>(find.byType(TextField).first);
-    expect(urlField.controller?.text ?? '', isEmpty);
-    expect(find.textContaining('10.0.2.2'), findsNothing);
-    expect(find.textContaining('localhost'), findsNothing);
+    expect(urlField.controller?.text, defaultServerUrl);
+    expect(find.textContaining('self-hosted DnD server'), findsOneWidget);
+  });
+
+  testWidgets('saved server address wins over the hosted default', (
+    tester,
+  ) async {
+    final fake = FakeApi();
+    final store = InMemoryAuthStore();
+    await store.write(
+      const StoredAuth(
+        serverUrl: 'https://selfhosted.example',
+        sessionId: 'saved-session',
+        userId: 1,
+        username: 'admin',
+        role: 'admin',
+      ),
+    );
+    await pumpScreen(
+      tester,
+      const OnboardingScreen(),
+      fake: fake,
+      store: store,
+    );
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.pump();
+    final urlField = tester.widget<TextField>(find.byType(TextField).first);
+    expect(urlField.controller?.text, 'https://selfhosted.example');
   });
 
   testWidgets('auto-detects Authelia sign-in from the server URL', (
