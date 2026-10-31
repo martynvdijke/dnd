@@ -146,7 +146,7 @@ Map<String, dynamic> characterJson({
   'hit_dice': '3d10',
   'hit_dice_current': 3,
   'proficiency_bonus': 2,
-  'inspiration': false,
+  'inspiration': 0,
   'passive_perception': 11,
   'death_saves_successes': 0,
   'death_saves_failures': 0,

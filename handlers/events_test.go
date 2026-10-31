@@ -652,7 +652,8 @@ func TestEventsGridPartial(t *testing.T) {
 	})
 
 	t.Run("shows Today button when viewing another month", func(t *testing.T) {
-		prev := time.Now().AddDate(0, -1, 0)
+		now := time.Now()
+		prev := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).AddDate(0, -1, 0)
 		db.ClearCache("")
 		events := []googlecalendar.Event{
 			{ID: "today-prev", Title: "Prev Month Event", StartTime: time.Date(prev.Year(), prev.Month(), 10, 12, 0, 0, 0, time.UTC)},
@@ -793,7 +794,8 @@ func TestEventsGridViewParam(t *testing.T) {
 
 	t.Run("view=grid honors month param", func(t *testing.T) {
 		db.ClearCache("")
-		prev := time.Now().AddDate(0, -1, 0)
+		now := time.Now()
+		prev := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location()).AddDate(0, -1, 0)
 		events := []googlecalendar.Event{
 			{ID: "v2", Title: "Prev Month Event", StartTime: time.Date(prev.Year(), prev.Month(), 15, 19, 0, 0, 0, time.UTC)},
 		}
