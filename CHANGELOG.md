@@ -1,3 +1,10 @@
+## [3.4.3](https://github.com/martynvdijke/dnd/compare/v3.4.2...v3.4.3) (2026-11-01)
+
+
+### Bug Fixes
+
+* **deps:** update all non-major dependencies ([#238](https://github.com/martynvdijke/dnd/issues/238)) ([8495813](https://github.com/martynvdijke/dnd/commit/849581364966c8ea1a2d6211d383530b12c0bb0c))
+
 ## [3.4.2](https://github.com/martynvdijke/dnd/compare/v3.4.1...v3.4.2) (2026-11-01)
 
 
