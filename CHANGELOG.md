@@ -1,3 +1,10 @@
+## [3.4.2](https://github.com/martynvdijke/dnd/compare/v3.4.1...v3.4.2) (2026-11-01)
+
+
+### Bug Fixes
+
+* **ci:** skip Play Store publish when credentials are missing ([02a0409](https://github.com/martynvdijke/dnd/commit/02a04098577d21a07864f4fb017f9f6bc1c1a511))
+
 ## [3.4.1](https://github.com/martynvdijke/dnd/compare/v3.4.0...v3.4.1) (2026-10-31)
 
 
