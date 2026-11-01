@@ -1,3 +1,10 @@
+## [3.4.4](https://github.com/martynvdijke/dnd/compare/v3.4.3...v3.4.4) (2026-11-01)
+
+
+### Bug Fixes
+
+* **deps:** update goja to cf2ff0e ([#237](https://github.com/martynvdijke/dnd/issues/237)) ([873298e](https://github.com/martynvdijke/dnd/commit/873298e6385f952b844bf7fa84eda55ace384d16))
+
 ## [3.4.3](https://github.com/martynvdijke/dnd/compare/v3.4.2...v3.4.3) (2026-11-01)
 
 
