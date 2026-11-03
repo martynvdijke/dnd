@@ -7,7 +7,7 @@ require (
 	github.com/SherClockHolmes/webpush-go v1.4.0
 	github.com/agext/levenshtein v1.2.3
 	github.com/coreos/go-oidc/v3 v3.21.0
-	github.com/dop251/goja v0.0.0-20261031103838-cf2ff0ec0b31
+	github.com/dop251/goja v0.0.0-20261103151521-97b96e1e55f5
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-telegram/bot v1.27.0
 	github.com/gorilla/websocket v1.5.3
