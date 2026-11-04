@@ -1,3 +1,10 @@
+## [3.4.7](https://github.com/martynvdijke/dnd/compare/v3.4.6...v3.4.7) (2026-11-04)
+
+
+### Bug Fixes
+
+* **deps:** update github.com/dop251/goja digest to dcc568f ([#243](https://github.com/martynvdijke/dnd/issues/243)) ([bb5fd11](https://github.com/martynvdijke/dnd/commit/bb5fd1100035be2117edcd329561610fb2fcc985))
+
 ## [3.4.6](https://github.com/martynvdijke/dnd/compare/v3.4.5...v3.4.6) (2026-11-04)
 
 
