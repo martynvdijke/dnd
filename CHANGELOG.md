@@ -1,3 +1,11 @@
+## [3.4.6](https://github.com/martynvdijke/dnd/compare/v3.4.5...v3.4.6) (2026-11-04)
+
+
+### Bug Fixes
+
+* **deps:** tidy go.sum after goja update ([24fc59e](https://github.com/martynvdijke/dnd/commit/24fc59ea7d6b65c2e6cda9928a78c250755fc0fe))
+* **deps:** update github.com/dop251/goja digest to 97b96e1 ([43b9bd1](https://github.com/martynvdijke/dnd/commit/43b9bd1f0685655f107e471072781a2c79503001))
+
 ## [3.4.5](https://github.com/martynvdijke/dnd/compare/v3.4.4...v3.4.5) (2026-11-02)
 
 ## [3.4.4](https://github.com/martynvdijke/dnd/compare/v3.4.3...v3.4.4) (2026-11-01)
