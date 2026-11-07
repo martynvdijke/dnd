@@ -47,6 +47,8 @@ github.com/dop251/goja v0.0.0-20261104161258-dcc568fddb28 h1:wA3U+Cz6JxsSgHKwRUZ
 github.com/dop251/goja v0.0.0-20261104161258-dcc568fddb28/go.mod h1:L1yoLBco9M3b2Gdh1UZHg+BIePeAdV1bwknaLLxAgoc=
 github.com/dop251/goja v0.0.0-20261104194112-a537e0c5a009 h1:OyzzcaDNUOPlzBi4eCmGj2S23MyoE/cl06lt9BFYJTU=
 github.com/dop251/goja v0.0.0-20261104194112-a537e0c5a009/go.mod h1:L1yoLBco9M3b2Gdh1UZHg+BIePeAdV1bwknaLLxAgoc=
+github.com/dop251/goja v0.0.0-20261107161106-d6eaa50db8bc h1:4Sczgv7bAN62viekFz9wTF9PuXitaeyYKCSAICJwD6o=
+github.com/dop251/goja v0.0.0-20261107161106-d6eaa50db8bc/go.mod h1:L1yoLBco9M3b2Gdh1UZHg+BIePeAdV1bwknaLLxAgoc=
 github.com/dustin/go-humanize v1.1.0 h1:dbKTrvD0klcbBV/h4AWJdMuZogJACoMlvWIWZ5b2xWg=
 github.com/dustin/go-humanize v1.1.0/go.mod h1:hc1CvRkJMsgxqjmjMQF3QNRAZBwY8AXBAzKYoSX9sFI=
 github.com/felixge/httpsnoop v1.1.0 h1:3YtUj32ZZkqZtt3sZZsClsymw/QDuVfpNhoA31zeORc=
