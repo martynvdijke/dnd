@@ -24,3 +24,27 @@ func SaveOTelSettings(c *gin.Context) {
 	// The admin UI displays current configuration; changes must be made via env vars.
 	c.JSON(http.StatusOK, gin.H{"status": "read_only", "message": "OTel configuration is managed via environment variables"})
 }
+
+// publicOTelSettings is the unauthenticated subset returned to mobile clients.
+// It intentionally carries no admin-only state (no ID, status, or message).
+type publicOTelSettings struct {
+	Endpoint       string `json:"endpoint"`
+	Enabled        bool   `json:"enabled"`
+	TracesEnabled  bool   `json:"traces_enabled"`
+	MetricsEnabled bool   `json:"metrics_enabled"`
+	LogsEnabled    bool   `json:"logs_enabled"`
+}
+
+// GetPublicOTelSettings exposes the OTLP endpoint that mobile clients should
+// export to. Only trace export is configured; metrics and logs are disabled.
+func GetPublicOTelSettings(c *gin.Context) {
+	endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	enabled := endpoint != ""
+	c.JSON(http.StatusOK, publicOTelSettings{
+		Endpoint:       endpoint,
+		Enabled:        enabled,
+		TracesEnabled:  enabled,
+		MetricsEnabled: false,
+		LogsEnabled:    false,
+	})
+}

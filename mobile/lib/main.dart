@@ -1,15 +1,54 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/router.dart';
 import 'app/theme.dart';
 import 'core/auth_repository.dart';
+import 'core/config.dart';
 import 'core/providers.dart';
 import 'features/ink/ink_queue.dart';
+import 'src/telemetry/telemetry.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const ProviderScope(child: VillumApp()));
+  runApp(const ProviderScope(child: TelemetryBootstrap(child: VillumApp())));
+}
+
+/// Starts the OTLP exporter once per resolved server URL, without blocking the
+/// first frame and without ever surfacing network errors.
+class TelemetryBootstrap extends ConsumerStatefulWidget {
+  const TelemetryBootstrap({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  ConsumerState<TelemetryBootstrap> createState() => _TelemetryBootstrapState();
+}
+
+class _TelemetryBootstrapState extends ConsumerState<TelemetryBootstrap> {
+  String? _startedUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    ref.listenManual<String>(
+      serverUrlProvider,
+      (_, url) => _maybeStart(url),
+      fireImmediately: true,
+    );
+  }
+
+  void _maybeStart(String url) {
+    final resolved = url.trim().isEmpty ? defaultServerUrl : url.trim();
+    if (_startedUrl == resolved) return;
+    _startedUrl = resolved;
+    unawaited(Telemetry.instance.startFromServer(resolved));
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class VillumApp extends ConsumerStatefulWidget {

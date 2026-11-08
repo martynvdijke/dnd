@@ -18,6 +18,8 @@ func RegisterPublicRoutes(r *gin.Engine) {
 	r.GET("/metrics", HandleMetrics)
 	r.GET("/api/check-setup", CheckSetup)
 	r.POST("/api/login", HandleLogin)
+	// Runtime OTLP endpoint for mobile clients (no auth: read-only, non-secret).
+	r.GET("/api/otel-settings", GetPublicOTelSettings)
 	// OIDC SSO (enabled by default when configured; password login retired
 	// unless the ALLOW_PASSWORD_FALLBACK break-glass flag is set)
 	r.GET("/api/auth/oidc/status", OIDCStatus)
