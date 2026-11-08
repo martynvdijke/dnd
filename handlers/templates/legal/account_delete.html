@@ -1,0 +1,27 @@
+{{define "content"}}
+<h1>Delete your account</h1>
+<p>You can close your Villum account yourself, without contacting anyone. The process is permanent and cannot be undone.</p>
+
+<h2>How to delete your account</h2>
+<ol>
+  <li>Sign in to this instance{{if .Legal.BaseURL}} at <a href="{{.Legal.BaseURL}}">{{.Legal.BaseURL}}</a>{{end}}.</li>
+  <li>Open <a href="/settings">Account settings</a>.</li>
+  <li>In the danger zone, type your username exactly as confirmation and submit the deletion form.</li>
+</ol>
+
+<h2>What is removed</h2>
+<ul>
+  <li>Your username, display name, email address and password hash.</li>
+  <li>Every active session and API token, so no signed-in device keeps working.</li>
+  <li>Personal working data such as dice rolls, drafts, private notes, imports and notifications.</li>
+  <li>Links to external identities: Telegram, OIDC and calendar credentials, and push subscriptions.</li>
+</ul>
+
+<h2>What remains</h2>
+<p>Content that other people depend on — for example characters or campaigns shared with a group — is kept but no longer linked to a personal identifier; the author is shown as a deleted user. Residual copies may remain in backups for the operator's backup rotation period. Where law requires retention, that obligation takes precedence.</p>
+
+<h2>Cannot sign in?</h2>
+<p>If you have lost access to your account, {{if .Legal.ContactEmail}}contact <a href="mailto:{{.Legal.ContactEmail}}">{{.Legal.ContactEmail}}</a>{{else}}contact the operator of this instance{{end}} and describe the account you want removed. The operator may ask you to prove that the account is yours.</p>
+
+<p>For more detail on what is stored and why, read the <a href="/privacy">privacy policy</a>.</p>
+{{end}}

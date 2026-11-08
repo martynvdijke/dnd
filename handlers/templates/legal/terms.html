@@ -1,0 +1,62 @@
+{{define "content"}}
+<h1>Terms of use</h1>
+<p class="legal-meta">Last updated {{.Legal.Year}}. These terms govern your use of this Villum instance.</p>
+
+<p>By creating an account or otherwise using this service you agree to these terms. If you do not agree, do not use the service. Villum is self-hosted software, so the operator named below — not the authors of the software — provides this instance and is responsible for it.</p>
+
+<h2>The operator</h2>
+<dl class="facts">
+  <dt>Controller</dt><dd>{{.Legal.Controller}}</dd>
+  {{if .Legal.ContactEmail}}<dt>Contact</dt><dd><a href="mailto:{{.Legal.ContactEmail}}">{{.Legal.ContactEmail}}</a></dd>{{end}}
+  {{if .Legal.ContactAddress}}<dt>Postal address</dt><dd>{{.Legal.ContactAddress}}</dd>{{end}}
+  <dt>Hosting region</dt><dd>{{.Legal.HostingRegion}}</dd>
+  {{if .Legal.BaseURL}}<dt>Instance</dt><dd><a href="{{.Legal.BaseURL}}">{{.Legal.BaseURL}}</a></dd>{{end}}
+</dl>
+
+<h2>The service</h2>
+<p>Villum is a tool for tabletop role-playing games: it stores characters, campaigns, notes, compendium material, dice results and related content, and can connect to optional integrations. The service is provided free of charge unless the operator tells you otherwise. Features may be added, changed or withdrawn.</p>
+
+<h2>Your account</h2>
+<p>You must provide accurate account information, keep your credentials confidential, and tell the operator promptly if you believe your account has been compromised. You are responsible for activity carried out through your account. Accounts are personal; do not share them or resell access.</p>
+
+<h2>Acceptable use</h2>
+<p>You agree not to:</p>
+<ul>
+  <li>upload or post content that is unlawful, infringing, hateful, or that you have no right to share;</li>
+  <li>attempt to access accounts, campaigns or data you have not been given access to;</li>
+  <li>probe, scan or attack the service, or interfere with other users' use of it;</li>
+  <li>use automated means to overload the service, scrape other users' content, or circumvent rate limits or authentication;</li>
+  <li>use the service to distribute malware or to send unsolicited messages.</li>
+</ul>
+<p>The operator may suspend or remove content or accounts that breach these rules, and may report unlawful activity to the authorities.</p>
+
+<h2>Your content</h2>
+<p>You keep ownership of the content you create. You grant the operator the limited licence needed to store, process, back up and display that content in order to run the service, and to show it to the people you choose to share it with. You are responsible for having the rights to anything you upload. Content you publish through a share link is visible to anyone with that link until you revoke it.</p>
+
+<h2>Third-party content and integrations</h2>
+<p>The compendium may include game rules material and other third-party content. That content remains the property of its owners and is provided for personal, non-commercial use with your games. Open-game and licensed material is used under its respective licence; proprietary material is not relicensed by these terms.</p>
+{{if .Legal.OIDC}}<p>Signing in through the configured OpenID Connect provider is also subject to that provider's terms.</p>{{end}}
+{{if .Legal.GoogleOAuth}}<p>Signing in with Google is also subject to Google's terms of service.</p>{{end}}
+{{if .Legal.GoogleCalendar}}<p>Calendar features are subject to Google's terms where a Google Calendar is connected.</p>{{end}}
+{{if .Legal.Telegram}}<p>Telegram integration is subject to Telegram's terms of service.</p>{{end}}
+{{if .Legal.AI}}<p>AI-assisted features send your input to the configured AI provider and are subject to that provider's terms and acceptable-use policy. AI output may be wrong and must not be relied on as professional advice.</p>{{end}}
+{{if .Legal.Push}}<p>Push notifications are delivered through your browser vendor's push service under its terms.</p>{{end}}
+
+<h2>Availability and changes</h2>
+<p>The service is provided on a best-effort basis. The operator may take it offline for maintenance, may change or remove features, and does not guarantee that data will never be lost. Keep your own copies of anything important; you can export your data from the account settings page.</p>
+
+<h2>Disclaimer and liability</h2>
+<p>To the maximum extent permitted by law, the service is provided "as is" and "as available", without warranties of any kind, express or implied, including fitness for a particular purpose and non-infringement. The operator is not liable for indirect or consequential loss, loss of data, or loss of gameplay records. Nothing in these terms limits liability that cannot be limited by law, including for intentional misconduct or gross negligence, and nothing affects your statutory consumer rights.</p>
+
+<h2>Termination</h2>
+<p>You may stop using the service and close your account at any time from the <a href="/settings">account settings</a> page. The operator may suspend or terminate access for breach of these terms or where required by law. Provisions that by their nature should survive termination — including content licences already exercised, disclaimers and liability limits — survive.</p>
+
+<h2>Privacy</h2>
+<p>How personal data is processed is described in the <a href="/privacy">privacy policy</a>, which forms part of these terms.</p>
+
+<h2>Governing law and disputes</h2>
+<p>These terms are governed by the law applicable to the operator's establishment, without prejudice to mandatory consumer protections in your country of residence. Before starting formal proceedings, please raise the issue with the contact address above so it can be resolved informally.</p>
+
+<h2>Changes to these terms</h2>
+<p>These terms may be updated as the service or the law changes. The current version is always available at this address, and the year above shows when it was last revised. Continued use after a change means you accept the revised terms.</p>
+{{end}}

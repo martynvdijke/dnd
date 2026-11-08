@@ -1,0 +1,62 @@
+{{define "content"}}
+<h1>Account settings</h1>
+<p>Signed in as <strong>{{.User}}</strong>.</p>
+
+<h2>Download your data</h2>
+<p>You can take a copy of your material at any time. Character sheets are exported as portable JSON from the character view, and a whole campaign can be exported as a transfer file from the campaign page. Both use the export actions in the application and do not require contacting the operator.</p>
+<p>For a complete copy of everything linked to your account, {{if .Legal.ContactEmail}}write to <a href="mailto:{{.Legal.ContactEmail}}">{{.Legal.ContactEmail}}</a>{{else}}contact the operator of this instance{{end}}.</p>
+
+<h2>Privacy and terms</h2>
+<p>Read the <a href="/privacy">privacy policy</a> to see what this deployment processes, and the <a href="/terms">terms of use</a> for the rules that apply.</p>
+
+<section class="danger-zone">
+  <h2>Delete your account</h2>
+  <p>This closes your account permanently. Your username, email, password, sessions, tokens and personal data are removed; shared content stays available to your group under a deleted-user marker. This cannot be undone.</p>
+  <p>Type your username <strong>{{.User}}</strong> exactly to confirm.</p>
+  <form id="deleteAccountForm" autocomplete="off">
+    <p><label for="confirm">Username</label><br>
+      <input type="text" id="confirm" name="confirm" required
+             placeholder="{{.User}}" autocomplete="off" spellcheck="false"></p>
+    <p><button type="submit" id="deleteAccountButton">Delete my account permanently</button></p>
+  </form>
+  <p id="deleteAccountStatus" role="status" aria-live="polite"></p>
+</section>
+
+<script>
+(function () {
+  var form = document.getElementById('deleteAccountForm');
+  if (!form) return;
+  var button = document.getElementById('deleteAccountButton');
+  var status = document.getElementById('deleteAccountStatus');
+  var csrf = {{.CSRF}};
+  form.addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var confirmValue = document.getElementById('confirm').value.trim();
+    if (!confirmValue) {
+      status.textContent = 'Type your username to confirm.';
+      return;
+    }
+    if (!window.confirm('Delete this account permanently? This cannot be undone.')) return;
+    button.disabled = true;
+    status.textContent = 'Deleting…';
+    fetch('/account/settings/account/delete', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRF-Token': csrf},
+      body: 'confirm=' + encodeURIComponent(confirmValue),
+      credentials: 'same-origin'
+    }).then(function (res) {
+      if (res.ok || res.redirected) {
+        window.location.href = '/login?deleted=1';
+        return null;
+      }
+      return res.text().then(function (text) {
+        throw new Error(text || ('request failed (' + res.status + ')'));
+      });
+    }).catch(function (err) {
+      button.disabled = false;
+      status.textContent = err.message || 'Could not delete the account.';
+    });
+  });
+})();
+</script>
+{{end}}

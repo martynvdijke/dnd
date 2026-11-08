@@ -1,0 +1,99 @@
+{{define "content"}}
+<h1>Privacy policy</h1>
+<p class="legal-meta">Last updated {{.Legal.Year}}. This policy applies to this Villum instance only.</p>
+
+<p>This policy explains what personal data this Villum deployment processes, why it processes it, and how you can exercise your rights. Villum is self-hosted software: the person or organisation running this instance decides what is processed, and different instances may enable different features. Every section below marked as conditional is included only when the feature is actually enabled on this deployment.</p>
+
+<h2>Who is responsible</h2>
+<dl class="facts">
+  <dt>Controller</dt><dd>{{.Legal.Controller}}</dd>
+  {{if .Legal.ContactEmail}}<dt>Contact</dt><dd><a href="mailto:{{.Legal.ContactEmail}}">{{.Legal.ContactEmail}}</a></dd>{{end}}
+  {{if .Legal.ContactAddress}}<dt>Postal address</dt><dd>{{.Legal.ContactAddress}}</dd>{{end}}
+  <dt>Hosting region</dt><dd>{{.Legal.HostingRegion}}</dd>
+  {{if .Legal.BaseURL}}<dt>Instance</dt><dd><a href="{{.Legal.BaseURL}}">{{.Legal.BaseURL}}</a></dd>{{end}}
+</dl>
+{{if not .Legal.ContactEmail}}
+<p>This deployment has not published a dedicated contact address. If you reached this instance through an organisation, contact that organisation's administrator to exercise your rights.</p>
+{{end}}
+
+<h2>What we process and why</h2>
+<h3>Account and authentication data</h3>
+<p>To give you an account we store your username, a password hash (never the password itself), your display name, your role, and the timestamps needed to operate the account. If you sign in, we create a server-side session so your browser stays authenticated. If you create API tokens, we store a hash of each token and the label you gave it.</p>
+
+<h3>Content you create</h3>
+<p>Characters, campaigns, notes, journal entries, dice rolls, uploaded images and other material you add are stored so the service can show them back to you and to the people you share them with. Sharing is opt-in: content becomes visible to others only through the sharing features you use, such as campaign membership or a share link you create.</p>
+
+<h3>Technical logs</h3>
+<p>The server records ordinary request logs (time, method, path, status, client address and user agent) and error logs so that faults can be diagnosed and abuse can be investigated. These logs are kept for a short operational period and are not used to build profiles.</p>
+
+<h2>Cookies and local storage</h2>
+<p>Villum uses a single session cookie named <code>{{.Legal.SessionCookie}}</code>. It is required to keep you signed in and is set only after you authenticate. It is HTTP-only and is not used for advertising. The web interface also stores a theme preference in your browser's local storage; that value never leaves your device.</p>
+
+{{if .Legal.Analytics}}
+<h2>Analytics</h2>
+<p>This deployment runs a self-hosted Umami analytics instance{{if .Legal.AnalyticsURL}} at <code>{{.Legal.AnalyticsURL}}</code>{{end}}. It records aggregate page views and referrers without cookies and without cross-site tracking. Analytics data is used only to understand which parts of the service are used, and is not combined with your account.</p>
+{{end}}
+
+{{if .Legal.Traces}}
+<h2>Telemetry and traces</h2>
+<p>This deployment exports OpenTelemetry traces and metrics to an operator-controlled collector. Traces contain request timing, route names and error information. They may incidentally include identifiers such as a user or session id in span attributes, are retained according to the collector's configuration, and are used for performance and reliability work only.</p>
+{{end}}
+
+{{if .Legal.Mail}}
+<h2>Email</h2>
+<p>This deployment can send transactional email through the configured SMTP server, for example password-reset messages and notifications you opt into. Your email address and the message content are shared with that mail provider for delivery. Email is not used for marketing.</p>
+{{end}}
+
+{{if .Legal.Push}}
+<h2>Web push notifications</h2>
+<p>If you enable browser notifications, your browser creates a push subscription and we store its endpoint and encryption keys together with your account. Notifications are delivered through your browser vendor's push service. You can remove the subscription at any time from your browser or account settings.</p>
+{{end}}
+
+{{if .Legal.OIDC}}
+<h2>Single sign-on</h2>
+<p>This deployment supports signing in through an external OpenID Connect provider. When you use it, the provider tells us a stable subject identifier and may share your username, display name and email address. We store the subject identifier to link your account and do not receive your password.</p>
+{{end}}
+
+{{if .Legal.Telegram}}
+<h2>Telegram integration</h2>
+<p>If you link a Telegram account, we store your Telegram user id and the link between it and your Villum account, together with any characters you claim and messages the bot processes on your behalf. Messages you send to the bot pass through Telegram's servers under Telegram's own privacy terms. You can unlink at any time, which removes the stored link.</p>
+{{end}}
+
+{{if .Legal.GoogleCalendar}}
+<h2>Google Calendar</h2>
+<p>This deployment can read a Google Calendar to show campaign events. Depending on how the operator configured it, access uses either a service account or OAuth. Calendar data is read to display events and is not sold or used for advertising. Where OAuth is used, the refresh token is stored encrypted at rest and can be revoked from your Google account.</p>
+{{end}}
+
+{{if .Legal.GoogleOAuth}}
+<h2>Google sign-in</h2>
+<p>This deployment allows signing in with a Google account. Google then shares your account identifier and basic profile details with us. We store the identifier needed to recognise you on your next visit. Google's privacy policy governs Google's own processing.</p>
+{{end}}
+
+{{if .Legal.AI}}
+<h2>AI features</h2>
+<p>This deployment has one or more AI endpoints enabled. When you use an AI-assisted feature, the text or image you submit, together with the instructions needed to fulfil the request, is sent to the configured AI provider. Do not submit personal data you are not willing to share with that provider. AI output is generated automatically and may be inaccurate; it is shown as a suggestion, not as fact.</p>
+{{end}}
+
+{{if .Legal.WLED}}
+<h2>Smart lighting (WLED)</h2>
+<p>This deployment can talk to a WLED lighting controller on the local network, for example to reflect combat state in room lighting. Only the state needed for that effect is sent; no account data is included.</p>
+{{end}}
+
+<h2>Legal bases</h2>
+<p>Where the GDPR applies, processing rests on: performance of a contract or steps taken at your request (providing your account and the features you use); legitimate interests (keeping the service secure, diagnosing faults, preventing abuse); consent (optional integrations you choose to enable, such as push notifications or third-party sign-in); and legal obligation where the operator must retain or disclose something.</p>
+
+<h2>Retention</h2>
+<p>Account data is kept while your account exists. Content you delete is removed from the active database; residual copies may remain in backups for the operator's backup rotation period. Closing your account anonymises the user record, removes direct identifiers and credentials, and ends your sessions. Operational logs and analytics follow the retention configured by the operator.</p>
+
+<h2>Sharing and processors</h2>
+<p>We do not sell personal data. Data is shared only with the service providers needed to run the features listed above (for example the hosting provider, mail provider, push service, identity provider, calendar provider or AI provider), and with other users when you deliberately share content. Authorities receive data only when legally required.</p>
+
+<h2>Your rights</h2>
+<p>Subject to applicable law you can request access to your data, correction of inaccurate data, deletion, restriction of processing, portability, and you can object to processing based on legitimate interests. You can export your data and close your account from the <a href="/settings">account settings</a> page. To make another request, contact the controller using the details above. You also have the right to complain to your local data-protection authority.</p>
+
+<h2>Security</h2>
+<p>Passwords are stored as hashes, sessions are server-side and expire, API tokens are stored hashed, and transport should be protected by HTTPS in any public deployment. No system is perfectly secure; report suspected issues to the contact address above.</p>
+
+<h2>Changes</h2>
+<p>This policy may be updated when features or legal requirements change. The "last updated" year at the top reflects the current version, and material changes will be announced in the application.</p>
+{{end}}

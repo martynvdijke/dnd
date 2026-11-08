@@ -19,6 +19,10 @@ type SessionStore interface {
 	CreateWithAuth(userID int64, username, role, ip, authMethod, oidcSub string) string
 	Get(sessionID string) *models.AuthSession
 	Delete(sessionID string)
+	// DeleteUserSessions removes every session belonging to a user and clears
+	// the in-memory cache entries, so account closure takes effect immediately
+	// instead of waiting for the 24h expiry.
+	DeleteUserSessions(userID int64)
 	Cleanup()
 }
 
@@ -72,6 +76,16 @@ func (s *MemoryStore) Delete(sessionID string) {
 	s.mu.Lock()
 	delete(s.sessions, sessionID)
 	s.mu.Unlock()
+}
+
+func (s *MemoryStore) DeleteUserSessions(userID int64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for id, sess := range s.sessions {
+		if sess.UserID == userID {
+			delete(s.sessions, id)
+		}
+	}
 }
 
 func (s *MemoryStore) Cleanup() {
@@ -180,6 +194,19 @@ func (s *DBSessionStore) Delete(sessionID string) {
 	_, err := s.db.Exec(`DELETE FROM auth_sessions WHERE id = ?`, sessionID)
 	if err != nil {
 		log.Printf("DBSessionStore.Delete: %v", err)
+	}
+}
+
+func (s *DBSessionStore) DeleteUserSessions(userID int64) {
+	s.cache.Range(func(key, value any) bool {
+		if sess, ok := value.(*models.AuthSession); ok && sess.UserID == userID {
+			s.cache.Delete(key)
+		}
+		return true
+	})
+	_, err := s.db.Exec(`DELETE FROM auth_sessions WHERE user_id = ?`, userID)
+	if err != nil {
+		log.Printf("DBSessionStore.DeleteUserSessions: %v", err)
 	}
 }
 
