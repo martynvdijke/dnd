@@ -1,3 +1,17 @@
+# [3.5.0](https://github.com/martynvdijke/dnd/compare/v3.4.7...v3.5.0) (2026-11-08)
+
+
+### Bug Fixes
+
+* **deps:** update github.com/dop251/goja digest to a537e0c ([2c02545](https://github.com/martynvdijke/dnd/commit/2c02545c8413f87a574ad3d05e6652a201fcde71))
+* **deps:** update module google.golang.org/api to v0.311.0 ([227a4a1](https://github.com/martynvdijke/dnd/commit/227a4a14104bd519ed519a5257cf5a99df34531e))
+
+
+### Features
+
+* add legal pages, account deletion and telemetry settings ([8e16f87](https://github.com/martynvdijke/dnd/commit/8e16f87910afd3f9ae646655f0a430cecac05b58))
+* **mobile:** add OpenTelemetry tracing with runtime endpoint from API ([907b927](https://github.com/martynvdijke/dnd/commit/907b927a1377d233788959a60cceeced772eaf3e))
+
 ## [3.4.7](https://github.com/martynvdijke/dnd/compare/v3.4.6...v3.4.7) (2026-11-04)
 
 
