@@ -1,3 +1,10 @@
+## [3.5.3](https://github.com/martynvdijke/dnd/compare/v3.5.2...v3.5.3) (2026-11-10)
+
+
+### Bug Fixes
+
+* **deps:** update module google.golang.org/api to v0.312.0 ([#248](https://github.com/martynvdijke/dnd/issues/248)) ([9fd306b](https://github.com/martynvdijke/dnd/commit/9fd306be57124127df88c3181c96d3a11a2c43ee))
+
 ## [3.5.2](https://github.com/martynvdijke/dnd/compare/v3.5.1...v3.5.2) (2026-11-10)
 
 
