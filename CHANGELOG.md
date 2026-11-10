@@ -1,3 +1,12 @@
+## [3.5.1](https://github.com/martynvdijke/dnd/compare/v3.5.0...v3.5.1) (2026-11-10)
+
+
+### Bug Fixes
+
+* **deps:** tidy go.sum after dependency update ([6e05dfe](https://github.com/martynvdijke/dnd/commit/6e05dfe15dd4b9bfad6abdea33fc4e029b9872c7))
+* **deps:** update all non-major dependencies ([#247](https://github.com/martynvdijke/dnd/issues/247)) ([e47bd72](https://github.com/martynvdijke/dnd/commit/e47bd726e23363326c71724710699bec4a66fa79))
+* **renovate:** disable platform automerge so Renovate merges green PRs itself ([23de5a7](https://github.com/martynvdijke/dnd/commit/23de5a7e4c266e0b04e6074eeaba42900c9e8578))
+
 # [3.5.0](https://github.com/martynvdijke/dnd/compare/v3.4.7...v3.5.0) (2026-11-08)
 
 
