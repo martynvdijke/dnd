@@ -39,6 +39,19 @@
       "groupName": "0.x dependencies"
     },
     {
+      "matchDepTypes": [
+        "engines"
+      ],
+      "enabled": false
+    },
+    {
+      "matchPackageNames": [
+        "mathjs",
+        "@dice-roller/rpg-dice-roller"
+      ],
+      "enabled": false
+    },
+    {
       "matchCategories": [
         "docker"
       ],
