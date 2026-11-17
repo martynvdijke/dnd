@@ -1,3 +1,5 @@
+## [3.5.5](https://github.com/martynvdijke/dnd/compare/v3.5.4...v3.5.5) (2026-11-17)
+
 ## [3.5.4](https://github.com/martynvdijke/dnd/compare/v3.5.3...v3.5.4) (2026-11-14)
 
 
