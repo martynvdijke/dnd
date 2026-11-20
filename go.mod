@@ -9,7 +9,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.21.0
 	github.com/dop251/goja v0.0.0-20261118204651-8dfece3d1e1d
 	github.com/gin-gonic/gin v1.12.0
-	github.com/go-telegram/bot v1.28.0
+	github.com/go-telegram/bot v1.30.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/prometheus/client_golang v1.25.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
@@ -30,11 +30,11 @@ require (
 	go.opentelemetry.io/otel/sdk/log v1.47.0
 	go.opentelemetry.io/otel/sdk/metric v1.47.0
 	go.opentelemetry.io/otel/trace v1.47.0
-	golang.org/x/crypto v0.58.0
+	golang.org/x/crypto v0.59.0
 	golang.org/x/image v0.48.0
 	golang.org/x/oauth2 v0.38.0
 	golang.org/x/text v0.44.0
-	google.golang.org/api v0.312.0
+	google.golang.org/api v0.316.0
 	modernc.org/sqlite v1.62.0
 	pgregory.net/rapid v1.3.0
 )
