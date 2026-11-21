@@ -75,22 +75,46 @@ class ApiClient {
     final auth = await store.read();
     if (auth == null) return;
     if (auth.apiToken != null && auth.apiToken!.isNotEmpty) return;
-    final resp = await dio.post(
-      '/api/tokens',
-      data: {'name': 'mobile', 'expires_in_days': 0},
-    );
-    if (resp.statusCode != null &&
-        resp.statusCode! >= 200 &&
-        resp.statusCode! < 300) {
-      final data = resp.data;
-      String? token;
-      if (data is Map) {
-        token = data['token'] as String?;
-      }
-      if (token != null) {
-        await store.write(auth.copyWith(apiToken: token));
+    // A single retry: token provisioning is the gate for every mutation, so a
+    // transient failure must not leave the session token-less.
+    Response? last;
+    for (var attempt = 0; attempt < 2; attempt++) {
+      last = await dio.post(
+        '/api/tokens',
+        data: {'name': 'mobile', 'expires_in_days': 0},
+      );
+      final code = last.statusCode ?? 0;
+      if (code >= 200 && code < 300) {
+        final data = last.data;
+        final token = data is Map ? data['token'] as String? : null;
+        if (token != null && token.isNotEmpty) {
+          await store.write(auth.copyWith(apiToken: token));
+          return;
+        }
+        throw ApiException(
+          code,
+          'The server accepted the token request but returned no token. '
+          'Sign in again.',
+        );
       }
     }
+    final code = last?.statusCode ?? 0;
+    throw ApiException(code, _tokenFailureMessage(last, code));
+  }
+
+  /// Turns a failed `POST /api/tokens` into something the user can act on.
+  String _tokenFailureMessage(Response? r, int code) {
+    String detail = '';
+    final data = r?.data;
+    if (data is Map && data['error'] != null) {
+      detail = data['error'].toString();
+    } else if (data is String && data.isNotEmpty) {
+      detail = data;
+    }
+    final status = code == 0 ? 'no response' : 'HTTP $code';
+    final suffix = detail.isEmpty ? '' : ' — $detail';
+    return 'Could not provision an API token ($status). Mutations will fail '
+        'until this succeeds; check that you are signed in and retry.$suffix';
   }
 
   /// Fails fast when the user has not chosen a server yet instead of sending

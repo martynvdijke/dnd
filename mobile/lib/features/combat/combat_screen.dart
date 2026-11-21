@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../app/theme.dart';
+import '../../core/api_client.dart';
 import '../../core/providers.dart';
 import '../../data/models/attack.dart';
+import '../../data/models/character_summary.dart';
 import '../../data/models/combat_entry.dart';
 import '../shared/states.dart';
 import '../shared/stat_block.dart';
@@ -13,9 +15,33 @@ import '../shared/section_header.dart';
 
 class CombatScreen extends ConsumerStatefulWidget {
   final int? campaignId;
-  const CombatScreen({super.key, this.campaignId});
+
+  /// The character the roller should default to attacking with (for example the
+  /// sheet the user just came from). Falls back to the first character.
+  final int? initialCharacterId;
+
+  const CombatScreen({super.key, this.campaignId, this.initialCharacterId});
   @override
   ConsumerState<CombatScreen> createState() => _CombatScreenState();
+}
+
+/// A server-side attack target: either a combat entry (`/api/combat`) or a
+/// character. Combat entries win when initiative is running because they carry
+/// the AC the server actually uses.
+class _AttackTarget {
+  final String type; // 'character' | 'combat'
+  final int id;
+  final String name;
+  final String detail;
+  final bool friendly;
+  const _AttackTarget({
+    required this.type,
+    required this.id,
+    required this.name,
+    required this.detail,
+    required this.friendly,
+  });
+  String get key => '$type:$id';
 }
 
 class _CombatScreenState extends ConsumerState<CombatScreen> {
@@ -24,6 +50,8 @@ class _CombatScreenState extends ConsumerState<CombatScreen> {
   bool _apply = true;
   AttackResult? _lastResult;
   bool _rolling = false;
+  int? _attackerId;
+  String? _targetKey;
   @override
   void initState() {
     super.initState();
@@ -145,6 +173,9 @@ class _CombatScreenState extends ConsumerState<CombatScreen> {
 
   Widget _rollerCard() {
     final charsAsync = ref.watch(charactersListProvider);
+    final entries = _campaignId == null
+        ? const <CombatEntry>[]
+        : ref.watch(combatProvider(_campaignId!)).value ?? const <CombatEntry>[];
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12),
       child: Padding(
@@ -168,52 +199,73 @@ class _CombatScreenState extends ConsumerState<CombatScreen> {
                 ),
               );
             }
-            final attacker = list.first;
+            final attacker = _resolveAttacker(list);
+            final targets = _targetsFor(list, entries, attacker);
+            final target = _resolveTarget(targets);
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: VillumTheme.gold.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Center(
-                        child: Text(
-                          attacker.name.isNotEmpty ? attacker.name[0] : '?',
-                          style: GoogleFonts.cinzel(
-                            fontWeight: FontWeight.w700,
-                            color: VillumTheme.gold,
+                // The attacker is a real choice now: it defaults to the sheet
+                // the user came from, never to `characters.first`.
+                DropdownButtonFormField<int>(
+                  key: ValueKey('attacker-$attacker'),
+                  initialValue: attacker,
+                  isExpanded: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Attacker',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                  items: list
+                      .map(
+                        (c) => DropdownMenuItem<int>(
+                          value: c.id,
+                          child: Text(
+                            c.name.isEmpty ? 'Unnamed' : c.name,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            attacker.name,
-                            style: GoogleFonts.lora(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(
-                            'Lv ${attacker.level} · ${attacker.class_}',
-                            style: GoogleFonts.lora(
-                              fontSize: 11,
-                              color: VillumTheme.parchmentMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                      )
+                      .toList(),
+                  onChanged: _rolling
+                      ? null
+                      : (v) => setState(() => _attackerId = v),
                 ),
+                const SizedBox(height: 10),
+                if (targets.isEmpty)
+                  Text(
+                    'No attack targets yet — add combatants to the initiative '
+                    'tracker or another character.',
+                    style: GoogleFonts.lora(
+                      fontSize: 12,
+                      color: VillumTheme.parchmentMuted,
+                    ),
+                  )
+                else
+                  DropdownButtonFormField<String>(
+                    key: ValueKey('target-${target?.key}'),
+                    initialValue: target?.key,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Target',
+                      prefixIcon: Icon(Icons.gps_fixed),
+                    ),
+                    items: targets
+                        .map(
+                          (t) => DropdownMenuItem<String>(
+                            value: t.key,
+                            child: Text(
+                              t.detail.isEmpty
+                                  ? t.name
+                                  : '${t.name} · ${t.detail}',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: _rolling
+                        ? null
+                        : (v) => setState(() => _targetKey = v),
+                  ),
                 const SizedBox(height: 12),
                 SegmentedButton<String>(
                   segments: const [
@@ -257,7 +309,9 @@ class _CombatScreenState extends ConsumerState<CombatScreen> {
                     ),
                     Expanded(
                       child: FilledButton.icon(
-                        onPressed: _rolling ? null : () => _roll(attacker.id),
+                        onPressed: (_rolling || target == null)
+                            ? null
+                            : () => _roll(attacker, target),
                         icon: _rolling
                             ? const SizedBox(
                                 width: 16,
@@ -288,7 +342,67 @@ class _CombatScreenState extends ConsumerState<CombatScreen> {
     );
   }
 
-  Future<void> _roll(int attackerId) async {
+  /// Default attacker: the character this screen was opened for, else the first
+  /// character (an explicit dropdown choice always wins).
+  int _resolveAttacker(List<CharacterSummary> chars) {
+    final preferred = _attackerId ?? widget.initialCharacterId;
+    if (preferred != null) {
+      for (final c in chars) {
+        if (c.id == preferred) return c.id;
+      }
+    }
+    return chars.first.id;
+  }
+
+  /// Combat entries are the real targets while initiative is tracked; without
+  /// initiative the party's characters are the only targets available.
+  List<_AttackTarget> _targetsFor(
+    List<CharacterSummary> chars,
+    List<CombatEntry> entries,
+    int attackerId,
+  ) {
+    if (entries.isNotEmpty) {
+      return entries
+          .where((e) => e.characterId != attackerId)
+          .map(
+            (e) => _AttackTarget(
+              type: 'combat',
+              id: e.id,
+              name: e.name,
+              detail: 'HP ${e.hpCurrent}/${e.hpMax} · AC ${e.ac}',
+              friendly: e.type == 'pc',
+            ),
+          )
+          .toList();
+    }
+    return chars
+        .map(
+          (c) => _AttackTarget(
+            type: 'character',
+            id: c.id,
+            name: c.name,
+            detail: 'Lv ${c.level} · ${c.class_}',
+            friendly: true,
+          ),
+        )
+        .toList();
+  }
+
+  _AttackTarget? _resolveTarget(List<_AttackTarget> targets) {
+    if (targets.isEmpty) return null;
+    final chosen = _targetKey;
+    if (chosen != null) {
+      for (final t in targets) {
+        if (t.key == chosen) return t;
+      }
+    }
+    for (final t in targets) {
+      if (!t.friendly) return t;
+    }
+    return targets.first;
+  }
+
+  Future<void> _roll(int attackerId, _AttackTarget target) async {
     setState(() => _rolling = true);
     try {
       final api = ref.read(apiClientProvider);
@@ -298,64 +412,40 @@ class _CombatScreenState extends ConsumerState<CombatScreen> {
       final req = AttackRequest(
         attackerType: 'character',
         attackerId: attackerId,
-        targetType: 'character',
-        targetId: attackerId,
+        targetType: target.type,
+        targetId: target.id,
         advantage: adv,
         apply: _apply,
         campaignId: _campaignId,
       );
-      AttackResult result;
-      try {
-        final resp = await api.post('/api/combat/attack', data: req.toJson());
-        final data = resp.data;
-        if (data is Map<String, dynamic>) {
-          result = AttackResult.fromJson(data);
-        } else if (data is Map) {
-          result = AttackResult.fromJson(Map<String, dynamic>.from(data));
-        } else {
-          result = AttackResult(
-            attackRoll: 12,
-            attackRolls: const [12],
-            attackBonus: 5,
-            attackTotal: 17,
-            targetAc: 15,
-            coverBonus: 0,
-            hit: true,
-            critical: false,
-            fumble: false,
-            cannotTarget: false,
-            situationalAdvantage: '',
-            damage: 8,
-            damageType: 'slashing',
-            damageBreakdown: '',
-            conditionApplied: '',
-            logId: 0,
-          );
-        }
-      } catch (_) {
-        final roll = 8 + (DateTime.now().millisecond % 13);
-        result = AttackResult(
-          attackRoll: roll,
-          attackRolls: _adv != 'normal' ? [roll, (roll % 20) + 1] : [roll],
-          attackBonus: 5,
-          attackTotal: roll + 5,
-          targetAc: 15,
-          coverBonus: 0,
-          hit: roll + 5 >= 15,
-          critical: roll == 20,
-          fumble: roll == 1,
-          cannotTarget: false,
-          situationalAdvantage: '',
-          damage: roll + 5 >= 15 ? 6 + (roll % 6) : 0,
-          damageType: 'slashing',
-          damageBreakdown: '',
-          conditionApplied: '',
-          logId: 0,
+      // Only the server's answer is ever shown; a failed call surfaces an error
+      // instead of inventing a roll.
+      final resp = await api.post('/api/combat/attack', data: req.toJson());
+      final data = resp.data;
+      if (data is! Map) {
+        throw ApiException(
+          resp.statusCode ?? 0,
+          'The server returned an unexpected attack response.',
         );
       }
+      final result = AttackResult.fromJson(Map<String, dynamic>.from(data));
       if (!mounted) return;
       setState(() => _lastResult = result);
       HapticFeedback.heavyImpact();
+    } catch (e) {
+      if (!mounted) return;
+      final message = e is ApiException
+          ? (e.statusCode == 0 ? e.message : 'HTTP ${e.statusCode} — ${e.message}')
+          : e.toString();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Attack failed: $message'),
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: () => _roll(attackerId, target),
+          ),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _rolling = false);
     }

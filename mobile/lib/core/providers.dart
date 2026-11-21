@@ -46,7 +46,27 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 
 class AuthController extends Notifier<AuthState> {
   @override
-  AuthState build() => const AuthUnauthenticated();
+  AuthState build() {
+    // Cold start restores the persisted session instead of always landing on
+    // onboarding. The provider stays synchronous: an authenticated state is
+    // published as soon as validation finishes, and any failure leaves the
+    // unauthenticated fallback that routes to onboarding.
+    _restoreFromStorage();
+    return const AuthUnauthenticated();
+  }
+
+  Future<void> _restoreFromStorage() async {
+    try {
+      final stored = await ref.read(authStoreProvider).read();
+      if (stored == null || stored.serverUrl.isEmpty) return;
+      final restored = await ref.read(authRepositoryProvider).restore();
+      if (!ref.mounted) return;
+      state = restored;
+    } catch (_) {
+      // Corrupt storage or an unreachable server: keep the sign-in fallback.
+    }
+  }
+
   Future<void> checkSetup(String serverUrl) async {
     final repo = ref.read(authRepositoryProvider);
     final ok = await repo.checkSetup(serverUrl);

@@ -181,4 +181,93 @@ void main() {
     req = fake.requests.where((r) => r.path.contains('/attack')).last;
     expect((req.body as Map)['advantage'], 'disadvantage');
   });
+
+  testWidgets('attack roller uses the chosen attacker, not characters.first', (
+    tester,
+  ) async {
+    final fake = FakeApi();
+    final store = InMemoryAuthStore();
+    Map<String, dynamic> pc(int id, String name) => {
+      'id': id,
+      'user_id': 1,
+      'name': name,
+      'race': 'Human',
+      'class': 'Fighter',
+      'level': 5,
+      'hp_max': 30,
+      'hp_current': 30,
+      'portrait_url': '',
+      'race_color': '',
+      'character_type': 'pc',
+      'can_edit': true,
+      'campaigns': [],
+    };
+    fake.onGet('/api/campaigns', (o) async => jsonBody([], 200));
+    fake.onGet(
+      '/api/characters',
+      (o) async => jsonBody([pc(10, 'First'), pc(11, 'Second')], 200),
+    );
+    fake.onGet(
+      '/api/combat',
+      (o) async => jsonBody([
+        {
+          'id': 1,
+          'name': 'Goblin',
+          'type': 'monster',
+          'initiative_roll': 12,
+          'initiative_mod': 1,
+          'hp_max': 10,
+          'hp_current': 10,
+          'ac': 13,
+          'is_active': false,
+          'turn_order': 0,
+          'condition_ids': '',
+          'notes': '',
+          'action_used': false,
+          'bonus_action_used': false,
+          'reaction_used': false,
+          'movement_used': 0,
+          'movement_max': 30,
+        },
+      ], 200),
+    );
+    fake.onPost(
+      '/api/combat/attack',
+      (o) async => jsonBody({
+        'attack_roll': 15,
+        'attack_rolls': [15],
+        'attack_bonus': 5,
+        'attack_total': 20,
+        'target_ac': 13,
+        'cover_bonus': 0,
+        'hit': true,
+        'critical': false,
+        'fumble': false,
+        'cannot_target': false,
+        'situational_advantage': '',
+        'damage': 8,
+        'damage_type': 'slashing',
+        'damage_breakdown': '',
+        'condition_applied': '',
+        'log_id': 1,
+      }, 200),
+    );
+    await pumpScreen(
+      tester,
+      const CombatScreen(campaignId: 1, initialCharacterId: 11),
+      fake: fake,
+      store: store,
+    );
+    await tester.pump(const Duration(milliseconds: 150));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    await tester.tap(find.widgetWithText(FilledButton, 'Roll Attack'));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final req = fake.requests.firstWhere((r) => r.path == '/api/combat/attack');
+    final body = req.body as Map;
+    expect(body['attacker_type'], 'character');
+    expect(body['attacker_id'], 11);
+  });
 }
