@@ -1,3 +1,10 @@
+# [3.6.0](https://github.com/martynvdijke/dnd/compare/v3.5.8...v3.6.0) (2026-11-21)
+
+
+### Features
+
+* **mobile:** add spell and item tracking to Android character sheet ([a8ecf7b](https://github.com/martynvdijke/dnd/commit/a8ecf7bb345092d43a1aa5817418a9975bffbd85))
+
 ## [3.5.8](https://github.com/martynvdijke/dnd/compare/v3.5.7...v3.5.8) (2026-11-21)
 
 
