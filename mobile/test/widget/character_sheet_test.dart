@@ -165,22 +165,24 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
     await tester.pump(const Duration(milliseconds: 200));
     await tester.tap(find.text('SPELLS'));
-    await tester.pump(const Duration(milliseconds: 200));
+    // The tab switch animates the page into place; settle before tapping
+    // anything inside it.
+    await tester.pumpAndSettle();
+    // Character.fromJson parses spellcasting, so the LVL 1 slot row is real:
+    // the tab must show the server's used/max and cast with the parsed id.
+    expect(find.text('LVL 1'), findsOneWidget);
+    expect(find.text('0 / 4 used'), findsOneWidget);
+    expect(find.textContaining('No spellcasting'), findsNothing);
+    final castBtn = find.text('Cast');
+    expect(castBtn, findsWidgets);
+    await tester.tap(castBtn.first);
     await tester.pump(const Duration(milliseconds: 100));
-    // Character.fromJson currently ignores spellcasting, so UI shows fallback — accept either
-    if (find.textContaining('LVL 1').evaluate().isNotEmpty) {
-      final castBtn = find.text('Cast');
-      expect(castBtn, findsWidgets);
-      await tester.tap(castBtn.first);
-      await tester.pump(const Duration(milliseconds: 100));
-      final req = fake.requests
-          .where((r) => r.path.contains('cast-spell'))
-          .firstOrNull;
-      expect(req, isNotNull);
-      expect((req!.body as Map)['slot_level'], 1);
-    } else {
-      expect(find.textContaining('No spellcasting'), findsOneWidget);
-    }
+    final req = fake.requests
+        .where((r) => r.path.contains('cast-spell'))
+        .firstOrNull;
+    expect(req, isNotNull);
+    expect((req!.body as Map)['slot_level'], 1);
+    expect((req.body as Map)['spell_id'], 1);
   });
 
   testWidgets('Short/Long Rest actions fire', (tester) async {

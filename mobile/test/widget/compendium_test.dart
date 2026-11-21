@@ -20,7 +20,7 @@ void main() {
         return jsonBody([
           {
             'type': 'spell',
-            'id': '1',
+            'id': 1,
             'name': 'Fireball',
             'subtype': 'Evocation',
             'level': 3,

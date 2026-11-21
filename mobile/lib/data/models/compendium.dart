@@ -1,6 +1,6 @@
 class CompendiumSearchResult {
   final String type;
-  final String id;
+  final int id;
   final String name;
   final String? subtype;
   final String? cr;
@@ -20,15 +20,26 @@ class CompendiumSearchResult {
   factory CompendiumSearchResult.fromJson(Map<String, dynamic> j) =>
       CompendiumSearchResult(
         type: j['type'] as String? ?? '',
-        id: j['id'] as String? ?? '',
+        // The server sends int64 ids (handlers/compendium.go SearchResult.ID);
+        // tolerate a numeric string too so a proxy rewrite cannot crash search.
+        id: _parseId(j['id']),
         name: j['name'] as String? ?? '',
         subtype: j['subtype'] as String?,
         cr: j['cr'] as String?,
         level: (j['level'] as num?)?.toInt(),
-        hitDie: j['hit_die'] as String? ?? j['hitDie'] as String?,
+        hitDie: switch (j['hit_die'] ?? j['hitDie']) {
+          final num n => '$n',
+          final String s => s,
+          _ => null,
+        },
         primaryAbility:
             j['primary_ability'] as String? ?? j['primaryAbility'] as String?,
       );
+  static int _parseId(dynamic raw) {
+    if (raw is num) return raw.toInt();
+    if (raw is String) return int.tryParse(raw) ?? 0;
+    return 0;
+  }
   Map<String, dynamic> toJson() => {
     'type': type,
     'id': id,

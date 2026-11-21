@@ -207,30 +207,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       _error = null;
     });
     try {
-      final repo = ref.read(authRepositoryProvider);
-      final isSetup = _needsSetup == true;
-      await repo.login(
+      // Exactly one login call per submission: the controller owns persistence
+      // (session + bearer token), so calling the repository first would fire
+      // POST /api/login twice for one tap.
+      final ctrl = ref.read(authControllerProvider.notifier);
+      await ctrl.login(
         serverUrl: url,
         username: user,
         password: pass,
-        setup: isSetup,
+        setup: _needsSetup == true,
       );
-      // Drive controller state so router redirects
-      final ctrl = ref.read(authControllerProvider.notifier);
-      // If controller has login method, call it; otherwise manually set state
-      try {
-        await (ctrl as dynamic).login(
-          serverUrl: url,
-          username: user,
-          password: pass,
-          setup: isSetup,
-        );
-      } catch (_) {
-        // fallback: try restore
-        try {
-          await (ctrl as dynamic).restore();
-        } catch (_) {}
-      }
       if (!mounted) return;
       HapticFeedback.mediumImpact();
     } catch (e) {

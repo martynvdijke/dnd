@@ -7,6 +7,41 @@ import 'char_class.dart';
 
 int _mod(int s) => ((s - 10) / 2).floor();
 
+/// Tolerant list parse: a missing/null/non-list payload yields an empty list and
+/// one malformed entry is skipped instead of failing the whole character.
+List<T> _parseList<T>(dynamic raw, T Function(Map<String, dynamic>) parse) {
+  if (raw is! List) return const [];
+  final out = <T>[];
+  for (final item in raw) {
+    if (item is! Map) continue;
+    try {
+      out.add(parse(Map<String, dynamic>.from(item)));
+    } catch (_) {
+      // Skip the unparseable row; the rest of the payload still loads.
+    }
+  }
+  return out;
+}
+
+/// Tolerant object parse for the nullable sub-resources (spellcasting, currency).
+T? _parseObject<T>(dynamic raw, T Function(Map<String, dynamic>) parse) {
+  if (raw is! Map) return null;
+  try {
+    return parse(Map<String, dynamic>.from(raw));
+  } catch (_) {
+    return null;
+  }
+}
+
+bool _listEq<T>(List<T> a, List<T> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
 class Character {
   final int id;
   final int userId;
@@ -37,6 +72,7 @@ class Character {
   final int passivePerception;
   final int deathSavesSuccesses;
   final int deathSavesFailures;
+  final int exhaustionLevel;
   final String concentratingOn;
   final String portraitUrl;
   final String characterType;
@@ -78,6 +114,7 @@ class Character {
     required this.passivePerception,
     required this.deathSavesSuccesses,
     required this.deathSavesFailures,
+    this.exhaustionLevel = 0,
     required this.concentratingOn,
     required this.portraitUrl,
     required this.characterType,
@@ -128,10 +165,20 @@ class Character {
     passivePerception: (j['passive_perception'] as num?)?.toInt() ?? 10,
     deathSavesSuccesses: (j['death_saves_successes'] as num?)?.toInt() ?? 0,
     deathSavesFailures: (j['death_saves_failures'] as num?)?.toInt() ?? 0,
+    exhaustionLevel: (j['exhaustion_level'] as num?)?.toInt() ?? 0,
     concentratingOn: j['concentrating_on'] as String? ?? '',
     portraitUrl: j['portrait_url'] as String? ?? '',
     characterType: j['character_type'] as String? ?? '',
     canEdit: j['can_edit'] as bool? ?? false,
+    features: _parseList(j['features'], Feature.fromJson),
+    spellcasting: _parseObject(j['spellcasting'], Spellcasting.fromJson),
+    spells: _parseList(j['spells'], Spell.fromJson),
+    inventory: _parseList(j['inventory'], InventoryItem.fromJson),
+    currency: _parseObject(j['currency'], Currency.fromJson),
+    classes: _parseList(j['classes'], CharClass.fromJson),
+    campaigns: j['campaigns'] is List
+        ? j['campaigns'] as List
+        : const <dynamic>[],
   );
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -163,16 +210,26 @@ class Character {
     'passive_perception': passivePerception,
     'death_saves_successes': deathSavesSuccesses,
     'death_saves_failures': deathSavesFailures,
+    'exhaustion_level': exhaustionLevel,
     'concentrating_on': concentratingOn,
     'portrait_url': portraitUrl,
     'character_type': characterType,
     'can_edit': canEdit,
+    if (features.isNotEmpty) 'features': features.map((e) => e.toJson()).toList(),
+    if (spellcasting != null) 'spellcasting': spellcasting!.toJson(),
+    if (spells.isNotEmpty) 'spells': spells.map((e) => e.toJson()).toList(),
+    if (inventory.isNotEmpty)
+      'inventory': inventory.map((e) => e.toJson()).toList(),
+    if (currency != null) 'currency': currency!.toJson(),
+    if (classes.isNotEmpty) 'classes': classes.map((e) => e.toJson()).toList(),
+    if (campaigns.isNotEmpty) 'campaigns': campaigns,
   };
   Character copyWith({
     int? hpCurrent,
     int? tempHp,
     Currency? currency,
     Spellcasting? spellcasting,
+    int? exhaustionLevel,
   }) => Character(
     id: id,
     userId: userId,
@@ -203,6 +260,7 @@ class Character {
     passivePerception: passivePerception,
     deathSavesSuccesses: deathSavesSuccesses,
     deathSavesFailures: deathSavesFailures,
+    exhaustionLevel: exhaustionLevel ?? this.exhaustionLevel,
     concentratingOn: concentratingOn,
     portraitUrl: portraitUrl,
     characterType: characterType,
@@ -247,10 +305,17 @@ class Character {
       other.passivePerception == passivePerception &&
       other.deathSavesSuccesses == deathSavesSuccesses &&
       other.deathSavesFailures == deathSavesFailures &&
+      other.exhaustionLevel == exhaustionLevel &&
       other.concentratingOn == concentratingOn &&
       other.portraitUrl == portraitUrl &&
       other.characterType == characterType &&
-      other.canEdit == canEdit;
+      other.canEdit == canEdit &&
+      other.spellcasting == spellcasting &&
+      _listEq(other.features, features) &&
+      _listEq(other.spells, spells) &&
+      _listEq(other.inventory, inventory) &&
+      other.currency == currency &&
+      _listEq(other.classes, classes);
   @override
   int get hashCode => Object.hashAll([
     id,
@@ -282,9 +347,16 @@ class Character {
     passivePerception,
     deathSavesSuccesses,
     deathSavesFailures,
+    exhaustionLevel,
     concentratingOn,
     portraitUrl,
     characterType,
     canEdit,
+    spellcasting,
+    Object.hashAll(features),
+    Object.hashAll(spells),
+    Object.hashAll(inventory),
+    currency,
+    Object.hashAll(classes),
   ]);
 }

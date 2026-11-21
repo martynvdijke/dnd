@@ -259,10 +259,12 @@ void main() {
     );
     fake.onGet(
       '/api/user/me',
-      (o) async =>
-          jsonBody({'id': 4, 'username': 'martyn', 'role': 'dm'}, 200),
+      (o) async => jsonBody({'id': 4, 'username': 'martyn', 'role': 'dm'}, 200),
     );
-    fake.onPost('/api/tokens', (o) async => jsonBody({'token': 'vlt_sso'}, 201));
+    fake.onPost(
+      '/api/tokens',
+      (o) async => jsonBody({'token': 'vlt_sso'}, 201),
+    );
 
     await pumpScreen(
       tester,
@@ -322,5 +324,39 @@ void main() {
 
     expect(find.textContaining('Sign in with Authelia'), findsWidgets);
     expect(find.textContaining('Wrong username or password'), findsNothing);
+  });
+
+  testWidgets('submitting the sign-in form sends exactly one login request', (
+    tester,
+  ) async {
+    final fake = FakeApi();
+    final store = InMemoryAuthStore();
+    fake.onPost(
+      '/api/login',
+      (o) async => jsonBody({
+        'session': 's1',
+        'user': {'id': 1, 'username': 'admin', 'role': 'admin'},
+      }, 200),
+    );
+    fake.onPost('/api/tokens', (o) async => jsonBody({'token': 'vlt_x'}, 201));
+    fake.onGet('/api/check-setup', (o) async => jsonBody({'setup': true}, 200));
+    await pumpScreen(
+      tester,
+      const OnboardingScreen(),
+      fake: fake,
+      store: store,
+    );
+    await tester.enterText(find.byType(TextField).first, 'http://villum.test');
+    await tester.enterText(find.byType(TextField).at(1), 'admin');
+    await tester.enterText(find.byType(TextField).at(2), 'longpassword');
+    await tester.tap(find.byType(FilledButton));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    final logins = fake.requests
+        .where((r) => r.method == 'POST' && r.path == '/api/login')
+        .toList();
+    expect(logins, hasLength(1));
+    expect((await store.read())!.sessionId, 's1');
   });
 }
