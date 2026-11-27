@@ -1,3 +1,10 @@
+## [3.6.9](https://github.com/martynvdijke/dnd/compare/v3.6.8...v3.6.9) (2026-11-27)
+
+
+### Bug Fixes
+
+* implement compendium autosync reindex and remove dead calendar API ([#269](https://github.com/martynvdijke/dnd/issues/269)) ([8e12ba3](https://github.com/martynvdijke/dnd/commit/8e12ba391887a000fe7221f2ea4423af6e6f2366))
+
 ## [3.6.8](https://github.com/martynvdijke/dnd/compare/v3.6.7...v3.6.8) (2026-11-27)
 
 
