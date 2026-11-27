@@ -1,3 +1,10 @@
+## [3.6.8](https://github.com/martynvdijke/dnd/compare/v3.6.7...v3.6.8) (2026-11-27)
+
+
+### Bug Fixes
+
+* gate android cleartext traffic to debug builds and align flutter tooling ([#266](https://github.com/martynvdijke/dnd/issues/266)) ([b7245fd](https://github.com/martynvdijke/dnd/commit/b7245fd68245b9262ec96537c157e80febae94a7))
+
 ## [3.6.7](https://github.com/martynvdijke/dnd/compare/v3.6.6...v3.6.7) (2026-11-27)
 
 ## [3.6.6](https://github.com/martynvdijke/dnd/compare/v3.6.5...v3.6.6) (2026-11-26)
