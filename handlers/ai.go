@@ -19,122 +19,44 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"villum/ai"
 	"villum/crypto"
 	"villum/db"
 	"villum/middleware"
 	"villum/models"
 )
 
-type aiGenError struct {
-	Status int
-	Msg    string
-}
+// aiGenError is the ai package's error type, aliased so every existing
+// handler call site keeps matching (and constructing) the same type.
+type aiGenError = ai.AIGenError
 
-func (e *aiGenError) Error() string { return e.Msg }
-
-// ponytail: TD-007 — duplicated by the search/ai packages; delegate when this handler is next touched
+// generateText performs a single-turn, OpenAI-compatible text generation.
+// It is a thin compatibility wrapper over ai.GenerateText: the AI transport
+// lives in one place (the ai package) so this handler cannot drift from it.
+// Kept as a wrapper because ~10 call sites and the handlers tests use it.
 func generateText(ctx context.Context, endpointID int64, prompt, system string, maxTokens *int, sessionID string) (string, string, error) {
-	if strings.TrimSpace(prompt) == "" {
-		return "", "", &aiGenError{Status: 400, Msg: "prompt is required"}
-	}
-	systemPrompt := system
-	if strings.TrimSpace(systemPrompt) == "" {
-		systemPrompt = DefaultSystemPrompt
-	}
-	messages := []map[string]string{
-		{"role": "system", "content": systemPrompt},
-		{"role": "user", "content": prompt},
-	}
-	return generateChat(ctx, endpointID, messages, maxTokens, sessionID, aiTextTimeout)
+	// handlers.AppVersion is the canonical build version (set by main.go); the
+	// ai package stamps it into the provider User-Agent header.
+	ai.SetAppVersion(AppVersion)
+	return ai.GenerateText(ctx, db.DB, ai.GenerateRequest{
+		EndpointID: endpointID,
+		Prompt:     prompt,
+		System:     system,
+		MaxTokens:  maxTokens,
+		SessionID:  sessionID,
+	})
 }
 
-// ponytail: TD-007 — duplicated by the search/ai packages; delegate when this handler is next touched
 // generateChat performs an OpenAI-compatible chat completion with a full
 // message history. Multi-turn callers (the AI drafting assistant) pass every
 // prior turn so the model has real conversational memory. The timeout is
 // per-call: drafting needs a longer one than free-text generation because
 // reasoning models can spend a minute or more before writing the reply.
+// Delegates to ai.GenerateChat, which also honours the caller's context
+// deadline when it is shorter than the per-call timeout.
 func generateChat(ctx context.Context, endpointID int64, messages []map[string]string, maxTokens *int, sessionID string, timeout time.Duration) (string, string, error) {
-	if endpointID == 0 {
-		return "", "", &aiGenError{Status: 400, Msg: "endpoint_id is required"}
-	}
-	if len(messages) == 0 {
-		return "", "", &aiGenError{Status: 400, Msg: "messages are required"}
-	}
-	endpoints, err := db.GetEnabledAIEndpointsByType(ctx, "text")
-	if err != nil {
-		return "", "", &aiGenError{Status: 500, Msg: "failed to get endpoints"}
-	}
-	var endpoint *models.AIEndpoint
-	for i := range endpoints {
-		if endpoints[i].ID == endpointID {
-			endpoint = &endpoints[i]
-			break
-		}
-	}
-	if endpoint == nil {
-		return "", "", &aiGenError{Status: 404, Msg: "enabled text endpoint not found"}
-	}
-	middleware.LogDebug("ai", "text generation start", "endpoint_id", endpointID, "model", endpoint.Model, "message_count", len(messages))
-	fullEndpoint, err := db.GetAIEndpoint(ctx, endpointID)
-	if err != nil {
-		return "", "", &aiGenError{Status: 404, Msg: "enabled text endpoint not found"}
-	}
-	apiKey, err := crypto.Decrypt(fullEndpoint.EncryptedAPIKey)
-	if err != nil {
-		middleware.LogError("ai", "failed to decrypt API key", "endpoint_id", endpointID, "error", err)
-		return "", "", &aiGenError{Status: 500, Msg: fmt.Sprintf("failed to authenticate with AI provider: %s", sanitizeError(err))}
-	}
-	payload := map[string]any{
-		"model":    endpoint.Model,
-		"messages": messages,
-	}
-	if maxTokens != nil {
-		payload["max_tokens"] = *maxTokens
-	}
-	sid := resolveSessionID(sessionID)
-	body, _ := json.Marshal(payload)
-	httpReq, err := http.NewRequest("POST", aiRequestURL(endpoint.BaseURL, "/chat/completions"), bytes.NewReader(body))
-	if err != nil {
-		return "", "", &aiGenError{Status: 500, Msg: fmt.Sprintf("failed to create request: %s", sanitizeError(err))}
-	}
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Authorization", "Bearer "+apiKey)
-	setAIProviderHeaders(httpReq, sid)
-	client := newAIClient(timeout)
-	resp, err := client.Do(httpReq)
-	if err != nil {
-		middleware.LogError("ai", "text generation request failed", "endpoint_id", endpoint.ID, "model", endpoint.Model, "error", err)
-		return "", "", &aiGenError{Status: 502, Msg: fmt.Sprintf("AI provider request failed: %s", sanitizeError(err))}
-	}
-	defer resp.Body.Close()
-	respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 65536))
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		errMsg := fmt.Sprintf("AI provider returned HTTP %d: %s", resp.StatusCode, truncateResponse(string(respBody)))
-		middleware.LogError("ai", "text generation returned non-2xx", "status", resp.StatusCode, "response_preview", truncateResponse(string(respBody)))
-		return "", "", &aiGenError{Status: 502, Msg: errMsg}
-	}
-	var result struct {
-		Choices []struct {
-			Message struct {
-				Content          string `json:"content"`
-				ReasoningContent string `json:"reasoning_content"`
-			} `json:"message"`
-			FinishReason string `json:"finish_reason"`
-		} `json:"choices"`
-	}
-	if err := json.Unmarshal(respBody, &result); err != nil {
-		middleware.LogError("ai", "failed to parse text response", "endpoint_id", endpoint.ID, "error", err)
-		return "", "", &aiGenError{Status: 500, Msg: "failed to parse AI response"}
-	}
-	if len(result.Choices) == 0 {
-		return "", "no_choices", nil
-	}
-	middleware.LogInfo("ai", "text generation succeeded", "endpoint_id", endpoint.ID, "model", endpoint.Model,
-		"finish_reason", result.Choices[0].FinishReason,
-		"content_len", len(result.Choices[0].Message.Content),
-		"reasoning_len", len(result.Choices[0].Message.ReasoningContent))
-	return result.Choices[0].Message.Content, result.Choices[0].FinishReason, nil
+	ai.SetAppVersion(AppVersion)
+	return ai.GenerateChat(ctx, db.DB, endpointID, messages, maxTokens, sessionID, timeout)
 }
 
 const DefaultSystemPrompt = "You are a helpful assistant for a D&D website called villum. You help DMs create compelling narratives, NPCs, locations, items, and other TTRPG content. Be creative and concise."

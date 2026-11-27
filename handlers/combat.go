@@ -192,6 +192,7 @@ func RollCombatInitiative(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	defer rows.Close()
 	type initiativeRoll struct {
 		id    int64
 		total int
@@ -210,7 +211,6 @@ func RollCombatInitiative(c *gin.Context) {
 		}
 		rolls = append(rolls, initiativeRoll{id: id, total: d20 + mod})
 	}
-	rows.Close()
 	sort.SliceStable(rolls, func(i, j int) bool { return rolls[i].total > rolls[j].total })
 	for i, r := range rolls {
 		db.DB.Exec("UPDATE combat_entries SET initiative_roll=?, turn_order=? WHERE id=?", r.total, i+1, r.id)

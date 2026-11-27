@@ -54,7 +54,7 @@ func TestRetrieveCampaignContext_Visibility(t *testing.T) {
 		t.Fatalf("seed other: %v", err)
 	}
 	// as member B - should see shared+wiki, not unshared, not other camp
-	sources, _, err := retrieveCampaignContext(1, 2, false, "uniqueWord", 8)
+	sources, _, err := retrieveCampaignContext(context.Background(), 1, 2, false, "uniqueWord", 8)
 	if err != nil {
 		t.Fatalf("retrieve: %v", err)
 	}
@@ -81,7 +81,7 @@ func TestRetrieveCampaignContext_Visibility(t *testing.T) {
 		t.Fatalf("member should see wiki, got %+v", sources)
 	}
 	// owner sees both
-	sources2, _, _ := retrieveCampaignContext(1, 1, false, "uniqueWordSecret", 8)
+	sources2, _, _ := retrieveCampaignContext(context.Background(), 1, 1, false, "uniqueWordSecret", 8)
 	foundSecret := false
 	for _, s := range sources2 {
 		if s.EntityID == 21 {
@@ -92,7 +92,7 @@ func TestRetrieveCampaignContext_Visibility(t *testing.T) {
 		t.Fatalf("owner should see unshared, got %+v", sources2)
 	}
 	// admin sees both
-	sources3, _, _ := retrieveCampaignContext(1, 2, true, "uniqueWordSecret", 8)
+	sources3, _, _ := retrieveCampaignContext(context.Background(), 1, 2, true, "uniqueWordSecret", 8)
 	found := false
 	for _, s := range sources3 {
 		if s.EntityID == 21 {
@@ -103,7 +103,7 @@ func TestRetrieveCampaignContext_Visibility(t *testing.T) {
 		t.Fatalf("admin should see unshared")
 	}
 	// no cross campaign
-	sources4, _, _ := retrieveCampaignContext(1, 1, false, "uniqueWordOther", 8)
+	sources4, _, _ := retrieveCampaignContext(context.Background(), 1, 1, false, "uniqueWordOther", 8)
 	for _, s := range sources4 {
 		if s.EntityID == 30 {
 			t.Fatalf("no cross campaign")

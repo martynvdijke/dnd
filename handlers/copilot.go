@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -11,7 +12,7 @@ import (
 
 	"villum/db"
 	"villum/middleware"
-	"villum/registry"
+	"villum/search"
 )
 
 type copilotSource struct {
@@ -22,137 +23,26 @@ type copilotSource struct {
 	Snippet    string `json:"snippet"`
 }
 
-// ponytail: TD-007 — duplicated by the search/ai packages; delegate when this handler is next touched
-func retrieveCampaignContext(campaignID, userID int64, isAdmin bool, query string, limit int) ([]copilotSource, string, error) {
-	if limit <= 0 {
-		limit = 8
-	}
-	// Build campaign entity set
-	campaignSet := map[string]map[int64]bool{}
-	add := func(et string, ids []int64) {
-		if len(ids) == 0 {
-			return
-		}
-		m := map[int64]bool{}
-		for _, id := range ids {
-			m[id] = true
-		}
-		campaignSet[et] = m
-	}
-	// Helper to query ids
-	queryIDs := func(q string, args ...any) []int64 {
-		rows, err := db.DB.Query(q, args...)
-		if err != nil {
-			return nil
-		}
-		defer rows.Close()
-		var out []int64
-		for rows.Next() {
-			var id int64
-			rows.Scan(&id)
-			out = append(out, id)
-		}
-		return out
-	}
-	add("character", queryIDs("SELECT c.id FROM characters c JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=?", campaignID))
-	add("campaign", queryIDs("SELECT id FROM campaigns WHERE id=?", campaignID))
-	add("wiki", queryIDs("SELECT id FROM campaign_wiki_pages WHERE campaign_id=?", campaignID))
-	add("timeline", queryIDs("SELECT id FROM campaign_timeline_events WHERE campaign_id=?", campaignID))
-	add("knowledge", queryIDs("SELECT id FROM campaign_knowledge WHERE campaign_id=?", campaignID))
-	add("faction", queryIDs("SELECT id FROM factions WHERE campaign_id=?", campaignID))
-	add("shop", queryIDs("SELECT id FROM shops WHERE campaign_id=?", campaignID))
-	add("adventure", queryIDs("SELECT id FROM oneshot_adventures WHERE campaign_id=?", campaignID))
-	add("encounter", queryIDs("SELECT id FROM encounter_templates WHERE campaign_id=?", campaignID))
-	add("npc", queryIDs("SELECT npc_id FROM campaign_npcs WHERE campaign_id=?", campaignID))
-	add("session", queryIDs("SELECT s.id FROM sessions s JOIN characters c ON s.character_id=c.id JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=?", campaignID))
-	add("quest", queryIDs("SELECT q.id FROM quests q JOIN characters c ON q.character_id=c.id JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=?", campaignID))
-	add("journal", queryIDs("SELECT j.id FROM journal j JOIN characters c ON j.character_id=c.id JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=?", campaignID))
-	add("note", queryIDs("SELECT n.id FROM character_notes n JOIN characters c ON n.character_id=c.id JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=?", campaignID))
-	add("recap", queryIDs("SELECT id FROM campaign_recaps WHERE campaign_id=?", campaignID))
-
-	ftsQ := buildFTS5Query(query)
-	if ftsQ == "" {
-		return []copilotSource{}, "", nil
-	}
-	sql := `SELECT entity_type, entity_id, title, subtitle, snippet(entity_search_index,2,'<b>','</b>','...',32), bm25(entity_search_index,10.0,5.0,1.0) AS score FROM entity_search_index WHERE entity_search_index MATCH ? ORDER BY score DESC LIMIT ?`
-	rows, err := db.DB.Query(sql, ftsQ, 100)
+// retrieveCampaignContext gathers the campaign-scoped RAG context for a
+// copilot turn. It delegates to search.RetrieveCampaignContext and adapts the
+// result to the handler's JSON shape (which omits the subtitle), so the
+// retrieval logic lives in exactly one place.
+func retrieveCampaignContext(ctx context.Context, campaignID, userID int64, isAdmin bool, query string, limit int) ([]copilotSource, string, error) {
+	res, ctxStr, err := search.RetrieveCampaignContext(ctx, db.DB, campaignID, userID, isAdmin, query, limit)
 	if err != nil {
-		return []copilotSource{}, "", nil
+		return []copilotSource{}, "", err
 	}
-	defer rows.Close()
-	type raw struct {
-		et, title, subtitle, snippet string
-		id                           int64
-		score                        float64
-	}
-	var raws []raw
-	for rows.Next() {
-		var r raw
-		var snip *string
-		if err := rows.Scan(&r.et, &r.id, &r.title, &r.subtitle, &snip, &r.score); err != nil {
-			continue
-		}
-		if snip != nil {
-			r.snippet = *snip
-		}
-		// drop if not in campaign set
-		if m, ok := campaignSet[r.et]; !ok || !m[r.id] {
-			continue
-		}
-		raws = append(raws, r)
-	}
-	// Apply visibility per type
-	typeGroup := map[string][]int64{}
-	for _, r := range raws {
-		typeGroup[r.et] = append(typeGroup[r.et], r.id)
-	}
-	visible := map[string]map[int64]bool{}
-	for et, ids := range typeGroup {
-		if isAdmin {
-			m := map[int64]bool{}
-			for _, id := range ids {
-				m[id] = true
-			}
-			visible[et] = m
-		} else {
-			vis, err := registry.VisibleIDs(db.DB, et, ids, userID, false)
-			if err != nil {
-				visible[et] = map[int64]bool{}
-			} else {
-				visible[et] = vis
-			}
-		}
-	}
-	var filtered []raw
-	for _, r := range raws {
-		if vis, ok := visible[r.et]; ok && vis[r.id] {
-			filtered = append(filtered, r)
-		}
-	}
-	if len(filtered) > limit {
-		filtered = filtered[:limit]
-	}
-	sources := make([]copilotSource, 0, len(filtered))
-	var blocks []string
-	for i, r := range filtered {
+	sources := make([]copilotSource, 0, len(res))
+	for _, r := range res {
 		sources = append(sources, copilotSource{
-			EntityType: r.et,
-			EntityID:   r.id,
-			Title:      r.title,
-			URL:        entityURL(r.et, r.id),
-			Snippet:    r.snippet,
+			EntityType: r.EntityType,
+			EntityID:   r.EntityID,
+			Title:      r.Title,
+			URL:        r.URL,
+			Snippet:    r.Snippet,
 		})
-		block := fmt.Sprintf("[%d] %s/%d %s\n%s\n%s", i+1, r.et, r.id, r.title, r.subtitle, r.snippet)
-		blocks = append(blocks, block)
 	}
-	ctx := strings.Join(blocks, "\n\n")
-	if len(ctx) > 8000 {
-		ctx = ctx[:8000] + "\n(context truncated)"
-	}
-	if sources == nil {
-		sources = []copilotSource{}
-	}
-	return sources, ctx, nil
+	return sources, ctxStr, nil
 }
 
 func handleCopilotChat(c *gin.Context) {
@@ -182,7 +72,7 @@ func handleCopilotChat(c *gin.Context) {
 	uid, _ := userID.(int64)
 	role, _ := c.Get("role")
 	isAdmin := role == "admin"
-	sources, ctxStr, err := retrieveCampaignContext(campaignID, uid, isAdmin, req.Query, 8)
+	sources, ctxStr, err := retrieveCampaignContext(c.Request.Context(), campaignID, uid, isAdmin, req.Query, 8)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve context"})
 		return
@@ -352,7 +242,7 @@ func handleCopilotPrep(c *gin.Context) {
 	if query == "" {
 		query = "session preparation unresolved threads recap npcs quests"
 	}
-	sources, ctxStr, _ := retrieveCampaignContext(campaignID, uid, isAdmin, query, 8)
+	sources, ctxStr, _ := retrieveCampaignContext(c.Request.Context(), campaignID, uid, isAdmin, query, 8)
 	if sources == nil {
 		sources = []copilotSource{}
 	}

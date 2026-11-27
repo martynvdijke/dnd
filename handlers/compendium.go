@@ -13,6 +13,7 @@ import (
 	"villum/db"
 	"villum/middleware"
 	"villum/models"
+	"villum/search"
 )
 
 func ListCompendiumRaces(c *gin.Context) {
@@ -262,7 +263,9 @@ func GetCompendiumMonster(c *gin.Context) {
 	c.JSON(http.StatusOK, m)
 }
 
-// ponytail: TD-007 — duplicated by the search/ai packages; delegate when this handler is next touched
+// SearchCompendium handles GET /compendium/search. The recall logic lives in
+// search.SearchCompendium; this handler validates input, maps the query
+// parameters and shapes the HTTP response.
 func SearchCompendium(c *gin.Context) {
 	q := strings.TrimSpace(c.Query("q"))
 	if q == "" {
@@ -270,247 +273,26 @@ func SearchCompendium(c *gin.Context) {
 		return
 	}
 
-	type SearchResult struct {
-		Type           string `json:"type"`
-		ID             int64  `json:"id"`
-		Name           string `json:"name"`
-		Subtype        string `json:"subtype,omitempty"`
-		CR             string `json:"cr,omitempty"`
-		Level          int    `json:"level,omitempty"`
-		HitDie         int    `json:"hit_die,omitempty"`
-		PrimaryAbility string `json:"primary_ability,omitempty"`
+	results, err := search.SearchCompendium(c.Request.Context(), db.DB, search.CompendiumParams{
+		Query:       q,
+		TypeFilter:  strings.TrimSpace(c.Query("type")),
+		Class:       strings.TrimSpace(c.Query("class")),
+		Level:       strings.TrimSpace(c.Query("level")),
+		School:      strings.TrimSpace(c.Query("school")),
+		Category:    strings.TrimSpace(c.Query("category")),
+		CR:          strings.TrimSpace(c.Query("cr")),
+		MonsterType: strings.TrimSpace(c.Query("monster_type")),
+		// The extracted package applies one limit to every table and to the
+		// generic FTS pass; it supersedes the legacy 10/25 split without
+		// dropping any hit the endpoint returned before.
+		Limit: 25,
+	})
+	if err != nil {
+		middleware.LogWarn("compendium", "search failed", "error", err)
 	}
-
-	typeFilter := strings.TrimSpace(c.Query("type"))
-	results := []SearchResult{}
-
-	if typeFilter == "" || typeFilter == "spell" {
-		extra := ""
-		args := []any{}
-		if cls := c.Query("class"); cls != "" {
-			extra += " AND classes LIKE ?"
-			args = append(args, "%\""+cls+"\"%")
-		}
-		if lvl := c.Query("level"); lvl != "" {
-			extra += " AND level=?"
-			args = append(args, lvl)
-		}
-		if school := c.Query("school"); school != "" {
-			extra += " AND school=?"
-			args = append(args, school)
-		}
-		rows, qErr := db.DB.Query("SELECT id, name, level, school FROM compendium_spells WHERE name LIKE ?"+extra+" ORDER BY level, name LIMIT 10", append([]any{"%" + q + "%"}, args...)...)
-		if qErr != nil {
-			middleware.LogWarn("compendium", "query failed", "type", "spell", "error", qErr)
-		} else {
-			func() {
-				defer rows.Close()
-				for rows.Next() {
-					var r SearchResult
-					r.Type = "spell"
-					if err := rows.Scan(&r.ID, &r.Name, &r.Level, &r.Subtype); err != nil {
-						middleware.LogWarn("compendium", "scan failed, skipping row", "type", "spell", "error", err)
-						continue
-					}
-					results = append(results, r)
-				}
-				if err := rows.Err(); err != nil {
-					middleware.LogWarn("compendium", "rows iteration failed", "error", err)
-				}
-			}()
-		}
+	if results == nil {
+		results = []search.CompendiumResult{}
 	}
-
-	if typeFilter == "" || typeFilter == "equipment" {
-		extra := ""
-		args := []any{}
-		if cat := c.Query("category"); cat != "" {
-			extra += " AND category=?"
-			args = append(args, cat)
-		}
-		rows, qErr := db.DB.Query("SELECT id, name, category FROM compendium_equipment WHERE name LIKE ?"+extra+" ORDER BY name LIMIT 10", append([]any{"%" + q + "%"}, args...)...)
-		if qErr != nil {
-			middleware.LogWarn("compendium", "query failed", "type", "equipment", "error", qErr)
-		} else {
-			func() {
-				defer rows.Close()
-				for rows.Next() {
-					var r SearchResult
-					r.Type = "equipment"
-					if err := rows.Scan(&r.ID, &r.Name, &r.Subtype); err != nil {
-						middleware.LogWarn("compendium", "scan failed, skipping row", "type", "equipment", "error", err)
-						continue
-					}
-					results = append(results, r)
-				}
-				if err := rows.Err(); err != nil {
-					middleware.LogWarn("compendium", "rows iteration failed", "error", err)
-				}
-			}()
-		}
-	}
-
-	if typeFilter == "" || typeFilter == "monster" {
-		extra := ""
-		args := []any{}
-		if cr := c.Query("cr"); cr != "" {
-			extra += " AND cr=?"
-			args = append(args, cr)
-		}
-		if t := c.Query("monster_type"); t != "" {
-			extra += " AND type LIKE ?"
-			args = append(args, "%"+t+"%")
-		}
-		rows, qErr := db.DB.Query("SELECT id, name, cr, type FROM compendium_monsters WHERE name LIKE ?"+extra+" ORDER BY name LIMIT 10", append([]any{"%" + q + "%"}, args...)...)
-		if qErr != nil {
-			middleware.LogWarn("compendium", "query failed", "type", "monster", "error", qErr)
-		} else {
-			func() {
-				defer rows.Close()
-				for rows.Next() {
-					var r SearchResult
-					r.Type = "monster"
-					if err := rows.Scan(&r.ID, &r.Name, &r.CR, &r.Subtype); err != nil {
-						middleware.LogWarn("compendium", "scan failed, skipping row", "type", "monster", "error", err)
-						continue
-					}
-					results = append(results, r)
-				}
-				if err := rows.Err(); err != nil {
-					middleware.LogWarn("compendium", "rows iteration failed", "error", err)
-				}
-			}()
-		}
-	}
-
-	if typeFilter == "" || typeFilter == "race" {
-		rows, qErr := db.DB.Query("SELECT id, name FROM compendium_races WHERE name LIKE ? ORDER BY name LIMIT 10", "%"+q+"%")
-		if qErr != nil {
-			middleware.LogWarn("compendium", "query failed", "type", "race", "error", qErr)
-		} else {
-			func() {
-				defer rows.Close()
-				for rows.Next() {
-					var r SearchResult
-					if err := rows.Scan(&r.ID, &r.Name); err != nil {
-						middleware.LogWarn("compendium", "scan failed, skipping row", "type", "race", "error", err)
-						continue
-					}
-					r.Type = "race"
-					results = append(results, r)
-				}
-				if err := rows.Err(); err != nil {
-					middleware.LogWarn("compendium", "rows iteration failed", "error", err)
-				}
-			}()
-		}
-	}
-
-	if typeFilter == "" || typeFilter == "feat" {
-		rows, qErr := db.DB.Query("SELECT id, name FROM compendium_feats WHERE name LIKE ? ORDER BY name LIMIT 10", "%"+q+"%")
-		if qErr != nil {
-			middleware.LogWarn("compendium", "query failed", "type", "feat", "error", qErr)
-		} else {
-			func() {
-				defer rows.Close()
-				for rows.Next() {
-					var r SearchResult
-					if err := rows.Scan(&r.ID, &r.Name); err != nil {
-						middleware.LogWarn("compendium", "scan failed, skipping row", "type", "feat", "error", err)
-						continue
-					}
-					r.Type = "feat"
-					results = append(results, r)
-				}
-				if err := rows.Err(); err != nil {
-					middleware.LogWarn("compendium", "rows iteration failed", "error", err)
-				}
-			}()
-		}
-	}
-
-	if typeFilter == "" || typeFilter == "background" {
-		rows, qErr := db.DB.Query("SELECT id, name FROM compendium_backgrounds WHERE name LIKE ? ORDER BY name LIMIT 10", "%"+q+"%")
-		if qErr != nil {
-			middleware.LogWarn("compendium", "query failed", "type", "background", "error", qErr)
-		} else {
-			func() {
-				defer rows.Close()
-				for rows.Next() {
-					var r SearchResult
-					if err := rows.Scan(&r.ID, &r.Name); err != nil {
-						middleware.LogWarn("compendium", "scan failed, skipping row", "type", "background", "error", err)
-						continue
-					}
-					r.Type = "background"
-					results = append(results, r)
-				}
-				if err := rows.Err(); err != nil {
-					middleware.LogWarn("compendium", "rows iteration failed", "error", err)
-				}
-			}()
-		}
-	}
-
-	if typeFilter == "" || typeFilter == "class" {
-		rows, qErr := db.DB.Query("SELECT id, name, hit_die, primary_ability FROM compendium_classes WHERE name LIKE ? ORDER BY name LIMIT 10", "%"+q+"%")
-		if qErr != nil {
-			middleware.LogWarn("compendium", "query failed", "type", "class", "error", qErr)
-		} else {
-			func() {
-				defer rows.Close()
-				for rows.Next() {
-					var r SearchResult
-					if err := rows.Scan(&r.ID, &r.Name, &r.HitDie, &r.PrimaryAbility); err != nil {
-						middleware.LogWarn("compendium", "scan failed, skipping row", "type", "class", "error", err)
-						continue
-					}
-					r.Type = "class"
-					results = append(results, r)
-				}
-				if err := rows.Err(); err != nil {
-					middleware.LogWarn("compendium", "rows iteration failed", "error", err)
-				}
-			}()
-		}
-	}
-
-	// Unified schema-based entries (compendium_entries FTS5) — appended so players
-	// can discover DM-imported content through the same search endpoint.
-	ftsWhere := "compendium_entries_fts MATCH ?"
-	ftsArgs := []any{q}
-	if typeFilter != "" {
-		ftsWhere += " AND cs.type_name = ?"
-		ftsArgs = append(ftsArgs, typeFilter)
-	}
-	rows, qErr := db.DB.Query("SELECT e.id, e.schema_id, e.data, cs.type_name FROM compendium_entries e JOIN compendium_entries_fts f ON e.id = f.rowid JOIN compendium_schemas cs ON e.schema_id = cs.id WHERE "+ftsWhere+" ORDER BY rank LIMIT 25", ftsArgs...)
-	if qErr != nil {
-		middleware.LogWarn("compendium", "unified search failed", "error", qErr)
-	} else {
-		func() {
-			defer rows.Close()
-			for rows.Next() {
-				var r SearchResult
-				var schemaID int64
-				var dataJSON string
-				if err := rows.Scan(&r.ID, &schemaID, &r.Type, &dataJSON); err != nil {
-					middleware.LogWarn("compendium", "scan failed, skipping row", "type", "unified", "error", err)
-					continue
-				}
-				var data map[string]any
-				if err := json.Unmarshal([]byte(dataJSON), &data); err == nil {
-					if n, ok := data["name"].(string); ok {
-						r.Name = n
-					}
-				}
-				results = append(results, r)
-			}
-			if err := rows.Err(); err != nil {
-				middleware.LogWarn("compendium", "rows iteration failed", "error", err)
-			}
-		}()
-	}
-
 	c.JSON(http.StatusOK, results)
 }
 

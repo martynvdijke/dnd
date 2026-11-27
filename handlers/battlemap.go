@@ -293,6 +293,7 @@ func SyncBattlemapTokens(c *gin.Context) {
 		WriteError(c, http.StatusInternalServerError, strErr("could not load combatants"))
 		return
 	}
+	defer rows.Close()
 	type entry struct {
 		id   int64
 		name string
@@ -304,7 +305,6 @@ func SyncBattlemapTokens(c *gin.Context) {
 			entries = append(entries, e)
 		}
 	}
-	rows.Close()
 
 	created := 0
 	for i, e := range entries {
