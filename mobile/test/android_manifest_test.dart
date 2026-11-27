@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   final manifest =
       File('android/app/src/main/AndroidManifest.xml').readAsStringSync();
+  final debugManifest =
+      File('android/app/src/debug/AndroidManifest.xml').readAsStringSync();
   final gradle = File('android/app/build.gradle.kts').readAsStringSync();
 
   test('manifest grants INTERNET', () {
@@ -17,8 +19,13 @@ void main() {
     expect(manifest, contains('android:mimeType="image/*"'));
   });
 
-  test('manifest permits self-hosted cleartext HTTP', () {
-    expect(manifest, contains('android:usesCleartextTraffic="true"'));
+  test('release manifest denies cleartext HTTP', () {
+    expect(manifest, contains('android:usesCleartextTraffic="false"'));
+    expect(manifest, isNot(contains('android:usesCleartextTraffic="true"')));
+  });
+
+  test('debug manifest permits cleartext HTTP for self-hosted backends', () {
+    expect(debugManifest, contains('android:usesCleartextTraffic="true"'));
   });
 
   test('release build wires key.properties signing with a debug fallback', () {
