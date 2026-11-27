@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"villum/ai"
 	"villum/db"
 	googlecalendar "villum/google_calendar"
 )
@@ -38,6 +39,8 @@ const (
 
 func SetAppVersion(v string) {
 	AppVersion = v
+	// The ai package embeds the same version in its provider User-Agent header.
+	ai.SetAppVersion(v)
 }
 
 // SetBaseURL sets the public base URL for constructing shareable links.

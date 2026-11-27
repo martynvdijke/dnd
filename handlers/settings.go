@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"villum/ai"
 	"villum/db"
 	"villum/models"
 )
@@ -155,13 +156,8 @@ func SetAISetting(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"enabled": req.Enabled})
 }
 
-// ponytail: TD-007 — duplicated by the search/ai packages; delegate when this handler is next touched
 // aiEnabled reports whether the LLM-backed AI features are enabled site-wide.
+// Delegates to ai.IsEnabled so the app_settings read lives in one place.
 func aiEnabled(ctx context.Context) bool {
-	var value string
-	if err := db.DB.QueryRow("SELECT value FROM app_settings WHERE key = 'ai_enabled'").Scan(&value); err != nil {
-		// Missing setting defaults to enabled (preserve historical behavior).
-		return true
-	}
-	return value == "1"
+	return ai.IsEnabled(ctx, db.DB)
 }
