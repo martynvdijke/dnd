@@ -332,18 +332,6 @@ func SeedCampaignMonsterRoster(t *testing.T, id, campaignID, monsterID int64) {
 	}
 }
 
-// SeedCalendarEvent inserts a campaign calendar event fixture.
-func SeedCalendarEvent(t *testing.T, id, campaignID int64, title, eventDate string) {
-	t.Helper()
-	_, err := db.DB.Exec(
-		"INSERT OR IGNORE INTO campaign_calendar_events(id, campaign_id, title, event_date) VALUES(?, ?, ?, ?)",
-		id, campaignID, title, eventDate,
-	)
-	if err != nil {
-		t.Fatalf("seed calendar event: %v", err)
-	}
-}
-
 // SeedTimelineEvent inserts a campaign timeline event fixture.
 func SeedTimelineEvent(t *testing.T, id, campaignID int64, title string) {
 	t.Helper()
