@@ -157,23 +157,13 @@ func buildRecapTemplate(campaignID int64) (string, *string, *string) {
 	var recaps []RecapSection
 
 	// Get character names
-	charRows, err := db.DB.Query("SELECT c.id, c.name, c.race, c.class FROM characters c JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=?", campaignID)
 	var charNames []string
-	if err != nil {
+	if chars, err := campaignCharactersIn(db.DB, campaignID); err != nil {
 		middleware.LogWarn("recaps", "character names query failed", "error", err)
 	} else {
-		func() {
-			defer charRows.Close()
-			for charRows.Next() {
-				var id int64
-				var name, race, cls string
-				charRows.Scan(&id, &name, &race, &cls)
-				charNames = append(charNames, fmt.Sprintf("%s (%s %s, Lvl)", name, race, cls))
-			}
-			if err := charRows.Err(); err != nil {
-				middleware.LogWarn("recaps", "rows iteration failed", "error", err)
-			}
-		}()
+		for _, ch := range chars {
+			charNames = append(charNames, fmt.Sprintf("%s (%s %s, Lvl)", ch.Name, ch.Race, ch.Class))
+		}
 	}
 	if len(charNames) > 0 {
 		recaps = append(recaps, RecapSection{
@@ -212,7 +202,7 @@ func buildRecapTemplate(campaignID int64) (string, *string, *string) {
 	questRows, err := db.DB.Query(`
 		SELECT q.name, q.description FROM quests q
 		JOIN characters c ON q.character_id=c.id
-		JOIN campaign_characters cm ON cm.character_id=c.id
+		`+campaignCharacterJoinSQL+`
 		WHERE cm.campaign_id=? AND q.status='complete' AND q.updated_at >= datetime('now', '-30 days')
 		ORDER BY q.updated_at DESC LIMIT 5`, campaignID)
 	var completedQuests []string
@@ -242,7 +232,7 @@ func buildRecapTemplate(campaignID int64) (string, *string, *string) {
 	aRows, err := db.DB.Query(`
 		SELECT q.name, q.description FROM quests q
 		JOIN characters c ON q.character_id=c.id
-		JOIN campaign_characters cm ON cm.character_id=c.id
+		`+campaignCharacterJoinSQL+`
 		WHERE cm.campaign_id=? AND q.status='active' ORDER BY q.name`, campaignID)
 	var activeQuests []string
 	if err != nil {
@@ -271,7 +261,7 @@ func buildRecapTemplate(campaignID int64) (string, *string, *string) {
 	sessRows, err := db.DB.Query(`
 		SELECT s.title, s.notes, s.session_date FROM sessions s
 		JOIN characters c ON s.character_id=c.id
-		JOIN campaign_characters cm ON cm.character_id=c.id
+		`+campaignCharacterJoinSQL+`
 		WHERE cm.campaign_id=? AND s.created_at >= datetime('now', '-30 days')
 		ORDER BY s.session_date DESC LIMIT 5`, campaignID)
 	var recentSessions []string
@@ -326,7 +316,7 @@ func buildRecapTemplate(campaignID int64) (string, *string, *string) {
 	condRows, err := db.DB.Query(`
 		SELECT cc.name, c.name FROM character_conditions cc
 		JOIN characters c ON cc.character_id=c.id
-		JOIN campaign_characters cm ON cm.character_id=c.id
+		`+campaignCharacterJoinSQL+`
 		WHERE cm.campaign_id=? AND cc.duration > 0`, campaignID)
 	var conditions []string
 	if err != nil {

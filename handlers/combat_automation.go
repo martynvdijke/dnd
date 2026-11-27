@@ -275,7 +275,9 @@ func HandleCombatAttack(c *gin.Context) {
 			return
 		}
 		// The target's campaign comes from its first membership, if any.
-		db.DB.QueryRow("SELECT campaign_id FROM campaign_characters WHERE character_id=? ORDER BY campaign_id LIMIT 1", req.TargetID).Scan(&targetCampaignID)
+		if cid, err := firstCampaignIDForCharacter(db.DB, req.TargetID); err == nil {
+			targetCampaignID = &cid
+		}
 		if targetCampaignID != nil && *targetCampaignID == 0 {
 			targetCampaignID = nil
 		}

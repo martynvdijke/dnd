@@ -92,7 +92,7 @@ func GetCampaignDashboard(c *gin.Context) {
 
 	db.DB.QueryRow("SELECT name, COALESCE(party_name,'') FROM campaigns WHERE id=?", campaignID).Scan(&dash.Name, &dash.PartyName)
 
-	db.DB.QueryRow("SELECT COUNT(*) FROM quests q JOIN characters c ON q.character_id=c.id JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=? AND q.status='active'", campaignID).Scan(&dash.ActiveQuests)
+	db.DB.QueryRow("SELECT COUNT(*) FROM quests q JOIN characters c ON q.character_id=c.id "+campaignCharacterJoinSQL+" WHERE cm.campaign_id=? AND q.status='active'", campaignID).Scan(&dash.ActiveQuests)
 
 	rows, err := db.DB.Query("SELECT COUNT(*) FROM campaign_calendar_events WHERE campaign_id=? AND event_date >= date('now') AND event_type='session'", campaignID)
 	if err != nil {
@@ -110,9 +110,9 @@ func GetCampaignDashboard(c *gin.Context) {
 
 	db.DB.QueryRow("SELECT COUNT(*) FROM campaign_members WHERE campaign_id=?", campaignID).Scan(&dash.TotalMembers)
 
-	db.DB.QueryRow("SELECT COUNT(*) FROM character_conditions cc JOIN characters c ON cc.character_id=c.id JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=?", campaignID).Scan(&dash.ActiveConditions)
+	db.DB.QueryRow("SELECT COUNT(*) FROM character_conditions cc JOIN characters c ON cc.character_id=c.id "+campaignCharacterJoinSQL+" WHERE cm.campaign_id=?", campaignID).Scan(&dash.ActiveConditions)
 
-	_ = db.DB.QueryRow("SELECT COUNT(*) FROM journal j JOIN characters c ON j.character_id=c.id JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=? AND j.created_at >= datetime('now', '-7 days')", campaignID).Scan(&dash.RecentJournal)
+	_ = db.DB.QueryRow("SELECT COUNT(*) FROM journal j JOIN characters c ON j.character_id=c.id "+campaignCharacterJoinSQL+" WHERE cm.campaign_id=? AND j.created_at >= datetime('now', '-7 days')", campaignID).Scan(&dash.RecentJournal)
 
 	// Upcoming calendar events
 	calRows, err := db.DB.Query("SELECT id, title, event_date, event_type, color FROM campaign_calendar_events WHERE campaign_id=? AND event_date >= date('now') ORDER BY event_date LIMIT 5", campaignID)
@@ -151,27 +151,27 @@ func GetCampaignDashboard(c *gin.Context) {
 	}
 
 	// Character summaries
-	charRows, err := db.DB.Query("SELECT c.id, c.name, c.race, c.class, c.level, c.hp_current, c.hp_max, COALESCE(c.portrait_url,'') FROM characters c JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=? ORDER BY c.name", campaignID)
-	if err != nil {
+	if chars, err := campaignCharactersIn(db.DB, campaignID); err != nil {
 		middleware.LogWarn("dashboard", "character summaries query failed", "error", err)
 	} else {
-		func() {
-			defer charRows.Close()
-			raceColors := GetRaceColorMap()
-			for charRows.Next() {
-				var cs CharacterDashSummary
-				charRows.Scan(&cs.ID, &cs.Name, &cs.Race, &cs.Class, &cs.Level, &cs.HPCurrent, &cs.HPMax, &cs.PortraitURL)
-				cs.RaceColor = raceColors[cs.Race]
-				dash.CharacterSummary = append(dash.CharacterSummary, cs)
-			}
-			if err := charRows.Err(); err != nil {
-				middleware.LogWarn("dashboard", "rows iteration failed", "error", err)
-			}
-		}()
+		raceColors := GetRaceColorMap()
+		for _, ch := range chars {
+			dash.CharacterSummary = append(dash.CharacterSummary, CharacterDashSummary{
+				ID:          ch.ID,
+				Name:        ch.Name,
+				Race:        ch.Race,
+				Class:       ch.Class,
+				Level:       ch.Level,
+				HPCurrent:   ch.HPCurrent,
+				HPMax:       ch.HPMax,
+				PortraitURL: ch.PortraitURL,
+				RaceColor:   raceColors[ch.Race],
+			})
+		}
 	}
 
 	// Active downtime activities
-	db.DB.QueryRow("SELECT COUNT(*) FROM downtime_activities da JOIN characters c ON da.character_id=c.id JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=? AND da.status='in-progress'", campaignID).Scan(&dash.DowntimeCount)
+	db.DB.QueryRow("SELECT COUNT(*) FROM downtime_activities da JOIN characters c ON da.character_id=c.id "+campaignCharacterJoinSQL+" WHERE cm.campaign_id=? AND da.status='in-progress'", campaignID).Scan(&dash.DowntimeCount)
 
 	// Recent recaps
 	recapRows, err := db.DB.Query("SELECT id, title, COALESCE(session_start_date,''), created_at FROM campaign_recaps WHERE campaign_id=? ORDER BY created_at DESC LIMIT 3", campaignID)
@@ -214,7 +214,7 @@ func GetCampaignDashboard(c *gin.Context) {
 		SELECT dr.id, dr.expression, dr.total, dr.timestamp
 		FROM dice_rolls dr
 		JOIN characters c ON dr.character_id = c.id
-		JOIN campaign_characters cm ON cm.character_id = c.id
+		`+campaignCharacterJoinSQL+`
 		WHERE cm.campaign_id=?
 		ORDER BY dr.timestamp DESC, dr.id DESC LIMIT 5
 	`, campaignID)

@@ -102,16 +102,14 @@ func HandleRoll(c *gin.Context) {
 	// Relay to every campaign the character belongs to. Rolls with no
 	// membership stay private.
 	if req.CharacterID != nil {
-		rows, err := db.DB.Query("SELECT campaign_id FROM campaign_characters WHERE character_id=?", *req.CharacterID)
+		campaignIDs, err := campaignIDsForCharacter(db.DB, *req.CharacterID)
 		if err == nil {
-			defer rows.Close()
 			uid, _ := userID.(int64)
 			var username string
 			db.DB.QueryRow("SELECT username FROM users WHERE id=?", uid).Scan(&username)
 			seen := map[int64]bool{}
-			for rows.Next() {
-				var campaignID int64
-				if rows.Scan(&campaignID) == nil && !seen[campaignID] {
+			for _, campaignID := range campaignIDs {
+				if !seen[campaignID] {
 					seen[campaignID] = true
 					SendDiceRoll(campaignID, uid, *req.CharacterID, username, hr.Expression, hr.Total, hr.Text)
 				}
