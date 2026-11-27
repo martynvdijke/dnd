@@ -7,7 +7,7 @@ Flutter Android pocket companion for Villum. Targets the existing Go `/api/*` + 
 
 ## Stack
 
-Flutter 3.47.2 / Dart 3.13.2. `flutter_riverpod ^3.4.3` (Riverpod **3** — no codegen, no
+Flutter 3.47.9 / Dart 3.13.2. `flutter_riverpod ^3.4.3` (Riverpod **3** — no codegen, no
 `StateNotifier`), `dio ^5.11.1`, `web_socket_channel ^3.0.3`, `go_router ^18.1.0`,
 `flutter_secure_storage ^11.2.0`, `crypto ^3.0.7`, `google_fonts ^9.0.0`.
 
