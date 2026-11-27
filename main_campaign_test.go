@@ -747,54 +747,6 @@ func TestEncounterBuilder(t *testing.T) {
 	}
 }
 
-// ─── Calendar Tests ───
-
-func TestCalendarEvents(t *testing.T) {
-	tc := newTestClient()
-	setupAdmin(t, tc)
-
-	resp := tc.post("/api/campaigns", map[string]any{"name": "Calendar Campaign", "description": "Test"})
-	var camp map[string]any
-	readJSON(resp, &camp)
-	cid := int(camp["id"].(float64))
-
-	resp = tc.post("/api/calendar", map[string]any{
-		"campaign_id": cid, "title": "Full Moon", "event_date": "1491-04-15",
-		"event_type": "holiday", "description": "A full moon rises",
-	})
-	if resp.Code != 201 {
-		t.Fatalf("create calendar event failed: %d - %s", resp.Code, resp.Body.String())
-	}
-	var ev map[string]any
-	readJSON(resp, &ev)
-	eid := int(ev["id"].(float64))
-
-	resp = tc.get("/api/calendar?campaign_id="+strconv.Itoa(cid), nil)
-	if resp.Code != 200 {
-		t.Fatalf("list calendar events failed: %d", resp.Code)
-	}
-	var events []any
-	readJSON(resp, &events)
-	if len(events) != 1 {
-		t.Fatalf("expected 1 event, got %d", len(events))
-	}
-
-	resp = tc.put(fmt.Sprintf("/api/calendar/%d", eid), map[string]any{
-		"campaign_id": cid, "title": "Blood Moon", "event_date": "1491-04-15",
-		"event_type": "holiday", "color": "#ff0000",
-	})
-	if resp.Code != 200 {
-		t.Fatalf("update calendar event failed: %d", resp.Code)
-	}
-
-	resp = tc.del(fmt.Sprintf("/api/calendar/%d", eid), nil)
-	if resp.Code != 200 {
-		t.Fatalf("delete calendar event failed: %d", resp.Code)
-	}
-
-	tc.del(fmt.Sprintf("/api/campaigns/%d", cid), nil)
-}
-
 // ─── Timeline Tests ───
 
 func TestTimelineEvents(t *testing.T) {

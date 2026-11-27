@@ -330,10 +330,30 @@ func SeedCompendiumSchemas() {
 	}
 }
 
-// AutoSyncCompendiumEntry is called when syncing a legacy entry into the generic system.
-// For now it's a no-op placeholder; full sync happens in Phase 2.
+// AutoSyncCompendiumEntry refreshes the full-text index row for an entry that
+// was just synced into the generic compendium. The compendium_entries_fts
+// triggers created in migration 034 already index inserts, so this normally
+// rewrites an already-correct row; doing it unconditionally keeps the sync
+// idempotent and repairs index drift (e.g. rows written before the triggers
+// existed). The stored value is reindexed rather than the caller's payload so a
+// stale payload can never corrupt the index.
 func AutoSyncCompendiumEntry(schemaID, entryID int64, data map[string]any) {
-	// Reserved for future use — writes metadata or triggers cross-system sync
+	if entryID <= 0 {
+		return
+	}
+	var stored string
+	if err := db.DB.QueryRow(`SELECT data FROM compendium_entries WHERE id=?`, entryID).Scan(&stored); err != nil {
+		middleware.LogWarn("compendium", "autosync read entry failed", "entry", entryID, "error", err)
+		return
+	}
+	// FTS5's documented way to refresh an external-content row: delete the old
+	// index entry, then insert the current one. A row that is not indexed yet
+	// makes the delete a no-op error; the insert below then produces exactly one
+	// correct entry, so that error is deliberately ignored.
+	_, _ = db.DB.Exec(`INSERT INTO compendium_entries_fts(compendium_entries_fts, rowid, data) VALUES('delete',?,?)`, entryID, stored)
+	if _, err := db.DB.Exec(`INSERT INTO compendium_entries_fts(rowid, data) VALUES(?,?)`, entryID, stored); err != nil {
+		middleware.LogWarn("compendium", "autosync fts insert failed", "entry", entryID, "error", err)
+	}
 }
 
 // ─── Legacy Data Migration ───

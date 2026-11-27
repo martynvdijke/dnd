@@ -1,12 +1,14 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http/httptest"
 	"strconv"
 	"testing"
 
 	"github.com/gin-gonic/gin"
 
+	"villum/db"
 	"villum/handlers/testutil"
 )
 
@@ -1086,5 +1088,60 @@ func TestCompendiumAdminMigrateLegacy(t *testing.T) {
 		if found == 0 {
 			t.Fatalf("expected per-schema counts in response, got %v", res)
 		}
+	}
+}
+
+func TestAutoSyncCompendiumEntryRepairsFTSCoverage(t *testing.T) {
+	testutil.NewDB(t)
+	defer testutil.CloseDB(t)
+	testutil.SeedUser(t, 1, "admin", "admin")
+	SeedCompendiumSchemas()
+
+	var schemaID int64
+	if err := db.DB.QueryRow("SELECT id FROM compendium_schemas WHERE type_name='race'").Scan(&schemaID); err != nil {
+		t.Fatalf("race schema missing: %v", err)
+	}
+
+	data := map[string]any{"name": "Zzautosync Test Creature"}
+	dataJSON, err := json.Marshal(data)
+	if err != nil {
+		t.Fatalf("marshal data: %v", err)
+	}
+	res, err := db.DB.Exec("INSERT INTO compendium_entries(schema_id, data) VALUES(?,?)", schemaID, string(dataJSON))
+	if err != nil {
+		t.Fatalf("insert entry: %v", err)
+	}
+	entryID, _ := res.LastInsertId()
+
+	// matches counts rows the full-text index finds for the unique token.
+	matches := func() int {
+		var n int
+		if err := db.DB.QueryRow("SELECT COUNT(*) FROM compendium_entries_fts WHERE compendium_entries_fts MATCH 'zzautosync'").Scan(&n); err != nil {
+			t.Fatalf("match fts rows: %v", err)
+		}
+		return n
+	}
+
+	if n := matches(); n != 1 {
+		t.Fatalf("expected entry searchable after insert, got %d matches", n)
+	}
+
+	// Simulate index drift with FTS5's documented delete command.
+	if _, err := db.DB.Exec("INSERT INTO compendium_entries_fts(compendium_entries_fts, rowid, data) VALUES('delete',?,?)", entryID, string(dataJSON)); err != nil {
+		t.Fatalf("drop fts row: %v", err)
+	}
+	if n := matches(); n != 0 {
+		t.Fatalf("expected fts row removed, got %d matches", n)
+	}
+
+	AutoSyncCompendiumEntry(schemaID, entryID, data)
+	if n := matches(); n != 1 {
+		t.Fatalf("expected autosync to restore fts row, got %d matches", n)
+	}
+
+	// Calling it again must stay idempotent (no duplicated index entries).
+	AutoSyncCompendiumEntry(schemaID, entryID, data)
+	if n := matches(); n != 1 {
+		t.Fatalf("expected autosync to be idempotent, got %d matches", n)
 	}
 }

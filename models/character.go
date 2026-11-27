@@ -377,17 +377,6 @@ type EncounterMonster struct {
 	CompendiumMonsterID *int64 `json:"compendium_monster_id,omitempty"`
 }
 
-type CalendarEvent struct {
-	ID          int64  `json:"id"`
-	CampaignID  int64  `json:"campaign_id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	EventDate   string `json:"event_date"`
-	EventType   string `json:"event_type"`
-	Color       string `json:"color"`
-	CreatedAt   string `json:"created_at"`
-}
-
 type Condition struct {
 	ID           int64  `json:"id"`
 	CharacterID  int64  `json:"character_id"`
