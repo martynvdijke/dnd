@@ -1,6 +1,6 @@
 # AGENTS.md — Villum
 
-D&D campaign manager. Go backend (`handlers/`, `middleware/`, `crypto/`, `dice/`, `registry/`, `trmnl/`; modernc.org/sqlite + ent), TypeScript frontend (`ts/`, 5 vite bundles), Playwright e2e (`tests/`), vitest unit tests (`ts/**/*.test.ts`). Task runner: Taskfile. Hooks: prek (pre-commit compatible). Specs: OpenSpec (`openspec/`).
+D&D campaign manager. Go backend (`handlers/`, `middleware/`, `crypto/`, `dice/`, `registry/`, `trmnl/`; modernc.org/sqlite + ent), TypeScript frontend (`ts/`, 6 vite bundles), Playwright e2e (`tests/`), vitest unit tests (`ts/**/*.test.ts`). Mobile app: Flutter Android companion at `mobile/` (Android project in `mobile/android/`, CI via the `flutter-android.yaml` / `android-e2e.yaml` / `play-store.yaml` workflows, version pinned in `mobile/.fvmrc`). Task runner: Taskfile. Hooks: prek (pre-commit compatible). Specs: OpenSpec (`openspec/`).
 
 ## The Workflow Contract (read first)
 
