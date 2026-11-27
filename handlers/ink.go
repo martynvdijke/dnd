@@ -309,6 +309,7 @@ func ListInkCaptures(c *gin.Context) {
 		InternalError(c, err)
 		return
 	}
+	defer rows.Close()
 	ids := []int64{}
 	for rows.Next() {
 		var id int64
@@ -316,7 +317,6 @@ func ListInkCaptures(c *gin.Context) {
 			ids = append(ids, id)
 		}
 	}
-	rows.Close()
 
 	out := make([]*inkCapture, 0, len(ids))
 	for _, id := range ids {
