@@ -316,12 +316,6 @@ func TestCampaignDashboard(t *testing.T) {
 	tc.post(fmt.Sprintf("/api/characters/%d/quests", int(char["id"].(float64))),
 		map[string]any{"name": "Test Quest", "status": "active"})
 
-	// Add calendar event
-	tc.post("/api/calendar", map[string]any{
-		"campaign_id": cid, "title": "Upcoming Session",
-		"event_date": "2026-06-01", "event_type": "session",
-	})
-
 	// Get dashboard
 	resp = tc.get(fmt.Sprintf("/api/campaigns/%d/dashboard", cid), nil)
 	if resp.Code != 200 {
