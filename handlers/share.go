@@ -381,11 +381,11 @@ func GetSharedEntity(c *gin.Context) {
 
 		rows, err := db.DB.Query(`
 			SELECT c.id, c.user_id, COALESCE(u.username, ''), c.name, c.race, c.class,
-				c.level, c.ac, c.hp_max, c.hp_current, c.temp_hp, cc.campaign_id
+				c.level, c.ac, c.hp_max, c.hp_current, c.temp_hp, cm.campaign_id
 			FROM characters c
-			JOIN campaign_characters cc ON cc.character_id = c.id
+			`+campaignCharacterJoinSQL+`
 			LEFT JOIN users u ON u.id = c.user_id
-			WHERE cc.campaign_id=? ORDER BY c.name`, campaignID)
+			WHERE cm.campaign_id=? ORDER BY c.name`, campaignID)
 		if err != nil {
 			InternalError(c, err)
 			c.Abort()

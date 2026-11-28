@@ -69,35 +69,27 @@ func HandleCampaignDMScreen(c *gin.Context) {
 
 	// Party status with active conditions.
 	party := []gin.H{}
-	charRows, err := db.DB.Query("SELECT c.id, c.name, c.hp_current, c.hp_max, c.ac FROM characters c JOIN campaign_characters cm ON cm.character_id=c.id WHERE cm.campaign_id=? ORDER BY c.name", campaignID)
-	if err == nil {
-		func() {
-			defer charRows.Close()
-			for charRows.Next() {
-				var id int64
-				var cname string
-				var hp, hpMax, ac int
-				if charRows.Scan(&id, &cname, &hp, &hpMax, &ac) != nil {
-					continue
-				}
-				conditions := []string{}
-				condRows, cerr := db.DB.Query("SELECT name FROM character_conditions WHERE character_id=?", id)
-				if cerr == nil {
-					func() {
-						defer condRows.Close()
-						for condRows.Next() {
-							var cn string
-							if condRows.Scan(&cn) == nil {
-								conditions = append(conditions, cn)
-							}
+	if chars, err := campaignCharactersIn(db.DB, campaignID); err == nil {
+		for _, ch := range chars {
+			id, cname := ch.ID, ch.Name
+			hp, hpMax, ac := ch.HPCurrent, ch.HPMax, ch.AC
+			conditions := []string{}
+			condRows, cerr := db.DB.Query("SELECT name FROM character_conditions WHERE character_id=?", id)
+			if cerr == nil {
+				func() {
+					defer condRows.Close()
+					for condRows.Next() {
+						var cn string
+						if condRows.Scan(&cn) == nil {
+							conditions = append(conditions, cn)
 						}
-					}()
-				}
-				party = append(party, gin.H{
-					"id": id, "name": cname, "hp_current": hp, "hp_max": hpMax, "ac": ac, "conditions": conditions,
-				})
+					}
+				}()
 			}
-		}()
+			party = append(party, gin.H{
+				"id": id, "name": cname, "hp_current": hp, "hp_max": hpMax, "ac": ac, "conditions": conditions,
+			})
+		}
 	}
 
 	ambience := gin.H{"track": "", "action": ""}

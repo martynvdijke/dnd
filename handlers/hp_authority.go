@@ -229,8 +229,7 @@ func HandleCharacterHP(c *gin.Context) {
 	}
 	var campaignID *int64
 	// Characters may belong to several campaigns; bookkeeping uses the first membership.
-	var cid int64
-	if db.DB.QueryRow("SELECT campaign_id FROM campaign_characters WHERE character_id=? ORDER BY campaign_id LIMIT 1", charID).Scan(&cid) == nil {
+	if cid, err := firstCampaignIDForCharacter(db.DB, charID); err == nil {
 		campaignID = &cid
 	}
 	result, err := applyHPChange(charID, req.Delta, req.Type, req.Source, campaignID)
@@ -290,8 +289,7 @@ func HandleSaveVsDC(c *gin.Context) {
 	campID := req.CampaignID
 	if campID == nil {
 		// Fall back to the first membership when the request has no campaign context.
-		var cid int64
-		if db.DB.QueryRow("SELECT campaign_id FROM campaign_characters WHERE character_id=? ORDER BY campaign_id LIMIT 1", req.CharacterID).Scan(&cid) == nil {
+		if cid, err := firstCampaignIDForCharacter(db.DB, req.CharacterID); err == nil {
 			campID = &cid
 		}
 	}

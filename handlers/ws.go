@@ -141,13 +141,10 @@ func SendCharacterUpdate(charID int64) {
 	if ownerID > 0 {
 		Hub.BroadcastToUser(ownerID, msg)
 	}
-	var campaignRows, campErr = db.DB.Query("SELECT campaign_id FROM campaign_characters WHERE character_id=?", charID)
-	if campErr == nil {
-		defer campaignRows.Close()
+	if campaignIDs, campErr := campaignIDsForCharacter(db.DB, charID); campErr == nil {
 		seen := map[int64]bool{}
-		for campaignRows.Next() {
-			var campaignID int64
-			if campaignRows.Scan(&campaignID) == nil && !seen[campaignID] {
+		for _, campaignID := range campaignIDs {
+			if !seen[campaignID] {
 				seen[campaignID] = true
 				Hub.BroadcastToCampaignMembers(campaignID, msg)
 			}
