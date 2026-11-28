@@ -1,3 +1,5 @@
+## [3.6.10](https://github.com/martynvdijke/dnd/compare/v3.6.9...v3.6.10) (2026-11-28)
+
 ## [3.6.9](https://github.com/martynvdijke/dnd/compare/v3.6.8...v3.6.9) (2026-11-27)
 
 
